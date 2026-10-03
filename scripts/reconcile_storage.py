@@ -39,7 +39,7 @@ logger = logging.getLogger("scripts.reconcile_storage")
 class TraceEventContent(BaseModel):
     """Header content of a trace event."""
 
-    model_config = ConfigDict(strict=False, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     language: str | None = None
     target_locale: str | None = None
@@ -49,7 +49,7 @@ class TraceEventContent(BaseModel):
 class TraceEventHeader(BaseModel):
     """Header structure of a trace event."""
 
-    model_config = ConfigDict(strict=False, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     step_name: str | None = None
     event_type: str | None = None
@@ -89,7 +89,7 @@ def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
             c = events[0].content
             target_locale = c.language or c.target_locale or "en"
             workflow_id = c.workflow_id or "wor_default"
-    except OSError, json.JSONDecodeError, ValueError:
+    except (OSError, json.JSONDecodeError, ValueError):
         pass
     return workflow_id, target_locale
 

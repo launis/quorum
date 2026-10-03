@@ -108,7 +108,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
 
     <step id="5">COMPLETION GAP ANALYSIS: 
       - Identify "Orphan Requirements" — things requested by the plan that cannot be found in the current codebase or are only partially implemented.
-      - TASK TRACKER VERIFICATION: If a `task.md` was found, verify that all checkboxes are marked as completed `[x]`. If any items remain uncompleted `[ ]` or in-progress `[/]`, flag them as tracking gaps in the audit report.
+      - TASK TRACKER VERIFICATION: If an Epic tracker or `task.md` was found, verify that all checkboxes are marked as completed `[x]`. Run `uv run python scripts/audit_plan_tracker_parity.py --plan <plan_path> --tracker <tracker_path>` to mathematically verify plan-tracker parity. If any items remain uncompleted `[ ]` or in-progress `[/]`, flag them as tracking gaps in the audit report.
     </step>
 
     <step id="6">RETROSPECTIVE REPORT GENERATION & HANDOVER: 

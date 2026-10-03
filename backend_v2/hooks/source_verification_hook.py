@@ -7,7 +7,7 @@ the Tavily AI search client to verify them against live web data.
 import logging
 from typing import Any
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -21,7 +21,10 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
-from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
+from backend_v2.models.dtos.source_extraction_schema import (
+    SourceVerificationInputsDTO,
+    SourceVerificationPayloadDTO,
+)
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
@@ -32,10 +35,6 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 __all__ = ["source_verification_hook"]
-
-
-_dict_adapter = TypeAdapter(dict[str, Any])
-_list_adapter = TypeAdapter(list[Any])
 
 
 def _extract_text_polymorphically(inputs: Any) -> str:
@@ -64,47 +63,37 @@ def _extract_text_polymorphically(inputs: Any) -> str:
 
     if isinstance(inputs, BaseModel):
         if isinstance(inputs, SourceVerificationInputsDTO):
-            return (inputs.document_text or inputs.prior_analysis or inputs.text or inputs.document or "").strip()
+            for candidate in (inputs.document_text, inputs.prior_analysis, inputs.text, inputs.document):
+                if candidate is not None and candidate.strip():
+                    return candidate.strip()
+            return ""
+        if isinstance(inputs, SourceVerificationPayloadDTO):
+            return inputs.extract_text()
         return _extract_text_polymorphically(inputs.model_dump(mode="python"))
 
-    # Attempt to validate as list payload
-    try:
-        inputs_list = _list_adapter.validate_python(inputs)
-        text_parts = [str(item).strip() for item in inputs_list if item is not None and str(item).strip()]
+    # Attempt to handle list payload
+    if isinstance(inputs, list):
+        text_parts = [str(item).strip() for item in inputs if item is not None and str(item).strip()]
         return "\n\n".join(text_parts).strip()
-    except ValidationError:
-        pass
 
-    # Attempt to validate as dict payload
-    try:
-        inputs_dict = _dict_adapter.validate_python(inputs)
-        recognized_keys = ("document_text", "prior_analysis", "text", "document")
-        if any(k in inputs_dict for k in recognized_keys):
-            try:
-                inputs_dto = SourceVerificationInputsDTO.model_validate(inputs_dict)
-                return (
-                    inputs_dto.document_text
-                    or inputs_dto.prior_analysis
-                    or inputs_dto.text
-                    or inputs_dto.document
-                    or ""
-                ).strip()
-            except Exception as e:
-                msg = f"Invalid inputs for source verification hook: {e}"
-                logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        else:
-            text_parts_dict: list[str] = []
-            for val in inputs_dict.values():
-                if val is not None and str(val).strip():
-                    text_parts_dict.append(str(val).strip())
-            return "\n\n".join(text_parts_dict).strip()
-    except ValidationError:
-        pass
+    # Attempt to handle dict payload via SourceVerificationPayloadDTO
+    if type(inputs) is dict:
+        try:
+            known_keys = {"document_text", "prior_analysis", "text", "document"}
+            payload_data: dict[str, Any] = {k: v for k, v in inputs.items() if k in known_keys}
+            extra_data = {str(k): str(v) for k, v in inputs.items() if k not in known_keys and v is not None}
+            if extra_data:
+                payload_data["extra_sections"] = extra_data
+            payload = SourceVerificationPayloadDTO.model_validate(payload_data)
+            return payload.extract_text()
+        except ValidationError as e:
+            msg = f"Invalid inputs for source verification hook: {e}"
+            logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
     msg = "Invalid inputs format for source verification hook"
     logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

@@ -12,12 +12,19 @@ import re
 import sys
 from pathlib import Path
 
+import io
+
 # Force UTF-8 encoding for stdout/stderr to support emojis on Windows
-if hasattr(sys.stdout, "reconfigure"):
+if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-    except Exception:
+    except (AttributeError, ValueError, io.UnsupportedOperation):
+        pass
+
+if isinstance(sys.stderr, io.TextIOWrapper):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError, io.UnsupportedOperation):
         pass
 
 # Curated exclusion set for common keywords, types, and Markdown noise

@@ -5,14 +5,13 @@ import asyncio
 # Conditional import or type checking if direct dependency is optional,
 # but effectively expected here.
 import importlib
+import importlib.util
 import logging
 from typing import Any
 
-try:
-    google_cloud = importlib.import_module("google.cloud")
-    storage = google_cloud.storage
-except ImportError, AttributeError:
-    storage = None
+storage: Any = None
+if importlib.util.find_spec("google.cloud.storage") is not None:
+    storage = importlib.import_module("google.cloud.storage")
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.file_driver import FileDriver

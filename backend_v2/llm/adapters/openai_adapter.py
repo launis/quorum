@@ -139,7 +139,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             has_reasoning = "supports_reasoning" in info and bool(info["supports_reasoning"])
             if has_reasoning or "reasoning_effort" in supported_params:
                 is_reasoning_model = True
-        except Exception:  # noqa: QGR003 [REASON: Non-fatal fallback to prefix heuristic for local or unmapped models]
+        except Exception as exc:
+            if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                raise
             # Fallback for local, mock, unmapped, or cutting-edge unindexed models
             is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4", "o5", "gpt-5"))
 
@@ -196,7 +198,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         Args:
             node: Node within the JSON schema graph to inspect and mutate in-place.
         """
-        if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary transformation for OpenAI strict API]
+        if type(node) is dict:
             node.pop("default", None)
             node.pop("discriminator", None)
             if "oneOf" in node:
@@ -207,7 +209,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
                 node["additionalProperties"] = False
                 if "properties" in node:
                     properties = node["properties"]
-                    if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
+                    if type(properties) is dict:
                         if "required" not in node or not isinstance(node["required"], list):
                             node["required"] = []
                         for prop_name in properties:

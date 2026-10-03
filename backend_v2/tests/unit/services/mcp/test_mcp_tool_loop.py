@@ -683,7 +683,7 @@ async def test_extraction_dict_model_validation() -> None:
 @pytest.mark.asyncio
 async def test_phase2_app_exception_passthrough() -> None:
     """Tests that an AppException raised during Phase 2 is directly re-raised without re-wrapping."""
-    from backend_v2.exceptions import AppException
+    from backend_v2.exceptions import AppException, ErrorCodes
 
     client = _make_mock_llm_client()
 
@@ -695,7 +695,11 @@ async def test_phase2_app_exception_passthrough() -> None:
                 CitationExtractionResult(citations=citations),
                 TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
             )
-        raise AppException(message="Specific domain error in phase 2", status_code=422, details={})
+        raise AppException(
+            message="Specific domain error in phase 2",
+            status_code=422,
+            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL},
+        )
 
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)

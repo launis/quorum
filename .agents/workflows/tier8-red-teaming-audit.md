@@ -96,6 +96,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     - **Quorum Modernity Check**: Does the target rely on any of the specific Quorum anti-patterns? Flag each instance with its mandated modern replacement.
     - **Peer Workflow Parity Check**: Does the target contain the same safety guardrails (e.g., circuit_breaker, session_handover, context_amnesia_prevention) as its peer workflows? If a peer has a guardrail that the target lacks, flag it as a potential gap.
     - **Touched Scope Technical Debt Check**: Does the target workflow mandate active technical debt and anti-pattern sweeps on target files and 1-hop dependencies across the 7 checklist items (getattr/hasattr, .get(, except Exception:, model_copy, magic numbers, hardcoded UI strings/colors, ISTQB negative testing)?
+    - **Rule & Knowledge Staleness Verification**: Run `uv run python scripts/audit_rules_staleness.py` to mathematically verify that rules and knowledge items do not reference stale, deleted, or obsolete codebase paths.
     
     CONDITIONAL AXES (apply based on target domain):
     - Python/Backend: Push model data retrieval, Python 3.14+ standards (TaskGroup over gather), `uv run` enforcement, Pydantic V2 strict mode, polyfactory mock mandate.

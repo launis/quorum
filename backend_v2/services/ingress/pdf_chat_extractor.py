@@ -13,16 +13,25 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import fitz
+from pydantic import ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.core_base import V2CoreBase
 
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["PdfChatExtractorService"]
+__all__ = [
+    "PdfBlockSignatureDTO",
+    "PdfCellCoordinatesDTO",
+    "PdfChatExtractorService",
+    "PdfTextBlockDTO",
+    "RawTurnDTO",
+]
+
 # Relative geometry ratio constants for vector speech bubbles
 _USER_BUBBLE_MIN_WIDTH_RATIO: float = 0.20
 _USER_BUBBLE_MIN_X0_RATIO: float = 0.20
@@ -51,6 +60,53 @@ _TRUNCATION_INDICATORS: tuple[str, ...] = (
 )
 
 
+class PdfCellCoordinatesDTO(V2CoreBase):
+    """Coordinates for a table cell in a PDF."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    x0: float = Field(description="Left horizontal coordinate")
+    y0: float = Field(description="Top vertical coordinate")
+    x1: float = Field(description="Right horizontal coordinate")
+    y1: float = Field(description="Bottom vertical coordinate")
+
+
+class PdfTextBlockDTO(V2CoreBase):
+    """Text block extracted from PDF page."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    x0: float = Field(description="Left horizontal coordinate")
+    y0: float = Field(description="Top vertical coordinate")
+    x1: float = Field(description="Right horizontal coordinate")
+    y1: float = Field(description="Bottom vertical coordinate")
+    text: str = Field(description="Extracted block text content")
+    block_no: int = Field(description="Sequential block number on page")
+    block_type: int = Field(description="Block type flag from PyMuPDF")
+
+
+class RawTurnDTO(V2CoreBase):
+    """Intermediate extracted conversational turn."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    role: str = Field(description="Speaker role: user or ai")
+    content: str = Field(description="Turn message content")
+
+
+class PdfBlockSignatureDTO(V2CoreBase):
+    """Coordinate-level signature for text block deduplication."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    page_idx: int = Field(description="Zero-indexed page number")
+    x0: float = Field(description="Rounded left horizontal coordinate")
+    y0: float = Field(description="Rounded top vertical coordinate")
+    x1: float = Field(description="Rounded right horizontal coordinate")
+    y1: float = Field(description="Rounded bottom vertical coordinate")
+    text: str = Field(description="Sanitized text content")
+
+
 class PdfChatExtractorService:
     """Deterministic extractor for browser-printed and exported chat PDFs."""
 
@@ -66,7 +122,9 @@ class PdfChatExtractorService:
         Note:
             d is an External PyMuPDF API boundary dict from page.get_drawings().
         """
-        rect_obj = d["rect"] if "rect" in d else None
+        rect_obj = None
+        if "rect" in d:
+            rect_obj = d["rect"]
         if not isinstance(rect_obj, fitz.Rect):
             return False
         r: fitz.Rect = rect_obj
@@ -118,7 +176,7 @@ class PdfChatExtractorService:
             tables = page.find_tables()
             for t in tables.tables:
                 # 1. Compute bounding box from cells, filtering out outer page container cells
-                valid_cells: list[tuple[float, float, float, float]] = []
+                valid_cells: list[PdfCellCoordinatesDTO] = []
                 try:
                     cells = t.cells
                     if cells:
@@ -129,15 +187,22 @@ class PdfChatExtractorService:
                             c_h = c[3] - c[1]
                             if c_w >= page_w * _CANVAS_MAX_SIZE_RATIO and c_h >= page_h * _CANVAS_MAX_SIZE_RATIO:
                                 continue
-                            valid_cells.append(c)
+                            valid_cells.append(
+                                PdfCellCoordinatesDTO(
+                                    x0=float(c[0]),
+                                    y0=float(c[1]),
+                                    x1=float(c[2]),
+                                    y1=float(c[3]),
+                                )
+                            )
                 except (ValueError, AttributeError, TypeError) as exc:
                     PdfChatExtractorService._dlq_log_extraction_error("cell parsing", exc)
 
                 if valid_cells:
-                    min_x0 = min(c[0] for c in valid_cells)
-                    min_y0 = min(c[1] for c in valid_cells)
-                    max_x1 = max(c[2] for c in valid_cells)
-                    max_y1 = max(c[3] for c in valid_cells)
+                    min_x0 = min(c.x0 for c in valid_cells)
+                    min_y0 = min(c.y0 for c in valid_cells)
+                    max_x1 = max(c.x1 for c in valid_cells)
+                    max_y1 = max(c.y1 for c in valid_cells)
                     table_rects.append(fitz.Rect(min_x0, min_y0, max_x1, max_y1))
                     continue
 
@@ -192,7 +257,9 @@ class PdfChatExtractorService:
         user_bubbles: list[fitz.Rect] = []
         for d in page.get_drawings():
             if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h, table_rects):
-                r_obj = d["rect"] if "rect" in d else None
+                r_obj = None
+                if "rect" in d:
+                    r_obj = d["rect"]
                 if isinstance(r_obj, fitz.Rect):
                     user_bubbles.append(r_obj)
 
@@ -236,27 +303,27 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _sort_blocks_visual_order(
-        page_blocks: list[tuple[float, float, float, float, str, int, int]],
-    ) -> list[tuple[float, float, float, float, str, int, int]]:
+        page_blocks: list[PdfTextBlockDTO],
+    ) -> list[PdfTextBlockDTO]:
         """Sorts blocks topologically in visual reading order.
 
         Quantizes vertical coordinate into 10pt bands to group inline elements,
         then orders left-to-right by x0.
         """
-        return sorted(page_blocks, key=lambda b: (round(b[1] / 10.0), b[0]))
+        return sorted(page_blocks, key=lambda b: (round(b.y0 / 10.0), b.x0))
 
     @staticmethod
     def _filter_table_text_blocks(
-        page_blocks: list[tuple[float, float, float, float, str, int, int]],
+        page_blocks: list[PdfTextBlockDTO],
         table_rects: list[fitz.Rect],
-    ) -> list[tuple[float, float, float, float, str, int, int]]:
+    ) -> list[PdfTextBlockDTO]:
         """Suppresses raw text blocks that intersect identified table bounding boxes."""
         if not table_rects:
             return page_blocks
 
-        filtered: list[tuple[float, float, float, float, str, int, int]] = []
+        filtered: list[PdfTextBlockDTO] = []
         for b in page_blocks:
-            brect = fitz.Rect(b[0], b[1], b[2], b[3])
+            brect = fitz.Rect(b.x0, b.y0, b.x1, b.y1)
             if any(brect.intersects(tr) for tr in table_rects):
                 continue
             filtered.append(b)
@@ -338,7 +405,9 @@ class PdfChatExtractorService:
         page_blocks = page.get_text("blocks")
 
         for d in page.get_drawings():
-            rect_obj = d["rect"] if "rect" in d else None
+            rect_obj = None
+            if "rect" in d:
+                rect_obj = d["rect"]
             if not isinstance(rect_obj, fitz.Rect):
                 continue
             r: fitz.Rect = rect_obj
@@ -388,11 +457,11 @@ class PdfChatExtractorService:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        raw_turns: list[tuple[str, str]] = []
+        raw_turns: list[RawTurnDTO] = []
         current_role: str | None = None
         current_content: list[str] = []
 
-        seen_blocks: set[tuple[int, float, float, float, float, str]] = set()
+        seen_blocks: set[PdfBlockSignatureDTO] = set()
 
         for page_idx, page in enumerate(doc):
             page_h = page.rect.height
@@ -406,27 +475,59 @@ class PdfChatExtractorService:
 
             # 2. Extract and filter text blocks
             raw_page_blocks = page.get_text("blocks")
-            filtered_blocks = PdfChatExtractorService._filter_table_text_blocks(raw_page_blocks, table_rects)
+            wrapped_blocks = [
+                PdfTextBlockDTO(
+                    x0=float(b[0]),
+                    y0=float(b[1]),
+                    x1=float(b[2]),
+                    y1=float(b[3]),
+                    text=str(b[4]),
+                    block_no=int(b[5]),
+                    block_type=int(b[6]),
+                )
+                for b in raw_page_blocks
+            ]
+            filtered_blocks = PdfChatExtractorService._filter_table_text_blocks(wrapped_blocks, table_rects)
 
             # 3. Integrate synthetic blocks for tables and attachment cards
-            combined_blocks: list[tuple[float, float, float, float, str, int, int]] = []
+            combined_blocks: list[PdfTextBlockDTO] = []
             for b in filtered_blocks:
-                brect = fitz.Rect(b[0], b[1], b[2], b[3])
+                brect = fitz.Rect(b.x0, b.y0, b.x1, b.y1)
                 if any(brect.intersects(cr) for cr in card_rects):
                     continue
-                combined_blocks.append((b[0], b[1], b[2], b[3], b[4], b[5], b[6]))
+                combined_blocks.append(b)
 
             for trect, md_table in reconstructed_tables:
-                combined_blocks.append((trect.x0, trect.y0, trect.x1, trect.y1, md_table, -1, 0))
+                combined_blocks.append(
+                    PdfTextBlockDTO(
+                        x0=trect.x0,
+                        y0=trect.y0,
+                        x1=trect.x1,
+                        y1=trect.y1,
+                        text=md_table,
+                        block_no=-1,
+                        block_type=0,
+                    )
+                )
 
             for crect, card_text in attachment_cards:
-                combined_blocks.append((crect.x0, crect.y0, crect.x1, crect.y1, card_text, -1, 0))
+                combined_blocks.append(
+                    PdfTextBlockDTO(
+                        x0=crect.x0,
+                        y0=crect.y0,
+                        x1=crect.x1,
+                        y1=crect.y1,
+                        text=card_text,
+                        block_no=-1,
+                        block_type=0,
+                    )
+                )
 
             # 4. Visual topological sort
             sorted_blocks = PdfChatExtractorService._sort_blocks_visual_order(combined_blocks)
 
             for b in sorted_blocks:
-                x0, y0, x1, y1, text = b[0], b[1], b[2], b[3], b[4].strip()
+                x0, y0, x1, y1, text = b.x0, b.y0, b.x1, b.y1, b.text.strip()
                 if not text:
                     continue
 
@@ -435,7 +536,14 @@ class PdfChatExtractorService:
                     continue
 
                 # Coordinate-level span deduplication
-                sig = (page_idx, round(x0, 1), round(y0, 1), round(x1, 1), round(y1, 1), text)
+                sig = PdfBlockSignatureDTO(
+                    page_idx=page_idx,
+                    x0=round(x0, 1),
+                    y0=round(y0, 1),
+                    x1=round(x1, 1),
+                    y1=round(y1, 1),
+                    text=text,
+                )
                 if sig in seen_blocks:
                     continue
                 seen_blocks.add(sig)
@@ -480,15 +588,19 @@ class PdfChatExtractorService:
                     current_content.append(text)
                 else:
                     if current_role is not None and current_content:
-                        raw_turns.append((current_role, "\n\n".join(current_content)))
+                        raw_turns.append(RawTurnDTO(role=current_role, content="\n\n".join(current_content)))
                     current_role = role
                     current_content = [text]
 
         if current_role is not None and current_content:
-            raw_turns.append((current_role, "\n\n".join(current_content)))
+            raw_turns.append(RawTurnDTO(role=current_role, content="\n\n".join(current_content)))
 
         # Build ChatMessageDTO list
-        messages = [ChatMessageDTO(role=role, content=content) for role, content in raw_turns if content.strip()]
+        messages = [
+            ChatMessageDTO(role=turn.role, content=turn.content)
+            for turn in raw_turns
+            if turn.content.strip()
+        ]
 
         if not messages:
             logger.error("[PdfChatExtractorService] No conversational messages extracted from PDF.")

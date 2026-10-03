@@ -9,13 +9,14 @@ import logging
 import re
 
 from fastapi import status
-from pydantic import ValidationError
+from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.ingress import ChatTurnAnchorsResponseDTO
 from backend_v2.models.enums import LLMProvider
@@ -54,6 +55,15 @@ _SYSTEM_INSTRUCTION = build_system_directive(
 )
 
 
+class AnchorSpanDTO(V2CoreBase):
+    """Character offset boundaries of an anchor phrase within text."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    start: int = Field(ge=0, description="Start character offset")
+    end: int = Field(ge=0, description="End character offset")
+
+
 class ChatParserService:
     """Service for parsing conversational text using boundary anchors and verbatim slicing."""
 
@@ -62,7 +72,7 @@ class ChatParserService:
         text: str,
         phrase: str,
         start_pos: int,
-    ) -> tuple[int, int]:
+    ) -> AnchorSpanDTO:
         """Finds the start and end indices of an anchor phrase in text.
 
         First attempts exact substring match via str.find(). If that fails due to
@@ -90,7 +100,7 @@ class ChatParserService:
         # 1. Exact verbatim fast path
         idx = text.find(clean_phrase, start_pos)
         if idx != -1:
-            return idx, idx + len(clean_phrase)
+            return AnchorSpanDTO(start=idx, end=idx + len(clean_phrase))
 
         # 2. Whitespace-flexible exact token sequence match
         words = clean_phrase.split()
@@ -101,7 +111,7 @@ class ChatParserService:
         pattern = re.compile(r"\s+".join(map(re.escape, words)))
         match = pattern.search(text, start_pos)
         if match:
-            return match.start(), match.end()
+            return AnchorSpanDTO(start=match.start(), end=match.end())
 
         # 3. Delimiter-flexible token sequence match for markdown tables
         clean_tokens = [t.strip("| \t\r\n") for t in clean_phrase.split() if t.strip("| \t\r\n")]
@@ -112,7 +122,7 @@ class ChatParserService:
         table_pattern = re.compile(r"[\s|]+".join(map(re.escape, clean_tokens)))
         table_match = table_pattern.search(text, start_pos)
         if table_match:
-            return table_match.start(), table_match.end()
+            return AnchorSpanDTO(start=table_match.start(), end=table_match.end())
 
         msg = f"Anchor phrase not found in source text after position {start_pos}: '{phrase}'"
         raise ValueError(msg)
@@ -218,7 +228,7 @@ class ChatParserService:
             current_pos = 0
             for turn in parsed_anchors.turns:
                 try:
-                    start_idx, _ = ChatParserService._find_anchor_span(raw_paste, turn.start_phrase, current_pos)
+                    start_span = ChatParserService._find_anchor_span(raw_paste, turn.start_phrase, current_pos)
                 except ValueError:
                     msg = f"Start anchor not found in source text after position {current_pos}: '{turn.start_phrase}'"
                     logger.error("[ChatParser] %s: %s", ErrorCodes.PARSING_FAILED.name, msg)
@@ -229,9 +239,9 @@ class ChatParserService:
                     ) from None
 
                 try:
-                    _, end_idx = ChatParserService._find_anchor_span(raw_paste, turn.end_phrase, start_idx)
+                    end_span = ChatParserService._find_anchor_span(raw_paste, turn.end_phrase, start_span.start)
                 except ValueError:
-                    msg = f"End anchor not found in source text after position {start_idx}: '{turn.end_phrase}'"
+                    msg = f"End anchor not found in source text after position {start_span.start}: '{turn.end_phrase}'"
                     logger.error("[ChatParser] %s: %s", ErrorCodes.PARSING_FAILED.name, msg)
                     raise AppException(
                         message=msg,
@@ -239,10 +249,10 @@ class ChatParserService:
                         details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.end_phrase},
                     ) from None
 
-                content = raw_paste[start_idx:end_idx].strip(" \t\r\n")
+                content = raw_paste[start_span.start:end_span.end].strip(" \t\r\n")
                 if content:
                     turns.append(ChatMessageDTO(role=turn.speaker, content=content))
-                current_pos = end_idx
+                current_pos = end_span.end
 
             if not turns:
                 msg = "Fail-Fast: Raw text did not contain valid dialogue turns after anchor slicing."

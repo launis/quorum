@@ -89,7 +89,12 @@ def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/se
     data = json.loads(seed_path.read_text(encoding="utf-8"))
     blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
     for b in blocks:
-        if b.get("id") == matrix_id and b.get("category_id") == PromptBlockCategory.MATRIX.value:
+        if (
+            "id" in b
+            and b["id"] == matrix_id
+            and "category_id" in b
+            and b["category_id"] == PromptBlockCategory.MATRIX.value
+        ):
             return MatrixPromptBlock.model_validate(b)
     raise ValueError(f"Matrix with ID '{matrix_id}' not found in {seed_path} or is not category 'matrix'")
 
@@ -306,7 +311,12 @@ def apply_matrix_slice(
     blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
     cat = PromptBlockCategory.MATRIX.value
     target_idx = next(
-        (i for i, b in enumerate(blocks) if b.get("id") == slice_mat.id and b.get("category_id") == cat), None
+        (
+            i
+            for i, b in enumerate(blocks)
+            if "id" in b and b["id"] == slice_mat.id and "category_id" in b and b["category_id"] == cat
+        ),
+        None,
     )
     if target_idx is None:
         raise ValueError(f"Matrix '{slice_mat.id}' not found in {seed_path}")

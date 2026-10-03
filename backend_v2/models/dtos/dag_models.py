@@ -237,3 +237,14 @@ class GlobalOntologyMap(BaseModel):
         list[str],
         Field(description="A list of global rules or conditions that apply across the document.", default_factory=list),
     ] = Field(default_factory=list)
+
+
+class ChunkPacketDTO(BaseModel):
+    """Encapsulates logical document chunk packet boundaries."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    start_block: Annotated[str, Field(description="Starting block marker ID")]
+    end_block: Annotated[str, Field(description="Ending block marker ID")]
+    packet_keys: Annotated[list[str], Field(description="List of block keys in packet")]
+

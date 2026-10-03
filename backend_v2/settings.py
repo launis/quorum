@@ -275,6 +275,15 @@ class Settings(BaseSettings):
     pacing_delay_openai_seconds: Annotated[int, Field(description="Forced delay between OpenAI requests")] = 1
     pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0
     redis_connection_timeout_seconds: Annotated[int, Field(description="Timeout for Redis connection in seconds")] = 10
+    db_lock_poll_interval_seconds: Annotated[
+        float, Field(description="Polling interval in seconds for database file lock acquisition")
+    ] = 0.02
+    db_lock_timeout_seconds: Annotated[
+        float, Field(description="Timeout in seconds for database file lock acquisition")
+    ] = 15.0
+    db_lock_stale_threshold_seconds: Annotated[
+        float, Field(description="Threshold in seconds after which lock directory is considered stale")
+    ] = 10.0
     content_cache_enabled: Annotated[int, Field(description="Toggle for internal system response caching")] = 0
     pii_spacy_max_chunk_chars: Annotated[
         int, Field(description="Max characters per SpaCy NLP chunk to prevent E088 OOM")

@@ -7,52 +7,30 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 import logging
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
-_dict_adapter = TypeAdapter(dict[str, Any])
 
-
-class ValidationHookPayloadDTO:
+class ValidationHookPayloadDTO(V2CoreBase):
     """Strict schema for inputs destined for structural validation.
-
-    By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
-    we strictly enforce that the incoming state payload is explicitly a dictionary
-    before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
 
     Attributes:
         root: Raw state inputs.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    def __init__(self, root: dict[str, Any]) -> None:
-        """Initialize the DTO with the underlying dictionary.
-
-        Args:
-            root: Raw state inputs.
-        """
-        self.root = root
+    root: Annotated[dict[str, Any], Field(default_factory=dict)]
 
     @classmethod
     def model_validate(cls, data: Any) -> ValidationHookPayloadDTO:
-        """Validate using strict Pydantic TypeAdapter.
-
-        Args:
-            data: Arbitrary input data to validate.
-
-        Returns:
-            A validated ValidationHookPayloadDTO.
-
-        Raises:
-            ValidationError: If validation fails.
-        """
-        validated = _dict_adapter.validate_python(data)
-        return cls(root=validated)
+        if type(data) is dict:
+            return cls(root=data)
+        return super().model_validate(data)
 
 
 class GuttmanAtomItemDTO(V2CoreBase):

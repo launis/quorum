@@ -44,7 +44,7 @@ async def main() -> None:
         await worker.async_run()
     except KeyboardInterrupt:
         logger.info("Worker stopped by user.")
-        sys.exit(0)
+        raise SystemExit(0)
     except Exception as e:
         # 3. Fail Fast with structured error
         msg = f"[Worker] Worker startup failed: {e}"
@@ -67,9 +67,9 @@ def cli_entrypoint() -> None:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Worker process interrupted by user. Shutting down.")
-        sys.exit(0)
-    except SystemExit as e:
-        sys.exit(e.code)
+        raise SystemExit(0)
+    except SystemExit:
+        raise
     except Exception as e:
         logger.critical(
             "Worker crashed outside main loop: %s",

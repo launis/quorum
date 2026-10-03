@@ -63,14 +63,16 @@ Automatically populates audit matrix JSON files with unique, context-aware justi
     if args.target:
         matrix["target_file"] = Path(args.target).as_posix()
 
-    target_name = matrix.get("target_file", "").strip()
+    target_name = ""
+    if "target_file" in matrix and isinstance(matrix["target_file"], str):
+        target_name = matrix["target_file"].strip()
     if not target_name:
         target_name = "target"
 
-    rules = matrix.get("rules", [])
-    if not rules:
+    if "rules" not in matrix or not isinstance(matrix["rules"], list) or not matrix["rules"]:
         print("Error: No rules found in matrix.")
         sys.exit(1)
+    rules = matrix["rules"]
 
     fail_list = [r.strip() for r in args.fail.split(",")] if args.fail else []
     na_list = [r.strip() for r in args.na.split(",")] if args.na else []
@@ -78,7 +80,9 @@ Automatically populates audit matrix JSON files with unique, context-aware justi
     modified_count = 0
 
     for rule in rules:
-        rule_id = rule.get("rule_id", "unknown")
+        rule_id = "unknown"
+        if "rule_id" in rule and isinstance(rule["rule_id"], str):
+            rule_id = rule["rule_id"]
 
         if rule_id in fail_list:
             rule["status"] = "FAIL"
@@ -99,7 +103,7 @@ Automatically populates audit matrix JSON files with unique, context-aware justi
     with open(matrix_path, "w", encoding="utf-8") as f:
         json.dump(matrix, f, indent=2)
 
-    print(f"[SUCCESS] Auto-filled {modified_count} rules in {matrix_path} for target '{matrix.get('target_file', '')}'")
+    print(f"[SUCCESS] Auto-filled {modified_count} rules in {matrix_path} for target '{target_name}'")
     print(f"  - FAIL: {len(fail_list)} rules")
     print(f"  - NA: {len(na_list)} rules")
     print(f"  - PASS: {modified_count - len(fail_list) - len(na_list)} rules")

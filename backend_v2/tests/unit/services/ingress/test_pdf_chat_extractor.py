@@ -15,7 +15,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.system_config import ChatHistoryDTO
-from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
+from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService, PdfTextBlockDTO
 
 _DOCS_DIR = Path("docs/jwdatat")
 
@@ -86,7 +86,7 @@ def test_pdf_chat_extractor_truncation_detection_raises_422() -> None:
 
         assert exc_info.value.status_code == 422
         assert exc_info.value.details is not None
-        assert exc_info.value.details.get("truncation_detected") is True
+        assert exc_info.value.details["truncation_detected"] is True
         assert "Näytä lisää" in str(exc_info.value.message)
     finally:
         doc.close()
@@ -283,12 +283,14 @@ def test_pdf_chat_extractor_table_text_suppression_prevents_duplicate_cells() ->
     """Verify that text blocks intersecting table bounding boxes are suppressed."""
     table_rect = fitz.Rect(100, 200, 500, 400)
     raw_blocks = [
-        (150.0, 250.0, 250.0, 280.0, "Solun teksti", 0, 0),  # inside table
-        (59.0, 450.0, 500.0, 500.0, "Teksti taulukon ulkopuolella", 1, 0),  # outside table
+        PdfTextBlockDTO(x0=150.0, y0=250.0, x1=250.0, y1=280.0, text="Solun teksti", block_no=0, block_type=0),
+        PdfTextBlockDTO(
+            x0=59.0, y0=450.0, x1=500.0, y1=500.0, text="Teksti taulukon ulkopuolella", block_no=1, block_type=0
+        ),
     ]
     filtered = PdfChatExtractorService._filter_table_text_blocks(raw_blocks, [table_rect])
     assert len(filtered) == 1
-    assert filtered[0][4] == "Teksti taulukon ulkopuolella"
+    assert filtered[0].text == "Teksti taulukon ulkopuolella"
 
 
 def test_pdf_chat_extractor_short_single_word_user_bubble() -> None:
@@ -316,7 +318,7 @@ def test_pdf_chat_extractor_truncation_detection() -> None:
             PdfChatExtractorService._check_truncation(f"Kysymys katkesi... {indicator}")
         assert exc_info.value.status_code == 422
         assert exc_info.value.details is not None
-        assert exc_info.value.details.get("truncation_detected") is True
+        assert exc_info.value.details["truncation_detected"] is True
 
 
 def test_pdf_chat_extractor_ui_button_block_filtering() -> None:

@@ -267,8 +267,9 @@ async def test_ai_studio_thundering_herd_protection() -> None:
     lock_key = f"lock:ai_studio_cache:gemini-3.7-flash:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    tasks = [adapter.prepare_caching_payload(prompt, "gemini-3.7-flash") for _ in range(5)]
-    results = await asyncio.gather(*tasks)
+    async with asyncio.TaskGroup() as tg:
+        task_handles = [tg.create_task(adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")) for _ in range(5)]
+    results = [t.result() for t in task_handles]
 
     assert mock_genai_client.caches.create.call_count == 1
 

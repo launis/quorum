@@ -65,13 +65,14 @@ class MockLLMService:
                 logger.info("[MockLLM] Registry Hit: Returning mock data for schema '%s'.", response_schema.__name__)
                 mock_obj = MOCK_REGISTRY[response_schema]
                 return str(mock_obj.model_dump_json())
-            elif isinstance(response_schema, dict):  # noqa: QGR012 [REASON: Schema dictionary inspection in mock service fallback]
-                title = response_schema["title"] if "title" in response_schema else None
-                if title:
-                    for reg_type, mock_obj in MOCK_REGISTRY.items():
-                        if reg_type.__name__ == title:
-                            logger.info("[MockLLM] Registry Hit (via Dict Title '%s'): Returning mock data.", title)
-                            return str(mock_obj.model_dump_json())
+            elif type(response_schema) is dict:
+                if "title" in response_schema:
+                    title = response_schema["title"]
+                    if isinstance(title, str) and title:
+                        for reg_type, mock_obj in MOCK_REGISTRY.items():
+                            if reg_type.__name__ == title:
+                                logger.info("[MockLLM] Registry Hit (via Dict Title '%s'): Returning mock data.", title)
+                                return str(mock_obj.model_dump_json())
 
         # 1. Determine Identity
         key = None

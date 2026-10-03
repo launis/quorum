@@ -167,8 +167,9 @@ async def test_vertex_thundering_herd_protection() -> None:
     await redis_client.delete(redis_key, lock_key)
 
     # Spawn 5 workers concurrently
-    tasks = [adapter.prepare_caching_payload(prompt, "gemini-1.5-pro") for _ in range(5)]
-    results = await asyncio.gather(*tasks)
+    async with asyncio.TaskGroup() as tg:
+        task_handles = [tg.create_task(adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")) for _ in range(5)]
+    results = [t.result() for t in task_handles]
 
     # Verify that only exactly 1 worker made the GCP CachedContent.create call!
     assert mock_cached_contents.CachedContent.create.call_count == 1

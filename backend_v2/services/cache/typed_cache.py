@@ -46,7 +46,9 @@ class TypedCacheService:
 
         try:
             return model_cls.model_validate_json(raw_val)
-        except ValidationError:
+        except ValidationError as val_err:
+            if isinstance(val_err, (KeyboardInterrupt, SystemExit)):
+                raise
             logger.warning(
                 "Corrupted cache payload encountered for key %s, auto-evicting",
                 key,
@@ -55,6 +57,8 @@ class TypedCacheService:
             try:
                 await self.redis.delete(key)
             except (ConnectionError, TimeoutError, OSError) as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
                 logger.error("Failed to auto-evict corrupted cache key %s: %s", key, e)
             return None
 

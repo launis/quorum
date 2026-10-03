@@ -96,6 +96,7 @@ description: Tier 3 (Rule & Workflow Minification) - Aggressively compress and d
         5. **Next Step / Execution Command**:
            - In Dry-Run: "To apply this exact minification live, execute: `/tier3-minify-customization [target_file_path]`".
            - In Live Mode: "Verify with `git diff [target_file_path]` and execute atomic commit."
+      - **Markdown Boundary Audit Gate**: Run `uv run python scripts/audit_markdown_boundaries.py --file [target_file_path]` (or on the dry-run output) to mathematically verify that minification preserved all codeblock fences, XML hierarchy, and header boundaries without truncation or syntax corruption.
     </step>
   </execution_protocol>
 </system_prompt>

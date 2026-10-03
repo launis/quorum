@@ -8,7 +8,7 @@ from datetime import datetime
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     AuditLogEntry,
@@ -71,14 +71,21 @@ class AuditRepositoryImpl(BaseRepository):
             try:
                 logs.append(AuditLogEntry.model_validate(entry, strict=False))
             except Exception as e:
-                item_id = entry["id"] if "id" in entry else "unknown"
+                item_id = "unknown"
+                if "id" in entry:
+                    item_id = str(entry["id"])
                 logger.error(
-                    "[AuditRepository] %s: Skipping corrupted audit log %s: %s",
+                    "[AuditRepository] %s: Corrupted audit log %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted audit log {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return logs
 
     async def log_usage(self, record: UsageRecord) -> None:
@@ -120,14 +127,21 @@ class AuditRepositoryImpl(BaseRepository):
             try:
                 records.append(UsageRecord.model_validate(u, strict=False))
             except Exception as e:
-                item_id = u["id"] if "id" in u else "unknown"
+                item_id = "unknown"
+                if "id" in u:
+                    item_id = str(u["id"])
                 logger.error(
-                    "[AuditRepository] %s: Skipping corrupted usage record %s: %s",
+                    "[AuditRepository] %s: Corrupted usage record %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted usage record {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return records
 
     async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
@@ -230,7 +244,18 @@ class AuditRepositoryImpl(BaseRepository):
                 dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
                 period = dt.strftime("%Y-%m")
             except Exception as e:
-                logger.warning("Invalid date format '%s', returning to all-time view: %s", since, e)
+                logger.error(
+                    "[AuditRepository] %s: Invalid date format '%s': %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    since,
+                    e,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Invalid date format '{since}': {e}",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "since": since},
+                ) from e
 
         mapped_scope = "organization" if scope == "org" else scope
         agg = await self.get_usage_aggregate(mapped_scope, target_id, period)

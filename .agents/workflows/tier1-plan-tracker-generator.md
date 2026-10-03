@@ -77,8 +77,8 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
     </step>
     
     <step id="3" name="SELF-HEALING TRACKER STRUCTURAL AUDIT">
-      <action>After generating or updating the tracker, run the structural audit script: `uv run python scripts/audit_tracker_output.py --tracker <path_to_tracker> --plan-file <path_to_plan>`.</action>
-      <action>If the audit fails, correct the tracker document and re-run. If it fails 3 times sequentially, STOP, output &lt;circuit_breaker_tripped&gt;, and ask user for guidance.</action>
+      <action>After generating or updating the tracker, run the structural audit script: `uv run python scripts/audit_tracker_output.py --tracker <path_to_tracker> --plan-file <path_to_plan>`. You MUST also run plan-tracker parity verification: `uv run python scripts/audit_plan_tracker_parity.py --plan <path_to_plan> --tracker <path_to_tracker>`.</action>
+      <action>If any audit fails, correct the tracker document and re-run. If it fails 3 times sequentially, STOP, output &lt;circuit_breaker_tripped&gt;, and ask user for guidance.</action>
       <constraint name="HARDENING_FILE_PARITY_VALIDATION">
         The tracker structural verification MUST validate that the indented file list in `### Post-Implementation Gates` under `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` exactly matches the union of all `[MODIFY]` and `[NEW]` targets from the implementation plan.
       </constraint>

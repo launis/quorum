@@ -8,6 +8,7 @@ import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserRole, UserUpdate
 
 
@@ -66,7 +67,7 @@ async def test_organization_crud(
     """Positive: tests organization CRUD operations and corrupted record skipping."""
     org_dict = sample_organization.model_dump(mode="json")
     mock_driver.get.return_value = org_dict
-    mock_driver.query.return_value = [{"id": "corrupted_org"}, org_dict]
+    mock_driver.query.return_value = [org_dict]
 
     org = await repo.get_organization("org_1234567890abcdef")
     assert org is not None
@@ -86,6 +87,15 @@ async def test_organization_crud(
 
 
 @pytest.mark.asyncio
+async def test_organization_corruption_fail_fast(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted organization raises AppException."""
+    mock_driver.query.return_value = [{"id": "corrupted_org"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.list_organizations()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
 async def test_get_organization_not_found(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: returns None when organization is not found."""
     mock_driver.get.return_value = None
@@ -97,7 +107,7 @@ async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, s
     """Positive: tests user CRUD operations and corrupted record skipping."""
     user_dict = sample_user.model_dump(mode="json")
     mock_driver.get.return_value = user_dict
-    mock_driver.query.return_value = [{"id": "corrupted_user"}, user_dict]
+    mock_driver.query.return_value = [user_dict]
 
     user = await repo.get_user("usr_1234567890abcdef")
     assert user is not None
@@ -117,6 +127,15 @@ async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, s
     assert await repo.create_user(sample_user) == "usr_1234567890abcdef"
     assert await repo.update_user("usr_1234567890abcdef", UserUpdate(language="en")) is True
     assert await repo.delete_user("usr_1234567890abcdef") is True
+
+
+@pytest.mark.asyncio
+async def test_user_corruption_fail_fast(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted user raises AppException."""
+    mock_driver.query.return_value = [{"id": "corrupted_user"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.list_users()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio

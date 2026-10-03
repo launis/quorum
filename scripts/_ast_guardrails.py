@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR023).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR025).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -146,6 +146,62 @@ def _has_annotated_field(node: ast.AST | None) -> bool:
     return False
 
 
+def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
+    """Finds string constants used as type annotations while exempting Literal slices and Annotated metadata.
+
+    Enforces QGR024: Python 3.14 PEP 649/749 deferred annotations without quotes.
+    """
+    if node is None:
+        return []
+
+    violations: list[ast.Constant] = []
+
+    match node:
+        case ast.Constant(value=str(_)):
+            violations.append(node)
+        case ast.Subscript(value=val_node, slice=slice_node):
+            # Exclude Literal[...] slices
+            is_literal = False
+            match val_node:
+                case ast.Name(id="Literal") | ast.Attribute(attr="Literal"):
+                    is_literal = True
+                case _:
+                    pass
+            if is_literal:
+                return []
+
+            # Exclude metadata in Annotated[T, metadata...]
+            is_annotated = False
+            match val_node:
+                case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
+                    is_annotated = True
+                case _:
+                    pass
+            if is_annotated:
+                if isinstance(slice_node, ast.Tuple) and slice_node.elts:
+                    violations.extend(_find_string_quoted_annotations(slice_node.elts[0]))
+                else:
+                    violations.extend(_find_string_quoted_annotations(slice_node))
+                return violations
+
+            if isinstance(slice_node, ast.Tuple):
+                for elt in slice_node.elts:
+                    violations.extend(_find_string_quoted_annotations(elt))
+            else:
+                violations.extend(_find_string_quoted_annotations(slice_node))
+
+        case ast.BinOp(left=left, op=ast.BitOr(), right=right):
+            violations.extend(_find_string_quoted_annotations(left))
+            violations.extend(_find_string_quoted_annotations(right))
+        case ast.Tuple(elts=elts) | ast.List(elts=elts):
+            for elt in elts:
+                violations.extend(_find_string_quoted_annotations(elt))
+        case _:
+            pass
+
+    return violations
+
+
 class CommentSuppressor:
     """Parses inline comment suppressions (# noqa: QGRxxx [REASON: ...]) across physical source lines."""
 
@@ -290,6 +346,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._current_class_name: str | None = None
         self._function_depth: int = 0
         self._in_finally: bool = False
+        self._in_update_lock: bool = False
 
     def _add_violation(
         self,
@@ -421,45 +478,55 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         exempt = True
                     case ast.Attribute(attr="headers") | ast.Name(id="headers"):
                         exempt = True
-                    case ast.Name(id=name) if name in {
-                        "client",
-                        "http",
-                        "requests",
-                        "session",
-                        "httpx",
-                        "driver",
-                        "router",
-                        "app",
-                        "redis",
-                        "redis_client",
-                        "_LABEL_MAP",
-                        "LABEL_MAP",
-                        "_VALUE_MAP",
-                        "_NAME_MAP",
-                        "_L10N_MAP",
-                        "L10N_MAP",
-                    } or name.endswith(("_router", "_subrouter", "_client")):
+                    case ast.Name(id=name) if (
+                        name
+                        in {
+                            "client",
+                            "http",
+                            "requests",
+                            "session",
+                            "httpx",
+                            "driver",
+                            "router",
+                            "app",
+                            "redis",
+                            "redis_client",
+                            "_LABEL_MAP",
+                            "LABEL_MAP",
+                            "_VALUE_MAP",
+                            "_NAME_MAP",
+                            "_L10N_MAP",
+                            "L10N_MAP",
+                        }
+                        or name.endswith(("_router", "_subrouter", "_client", "_table"))
+                        or name == "table"
+                    ):
                         exempt = True
-                    case ast.Attribute(attr=attr_name) if attr_name in {
-                        "client",
-                        "http",
-                        "requests",
-                        "session",
-                        "httpx",
-                        "driver",
-                        "router",
-                        "app",
-                        "redis",
-                        "redis_client",
-                        "_LABEL_MAP",
-                        "LABEL_MAP",
-                        "_VALUE_MAP",
-                        "_NAME_MAP",
-                        "_L10N_MAP",
-                        "L10N_MAP",
-                    } or attr_name.endswith(("_router", "_subrouter", "_client")):
+                    case ast.Attribute(attr=attr_name) if (
+                        attr_name
+                        in {
+                            "client",
+                            "http",
+                            "requests",
+                            "session",
+                            "httpx",
+                            "driver",
+                            "router",
+                            "app",
+                            "redis",
+                            "redis_client",
+                            "_LABEL_MAP",
+                            "LABEL_MAP",
+                            "_VALUE_MAP",
+                            "_NAME_MAP",
+                            "_L10N_MAP",
+                            "L10N_MAP",
+                        }
+                        or attr_name.endswith(("_router", "_subrouter", "_client", "_table"))
+                        or attr_name == "table"
+                    ):
                         exempt = True
-                    case ast.Call(func=ast.Name(id="_get_table")):
+                    case ast.Call(func=ast.Name(id="_get_table") | ast.Attribute(attr="_get_table")):
                         exempt = True
                     case _:
                         exempt = False
@@ -497,6 +564,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR006",
                     "Banned `asyncio.gather()` call detected.",
                     "Replace `asyncio.gather()` with `asyncio.TaskGroup()` for Python 3.14+ fail-fast concurrency and automatic cancellation.",
+                    severity=GuardrailSeverity.FATAL,
                 )
             case _:
                 pass
@@ -515,6 +583,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR008",
                         f"Hardcoded timeout={kw.value.value} detected in domain logic.",
                         "Import timeouts centrally from `backend_v2/settings.py` instead of hardcoding magic numbers.",
+                        severity=GuardrailSeverity.FATAL,
                     )
 
             # Check asyncio.sleep(literal > 0) or time.sleep(literal > 0)
@@ -537,6 +606,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR008",
                         f"Hardcoded sleep duration ({first_arg.value}) detected in domain logic.",
                         "Import retry/sleep intervals centrally from `backend_v2/settings.py` instead of hardcoding magic durations.",
+                        severity=GuardrailSeverity.FATAL,
                     )
 
         # QGR010: Naive datetime.now() without tz or deprecated datetime.utcnow()
@@ -569,6 +639,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
         if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
             types_arg = node.args[1]
+
             def _check_isinstance_target(t_node: ast.AST) -> tuple[bool, bool]:
                 match t_node:
                     case ast.Name(id="dict"):
@@ -753,6 +824,52 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Use typed Pydantic V2 DTOs with model_dump(exclude=...) or immutable transformations instead of mutating dictionaries via .pop().",
                     severity=qgr019_sev,
                 )
+
+        # QGR025: Untyped Dict in model_copy(update=...) Ban
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "model_copy"
+            and not self._is_test_file
+            and not self._is_boundary_exempt
+            and self._is_domain_code
+        ):
+            for kw in node.keywords:
+                if kw.arg == "update":
+                    is_valid_literal = False
+                    if isinstance(kw.value, ast.Dict):
+                        if not any(k is None for k in kw.value.keys) and all(
+                            isinstance(k, ast.Constant) and isinstance(k.value, str) for k in kw.value.keys
+                        ):
+                            is_valid_literal = True
+                    elif isinstance(kw.value, ast.Constant) and kw.value.value is None:
+                        is_valid_literal = True
+                    elif self._in_update_lock:
+                        is_valid_literal = True
+
+                    if not is_valid_literal:
+                        self._add_violation(
+                            kw.value,
+                            "QGR025",
+                            f"Untyped or dynamic dictionary `{ast.unparse(kw.value)}` passed to `model_copy(update=...)`.",
+                            (
+                                "Ban dynamic/untyped dictionary mutation in model_copy. Use typed dictionary literals "
+                                "with statically known keys (e.g. `{'status': ExecutionStatus.RUNNING}`) or typed DTO fields "
+                                "per `safe_model_copy_concurrency_boundary`."
+                            ),
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
+        self.generic_visit(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        is_update_lock = any(
+            isinstance(item.context_expr, ast.Name) and item.context_expr.id == "_update_lock" for item in node.items
+        )
+        prev_lock = self._in_update_lock
+        if is_update_lock:
+            self._in_update_lock = True
+        self.generic_visit(node)
+        self._in_update_lock = prev_lock
 
     def visit_Try(self, node: ast.Try) -> None:
         for stmt in node.body:
@@ -947,6 +1064,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR007",
                         f"Pydantic model `{node.name}` is missing `model_config = ConfigDict(strict=True, extra='forbid')`.",
                         "Add `model_config = ConfigDict(strict=True, extra='forbid')` to enforce strict validation and reject hallucinated fields.",
+                        severity=GuardrailSeverity.FATAL,
                     )
 
             # QGR011: Banned id field in CreateDTO / CreateRequest models
@@ -969,6 +1087,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR011",
                             f"Banned `id` field declaration in creation model `{node.name}`.",
                             "Remove client-provided `id` field from creation DTO/Request models. IDs must be generated exclusively by the backend.",
+                            severity=GuardrailSeverity.FATAL,
                         )
 
         self.generic_visit(node)
@@ -1109,6 +1228,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR009",
                         "AppException instantiated without a typed `ErrorCodes` enum member.",
                         "Pass a typed `ErrorCodes` enum member as the first argument or in details={'error_code': ErrorCodes.XXX} to `AppException`.",
+                        severity=GuardrailSeverity.FATAL,
                     )
 
         self.generic_visit(node)
@@ -1152,18 +1272,62 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def _check_function_annotations(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        if not self._is_test_file and not self._is_boundary_exempt and self._is_domain_code:
+            if node.returns is not None:
+                quoted = _find_string_quoted_annotations(node.returns)
+                for c in quoted:
+                    self._add_violation(
+                        c,
+                        "QGR024",
+                        f"String-quoted forward-reference annotation `'{c.value!s}'` detected in return annotation of `{node.name}()`.",
+                        "Use Python 3.14 PEP 649/749 deferred annotations without quotes per `deferred_annotations_and_typing`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+            all_args = (
+                node.args.posonlyargs
+                + node.args.args
+                + node.args.kwonlyargs
+                + ([node.args.vararg] if node.args.vararg else [])
+                + ([node.args.kwarg] if node.args.kwarg else [])
+            )
+            for arg in all_args:
+                if arg.annotation is not None:
+                    quoted = _find_string_quoted_annotations(arg.annotation)
+                    for c in quoted:
+                        self._add_violation(
+                            c,
+                            "QGR024",
+                            f"String-quoted forward-reference annotation `'{c.value!s}'` detected on parameter `{arg.arg}` in `{node.name}()`.",
+                            "Use Python 3.14 PEP 649/749 deferred annotations without quotes per `deferred_annotations_and_typing`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._check_function_annotations(node)
         self._function_depth += 1
         self.generic_visit(node)
         self._function_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._check_function_annotations(node)
         self._function_depth += 1
         self.generic_visit(node)
         self._function_depth -= 1
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         if not self._is_test_file and not self._is_boundary_exempt:
+            if self._is_domain_code:
+                # QGR024: String-Quoted Forward-Reference Annotation Ban
+                quoted = _find_string_quoted_annotations(node.annotation)
+                for c in quoted:
+                    self._add_violation(
+                        c,
+                        "QGR024",
+                        f"String-quoted forward-reference annotation `'{c.value!s}'` detected in type annotation.",
+                        "Use Python 3.14 PEP 649/749 deferred annotations without quotes per `deferred_annotations_and_typing`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
             # QGR020: Duplicate Field() assignment on Annotated field
             if _has_annotated_field(node.annotation) and _is_field_call(node.value):
                 self._add_violation(
@@ -1476,7 +1640,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 "(ConfigDict(strict=True, extra='forbid', frozen=True)) instead of anonymous 3+ tuples "
                                 "per `ban_anonymous_state_tuples`."
                             ),
-                            severity=GuardrailSeverity.WARNING,
+                            severity=GuardrailSeverity.FATAL,
                         )
                     elif len(elts) == 2:
                         elt_names: list[str | None] = []
@@ -1489,11 +1653,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 case _:
                                     elt_names.append(None)
                         primitives = {"str", "int", "float", "bool", "bytes"}
-                        if (
-                            elt_names[0] is not None
-                            and elt_names[0] == elt_names[1]
-                            and elt_names[0] in primitives
-                        ):
+                        if elt_names[0] is not None and elt_names[0] == elt_names[1] and elt_names[0] in primitives:
                             raw_snippet = ast.unparse(node)
                             self._add_violation(
                                 node,
@@ -1503,7 +1663,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                     "Replace positional primitive tuple with a dedicated Pydantic V2 DTO to avoid "
                                     "positional indexing and primitive obsession per `ban_anonymous_state_tuples`."
                                 ),
-                                severity=GuardrailSeverity.WARNING,
+                                severity=GuardrailSeverity.FATAL,
                             )
 
         self.generic_visit(node)
@@ -1722,12 +1882,12 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR003: isinstance(..., dict) Duck-Typing Ban (WARNING)
   QGR004: Direct Provider SDK Usage Ban (WARNING)
   QGR005: Raw String Concatenation in Prompts Ban (WARNING)
-  QGR006: Hardcoded Model Name Strings Ban (WARNING)
-  QGR007: Bare except / except Exception Catch-All Ban (WARNING)
-  QGR008: RapidFuzz / Fuzzy Matching for Evidence Ban (FATAL)
-  QGR009: asyncio.gather() Ban - TaskGroup Mandate (WARNING)
-  QGR010: ConfigDict without strict=True and extra='forbid' (WARNING)
-  QGR011: Mutable Default Arguments Ban (FATAL)
+  QGR006: asyncio.gather() Ban - TaskGroup Mandate (FATAL)
+  QGR007: Missing ConfigDict(strict=True, extra='forbid') (FATAL)
+  QGR008: Hardcoded Magic Timeouts Ban (FATAL)
+  QGR009: AppException without typed ErrorCodes (FATAL)
+  QGR010: Naive Datetime Ban (WARNING)
+  QGR011: Banned id field in CreateDTO / CreateRequest (FATAL)
   QGR012: In-Place Dictionary Modification Ban (WARNING)
   QGR013: Legacy TypeVar() Instantiation Ban (WARNING)
   QGR014: Hardcoded Finnish Vocabulary in System Directives Ban (FATAL)
@@ -1739,7 +1899,9 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
   QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
-  QGR023: Anonymous Multi-Value State Tuples Ban (WARNING)
+  QGR023: Anonymous Multi-Value State Tuples Ban (FATAL)
+  QGR024: String-Quoted Forward-Reference Annotation Ban (FATAL)
+  QGR025: Untyped Dynamic Dict in model_copy(update=...) Ban (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):

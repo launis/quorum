@@ -47,10 +47,6 @@ class ExecutionCreateDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     workflow_id: Annotated[str, Field(min_length=1, description="Target workflow ID")]
-    id: Annotated[
-        str | None,
-        Field(default=None, pattern=OPAQUE_STRIPE_ID_REGEX, description="Optional execution ID"),
-    ] = None
     target_locale: Annotated[str, Field(default="fi", description="Target locale code")] = "fi"
     status: Annotated[str, Field(default="PENDING", description="Initial lifecycle status")] = "PENDING"
     active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None
@@ -153,9 +149,27 @@ class StepTraceMetadataDTO(BaseDTO):
 class TraceEventMetadataEnvelope(BaseDTO):
     """Strict hydration schema for extracting metadata from a polymorphic trace event."""
 
-    model_config = ConfigDict(strict=True, extra="ignore")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)] = None
+
+    @classmethod
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        from_attributes: bool | None = None,
+        context: Any | None = None,
+    ) -> TraceEventMetadataEnvelope:
+        if type(obj) is dict:
+            extracted: dict[str, Any] = {}
+            if "_step_metadata" in obj:
+                extracted["_step_metadata"] = obj["_step_metadata"]
+            elif "step_metadata" in obj:
+                extracted["step_metadata"] = obj["step_metadata"]
+            return super().model_validate(extracted, strict=strict, from_attributes=from_attributes, context=context)
+        return super().model_validate(obj, strict=strict, from_attributes=from_attributes, context=context)
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):

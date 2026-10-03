@@ -7,7 +7,7 @@ import uuid
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.knowledge import (
     BannedPhrase,
     Claim,
@@ -31,6 +31,9 @@ class KnowledgeRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated BannedPhrase domain models.
+
+        Raises:
+            AppException: If a banned phrase record is corrupted.
         """
         data = await self.driver.query("banned_phrases")
         phrases: list[BannedPhrase] = []
@@ -38,14 +41,21 @@ class KnowledgeRepositoryImpl(BaseRepository):
             try:
                 phrases.append(BannedPhrase.model_validate(p, strict=False))
             except Exception as e:
-                item_id = p["id"] if "id" in p else "unknown"
+                item_id = "unknown"
+                if "id" in p:
+                    item_id = str(p["id"])
                 logger.error(
-                    "[KnowledgeRepository] %s: Skipping corrupted banned phrase %s: %s",
+                    "[KnowledgeRepository] %s: Corrupted banned phrase %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted banned phrase {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return phrases
 
     async def add_banned_phrase(self, phrase: str, language: str = SystemLocale.EN.value) -> None:
@@ -84,25 +94,29 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The validated PromptTemplateDTO if found, otherwise None.
         """
         res = await self.driver.get("prompts", template_id)
-        if res:
-            sys_p = res["system_prompt"] if "system_prompt" in res else ""
-            usr_p = res["user_prompt"] if "user_prompt" in res else ""
-            return PromptTemplateDTO(system=sys_p, user=usr_p)
+        if not res:
+            res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
+            if res_list:
+                res = res_list[0]
+        if not res:
+            return None
 
-        res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
-        if res_list:
-            res = res_list[0]
-            sys_p = res["system_prompt"] if "system_prompt" in res else ""
-            usr_p = res["user_prompt"] if "user_prompt" in res else ""
-            return PromptTemplateDTO(system=sys_p, user=usr_p)
-
-        return None
+        sys_p = ""
+        if "system_prompt" in res:
+            sys_p = str(res["system_prompt"])
+        usr_p = ""
+        if "user_prompt" in res:
+            usr_p = str(res["user_prompt"])
+        return PromptTemplateDTO(system=sys_p, user=usr_p)
 
     async def get_concepts(self) -> list[Concept]:
         """Retrieves all knowledge base concepts.
 
         Returns:
             List of validated Concept domain models.
+
+        Raises:
+            AppException: If a concept record is corrupted.
         """
         data = await self.driver.query("concepts")
         concepts: list[Concept] = []
@@ -110,14 +124,21 @@ class KnowledgeRepositoryImpl(BaseRepository):
             try:
                 concepts.append(Concept.model_validate(c, strict=False))
             except Exception as e:
-                item_id = c["id"] if "id" in c else "unknown"
+                item_id = "unknown"
+                if "id" in c:
+                    item_id = str(c["id"])
                 logger.error(
-                    "[KnowledgeRepository] %s: Skipping corrupted concept %s: %s",
+                    "[KnowledgeRepository] %s: Corrupted concept %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted concept {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return concepts
 
     async def get_references(self) -> list[Reference]:
@@ -125,6 +146,9 @@ class KnowledgeRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated Reference domain models.
+
+        Raises:
+            AppException: If a reference record is corrupted.
         """
         data = await self.driver.query("references")
         refs: list[Reference] = []
@@ -132,14 +156,21 @@ class KnowledgeRepositoryImpl(BaseRepository):
             try:
                 refs.append(Reference.model_validate(r, strict=False))
             except Exception as e:
-                item_id = r["id"] if "id" in r else "unknown"
+                item_id = "unknown"
+                if "id" in r:
+                    item_id = str(r["id"])
                 logger.error(
-                    "[KnowledgeRepository] %s: Skipping corrupted reference %s: %s",
+                    "[KnowledgeRepository] %s: Corrupted reference %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted reference {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return refs
 
     async def get_claims(self) -> list[Claim]:
@@ -147,6 +178,9 @@ class KnowledgeRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated Claim domain models.
+
+        Raises:
+            AppException: If a claim record is corrupted.
         """
         data = await self.driver.query("claims")
         claims: list[Claim] = []
@@ -154,14 +188,21 @@ class KnowledgeRepositoryImpl(BaseRepository):
             try:
                 claims.append(Claim.model_validate(c, strict=False))
             except Exception as e:
-                item_id = c["id"] if "id" in c else "unknown"
+                item_id = "unknown"
+                if "id" in c:
+                    item_id = str(c["id"])
                 logger.error(
-                    "[KnowledgeRepository] %s: Skipping corrupted claim %s: %s",
+                    "[KnowledgeRepository] %s: Corrupted claim %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted claim {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return claims
 
     async def add_concept(self, item: ConceptCreateDTO) -> str:

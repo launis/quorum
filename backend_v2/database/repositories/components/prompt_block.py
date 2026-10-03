@@ -173,16 +173,16 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
 
         await self.driver.update("prompt_blocks", block_id, {"is_latest": False})
 
-        base_id, new_id, ver = self._increment_version(block_id)
+        inc = self._increment_version(block_id)
 
         new_doc = dict(old_doc)
         new_doc.update(updates.model_dump(mode="json", exclude_unset=True))
-        new_doc["id"] = new_id
+        new_doc["id"] = inc.new_id
         new_doc["is_latest"] = True
-        new_doc["version"] = ver
-        new_doc["slug"] = base_id
+        new_doc["version"] = inc.version
+        new_doc["slug"] = inc.base_id
 
-        await self.driver.upsert("prompt_blocks", new_doc, new_id)
+        await self.driver.upsert("prompt_blocks", new_doc, inc.new_id)
         return True
 
     async def delete_prompt_block(self, block_id: str, force_delete: bool = False) -> bool:

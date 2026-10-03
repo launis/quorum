@@ -75,7 +75,11 @@ async def test_update_prompt_block(
     doc_with_version = sample_system_rule.model_dump(mode="json")
     doc_with_version["version"] = 1
     mock_driver.get.return_value = doc_with_version
-    repo._increment_version = MagicMock(return_value=("rule_clean", "blk_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
+    from backend_v2.database.repositories.base import VersionIncrementDTO
+
+    repo._increment_version = MagicMock(  # type: ignore[method-assign]
+        return_value=VersionIncrementDTO(base_id="rule_clean", new_id="blk_1234567890abcdef_v2", version=2)
+    )
 
     res = await repo.update_prompt_block("blk_1234567890abcdef", sample_system_rule)
     assert res is True

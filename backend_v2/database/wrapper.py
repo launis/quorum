@@ -1,5 +1,6 @@
 """Database wrapper implementations."""
 
+import importlib.util
 import json
 import logging
 import os
@@ -24,12 +25,12 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 # --- Firestore Imports (Conditional) ---
-try:
+if importlib.util.find_spec("firebase_admin") is not None:
     import firebase_admin
     from firebase_admin import credentials, firestore
 
     FIRESTORE_AVAILABLE = True
-except ImportError:
+else:
     FIRESTORE_AVAILABLE = False
     logger.warning("firebase_admin not installed or import failed. Firestore functionality will be unavailable.")
 
@@ -37,19 +38,13 @@ except ImportError:
 # --- Cross-Process and Cross-Thread locking for TinyDB ---
 _thread_lock = threading.Lock()
 
-try:
+HAS_MSVCRT = importlib.util.find_spec("msvcrt") is not None
+if HAS_MSVCRT:
     import msvcrt
 
-    HAS_MSVCRT = True
-except ImportError:
-    HAS_MSVCRT = False
-
-try:
+HAS_FCNTL = importlib.util.find_spec("fcntl") is not None
+if HAS_FCNTL:
     import fcntl
-
-    HAS_FCNTL = True
-except ImportError:
-    HAS_FCNTL = False
 
 
 @contextmanager
@@ -57,6 +52,10 @@ def db_lock(db_path: str) -> Generator[None]:
     """Acquire cross-process and cross-thread lock for TinyDB file access."""
     lock_file_path = db_path + ".lock"
     start_time = time.time()
+    settings = get_settings()
+    lock_timeout = settings.db_lock_timeout_seconds
+    poll_interval = settings.db_lock_poll_interval_seconds
+    stale_threshold = settings.db_lock_stale_threshold_seconds
     with _thread_lock:
         if HAS_MSVCRT:
             fd = os.open(lock_file_path, os.O_CREAT | os.O_RDWR)
@@ -67,9 +66,9 @@ def db_lock(db_path: str) -> Generator[None]:
                         msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
                         break
                     except OSError as e:
-                        if time.time() - start_time > 15.0:
+                        if time.time() - start_time > lock_timeout:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
-                        time.sleep(0.02)
+                        time.sleep(poll_interval)
                 wait_time_ms = (time.time() - start_time) * 1000
                 logger.debug("[TinyDB Lock] Acquired MSVCRT lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
@@ -88,9 +87,9 @@ def db_lock(db_path: str) -> Generator[None]:
                         fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined] # Unix-only attribute
                         break
                     except BlockingIOError as e:
-                        if time.time() - start_time > 15.0:
+                        if time.time() - start_time > lock_timeout:
                             raise TimeoutError(f"Database lock timeout on {lock_file_path}") from e
-                        time.sleep(0.02)
+                        time.sleep(poll_interval)
                 wait_time_ms = (time.time() - start_time) * 1000
                 logger.debug("[TinyDB Lock] Acquired FCNTL lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
@@ -107,14 +106,15 @@ def db_lock(db_path: str) -> Generator[None]:
                 except FileExistsError as e:
                     try:
                         mtime = os.path.getmtime(lock_dir)
-                        if time.time() - mtime > 10.0:
+                        if time.time() - mtime > stale_threshold:
                             os.rmdir(lock_dir)
                             continue
-                    except OSError:
-                        pass
-                    if time.time() - start_time > 15.0:
+                    except OSError as os_err:
+                        if time.time() - start_time > lock_timeout:
+                            raise TimeoutError(f"Database lock timeout on {lock_dir}: {os_err}") from e
+                    if time.time() - start_time > lock_timeout:
                         raise TimeoutError(f"Database lock timeout on {lock_dir}") from e
-                    time.sleep(0.02)
+                    time.sleep(poll_interval)
             try:
                 wait_time_ms = (time.time() - start_time) * 1000
                 logger.debug("[TinyDB Lock] Acquired directory lock on %s in %.1f ms", lock_dir, wait_time_ms)
@@ -359,7 +359,10 @@ class TinyDBTable(AbstractTable):
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Get completed in %.1f ms", self._name, db_time)
         if isinstance(res, list):
-            res = res[0] if res else None
+            if res:
+                res = res[0]
+            else:
+                res = None
         return res
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
@@ -615,14 +618,18 @@ class FirestoreTable(AbstractTable):
                 aggregate_query = self._collection.count()
                 snapshots = aggregate_query.get()
                 return int(snapshots[0][0].value)
-            except Exception:
-                logger.warning("Firestore count fallback triggered", exc_info=True)
-                docs = self._collection.stream()
-                return len(list(docs))
+            except Exception as e:
+                logger.error("[FirestoreTable] Firestore aggregate count failed: %s", e, exc_info=True)
+                raise AppException(
+                    message=f"Firestore count operation failed: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                ) from e
 
     def contains(self, query: Any) -> bool:
         """Check if document exists."""
-        return self.get(query) is not None
+        matches = self.search(query)
+        return len(matches) > 0
 
     def close(self) -> None:
         """Close the table connection (no-op for Firestore).

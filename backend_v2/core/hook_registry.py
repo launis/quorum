@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from fastapi import status
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from backend_v2.database.interfaces import (
     IAuditRepository,
@@ -76,6 +76,8 @@ class HookState(V2CoreBase):
     Enforces rules: Fail-Fast, Zero Side-Effects (frozen=True).
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     execution_id: str
     workflow_id: str
     step_id: str | None = None
@@ -87,6 +89,8 @@ class HookState(V2CoreBase):
 
 class HookResult(V2CoreBase):
     """Explicit state delta returned by Hooks for deep merging."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     success: bool
     state_delta: HookDeltaDTO | None = Field(default=None)

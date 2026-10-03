@@ -37,28 +37,27 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import importlib.util
 from pydantic import BaseModel, ValidationError
 from tinydb import Query, TinyDB
 
-try:
+FIREBASE_AVAILABLE = importlib.util.find_spec("firebase_admin") is not None
+if FIREBASE_AVAILABLE:
     import firebase_admin
     from firebase_admin import credentials, firestore
-
-    FIREBASE_AVAILABLE = True
-except ImportError:
+else:
     from unittest.mock import MagicMock
 
     firebase_admin = MagicMock()
     credentials = MagicMock()
     firestore = MagicMock()
-    FIREBASE_AVAILABLE = False
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.settings import get_settings
@@ -84,25 +83,29 @@ __all__ = [
 ]
 
 
-def _fail_fast(msg: str, error: Exception) -> None:
-    """Logs a critical error and terminates the script immediately.
+def _fail_fast(msg: str, error: Exception) -> AppException:
+    """Logs a critical error and returns a typed AppException.
 
     Args:
         msg: The failure message describing the context.
         error: The caught exception instance.
 
-    Raises:
-        SystemExit: Always terminates the process with exit code 1.
+    Returns:
+        AppException: Typed application exception with ErrorCodes.VALIDATION_FAILED.
     """
     logger.critical(
         "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
-        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+        ErrorCodes.VALIDATION_FAILED.name,
         msg,
         str(error),
         exc_info=True,
     )
     print(f"\033[91m[CRITICAL FAIL FAST] {msg}\n{str(error)}\033[0m")
-    sys.exit(1)
+    return AppException(
+        message=f"{msg}: {error}",
+        status_code=400,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED},
+    )
 
 
 def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -145,9 +148,9 @@ def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[d
 
             except ValidationError as ve:
                 item_id = item[id_field] if id_field in item else "unknown"
-                _fail_fast(f"Validation Error for {col_key} item {item_id}", ve)
+                raise _fail_fast(f"Validation Error for {col_key} item {item_id}", ve) from ve
             except (KeyError, ValueError, TypeError) as e:
-                _fail_fast(f"Processing Error for {col_key} item", e)
+                raise _fail_fast(f"Processing Error for {col_key} item", e) from e
 
         validated_buffers[col_key] = dumped_buffer
 
@@ -206,7 +209,11 @@ async def _seed_tinydb(
                         exc_info=True,
                     )
                     print(f"[ERROR] Failed to create db backup: {e}")
-                    sys.exit(1)
+                    raise AppException(
+                        message=f"Failed to create db backup: {e}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION},
+                    ) from e
 
             db = TinyDB(str(db_path), encoding="utf-8")
             db.drop_tables()  # CLEAN SLATE
@@ -223,7 +230,7 @@ async def _seed_tinydb(
             print("[Seeder V2] DRY-RUN ACTIVE: Bypassing DB wipe and backup.")
 
     except OSError as e:
-        _fail_fast("Error initializing TinyDB", e)
+        raise _fail_fast("Error initializing TinyDB", e) from e
 
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
@@ -243,7 +250,7 @@ async def _seed_tinydb(
                 else:
                     print(f"Item lacking {id_field}")
             except (OSError, RuntimeError) as e:
-                _fail_fast(f"Database Error upserting {col_key} item", e)
+                raise _fail_fast(f"Database Error upserting {col_key} item", e) from e
 
         # ---------------------------------------------------------------------
         # INTEGRITY PARITY CHECK: Fail-Fast if TinyDB silent drops occur
@@ -252,7 +259,7 @@ async def _seed_tinydb(
             actual_db_count = len(target_table)
             expected_count = len(dumped_buffer)
             if actual_db_count != expected_count:
-                _fail_fast(
+                raise _fail_fast(
                     f"Data Loss Detected in '{col_key}' table!",
                     RuntimeError(
                         f"Expected to save {expected_count} unique items, but TinyDB only holds {actual_db_count}."
@@ -415,7 +422,7 @@ def main(argv: list[str] | None = None) -> None:
     for t in targets:
         try:
             asyncio.run(seed_database(t, dry_run=args.dry_run))
-        except (OSError, RuntimeError, ValueError) as e:
+        except (OSError, RuntimeError, ValueError, AppException) as e:
             logger.critical(
                 "[Seeder] %s: Failed to seed %s: %s",
                 ErrorCodes.INTERNAL_SERVER_ERROR.name,
@@ -424,7 +431,7 @@ def main(argv: list[str] | None = None) -> None:
                 exc_info=True,
             )
             print(f"\033[91m[ERROR] Failed to seed {t}: {e}\033[0m")
-            sys.exit(1)
+            raise SystemExit(1) from e
 
     print("\n[SUCCESS] All requested targets completed successfully.")
 

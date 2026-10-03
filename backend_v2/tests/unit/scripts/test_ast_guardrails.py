@@ -681,13 +681,13 @@ def test_multifile_scanning_resilience(tmp_path: Path) -> None:
 
 
 def test_multifile_scanning_advisory_pass(tmp_path: Path) -> None:
-    # QGR006 (asyncio.gather) is a WARNING severity rule
+    # QGR013 (TypeVar instantiation) is a WARNING severity rule
     file1 = tmp_path / "warning_only.py"
-    file1.write_text("import asyncio\nasync def f(): await asyncio.gather(t1(), t2())\n", encoding="utf-8")
+    file1.write_text("from typing import TypeVar\nT = TypeVar('T')\n", encoding="utf-8")
 
     violations, is_success = scan_files_for_guardrails([tmp_path], strict=False)
     assert len(violations) == 1
-    assert violations[0].rule_code == "QGR006"
+    assert violations[0].rule_code == "QGR013"
     assert violations[0].severity == GuardrailSeverity.WARNING
     assert is_success is True  # In advisory mode, warnings don't fail
 
@@ -1370,3 +1370,96 @@ def test_qgr023_anonymous_state_tuple_detected() -> None:
     v3 = _scan_snippet(code3, filepath="backend_v2/services/runner.py")
     qgr023_3 = [v for v in v3 if v.rule_code == "QGR023"]
     assert len(qgr023_3) == 0
+
+
+def test_qgr024_string_quoted_annotation_raises_fatal() -> None:
+    """QGR024: String-quoted forward-reference annotations trigger FATAL violation."""
+    code = 'target: "StepOutputDTO"\n'
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr024 = [v for v in violations if v.rule_code == "QGR024"]
+    assert len(qgr024) == 1
+    assert qgr024[0].severity == GuardrailSeverity.FATAL
+    assert "StepOutputDTO" in qgr024[0].message
+
+
+def test_qgr024_literal_string_slice_permitted() -> None:
+    """QGR024: Literal string slices pass cleanly with zero violations."""
+    code = "env: Literal['development', 'production']\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/config.py")
+    qgr024 = [v for v in violations if v.rule_code == "QGR024"]
+    assert len(qgr024) == 0
+
+
+def test_qgr024_annotated_metadata_description_permitted() -> None:
+    """QGR024: Annotated metadata descriptions pass cleanly with zero violations."""
+    code = "field: Annotated[int, 'Description string']\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/config.py")
+    qgr024 = [v for v in violations if v.rule_code == "QGR024"]
+    assert len(qgr024) == 0
+
+
+def test_qgr024_function_returns_and_parameters_detected() -> None:
+    """QGR024: String-quoted return annotations and parameter annotations trigger FATAL violation."""
+    code1 = 'def execute(step: "StepDef") -> "StepResult":\n    pass\n'
+    v1 = _scan_snippet(code1, filepath="backend_v2/services/executor.py")
+    qgr024_1 = [v for v in v1 if v.rule_code == "QGR024"]
+    assert len(qgr024_1) == 2
+    for v in qgr024_1:
+        assert v.severity == GuardrailSeverity.FATAL
+
+
+def test_qgr024_annotated_with_quoted_type_detected() -> None:
+    """QGR024: Annotated with string-quoted type (first element) triggers FATAL violation."""
+    code = 'field: Annotated["MyModel", "Description string"]\n'
+    violations = _scan_snippet(code, filepath="backend_v2/models/config.py")
+    qgr024 = [v for v in violations if v.rule_code == "QGR024"]
+    assert len(qgr024) == 1
+    assert qgr024[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr025_dynamic_dict_in_model_copy_raises_fatal() -> None:
+    """QGR025: Passing dynamic dictionary variable to model_copy(update=...) triggers FATAL violation."""
+    code = "model.model_copy(update=untyped_dict)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr025 = [v for v in violations if v.rule_code == "QGR025"]
+    assert len(qgr025) == 1
+    assert qgr025[0].severity == GuardrailSeverity.FATAL
+    assert "untyped_dict" in qgr025[0].message
+
+
+def test_qgr025_typed_literal_dict_in_model_copy_permitted() -> None:
+    """QGR025: Passing statically known typed dictionary literal to model_copy(update=...) is permitted."""
+    code = "model.model_copy(update={'status': ExecutionStatus.RUNNING})\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr025 = [v for v in violations if v.rule_code == "QGR025"]
+    assert len(qgr025) == 0
+
+
+def test_qgr025_dict_unpacking_in_model_copy_raises_fatal() -> None:
+    """QGR025: Passing dictionary with unpacking ({**untyped}) to model_copy(update=...) triggers FATAL."""
+    code = "model.model_copy(update={**untyped_data})\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr025 = [v for v in violations if v.rule_code == "QGR025"]
+    assert len(qgr025) == 1
+    assert qgr025[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr025_none_update_in_model_copy_permitted() -> None:
+    """QGR025: Passing update=None to model_copy is permitted."""
+    code = "model.model_copy(update=None)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr025 = [v for v in violations if v.rule_code == "QGR025"]
+    assert len(qgr025) == 0
+
+
+def test_qgr025_update_lock_concurrency_defense_permitted() -> None:
+    """QGR025: Concurrency progress updates inside async with _update_lock are permitted."""
+    code = """
+async def sync_progress():
+    async with _update_lock:
+        record = record.model_copy(update=dynamic_progress_dict)
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/orchestrator/dag_executor.py")
+    qgr025 = [v for v in violations if v.rule_code == "QGR025"]
+    assert len(qgr025) == 0
+

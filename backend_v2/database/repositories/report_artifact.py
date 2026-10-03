@@ -128,18 +128,15 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             )
 
         current = ReportArtifact.model_validate(doc, strict=False)
-        update_dict: dict[str, Any] = {}
-        if update_dto.status is not None:
-            update_dict["status"] = update_dto.status
-        if update_dto.storage_paths is not None:
-            update_dict["storage_paths"] = update_dto.storage_paths
-        if update_dto.metadata is not None:
-            update_dict["metadata"] = update_dto.metadata
-        if update_dto.error_message is not None:
-            update_dict["error_message"] = update_dto.error_message
-
-        update_dict["updated_at"] = datetime.now(UTC)
-        updated = current.model_copy(update=update_dict)
+        updated = current.model_copy(
+            update={
+                "status": update_dto.status if update_dto.status is not None else current.status,
+                "storage_paths": update_dto.storage_paths if update_dto.storage_paths is not None else current.storage_paths,
+                "metadata": update_dto.metadata if update_dto.metadata is not None else current.metadata,
+                "error_message": update_dto.error_message if update_dto.error_message is not None else current.error_message,
+                "updated_at": datetime.now(UTC),
+            }
+        )
         payload = updated.model_dump(mode="json")
         await self.driver.upsert(_COLLECTION_NAME, payload, report_id)
         return updated

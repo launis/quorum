@@ -11,9 +11,11 @@ from typing import Any
 
 import jwt
 
-try:
+import importlib.util
+
+if importlib.util.find_spec("firebase_admin") is not None:
     from firebase_admin import auth as firebase_auth_module
-except ImportError:
+else:
     firebase_auth_module = None
 
 from backend_v2.database.interfaces import IIdentityRepository
@@ -302,6 +304,11 @@ class AuthService:
             ) from None
 
         except jwt.PyJWTError as jwt_err:
+            if not self.use_firebase and not token.startswith("mock-token:"):
+                raise AuthenticationError(
+                    message=f"Invalid JWT token: {jwt_err}",
+                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED},
+                ) from jwt_err
             logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
         # 2. Mock/Dev Mode check
@@ -685,6 +692,8 @@ class AuthService:
                 logger.info("[AuthService] Deleting Firebase user %s...", target.id)
                 await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
                 logger.warning("Firebase delete failed (might be local user): %s", e)
 
         # 2. Local DB
@@ -755,6 +764,8 @@ class AuthService:
                     try:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
                     except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
+                        if isinstance(fb_err, (KeyboardInterrupt, SystemExit)):
+                            raise
                         logger.warning("Failed to cascade delete user %s in Firebase: %s", user.id, fb_err)
 
                 await self.repo.delete(user.id)

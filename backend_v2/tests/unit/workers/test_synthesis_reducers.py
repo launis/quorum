@@ -120,11 +120,11 @@ def test_extract_user_role_from_trace_missing_returns_default() -> None:
 
 def test_process_executive_summary_result_empty() -> None:
     """Test process_executive_summary_result returns empty when input is None."""
-    dto, blocks, cost, tokens = process_executive_summary_result(None, None)
-    assert dto is None
-    assert blocks == []
-    assert cost == 0.0
-    assert tokens == 0
+    res = process_executive_summary_result(None, None)
+    assert res.exec_dto is None
+    assert res.blocks == []
+    assert res.cost_usd == 0.0
+    assert res.total_tokens == 0
 
 
 def test_process_executive_summary_result_with_budget() -> None:
@@ -146,12 +146,12 @@ def test_process_executive_summary_result_with_budget() -> None:
         synthesis_length_constraint=100,
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
-    dto, blocks, cost, tokens = process_executive_summary_result((exec_res, usage), prof)
-    assert dto is not None
-    assert len(blocks) == 1
-    assert len(blocks[0].text) <= 100 or "..." in blocks[0].text  # type: ignore[attr-defined]
-    assert cost == 0.005
-    assert tokens == 30
+    res = process_executive_summary_result((exec_res, usage), prof)
+    assert res.exec_dto is not None
+    assert len(res.blocks) == 1
+    assert len(res.blocks[0].text) <= 100 or "..." in res.blocks[0].text  # type: ignore[attr-defined]
+    assert res.cost_usd == 0.005
+    assert res.total_tokens == 30
 
 
 def test_process_matrix_sections_result() -> None:
@@ -163,11 +163,11 @@ def test_process_matrix_sections_result() -> None:
     mat_res = MatrixSectionSynthesesResult(sections=[sec])
     usage = TokenUsage(total_tokens=20, prompt_tokens=5, completion_tokens=15, cost_usd=0.002)
 
-    sec_dict, cost, tokens = process_matrix_sections_result([("layer_1", (mat_res, usage)), ("layer_empty", None)])
-    assert "layer_1" in sec_dict
-    assert len(sec_dict["layer_1"]) == 1
-    assert cost == 0.002
-    assert tokens == 20
+    res = process_matrix_sections_result([("layer_1", (mat_res, usage)), ("layer_empty", None)])
+    assert "layer_1" in res.sec_dict
+    assert len(res.sec_dict["layer_1"]) == 1
+    assert res.cost_usd == 0.002
+    assert res.total_tokens == 20
 
 
 def test_process_xai_highlights_result() -> None:
@@ -187,14 +187,14 @@ def test_process_xai_highlights_result() -> None:
         xai_length_constraint=50,
         target_block_order=[TargetBlockType.GROUPED_EXTENSIONS_BLOCK],
     )
-    highlights, cost, tokens = process_xai_highlights_result((xai_res, usage), prof)
-    assert len(highlights) == 1
-    assert cost == 0.001
-    assert tokens == 20
+    res = process_xai_highlights_result((xai_res, usage), prof)
+    assert len(res.highlights) == 1
+    assert res.cost_usd == 0.001
+    assert res.total_tokens == 20
 
     # None branch
-    h_none, _, _ = process_xai_highlights_result(None, None)
-    assert h_none == []
+    h_none = process_xai_highlights_result(None, None)
+    assert h_none.highlights == []
 
 
 def test_process_row_explanations_result() -> None:
@@ -220,14 +220,14 @@ def test_process_row_explanations_result() -> None:
         row_explanation_length_constraint=50,
         target_block_order=[TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK],
     )
-    res_map, cost, tokens = process_row_explanations_result((mat_res, usage), [ctx_dto], prof)
-    assert "real_mat_123" in res_map
-    assert cost == 0.003
-    assert tokens == 20
+    res = process_row_explanations_result((mat_res, usage), [ctx_dto], prof)
+    assert "real_mat_123" in res.cache_explanations
+    assert res.cost_usd == 0.003
+    assert res.total_tokens == 20
 
     # None branch
-    empty_map, _, _ = process_row_explanations_result(None, [], None)
-    assert empty_map == {}
+    empty_res = process_row_explanations_result(None, [], None)
+    assert empty_res.cache_explanations == {}
 
 
 @pytest.mark.asyncio
@@ -385,12 +385,12 @@ async def test_recover_trace_telemetry_from_blob() -> None:
     mock_storage.read.return_value = blob_bytes
 
     with patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage):
-        cost, p, c, cac, r = await recover_trace_telemetry(exec_rec, 0.0)
-        assert cost == 0.015
-        assert p == 50
-        assert c == 25
-        assert cac == 10
-        assert r == 5
+        telemetry = await recover_trace_telemetry(exec_rec, 0.0)
+        assert telemetry.final_cost == 0.015
+        assert telemetry.prompt_tokens == 50
+        assert telemetry.completion_tokens == 25
+        assert telemetry.cached_tokens == 10
+        assert telemetry.reasoning_tokens == 5
 
 
 @pytest.mark.asyncio
@@ -455,8 +455,8 @@ def test_process_row_explanations_result_real_id_fallback() -> None:
         score=0.8,
         justification="Justification",
     )
-    res_map, _, _ = process_row_explanations_result((mat_res, None), [ctx_dto], None)
-    assert res_map["real_mat_123"] == "Explanation for real matrix."
+    res = process_row_explanations_result((mat_res, None), [ctx_dto], None)
+    assert res.cache_explanations["real_mat_123"] == "Explanation for real matrix."
 
 
 def test_process_row_explanations_result_empty_real_id_continues() -> None:
@@ -468,8 +468,8 @@ def test_process_row_explanations_result_empty_real_id_continues() -> None:
         score=0.8,
         justification="Justification",
     )
-    res_map, _, _ = process_row_explanations_result(None, [ctx_dto], None)
-    assert res_map == {}
+    res = process_row_explanations_result(None, [ctx_dto], None)
+    assert res.cache_explanations == {}
 
 
 @pytest.mark.asyncio

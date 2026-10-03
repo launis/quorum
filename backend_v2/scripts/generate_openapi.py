@@ -62,13 +62,15 @@ def main() -> None:
         raise AppException(
             message=f"Failed to write OpenAPI schema file due to: {e}",
             status_code=500,
-            details={"error_code": error_code},
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
         ) from e
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
+    except Exception as exc:
+        if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+            raise
         logger.critical("Fatal exception halted OpenAPI generation script", exc_info=True)
         sys.exit(1)

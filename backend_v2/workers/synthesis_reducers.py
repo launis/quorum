@@ -5,11 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -39,15 +40,77 @@ from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
 __all__ = [
+    "ExecutiveSummaryReductionDTO",
+    "MatrixSectionsReductionDTO",
+    "RecoveredTelemetryDTO",
+    "RowExplanationsReductionDTO",
+    "XaiHighlightsReductionDTO",
     "extract_user_role_from_trace",
-    "handle_synthesis_failure_state",
     "handle_starvation_if_detected",
+    "handle_synthesis_failure_state",
     "process_executive_summary_result",
     "process_matrix_sections_result",
     "process_row_explanations_result",
     "process_xai_highlights_result",
     "recover_trace_telemetry",
 ]
+
+
+class ExecutiveSummaryReductionDTO(V2CoreBase):
+    """Reduction result for executive summary processing."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    exec_dto: ExecutiveSummarySectionResult | None = Field(default=None, description="Executive summary DTO")
+    blocks: list[AnySduiBlock] = Field(default_factory=list, description="SDUI blocks for executive summary")
+    cost_usd: float = Field(default=0.0, description="Cost in USD")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+
+
+class MatrixSectionsReductionDTO(V2CoreBase):
+    """Reduction result for matrix synthesis sections."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    sec_dict: dict[str, list[AnySduiBlock]] = Field(
+        default_factory=dict, description="Dictionary of layout IDs to SDUI blocks"
+    )
+    cost_usd: float = Field(default=0.0, description="Cost in USD")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+
+
+class XaiHighlightsReductionDTO(V2CoreBase):
+    """Reduction result for XAI highlights."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    highlights: list[Any] = Field(default_factory=list, description="List of highlighted XAI items")
+    cost_usd: float = Field(default=0.0, description="Cost in USD")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+
+
+class RowExplanationsReductionDTO(V2CoreBase):
+    """Reduction result for row explanations."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    cache_explanations: dict[str, str] = Field(
+        default_factory=dict, description="Map of explanation cache keys to explanations"
+    )
+    cost_usd: float = Field(default=0.0, description="Cost in USD")
+    total_tokens: int = Field(default=0, description="Total tokens consumed")
+
+
+class RecoveredTelemetryDTO(V2CoreBase):
+    """Recovered telemetry metrics from execution trace blob."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    final_cost: float = Field(description="Recovered DAG execution cost in USD")
+    prompt_tokens: int | None = Field(default=None, description="Recovered prompt tokens")
+    completion_tokens: int | None = Field(default=None, description="Recovered completion tokens")
+    cached_tokens: int | None = Field(default=None, description="Recovered cached tokens")
+    reasoning_tokens: int | None = Field(default=None, description="Recovered reasoning tokens")
 
 logger = logging.getLogger(__name__)
 
@@ -125,18 +188,18 @@ def extract_user_role_from_trace(
 def process_executive_summary_result(
     result_tuple: tuple[Any, Any] | None,
     active_profile_dto: OutputProfile | None,
-) -> tuple[ExecutiveSummarySectionResult | None, list[AnySduiBlock], float, int]:
-    """Process executive summary result, apply length constraint, and return blocks and usage.
+) -> ExecutiveSummaryReductionDTO:
+    """Process executive summary result, apply length constraint, and return reduction DTO.
 
     Args:
         result_tuple: Optional tuple containing synthesis result DTO and TokenUsage.
         active_profile_dto: Optional active output profile with length constraints.
 
     Returns:
-        A 4-tuple of (exec_dto, blocks, cost_usd, total_tokens).
+        An ExecutiveSummaryReductionDTO containing exec_dto, blocks, cost_usd, and total_tokens.
     """
     if not result_tuple:
-        return None, [], 0.0, 0
+        return ExecutiveSummaryReductionDTO(exec_dto=None, blocks=[], cost_usd=0.0, total_tokens=0)
     exec_res, usage = result_tuple
     exec_dto: ExecutiveSummarySectionResult | None = None
     if isinstance(exec_res, ExecutiveSummarySectionResult):
@@ -160,19 +223,19 @@ def process_executive_summary_result(
     if usage is not None:
         cost = usage.cost_usd
         tokens = usage.total_tokens
-    return exec_dto, blocks, cost, tokens
+    return ExecutiveSummaryReductionDTO(exec_dto=exec_dto, blocks=blocks, cost_usd=cost, total_tokens=tokens)
 
 
 def process_matrix_sections_result(
     task_results: list[tuple[str, tuple[Any, Any] | None]],
-) -> tuple[dict[str, list[AnySduiBlock]], float, int]:
+) -> MatrixSectionsReductionDTO:
     """Process matrix synthesis sections and calculate aggregated token usage.
 
     Args:
         task_results: List of tuples containing layout IDs and result tuples.
 
     Returns:
-        A 3-tuple of (section_dict, total_cost_usd, total_tokens).
+        A MatrixSectionsReductionDTO containing sec_dict, cost_usd, and total_tokens.
     """
     sec_dict: dict[str, list[AnySduiBlock]] = {}
     cost = 0.0
@@ -191,13 +254,13 @@ def process_matrix_sections_result(
         if usage:
             cost += usage.cost_usd
             tokens += usage.total_tokens
-    return sec_dict, cost, tokens
+    return MatrixSectionsReductionDTO(sec_dict=sec_dict, cost_usd=cost, total_tokens=tokens)
 
 
 def process_xai_highlights_result(
     result_tuple: tuple[Any, Any] | None,
     active_profile_dto: OutputProfile | None,
-) -> tuple[list[Any], float, int]:
+) -> XaiHighlightsReductionDTO:
     """Process XAI highlights result and enforce length constraint.
 
     Args:
@@ -205,10 +268,10 @@ def process_xai_highlights_result(
         active_profile_dto: Optional active output profile with length constraints.
 
     Returns:
-        A 3-tuple of (highlights, cost_usd, total_tokens).
+        An XaiHighlightsReductionDTO containing highlights, cost_usd, and total_tokens.
     """
     if not result_tuple:
-        return [], 0.0, 0
+        return XaiHighlightsReductionDTO(highlights=[], cost_usd=0.0, total_tokens=0)
     xai_res, usage = result_tuple
     highlights = []
     if xai_res and isinstance(xai_res, XaiHighlightsResult):
@@ -226,14 +289,14 @@ def process_xai_highlights_result(
     if usage is not None:
         cost = usage.cost_usd
         tokens = usage.total_tokens
-    return highlights, cost, tokens
+    return XaiHighlightsReductionDTO(highlights=highlights, cost_usd=cost, total_tokens=tokens)
 
 
 def process_row_explanations_result(
     result_tuple: tuple[Any, Any] | None,
     matrices_to_explain: list[MatrixExplanationContextDTO],
     active_profile_dto: OutputProfile | None,
-) -> tuple[dict[str, str], float, int]:
+) -> RowExplanationsReductionDTO:
     """Process row explanations and format cache map.
 
     Args:
@@ -242,10 +305,10 @@ def process_row_explanations_result(
         active_profile_dto: Optional active output profile with length constraints.
 
     Returns:
-        A 3-tuple of (cache_explanations, cost_usd, total_tokens).
+        A RowExplanationsReductionDTO containing cache_explanations, cost_usd, and total_tokens.
     """
     if not result_tuple:
-        return {}, 0.0, 0
+        return RowExplanationsReductionDTO(cache_explanations={}, cost_usd=0.0, total_tokens=0)
     row_dto, usage = result_tuple
     raw_map: dict[str, str] = {}
     if row_dto and isinstance(row_dto, MatrixExplanationsResult) and row_dto.explanations:
@@ -277,7 +340,7 @@ def process_row_explanations_result(
     if usage is not None:
         cost = usage.cost_usd
         tokens = usage.total_tokens
-    return cache_explanations, cost, tokens
+    return RowExplanationsReductionDTO(cache_explanations=cache_explanations, cost_usd=cost, total_tokens=tokens)
 
 
 async def handle_starvation_if_detected(
@@ -366,7 +429,7 @@ async def handle_starvation_if_detected(
 async def recover_trace_telemetry(
     execution: ExecutionRecord,
     dag_cost: float,
-) -> tuple[float, int | None, int | None, int | None, int | None]:
+) -> RecoveredTelemetryDTO:
     """Recover DAG telemetry tokens and cost from offloaded execution trace blob if needed.
 
     Args:
@@ -374,7 +437,7 @@ async def recover_trace_telemetry(
         dag_cost: Baseline DAG execution cost in USD.
 
     Returns:
-        A 5-tuple of (final_cost, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens).
+        A RecoveredTelemetryDTO with final_cost, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens.
 
     Raises:
         AppException: If storage reading fails (ErrorCodes.DATA_CORRUPTION) or metadata envelope is invalid (ErrorCodes.VALIDATION_FAILED).
@@ -442,7 +505,13 @@ async def recover_trace_telemetry(
                 details={"error_code": ErrorCodes.DATA_CORRUPTION},
             ) from err
 
-    return final_cost, rec_p, rec_c, rec_cac, rec_r
+    return RecoveredTelemetryDTO(
+        final_cost=final_cost,
+        prompt_tokens=rec_p,
+        completion_tokens=rec_c,
+        cached_tokens=rec_cac,
+        reasoning_tokens=rec_r,
+    )
 
 
 async def handle_synthesis_failure_state(

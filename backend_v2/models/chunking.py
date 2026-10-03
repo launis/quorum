@@ -7,7 +7,7 @@ across the execution lifecycle to stay within rate limits.
 import logging
 import uuid
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -24,6 +24,8 @@ class Chunk[T](V2CoreBase):
         index (int): The sequence order index of this chunk.
         items (list[T]): The actual chunked payload elements.
     """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: str = Field(
         default_factory=lambda: f"chk_{uuid.uuid4().hex[:12]}",
@@ -53,6 +55,8 @@ class ChunkingRequest[T](V2CoreBase):
         items (list[T]): The payload elements to chunk.
         max_chunk_size (int): Maximum number of items per chunk.
     """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     parent_id: str | None = Field(
         default=None,

@@ -77,27 +77,37 @@ class ContextVariablesDTO(V2CoreBase):
         **updates: ContextVariableValue,
     ) -> Self:
         """Return a new immutable instance with updated fields or dynamic blackboard variables."""
-        known_fields = {
-            "global_atom_blackboard",
-            "matrix_reducer_output",
-            "report_context",
-            "step_detector",
-            "evaluated_matrices",
-            "variables",
-        }
-        field_updates: dict[str, ContextVariablesUpdateValue] = {}
+        new_global_atom_blackboard = self.global_atom_blackboard
+        new_matrix_reducer_output = self.matrix_reducer_output
+        new_report_context = self.report_context
+        new_step_detector = self.step_detector
+        new_evaluated_matrices = self.evaluated_matrices
         var_updates: dict[str, ContextVariableValue] = dict(self.variables)
+
         for k, v in updates.items():
-            if k == "__GLOBAL_ATOM_BLACKBOARD__":
-                field_updates["global_atom_blackboard"] = v
-            elif k == "__MATRIX_REDUCER_OUTPUT__":
-                field_updates["matrix_reducer_output"] = v
-            elif k in known_fields:
-                field_updates[k] = v
+            if k in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
+                new_global_atom_blackboard = v  # type: ignore[assignment]
+            elif k in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
+                new_matrix_reducer_output = v  # type: ignore[assignment]
+            elif k == "report_context":
+                new_report_context = v  # type: ignore[assignment]
+            elif k == "step_detector":
+                new_step_detector = v  # type: ignore[assignment]
+            elif k == "evaluated_matrices":
+                new_evaluated_matrices = v  # type: ignore[assignment]
+            elif k == "variables":
+                var_updates.update(v)  # type: ignore[arg-type]
             elif not isinstance(v, (GlobalAtomBlackboard, LightweightMatrixDTO)):
                 var_updates[k] = v
-        field_updates["variables"] = var_updates
-        return self.model_copy(update=field_updates)
+
+        return self.__class__(
+            global_atom_blackboard=new_global_atom_blackboard,
+            matrix_reducer_output=new_matrix_reducer_output,
+            report_context=new_report_context,
+            step_detector=new_step_detector,
+            evaluated_matrices=new_evaluated_matrices,
+            variables=var_updates,
+        )
 
     def __getitem__(self, key: str) -> ContextVariableValue:
         """Retrieve variable by key. Fail-fast with KeyError on absent keys."""

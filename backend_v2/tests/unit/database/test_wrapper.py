@@ -358,10 +358,11 @@ def test_firestore_table_crud() -> None:
     mock_collection.count.return_value = mock_agg
     assert table.count() == 42
 
-    # Count total fallback on exception
+    # Count total failure raises AppException fail-fast
     mock_collection.count.side_effect = RuntimeError("Aggregation failed")
-    mock_collection.stream.return_value = [doc1, doc2]
-    assert table.count() == 2
+    with pytest.raises(AppException) as exc_info:
+        table.count()
+    assert exc_info.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED
     mock_collection.count.side_effect = None
 
     # Truncate recursive branch

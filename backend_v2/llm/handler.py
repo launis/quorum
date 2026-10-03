@@ -10,6 +10,7 @@ from typing import Any
 
 import openai
 import requests
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import (
     AppException,
@@ -27,13 +28,15 @@ from backend_v2.settings import Settings, get_settings
 
 __all__ = ["LLMHandler"]
 
-try:
+import importlib.util
+
+GOOGLE_DEPS_AVAILABLE = (
+    importlib.util.find_spec("google.auth") is not None
+    and importlib.util.find_spec("google.auth.transport.requests") is not None
+)
+if GOOGLE_DEPS_AVAILABLE:
     import google.auth
     import google.auth.transport.requests
-
-    GOOGLE_DEPS_AVAILABLE = True
-except ImportError:
-    GOOGLE_DEPS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +72,10 @@ class LLMHandler:
             client = genai.Client(vertexai=True, location=location)
             client.models.get(model=clean_name)
             return True
-        except ImportError, AttributeError, RuntimeError, OSError:
+        except (ImportError, AttributeError, RuntimeError, OSError) as err:
+            logger.warning("[LLMHandler] Availability check failed for %s in %s: %s", model_id, location, err)
+            if isinstance(err, (KeyboardInterrupt, SystemExit)):
+                raise
             return False
 
     def __init__(self, repo: Any):
@@ -164,7 +170,11 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
                 ) from auth_err
 
-            def check_model(model_id: str) -> str | None:
+            class _ModelProbeResult(BaseModel):
+                model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+                model_id: str | None = None
+
+            def check_model(model_id: str) -> _ModelProbeResult:
                 clean_id = model_id
                 for prefix in ["vertex_ai/", "gemini/", "models/"]:
                     if clean_id.startswith(prefix):
@@ -186,9 +196,10 @@ class LLMHandler:
 
                         modern_client = genai.Client(vertexai=True, project=project, location=target_location)
                         _ = modern_client.models.get(model=clean_id)
-                        return f"vertex_ai/{clean_id}"
-                    except ImportError, AttributeError, RuntimeError, OSError, ValueError:
-                        return None
+                        return _ModelProbeResult(model_id=f"vertex_ai/{clean_id}")
+                    except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as err:
+                        logger.debug("[LLMHandler] GenAI model probe failed for %s: %s", clean_id, err)
+                        return _ModelProbeResult(model_id=None)
                 else:
                     try:
                         auth_request = google.auth.transport.requests.Request()
@@ -199,16 +210,17 @@ class LLMHandler:
                         timeout_sec = settings.llm_default_timeout_seconds
                         resp = requests.get(url, headers=headers, timeout=timeout_sec)
                         if resp.status_code == 200:
-                            return f"vertex_ai/{clean_id}"
+                            return _ModelProbeResult(model_id=f"vertex_ai/{clean_id}")
 
                         url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
                         resp_project = requests.get(url_project, headers=headers, timeout=timeout_sec)
                         if resp_project.status_code == 200:
-                            return f"vertex_ai/{clean_id}"
+                            return _ModelProbeResult(model_id=f"vertex_ai/{clean_id}")
 
-                        return None
-                    except requests.RequestException, OSError, RuntimeError, ValueError:
-                        return None
+                        return _ModelProbeResult(model_id=None)
+                    except (requests.RequestException, OSError, RuntimeError, ValueError) as err:
+                        logger.debug("[LLMHandler] REST model probe failed for %s: %s", clean_id, err)
+                        return _ModelProbeResult(model_id=None)
 
             logger.info(
                 "[LLMHandler] Discovering %d Vertex candidates; validating in %s...", len(candidates), target_location
@@ -218,9 +230,9 @@ class LLMHandler:
             with ThreadPoolExecutor(max_workers=MAX_DISCOVERY_CONCURRENCY) as executor:
                 future_to_model = {executor.submit(check_model, m): m for m in candidates}
                 for future in as_completed(future_to_model):
-                    result = future.result()
-                    if result:
-                        final_list.append(result)
+                    probe_res = future.result()
+                    if probe_res.model_id:
+                        final_list.append(probe_res.model_id)
 
             final_list = sorted(final_list)
             if not final_list:

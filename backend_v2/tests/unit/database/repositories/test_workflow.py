@@ -6,7 +6,7 @@ import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.exceptions import AppException, WorkflowNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
@@ -94,7 +94,7 @@ async def test_get_all_workflows_filters(
     repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
 ) -> None:
     """Positive: retrieving workflows with role ROOT, org filter, and corrupted record skipping."""
-    mock_driver.query.return_value = [{"id": "corrupted_1"}, valid_workflow_doc]
+    mock_driver.query.return_value = [valid_workflow_doc]
     workflows = await repo.get_all_workflows(organization_id="org_123", role="MEMBER")
     assert len(workflows) == 1
     assert workflows[0].id == "wf_1234567890abcdef"
@@ -102,6 +102,15 @@ async def test_get_all_workflows_filters(
     # With ROOT role
     root_workflows = await repo.get_all_workflows(role="ROOT")
     assert len(root_workflows) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_all_workflows_corruption_fail_fast(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted workflow raises AppException."""
+    mock_driver.query.return_value = [{"id": "corrupted_1"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_workflows()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -167,7 +176,7 @@ async def test_update_workflow_not_found(repo: WorkflowRepositoryImpl, mock_driv
 async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict) -> None:
     """Positive: tests step retrieval, creation, update, and deletion."""
     mock_driver.get.return_value = valid_step_doc
-    mock_driver.query.return_value = [{"id": "corrupted_step"}, valid_step_doc]
+    mock_driver.query.return_value = [valid_step_doc]
 
     step = await repo.get_step_by_id("stp_1234567890abcdef")
     assert step is not None
@@ -190,6 +199,15 @@ async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: As
     assert await repo.create_step(step_dto) == "stp_1234567890abcdef"
     assert await repo.update_step("stp_1234567890abcdef", StepUpdateDTO(slug="updated")) == "stp_1234567890abcdef"
     assert await repo.delete_step("stp_1234567890abcdef", force_delete=True) is True
+
+
+@pytest.mark.asyncio
+async def test_get_all_steps_corruption_fail_fast(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted step raises AppException."""
+    mock_driver.query.return_value = [{"id": "corrupted_step"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_steps()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio

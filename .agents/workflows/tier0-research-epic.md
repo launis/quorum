@@ -203,6 +203,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) on the Epic document are strictly forbidden. If `multi_replace_file_content` fails due to line matching discrepancies, fallback to bounded `view_file` to verify the exact code structure before retrying.</constraint>
       <action name="AUDIT_REPORT_PERSISTENCE">Save the full System 2 audit report (including root cause analysis, panel findings, failure mode analysis, and the 5-column table) to `docs/epic/EPIC_[num]_audit_report.md` using `write_to_file`.</action>
       <action name="SELF_HEALING_BOUNDARY_AUDIT">After mutating the Epic document, you MUST physically run the boundaries audit script: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. CIRCUIT BREAKER: If you fail 3 times sequentially, you MUST STOP, output `<circuit_breaker_tripped>`, and WAIT for human guidance to prevent infinite loops.</action>
+      <action name="EPIC_COVERAGE_AUDIT">After mutating the Epic document, you MUST physically run the epic coverage audit script: `uv run python scripts/audit_epic_coverage.py --epic <path_to_epic>`. Verify that all required sections, headings, compliance matrices, and DoD elements are fully populated without gaps.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">

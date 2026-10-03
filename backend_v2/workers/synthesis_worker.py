@@ -402,40 +402,42 @@ async def generate_profile_synthesis_and_pdf_task(
         exec_summary_res = None
         if t_exec_summary is not None:
             exec_summary_res = t_exec_summary.result()
-        exec_dto, exec_blocks, c1, tok1 = process_executive_summary_result(
+        exec_reduction = process_executive_summary_result(
             exec_summary_res,
             active_profile_dto,
         )
-        if exec_blocks:
-            sec_dict[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value] = exec_blocks
-        synth_cost += c1
-        synth_tokens += tok1
+        if exec_reduction.blocks:
+            sec_dict[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value] = exec_reduction.blocks
+        synth_cost += exec_reduction.cost_usd
+        synth_tokens += exec_reduction.total_tokens
 
-        mat_dict, c2, tok2 = process_matrix_sections_result(t_matrix_sections)
-        sec_dict.update(mat_dict)
-        synth_cost += c2
-        synth_tokens += tok2
+        mat_reduction = process_matrix_sections_result(t_matrix_sections)
+        sec_dict.update(mat_reduction.sec_dict)
+        synth_cost += mat_reduction.cost_usd
+        synth_tokens += mat_reduction.total_tokens
 
         xai_res = None
         if t_xai is not None:
             xai_res = t_xai.result()
-        xai_highlights_list, c3, tok3 = process_xai_highlights_result(
+        xai_reduction = process_xai_highlights_result(
             xai_res,
             active_profile_dto,
         )
-        synth_cost += c3
-        synth_tokens += tok3
+        xai_highlights_list = xai_reduction.highlights
+        synth_cost += xai_reduction.cost_usd
+        synth_tokens += xai_reduction.total_tokens
 
         row_res = None
         if t_row is not None:
             row_res = t_row.result()
-        cache_row_explanations, c4, tok4 = process_row_explanations_result(
+        row_reduction = process_row_explanations_result(
             row_res,
             matrices_to_explain,
             active_profile_dto,
         )
-        synth_cost += c4
-        synth_tokens += tok4
+        cache_row_explanations = row_reduction.cache_explanations
+        synth_cost += row_reduction.cost_usd
+        synth_tokens += row_reduction.total_tokens
 
         variance_expl = None
         if t_variance_result:
@@ -448,6 +450,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         user_role_val: str | None = None
         user_role_just: str | None = None
+        exec_dto = exec_reduction.exec_dto
         if exec_dto is not None:
             user_role_val = exec_dto.user_role
             user_role_just = exec_dto.user_role_justification
@@ -490,7 +493,12 @@ async def generate_profile_synthesis_and_pdf_task(
         if dag_cost == 0.0 and execution.cost_estimate > 0.0 and execution.cost_estimate > prev_cost:
             dag_cost = float(execution.cost_estimate - prev_cost)
 
-        dag_cost, rec_p, rec_c, rec_cac, rec_r = await recover_trace_telemetry(execution, dag_cost)
+        recovered_telem = await recover_trace_telemetry(execution, dag_cost)
+        dag_cost = recovered_telem.final_cost
+        rec_p = recovered_telem.prompt_tokens
+        rec_c = recovered_telem.completion_tokens
+        rec_cac = recovered_telem.cached_tokens
+        rec_r = recovered_telem.reasoning_tokens
         total_cost = dag_cost + new_cum_cost
         dto = ExecutionUpdateDTO(
             profile_syntheses=current_syntheses,

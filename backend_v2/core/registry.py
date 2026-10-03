@@ -83,7 +83,7 @@ class TaskDefinition(V2CoreBase):
         metadata: Associated TaskMetadataDTO structure.
     """
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
 
     name: Annotated[str, Field(description="Unique task identifier")]
     handler: Annotated[Callable[..., Any], Field(description="Handing callable logic")]

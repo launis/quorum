@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.seed import run_seed
 
 VALID_ORGANIZATION = {
@@ -71,11 +72,11 @@ def test_run_seed_main_exception_exits() -> None:
     assert excinfo.value.code == 1
 
 
-def test_fail_fast_logs_and_exits() -> None:
-    """Test _fail_fast helper logs and terminates with SystemExit(1)."""
-    with pytest.raises(SystemExit) as excinfo:
-        run_seed._fail_fast("Critical test error", ValueError("Malformed data"))
-    assert excinfo.value.code == 1
+def test_fail_fast_logs_and_raises() -> None:
+    """Test _fail_fast helper logs and returns AppException."""
+    exc = run_seed._fail_fast("Critical test error", ValueError("Malformed data"))
+    assert isinstance(exc, AppException)
+    assert exc.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -158,10 +159,10 @@ async def test_seed_tinydb_backup_failure_exits() -> None:
         patch("pathlib.Path.mkdir"),
         patch("pathlib.Path.exists", return_value=True),
         patch("shutil.copy2", side_effect=OSError("Permission denied")),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), {}, "local")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.FILESYSTEM_VIOLATION
 
 
 @pytest.mark.asyncio
@@ -242,10 +243,10 @@ async def test_seed_tinydb_validation_error_fails_fast() -> None:
         patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
         patch("pathlib.Path.mkdir"),
         patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -266,10 +267,10 @@ async def test_seed_tinydb_processing_error_fails_fast() -> None:
                 }
             },
         ),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), {"organizations": [{}]}, "local")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -284,10 +285,10 @@ async def test_seed_tinydb_upsert_error_fails_fast() -> None:
         patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
         patch("pathlib.Path.mkdir"),
         patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), {"organizations": [VALID_ORGANIZATION]}, "local")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -305,10 +306,10 @@ async def test_seed_tinydb_integrity_parity_mismatch_fails_fast() -> None:
         patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
         patch("pathlib.Path.mkdir"),
         patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -383,10 +384,10 @@ async def test_seed_firestore_validation_error_fails_fast() -> None:
         patch("backend_v2.seed.run_seed.firebase_admin._apps", ["app"]),
         patch("backend_v2.seed.run_seed.firestore.client", return_value=mock_client),
         patch("backend_v2.seed.run_seed._delete_collection"),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_firestore(seed_payload, "firestore")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -408,10 +409,10 @@ async def test_seed_firestore_processing_error_fails_fast() -> None:
                 }
             },
         ),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_firestore({"organizations": [{}]}, "firestore")
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 def test_delete_collection_pagination() -> None:
@@ -437,11 +438,11 @@ async def test_seeder_aborts_without_dropping_tables_on_corrupt_data() -> None:
 
     with (
         patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db) as mock_tinydb_cls,
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), corrupt_payload, "local")
 
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
     # TinyDB was never initialized or tables dropped because pre-flight failed first
     mock_tinydb_cls.assert_not_called()
     mock_db.drop_tables.assert_not_called()
@@ -459,11 +460,11 @@ async def test_seeder_aborts_on_invalid_workflow_dag() -> None:
             "backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow",
             side_effect=ValueError("Broken DAG circular dependency"),
         ),
-        pytest.raises(SystemExit) as excinfo,
+        pytest.raises(AppException) as excinfo,
     ):
         await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
 
-    assert excinfo.value.code == 1
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
     mock_tinydb_cls.assert_not_called()
     mock_db.drop_tables.assert_not_called()
 

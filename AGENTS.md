@@ -120,9 +120,9 @@
     </rule_block>
     
     <rule_block id="backend_audit_execution">
-        <banned_pattern>Running generic pytest without the global audit script.</banned_pattern>
-        <mandatory_pattern>If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test`</mandatory_pattern>
-        <catastrophic_reason>The audit loop enforces Ruff formatting and MyPy strict typing simultaneously with Pytest.</catastrophic_reason>
+        <banned_pattern>Running generic pytest without the global audit script or omitting strict AST guardrails.</banned_pattern>
+        <mandatory_pattern>If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test --ast-strict`. You MUST enforce the Two-Stage Testing Pipeline: run localized tests during implementation steps, and execute the global completion gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`) before closing any phase.</mandatory_pattern>
+        <catastrophic_reason>The audit loop enforces Ruff formatting, MyPy strict typing, clean imports, and AST strict guardrails simultaneously with Pytest.</catastrophic_reason>
     </rule_block>
     
     <rule_block id="flutter_audit_execution">

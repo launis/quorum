@@ -13,6 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -127,7 +128,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                     elif field == "frozen_context":
                         data[field] = FrozenContext.model_validate_json(blob_data)
                     elif field == "context_variables":
-                        data[field] = TypeAdapter(dict[str, Any]).validate_json(blob_data)
+                        data[field] = ContextVariablesDTO.model_validate_json(blob_data)
                     else:
                         data[field] = TypeAdapter(Any).validate_json(blob_data)
                 except Exception as e:

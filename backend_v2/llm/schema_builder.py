@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, XaiExtensionType
 from backend_v2.models.prompts.common import (
@@ -20,6 +21,21 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_RISK_FLAG,
     XAI_DESC_THEORY_LINK,
 )
+
+
+class DynamicFieldSpecDTO(V2CoreBase):
+    """Specification of a dynamically generated schema field."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
+
+    name: str
+    type_hint: Any
+    description: str
+    alias: str
+
+    def to_field_definition(self) -> tuple[Any, Any]:
+        """Convert specification into a Pydantic create_model field definition tuple."""
+        return (self.type_hint, Field(..., description=self.description, alias=self.alias))
 
 
 class SchemaCompilerService:
@@ -41,7 +57,7 @@ class SchemaCompilerService:
 
     @staticmethod
     @functools.lru_cache(maxsize=1024)
-    def _get_or_create_model(schema_hash: str, fields_tuple: tuple[tuple[str, Any, str, str], ...]) -> type[BaseModel]:
+    def _get_or_create_model(schema_hash: str, fields_tuple: tuple[DynamicFieldSpecDTO, ...]) -> type[BaseModel]:
         """Retrieves or creates a Pydantic Model based on the fields tuple.
         LRU Cache strictly prevents Python `type` memory leaks (OOM) during dynamic creation.
 
@@ -53,8 +69,8 @@ class SchemaCompilerService:
             The dynamically generated Pydantic model class.
         """
         fields: dict[str, Any] = {
-            name: (type_hint, Field(..., description=desc, alias=alias))
-            for name, type_hint, desc, alias in fields_tuple
+            spec.name: spec.to_field_definition()
+            for spec in fields_tuple
         }
         return create_model(
             f"DynamicSchema_{schema_hash[:8]}",
@@ -88,7 +104,7 @@ class SchemaCompilerService:
         schema_hash = cls._generate_hash(blocks_config)
 
         # 2. Build the fields tuple for Pydantic (must be hashable for lru_cache)
-        fields_list: list[tuple[str, Any, str, str]] = []
+        fields_list: list[DynamicFieldSpecDTO] = []
         for index, cfg in enumerate(blocks_config):
             block_id = str(cfg["id"])
             alias_name = f"eval_{index + 1}"
@@ -106,98 +122,105 @@ class SchemaCompilerService:
                 type_hint = str
                 desc = f"Extracted text content for {block_id}"
 
-            fields_list.append((block_id, type_hint, desc, alias_name))
+            fields_list.append(
+                DynamicFieldSpecDTO(
+                    name=block_id,
+                    type_hint=type_hint,
+                    description=desc,
+                    alias=alias_name,
+                )
+            )
 
             # Dynamically inject requested XAI output extensions into Pydantic schema
             extensions = cfg["output_extensions"]
             if XaiExtensionType.JUSTIFICATION.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.JUSTIFICATION.value}",
-                        str,
-                        XAI_DESC_JUSTIFICATION.format(block_id=block_id),
-                        f"{alias_name}_{XaiExtensionType.JUSTIFICATION.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.JUSTIFICATION.value}",
+                        type_hint=str,
+                        description=XAI_DESC_JUSTIFICATION.format(block_id=block_id),
+                        alias=f"{alias_name}_{XaiExtensionType.JUSTIFICATION.value}",
                     )
                 )
             if XaiExtensionType.CITATION.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.CITATION.value}",
-                        str,
-                        XAI_DESC_CITATION.format(block_id=block_id),
-                        f"{alias_name}_{XaiExtensionType.CITATION.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.CITATION.value}",
+                        type_hint=str,
+                        description=XAI_DESC_CITATION.format(block_id=block_id),
+                        alias=f"{alias_name}_{XaiExtensionType.CITATION.value}",
                     )
                 )
             if XaiExtensionType.COACHING.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.COACHING.value}",
-                        str,
-                        XAI_DESC_COACHING,
-                        f"{alias_name}_{XaiExtensionType.COACHING.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.COACHING.value}",
+                        type_hint=str,
+                        description=XAI_DESC_COACHING,
+                        alias=f"{alias_name}_{XaiExtensionType.COACHING.value}",
                     )
                 )
             if XaiExtensionType.CONFIDENCE.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.CONFIDENCE.value}",
-                        float,
-                        XAI_DESC_CONFIDENCE,
-                        f"{alias_name}_{XaiExtensionType.CONFIDENCE.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.CONFIDENCE.value}",
+                        type_hint=float,
+                        description=XAI_DESC_CONFIDENCE,
+                        alias=f"{alias_name}_{XaiExtensionType.CONFIDENCE.value}",
                     )
                 )
             if XaiExtensionType.FALSIFICATION.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.FALSIFICATION.value}",
-                        str,
-                        XAI_DESC_FALSIFICATION.format(block_id=block_id),
-                        f"{alias_name}_{XaiExtensionType.FALSIFICATION.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.FALSIFICATION.value}",
+                        type_hint=str,
+                        description=XAI_DESC_FALSIFICATION.format(block_id=block_id),
+                        alias=f"{alias_name}_{XaiExtensionType.FALSIFICATION.value}",
                     )
                 )
             if XaiExtensionType.MISSING_CONTEXT.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.MISSING_CONTEXT.value}",
-                        str,
-                        XAI_DESC_MISSING_CONTEXT,
-                        f"{alias_name}_{XaiExtensionType.MISSING_CONTEXT.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.MISSING_CONTEXT.value}",
+                        type_hint=str,
+                        description=XAI_DESC_MISSING_CONTEXT,
+                        alias=f"{alias_name}_{XaiExtensionType.MISSING_CONTEXT.value}",
                     )
                 )
             if XaiExtensionType.RISK_FLAG.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.RISK_FLAG.value}",
-                        bool,
-                        XAI_DESC_RISK_FLAG,
-                        f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.RISK_FLAG.value}",
+                        type_hint=bool,
+                        description=XAI_DESC_RISK_FLAG,
+                        alias=f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
                     )
                 )
             if XaiExtensionType.REMEDIATION_STEPS.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.REMEDIATION_STEPS.value}",
-                        list[str],
-                        XAI_DESC_REMEDIATION_STEPS,
-                        f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.REMEDIATION_STEPS.value}",
+                        type_hint=list[str],
+                        description=XAI_DESC_REMEDIATION_STEPS,
+                        alias=f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                     )
                 )
             if XaiExtensionType.EMOTIONAL_SENTIMENT.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
-                        str,
-                        XAI_DESC_EMOTIONAL_SENTIMENT,
-                        f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
+                        type_hint=str,
+                        description=XAI_DESC_EMOTIONAL_SENTIMENT,
+                        alias=f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                     )
                 )
             if XaiExtensionType.THEORY_LINK.value in extensions:
                 fields_list.append(
-                    (
-                        f"{block_id}_{XaiExtensionType.THEORY_LINK.value}",
-                        str,
-                        XAI_DESC_THEORY_LINK,
-                        f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",
+                    DynamicFieldSpecDTO(
+                        name=f"{block_id}_{XaiExtensionType.THEORY_LINK.value}",
+                        type_hint=str,
+                        description=XAI_DESC_THEORY_LINK,
+                        alias=f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",
                     )
                 )
 

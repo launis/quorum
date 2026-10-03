@@ -5,7 +5,7 @@ import functools
 import logging
 from pathlib import Path
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
@@ -16,6 +16,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit
@@ -127,9 +128,20 @@ def _is_hallucinated(quote: str, norm_corpus: str, threshold: float) -> bool:
     return True
 
 
+class PayloadCitationVerificationDTO(V2CoreBase):
+    """Result of citation verification against source corpus."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    payload: AnalystOutput | EvaluationResult
+    total_count: int = Field(ge=0)
+    valid_count: int = Field(ge=0)
+    invalid_citations: list[str] = Field(default_factory=list)
+
+
 def _verify_payload_citations(
     parsed_payload: AnalystOutput | EvaluationResult, norm_corpus: str, threshold: float
-) -> tuple[AnalystOutput | EvaluationResult, int, int, list[str]]:
+) -> PayloadCitationVerificationDTO:
     """Verify citations in the parsed payload and drop hallucinated ones.
 
     Args:
@@ -138,8 +150,7 @@ def _verify_payload_citations(
         threshold: The required fuzzy match score percentage.
 
     Returns:
-        A tuple containing the updated payload, the total citation count,
-        the valid citation count, and a list of invalid citations.
+        PayloadCitationVerificationDTO containing the updated payload and verification metrics.
     """
     invalid_citations: list[str] = []
     valid_count = 0
@@ -174,7 +185,12 @@ def _verify_payload_citations(
                     valid_count += 1
             parsed_payload = parsed_payload.model_copy(update={"citation_snippets": valid_quotes})
 
-    return parsed_payload, total_count, valid_count, invalid_citations
+    return PayloadCitationVerificationDTO(
+        payload=parsed_payload,
+        total_count=total_count,
+        valid_count=valid_count,
+        invalid_citations=invalid_citations,
+    )
 
 
 @hook_registry.register(name="verify_citation_integrity")
@@ -239,9 +255,11 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     threshold = get_lexical_fuzz_threshold(system_locale)
 
-    parsed_payload, total_count, valid_count, invalid_citations = _verify_payload_citations(
-        parsed_payload, norm_corpus, threshold
-    )
+    verification = _verify_payload_citations(parsed_payload, norm_corpus, threshold)
+    parsed_payload = verification.payload
+    total_count = verification.total_count
+    valid_count = verification.valid_count
+    invalid_citations = verification.invalid_citations
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")

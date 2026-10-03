@@ -27,7 +27,7 @@ description: Tier 3 (Database Reset) - Workflow for executing local environment 
     </rule_block>
     <rule_block id="post_execution_quality_gate">
       <banned_pattern>Assuming the seeding succeeded without verifying logs or running audits.</banned_pattern>
-      <mandatory_pattern>After the background task completes, verify that the terminal exit code was 0 and that the logs show successful seeding. Afterwards, run the backend audit loop as a secondary validation before reporting success.</mandatory_pattern>
+      <mandatory_pattern>After the background task completes, verify that the terminal exit code was 0 and that the logs show successful seeding. Afterwards, run the backend audit loop as a secondary validation before reporting success: `uv run python scripts/backend_audit_loop.py backend_v2/seed/ --test`.</mandatory_pattern>
       <catastrophic_reason>Silent failures during seeding result in a corrupted database state.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
@@ -38,10 +38,10 @@ description: Tier 3 (Database Reset) - Workflow for executing local environment 
   
   <phases>
     <phase id="1" name="Verify Context &amp; Execute">
-      Verify the target environment complies with the Safety Gate in `<context_rules>`. Execute the Hard Reset explicitly for the local environment.
+      Verify the target environment complies with the Safety Gate in `<context_rules>`. Execute the Hard Reset explicitly for the local environment via `run_command`: `uv run python backend_v2/seed/run_seed.py local`.
     </phase>
     <phase id="2" name="Validation &amp; Reporting">
-      Verify the command output and logs. Run the secondary validation audit loop. Once all tasks complete successfully, report the results clearly to the user confirming the successful wipe and re-seed.
+      Verify the command output and logs. Run the secondary validation audit loop: `uv run python scripts/backend_audit_loop.py backend_v2/seed/ --test`. Once all tasks complete successfully, report the results clearly to the user confirming the successful wipe and re-seed.
     </phase>
   </phases>
 </system_prompt>

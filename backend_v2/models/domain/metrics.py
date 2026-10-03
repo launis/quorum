@@ -5,54 +5,32 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 """
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import ConfigDict, TypeAdapter, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
 
-_dict_adapter = TypeAdapter(dict[str, Any])
 
-
-class MetricsPayloadDTO:
+class MetricsPayloadDTO(V2CoreBase):
     """Strict schema for inputs destined for metrics analysis.
-
-    By utilizing a TypeAdapter wrapper (RootModel is broken in Python 3.14),
-    we strictly enforce that the incoming state payload is explicitly a dictionary
-    before any iterative logic executes, satisfying the Phase 9 Zero-Compromise mandate.
 
     Attributes:
         root: The root dictionary payload.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    def __init__(self, root: dict[str, Any]) -> None:
-        """Initialize the payload wrapper.
-
-        Args:
-            root: The root dictionary containing payload data.
-        """
-        self.root = root
+    root: Annotated[dict[str, Any], Field(default_factory=dict)]
 
     @classmethod
     def model_validate(cls, data: Any) -> MetricsPayloadDTO:
-        """Validate using strict Pydantic TypeAdapter.
-
-        Args:
-            data: The incoming data to validate.
-
-        Returns:
-            A validated MetricsPayloadDTO instance.
-
-        Raises:
-            ValidationError: If validation fails.
-        """
-        validated = _dict_adapter.validate_python(data)
-        return cls(root=validated)
+        if type(data) is dict:
+            return cls(root=data)
+        return super().model_validate(data)
 
 
 class TextMetricsDTO(V2CoreBase):

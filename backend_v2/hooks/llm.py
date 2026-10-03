@@ -72,31 +72,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         # remains synchronous, we use asyncio.run or retrieve settings synchronously.
         # Given it's a hook, let's adapt it safely:
 
-        # In a perfect refactor, hooks would be async. However, since they might be sync:
-        try:
-            loop = asyncio.get_running_loop()
-            is_running = loop.is_running()
-        except RuntimeError:
-            is_running = False
-
-        if is_running:
-            # Standard async runtime (e.g., FastAPI) - this hook should theoretically be async.
-            # If the engine wraps this synchronously, this will fail. We'll use a direct fetch
-            # avoiding the async API if we are inside a sync hook execution.
-
-            # Since the hook is `def configure...` and NOT `async def configure...`,
-            # we must execute the async factory cleanly.
-            # Usually the engine awaits async hooks if they are defined as async,
-            # but if it enforces sync execution, we might need a workaround.
-            # Let's assume for this transition we extract the logic synchronously
-            # or the engine permits async if we change the signature.
-            # To be safe without breaking the BaseAgent hook runner, we will emulate
-            # what the factory does here synchronously using the cached settings if possible,
-            # but ideally we convert this hook to async in the future.
-
-            # For now, we perform local resolution using identical Pydantic models.
-            pass
-
         if not settings.model_registry:
             raise ConfigurationError("System config 'model_registry' is missing.")
         raw_registry = settings.model_registry
@@ -112,10 +87,13 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
                 if isinstance(model_strategy, CognitiveTier)
                 else CognitiveTier(str(model_strategy).lower())
             )
-        except ValueError:
-            tier_enum = None
+        except ValueError as e:
+            raise ConfigurationError(
+                message=f"Strategy '{model_strategy}' not found in registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            ) from e
 
-        if tier_enum is None or tier_enum not in registry.tier_definitions:
+        if tier_enum not in registry.tier_definitions:
             raise ConfigurationError(
                 message=f"Strategy '{model_strategy}' not found in registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},

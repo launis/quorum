@@ -97,14 +97,21 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 workflows.append(Workflow.model_validate(w, strict=False))
             except Exception as e:
-                item_id = w["id"] if "id" in w else "unknown"
+                item_id = "unknown"
+                if "id" in w:
+                    item_id = str(w["id"])
                 logger.error(
-                    "[WorkflowRepository] %s: Skipping corrupted workflow %s: %s",
+                    "[WorkflowRepository] %s: Corrupted workflow %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted workflow {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return workflows
 
     async def get_workflow_by_id(self, workflow_id: str) -> Workflow | None:
@@ -215,14 +222,21 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 steps.append(Step.model_validate(s, strict=False))
             except Exception as e:
-                item_id = s["id"] if "id" in s else "unknown"
+                item_id = "unknown"
+                if "id" in s:
+                    item_id = str(s["id"])
                 logger.error(
-                    "[WorkflowRepository] %s: Skipping corrupted step %s: %s",
+                    "[WorkflowRepository] %s: Corrupted step %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted step {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return steps
 
     async def get_step_by_id(self, step_id: str) -> Step | None:
@@ -246,8 +260,22 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                         validated_step = Step.model_validate(s, strict=False)
                         if validated_step.id == step_id:
                             return validated_step
-                    except Exception:
-                        continue
+                    except Exception as e:
+                        item_id = "unknown"
+                        if "id" in s:
+                            item_id = str(s["id"])
+                        logger.error(
+                            "[WorkflowRepository] %s: Corrupted embedded step %s: %s",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            item_id,
+                            e,
+                            exc_info=True,
+                        )
+                        raise AppException(
+                            message=f"Corrupted embedded step {item_id}: {e}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                        ) from e
         return None
 
     async def get_step(self, step_id: str) -> Step | None:

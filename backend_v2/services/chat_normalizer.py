@@ -16,6 +16,7 @@ import unicodedata
 from fastapi import status
 from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
@@ -232,13 +233,17 @@ class ChatNormalizerService:
         if stripped.startswith("{"):
             try:
                 return ChatHistoryDTO.model_validate_json(stripped)
-            except ValidationError, ValueError:
+            except (ValidationError, ValueError) as err:
+                if isinstance(err, (KeyboardInterrupt, SystemExit)):
+                    raise
                 return None
         elif stripped.startswith("["):
             try:
                 messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
                 return ChatHistoryDTO(conversation=messages)
-            except ValidationError, ValueError:
+            except (ValidationError, ValueError) as err:
+                if isinstance(err, (KeyboardInterrupt, SystemExit)):
+                    raise
                 return None
         return None
 
@@ -464,7 +469,7 @@ class ChatNormalizerService:
 
             if turn.role.lower() == "user":
                 escaped = html.escape(cleaned, quote=False)
-                combined_lines.append(f"<user_payload>\n{escaped}\n</user_payload>")
+                combined_lines.append(TemplateProcessor.render_prompt(t"<user_payload>\n{escaped}\n</user_payload>"))
                 user_lines.append(cleaned)
             else:
                 combined_lines.append(f"<ai_draft_context>\n{cleaned}\n</ai_draft_context>")

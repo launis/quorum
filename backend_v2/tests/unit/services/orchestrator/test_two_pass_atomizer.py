@@ -186,6 +186,25 @@ def test_calculate_packets_empty(mock_executor):
     assert packets_blank == []
 
 
+def test_calculate_packets_dto_structure(mock_executor):
+    """Test _calculate_packets returns ChunkPacketDTO instances with correct fields."""
+    from backend_v2.models.dtos.dag_models import ChunkPacketDTO
+
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    text = "[B0] First block\n\n[B1] Second block\n\n[B2] Third block"
+    packets = atomizer._calculate_packets(text, packet_size=2)
+    assert len(packets) == 2
+    assert isinstance(packets[0], ChunkPacketDTO)
+    assert packets[0].start_block == "B0"
+    assert packets[0].end_block == "B1"
+    assert packets[0].packet_keys == ["B0", "B1"]
+    assert isinstance(packets[1], ChunkPacketDTO)
+    assert packets[1].start_block == "B2"
+    assert packets[1].end_block == "B2"
+    assert packets[1].packet_keys == ["B2"]
+
+
+
 @pytest.mark.asyncio
 async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_client, settings_mock):
     """PROMISE: Zero LLM calls dispatched and empty models returned on text lacking block markers."""

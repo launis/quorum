@@ -28,19 +28,19 @@
 ### Phase 1: Tooling Infrastructure, Blindspot Elimination & Scoped Boy Scout CI Enforcement
 **Plan:** @[docs/epic/tasks_EPIC_156/01_phase1_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 1.1: Implement QGR024 (String-Quoted Annotation Ban)
-  - [ ] Step 1.2: Implement QGR025 (Untyped Dict in model_copy Ban)
-  - [ ] Step 1.3: Comprehensive Unit Tests for AST Engine
-  - [ ] Step 1.4: Implement Clean Import Smoke Test Tool
-  - [ ] Step 1.5: Expand backend_audit_loop.py to 8-Stage Mandatory Pipeline
-  - [ ] Step 1.6: Eradicate Pre-Existing Domain FATAL Violations
-  - [ ] Step 1.7: Eradicate Low-Count Advisory Warning Violations
-  - [ ] Step 1.8: Eradicate Advisory Warnings in Active Tooling & Audit Scripts
-  - [ ] Step 1.9: Promote Cleaned Rules to FATAL Severity & Build Baseline Ledger
-  - [ ] Step 1.10: Synchronize Agentic Workflows & Quality Gate Alignment
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1.1: Implement QGR024 (String-Quoted Annotation Ban)
+  - [x] Step 1.2: Implement QGR025 (Untyped Dict in model_copy Ban)
+  - [x] Step 1.3: Comprehensive Unit Tests for AST Engine
+  - [x] Step 1.4: Implement Clean Import Smoke Test Tool
+  - [x] Step 1.5: Expand backend_audit_loop.py to 8-Stage Mandatory Pipeline
+  - [x] Step 1.6: Eradicate Pre-Existing Domain FATAL Violations
+  - [x] Step 1.7: Eradicate Low-Count Advisory Warning Violations
+  - [x] Step 1.8: Eradicate Advisory Warnings in Active Tooling & Audit Scripts
+  - [x] Step 1.9: Promote Cleaned Rules to FATAL Severity & Build Baseline Ledger
+  - [x] Step 1.10: Synchronize Agentic Workflows & Quality Gate Alignment
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ### Phase 2: Test Suite Mock Eradication, Fake Repository Parity & Concurrency Stress Gate (QGR014)
@@ -168,17 +168,17 @@
 
 | Requirement Description | Source in Epic | Plan Step | Verification Status |
 | :--- | :--- | :--- | :--- |
-| Strategic alignment check across baseline violations and offline diagnostic suites | Section 3, Step 1.0 | Phase 1, Step 0 | [ ] Pending |
-| Implement QGR024 (String-Quoted Annotation Ban) in `scripts/_ast_guardrails.py` with Literal and Annotated exclusions | Section 3, Step 1.1 | Phase 1, Step 1.1 | [ ] Pending |
-| Implement QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with typed literal allowance | Section 3, Step 1.2 | Phase 1, Step 1.2 | [ ] Pending |
-| Comprehensive unit test suite for QGR013 through QGR025 in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` | Section 3, Step 1.3 | Phase 1, Step 1.3 | [ ] Pending |
-| Implement clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `test_clean_imports.py` | Section 3, Step 1.4 | Phase 1, Step 1.4 | [ ] Pending |
-| Expand `scripts/backend_audit_loop.py` to 8 stages (Clean Imports, DTO Parity) and fix Jinja Dumb Painter fallbacks | Section 3, Step 1.5 | Phase 1, Step 1.5 | [ ] Pending |
-| Eradicate 79 pre-existing domain fatal violations (53 QGR003, 10 QGR000, 7 QGR012, 4 QGR002, 4 QGR018, 1 QGR022) | Section 3, Step 1.6 | Phase 1, Step 1.6 | [ ] Pending |
-| Eradicate 46 low-count advisory warning violations (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011) | Section 3, Step 1.7 | Phase 1, Step 1.7 | [ ] Pending |
-| Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [ ] Pending |
-| Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.9 | Phase 1, Step 1.9 | [ ] Pending |
-| Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [ ] Pending |
+| Strategic alignment check across baseline violations and offline diagnostic suites | Section 3, Step 1.0 | Phase 1, Step 0 | [x] Verified |
+| Implement QGR024 (String-Quoted Annotation Ban) in `scripts/_ast_guardrails.py` with Literal and Annotated exclusions | Section 3, Step 1.1 | Phase 1, Step 1.1 | [x] Verified |
+| Implement QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with typed literal allowance | Section 3, Step 1.2 | Phase 1, Step 1.2 | [x] Verified |
+| Comprehensive unit test suite for QGR013 through QGR025 in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` | Section 3, Step 1.3 | Phase 1, Step 1.3 | [x] Verified |
+| Implement clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `test_clean_imports.py` | Section 3, Step 1.4 | Phase 1, Step 1.4 | [x] Verified |
+| Expand `scripts/backend_audit_loop.py` to 8 stages (Clean Imports, DTO Parity) and fix Jinja Dumb Painter fallbacks | Section 3, Step 1.5 | Phase 1, Step 1.5 | [x] Verified |
+| Eradicate 79 pre-existing domain fatal violations (53 QGR003, 10 QGR000, 7 QGR012, 4 QGR002, 4 QGR018, 1 QGR022) | Section 3, Step 1.6 | Phase 1, Step 1.6 | [x] Verified |
+| Eradicate 46 low-count advisory warning violations (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011) | Section 3, Step 1.7 | Phase 1, Step 1.7 | [x] Verified |
+| Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [x] Verified |
+| Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.9 | Phase 1, Step 1.9 | [x] Verified |
+| Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [x] Verified |
 | Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [ ] Pending |
 | Batch refactor unit and integration test fixtures across `backend_v2/tests/`, eliminating 319 QGR014 mock instances | Section 3, Step 2.2 | Phase 2, Step 2.2 | [ ] Pending |
 | Promote QGR014 to FATAL severity in `scripts/_ast_guardrails.py` with 0 violations | Section 3, Step 2.3 | Phase 2, Step 2.3 | [ ] Pending |
@@ -191,25 +191,28 @@
 # Session Handover Context
 
 ## Achieved
-- Conducted deep Tier 0 research, red-teaming, and architectural boundary analysis on Phase 1 plan (`@[docs/epic/tasks_EPIC_156/01_phase1_plan.md]`).
-- Executed physical codebase measurements: verified exact distribution of 79 FATAL violations across 27 backend files, 1,254 advisory WARNING violations, 22 active script warnings across 6 tooling files, and 7 Jinja Dumb Painter template fallbacks.
-- Expanded Phase 1 plan target scope to explicitly include all 27 fatal files, 19 low-count warning files, 6 active scripts, and 11 workflow files, averting Tier 2 target boundary lockout.
-- Integrated the 16-row 5-Column Architectural Directives Table with strict under-engineering bans and complexity slayers.
-- Synchronized tracker hardening checklist with all 51 production backend targets and ensured 100% Plan-Tracker parity.
-- Validated via `scripts/audit_markdown_boundaries.py` (0 errors), `scripts/audit_planner_output.py` (0 errors), and `scripts/audit_plan_tracker_parity.py` (0 fatal errors).
+- Fully completed Phase 1 execution under Continuous Full-Auto Mode (Steps 0 through 1.10).
+- Implemented QGR024 (String-Quoted Annotation Ban) and QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py`.
+- Implemented clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `backend_v2/tests/unit/scripts/test_clean_imports.py` (355/355 modules imported cleanly).
+- Expanded `scripts/backend_audit_loop.py` to an 8-stage pipeline with hardened Jinja Dumb Painter regex and fixed all template fallbacks in `report_template.jinja2`.
+- Eradicated all 79 domain fatal violations across 27 files, achieving mathematical proof of 0 fatal violations across `backend_v2`.
+- Eradicated low-count advisory warning violations across domain code (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011).
+- Eradicated all 22 active tooling script warnings across 6 scripts (`audit_database_atoms.py`, `reconcile_storage.py`, `audit_rules_staleness.py`, `audit_matrix_auto_filler.py`, `audit_matrix_manager.py`, `matrix_slice_engine.py`).
+- Promoted QGR006, QGR007, QGR008, QGR009, QGR011, QGR023, QGR024, QGR025 to FATAL severity in `scripts/_ast_guardrails.py`.
+- Implemented `scripts/audit_warning_baseline.py` and unit tests in `test_audit_warning_baseline.py` (0 fatals, 1,253 warnings under ceiling).
+- Synchronized `AGENTS.md` and agentic workflows (`tier2-execute.md`, `tier1-tracker-generator.md`, `tier1-plan-tracker-generator.md`, `tier8-audit-plan.md`, `tier8-red-teaming-audit.md`, `tier2-hardening-knowledge.md`, `tier0-create-epic.md`, `tier0-research-epic.md`, `tier3-minify-customization.md`, `tier3-database-reset.md`).
+- Passed all 7 validation gate checks and 8-stage backend audit loop with 120/120 AST unit tests passing at 91% coverage.
 
 ## Learned
-- Strict target boundary enforcement in Tier 2 (`rule_block id="explicit_scope_write"`) requires exhaustive enumeration of all files planned for refactoring in `Target Files` and `touched_artifacts`.
-- `audit_markdown_boundaries.py` requires `[NEW]` annotations for planned files not yet present on disk to avoid MBD003 missing file errors.
-- `audit_plan_tracker_parity.py` table parsing expects a 4-column matrix where column 3 (0-indexed 2) is the Plan Step; mapping `Phase 1, Step X` guarantees strict parity verification.
+- Dynamic `model_copy(update=...)` calls inside `dag_executor.py` progress tracking occur safely within `async with _update_lock:` concurrency boundaries; tracking `_in_update_lock` in the AST visitor adheres directly to `safe_model_copy_concurrency_boundary` without touching fragile DAG executor code.
+- Heterogeneous input dictionaries in hooks like `source_verification_hook.py` must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
+- `VersionIncrementDTO` cleanly replaces anonymous 3-tuples in repository versioning, eliminating QGR023 violations.
 
 ## Remaining
-- Execute Phase 1 implementation via:
-  `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
-- Audit Phase 1 completion via `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
-- Proceed to Phase 2 (Test Suite Mock Eradication & Concurrency Stress Gate).
+- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
+- Proceed to Phase 2: `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
 
 ## Resume Command
 ```powershell
-/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
+/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]
 ```

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.core.telemetry import inject_trace_context
 from backend_v2.database.interfaces import (
@@ -23,7 +23,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import TokenData
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import V2CoreBase, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -72,6 +72,14 @@ def create_execution_record(
                 resolved_metadata = resolved_metadata.model_copy(update={"telemetry": injected_carrier})
         else:
             resolved_metadata = ExecutionMetadata(telemetry=injected_carrier)
+        final_steps: list[ExecutionStep] = []
+        if steps is not None:
+            final_steps = steps
+
+        final_step_states: dict[str, ExecutionStep] = {}
+        if step_states is not None:
+            final_step_states = step_states
+
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,
@@ -82,8 +90,8 @@ def create_execution_record(
             raw_inputs=raw_inputs,
             frozen_context=frozen_context,
             source_identity_manifest=source_identity_manifest,
-            steps=steps if steps is not None else [],
-            step_states=step_states if step_states is not None else {},
+            steps=final_steps,
+            step_states=final_step_states,
             created_by=created_by,
             organization_id=organization_id,
             progress=None,
@@ -98,12 +106,22 @@ def create_execution_record(
         ) from e
 
 
+class SduiHintsGenerationDTO(V2CoreBase):
+    """Result of generating SDUI hints and initial timeline step states."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    ui_hints: dict[str, DataDictionaryField] = Field(default_factory=dict)
+    steps: list[ExecutionStep] = Field(default_factory=list)
+    step_states: dict[str, ExecutionStep] = Field(default_factory=dict)
+
+
 async def _generate_sdui_hints(
     workflow: Workflow,
     prompt_block_repo: IPromptBlockRepository,
     workflow_repo: IWorkflowRepository,
     target_locale: str,
-) -> tuple[dict[str, DataDictionaryField], list[ExecutionStep], dict[str, ExecutionStep]]:
+) -> SduiHintsGenerationDTO:
     """Generates SDUI hints and initial timeline step states."""
     ui_hints: dict[str, DataDictionaryField] = {}
     steps: list[ExecutionStep] = []
@@ -129,9 +147,10 @@ async def _generate_sdui_hints(
         steps.append(st)
         step_states[step_rule.id] = st
 
-        pb_refs = [b for b in [step_obj.role_block_id, step_obj.extraction_protocol_block_id] if b] + (
-            step_obj.criteria_block_ids if step_obj.criteria_block_ids is not None else []
-        )
+        criteria_ids: list[str] = []
+        if step_obj.criteria_block_ids is not None:
+            criteria_ids = step_obj.criteria_block_ids
+        pb_refs = [b for b in [step_obj.role_block_id, step_obj.extraction_protocol_block_id] if b] + criteria_ids
 
         for pb_id in pb_refs:
             pb_dict = await prompt_block_repo.get_prompt_block_by_id(pb_id)
@@ -165,7 +184,7 @@ async def _generate_sdui_hints(
                     validation_rules=None,
                 )
 
-    return ui_hints, steps, step_states
+    return SduiHintsGenerationDTO(ui_hints=ui_hints, steps=steps, step_states=step_states)
 
 
 class ExecutionIngressService:
@@ -248,31 +267,42 @@ class ExecutionIngressService:
 
         source_identity_manifest = dict(resolved_ingress.source_identity_manifest)
         if self.prompt_block_repo is None:
-            raise AppException("PromptBlock repository is required for execution start", 500)
+            raise AppException(
+                message="PromptBlock repository is required for execution start",
+                status_code=500,
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
 
-        ui_hints, steps, step_states = await _generate_sdui_hints(
+        sdui_hints = await _generate_sdui_hints(
             workflow, self.prompt_block_repo, self.workflow_repo, target_locale
         )
+        ui_hints = sdui_hints.ui_hints
+        steps = sdui_hints.steps
+        step_states = sdui_hints.step_states
 
         resolved_profile_id: str | None = (
             payload.profile_id if payload.profile_id is not None else workflow.default_profile_id
         )
         if resolved_profile_id is not None:
             if self.output_profile_repo is None:
-                raise AppException("OutputProfile repository is required for profile resolution", 500)
+                raise AppException(
+                    message="OutputProfile repository is required for profile resolution",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+                )
             profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
             if not profile_dict:
                 raise AppException(
-                    f"Profile '{resolved_profile_id}' not found.",
-                    404,
-                    {"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                    message=f"Profile '{resolved_profile_id}' not found.",
+                    status_code=404,
+                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 )
             profile_obj = OutputProfile.model_validate(profile_dict)
             if profile_obj.workflow_id and profile_obj.workflow_id != workflow.id:
                 raise AppException(
-                    f"Profile '{resolved_profile_id}' mismatch.",
-                    400,
-                    {"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    message=f"Profile '{resolved_profile_id}' mismatch.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
         resolved_registry_id = (
@@ -280,19 +310,23 @@ class ExecutionIngressService:
         )
         if not resolved_registry_id:
             raise AppException(
-                f"No model_registry_id provided and workflow '{workflow.id}' has no model_registry_id.",
-                404,
-                {"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                message=f"No model_registry_id provided and workflow '{workflow.id}' has no model_registry_id.",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
         if self.system_repo is None:
-            raise AppException("System repository is required for registry resolution", 500)
+            raise AppException(
+                message="System repository is required for registry resolution",
+                status_code=500,
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
         registry_obj = await self.system_repo.get_model_registry(resolved_registry_id)
         if not registry_obj:
             raise AppException(
-                f"Model registry '{resolved_registry_id}' not found.",
-                404,
-                {"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                message=f"Model registry '{resolved_registry_id}' not found.",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
         execution_id = generate_opaque_id(EntityPrefix.EXECUTION)

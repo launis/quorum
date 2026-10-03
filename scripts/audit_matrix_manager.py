@@ -168,15 +168,14 @@ def cmd_generate(args: argparse.Namespace, exit_on_completion: bool = True) -> A
             seen.add(r["rule_id"])
             unique_rules.append(r)
 
-    args_dict = vars(args)
-    raw_target = str(args_dict["target"]) if "target" in args_dict and args_dict["target"] else ""
+    raw_target = str(args.target).strip() if args.target else ""
     normalized_target = Path(raw_target).as_posix() if raw_target else ""
     if not normalized_target:
         print("ERROR: Mandatory argument '--target' cannot be empty.")
         sys.exit(1)
 
     # Perform automated AST scan if requested or if target is a Python file
-    ast_scan_active = bool(args_dict["ast_scan"]) if "ast_scan" in args_dict else False
+    ast_scan_active = bool(args.ast_scan)
     target_violations: list[GuardrailViolation] = []
     full_target_path = repo_root / normalized_target
     if ast_scan_active and full_target_path.exists() and full_target_path.suffix == ".py":
@@ -208,9 +207,7 @@ def cmd_generate(args: argparse.Namespace, exit_on_completion: bool = True) -> A
         rules=rule_entries,
     )
 
-    out_file_str = (
-        str(args_dict["output"]) if "output" in args_dict and args_dict["output"] else "tmp/audit_matrix.json"
-    )
+    out_file_str = str(args.output).strip() if args.output else "tmp/audit_matrix.json"
     out_path = repo_root / out_file_str if not Path(out_file_str).is_absolute() else Path(out_file_str)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -317,8 +314,7 @@ def cmd_verify(args: argparse.Namespace, exit_on_completion: bool = True) -> lis
         return ["'target_file' is empty in matrix JSON."]
 
     normalized_matrix_target = Path(matrix_target).as_posix()
-    args_dict = vars(args)
-    raw_cli_target = str(args_dict["target"]) if "target" in args_dict and args_dict["target"] else ""
+    raw_cli_target = str(args.target).strip() if args.target else ""
     normalized_cli_target = Path(raw_cli_target).as_posix() if raw_cli_target else ""
 
     if not normalized_cli_target:

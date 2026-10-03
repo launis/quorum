@@ -154,12 +154,12 @@ def test_verify_payload_citations_analyst() -> None:
     )
     norm_corpus = "thisisavalidquote"
 
-    new_payload, total, valid, invalid = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
-    assert total == 2
-    assert valid == 1
-    assert len(invalid) == 1
-    assert "Hallucinated quote" in invalid
-    assert "Valid quote" in cast(AnalystOutput, new_payload).hypotheses[0].quotes
+    res = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
+    assert res.total_count == 2
+    assert res.valid_count == 1
+    assert len(res.invalid_citations) == 1
+    assert "Hallucinated quote" in res.invalid_citations
+    assert "Valid quote" in cast(AnalystOutput, res.payload).hypotheses[0].quotes
 
 
 def test_verify_payload_citations_evaluation_result() -> None:
@@ -182,11 +182,11 @@ def test_verify_payload_citations_evaluation_result() -> None:
         citation_snippets=["Valid quote", "Hallucinated quote"],
     )
     norm_corpus = "thisisavalidquote"
-    new_payload, total, valid, invalid = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
-    assert total == 2
-    assert valid == 1
-    assert len(invalid) == 1
-    assert "Hallucinated quote" in invalid
+    res = _verify_payload_citations(payload, norm_corpus, threshold=80.0)
+    assert res.total_count == 2
+    assert res.valid_count == 1
+    assert len(res.invalid_citations) == 1
+    assert "Hallucinated quote" in res.invalid_citations
 
 
 @pytest.mark.asyncio

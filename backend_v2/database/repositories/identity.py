@@ -6,7 +6,7 @@ import logging
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
@@ -28,6 +28,9 @@ class IdentityRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated Organization domain models.
+
+        Raises:
+            AppException: If an organization record is corrupted.
         """
         raw_orgs = await self.driver.query("organizations")
         orgs: list[Organization] = []
@@ -35,14 +38,21 @@ class IdentityRepositoryImpl(BaseRepository):
             try:
                 orgs.append(Organization.model_validate(o, strict=False))
             except Exception as e:
-                item_id = o["id"] if "id" in o else "unknown"
+                item_id = "unknown"
+                if "id" in o:
+                    item_id = str(o["id"])
                 logger.error(
-                    "[IdentityRepository] %s: Skipping corrupted organization %s: %s",
+                    "[IdentityRepository] %s: Corrupted organization %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted organization {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return orgs
 
     async def get_organization(self, org_id: str) -> Organization | None:
@@ -128,14 +138,21 @@ class IdentityRepositoryImpl(BaseRepository):
             try:
                 users.append(User.model_validate(u, strict=False))
             except Exception as e:
-                item_id = u["id"] if "id" in u else "unknown"
+                item_id = "unknown"
+                if "id" in u:
+                    item_id = str(u["id"])
                 logger.error(
-                    "[IdentityRepository] %s: Skipping corrupted user %s: %s",
+                    "[IdentityRepository] %s: Corrupted user %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
                     item_id,
                     e,
                     exc_info=True,
                 )
+                raise AppException(
+                    message=f"Corrupted user {item_id}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                ) from e
         return users
 
     async def get_user(self, user_id: str) -> User | None:

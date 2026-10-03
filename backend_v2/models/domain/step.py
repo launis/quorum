@@ -122,6 +122,8 @@ class Step(V2CoreBase):
 class StepRule(V2CoreBase):
     """Execution step mapping (DAG Router Node)."""
 
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     id: str = Field(
         default_factory=lambda: f"sr_{uuid.uuid4().hex[:16]}",
         pattern=OPAQUE_STRIPE_ID_REGEX,

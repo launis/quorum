@@ -20,7 +20,7 @@ from backend_v2.models.domain.blackboard import (
     LLMDraftAtomList,
 )
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap
+from backend_v2.models.dtos.dag_models import ChunkPacketDTO, ExtractedAtom, GlobalOntologyMap
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -47,7 +47,7 @@ class TwoPassAtomizer:
         """
         self.executor = executor
 
-    def _calculate_packets(self, hydrated_text: str, packet_size: int = 50) -> list[tuple[str, str, list[str]]]:
+    def _calculate_packets(self, hydrated_text: str, packet_size: int = 50) -> list[ChunkPacketDTO]:
         """Deterministically calculate logical chunk boundaries.
 
         Args:
@@ -55,19 +55,25 @@ class TwoPassAtomizer:
             packet_size: Number of blocks per packet chunk.
 
         Returns:
-            List of 3-tuples containing (start_block, end_block, list_of_block_keys).
+            List of ChunkPacketDTO instances containing start_block, end_block, and packet_keys.
         """
         block_keys = []
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
                 block_keys.append(line[1 : line.find("]")])
 
-        packets: list[tuple[str, str, list[str]]] = []
+        packets: list[ChunkPacketDTO] = []
         if not block_keys:
             return []
         for i in range(0, len(block_keys), packet_size):
             packet_keys = block_keys[i : i + packet_size]
-            packets.append((packet_keys[0], packet_keys[-1], packet_keys))
+            packets.append(
+                ChunkPacketDTO(
+                    start_block=packet_keys[0],
+                    end_block=packet_keys[-1],
+                    packet_keys=packet_keys,
+                )
+            )
         return packets
 
     async def execute_phase_0(
@@ -125,8 +131,8 @@ class TwoPassAtomizer:
                         await progress_callback(completed, len(packets))
                     return res
 
-                for start_b, end_b, _ in packets:
-                    tasks.append(tg.create_task(track_task(start_b, end_b)))
+                for packet in packets:
+                    tasks.append(tg.create_task(track_task(packet.start_block, packet.end_block)))
 
             for task in tasks:
                 result, chunk_usage = task.result()
@@ -233,8 +239,8 @@ class TwoPassAtomizer:
                         await progress_callback(completed, len(packets))
                     return res
 
-                for idx, (start_b, end_b, packet_keys) in enumerate(packets):
-                    tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
+                for idx, packet in enumerate(packets):
+                    tasks.append(tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx)))
 
             for task in tasks:
                 atoms, chunk_usage = task.result()
@@ -410,8 +416,8 @@ class TwoPassAtomizer:
                         await progress_callback(completed, len(packets))
                     return res
 
-                for idx, (start_b, end_b, packet_keys) in enumerate(packets):
-                    tasks.append(tg.create_task(track_task(start_b, end_b, packet_keys, idx)))
+                for idx, packet in enumerate(packets):
+                    tasks.append(tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx)))
 
             for task in tasks:
                 result, chunk_usage = task.result()

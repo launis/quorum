@@ -75,7 +75,11 @@ async def test_update_task_blueprint(
     doc_with_version = sample_step.model_dump(mode="json")
     doc_with_version["version"] = 1
     mock_driver.get.return_value = doc_with_version
-    repo._increment_version = MagicMock(return_value=("stp_guard", "stp_1234567890abcdef_v2", 2))  # type: ignore[method-assign]
+    from backend_v2.database.repositories.base import VersionIncrementDTO
+
+    repo._increment_version = MagicMock(  # type: ignore[method-assign]
+        return_value=VersionIncrementDTO(base_id="stp_guard", new_id="stp_1234567890abcdef_v2", version=2)
+    )
     res = await repo.update_task_blueprint("stp_1234567890abcdef", sample_step.model_copy(update={"slug": "updated"}))
     assert res is True
     mock_driver.upsert.assert_called()

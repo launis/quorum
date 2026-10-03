@@ -227,7 +227,9 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                         "cached_content": cache_name,
                     }
 
-                except Exception as exc:  # noqa: QGR003 [REASON: Fail-Soft graceful degradation to uncached completion on cloud SDK failure]
+                except Exception as exc:
+                    if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                        raise
                     logger.warning(
                         "Fail-Soft: Google AI Studio Context Cache creation bypassed/failed (%s). "
                         "Continuing with uncached completion.",
@@ -367,9 +369,10 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        model_name = str(
-            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
-        ).lower()
+        model_key = call_kwargs["model"] if "model" in call_kwargs else ""
+        if not model_key and isinstance(config, ModelProfile):
+            model_key = config.model_name
+        model_name = str(model_key).lower()
         is_gemini_v3 = is_gemini_v3_or_higher(model_name)
 
         thinking_budget: int | None = None
@@ -416,7 +419,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             call_kwargs["extra_body"]["cachedContent"] = cache_id
 
             if "messages" in call_kwargs:
-                system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]
+                system_msgs = [m for m in call_kwargs["messages"] if "role" in m and m["role"] == "system"]
                 if system_msgs:
                     logger.critical(
                         "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
@@ -424,6 +427,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                         "This indicates a CompiledPrompt construction defect.",
                         len(system_msgs),
                     )
-                    call_kwargs["messages"] = [m for m in call_kwargs["messages"] if m.get("role") != "system"]
+                    call_kwargs["messages"] = [
+                        m for m in call_kwargs["messages"] if "role" not in m or m["role"] != "system"
+                    ]
 
         return call_kwargs

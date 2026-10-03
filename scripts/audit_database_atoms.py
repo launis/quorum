@@ -56,9 +56,12 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import PromptBlockCategory
 
 
@@ -162,7 +165,9 @@ MECHANICAL_COUNTING_PATTERNS: list[str] = [
     "scan the paragraph",
 ]
 
-AMBIGUITY_REGEX: re.Pattern[str] = re.compile(r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.IGNORECASE)
+# Illustrative examples (e.g. 'a0', 'a1') are explicitly permitted in prompt instructions
+# per 05_llm_architecture.md (prompt_illustrative_examples_mandate).
+AMBIGUITY_REGEX: re.Pattern[str] = re.compile(r"\b(?:etc\.|etc|such as)(?!\w)", re.IGNORECASE)
 BACKEND_LEAK_REGEX: re.Pattern[str] = re.compile(r"\b(pydantic|backend architecture|pydantic hooks)\b", re.IGNORECASE)
 INSTITUTION_OVERFIT_REGEX: re.Pattern[str] = re.compile(r"\b(stanford|työterveyslaitos)\b", re.IGNORECASE)
 TOY_DOMAIN_REGEX: re.Pattern[str] = re.compile(r"\b(postgresql|sqlite|mongodb)\b", re.IGNORECASE)
@@ -200,10 +205,18 @@ def _check_screaming_imperatives(text: str) -> str | None:
 
 
 def _check_ambiguity_patterns(text: str) -> str | None:
-    """Checks if text contains open-ended ambiguity tokens."""
+    """Checks if text contains open-ended ambiguity tokens (etc., such as).
+
+    Per 05_llm_architecture.md (prompt_illustrative_examples_mandate), illustrative
+    examples (e.g., 'a0', 'a1') in LLM instructions and prompt blocks are explicitly
+    exempted and permitted.
+    """
     if not text:
         return None
-    match = AMBIGUITY_REGEX.search(text)
+    # Strip parenthesized illustrative examples: (e.g., ...) or (i.e., ...)
+    sanitized = re.sub(r"\((?:e\.g\.|i\.e\.)[^)]*\)", "", text, flags=re.IGNORECASE)
+    sanitized = re.sub(r"\b(?:e\.g\.|i\.e\.)\b", "", sanitized, flags=re.IGNORECASE)
+    match = AMBIGUITY_REGEX.search(sanitized)
     return match.group(0) if match else None
 
 
@@ -289,41 +302,32 @@ def audit_prompt_blocks(
 
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
             total_matrices += 1
-
-            scales = block["scales"] if "scales" in block else []
-            if not isinstance(scales, list):
+            try:
+                matrix_block = MatrixPromptBlock.model_validate(block)
+            except ValidationError as err:
+                issues.append(
+                    AuditIssue(
+                        collection="prompt_blocks",
+                        entity_id=block_id,
+                        field_path="scales",
+                        issue_type="SCHEMA_VALIDATION_ERROR",
+                        message=f"Matrix block '{block_id}' failed schema validation: {err}",
+                    )
+                )
                 continue
 
-            for scale_idx, scale in enumerate(scales):
-                if not isinstance(scale, dict):
-                    continue
-                claims = scale["claims"] if "claims" in scale else []
-                if not isinstance(claims, list):
-                    continue
-
-                for claim_idx, claim in enumerate(claims):
-                    if not isinstance(claim, dict):
-                        continue
-                    tda_assertions = claim["tda_assertions"] if "tda_assertions" in claim else []
-                    if not isinstance(tda_assertions, list):
-                        continue
-
-                    for tda_idx, assertion in enumerate(tda_assertions):
-                        if not isinstance(assertion, dict):
-                            continue
+            for scale_idx, scale in enumerate(matrix_block.scales):
+                for claim_idx, claim in enumerate(scale.claims):
+                    for tda_idx, assertion in enumerate(claim.tda_assertions):
                         total_atoms += 1
-                        tda_id = (
-                            str(assertion["tda_id"])
-                            if "tda_id" in assertion
-                            else f"tda_s{scale_idx}_c{claim_idx}_a{tda_idx}"
-                        )
+                        tda_id = assertion.tda_id or f"tda_s{scale_idx}_c{claim_idx}_a{tda_idx}"
                         prefix_path = f"scales[{scale_idx}].claims[{claim_idx}].tda_assertions[{tda_idx}]"
 
-                        concept_desc = assertion["concept_description"] if "concept_description" in assertion else None
-                        extraction_rule = assertion["extraction_rule"] if "extraction_rule" in assertion else None
+                        concept_desc = assertion.concept_description
+                        extraction_rule = assertion.extraction_rule
 
                         # 1. Check concept_description presence and length
-                        if not concept_desc or not isinstance(concept_desc, str) or len(concept_desc.strip()) < 10:
+                        if not concept_desc or len(concept_desc.strip()) < 10:
                             issues.append(
                                 AuditIssue(
                                     collection="prompt_blocks",
@@ -832,108 +836,88 @@ def audit_workflows(
 
     for wf in workflows:
         wf_id = str(wf["id"]) if "id" in wf else "UNKNOWN_WORKFLOW"
-
-        # 1. Check workflow-level expected_inputs
-        wf_expected_inputs = wf["expected_inputs"] if "expected_inputs" in wf else []
-        known_wf_input_keys: set[str] = set()
-
-        if isinstance(wf_expected_inputs, list):
-            for in_idx, exp_inp in enumerate(wf_expected_inputs):
-                if not isinstance(exp_inp, dict):
-                    continue
-                input_key = str(exp_inp["input_key"]) if "input_key" in exp_inp else ""
-                if input_key:
-                    known_wf_input_keys.add(input_key)
-
-                ai_desc = exp_inp["ai_description"] if "ai_description" in exp_inp else None
-                if isinstance(ai_desc, str) and _contains_raw_xml(ai_desc):
-                    issues.append(
-                        AuditIssue(
-                            collection="workflows",
-                            entity_id=wf_id,
-                            field_path=f"expected_inputs[{in_idx}].ai_description",
-                            issue_type="RAW_XML",
-                            message=f"Workflow '{wf_id}' input '{input_key}' contains raw XML in ai_description.",
-                        )
-                    )
-
-        # 2. Check workflow system_prompt
-        wf_sys_prompt = wf["system_prompt"] if "system_prompt" in wf else None
-        if isinstance(wf_sys_prompt, str) and _contains_raw_xml(wf_sys_prompt):
+        try:
+            wf_model = Workflow.model_validate(wf)
+        except ValidationError as err:
             issues.append(
                 AuditIssue(
                     collection="workflows",
                     entity_id=wf_id,
-                    field_path="system_prompt",
-                    issue_type="RAW_XML",
-                    message=f"Workflow '{wf_id}' contains raw XML in system_prompt.",
+                    field_path="",
+                    issue_type="SCHEMA_VALIDATION_ERROR",
+                    message=f"Workflow '{wf_id}' failed schema validation: {err}",
                 )
             )
+            continue
+
+        # 1. Check workflow-level expected_inputs
+        known_wf_input_keys: set[str] = set()
+        for in_idx, exp_inp in enumerate(wf_model.expected_inputs):
+            if exp_inp.input_key:
+                known_wf_input_keys.add(exp_inp.input_key)
+
+            if exp_inp.ai_description and _contains_raw_xml(exp_inp.ai_description):
+                issues.append(
+                    AuditIssue(
+                        collection="workflows",
+                        entity_id=wf_id,
+                        field_path=f"expected_inputs[{in_idx}].ai_description",
+                        issue_type="RAW_XML",
+                        message=f"Workflow '{wf_id}' input '{exp_inp.input_key}' contains raw XML in ai_description.",
+                    )
+                )
 
         # 3. Check workflow steps and input_mappings
-        wf_steps = wf["steps"] if "steps" in wf else []
-        known_wf_step_ids: set[str] = set()
-        if isinstance(wf_steps, list):
-            for s in wf_steps:
-                if isinstance(s, dict):
-                    s_id = str(s["id"]) if "id" in s else ""
-                    if s_id:
-                        known_wf_step_ids.add(s_id)
+        known_wf_step_ids: set[str] = {s.id for s in wf_model.steps if s.id}
 
-            for s_idx, step_rule in enumerate(wf_steps):
-                if not isinstance(step_rule, dict):
-                    continue
-                s_id = str(step_rule["id"]) if "id" in step_rule else f"step_rule_{s_idx}"
-                blueprint_id = str(step_rule["task_blueprint"]) if "task_blueprint" in step_rule else ""
+        for s_idx, step_rule in enumerate(wf_model.steps):
+            s_id = step_rule.id or f"step_rule_{s_idx}"
+            blueprint_id = step_rule.task_blueprint or ""
 
-                if blueprint_id and blueprint_id not in step_blueprint_ids:
-                    issues.append(
-                        AuditIssue(
-                            collection="workflows",
-                            entity_id=wf_id,
-                            field_path=f"steps[{s_idx}].task_blueprint",
-                            issue_type="ORPHAN_STEP_BLUEPRINT",
-                            message=f"Workflow '{wf_id}' step '{s_id}' references unknown task_blueprint '{blueprint_id}'.",
-                        )
+            if blueprint_id and blueprint_id not in step_blueprint_ids:
+                issues.append(
+                    AuditIssue(
+                        collection="workflows",
+                        entity_id=wf_id,
+                        field_path=f"steps[{s_idx}].task_blueprint",
+                        issue_type="ORPHAN_STEP_BLUEPRINT",
+                        message=f"Workflow '{wf_id}' step '{s_id}' references unknown task_blueprint '{blueprint_id}'.",
                     )
+                )
 
-                input_mappings = step_rule["input_mappings"] if "input_mappings" in step_rule else {}
-                if isinstance(input_mappings, dict):
-                    for map_key, map_val in input_mappings.items():
-                        if not isinstance(map_val, str):
-                            continue
-                        if map_val.startswith("$inputs."):
-                            target_in_key = map_val[len("$inputs.") :]
-                            if target_in_key not in known_wf_input_keys:
-                                issues.append(
-                                    AuditIssue(
-                                        collection="workflows",
-                                        entity_id=wf_id,
-                                        field_path=f"steps[{s_idx}].input_mappings.{map_key}",
-                                        issue_type="UNRESOLVED_INPUT_MAPPING",
-                                        message=(
-                                            f"Workflow '{wf_id}' step '{s_id}' maps to unknown input "
-                                            f"'{target_in_key}' in '{map_val}'."
-                                        ),
-                                    )
+            for map_key, map_val in step_rule.input_mappings.items():
+                if map_val.startswith("$inputs."):
+                    target_in_key = map_val[len("$inputs.") :]
+                    if target_in_key not in known_wf_input_keys:
+                        issues.append(
+                            AuditIssue(
+                                collection="workflows",
+                                entity_id=wf_id,
+                                field_path=f"steps[{s_idx}].input_mappings.{map_key}",
+                                issue_type="UNRESOLVED_INPUT_MAPPING",
+                                message=(
+                                    f"Workflow '{wf_id}' step '{s_id}' maps to unknown input "
+                                    f"'{target_in_key}' in '{map_val}'."
+                                ),
+                            )
+                        )
+                elif map_val.startswith("$steps."):
+                    parts = map_val.split(".")
+                    if len(parts) >= 2:
+                        target_step_id = parts[1]
+                        if target_step_id not in known_wf_step_ids and target_step_id != "matrix_reducer":
+                            issues.append(
+                                AuditIssue(
+                                    collection="workflows",
+                                    entity_id=wf_id,
+                                    field_path=f"steps[{s_idx}].input_mappings.{map_key}",
+                                    issue_type="UNRESOLVED_STEP_MAPPING",
+                                    message=(
+                                        f"Workflow '{wf_id}' step '{s_id}' maps to unknown step "
+                                        f"'{target_step_id}' in '{map_val}'."
+                                    ),
                                 )
-                        elif map_val.startswith("$steps."):
-                            parts = map_val.split(".")
-                            if len(parts) >= 2:
-                                target_step_id = parts[1]
-                                if target_step_id not in known_wf_step_ids and target_step_id != "matrix_reducer":
-                                    issues.append(
-                                        AuditIssue(
-                                            collection="workflows",
-                                            entity_id=wf_id,
-                                            field_path=f"steps[{s_idx}].input_mappings.{map_key}",
-                                            issue_type="UNRESOLVED_STEP_MAPPING",
-                                            message=(
-                                                f"Workflow '{wf_id}' step '{s_id}' maps to unknown step "
-                                                f"'{target_step_id}' in '{map_val}'."
-                                            ),
-                                        )
-                                    )
+                            )
 
     return issues, total_workflows
 
@@ -969,78 +953,59 @@ def audit_output_profiles(
                 )
             )
 
+        try:
+            profile_model = OutputProfile.model_validate(profile)
+        except ValidationError as err:
+            issues.append(
+                AuditIssue(
+                    collection="output_profiles",
+                    entity_id=profile_id,
+                    field_path="",
+                    issue_type="SCHEMA_VALIDATION_ERROR",
+                    message=f"OutputProfile '{profile_id}' failed schema validation: {err}",
+                )
+            )
+            continue
+
         # 1b. Check profile-level synthesis directives for raw XML
-        for dir_field in [
-            "executive_summary_directive",
-            "matrix_1d_synthesis_directive",
-            "matrix_2d_synthesis_directive",
-            "matrix_3d_synthesis_directive",
-            "matrix_text_synthesis_directive",
-            "row_explanation_directive",
-            "xai_synthesis_directive",
-            "variance_synthesis_directive",
+        for dir_field, dir_val in [
+            ("executive_summary_directive", profile_model.executive_summary_directive),
+            ("matrix_1d_synthesis_directive", profile_model.matrix_1d_synthesis_directive),
+            ("matrix_2d_synthesis_directive", profile_model.matrix_2d_synthesis_directive),
+            ("matrix_3d_synthesis_directive", profile_model.matrix_3d_synthesis_directive),
+            ("matrix_text_synthesis_directive", profile_model.matrix_text_synthesis_directive),
+            ("row_explanation_directive", profile_model.row_explanation_directive),
+            ("xai_synthesis_directive", profile_model.xai_synthesis_directive),
+            ("variance_synthesis_directive", profile_model.variance_synthesis_directive),
         ]:
-            if dir_field in profile and profile[dir_field]:
-                dir_val = profile[dir_field]
-                texts_to_check: list[tuple[str, str]] = []
-                if isinstance(dir_val, str):
-                    texts_to_check.append((dir_field, dir_val))
-                elif (
-                    isinstance(dir_val, dict)
-                    and "translations" in dir_val
-                    and isinstance(dir_val["translations"], dict)
-                ):
-                    for lang, txt in dir_val["translations"].items():
-                        if isinstance(txt, str):
-                            texts_to_check.append((f"{dir_field}.translations.{lang}", txt))
-                for f_path, txt in texts_to_check:
-                    if _contains_raw_xml(txt):
-                        issues.append(
-                            AuditIssue(
-                                collection="output_profiles",
-                                entity_id=profile_id,
-                                field_path=f_path,
-                                issue_type="RAW_XML",
-                                message=f"OutputProfile '{profile_id}' contains raw XML in '{f_path}'.",
-                            )
-                        )
+            if isinstance(dir_val, str) and _contains_raw_xml(dir_val):
+                issues.append(
+                    AuditIssue(
+                        collection="output_profiles",
+                        entity_id=profile_id,
+                        field_path=dir_field,
+                        issue_type="RAW_XML",
+                        message=f"OutputProfile '{profile_id}' contains raw XML in '{dir_field}'.",
+                    )
+                )
 
         # 2. Check matrix synthesis groups
-        matrix_groups = profile["matrix_synthesis_groups"] if "matrix_synthesis_groups" in profile else []
-        if isinstance(matrix_groups, list):
-            for g_idx, grp in enumerate(matrix_groups):
-                if not isinstance(grp, dict):
-                    continue
-                grp_id = str(grp["id"]) if "id" in grp else f"group_{g_idx}"
-
-                synthesis_directive = grp["synthesis_directive"] if "synthesis_directive" in grp else None
-                if isinstance(synthesis_directive, str) and _contains_raw_xml(synthesis_directive):
+        for g_idx, grp in enumerate(profile_model.matrix_synthesis_groups):
+            grp_id = grp.id
+            for tb_idx, tb_id in enumerate(grp.target_blocks):
+                if tb_id not in prompt_block_ids:
                     issues.append(
                         AuditIssue(
                             collection="output_profiles",
                             entity_id=profile_id,
-                            field_path=f"matrix_synthesis_groups[{g_idx}].synthesis_directive",
-                            issue_type="RAW_XML",
-                            message=f"OutputProfile '{profile_id}' group '{grp_id}' contains raw XML in directive.",
+                            field_path=f"matrix_synthesis_groups[{g_idx}].target_blocks[{tb_idx}]",
+                            issue_type="ORPHAN_TARGET_BLOCK",
+                            message=(
+                                f"OutputProfile '{profile_id}' group '{grp_id}' targets unknown "
+                                f"prompt_block '{tb_id}'."
+                            ),
                         )
                     )
-
-                target_blocks = grp["target_blocks"] if "target_blocks" in grp else []
-                if isinstance(target_blocks, list):
-                    for tb_idx, tb_id in enumerate(target_blocks):
-                        if str(tb_id) not in prompt_block_ids:
-                            issues.append(
-                                AuditIssue(
-                                    collection="output_profiles",
-                                    entity_id=profile_id,
-                                    field_path=f"matrix_synthesis_groups[{g_idx}].target_blocks[{tb_idx}]",
-                                    issue_type="ORPHAN_TARGET_BLOCK",
-                                    message=(
-                                        f"OutputProfile '{profile_id}' group '{grp_id}' targets unknown "
-                                        f"prompt_block '{tb_id}'."
-                                    ),
-                                )
-                            )
 
     return issues, total_profiles
 
@@ -1062,8 +1027,8 @@ def run_full_database_audit(seed_data_path: Path) -> FullDatabaseAuditReport:
     workflows = data["workflows"] if "workflows" in data else []
     output_profiles = data["output_profiles"] if "output_profiles" in data else []
 
-    prompt_block_ids: set[str] = {str(b["id"]) for b in prompt_blocks if isinstance(b, dict) and "id" in b}
-    step_blueprint_ids: set[str] = {str(s["id"]) for s in steps if isinstance(s, dict) and "id" in s}
+    prompt_block_ids: set[str] = {str(b["id"]) for b in prompt_blocks if "id" in b}
+    step_blueprint_ids: set[str] = {str(s["id"]) for s in steps if "id" in s}
 
     all_issues: list[AuditIssue] = []
 
@@ -1166,7 +1131,7 @@ Statically verifies database invariants across all prompt collections in seed_da
     report = run_full_database_audit(seed_path)
     print_audit_report(report)
 
-    if args.strict and not report.all_passed:
+    if args.strict and (not report.all_passed or len(report.issues) > 0):
         sys.exit(1)
     sys.exit(0)
 

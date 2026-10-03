@@ -283,11 +283,11 @@ def test_find_anchor_span_markdown_table_pipe_resilience() -> None:
         "| ongelmia | ja | osaamistarpeidenjatkuvaakehitystä |  |  |\n"
     )
     phrase = "ja osaamistarpeidenjatkuvaakehitystä"
-    start_idx, end_idx = ChatParserService._find_anchor_span(table_text, phrase, 0)
-    matched = table_text[start_idx:end_idx]
+    span = ChatParserService._find_anchor_span(table_text, phrase, 0)
+    matched = table_text[span.start:span.end]
     assert "ja" in matched
     assert "osaamistarpeidenjatkuvaakehitystä" in matched
-    assert start_idx == table_text.find("ja")
+    assert span.start == table_text.find("ja")
 
 
 @pytest.mark.asyncio

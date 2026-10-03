@@ -69,6 +69,8 @@ class ExecutionStreamService:
 
                 await asyncio.sleep(settings.sse_polling_interval_seconds)
             except ResourceNotFoundError as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
                 retry_count += 1
                 if retry_count <= max_retries:
                     logger.warning(
@@ -88,6 +90,8 @@ class ExecutionStreamService:
                 yield f"event: error\ndata: {err_data}\n\n"
                 break
             except (AppException, OSError, RuntimeError, ValueError) as e:
+                if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                    raise
                 logger.error("SSE Error for execution %s: %s", execution_id, str(e), exc_info=True)
                 err_data = json.dumps(
                     {"error": f"Execution interrupted: {str(e)}", "error_code": "SSE_STREAM_INTERRUPTED"}

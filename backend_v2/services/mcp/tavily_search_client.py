@@ -14,6 +14,7 @@ import httpx
 from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.domain.mcp import (
     TavilyApiResponseDTO,
@@ -282,7 +283,7 @@ async def batch_tavily_search(
         "Extract required fact-checking queries from the provided document. "
         "Return a list of precise, verifiable search queries."
     )
-    user_msg = f"<source_data>\n{document_text}\n</source_data>"
+    user_msg = TemplateProcessor.render_prompt(t"<source_data>\n{document_text}\n</source_data>")
 
     messages = [
         ChatMessageDTO(role="system", content=system_prompt),

@@ -64,8 +64,12 @@ async def test_update_agent(
     repo: AgentRepositoryImpl, mock_driver: AsyncMock, sample_agent: PersonaPromptBlock
 ) -> None:
     """Test versioned update of Agent."""
+    from backend_v2.database.repositories.base import VersionIncrementDTO
+
     mock_driver.get.return_value = sample_agent.model_dump(mode="json")
-    repo._increment_version = MagicMock(return_value=("blk_agent_1", "blk_agent_1_v2", 2))  # type: ignore[method-assign]
+    repo._increment_version = MagicMock(  # type: ignore[method-assign]
+        return_value=VersionIncrementDTO(base_id="blk_agent_1", new_id="blk_agent_1_v2", version=2)
+    )
     res = await repo.update_agent("blk_1234567890abcdef", sample_agent)
     assert res is True
     mock_driver.upsert.assert_called()

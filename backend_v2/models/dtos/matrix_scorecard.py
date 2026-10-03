@@ -122,10 +122,10 @@ class ScorecardAtomDTO(V2CoreBase):
         Returns:
             Sanitized dictionary with visual_intent adjusted if contested.
         """
-        try:
-            d = dict(data)
-        except (TypeError, ValueError):  # fmt: skip
+        if type(data) is not dict:
             return data
+
+        d = dict(data)
 
         status_val = None
         if "status" in d:

@@ -149,7 +149,6 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_execution_status("1")
     await repo.create_execution(
         ExecutionCreateDTO(
-            id="exe_0123456789abcdef",
             workflow_id="wor_0123456789abcdef",
             output_profile_id="pro_0123456789abcdef",
             raw_inputs=None,
@@ -339,17 +338,17 @@ def test_append_only_repository_increment_version() -> None:
     from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 
     repo = AppendOnlyRepositoryBase(AsyncMock())
-    base, new_id, ver = repo._increment_version("wf_exec")
-    assert base == "wf_exec"
-    assert new_id == "wf_exec_v2"
-    assert ver == 2
+    res = repo._increment_version("wf_exec")
+    assert res.base_id == "wf_exec"
+    assert res.new_id == "wf_exec_v2"
+    assert res.version == 2
 
-    base2, new_id2, ver2 = repo._increment_version("wf_exec_v2")
-    assert base2 == "wf_exec"
-    assert new_id2 == "wf_exec_v3"
-    assert ver2 == 3
+    res2 = repo._increment_version("wf_exec_v2")
+    assert res2.base_id == "wf_exec"
+    assert res2.new_id == "wf_exec_v3"
+    assert res2.version == 3
 
-    base3, new_id3, ver3 = repo._increment_version("wf_exec_v_invalid")
-    assert base3 == "wf_exec"
-    assert new_id3 == "wf_exec_v2"
-    assert ver3 == 2
+    res3 = repo._increment_version("wf_exec_v_invalid")
+    assert res3.base_id == "wf_exec"
+    assert res3.new_id == "wf_exec_v2"
+    assert res3.version == 2

@@ -85,7 +85,7 @@ We will now unpack the virtual list autonomously in a continuous loop:
    - If a valid physical code directory exists in the codebase but is missing from `.agents/rules/04_directory_reference.md`, conditionally update that directory reference rule. NEVER edit `docs/architecture/` directly.
    - Overwrite `metadata.json` using `write_to_file`.
 7. **AUTONOMOUS FIX & NEXT**: Print a brief summary of physical changes made to both `artifacts/ki_*.md` and `metadata.json`, then immediately proceed to the next undone KI on the list. Do NOT wait for user confirmation.
-8. **STATE PERSISTENCE**: Update `tmp\hardening_ki_state.json` and mark the KI directory as "DONE".
+8. **STATE PERSISTENCE & STALENESS GATE**: Run `uv run python scripts/audit_rules_staleness.py` to mathematically assert zero stale references across rules and KIs. Update `tmp\hardening_ki_state.json` and mark the KI directory as "DONE".
 9. **SESSION LIMIT & HANDOVER**: Keep a tally of the total number of KI packages audited in this session. If you have processed 3 packages, STOP immediately once the current KI is complete. Append a `# Session Handover Context` block to `tmp\hardening_ki_tracker.md` detailing `achieved` and `remaining`. Then, print to the user exactly: "Session limit reached. Continue by issuing the command: `/tier5-resume --target="@[tmp\hardening_ki_tracker.md] @[knowledge]" --workflow=/tier2-hardening-knowledge --rules="@[.agents\rules\00-antigravity-core.md]"`".
    - *Epilogue:* When all KIs are marked "DONE" across all batches, instruct the user to run `/tier7-describe-architecture` to synthesize the hardened knowledge base into `docs/architecture/`.
     </phase>

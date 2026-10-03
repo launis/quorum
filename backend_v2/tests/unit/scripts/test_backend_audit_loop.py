@@ -500,3 +500,60 @@ def test_coverage_runner_explicit_no_logfire_args(mock_sub: MagicMock) -> None:
     cmd_str = " ".join(str(c) for c in first_call_cmd)
     assert "--logfire-service-name=quorum-audit-loop" not in cmd_str
 
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("sys.exit")
+def test_subprocess_clean_imports_failure(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
+    """Verifies that a failure in Stage 7 (audit_clean_imports.py) triggers Fail-Fast exit(1)."""
+    mock_exit.side_effect = SystemExit(1)
+
+    def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if any("audit_clean_imports.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=sub_side_effect):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("sys.exit")
+def test_subprocess_dto_parity_failure(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
+    """Verifies that a failure in Stage 8 (audit_dto_parity.py) triggers Fail-Fast exit(1)."""
+    mock_exit.side_effect = SystemExit(1)
+
+    def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if any("audit_dto_parity.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=sub_side_effect):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_backend_audit_loop_runs_all_8_stages(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Contract: test_backend_audit_loop_runs_all_8_stages.
+
+    Verify that Stages 1 through 8 execute sequentially without error.
+    """
+    with patch.object(sys, "argv", ["backend_audit_loop.py", "scripts/_ast_guardrails.py"]):
+        main()
+        assert mock_scan.called
+        invoked_cmds = [" ".join(str(c) for c in call[0][0]) for call in mock_sub.call_args_list]
+        assert any("ruff check" in cmd for cmd in invoked_cmds)
+        assert any("ruff format" in cmd for cmd in invoked_cmds)
+        assert any("mypy" in cmd for cmd in invoked_cmds)
+        assert any("run_seed.py" in cmd for cmd in invoked_cmds)
+        assert any("audit_database_atoms.py" in cmd for cmd in invoked_cmds)
+        assert any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
+        assert any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
+
+

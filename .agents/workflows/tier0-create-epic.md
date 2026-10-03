@@ -149,6 +149,7 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
       <constraint>Wrap all referenced file paths in `@-reference` syntax (e.g. `@[backend_v2/models/v2_core.py]`).</constraint>
       <action>IF updating an existing Epic, use `multi_replace_file_content` for surgical edits.</action>
       <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>` to avoid an infinite loop, and ask the user for assistance.</action>
+      <action name="EPIC_COVERAGE_AUDIT">After creating or updating the Epic document, you MUST physically run the epic coverage audit script: `uv run python scripts/audit_epic_coverage.py --epic <path_to_epic>`. Verify that all required sections, headings, compliance matrices, and DoD elements are fully populated without gaps.</action>
     </step>
 
     <step id="6" name="USER GUIDANCE &amp; NEXT STEPS">

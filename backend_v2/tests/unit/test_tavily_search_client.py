@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from backend_v2.exceptions import AppException, ConfigurationError
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.retrieval import BatchSearchQueryDTO
 from backend_v2.models.enums import SearchStatus
 from backend_v2.services.mcp.tavily_search_client import (
@@ -259,9 +259,17 @@ async def test_batch_tavily_search_dlq_on_errors(mock_settings: Any) -> None:
 
     async def _mock_search(q: str) -> Any:
         if q == "q_validation_error":
-            raise AppException(message="Validation", status_code=400, details={"error_code": "VALIDATION_FAILED"})
+            raise AppException(
+                message="Validation",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         if q == "q_fetch_error":
-            raise AppException(message="Fetch", status_code=502, details={"error_code": "FETCH_FAILED"})
+            raise AppException(
+                message="Fetch",
+                status_code=502,
+                details={"error_code": ErrorCodes.FETCH_FAILED},
+            )
         raise RuntimeError("Unexpected")
 
     with patch("backend_v2.services.mcp.tavily_search_client.tavily_search", side_effect=_mock_search):

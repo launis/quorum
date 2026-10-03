@@ -228,9 +228,14 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     try:
                         caching = importlib.import_module("vertexai.preview.caching")
                         cached_content_cls = caching.CachedContent
-                    except ImportError, AttributeError:
-                        generative_models = importlib.import_module("vertexai.preview.generative_models")
-                        cached_content_cls = generative_models.cached_contents.CachedContent
+                    except (ImportError, AttributeError) as import_err:
+                        try:
+                            generative_models = importlib.import_module("vertexai.preview.generative_models")
+                            cached_content_cls = generative_models.cached_contents.CachedContent
+                        except (ImportError, AttributeError) as fallback_err:
+                            raise ImportError(
+                                f"Failed to import Vertex AI CachedContent: {fallback_err}"
+                            ) from import_err
 
                     logger.info(
                         "Creating Vertex AI Context Cache in GCP for model: %s",
@@ -284,7 +289,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         "cached_content": cache_resource_id,
                     }
 
-                except Exception as exc:  # noqa: QGR003 [REASON: Fail-Soft graceful degradation to uncached completion on cloud SDK failure]
+                except Exception as exc:
+                    if isinstance(exc, (KeyboardInterrupt, SystemExit)):
+                        raise
                     logger.warning(
                         "Fail-Soft: Vertex AI Context Cache creation bypassed/failed (%s). "
                         "Continuing with uncached completion.",

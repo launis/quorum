@@ -119,7 +119,9 @@ class ExecutionLifecycleService:
                                     with contextlib.suppress(Exception):
                                         await self.storage.delete(p)
                         await self.report_repo.delete_report_artifact(report.id)
-                except Exception as cascade_err:
+                except (AppException, OSError, ValueError, KeyError) as cascade_err:
+                    if isinstance(cascade_err, (KeyboardInterrupt, SystemExit)):
+                        raise
                     logger.warning(
                         "[ExecutionLifecycleService] Report cascade cleanup non-fatal error: %s", cascade_err
                     )

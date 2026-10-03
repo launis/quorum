@@ -9,6 +9,7 @@ import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     AuditLogEntry,
@@ -46,7 +47,7 @@ async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock
         context={"org_id": "org_123"},
     ).model_dump(mode="json")
     corrupted_audit = {"id": "aud_corrupted", "timestamp": "invalid_date"}
-    mock_driver.query.return_value = [corrupted_audit, valid_audit]
+    mock_driver.query.return_value = [valid_audit]
 
     logs = await repo.get_audit_logs(
         organization_id="org_123",
@@ -60,6 +61,15 @@ async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock
 
     await repo.log_audit_event(AuditLogCreateDTO(action="create", actor_id="usr_123", organization_id="org_123"))
     mock_driver.upsert.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_audit_logs_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted audit log raises AppException."""
+    mock_driver.query.return_value = [{"id": "aud_corrupted", "timestamp": "invalid_date"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_audit_logs()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -93,7 +103,7 @@ async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl
         timestamp=datetime.now(timezone.utc),
     ).model_dump(mode="json")
     corrupted_usage = {"id": "usg_bad", "input_tokens": "not_an_int"}
-    mock_driver.query.return_value = [corrupted_usage, valid_usage]
+    mock_driver.query.return_value = [valid_usage]
 
     org_records = await repo.get_usage_records("organization", "org_123", since="2026-08-01T00:00:00Z")
     assert len(org_records) == 1
@@ -101,6 +111,23 @@ async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl
 
     user_records = await repo.get_usage_records("user", "usr_123")
     assert len(user_records) == 1
+
+
+@pytest.mark.asyncio
+async def test_usage_records_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted usage record raises AppException."""
+    mock_driver.query.return_value = [{"id": "usg_bad", "input_tokens": "not_an_int"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_usage_records("organization", "org_123")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_get_detailed_usage_invalid_date_fail_fast(repo: AuditRepositoryImpl) -> None:
+    """Negative: tests that invalid date in since parameter raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_detailed_usage("org_123", since="invalid_date_format")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio

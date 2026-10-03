@@ -8,6 +8,7 @@ import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
 
 
@@ -32,9 +33,9 @@ def repo(mock_driver: AsyncMock) -> KnowledgeRepositoryImpl:
 
 @pytest.mark.asyncio
 async def test_banned_phrases_crud(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests banned phrases CRUD with corrupted entries and idempotency."""
+    """Positive: tests banned phrases CRUD with valid entries and idempotency."""
     mock_driver.query.side_effect = [
-        [{"id": "corrupted"}, {"id": "bp_1", "phrase": "test slop", "language": "en"}],
+        [{"id": "bp_1", "phrase": "test slop", "language": "en"}],
         [],  # for add_banned_phrase check (not existing)
         [{"id": "bp_1", "phrase": "test slop", "language": "en"}],  # for delete check (found)
         [],  # for delete check (not found)
@@ -50,6 +51,15 @@ async def test_banned_phrases_crud(repo: KnowledgeRepositoryImpl, mock_driver: A
 
     assert await repo.delete_banned_phrase("test slop") is True
     assert await repo.delete_banned_phrase("missing slop") is False
+
+
+@pytest.mark.asyncio
+async def test_banned_phrases_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted banned phrase raises AppException."""
+    mock_driver.query.return_value = [{"id": "corrupted"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_banned_phrases()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
@@ -81,9 +91,9 @@ async def test_prompt_template_retrieval(repo: KnowledgeRepositoryImpl, mock_dri
 async def test_concepts_references_claims_lifecycle(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests concepts, references, claims CRUD and knowledge base clearing."""
     mock_driver.query.side_effect = [
-        [{"name": "No ID Concept"}, {"id": "c1", "name": "Concept 1"}],
-        [{"name": "No ID Ref"}, {"id": "r1", "name": "Ref 1"}],
-        [{"name": "No ID Claim"}, {"id": "cl1", "name": "Claim 1"}],
+        [{"id": "c1", "name": "Concept 1"}],
+        [{"id": "r1", "name": "Ref 1"}],
+        [{"id": "cl1", "name": "Claim 1"}],
     ]
 
     concepts = await repo.get_concepts()
@@ -104,3 +114,30 @@ async def test_concepts_references_claims_lifecycle(repo: KnowledgeRepositoryImp
 
     await repo.clear_knowledge_base()
     assert mock_driver.clear.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_concepts_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted concept raises AppException."""
+    mock_driver.query.return_value = [{"name": "No ID Concept"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_concepts()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_references_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted reference raises AppException."""
+    mock_driver.query.return_value = [{"name": "No ID Ref"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_references()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_claims_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted claim raises AppException."""
+    mock_driver.query.return_value = [{"name": "No ID Claim"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_claims()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
