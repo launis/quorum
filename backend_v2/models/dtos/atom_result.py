@@ -122,14 +122,10 @@ class AtomResultDTO(V2CoreBase):
     error_details: Annotated[
         ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")
     ] = None
-    extensions: Annotated[
-        dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")
-    ] = Field(default_factory=dict)
+    extensions: Annotated[dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")]
 
-    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")] = Field(
-        default_factory=list
-    )
-    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)
+    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")]
+    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)]
 
     @model_validator(mode="after")
     def validate_cognitive_vs_system_state(self) -> Self:
@@ -177,7 +173,7 @@ class EvaluationFactsDTO(V2CoreBase):
     facts: Annotated[
         dict[str, bool | str],
         Field(default_factory=dict, description="Mapping of variable keys to derived evaluation states"),
-    ] = Field(default_factory=dict)
+    ]
 
 
 class EvaluatedAtomDTO(V2CoreBase):
@@ -204,9 +200,7 @@ class EvaluatedAtomDTO(V2CoreBase):
     status: Annotated[str | None, Field(default=None, description="Evaluation status string or enum")] = None
     score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score")] = None
     human_override: Annotated[str | None, Field(default=None, description="Human override status")] = None
-    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Verbatim extracted source quotes")] = (
-        Field(default_factory=list)
-    )
+    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Verbatim extracted source quotes")]
     source_quote: Annotated[str | None, Field(default=None, description="Verbatim source quote")] = None
     evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation")] = (
         None

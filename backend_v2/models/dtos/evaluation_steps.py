@@ -27,7 +27,7 @@ class BaseExtractionDTO(V2CoreBase):
             default_factory=list,
             description="List of exact <search_result id> strings you relied upon for this specific extraction.",
         ),
-    ] = Field(default_factory=list)
+    ]
 
     @model_validator(mode="before")
     @classmethod

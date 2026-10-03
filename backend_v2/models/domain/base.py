@@ -272,7 +272,7 @@ class UsageRecord(V2CoreBase):
             description="Unique ID for the usage event.",
             json_schema_extra={"x-ui-label": "ID"},
         ),
-    ] = Field(default_factory=lambda: f"usg_{uuid.uuid4().hex}")
+    ]
     org_id: Annotated[
         str,
         Field(min_length=1, description="Organization ID.", json_schema_extra={"x-ui-label": "Organization ID"}),

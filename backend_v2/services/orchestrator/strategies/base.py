@@ -77,15 +77,18 @@ class StrategyContext(BaseModel):
     strictness_level: Annotated[int, Field(description="Int representing strictness level")] = (
         StrictnessAnchor.STANDARD.value
     )
-    global_context_vars: Annotated[GlobalContextVarsDTO, Field(description="Global context variables")] = Field(
-        default_factory=GlobalContextVarsDTO
-    )
-    context_variables: Annotated[ContextVariablesDTO, Field(description="Local context variables")] = Field(
-        default_factory=ContextVariablesDTO
-    )
-    prompt_blocks: Annotated[list[PromptBlock], Field(description="Hydrated prompt blocks for execution")] = Field(
-        default_factory=list
-    )
+    global_context_vars: Annotated[
+        GlobalContextVarsDTO,
+        Field(default_factory=GlobalContextVarsDTO, description="Global context variables"),
+    ]
+    context_variables: Annotated[
+        ContextVariablesDTO,
+        Field(default_factory=ContextVariablesDTO, description="Local context variables"),
+    ]
+    prompt_blocks: Annotated[
+        list[PromptBlock],
+        Field(default_factory=list, description="Hydrated prompt blocks for execution"),
+    ]
     model_registry_id: Annotated[
         str | None, Field(default=None, description="Optional sovereign model registry ID binding")
     ] = None

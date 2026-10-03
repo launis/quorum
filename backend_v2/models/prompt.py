@@ -54,7 +54,7 @@ class CompiledPrompt(BaseDTO):
         Field(
             default_factory=PromptMetadataDTO, description="Arbitrary execution metadata (e.g., token proxy scores)."
         ),
-    ] = Field(default_factory=PromptMetadataDTO)
+    ]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

@@ -116,9 +116,13 @@ class UsageAggregate(V2CoreBase):
     entity_id: Annotated[str | None, Field(description="ID of the entity (if not system).")] = None
     period: Annotated[str, Field(min_length=1, description="Reporting period (e.g., '2026-02', 'all-time').")]
 
-    usage: Annotated[TokenUsage, Field(description="Cumulative token and cost statistics.")] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-    )
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Cumulative token and cost statistics.",
+        ),
+    ]
     total_executions: Annotated[int, Field(ge=0, description="Total number of recorded executions in this period.")] = 0
 
 
@@ -140,9 +144,13 @@ class UsageReport(V2CoreBase):
     entity_id: Annotated[str | None, Field(description="ID of the entity (if not system).")] = None
     period: Annotated[str, Field(min_length=1, description="Reporting period (e.g., '2026-02', 'all-time').")]
 
-    usage: Annotated[TokenUsage, Field(description="Aggregated token and cost statistics.")] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-    )
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Aggregated token and cost statistics.",
+        ),
+    ]
 
     quota_limit_usd: Annotated[float | None, Field(ge=0.0, description="Quota limit in USD, if applicable.")] = None
     percentage_used: Annotated[float | None, Field(ge=0.0, description="Percentage of quota used, if applicable.")] = (

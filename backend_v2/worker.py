@@ -113,13 +113,13 @@ class WorkerSettings:
 
     settings = get_settings()
 
-    functions: Sequence[WorkerCoroutine | Function] = [
+    functions: Sequence[WorkerCoroutine | Function] = (
         health_check,
         execute_workflow_job,
         generate_pdf_job,
         render_profile_job,
         generate_report_artifact_job,
-    ]
+    )
     cron_jobs: Sequence[Any] | None = None
     on_startup: StartupShutdown | None = startup
     on_shutdown: StartupShutdown | None = shutdown

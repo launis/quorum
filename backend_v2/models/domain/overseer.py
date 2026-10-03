@@ -181,10 +181,11 @@ class OverseerData(V2CoreBase):
     fact_checks: Annotated[
         list[FactCheckRFI],
         Field(
+            default_factory=list,
             description="Fact check report.",
             json_schema_extra={"x-ui-label": "Fact Checks"},
         ),
-    ] = Field(default_factory=list)
+    ]
     ethical_issues: Annotated[
         list[EthicalObservation],
         Field(

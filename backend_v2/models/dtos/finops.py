@@ -27,9 +27,7 @@ class FinOpsMonitorSummaryDTO(V2CoreBase):
 
     total_duration_ms: Annotated[int, Field(description="Total execution duration in milliseconds")]
     total_calls: Annotated[int, Field(description="Total LLM API calls executed")]
-    alerts: Annotated[list[str], Field(default_factory=list, description="FinOps alert messages")] = Field(
-        default_factory=list
-    )
+    alerts: Annotated[list[str], Field(default_factory=list, description="FinOps alert messages")]
 
 
 class FinOpsFinalizeSummaryDTO(V2CoreBase):
@@ -48,11 +46,9 @@ class FinOpsFinalizeSummaryDTO(V2CoreBase):
     healing_cost_events: Annotated[int, Field(description="Count of healing cost events")]
     structural_warnings: Annotated[
         list[str], Field(default_factory=list, description="Structural pipeline duplication warnings")
-    ] = Field(default_factory=list)
+    ]
     hashing_warnings: Annotated[
         list[str], Field(default_factory=list, description="Payload hashing duplication warnings")
-    ] = Field(default_factory=list)
-    mcp_warnings: Annotated[list[str], Field(default_factory=list, description="Duplicate MCP tool call warnings")] = (
-        Field(default_factory=list)
-    )
+    ]
+    mcp_warnings: Annotated[list[str], Field(default_factory=list, description="Duplicate MCP tool call warnings")]
     usd_cost: Annotated[float, Field(description="Total calculated USD cost incurred")]

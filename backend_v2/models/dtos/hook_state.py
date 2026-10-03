@@ -48,11 +48,11 @@ class ExecutionInputsDTO(V2CoreBase):
     raw_inputs: Annotated[
         Mapping[str, DomainInputValue],
         Field(default_factory=dict, description="Raw input mapping by input key or role."),
-    ] = Field(default_factory=dict)
+    ]
     dynamic_inputs: Annotated[
         Mapping[str, DomainInputValue],
         Field(default_factory=dict, description="Dynamic input parameters extracted from execution context."),
-    ] = Field(default_factory=dict)
+    ]
     user_role: Annotated[
         str | None,
         Field(default=None, description="Optional user role identifier for role-specific processing."),

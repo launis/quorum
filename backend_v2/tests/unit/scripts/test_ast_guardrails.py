@@ -1291,6 +1291,8 @@ def test_qgr011_plain_assign_id_detected() -> None:
 
 def test_qgr020_duplicate_field_on_annotated_detected() -> None:
     """QGR020: Duplicate Field() assignment on Annotated field triggers QGR020."""
+    from scripts._ast_guardrails import GuardrailSeverity
+
     code = (
         "from typing import Annotated\n"
         "from pydantic import BaseModel, Field\n\n"
@@ -1302,10 +1304,13 @@ def test_qgr020_duplicate_field_on_annotated_detected() -> None:
     qgr020 = [v for v in violations if v.rule_code == "QGR020"]
     assert len(qgr020) == 1
     assert "Duplicate `Field()` assignment on Annotated field `steps`" in qgr020[0].message
+    assert qgr020[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr020_mutable_class_default_detected() -> None:
     """QGR020: Class-level mutable defaults (list, dict, set) trigger QGR020."""
+    from scripts._ast_guardrails import GuardrailSeverity
+
     code = (
         "class ConfigData:\n"
         "    fields_to_translate: list[str] = []\n"
@@ -1318,6 +1323,7 @@ def test_qgr020_mutable_class_default_detected() -> None:
     assert any("fields_to_translate" in v.message for v in qgr020)
     assert any("dynamic_mappings" in v.message for v in qgr020)
     assert not any("_private_cache" in v.message for v in qgr020)
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr020)
 
 
 def test_qgr021_llm_debug_logger_import_detected() -> None:

@@ -387,9 +387,7 @@ class McpAuditAestheticsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    default: Annotated[McpAuditItemDTO, Field(default_factory=McpAuditItemDTO, description="Default audit styling")] = (
-        Field(default_factory=McpAuditItemDTO)
-    )
+    default: Annotated[McpAuditItemDTO, Field(default_factory=McpAuditItemDTO, description="Default audit styling")]
 
 
 class MetadataAestheticsDTO(V2CoreBase):
@@ -401,9 +399,7 @@ class MetadataAestheticsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    default_metadata: Annotated[
-        dict[str, str], Field(default_factory=dict, description="Default metadata attributes")
-    ] = Field(default_factory=dict)
+    default_metadata: Annotated[dict[str, str], Field(default_factory=dict, description="Default metadata attributes")]
 
 
 class SynthesisTextModeDTO(V2CoreBase):
@@ -429,7 +425,7 @@ class SynthesisTextAestheticsDTO(V2CoreBase):
 
     default_text: Annotated[
         SynthesisTextModeDTO, Field(default_factory=SynthesisTextModeDTO, description="Default text mode")
-    ] = Field(default_factory=SynthesisTextModeDTO)
+    ]
 
 
 class WarningCardSeverityDTO(V2CoreBase):

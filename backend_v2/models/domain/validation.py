@@ -84,7 +84,7 @@ class ValidationWarningDTO(V2CoreBase):
     title: Annotated[str, Field(min_length=1, description="Short human-readable summary.")]
     error_code: Annotated[str, Field(min_length=1, description="Application-specific error identifier.")]
     detail: Annotated[str, Field(min_length=1, description="Human-readable explanation specific to this occurrence.")]
-    meta: Annotated[dict[str, Any], Field(description="Additional contextual metadata.")] = Field(default_factory=dict)
+    meta: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional contextual metadata.")]
     entropy: Annotated[float | None, Field(description="Shannon entropy telemetry score.")] = None
     telemetry_code: Annotated[str | None, Field(description="Telemetry status or routing code.")] = None
 
@@ -120,9 +120,10 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
     retry_allowed: Annotated[bool, Field(description="Whether a hardening retry is permitted.")]
     max_retries: Annotated[int, Field(description="Maximum number of retries.")] = 3
     current_retry_count: Annotated[int, Field(description="Current retry iteration.")] = 0
-    target_block_ids: Annotated[list[str], Field(description="Target blocks that failed verification.")] = Field(
-        default_factory=list
-    )
+    target_block_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Target blocks that failed verification."),
+    ]
     strictness_override: Annotated[int | None, Field(description="Optional strictness override.")] = None
     reason: Annotated[str, Field(description="Explanation of logic or math triggering the retry.")]
 
@@ -196,7 +197,11 @@ class SystemWarningsStateDTO(V2CoreBase):
 
     system_warnings: Annotated[
         list[ValidationWarningDTO],
-        Field(alias="_system_warnings", description="Validation warnings captured from the execution state."),
-    ] = Field(default_factory=list)
+        Field(
+            default_factory=list,
+            alias="_system_warnings",
+            description="Validation warnings captured from the execution state.",
+        ),
+    ]
 
     model_config = ConfigDict(frozen=True, populate_by_name=True, strict=True, extra="forbid")

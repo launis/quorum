@@ -124,21 +124,19 @@ class SynthesisDistillationDTO(V2CoreBase):
     ] = None
     title_map: Annotated[
         dict[str, str], Field(default_factory=dict, description="Mapping of block/step IDs to localized display titles")
-    ] = Field(default_factory=dict)
+    ]
     matrices_to_explain: Annotated[
         list[MatrixExplanationContextDTO],
         Field(default_factory=list, description="Evaluated matrix contexts requiring qualitative explanation"),
-    ] = Field(default_factory=list)
+    ]
     source_alias_map: Annotated[
         dict[str, str], Field(default_factory=dict, description="Mapping of raw IDs to semantic aliases")
-    ] = Field(default_factory=dict)
+    ]
     output_profile_id: Annotated[
         str | None, Field(default=None, description="Optional presentation output profile identifier")
     ] = None
     target_locale: Annotated[str, Field(default="en", description="Target localization language code")] = "en"
-    alias_registry: Annotated[
-        dict[str, str], Field(default_factory=dict, description="Full alias registry mapping")
-    ] = Field(default_factory=dict)
+    alias_registry: Annotated[dict[str, str], Field(default_factory=dict, description="Full alias registry mapping")]
     max_extensions: Annotated[
         int, Field(default=5, description="Maximum qualitative behavioral extensions allowed")
     ] = 5
@@ -214,7 +212,7 @@ class ExecutiveSummarySectionResult(V2CoreBase):
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description="List of references or citations found."),
-    ] = Field(default_factory=list)
+    ]
     executive_summary: Annotated[
         list[LlmSduiBlock],
         Field(
@@ -240,7 +238,7 @@ class MatrixSectionSynthesesResult(V2CoreBase):
             default_factory=list,
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
         ),
-    ] = Field(default_factory=list)
+    ]
 
 
 class XaiHighlightsResult(V2CoreBase):
@@ -258,7 +256,7 @@ class XaiHighlightsResult(V2CoreBase):
             default_factory=list,
             description="List of synthesized XAI highlights deduced from the evaluation phase.",
         ),
-    ] = Field(default_factory=list)
+    ]
 
 
 class SynthesisOutputDTO(V2CoreBase):
@@ -292,18 +290,18 @@ class SynthesisOutputDTO(V2CoreBase):
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description="List of references or citations found."),
-    ] = Field(default_factory=list)
+    ]
     section_syntheses: Annotated[
         list[SynthesisSectionDTO],
         Field(
             default_factory=list,
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
         ),
-    ] = Field(default_factory=list)
+    ]
     xai_highlights: Annotated[
         list[XaiHighlightItem],
         Field(
             default_factory=list,
             description="List of synthesized XAI highlights deduced from the evaluation phase.",
         ),
-    ] = Field(default_factory=list)
+    ]

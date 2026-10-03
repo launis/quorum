@@ -51,7 +51,9 @@ class ArchivistInput(V2CoreBase):
     archivist_precedents: Annotated[list[ArchiveCase] | None, Field(description="Retrieved precedents.")] = None
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
-    dynamic_inputs: Annotated[dict[str, Any], Field(description="Structured dictionary for dynamic inputs.")] = {}
+    dynamic_inputs: Annotated[
+        dict[str, Any], Field(default_factory=dict, description="Structured dictionary for dynamic inputs.")
+    ]
 
 
 class ArchivistOutputDTO(ReasoningTraceDTO):

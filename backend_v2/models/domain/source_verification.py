@@ -55,7 +55,7 @@ class VerifiedSourceDTO(V2CoreBase):
         BeforeValidator(lambda v: SourceVerificationStatus(v) if isinstance(v, str) else v),
         Field(description="The verification status."),
     ]
-    source_urls: Annotated[list[str], Field(description="Relevant URLs.")] = Field(default_factory=list)
+    source_urls: Annotated[list[str], Field(default_factory=list, description="Relevant URLs.")]
     tavily_answer: Annotated[str | None, Field(description="The textual answer from the search provider.")] = None
 
 
@@ -73,7 +73,7 @@ class SourceVerificationResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    claims: Annotated[list[VerifiedSourceDTO], Field(description="Verified claims.")] = Field(default_factory=list)
+    claims: Annotated[list[VerifiedSourceDTO], Field(default_factory=list, description="Verified claims.")]
     verification_timestamp: Annotated[str, Field(description="Timestamp when verification ran.")]
     total_claims: Annotated[int, Field(description="Count of claims extracted.")]
     verified_count: Annotated[int, Field(description="Count of claims marked as VERIFIED.")]

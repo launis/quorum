@@ -273,7 +273,8 @@ class LinguisticsResult(V2CoreBase):
     performative_patterns: Annotated[
         list[PerformativePattern],
         Field(
+            default_factory=list,
             description="Detected patterns.",
             json_schema_extra={"x-ui-label": "Performative Patterns"},
         ),
-    ] = Field(default_factory=list)
+    ]

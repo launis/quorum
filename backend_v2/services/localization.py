@@ -57,7 +57,7 @@ class LocaleTranslationsDTO(BaseModel):
     translations: Annotated[
         dict[str, str],
         Field(default_factory=dict, description="Mapping of translation keys to localized string values"),
-    ] = Field(default_factory=dict)
+    ]
 
     def lookup(self, key: str) -> str | None:
         """Retrieve translation string by key if present.

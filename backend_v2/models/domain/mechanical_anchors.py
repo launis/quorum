@@ -29,9 +29,10 @@ class MechanicalAnchorsPayload(V2CoreBase):
     performative_patterns: Annotated[
         list[PerformativePattern],
         Field(
+            default_factory=list,
             description="List of detected performative linguistic patterns",
         ),
-    ] = Field(default_factory=list)
+    ]
 
     @classmethod
     def from_context(cls, data: LLMContextDataDTO | None = None) -> MechanicalAnchorsPayload:

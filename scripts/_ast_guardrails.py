@@ -1330,7 +1330,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR020",
                     f"Duplicate `Field()` assignment on Annotated field `{ast.unparse(node.target)}`.",
                     "Remove redundant `= Field(...)` assignment or replace with literal/factory default per `pydantic_annotated_fields_mandate`.",
-                    severity=GuardrailSeverity.WARNING,
+                    severity=GuardrailSeverity.FATAL,
                 )
             # QGR020: Class-level mutable default in class definitions (only directly in class body)
             if (
@@ -1344,7 +1344,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR020",
                         f"Banned mutable class-level default in `{self._current_class_name}` on field `{ast.unparse(node.target)}`: `{ast.unparse(node.value)}`.",
                         "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
-                        severity=GuardrailSeverity.WARNING,
+                        severity=GuardrailSeverity.FATAL,
                     )
         self.generic_visit(node)
 
@@ -1387,7 +1387,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR020",
                         f"Banned mutable class-level default in `{self._current_class_name}` on field `{target_name}`: `{ast.unparse(node.value)}`.",
                         "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
-                        severity=GuardrailSeverity.WARNING,
+                        severity=GuardrailSeverity.FATAL,
                     )
         self.generic_visit(node)
 
@@ -1893,7 +1893,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR017: v2_core Legacy Facade Import Ban (FATAL)
   QGR018: Primitive Obsession Nested Dict Ban (WARNING)
   QGR019: In-Place dict.pop Mutation Ban (WARNING)
-  QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
+  QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (FATAL)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
   QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
   QGR023: Anonymous Multi-Value State Tuples Ban (FATAL)

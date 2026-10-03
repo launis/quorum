@@ -29,7 +29,7 @@ class PromptMappingDTO(V2CoreBase):
     mappings: Annotated[
         dict[str, str],
         Field(default_factory=dict, description="Map of logical input names to state paths"),
-    ] = Field(default_factory=dict)
+    ]
 
     def __getitem__(self, key: str) -> str:
         """Allow subscript access to inner mappings."""

@@ -111,7 +111,7 @@ class Settings(BaseSettings):
     use_firebase_auth: Annotated[
         bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
     ] = True
-    cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
+    cors_origins: Annotated[list[str], Field(default_factory=lambda: ["*"], description="Allowed CORS Origins")]
 
     # --- OpenTelemetry & Observability ---
     otel_enabled: Annotated[
@@ -190,8 +190,11 @@ class Settings(BaseSettings):
     llm_min_payload_length: Annotated[int, Field(description="Minimum chars for LLM payload before fail-fast")] = 10
     rag_preflight_excluded_keys: Annotated[
         list[str],
-        Field(description="Dynamic input keys excluded from RAG preflight character counting and LLM atomization"),
-    ] = ["document_date"]
+        Field(
+            default_factory=lambda: ["document_date"],
+            description="Dynamic input keys excluded from RAG preflight character counting and LLM atomization",
+        ),
+    ]
     rag_preflight_min_input_chars: Annotated[
         int,
         Field(

@@ -32,7 +32,9 @@ class AnalystInput(V2CoreBase):
     chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
-    dynamic_inputs: Annotated[dict[str, Any], Field(description="Structured dictionary for dynamic inputs.")] = {}
+    dynamic_inputs: Annotated[
+        dict[str, Any], Field(default_factory=dict, description="Structured dictionary for dynamic inputs.")
+    ]
 
 
 class Hypothesis(V2CoreBase):
@@ -63,8 +65,12 @@ class Hypothesis(V2CoreBase):
     ]
     quotes: Annotated[
         list[str],
-        Field(description="Direct quotes found.", json_schema_extra={"x-ui-label": "Quotes"}),
-    ] = []
+        Field(
+            default_factory=list,
+            description="Direct quotes found.",
+            json_schema_extra={"x-ui-label": "Quotes"},
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Self:
@@ -103,8 +109,12 @@ class AnalystDTO(ReasoningTraceDTO):
     ]
     rag_evidence: Annotated[
         list[str],
-        Field(description="RAG evidence snippets.", json_schema_extra={"x-ui-label": "RAG Evidence"}),
-    ] = []
+        Field(
+            default_factory=list,
+            description="RAG evidence snippets.",
+            json_schema_extra={"x-ui-label": "RAG Evidence"},
+        ),
+    ]
     critical_violation: Annotated[
         bool,
         Field(

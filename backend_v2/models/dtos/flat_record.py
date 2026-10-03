@@ -36,7 +36,7 @@ class FlatExecutionRecordDTO(V2CoreBase):
     matrix_metrics: Annotated[
         dict[str, str | float | int | bool | None],
         Field(default_factory=dict, description="Flattened key-value metrics extracted from evaluation matrices"),
-    ] = Field(default_factory=dict)
+    ]
 
     def to_csv_dict(self) -> dict[str, str | float | int | bool | None]:
         """Convert flat record into a single row dictionary suitable for CSV serialization.

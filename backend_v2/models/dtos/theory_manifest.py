@@ -23,4 +23,4 @@ class InjectedTheoryManifestDTO(V2CoreBase):
     theories: Annotated[
         dict[str, str],
         Field(default_factory=dict, description="Mapping of theory or block IDs to retrieved theory content"),
-    ] = Field(default_factory=dict)
+    ]

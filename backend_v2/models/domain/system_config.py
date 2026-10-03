@@ -126,9 +126,13 @@ class SystemConfigModelRegistry(V2CoreBase):
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     default_provider: LaxLLMProvider = Field(default=LLMProvider.AI_STUDIO, description="Default LLM provider")
-    tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)] = Field(
-        description="Direct mapping of the four canonical cognitive tiers to physical profiles"
-    )
+    tier_definitions: Annotated[
+        dict[LaxCognitiveTier, ModelProfile],
+        Field(
+            strict=False,
+            description="Direct mapping of the four canonical cognitive tiers to physical profiles",
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_tier_completeness(self) -> Self:

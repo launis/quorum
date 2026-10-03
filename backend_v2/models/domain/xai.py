@@ -121,9 +121,10 @@ class FalsificationExtension(V2CoreBase):
     model_config = ConfigDict(title="falsification", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
     counter_argument: Annotated[str, Field(description="The key falsification counter argument.")]
-    vulnerabilities: Annotated[list[str], Field(description="Specific logical vulnerabilities detected.")] = Field(
-        default_factory=list
-    )
+    vulnerabilities: Annotated[
+        list[str],
+        Field(default_factory=list, description="Specific logical vulnerabilities detected."),
+    ]
 
 
 class TheoryLinkExtension(V2CoreBase):
@@ -149,9 +150,10 @@ class CoachingExtension(V2CoreBase):
 
     model_config = ConfigDict(title="coaching", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
-    actionable_steps: Annotated[list[str], Field(description="Structured actions for improvement.")] = Field(
-        default_factory=list
-    )
+    actionable_steps: Annotated[
+        list[str],
+        Field(default_factory=list, description="Structured actions for improvement."),
+    ]
 
 
 class MissingContextExtension(V2CoreBase):
@@ -167,9 +169,10 @@ class RemediationStepsExtension(V2CoreBase):
 
     model_config = ConfigDict(title="remediation_steps", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
-    steps: Annotated[list[str], Field(description="Sequence of operations to apply to mitigate errors.")] = Field(
-        default_factory=list
-    )
+    steps: Annotated[
+        list[str],
+        Field(default_factory=list, description="Sequence of operations to apply to mitigate errors."),
+    ]
 
 
 class EmotionalSentimentExtension(V2CoreBase):
@@ -267,7 +270,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    output_extensions: Annotated[list[XAIExtension], Field(description="XAI extensions.")] = Field(default_factory=list)
+    output_extensions: Annotated[list[XAIExtension], Field(default_factory=list, description="XAI extensions.")]
     comparison_data: Annotated[
         ComparisonDataDTO | None,
         Field(description="Structured comparison data.", json_schema_extra={"x-ui-label": "Comparison Data"}),
@@ -356,8 +359,12 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
 
     score_cards: Annotated[
         list[JudgeScoreCard],
-        Field(description="Aggregated scores from all judges.", json_schema_extra={"x-ui-label": "Scorecards"}),
-    ] = Field(default_factory=list)
+        Field(
+            default_factory=list,
+            description="Aggregated scores from all judges.",
+            json_schema_extra={"x-ui-label": "Scorecards"},
+        ),
+    ]
     flat_report: Annotated[
         dict[str, Any] | None,
         Field(

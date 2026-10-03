@@ -178,7 +178,7 @@ class WorkflowInputsIngress(WorkflowInputsBase):
     dynamic_inputs: Annotated[
         dict[str, IngressInputValue],
         Field(default_factory=dict, description="Structured dictionary for dynamic workflow inputs."),
-    ] = Field(default_factory=dict)
+    ]
 
 
 class WorkflowInputs(WorkflowInputsBase):
@@ -197,7 +197,7 @@ class WorkflowInputs(WorkflowInputsBase):
             default_factory=dict,
             description="Structured dictionary for domain inputs (Base64Attachment excluded).",
         ),
-    ] = Field(default_factory=dict)
+    ]
 
     @field_validator("dynamic_inputs")
     @classmethod

@@ -156,7 +156,7 @@ class EngineExecutionResult(BaseModel):
     ] = None
     trace_events: Annotated[
         list[TraceEvent], Field(default_factory=list, description="Trace events recorded during engine execution.")
-    ] = Field(default_factory=list)
+    ]
     usage: Annotated[
         TokenUsage | None, Field(default=None, description="Aggregated token usage for the engine execution.")
     ] = None

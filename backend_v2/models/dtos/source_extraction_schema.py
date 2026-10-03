@@ -38,7 +38,7 @@ class SourceVerificationPayloadDTO(V2CoreBase):
     extra_sections: Annotated[
         dict[str, str],
         Field(default_factory=dict, description="Additional document sections."),
-    ] = Field(default_factory=dict)
+    ]
 
     def extract_text(self) -> str:
         """Extract consolidated text prioritizing canonical text fields."""

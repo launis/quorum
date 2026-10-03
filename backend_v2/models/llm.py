@@ -105,12 +105,15 @@ class LLMResponse(BaseDTO):
     ] = None
     token_usage: Annotated[
         TokenUsage,
-        Field(description="Token usage statistics (prompt, completion, total, cost)."),
-    ] = Field(default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0))
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage statistics (prompt, completion, total, cost).",
+        ),
+    ]
     provider_metadata: Annotated[
         ProviderMetadataDTO,
         Field(default_factory=ProviderMetadataDTO, description="Provider-specific raw metadata (e.g. finish_reason)."),
-    ] = Field(default_factory=ProviderMetadataDTO)
+    ]
     messages: Annotated[
         list[LLMMessageDTO] | None,
         Field(default=None, description="The full list of messages (prompts) sent to the model for audit purposes."),
@@ -310,7 +313,7 @@ class LLMProviderConfig(BaseDTO):
     additional_params: Annotated[
         ProviderExtraParamsDTO,
         Field(default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."),
-    ] = Field(default_factory=ProviderExtraParamsDTO)
+    ]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -408,9 +411,7 @@ class AdHocTestRequest(BaseDTO):
     api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")] = None
     system_instruction: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="System prompt.")]
     user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
-    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")] = (
-        Field(default_factory=dict)
-    )
+    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")] = None
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")] = None
 

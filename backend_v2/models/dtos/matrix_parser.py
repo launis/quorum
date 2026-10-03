@@ -31,7 +31,7 @@ class ScorecardAtomCollectionDTO(V2CoreBase):
 
     atoms: Annotated[
         dict[str, ScorecardAtomDTO], Field(default_factory=dict, description="Mapping of atom ID to ScorecardAtomDTO")
-    ] = Field(default_factory=dict)
+    ]
 
     def __getitem__(self, atom_id: str) -> ScorecardAtomDTO:
         """Retrieve scorecard atom by atom ID.
