@@ -27,8 +27,9 @@
 
 ### Phase 1: Tooling Infrastructure, Blindspot Elimination & Scoped Boy Scout CI Enforcement
 **Plan:** @[docs/epic/tasks_EPIC_156/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
+  - [ ] Step 0: Strategic Alignment Check
   - [ ] Step 1.1: Implement QGR024 (String-Quoted Annotation Ban)
   - [ ] Step 1.2: Implement QGR025 (Untyped Dict in model_copy Ban)
   - [ ] Step 1.3: Comprehensive Unit Tests for AST Engine
@@ -94,12 +95,47 @@
   - [ ] @[scripts/audit_matrix_auto_filler.py]
   - [ ] @[scripts/audit_matrix_manager.py]
   - [ ] @[scripts/matrix_slice_engine.py]
-  - [ ] @[backend_v2/run_worker.py]
+  - [ ] @[backend_v2/core/hook_registry.py]
+  - [ ] @[backend_v2/core/registry.py]
+  - [ ] @[backend_v2/database/repositories/audit.py]
+  - [ ] @[backend_v2/database/repositories/base.py]
+  - [ ] @[backend_v2/database/repositories/identity.py]
+  - [ ] @[backend_v2/database/repositories/knowledge.py]
+  - [ ] @[backend_v2/database/repositories/workflow.py]
   - [ ] @[backend_v2/database/wrapper.py]
+  - [ ] @[backend_v2/hooks/integrity.py]
   - [ ] @[backend_v2/hooks/llm.py]
+  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [ ] @[backend_v2/llm/adapters/ai_studio_adapter.py]
+  - [ ] @[backend_v2/llm/adapters/openai_adapter.py]
+  - [ ] @[backend_v2/llm/adapters/vertex_adapter.py]
   - [ ] @[backend_v2/llm/handler.py]
   - [ ] @[backend_v2/llm/ingress_pipeline.py]
-  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [ ] @[backend_v2/llm/mock.py]
+  - [ ] @[backend_v2/llm/schema_builder.py]
+  - [ ] @[backend_v2/models/chunking.py]
+  - [ ] @[backend_v2/models/domain/metrics.py]
+  - [ ] @[backend_v2/models/domain/security.py]
+  - [ ] @[backend_v2/models/domain/step.py]
+  - [ ] @[backend_v2/models/domain/validation.py]
+  - [ ] @[backend_v2/models/dtos/matrix_scorecard.py]
+  - [ ] @[backend_v2/models/dtos/trace.py]
+  - [ ] @[backend_v2/run_worker.py]
+  - [ ] @[backend_v2/scripts/generate_openapi.py]
+  - [ ] @[backend_v2/seed/run_seed.py]
+  - [ ] @[backend_v2/services/auth.py]
+  - [ ] @[backend_v2/services/cache/typed_cache.py]
+  - [ ] @[backend_v2/services/chat_normalizer.py]
+  - [ ] @[backend_v2/services/chat_parser.py]
+  - [ ] @[backend_v2/services/drivers/gcs_file_driver.py]
+  - [ ] @[backend_v2/services/execution/ingress_service.py]
+  - [ ] @[backend_v2/services/execution/lifecycle_service.py]
+  - [ ] @[backend_v2/services/execution/stream_service.py]
+  - [ ] @[backend_v2/services/ingress/pdf_chat_extractor.py]
+  - [ ] @[backend_v2/services/mcp/tavily_search_client.py]
+  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [ ] @[backend_v2/templates/report_template.jinja2]
+  - [ ] @[backend_v2/workers/synthesis_reducers.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files (None in this Backend/AST Epic).
 - [ ] **[NOK] Pre-Delete Audit**: Verify zero dangling consumers before proxy removal.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify test coverage exceeds 90% across modified domains.
@@ -130,51 +166,50 @@
 
 ## Requirements Traceability Matrix
 
-| Requirement ID | Description | Source in Epic | Plan Step | Verification Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **REQ-156-01** | Implement QGR024 (String-Quoted Annotation Ban) in `scripts/_ast_guardrails.py` with Literal and Annotated exclusions | Section 3, Step 1.1 | Phase 1, Step 1.1 | [ ] Pending |
-| **REQ-156-02** | Implement QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with typed literal allowance | Section 3, Step 1.2 | Phase 1, Step 1.2 | [ ] Pending |
-| **REQ-156-03** | Comprehensive unit test suite for QGR013 through QGR025 in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` | Section 3, Step 1.3 | Phase 1, Step 1.3 | [ ] Pending |
-| **REQ-156-04** | Implement clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `test_clean_imports.py` | Section 3, Step 1.4 | Phase 1, Step 1.4 | [ ] Pending |
-| **REQ-156-05** | Expand `scripts/backend_audit_loop.py` to 8 stages (Clean Imports, DTO Parity) and fix Jinja Dumb Painter fallbacks | Section 3, Step 1.5 | Phase 1, Step 1.5 | [ ] Pending |
-| **REQ-156-06** | Eradicate 79 pre-existing domain fatal violations (53 QGR003, 10 QGR000, 7 QGR012, 4 QGR002, 4 QGR018, 1 QGR022) | Section 3, Step 1.6 | Phase 1, Step 1.6 | [ ] Pending |
-| **REQ-156-07** | Eradicate 46 low-count advisory warning violations (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011) | Section 3, Step 1.7 | Phase 1, Step 1.7 | [ ] Pending |
-| **REQ-156-08** | Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.7b | Phase 1, Step 1.8 | [ ] Pending |
-| **REQ-156-09** | Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.8-1.9 | Phase 1, Step 1.9 | [ ] Pending |
-| **REQ-156-10** | Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [ ] Pending |
-| **REQ-156-11** | Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [ ] Pending |
-| **REQ-156-12** | Batch refactor unit and integration test fixtures across `backend_v2/tests/`, eliminating 319 QGR014 mock instances | Section 3, Step 2.2 | Phase 2, Step 2.2 | [ ] Pending |
-| **REQ-156-13** | Promote QGR014 to FATAL severity in `scripts/_ast_guardrails.py` with 0 violations | Section 3, Step 2.3 | Phase 2, Step 2.3 | [ ] Pending |
-| **REQ-156-14** | Implement async concurrency stress test suite in `backend_v2/tests/unit/orchestrator/test_concurrency_stress.py` | Section 3, Step 2.4 | Phase 2, Step 2.4 | [ ] Pending |
-| **REQ-156-15** | Eliminate domain duct-tape rules (QGR020, QGR012, QGR016, QGR002, QGR001, QGR019) and implement mutation coverage | Section 3, Step 3.1-3.6 | Phase 3, Step 3.1 | [ ] Pending |
-| **REQ-156-16** | Invert strict default flag, reclassify all visitor rules to FATAL, and verify Exhaustive Violation Eradication Ledger | Section 3, Step 4.1-4.6 | Phase 4, Step 4.1 | [ ] Pending |
+| Requirement Description | Source in Epic | Plan Step | Verification Status |
+| :--- | :--- | :--- | :--- |
+| Strategic alignment check across baseline violations and offline diagnostic suites | Section 3, Step 1.0 | Phase 1, Step 0 | [ ] Pending |
+| Implement QGR024 (String-Quoted Annotation Ban) in `scripts/_ast_guardrails.py` with Literal and Annotated exclusions | Section 3, Step 1.1 | Phase 1, Step 1.1 | [ ] Pending |
+| Implement QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with typed literal allowance | Section 3, Step 1.2 | Phase 1, Step 1.2 | [ ] Pending |
+| Comprehensive unit test suite for QGR013 through QGR025 in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` | Section 3, Step 1.3 | Phase 1, Step 1.3 | [ ] Pending |
+| Implement clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `test_clean_imports.py` | Section 3, Step 1.4 | Phase 1, Step 1.4 | [ ] Pending |
+| Expand `scripts/backend_audit_loop.py` to 8 stages (Clean Imports, DTO Parity) and fix Jinja Dumb Painter fallbacks | Section 3, Step 1.5 | Phase 1, Step 1.5 | [ ] Pending |
+| Eradicate 79 pre-existing domain fatal violations (53 QGR003, 10 QGR000, 7 QGR012, 4 QGR002, 4 QGR018, 1 QGR022) | Section 3, Step 1.6 | Phase 1, Step 1.6 | [ ] Pending |
+| Eradicate 46 low-count advisory warning violations (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011) | Section 3, Step 1.7 | Phase 1, Step 1.7 | [ ] Pending |
+| Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [ ] Pending |
+| Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.9 | Phase 1, Step 1.9 | [ ] Pending |
+| Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [ ] Pending |
+| Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [ ] Pending |
+| Batch refactor unit and integration test fixtures across `backend_v2/tests/`, eliminating 319 QGR014 mock instances | Section 3, Step 2.2 | Phase 2, Step 2.2 | [ ] Pending |
+| Promote QGR014 to FATAL severity in `scripts/_ast_guardrails.py` with 0 violations | Section 3, Step 2.3 | Phase 2, Step 2.3 | [ ] Pending |
+| Implement async concurrency stress test suite in `backend_v2/tests/unit/orchestrator/test_concurrency_stress.py` | Section 3, Step 2.4 | Phase 2, Step 2.4 | [ ] Pending |
+| Eliminate domain duct-tape rules (QGR020, QGR012, QGR016, QGR002, QGR001, QGR019) and implement mutation coverage | Section 3, Step 3.1-3.6 | Phase 3, Step 3.1 | [ ] Pending |
+| Invert strict default flag, reclassify all visitor rules to FATAL, and verify Exhaustive Violation Eradication Ledger | Section 3, Step 4.1-4.6 | Phase 4, Step 4.1 | [ ] Pending |
 
 ---
 
 # Session Handover Context
 
 ## Achieved
-- Successfully parsed and decomposed `@[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md]` and `@[docs/epic/EPIC_156_audit_report.md]` under Tier 1 Epic Planner.
-- Created micro-chunk task directory `@[docs/epic/tasks_EPIC_156/]`.
-- Generated detailed implementation plan for Phase 1: `@[docs/epic/tasks_EPIC_156/01_phase1_plan.md]`.
-- Generated detailed implementation plan for Phase 2: `@[docs/epic/tasks_EPIC_156/02_phase2_plan.md]`.
-- Created placeholder plans for deferred phases: `@[docs/epic/tasks_EPIC_156/03_phase3_plan.md]` and `@[docs/epic/tasks_EPIC_156/04_phase4_plan.md]`.
-- Verified 100% boundary fidelity via `scripts/audit_planner_output.py`.
-- Formatted canonical tracker `@[docs/epic/EPIC_156_tracker.md]` with 1:1 Requirements Traceability Matrix mapping and Granular Hardening Checklists.
+- Conducted deep Tier 0 research, red-teaming, and architectural boundary analysis on Phase 1 plan (`@[docs/epic/tasks_EPIC_156/01_phase1_plan.md]`).
+- Executed physical codebase measurements: verified exact distribution of 79 FATAL violations across 27 backend files, 1,254 advisory WARNING violations, 22 active script warnings across 6 tooling files, and 7 Jinja Dumb Painter template fallbacks.
+- Expanded Phase 1 plan target scope to explicitly include all 27 fatal files, 19 low-count warning files, 6 active scripts, and 11 workflow files, averting Tier 2 target boundary lockout.
+- Integrated the 16-row 5-Column Architectural Directives Table with strict under-engineering bans and complexity slayers.
+- Synchronized tracker hardening checklist with all 51 production backend targets and ensured 100% Plan-Tracker parity.
+- Validated via `scripts/audit_markdown_boundaries.py` (0 errors), `scripts/audit_planner_output.py` (0 errors), and `scripts/audit_plan_tracker_parity.py` (0 fatal errors).
 
 ## Learned
-- Physical scan baseline across 896 backend files confirms 79 pre-existing FATAL violations and 1,254 advisory WARNING violations (1,333 total).
-- 26 scripts in `scripts/` possess 372 WARNING violations, with 87.4% quarantined in offline diagnostic suites (`diff_executions.py`, `run_e2e_variance_test.py`) and 22 scheduled for Phase 1 cleanup in active tooling.
-- False-positive defenses for QGR024 (`Literal[...]` slices and `Annotated[...]` descriptions) and QGR025 (typed dictionary literals in `model_copy(update=...)`) are critical to protect valid domain models and lock-isolated progress tracking.
-- Test suite deceptive mock eradication (319 QGR014 instances) is cleanly isolated to Phase 2 with stateful in-memory repository fakes.
+- Strict target boundary enforcement in Tier 2 (`rule_block id="explicit_scope_write"`) requires exhaustive enumeration of all files planned for refactoring in `Target Files` and `touched_artifacts`.
+- `audit_markdown_boundaries.py` requires `[NEW]` annotations for planned files not yet present on disk to avoid MBD003 missing file errors.
+- `audit_plan_tracker_parity.py` table parsing expects a 4-column matrix where column 3 (0-indexed 2) is the Plan Step; mapping `Phase 1, Step X` guarantees strict parity verification.
 
 ## Remaining
-- Execute Tier 0 red-team research and analysis on Phase 1 plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
-- Execute Phase 1 implementation via `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
+- Execute Phase 1 implementation via:
+  `/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
 - Audit Phase 1 completion via `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
 - Proceed to Phase 2 (Test Suite Mock Eradication & Concurrency Stress Gate).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
 ```
