@@ -156,6 +156,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 coll_path = f"executions/{doc_id}/audit_trails"
                 trails = await self.driver.query(coll_path)
                 if trails:
+
                     def _get_timestamp(item: dict[str, Any]) -> str:
                         if "timestamp" in item:
                             return str(item["timestamp"])
@@ -232,7 +233,9 @@ class ExecutionRepositoryImpl(BaseRepository):
         """
         data = await self.driver.get("executions", execution_id)
         if data and "status" in data:
-            return data["status"]
+            status_val = data["status"]
+            if isinstance(status_val, str):
+                return status_val
         return None
 
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:

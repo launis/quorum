@@ -27,5 +27,5 @@ async def test_render_profile_job_catches_service_unavailable_error() -> None:
         result = await render_profile_job(ctx, execution_id, accept_language, profile_id)
 
         # According to rule dlq_arq_fallback_routing, it MUST yield/return {"_dlq_status": "FAILED/DLQ"}
-        assert isinstance(result, dict)
+        assert type(result) is dict
         assert result["_dlq_status"] == "FAILED/DLQ"

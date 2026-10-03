@@ -29,14 +29,14 @@ from backend_v2.llm.mock_data import get_fallback_data
 def test_get_fallback_data_success(key: str) -> None:
     """Test that valid keys return expected mock data dictionaries."""
     data = get_fallback_data(key)
-    assert isinstance(data, dict)
+    assert type(data) is dict
     assert len(data) > 0
 
 
 def test_get_fallback_data_atomize_mock() -> None:
     """Test the special atomize_mock key."""
     data = get_fallback_data("atomize_mock")
-    assert isinstance(data, dict)
+    assert type(data) is dict
     assert "tda_assertions" in data
     assert len(data["tda_assertions"]) == 15
 

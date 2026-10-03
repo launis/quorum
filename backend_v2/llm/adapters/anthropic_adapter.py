@@ -201,9 +201,6 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         if is_claude_37:
             if settings is not None and settings.environment == "development":
-                raw_budget = 0
-                if thinking_budget is not None:
-                    raw_budget = thinking_budget
                 if "thinking" in call_kwargs:
                     del call_kwargs["thinking"]
             elif thinking_budget is not None and thinking_budget > 0:

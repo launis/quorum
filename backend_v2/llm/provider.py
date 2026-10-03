@@ -144,17 +144,28 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return any(_is_transient_llm_error(sub_exc, _visited) for sub_exc in e.exceptions)
 
     # 2. Check direct LiteLLM transient exceptions
-    import litellm
+    from litellm.exceptions import (
+        APIConnectionError,
+        BadGatewayError,
+        InternalServerError,
+        RateLimitError,
+    )
+    from litellm.exceptions import (
+        ServiceUnavailableError as LiteLLMServiceUnavailableError,
+    )
+    from litellm.exceptions import (
+        Timeout as LiteLLMTimeout,
+    )
 
     if isinstance(
         e,
         (
-            litellm.RateLimitError,
-            litellm.Timeout,
-            litellm.ServiceUnavailableError,
-            litellm.APIConnectionError,
-            litellm.InternalServerError,
-            litellm.BadGatewayError,
+            RateLimitError,
+            LiteLLMTimeout,
+            LiteLLMServiceUnavailableError,
+            APIConnectionError,
+            InternalServerError,
+            BadGatewayError,
         ),
     ):
         return True
@@ -191,7 +202,8 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     # 4. Check HTTP Status Code attributes (e.g. 429, 500, 502, 503, 504) for upstream errors
     # Note: Domain AppExceptions are evaluated specifically in step 5 by their domain error_code.
     if not isinstance(e, AppException):
-        if "status_code" in dir(e) and isinstance(e.status_code, int) and e.status_code in (429, 500, 502, 503, 504):
+        e_status_code = getattr(e, "status_code", None)  # noqa: QGR001 [REASON: Third-party LiteLLM exception status code inspection]
+        if isinstance(e_status_code, int) and e_status_code in (429, 500, 502, 503, 504):
             return True
 
     # 5. Check AppException domain details for transient codes
@@ -199,7 +211,7 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         if e.status_code in (429, 503, 504):
             return True
         error_code = None
-        if isinstance(e.details, dict) and "error_code" in e.details:
+        if type(e.details) is dict and "error_code" in e.details:
             error_code = e.details["error_code"]
         if error_code in (
             ErrorCodes.UPSTREAM_TIMEOUT.value,
@@ -224,19 +236,14 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return True
 
     # 7. Recursively inspect causes and wrapped exceptions
-    if "original_error" in dir(e):
-        original_error = e.original_error
-        if isinstance(original_error, BaseException) and _is_transient_llm_error(original_error, _visited):
-            return True
+    orig_err = getattr(e, "original_error", None)  # noqa: QGR001 [REASON: Third-party LiteLLM wrapped exception inspection]
+    if isinstance(orig_err, BaseException) and _is_transient_llm_error(orig_err, _visited):
+        return True
 
     if e.__cause__ is not None and _is_transient_llm_error(e.__cause__, _visited):
         return True
 
-    if (
-        e.__context__ is not None
-        and not e.__suppress_context__
-        and _is_transient_llm_error(e.__context__, _visited)
-    ):
+    if e.__context__ is not None and not e.__suppress_context__ and _is_transient_llm_error(e.__context__, _visited):
         return True
 
     return False
@@ -264,13 +271,11 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
     _visited.add(id(e))
 
     # 1. Check headers (direct or via response attribute)
-    headers = None
-    if "headers" in dir(e):
-        headers = e.headers
-    elif "response" in dir(e):
-        response = e.response
-        if "headers" in dir(response):
-            headers = response.headers
+    headers = getattr(e, "headers", None)  # noqa: QGR001 [REASON: Third-party HTTP exception headers]
+    if headers is None:
+        resp = getattr(e, "response", None)  # noqa: QGR001 [REASON: Third-party HTTP response object]
+        if resp is not None:
+            headers = getattr(resp, "headers", None)  # noqa: QGR001 [REASON: Third-party HTTP response headers]
     if headers and "items" in dir(headers):
         for k, v in headers.items():
             if str(k).lower() == "retry-after":
@@ -303,12 +308,11 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
             return max(candidates)
 
     # 4. Recursively check original_error, __cause__, __context__
-    if "original_error" in dir(e):
-        original_error = e.original_error
-        if isinstance(original_error, BaseException):
-            child_val = _extract_retry_after_seconds(original_error, _visited)
-            if child_val is not None:
-                return child_val
+    orig_err_retry = getattr(e, "original_error", None)  # noqa: QGR001 [REASON: Third-party LiteLLM wrapped exception inspection]
+    if isinstance(orig_err_retry, BaseException):
+        child_val = _extract_retry_after_seconds(orig_err_retry, _visited)
+        if child_val is not None:
+            return child_val
 
     if e.__cause__ is not None:
         child_val = _extract_retry_after_seconds(e.__cause__, _visited)
@@ -667,7 +671,7 @@ class LiteLLMProvider(LLMProvider):
                         if (
                             m.role != "system"
                             if isinstance(m, LLMMessageDTO)
-                            else (m["role"] != "system" if isinstance(m, dict) and "role" in m else True)
+                            else (m["role"] != "system" if type(m) is dict and "role" in m else True)
                         )
                     ]
                 )
@@ -724,9 +728,9 @@ class LiteLLMProvider(LLMProvider):
                 schema_name = "dict"
                 if isinstance(response_schema, type):
                     schema_name = response_schema.__name__
-                elif isinstance(response_schema, dict) and "json_schema" in response_schema:
+                elif type(response_schema) is dict and "json_schema" in response_schema:
                     js = response_schema["json_schema"]
-                    if isinstance(js, dict) and "name" in js and js["name"]:
+                    if type(js) is dict and "name" in js and js["name"]:
                         schema_name = str(js["name"])
 
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
@@ -949,9 +953,9 @@ class LiteLLMProvider(LLMProvider):
                     if tc.function.arguments:
                         raw_content = tc.function.arguments
                 elif (
-                    isinstance(tc, dict)
+                    type(tc) is dict
                     and "function" in tc
-                    and isinstance(tc["function"], dict)
+                    and type(tc["function"]) is dict
                     and "arguments" in tc["function"]
                 ):
                     raw_content = ""
@@ -964,11 +968,7 @@ class LiteLLMProvider(LLMProvider):
 
             # --- EMERGENCY DIAGNOSTIC DUMP (TIER 4) ---
             if not raw_content:
-                dump_str = (
-                    response.model_dump_json()
-                    if "model_dump_json" in dir(response)
-                    else str(response)
-                )
+                dump_str = response.model_dump_json() if "model_dump_json" in dir(response) else str(response)
                 logger.critical("[DIAGNOSTIC] LLM Output was completely empty! Raw response object dump: %s", dump_str)
 
             # Extract Reasoning Token (Gemini 3 / GPT-5.1)
@@ -1151,24 +1151,32 @@ class LiteLLMProvider(LLMProvider):
 
             # Extract tool_calls from LLM response (MCP Tool Loop support)
             extracted_tool_calls: list[OpenAIToolCallDTO] = []
-            raw_tool_calls = message.tool_calls if "tool_calls" in dir(message) else None
+            raw_tool_calls = None
+            if "tool_calls" in dir(message):
+                raw_tool_calls = message.tool_calls
             if raw_tool_calls:
                 for tc in raw_tool_calls:
                     if isinstance(tc, OpenAIToolCallDTO):
                         extracted_tool_calls.append(tc)
                     elif "model_dump" in dir(tc):
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc.model_dump()))
-                    elif isinstance(tc, dict):  # noqa: QGR012 [REASON: External LiteLLM tool call dictionary validation]
+                    elif type(tc) is dict:
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc))
                     else:
-                        fn = tc.function if "function" in dir(tc) else None
+                        fn = None
+                        if "function" in dir(tc):
+                            fn = tc.function
                         fn_name = "unknown"
                         fn_args = "{}"
                         if fn:
-                            fn_name = fn.name if "name" in dir(fn) else "unknown"
-                            fn_args = fn.arguments if "arguments" in dir(fn) else "{}"
+                            if "name" in dir(fn):
+                                fn_name = fn.name
+                            if "arguments" in dir(fn):
+                                fn_args = fn.arguments
                         fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
-                        tc_id = str(tc.id if "id" in dir(tc) else f"call_{uuid.uuid4().hex[:8]}")
+                        tc_id = f"call_{uuid.uuid4().hex[:8]}"
+                        if "id" in dir(tc):
+                            tc_id = str(tc.id)
                         extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 
             prov_finish_str = None
@@ -1218,10 +1226,23 @@ class LiteLLMProvider(LLMProvider):
             # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
             error_type = type(e).__name__
+            status_code = getattr(e, "status_code", None)  # noqa: QGR001 [REASON: Third-party LiteLLM exception status code]
+            from litellm.exceptions import (
+                APIConnectionError,
+                AuthenticationError,
+                ContextWindowExceededError,
+                RateLimitError,
+            )
+            from litellm.exceptions import (
+                ServiceUnavailableError as LiteLLMServiceUnavailableError,
+            )
+            from litellm.exceptions import (
+                Timeout as LiteLLMTimeout,
+            )
 
             # 0. DIRECT PASS-THROUGH (Network Errors for BaseAgent)
             if (
-                isinstance(e, litellm.APIConnectionError)
+                isinstance(e, APIConnectionError)
                 or "NameResolutionError" in error_type
                 or "ConnectTimeout" in error_type
                 or "gaierror" in error_type
@@ -1230,11 +1251,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
-            if (
-                isinstance(e, litellm.RateLimitError)
-                or ("status_code" in dir(e) and e.status_code == 429)
-                or "Resource exhausted" in error_msg
-            ):
+            if isinstance(e, RateLimitError) or status_code == 429 or "Resource exhausted" in error_msg:
                 logger.error(
                     "[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s",
                     ErrorCodes.RATE_LIMIT_EXCEEDED.name,
@@ -1259,11 +1276,7 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
-            elif (
-                isinstance(e, litellm.AuthenticationError)
-                or ("status_code" in dir(e) and e.status_code == 401)
-                or "invalid_api_key" in error_msg
-            ):
+            elif isinstance(e, AuthenticationError) or status_code == 401 or "invalid_api_key" in error_msg:
                 logger.critical(
                     "[LiteLLM] %s: AUTH FAILED (Check API Keys): %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg
                 )
@@ -1276,10 +1289,8 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
-            elif isinstance(e, litellm.ContextWindowExceededError) or (
-                "status_code" in dir(e)
-                and e.status_code == 400
-                and ("context" in error_msg.lower() or "token" in error_msg.lower())
+            elif isinstance(e, ContextWindowExceededError) or (
+                status_code == 400 and ("context" in error_msg.lower() or "token" in error_msg.lower())
             ):
                 logger.error(
                     "[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s",
@@ -1289,7 +1300,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                 ) from e
-            elif "status_code" in dir(e) and e.status_code == 400:
+            elif status_code == 400:
                 logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg)
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
@@ -1297,10 +1308,10 @@ class LiteLLMProvider(LLMProvider):
 
             # 4. SERVICE INSTABILITY (Infra)
             elif (
-                isinstance(e, litellm.ServiceUnavailableError)
-                or isinstance(e, litellm.Timeout)
+                isinstance(e, LiteLLMServiceUnavailableError)
+                or isinstance(e, LiteLLMTimeout)
                 or isinstance(e, asyncio.TimeoutError)
-                or ("status_code" in dir(e) and e.status_code in (500, 502, 503, 504))
+                or (isinstance(status_code, int) and status_code in (500, 502, 503, 504))
             ):
                 logger.error(
                     "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",

@@ -204,11 +204,7 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                         if isinstance(val, (str, int, float, bool, list)) or val is None:
                             continue
                         if k not in SCORING_PAYLOAD_KEYS:
-                            val_keys = (
-                                val.model_fields.keys()
-                                if isinstance(val, BaseModel)
-                                else set(val)
-                            )
+                            val_keys = val.model_fields.keys() if isinstance(val, BaseModel) else set(val)
                             if SCORING_PAYLOAD_KEYS.isdisjoint(val_keys):
                                 continue
                         try:

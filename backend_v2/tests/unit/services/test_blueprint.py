@@ -40,7 +40,7 @@ def fix_mock_dict(d: Any) -> Any:
         if updates:
             return d.model_copy(update=updates)
         return d
-    if isinstance(d, dict):
+    if type(d) is dict:
         import re
 
         for key in ("metric_mappings", "layouts", "extension_labels", "user_role_mappings"):
@@ -63,7 +63,7 @@ def fix_mock_dict(d: Any) -> Any:
             d["ai_label"] = "ai_label_mock"
         if "claims" in d and isinstance(d["claims"], list):
             for claim_dict in d["claims"]:
-                if isinstance(claim_dict, dict):
+                if type(claim_dict) is dict:
                     if "ai_description" in claim_dict:
                         del claim_dict["ai_description"]
                     if "tda_assertions" not in claim_dict:
@@ -77,7 +77,7 @@ def fix_mock_dict(d: Any) -> Any:
                         ]
                     else:
                         for assertion in claim_dict["tda_assertions"]:
-                            if isinstance(assertion, dict):
+                            if type(assertion) is dict:
                                 if (
                                     "concept_description" not in assertion
                                     or not isinstance(assertion["concept_description"], str)
@@ -139,7 +139,7 @@ _DEFAULT_TARGET_BLOCK_ORDER = [
 
 
 def dict_to_obj(d: Any) -> Any:
-    if isinstance(d, dict):
+    if type(d) is dict:
         if "translations" in d and "default_locale" in d:
             return I18nText(**d)
 
@@ -157,7 +157,7 @@ def dict_to_obj(d: Any) -> Any:
             d.setdefault("input_mappings", {})
 
         return SimpleNamespace(
-            **{k: (dict(v) if k == "input_mappings" and isinstance(v, dict) else dict_to_obj(v)) for k, v in d.items()}
+            **{k: (dict(v) if k == "input_mappings" and type(v) is dict else dict_to_obj(v)) for k, v in d.items()}
         )
     elif isinstance(d, list):
         return [dict_to_obj(v) for v in d]

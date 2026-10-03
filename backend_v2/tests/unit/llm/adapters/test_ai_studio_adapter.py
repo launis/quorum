@@ -458,7 +458,7 @@ def test_ai_studio_adapter_prepare_structured_output() -> None:
     adapter = GoogleAIStudioCacheAdapter()
     result = adapter.prepare_structured_output(SampleSchema)
 
-    assert isinstance(result, dict)
+    assert type(result) is dict
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "SampleSchema"
     props = result["json_schema"]["schema"]["properties"] if "properties" in result["json_schema"]["schema"] else {}

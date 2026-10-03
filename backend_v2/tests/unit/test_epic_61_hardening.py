@@ -17,7 +17,7 @@ def test_seed_data_assertions_contain_hardened_rules() -> None:
     found_ids = set()
 
     def scan_for_tda_ids(node: Any) -> None:
-        if isinstance(node, dict):
+        if type(node) is dict:
             if "tda_id" in node and "concept_description" in node:
                 desc = node["concept_description"]
                 desc_lower = desc.lower()

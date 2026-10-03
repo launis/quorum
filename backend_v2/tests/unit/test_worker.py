@@ -1220,7 +1220,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
                 call[0][1]
                 for call in mock_repo.update_execution.call_args_list
                 if (isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None)
-                or (isinstance(call[0][1], dict) and "profile_syntheses" in call[0][1])
+                or (type(call[0][1]) is dict and "profile_syntheses" in call[0][1])
             ]
             assert len(calls_with_syntheses) == 1
             call_payload = calls_with_syntheses[0]

@@ -135,5 +135,5 @@ def test_tinydb_table_atomic_mutation_and_truncation_resilience(tmp_path: Path) 
     # 5. Raw JSON verification: verify file decodes cleanly with zero extra trailing characters
     raw_content = db_file.read_text(encoding="utf-8")
     parsed = json.loads(raw_content)
-    assert isinstance(parsed, dict)
+    assert type(parsed) is dict
     assert "test_collection" in parsed

@@ -429,7 +429,9 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
     )
 
     # Test each block-level extension type individually
-    block_extensions = [e for e in XaiExtensionType if e in XAI_EXTENSION_SCOPE and XAI_EXTENSION_SCOPE[e] == XaiExtensionScope.BLOCK]
+    block_extensions = [
+        e for e in XaiExtensionType if e in XAI_EXTENSION_SCOPE and XAI_EXTENSION_SCOPE[e] == XaiExtensionScope.BLOCK
+    ]
 
     for i, ext_type in enumerate(block_extensions):
         profile = OutputProfile(

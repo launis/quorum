@@ -87,7 +87,7 @@ def _make_step_dtos(
     if results:
         atom_dtos: list[AtomResultDTO] = []
         for r in results:
-            if r is not None and isinstance(r, dict) and "tda_id" in r:
+            if r is not None and type(r) is dict and "tda_id" in r:
                 atom_data: dict[str, Any] = {
                     "tda_id": r["tda_id"],
                     "status": _to_status(r["status"]),

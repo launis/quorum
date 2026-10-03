@@ -138,7 +138,7 @@ def test_openai_adapter_prepare_structured_output() -> None:
 
     result = adapter.prepare_structured_output(SampleOutputModel)
 
-    assert isinstance(result, dict)
+    assert type(result) is dict
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "SampleOutputModel"
     assert result["json_schema"]["strict"] is True
@@ -161,7 +161,7 @@ def test_openai_adapter_strict_json_schema_compliance() -> None:
 
     result = adapter.prepare_structured_output(ComplexTestModel)
 
-    assert isinstance(result, dict)
+    assert type(result) is dict
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "ComplexTestModel"
     assert result["json_schema"]["strict"] is True
@@ -263,7 +263,7 @@ def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
 
     # 1. ExecutiveSummarySectionResult
     result1 = adapter.prepare_structured_output(ExecutiveSummarySectionResult)
-    assert isinstance(result1, dict)
+    assert type(result1) is dict
     schema1 = result1["json_schema"]["schema"]
     exec_summary_items = schema1["properties"]["executive_summary"]["items"]
     assert "oneOf" not in exec_summary_items, (
@@ -277,7 +277,7 @@ def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
 
     # 2. MatrixSectionSynthesesResult
     result2 = adapter.prepare_structured_output(MatrixSectionSynthesesResult)
-    assert isinstance(result2, dict)
+    assert type(result2) is dict
     schema2 = result2["json_schema"]["schema"]
     section_items = schema2["$defs"]["SynthesisSectionDTO"]["properties"]["content_blocks"]["items"]
     assert "oneOf" not in section_items, f"'oneOf' must not be present in SynthesisSectionDTO items: {section_items}"
@@ -331,7 +331,7 @@ def test_openai_adapter_strips_unsupported_constraints_from_union_branches() -> 
 
     adapter = OpenAICacheAdapter()
     result = adapter.prepare_structured_output(ContainerModel)
-    assert isinstance(result, dict)
+    assert type(result) is dict
     schema = result["json_schema"]["schema"]
 
     # Verify union definition in $defs

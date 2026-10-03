@@ -68,10 +68,6 @@ def test_schema_factory_atom_response_has_bounded_arrays() -> None:
     atom_quotes = atom_props["exact_quotes"] if "exact_quotes" in atom_props else {}
     assert "maxItems" not in atom_quotes, "AtomResponseStrict has maxItems on exact_quotes!"
     atom_doc_aliases = atom_props["source_document_aliases"] if "source_document_aliases" in atom_props else {}
-    assert "maxItems" not in atom_doc_aliases, (
-        "AtomResponseStrict has maxItems on source_document_aliases!"
-    )
+    assert "maxItems" not in atom_doc_aliases, "AtomResponseStrict has maxItems on source_document_aliases!"
     atom_used_aliases = atom_props["used_source_aliases"] if "used_source_aliases" in atom_props else {}
-    assert "maxItems" not in atom_used_aliases, (
-        "AtomResponseStrict has maxItems on used_source_aliases!"
-    )
+    assert "maxItems" not in atom_used_aliases, "AtomResponseStrict has maxItems on used_source_aliases!"

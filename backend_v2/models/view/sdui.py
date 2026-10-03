@@ -235,16 +235,12 @@ class ReportView(V2CoreBase):
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
     ]
-    inner_sdui_blocks: list[AnySduiBlock] = Field(
-        default_factory=list, description="Ordered list of SDUI components"
-    )
+    inner_sdui_blocks: list[AnySduiBlock] = Field(default_factory=list, description="Ordered list of SDUI components")
     metrics: Annotated[ReportViewMetricsDTO | None, Field(default=None, description="Global audit metrics")] = None
     system_notification: Annotated[
         SystemNotification | None, Field(default=None, description="Global notification/warning")
     ] = None
-    references: list[ReferenceItem] = Field(
-        default_factory=list, description="Global bibliography and references"
-    )
+    references: list[ReferenceItem] = Field(default_factory=list, description="Global bibliography and references")
 
 
 class StepProgressItem(V2CoreBase):

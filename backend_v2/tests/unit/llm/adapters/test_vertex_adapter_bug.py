@@ -26,4 +26,4 @@ async def test_vertex_adapter_caching_import_bug() -> None:
     print(f"KWARGS: {kwargs}")
     # After the fix, it gracefully handles the caching attempt via Wait-and-Poll,
     # and when that fails (or times out), it returns empty kwargs rather than crashing.
-    assert isinstance(kwargs, dict), "Caching failed gracefully and returned a dict."
+    assert type(kwargs) is dict, "Caching failed gracefully and returned a dict."

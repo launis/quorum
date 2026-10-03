@@ -240,10 +240,10 @@ def test_unified_scoring_engine_xai_log_stats_key_stringification() -> None:
 
     trace = result.xai_log.engine_debug_trace
     assert "stats" in trace
-    assert isinstance(trace["stats"], dict)
+    assert type(trace["stats"]) is dict
     for key, val in trace["stats"].items():
         assert isinstance(key, str)
-        assert isinstance(val, dict)
+        assert type(val) is dict
         assert "hits" in val
         assert "total" in val
 
@@ -266,4 +266,3 @@ def test_unified_scoring_engine_xai_debug_trace_mathematical_precision() -> None
     assert any("Curved: 31%" in line for line in trace["log_trace"])
     assert any("Level 1.0 (Weight x1.0): 5/8 hits" in line for line in trace["log_trace"])
     assert any("Level 2.0 (Weight x2.0): 3/10 hits" in line for line in trace["log_trace"])
-

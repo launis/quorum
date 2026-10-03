@@ -422,7 +422,7 @@ class TestPhase1Phase2Integration:
         result = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         # Must be valid JSON
         parsed = json.loads(result)
-        assert isinstance(parsed, dict), "Distiller output is not a valid JSON dict"
+        assert type(parsed) is dict, "Distiller output is not a valid JSON dict"
 
     def test_no_orphaned_synthesis_test_files(self) -> None:
         """INTEGRATION: Verify no orphaned test files for deleted synthesis.py.

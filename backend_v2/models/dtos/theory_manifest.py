@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase

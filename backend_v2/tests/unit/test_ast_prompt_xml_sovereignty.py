@@ -255,7 +255,7 @@ def test_ast_no_prompt_block_model_validate_calls() -> None:
     for file_path in _ALL_PY_FILES:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
 
         for node in ast.walk(tree):
@@ -300,7 +300,7 @@ def test_ast_synthesis_prompt_registry_purged() -> None:
     for file_path in _ALL_PY_FILES:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "SynthesisPromptRegistry":
@@ -314,7 +314,7 @@ def test_ast_no_include_mandate_parameter() -> None:
     for file_path in _ALL_PY_FILES:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -368,7 +368,7 @@ def test_ast_no_desc_translation_mandate_in_dtos() -> None:
     for file_path in dto_files:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.Name) and node.id == "DESC_TRANSLATION_MANDATE":
@@ -400,7 +400,7 @@ def test_ast_prompt_subpackage_isolation_firewall() -> None:
     for file_path in execution_files:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module and "synthesis" in node.module:
@@ -409,7 +409,7 @@ def test_ast_prompt_subpackage_isolation_firewall() -> None:
     for file_path in synthesis_files:
         try:
             tree = _load_ast(file_path)
-        except (SyntaxError, UnicodeDecodeError, OSError):
+        except SyntaxError, UnicodeDecodeError, OSError:
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module and "execution" in node.module:

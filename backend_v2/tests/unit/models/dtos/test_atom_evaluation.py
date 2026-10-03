@@ -38,6 +38,6 @@ def test_lightweight_matrix_dto_validation() -> None:
     dto = LightweightMatrixDTOFactory.build()
     assert isinstance(dto.execution_id, str)
     assert isinstance(dto.reduced_atoms, list)
-    assert isinstance(dto.global_metrics, dict)
+    assert type(dto.global_metrics) is dict
     assert isinstance(dto.evaluated_matrices, list)
     assert isinstance(dto.raw_extensions, list)

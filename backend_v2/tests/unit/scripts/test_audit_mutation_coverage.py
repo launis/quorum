@@ -7,16 +7,14 @@ surviving mutant detection, and full mathematical invariance across targets.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 import tempfile
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from scripts.audit_mutation_coverage import (
     DEFAULT_TARGETS,
-    MutationCoverageReport,
-    MutationResult,
     MutationSpec,
     TargetAuditReport,
     TargetConfig,

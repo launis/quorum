@@ -37,14 +37,14 @@ def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345
             ps: dict[str, Any] | None = None
             if isinstance(payload, ExecutionUpdateDTO):
                 ps = payload.profile_syntheses
-            elif isinstance(payload, dict) and "profile_syntheses" in payload:
+            elif type(payload) is dict and "profile_syntheses" in payload:
                 ps = payload["profile_syntheses"]
             if ps is not None:
                 res: dict[str, Any] = {}
                 for k, v in ps.items():
                     if isinstance(v, BaseModel):
                         res[str(k)] = v.model_dump(mode="json")
-                    elif isinstance(v, dict):
+                    elif type(v) is dict:
                         res[str(k)] = v
                 return res
     return None
@@ -191,7 +191,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None, "Execution record was not updated with profile_syntheses"
-    assert isinstance(prof_synth["prof_1111111111111111"]["section_syntheses"], dict)
+    assert type(prof_synth["prof_1111111111111111"]["section_syntheses"]) is dict
 
 
 def _setup_mock_repo_for_metrics(
@@ -690,7 +690,7 @@ async def test_worker_synthesis_matrix_layout_directives(
             all_user_content += " ".join(
                 m.content
                 if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                else (m["content"] if type(m) is dict and "content" in m else "")
                 for m in messages
             )
 
@@ -763,7 +763,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
             all_user_content += " ".join(
                 m.content
                 if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                else (m["content"] if type(m) is dict and "content" in m else "")
                 for m in messages
             )
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
@@ -836,7 +836,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
             all_user_content += " ".join(
                 m.content
                 if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                else (m["content"] if type(m) is dict and "content" in m else "")
                 for m in messages
             )
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
@@ -1107,7 +1107,7 @@ async def test_worker_synthesis_custom_directives_resolution(
             all_user_content += " ".join(
                 m.content
                 if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
-                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                else (m["content"] if type(m) is dict and "content" in m else "")
                 for m in messages
             )
 
@@ -1193,7 +1193,10 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
     # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
-    assert "extension_metrics" not in prof_synth["prof_1111111111111111"] or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    assert (
+        "extension_metrics" not in prof_synth["prof_1111111111111111"]
+        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    )
 
 
 @pytest.mark.asyncio

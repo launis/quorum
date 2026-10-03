@@ -240,7 +240,7 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         count = 0
         for x in self._storage.values():
             if (
-                isinstance(x.context_variables, dict)
+                type(x.context_variables) is dict
                 and "matrix_id" in x.context_variables
                 and x.context_variables["matrix_id"] == matrix_id
             ):

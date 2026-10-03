@@ -43,7 +43,7 @@ class DummyStrictModel(BaseModel):
     @model_validator(mode="before")
     def force_logic(cls, values: Any) -> Any:
         """Socratic logic constraint."""
-        if isinstance(values, dict):
+        if type(values) is dict:
             score = values["step_4_final_score"] if "step_4_final_score" in values else None
             quote = values["step_1_evidence_quote"] if "step_1_evidence_quote" in values else None
             if score == 5 and not quote:
@@ -485,7 +485,7 @@ async def test_client_run_chat_tool_calls(mock_create_provider: MagicMock) -> No
         messages=[{"role": "user", "content": "Call tool"}],
         tools=[{"type": "function"}],
     )
-    assert isinstance(result, dict)
+    assert type(result) is dict
     assert "tool_calls" in result
     assert result["content"] == "Tool output"
 

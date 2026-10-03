@@ -199,9 +199,7 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
             if claim.tavily_answer:
                 ans = claim.tavily_answer
             evidence_lines.append(
-                f'<claim status="{claim.status.value}" query="{claim.claim_text}">\n'
-                f"  <answer>{ans}</answer>\n"
-                f"</claim>"
+                f'<claim status="{claim.status.value}" query="{claim.claim_text}">\n  <answer>{ans}</answer>\n</claim>'
             )
 
         external_evidence_xml = ""

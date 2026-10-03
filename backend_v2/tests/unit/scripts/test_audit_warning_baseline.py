@@ -19,15 +19,15 @@ from scripts.audit_warning_baseline import (
 
 def test_baseline_ledger_report_dto_validation() -> None:
     """Positive: verifies DTO fields and validation constraints."""
-    stat = RuleWarningStatDTO(rule_code="QGR001", count=10)
+    stat = RuleWarningStatDTO(rule_code="QGR001", count=0)
     assert stat.rule_code == "QGR001"
-    assert stat.count == 10
+    assert stat.count == 0
 
     report = BaselineLedgerReportDTO(
         target_directory="backend_v2",
         fatal_count=0,
-        warning_count=100,
-        warning_ceiling=934,
+        warning_count=0,
+        warning_ceiling=0,
         rule_breakdown=[stat],
         is_clean_of_fatals=True,
         is_under_ceiling=True,
@@ -35,6 +35,40 @@ def test_baseline_ledger_report_dto_validation() -> None:
     assert report.is_clean_of_fatals is True
     assert report.is_under_ceiling is True
     assert len(report.rule_breakdown) == 1
+
+
+def test_warning_baseline_ledger_asserts_zero_ceiling() -> None:
+    """Contract: verifies that default generation asserts zero ceiling and clean backend."""
+    fake_violations: list[GuardrailViolation] = []
+    with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):
+        report = generate_baseline_report("backend_v2", verify_zero=True)
+        assert report.fatal_count == 0
+        assert report.warning_count == 0
+        assert report.warning_ceiling == 0
+        assert report.is_clean_of_fatals is True
+        assert report.is_under_ceiling is True
+
+
+def test_warning_baseline_fails_on_nonzero_warning_count() -> None:
+    """Contract: verifies that nonzero warning count with verify_zero triggers failure."""
+    fake_violations = [
+        GuardrailViolation(
+            filepath="backend_v2/test.py",
+            lineno=10,
+            col_offset=0,
+            rule_code="QGR001",
+            message="Reflection",
+            remediation="Fix it",
+            severity=GuardrailSeverity.WARNING,
+            is_suppressed=False,
+        ),
+    ]
+    with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):
+        report = generate_baseline_report("backend_v2", verify_zero=True)
+        assert report.fatal_count == 0
+        assert report.warning_count == 1
+        assert report.warning_ceiling == 0
+        assert report.is_under_ceiling is False
 
 
 def test_generate_baseline_report_compiles_correctly() -> None:

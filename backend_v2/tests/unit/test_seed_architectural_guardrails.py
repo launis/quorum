@@ -159,9 +159,7 @@ def test_model_strategies_are_bound_to_registry() -> None:
                 tier = synthesis["model_strategy"]
             if tier:
                 prof_id = raw_profile["id"] if "id" in raw_profile else "unknown"
-                assert tier in valid_tiers, (
-                    f"Profile '{prof_id}' references unknown cognitive_tier '{tier}'"
-                )
+                assert tier in valid_tiers, f"Profile '{prof_id}' references unknown cognitive_tier '{tier}'"
 
     # 4. Check embedded profiles in workflows
     if "workflows" in data:
@@ -290,8 +288,8 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
     i18n_records: list[tuple[str, dict[str, Any]]] = []
 
     def _collect_i18n(obj: Any, path: str = "") -> None:
-        if isinstance(obj, dict):
-            if "translations" in obj and isinstance(obj["translations"], dict):
+        if type(obj) is dict:
+            if "translations" in obj and type(obj["translations"]) is dict:
                 i18n_records.append((path, obj))
             for k, v in obj.items():
                 _collect_i18n(v, f"{path}.{k}" if path else k)
@@ -312,7 +310,7 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
 
     # Anti-happy-path negative verification
     def _is_valid_bilingual_i18n(rec: dict[str, Any]) -> bool:
-        if not isinstance(rec, dict) or "translations" not in rec or not isinstance(rec["translations"], dict):
+        if type(rec) is not dict or "translations" not in rec or type(rec["translations"]) is not dict:
             return False
         tr = rec["translations"]
         has_en = "en" in tr and bool(tr["en"].strip())
@@ -342,9 +340,7 @@ def test_output_profiles_enums_valid() -> None:
             assert profile["display_scale"] in valid_display_scales, (
                 f"Invalid display_scale '{profile['display_scale']}' in profile '{prof_id}'"
             )
-        assert "scoring_strategy" not in profile, (
-            f"Legacy scoring_strategy must be pruned from profile '{prof_id}'"
-        )
+        assert "scoring_strategy" not in profile, f"Legacy scoring_strategy must be pruned from profile '{prof_id}'"
         assert "strictness_level" not in profile, (
             f"strictness_level must be pruned from profile '{prof_id}' and owned by Workflow"
         )

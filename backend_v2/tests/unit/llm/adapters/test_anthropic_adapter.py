@@ -273,7 +273,7 @@ def test_anthropic_adapter_prepare_structured_output() -> None:
 
     result = adapter.prepare_structured_output(SampleOutputModel)
 
-    assert isinstance(result, dict)
+    assert type(result) is dict
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "SampleOutputModel"
     assert result["json_schema"]["strict"] is True

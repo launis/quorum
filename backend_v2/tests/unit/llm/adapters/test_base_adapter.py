@@ -75,7 +75,7 @@ def test_base_adapter_strip_unsupported_constraints() -> None:
         items: list[UnionBlock]
 
     schema = adapter.prepare_structured_output(RootContainer)
-    assert isinstance(schema, dict)
+    assert type(schema) is dict
 
     # Contextual overrides are popped from properties and required
     if "properties" in schema:

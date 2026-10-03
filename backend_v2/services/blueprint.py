@@ -2,7 +2,7 @@
 
 import logging
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
@@ -331,7 +331,11 @@ class BlueprintTransformer:
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from val_err
-            elif dto.block_id == "hydrated_references" and not isinstance(dto.payload, (str, int, float, bool, list)) and dto.payload is not None:
+            elif (
+                dto.block_id == "hydrated_references"
+                and not isinstance(dto.payload, (str, int, float, bool, list))
+                and dto.payload is not None
+            ):
                 for k, v in dto.payload.items():  # type: ignore[union-attr]
                     if isinstance(v, HydratedAtomDTO):
                         v2_hydrated_refs[str(k)] = v
@@ -518,20 +522,20 @@ class BlueprintTransformer:
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
-            visible_metadata: list[Any] = []
+            visible_metadata: list[str] = []
             if profile.visible_metadata:
                 visible_metadata = profile.visible_metadata
             inner_sdui_blocks: list[AnySduiBlock] = []
 
-            mcp_audit_map = None
+            adapter_mcp_audit_map: dict[str, MCPAuditTrace] | None = None
             if mcp_audit_data:
-                mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
+                adapter_mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
 
             adapter_context = AdapterContext(
                 execution=execution,
                 locale=locale,
                 penalties_applied=penalties_applied,
-                mcp_audit_map=mcp_audit_map,
+                mcp_audit_map=adapter_mcp_audit_map,
                 global_score=global_score,
                 profile=profile,
                 profile_cache=profile_cache,

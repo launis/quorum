@@ -73,7 +73,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
     assert evt.event_type == "decision"
     assert evt.step_name == "sr_f0a26d17cc9b48a7"
     assert evt.metadata.is_context_update is True
-    assert isinstance(evt.content, dict)
+    assert type(evt.content) is dict
     assert "step_linguistics" in evt.content
     assert evt.content["step_linguistics"]["total_word_count"] == 120
     assert len(evt.content["step_linguistics"]["performative_patterns"]) == 1

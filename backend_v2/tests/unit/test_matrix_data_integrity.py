@@ -132,9 +132,7 @@ def test_all_matrices_have_valid_mathematical_range(db: dict[str, Any]) -> None:
                 continue
 
             scores = [
-                float(str(s["score"]))
-                for s in scales
-                if isinstance(s, dict) and "score" in s and s["score"] is not None
+                float(str(s["score"])) for s in scales if type(s) is dict and "score" in s and s["score"] is not None
             ]
 
             block_id = block["id"] if "id" in block else "unknown"

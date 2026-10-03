@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
 from typing import Any
 
 from fastapi import status

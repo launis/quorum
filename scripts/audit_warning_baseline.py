@@ -29,7 +29,7 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from scripts._ast_guardrails import GuardrailSeverity, scan_files_for_guardrails
 
-CURRENT_WARNING_CEILING = 934
+CURRENT_WARNING_CEILING = 0
 
 
 class RuleWarningStatDTO(V2CoreBase):

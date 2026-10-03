@@ -150,7 +150,7 @@ class TestAliasManifest:
         manifest = engine.to_manifest()
         json_data = manifest.model_dump(mode="json")
 
-        assert isinstance(json_data, dict)
+        assert type(json_data) is dict
         assert json_data["alias_map"] == {"doc0": "doc_xyz"}
         assert json_data["source_document_aliases"] == ["doc0"]
 

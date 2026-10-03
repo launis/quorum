@@ -22,7 +22,7 @@ def test_seed_matrices_have_no_epistemic_anchor_in_ai_description() -> None:
 
     prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     matrix_blocks = [
-        b for b in prompt_blocks if isinstance(b, dict) and "category_id" in b and b["category_id"] == "matrix"
+        b for b in prompt_blocks if type(b) is dict and "category_id" in b and b["category_id"] == "matrix"
     ]
     assert len(matrix_blocks) == 13, f"Expected 13 matrix blocks, found {len(matrix_blocks)}"
 
@@ -41,14 +41,16 @@ def test_seed_matrices_have_valid_theory_grounding() -> None:
 
     prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     matrix_blocks = [
-        b for b in prompt_blocks if isinstance(b, dict) and "category_id" in b and b["category_id"] == "matrix"
+        b for b in prompt_blocks if type(b) is dict and "category_id" in b and b["category_id"] == "matrix"
     ]
     for b in matrix_blocks:
         tg = b["theory_grounding"] if "theory_grounding" in b else None
         assert tg is not None, f"Matrix block {b['id']} is missing theory_grounding"
-        assert isinstance(tg, dict), f"Matrix block {b['id']} theory_grounding is not a dict"
+        assert type(tg) is dict, f"Matrix block {b['id']} theory_grounding is not a dict"
         assert "source_url" in tg and tg["source_url"], f"Matrix block {b['id']} theory_grounding missing source_url"
-        assert "citation_reference" in tg and tg["citation_reference"], f"Matrix block {b['id']} theory_grounding missing citation_reference"
+        assert "citation_reference" in tg and tg["citation_reference"], (
+            f"Matrix block {b['id']} theory_grounding missing citation_reference"
+        )
 
 
 def test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation() -> None:

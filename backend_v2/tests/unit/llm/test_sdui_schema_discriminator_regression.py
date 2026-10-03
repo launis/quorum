@@ -42,21 +42,17 @@ def test_schema_generator_requires_discriminator_properties():
     """Partition 1: Verify that _strip_unsupported_constraints forces 'block_type' to be required in schema."""
     adapter = DummyAdapter()
     schema = adapter.prepare_structured_output(MatrixSectionSynthesesResult)
-    assert isinstance(schema, dict)
+    assert type(schema) is dict
     defs = schema["$defs"] if "$defs" in schema else {}
 
     # In strict mode, discriminator fields like block_type MUST be listed in required
     assert "ParagraphBlock" in defs
     p_req = defs["ParagraphBlock"]["required"] if "required" in defs["ParagraphBlock"] else []
-    assert "block_type" in p_req, (
-        "ParagraphBlock schema must require 'block_type' so LLM outputs the discriminator"
-    )
+    assert "block_type" in p_req, "ParagraphBlock schema must require 'block_type' so LLM outputs the discriminator"
 
     assert "AlertBlock" in defs
     a_req = defs["AlertBlock"]["required"] if "required" in defs["AlertBlock"] else []
-    assert "block_type" in a_req, (
-        "AlertBlock schema must require 'block_type' so LLM outputs the discriminator"
-    )
+    assert "block_type" in a_req, "AlertBlock schema must require 'block_type' so LLM outputs the discriminator"
 
 
 def test_ingress_pipeline_handles_missing_discriminator_in_discriminated_union():

@@ -303,12 +303,18 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     # V3: Returned messages are dynamic-only (rubrics, atoms, params)
     assert returned_msgs == prompt.to_dynamic_flat()
     assert any(
-        "<evaluation_criteria>" in str(m.content if isinstance(m, LLMMessageDTO) else (m["content"] if isinstance(m, dict) and "content" in m else ""))
+        "<evaluation_criteria>"
+        in str(
+            m.content if isinstance(m, LLMMessageDTO) else (m["content"] if type(m) is dict and "content" in m else "")
+        )
         for m in returned_msgs
     )
     # V3: Static source_data must NOT be in returned messages
     assert not any(
-        "<source_data>" in str(m.content if isinstance(m, LLMMessageDTO) else (m["content"] if isinstance(m, dict) and "content" in m else ""))
+        "<source_data>"
+        in str(
+            m.content if isinstance(m, LLMMessageDTO) else (m["content"] if type(m) is dict and "content" in m else "")
+        )
         for m in returned_msgs
     )
 
@@ -487,7 +493,7 @@ def test_vertex_adapter_prepare_structured_output() -> None:
     adapter = VertexCacheAdapter()
     structured = adapter.prepare_structured_output(OutputSchema)
 
-    assert isinstance(structured, dict)
+    assert type(structured) is dict
     assert structured["type"] == "json_schema"
     schema = structured["json_schema"]["schema"]
     props = schema["properties"] if "properties" in schema else {}

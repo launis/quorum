@@ -12,7 +12,7 @@ def test_injected_theory_manifest_default_initialization() -> None:
     """Verifies default initialization sets theories to empty dict."""
     manifest = InjectedTheoryManifestDTO()
     assert manifest.theories == {}
-    assert isinstance(manifest.theories, dict)
+    assert type(manifest.theories) is dict
 
 
 def test_injected_theory_manifest_with_valid_data() -> None:
