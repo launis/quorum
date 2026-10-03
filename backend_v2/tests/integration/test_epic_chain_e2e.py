@@ -1,7 +1,5 @@
 """End-to-End Golden Master Test for Epic 93 SDUI Output Rendering Unification."""
 
-from unittest.mock import AsyncMock
-
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -15,6 +13,7 @@ from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui_mapper_service import SduiMapperService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.mark.asyncio
@@ -23,12 +22,8 @@ async def test_epic_93_e2e_golden_master() -> None:
 
     ExecutionRecord -> MatrixReducer -> ReportDataDTO -> SduiMapper -> SduiComponent tree.
     """
-    # 1. Mock Repositories
-    mock_exec_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_prompt_block_repo = AsyncMock()
-    mock_output_profile_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
+    # 1. Fake Repository
+    repo = InMemoryBlueprintTransformerRepository()
 
     # Create dummy ExecutionRecord
     execution_id = "exe_1234abcd1234abcd"
@@ -38,7 +33,7 @@ async def test_epic_93_e2e_golden_master() -> None:
 
     frozen = FrozenContext(ui_hints_snapshot={})
 
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+    repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
         status=ExecutionStatus.PASSED,
@@ -98,7 +93,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         "expected_inputs": [],
         "steps": [],
     }
-    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
+    repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
     # Profile Mock
     mock_profile = {
@@ -115,7 +110,7 @@ async def test_epic_93_e2e_golden_master() -> None:
             "global_score_block",
         ],
     }
-    mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
+    repo.get_all_output_profiles.return_value = [mock_profile]
 
     # Prompt Block Mock
     mock_pb = {
@@ -167,20 +162,18 @@ async def test_epic_93_e2e_golden_master() -> None:
         "computed_min": 0,
         "computed_max": 100,
     }
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
-    mock_comp_repo.get_all_components.return_value = [mock_pb]
-
-    mock_system_repo = AsyncMock()
-    mock_system_repo.get_mcp_gateways.return_value = None
+    repo.get_all_prompt_blocks.return_value = [mock_pb]
+    repo.get_all_components.return_value = [mock_pb]
+    repo.get_mcp_gateways.return_value = None
 
     transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
-        identity_repo=AsyncMock(),
-        system_repo=mock_system_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     # 2. Map Execution to ReportDataDTO
@@ -267,17 +260,13 @@ async def test_epic_95_na_cascade_e2e() -> None:
 @pytest.mark.asyncio
 async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
     """NEG-01: Verify requesting a non-existent output profile raises AppException with 404."""
-    mock_exec_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_output_profile_repo = AsyncMock()
-    mock_prompt_block_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
 
     execution_id = "exe_11111111111111111111111111111111"
     wf_id = "wf_11111111111111111111111111111111"
     non_existent_profile_id = "prf_99999999999999999999999999999999"
 
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+    repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
         output_profile_id="prf_11111111111111111111111111111111",
@@ -304,21 +293,19 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
         "expected_inputs": [],
         "steps": [],
     }
-    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
-
-    mock_system_repo = AsyncMock()
-    mock_system_repo.get_mcp_gateways.return_value = None
+    repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
+    repo.get_all_output_profiles.return_value = []
+    repo.get_all_prompt_blocks.return_value = []
+    repo.get_mcp_gateways.return_value = None
 
     transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
-        identity_repo=AsyncMock(),
-        system_repo=mock_system_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -331,16 +318,12 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
 @pytest.mark.asyncio
 async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
     """NEG-02: Verify missing locale raises AppException with 400."""
-    mock_exec_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_output_profile_repo = AsyncMock()
-    mock_prompt_block_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
 
     execution_id = "exe_22222222222222222222222222222222"
     wf_id = "wf_22222222222222222222222222222222"
 
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+    repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
         output_profile_id="prf_22222222222222222222222222222222",
@@ -367,19 +350,17 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
         "expected_inputs": [],
         "steps": [],
     }
-    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
-
-    mock_system_repo = AsyncMock()
-    mock_system_repo.get_mcp_gateways.return_value = None
+    repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
+    repo.get_mcp_gateways.return_value = None
 
     transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
-        identity_repo=AsyncMock(),
-        system_repo=mock_system_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -392,18 +373,14 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
 @pytest.mark.asyncio
 async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() -> None:
     """NEG-03: Verify malformed matrix step payload raises AppException with 500."""
-    mock_exec_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_output_profile_repo = AsyncMock()
-    mock_prompt_block_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
 
     execution_id = "exe_33333333333333333333333333333333"
     wf_id = "wf_33333333333333333333333333333333"
     profile_id = "prf_33333333333333333333333333333333"
     block_id = "blk_33333333333333333333333333333333"
 
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+    repo.get_execution.return_value = ExecutionRecord(
         id=execution_id,
         workflow_id=wf_id,
         output_profile_id=profile_id,
@@ -438,7 +415,7 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "expected_inputs": [],
         "steps": [],
     }
-    mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
+    repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
     mock_profile = {
         "id": profile_id,
@@ -452,7 +429,7 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
             "global_score_block",
         ],
     }
-    mock_output_profile_repo.get_all_output_profiles.return_value = [mock_profile]
+    repo.get_all_output_profiles.return_value = [mock_profile]
 
     mock_pb = {
         "id": block_id,
@@ -503,20 +480,18 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "computed_min": 0,
         "computed_max": 100,
     }
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
-    mock_comp_repo.get_all_components.return_value = [mock_pb]
-
-    mock_system_repo = AsyncMock()
-    mock_system_repo.get_mcp_gateways.return_value = None
+    repo.get_all_prompt_blocks.return_value = [mock_pb]
+    repo.get_all_components.return_value = [mock_pb]
+    repo.get_mcp_gateways.return_value = None
 
     transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
-        identity_repo=AsyncMock(),
-        system_repo=mock_system_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     with pytest.raises(AppException) as exc_info:
