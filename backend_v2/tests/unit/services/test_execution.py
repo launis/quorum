@@ -37,6 +37,7 @@ from backend_v2.models.view.sdui import (
     ReportView,
 )
 from backend_v2.services.execution import ExecutionService, create_execution_record
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def test_create_execution_record_factory_success() -> None:
@@ -81,7 +82,7 @@ def test_create_execution_record_factory_fail_fast() -> None:
 
 @pytest.mark.asyncio
 async def test_resume_execution_fails_fast_on_invalid_state() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
@@ -90,19 +91,19 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     mock_record.status = ExecutionStatus.PENDING
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
-    )  # noqa: E501
+    )
     initiator = TokenData(id="u1", role=UserRole.ROOT)  # Bypasses auth checks
 
     with pytest.raises(AppException) as exc_info:
@@ -114,17 +115,17 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
 
 @pytest.mark.asyncio
 async def test_list_executions_admin_sees_all() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -141,7 +142,7 @@ async def test_list_executions_admin_sees_all() -> None:
     mock_record2.execution_trace = []
     mock_record2.model_copy.return_value = mock_record2
 
-    repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
+    repo.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
 
@@ -155,17 +156,17 @@ async def test_list_executions_admin_sees_all() -> None:
 
 @pytest.mark.asyncio
 async def test_list_executions_tenant_sees_own() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -184,7 +185,7 @@ async def test_list_executions_tenant_sees_own() -> None:
     mock_record2.execution_trace = []
     mock_record2.model_copy.return_value = mock_record2
 
-    repo_mock.get_all_executions.return_value = [mock_record1, mock_record2]
+    repo.get_all_executions.return_value = [mock_record1, mock_record2]
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -199,17 +200,17 @@ async def test_list_executions_tenant_sees_own() -> None:
 
 @pytest.mark.asyncio
 async def test_get_execution_admin_sees_any() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -219,7 +220,7 @@ async def test_get_execution_admin_sees_any() -> None:
     mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
 
@@ -233,17 +234,17 @@ async def test_get_execution_admin_sees_any() -> None:
 
 @pytest.mark.asyncio
 async def test_get_execution_tenant_sees_own() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -254,7 +255,7 @@ async def test_get_execution_tenant_sees_own() -> None:
     mock_record.status = ExecutionStatus.PASSED
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -268,17 +269,17 @@ async def test_get_execution_tenant_sees_own() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_execution_tenant_deletes_own() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -286,8 +287,8 @@ async def test_delete_execution_tenant_deletes_own() -> None:
     mock_record = Mock(spec=ExecutionRecord)
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
-    repo_mock.get_execution.return_value = mock_record
-    repo_mock.delete_execution.return_value = True
+    repo.get_execution.return_value = mock_record
+    repo.delete_execution.return_value = True
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     result = await service.delete_execution(initiator=initiator, execution_id="exe_1")
@@ -297,7 +298,7 @@ async def test_delete_execution_tenant_deletes_own() -> None:
 
 @pytest.mark.asyncio
 async def test_start_execution_success() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
@@ -308,17 +309,16 @@ async def test_start_execution_success() -> None:
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
-    out_prof_repo_mock = AsyncMock()
-    out_prof_repo_mock.get_output_profile_by_id.return_value = valid_profile
+    repo.get_output_profile_by_id.return_value = valid_profile
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=out_prof_repo_mock,
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -339,7 +339,7 @@ async def test_start_execution_success() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.domain.inputs import WorkflowInputs
@@ -369,7 +369,7 @@ async def test_start_execution_success() -> None:
 @pytest.mark.asyncio
 async def test_start_execution_model_registry_override() -> None:
     """Verify that payload.model_registry_id overrides workflow.model_registry_id."""
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
@@ -380,21 +380,34 @@ async def test_start_execution_model_registry_override() -> None:
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
-    out_prof_repo_mock = AsyncMock()
-    out_prof_repo_mock.get_output_profile_by_id.return_value = valid_profile
+    repo.get_output_profile_by_id.return_value = valid_profile
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=out_prof_repo_mock,
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
-    service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
+    from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+    from backend_v2.models.enums import CognitiveTier, LLMProvider
+
+    repo.get_model_registry.return_value = SystemConfigModelRegistry(
+        id="sys_6f8b1c4a2e0d49f1",
+        name="Override Model Registry",
+        type="model_registry",
+        default_provider=LLMProvider.AI_STUDIO,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+        },
+    )
 
     from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.domain.inputs import WorkflowInputs
@@ -410,7 +423,7 @@ async def test_start_execution_model_registry_override() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -434,15 +447,15 @@ async def test_start_execution_model_registry_override() -> None:
 
 @pytest.mark.asyncio
 async def test_start_execution_permission_denied() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -456,7 +469,7 @@ async def test_start_execution_permission_denied() -> None:
     mock_wf.organization_id = "org_other"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -477,18 +490,18 @@ async def test_start_execution_permission_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_render_execution_flat() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -500,7 +513,7 @@ async def test_render_execution_flat() -> None:
     mock_record.workflow_id = "wf_1"
     mock_record.execution_trace = []
     mock_record.model_copy.return_value = mock_record
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -535,18 +548,18 @@ async def test_render_execution_flat() -> None:
 
 @pytest.mark.asyncio
 async def test_render_execution_json() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -560,9 +573,9 @@ async def test_render_execution_json() -> None:
     mock_record.workflow_id = "wf_1"
     mock_record.profile_syntheses = {"prof_1": Mock()}
     mock_record.model_copy.return_value = mock_record
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
-    repo_mock.get_workflow_by_id.return_value = {
+    repo.get_workflow_by_id.return_value = {
         "id": "wf_1",
         "default_profile_id": "prof_1",
         "historical_context_mode": "DISABLED",
@@ -610,18 +623,18 @@ async def test_render_execution_json() -> None:
 
 @pytest.mark.asyncio
 async def test_enqueue_pdf_generation_success() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     arq_pool = AsyncMock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -636,7 +649,7 @@ async def test_enqueue_pdf_generation_success() -> None:
     mock_record.organization_id = "org_1"
     mock_record.created_by = "u2"
 
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -644,7 +657,7 @@ async def test_enqueue_pdf_generation_success() -> None:
         initiator=initiator, execution_id="exe_1", accept_language="fi", profile_id="prof_1", arq_pool=arq_pool
     )
 
-    repo_mock.update_execution.assert_called_once()
+    repo.update_execution.assert_called_once()
     arq_pool.enqueue_job.assert_called_once_with(
         "generate_pdf_job",
         execution_id="exe_1",
@@ -663,16 +676,16 @@ async def test_override_atom_success() -> None:
     from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
     from backend_v2.models.enums import VisualIntent
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -720,7 +733,7 @@ async def test_override_atom_success() -> None:
         update={"step_states": {"sr_1": step_state}, "organization_id": "org_1", "created_by": "u2"}
     )
 
-    repo_mock.get_execution.return_value = record
+    repo.get_execution.return_value = record
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
@@ -739,23 +752,23 @@ async def test_override_atom_success() -> None:
         )
         mock_recalc.assert_called_once()
 
-    repo_mock.update_execution.assert_called_once()
-    repo_mock.append_trace_event.assert_called_once()
+    repo.update_execution.assert_called_once()
+    repo.append_trace_event.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_get_execution_export_bytes_success() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -806,7 +819,7 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.metadata = ExecutionMetadata()
     mock_record.model_copy.return_value = mock_record
 
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     mock_atom = Mock(
         matrix_id="m1",
@@ -837,17 +850,17 @@ async def test_get_execution_export_bytes_success() -> None:
 
 @pytest.mark.asyncio
 async def test_get_execution_export_bytes_quotes_bug() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -920,7 +933,7 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     mock_record.metadata = ExecutionMetadata()
     mock_record.model_copy.return_value = mock_record
 
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     from unittest.mock import patch
 
@@ -950,17 +963,17 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
 
 @pytest.mark.asyncio
 async def test_get_execution_export_bytes_empty_states_fails() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     executor_mock = Mock()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=executor_mock,
     )
@@ -973,7 +986,7 @@ async def test_get_execution_export_bytes_empty_states_fails() -> None:
     mock_record.organization_id = "org_1"
     mock_record.model_copy.return_value = mock_record
 
-    repo_mock.get_execution.return_value = mock_record
+    repo.get_execution.return_value = mock_record
 
     with pytest.raises(AppException) as exc_info:
         await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
@@ -1026,15 +1039,15 @@ async def test_start_execution_succeeds_without_profile() -> None:
     from backend_v2.models.domain.inputs import WorkflowInputs
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1050,7 +1063,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -1078,18 +1091,17 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     from backend_v2.models.domain.inputs import WorkflowInputs
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
-    out_prof_repo_mock = AsyncMock()
-    out_prof_repo_mock.get_output_profile_by_id.return_value = None
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_output_profile_by_id.return_value = None
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=out_prof_repo_mock,
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1105,7 +1117,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -1135,20 +1147,19 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     from backend_v2.models.domain.inputs import WorkflowInputs
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
-    system_repo_mock = AsyncMock()
-    system_repo_mock.get_model_registry.side_effect = ResourceNotFoundError(
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_model_registry.side_effect = ResourceNotFoundError(
         resource_type="system_config", resource_id="sys_missing"
     )
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=system_repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1164,7 +1175,7 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -1195,15 +1206,15 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
 
     monkeypatch.setattr("backend_v2.services.execution.stream_service.asyncio.sleep", AsyncMock())
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1270,15 +1281,15 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1302,7 +1313,7 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -1342,15 +1353,15 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1374,7 +1385,7 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+    repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
         workflow_id="wor_0123456789abcdef",
@@ -1409,43 +1420,43 @@ def test_create_execution_record_dict_metadata() -> None:
 
 @pytest.mark.asyncio
 async def test_create_execution_metadata_and_list_pagination() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
     initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_0123456789abcdef")
 
-    repo_mock.list_executions.return_value = []
+    repo.list_executions.return_value = []
     res = await service.list_executions(initiator=initiator)
     assert res == []
 
 
 @pytest.mark.asyncio
 async def test_get_and_delete_execution_not_found_and_permission_denied() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
     from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 
     initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_tenant_a")
-    repo_mock.get_execution.return_value = None
+    repo.get_execution.return_value = None
 
     with pytest.raises(ResourceNotFoundError):
         await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
@@ -1460,7 +1471,7 @@ async def test_get_and_delete_execution_not_found_and_permission_denied() -> Non
     alien_record.is_public = False
     alien_record.status = ExecutionStatus.PASSED
     alien_record.model_copy.return_value = alien_record
-    repo_mock.get_execution.return_value = alien_record
+    repo.get_execution.return_value = alien_record
 
     with pytest.raises(PermissionDeniedError):
         await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
@@ -1476,18 +1487,16 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     from backend_v2.models.domain.step import Step, StepRule
     from backend_v2.models.domain.workflow import Workflow
 
-    repo_mock = AsyncMock()
-    prompt_block_repo = AsyncMock()
-    workflow_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
 
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1505,7 +1514,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
             MatrixScale(score=5, ai_label="High"),
         ],
     )
-    prompt_block_repo.get_prompt_block_by_id.return_value = matrix_block.model_dump(mode="json")
+    repo.get_prompt_block_by_id.return_value = matrix_block.model_dump(mode="json")
 
     step_obj = Step(
         id="stp_0123456789abcdef",
@@ -1515,7 +1524,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
         extraction_protocol_block_id="blk_0123456789abcdef",
         criteria_block_ids=["blk_0123456789abcdef"],
     )
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump(mode="json")
+    repo.get_step_by_id.return_value = step_obj.model_dump(mode="json")
 
     wf = Workflow(
         id="wor_0123456789abcdef",
@@ -1537,8 +1546,8 @@ async def test_start_execution_with_steps_and_blocks() -> None:
         ],
         historical_context_mode="DISABLED",
     )
-    workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
-    service.output_profile_repo.get_output_profile_by_id.return_value = {
+    repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    repo.get_output_profile_by_id.return_value = {
         "id": "prf_0123456789abcdef",
         "slug": "profile-test",
         "workflow_id": "wor_0123456789abcdef",
@@ -1570,15 +1579,15 @@ async def test_start_execution_with_steps_and_blocks() -> None:
 async def test_get_frozen_context_bytes() -> None:
     from unittest.mock import patch
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1592,7 +1601,7 @@ async def test_get_frozen_context_bytes() -> None:
     rec1.model_copy.return_value = rec1
     rec1.frozen_context_storage_path = None
     rec1.frozen_context = FrozenContext()
-    repo_mock.get_execution.return_value = rec1
+    repo.get_execution.return_value = rec1
 
     b1, name1 = await service.get_frozen_context_bytes(initiator, "exe_1")
     assert b1 is not None
@@ -1606,7 +1615,7 @@ async def test_get_frozen_context_bytes() -> None:
     rec2.model_copy.return_value = rec2
     rec2.frozen_context_storage_path = "storage/fc.json"
     rec2.frozen_context = None
-    repo_mock.get_execution.return_value = rec2
+    repo.get_execution.return_value = rec2
 
     with patch("backend_v2.services.storage.get_storage_driver") as mock_storage_driver:
         mock_driver = AsyncMock()
@@ -1626,16 +1635,15 @@ async def test_clear_profile_synthesis() -> None:
 
     from backend_v2.exceptions import ResourceNotFoundError
 
-    repo_mock = AsyncMock()
-    workflow_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1652,9 +1660,9 @@ async def test_clear_profile_synthesis() -> None:
     rec.model_copy.return_value = rec
     rec.profile_syntheses = {"prof_1": RenderedSynthesisCache()}
     rec.pdf_report_path = "reports/report.pdf"
-    repo_mock.get_execution.return_value = rec
+    repo.get_execution.return_value = rec
 
-    workflow_repo.get_workflow_by_id.return_value = {
+    repo.get_workflow_by_id.return_value = {
         "id": "wor_0123456789abcdef",
         "slug": "workflow-slug",
         "name": {"translations": {"en": "Workflow"}},
@@ -1672,7 +1680,7 @@ async def test_clear_profile_synthesis() -> None:
     await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
     driver.delete.assert_called_once_with("reports/report.pdf")
 
-    workflow_repo.get_workflow_by_id.return_value = None
+    repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
 
@@ -1681,16 +1689,15 @@ async def test_clear_profile_synthesis() -> None:
 async def test_render_execution_formats() -> None:
     from unittest.mock import patch
 
-    repo_mock = AsyncMock()
-    workflow_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1705,8 +1712,8 @@ async def test_render_execution_formats() -> None:
     rec.step_states = {}
     rec.metadata = ExecutionMetadata()
     rec.model_copy.return_value = rec
-    repo_mock.get_execution.return_value = rec
-    workflow_repo.get_workflow_by_id.return_value = {
+    repo.get_execution.return_value = rec
+    repo.get_workflow_by_id.return_value = {
         "id": "wor_0123456789abcdef",
         "slug": "workflow-slug",
         "name": {"translations": {"en": "Workflow"}},
@@ -1760,15 +1767,15 @@ async def test_render_execution_formats() -> None:
 
 @pytest.mark.asyncio
 async def test_stream_status_sse_events() -> None:
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1781,7 +1788,7 @@ async def test_stream_status_sse_events() -> None:
     rec.status = ExecutionStatus.PASSED
     rec.model_copy.return_value = rec
     rec.model_dump_json.return_value = '{"id": "exe_1", "status": "PASSED"}'
-    repo_mock.get_execution.return_value = rec
+    repo.get_execution.return_value = rec
 
     events = []
     async for event in service.stream_status(initiator, "exe_1"):
@@ -1789,22 +1796,22 @@ async def test_stream_status_sse_events() -> None:
 
     assert len(events) >= 1
     assert "PASSED" in events[0]
-    assert repo_mock.get_execution.call_args_list[-1] == call("exe_1", hydrate=False)
+    assert repo.get_execution.call_args_list[-1] == call("exe_1", hydrate=False)
 
 
 @pytest.mark.asyncio
 async def test_resume_execution_success() -> None:
     from unittest.mock import patch
 
-    repo_mock = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1818,7 +1825,7 @@ async def test_resume_execution_success() -> None:
     rec.raw_inputs = WorkflowInputs()
     rec.status = ExecutionStatus.RUNNING
     rec.model_copy.return_value = rec
-    repo_mock.get_execution.return_value = rec
+    repo.get_execution.return_value = rec
 
     with patch.object(service, "check_resumability", return_value=True):
         arq_pool = AsyncMock()
@@ -1840,16 +1847,15 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
 
-    repo_mock = AsyncMock()
-    prompt_block_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
         usage_service=AsyncMock(),
         executor=Mock(),
     )
@@ -1888,7 +1894,7 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
     rec.target_locale = "en"
     rec.step_states = {"stp_1": step_state}
     rec.model_copy.return_value = rec
-    repo_mock.get_execution.return_value = rec
+    repo.get_execution.return_value = rec
 
     rule_block = SystemRulePromptBlock(
         id="blk_0123456789abcdef",
@@ -1899,7 +1905,7 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
         type="instruction",
         instruction_text="Instruction test",
     )
-    prompt_block_repo.get_all_prompt_blocks.return_value = [
+    repo.get_all_prompt_blocks.return_value = [
         rule_block.model_dump(mode="json"),
     ]
 

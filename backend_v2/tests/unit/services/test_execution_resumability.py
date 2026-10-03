@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -10,23 +11,30 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.execution import ExecutionService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
+def _create_test_service(
+    usage_service: Any = None,
+) -> tuple[ExecutionService, InMemoryBlueprintTransformerRepository]:
+    repo = InMemoryBlueprintTransformerRepository()
+    service = ExecutionService(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
+        usage_service=usage_service or AsyncMock(),
+        executor=Mock(),
+    )
+    return service, repo
 
 
 @pytest.mark.asyncio
 async def test_check_resumability_failed_only() -> None:
-    # Service and mock initializations
-    repo_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=AsyncMock(),
-        executor=Mock(),
-    )
+    service, _ = _create_test_service()
 
     # Execution status PENDING or COMPLETED should fail check_resumability
     record = Mock(spec=ExecutionRecord)
@@ -43,19 +51,8 @@ async def test_check_resumability_failed_only() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_allows_zero_outputs() -> None:
-    repo_mock = AsyncMock()
     usage_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=usage_mock,
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service(usage_service=usage_mock)
 
     usage_mock.check_quota.return_value = True
 
@@ -83,19 +80,8 @@ async def test_check_resumability_allows_zero_outputs() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
-    repo_mock = AsyncMock()
     usage_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=usage_mock,
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service(usage_service=usage_mock)
 
     usage_mock.check_quota.return_value = True
 
@@ -127,18 +113,7 @@ async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_structural_mismatch() -> None:
-    repo_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=AsyncMock(),
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service()
 
     # Execution with active workflow having restructured/different Step IDs
     record = Mock(spec=ExecutionRecord)
@@ -170,18 +145,7 @@ async def test_check_resumability_structural_mismatch() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_workflow_version_drift() -> None:
-    repo_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=AsyncMock(),
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service()
 
     # Execution started under version 1, but workflow in DB is now version 2
     record = Mock(spec=ExecutionRecord)
@@ -208,19 +172,8 @@ async def test_check_resumability_workflow_version_drift() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_quota_exceeded() -> None:
-    repo_mock = AsyncMock()
     usage_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=usage_mock,
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service(usage_service=usage_mock)
 
     # Quota check returns False
     usage_mock.check_quota.return_value = False
@@ -251,19 +204,8 @@ async def test_check_resumability_quota_exceeded() -> None:
 
 @pytest.mark.asyncio
 async def test_check_resumability_successful_resumption() -> None:
-    repo_mock = AsyncMock()
     usage_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=usage_mock,
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service(usage_service=usage_mock)
 
     # Quota check returns True
     usage_mock.check_quota.return_value = True
@@ -293,18 +235,7 @@ async def test_check_resumability_successful_resumption() -> None:
 
 @pytest.mark.asyncio
 async def test_resume_execution_firewall_denied() -> None:
-    repo_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=AsyncMock(),
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service()
 
     # Unresumable record (e.g. status COMPLETED)
     record = Mock(spec=ExecutionRecord)
@@ -331,18 +262,7 @@ async def test_resume_execution_firewall_denied() -> None:
 @pytest.mark.asyncio
 async def test_check_resumability_missing_step_in_step_states_returns_false() -> None:
     """ISTQB Negative: Missing workflow step from step_states returns False."""
-    repo_mock = AsyncMock()
-    service = ExecutionService(
-        exec_repo=repo_mock,
-        workflow_repo=repo_mock,
-        comp_repo=repo_mock,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo_mock,
-        system_repo=repo_mock,
-        usage_service=AsyncMock(),
-        executor=Mock(),
-    )
+    service, repo_mock = _create_test_service()
 
     record = Mock(spec=ExecutionRecord)
     record.status = ExecutionStatus.FAILED

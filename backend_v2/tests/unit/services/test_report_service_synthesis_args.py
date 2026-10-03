@@ -19,6 +19,7 @@ from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStor
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, ReportStatus
 from backend_v2.services.report_service import ReportService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
 
 
@@ -27,7 +28,7 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify synthesis worker is invoked with correct parameter bindings (no argument swap)."""
-    repo = AsyncMock()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = ReportArtifact(
         id="rep_1234567890abcdef",
         execution_id="exe_1234567890abcdef",
@@ -51,8 +52,8 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
         profile_syntheses={},  # profile_id not in profile_syntheses
     )
 
-    repo.get_report_artifact.return_value = report
-    repo.get_execution.return_value = execution.model_dump(mode="json")
+    await repo.create_report_artifact(report)
+    await repo.save_execution(execution)
 
     mock_synthesis_task = AsyncMock()
 
@@ -91,9 +92,9 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
     pos_args = call_args.args
     kwargs = call_args.kwargs
 
-    called_exec_id = kwargs.get("execution_id", pos_args[0] if len(pos_args) > 0 else None)
-    called_lang = kwargs.get("accept_language", pos_args[1] if len(pos_args) > 1 else None)
-    called_profile_id = kwargs.get("profile_id", pos_args[2] if len(pos_args) > 2 else None)
+    called_exec_id = kwargs["execution_id"] if "execution_id" in kwargs else (pos_args[0] if len(pos_args) > 0 else None)
+    called_lang = kwargs["accept_language"] if "accept_language" in kwargs else (pos_args[1] if len(pos_args) > 1 else None)
+    called_profile_id = kwargs["profile_id"] if "profile_id" in kwargs else (pos_args[2] if len(pos_args) > 2 else None)
 
     assert called_exec_id == report.execution_id
     assert called_lang == report.locale, (
@@ -115,30 +116,30 @@ async def test_synthesis_task_rejects_empty_language(invalid_lang: str | None) -
             profile_id="prf_01b1d71000000002",
         )
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty." in exc_info.value.message
 
 
 @pytest.mark.asyncio
 async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify synthesis worker validates real output_profile entity relation and raises ResourceNotFoundError."""
-    mock_repo = AsyncMock()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890abcdef",
-        "workflow_id": "wor_1234567890abcdef",
-        "status": "PASSED",
-        "execution_trace": [],
-        "steps": [],
-        "step_states": {},
-        "profile_syntheses": {},
-        "target_locale": "fi",
-        "raw_inputs": {},
-        "frozen_context": {},
-        "source_identity_manifest": {},
-    }
-    mock_repo.get_output_profile_by_id.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
+    record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wor_1234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[],
+        steps=[],
+        step_states={},
+        profile_syntheses={},
+        target_locale="fi",
+        raw_inputs=WorkflowInputs(),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+    )
+    await repo.save_execution(record)
     monkeypatch.setattr("backend_v2.workers.synthesis_worker.get_driver", AsyncMock())
-    monkeypatch.setattr("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", lambda driver: mock_repo)
+    monkeypatch.setattr("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", lambda driver: repo)
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await generate_profile_synthesis_and_pdf_task(
@@ -147,5 +148,5 @@ async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.M
             profile_id="fi",
         )
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details.get("error_code") == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
     assert "output_profile with ID 'fi' not found" in exc_info.value.message

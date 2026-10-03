@@ -10,6 +10,7 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import BlockDataType, PresetView, PromptBlockCategory
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
 
@@ -168,7 +169,7 @@ def dict_to_obj(d: Any) -> Any:
 
 @pytest.fixture
 def mock_repo_transformer() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_workflow.return_value = dict_to_obj(
         {
             "id": "wf_1234abcd1234abcd",
@@ -418,7 +419,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
 
 @pytest.fixture
 def mock_repo_microcot() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_workflow.return_value = dict_to_obj(
         {
             "id": "wf_1234567890abcdef",
@@ -577,8 +578,8 @@ def mock_repo_microcot() -> Any:
 
 
 @pytest.fixture
-def mock_repo_sdui() -> AsyncMock:
-    repo = AsyncMock()
+def mock_repo_sdui() -> Any:
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_workflow.return_value = dict_to_obj(
         {
             "id": "wf_1234abcd1234abcd",

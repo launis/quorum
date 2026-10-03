@@ -1357,23 +1357,25 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         # QGR014: mock repository variable assignment in test files
         if self._is_test_file:
             for target in node.targets:
-                if isinstance(target, ast.Name) and (
-                    "_repo" in target.id or "repo_" in target.id or target.id.endswith("repo")
-                ):
-                    match node.value:
-                        case ast.Call(
-                            func=ast.Name(id="AsyncMock" | "MagicMock" | "Mock")
-                            | ast.Attribute(attr="AsyncMock" | "MagicMock" | "Mock")
-                        ):
-                            self._add_violation(
-                                node,
-                                "QGR014",
-                                f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
-                                "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
-                                severity=GuardrailSeverity.WARNING,
-                            )
-                        case _:
-                            pass
+                if isinstance(target, ast.Name):
+                    target_id_lower = target.id.lower()
+                    if (
+                        "_repo" in target_id_lower or "repo_" in target_id_lower or target_id_lower.endswith("repo")
+                    ) and not ("report" in target_id_lower or "response" in target_id_lower):
+                        match node.value:
+                            case ast.Call(
+                                func=ast.Name(id="AsyncMock" | "MagicMock" | "Mock")
+                                | ast.Attribute(attr="AsyncMock" | "MagicMock" | "Mock")
+                            ):
+                                self._add_violation(
+                                    node,
+                                    "QGR014",
+                                    f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
+                                    "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
+                                    severity=GuardrailSeverity.WARNING,
+                                )
+                            case _:
+                                pass
 
         # QGR020: Class-level mutable default for unannotated class attributes (only directly in class body)
         if (

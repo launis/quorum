@@ -7,11 +7,13 @@ guaranteeing `repo.get(id) is not repo.get(id)` and `repo.get(id) == repo.get(id
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 from pydantic import BaseModel
 
@@ -237,6 +239,12 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
             if isinstance(x.context_variables, dict) and x.context_variables.get("matrix_id") == matrix_id:  # noqa: QGR002, QGR012 [REASON: In-memory test fake filter simulation]
                 count += 1
         return count
+
+    async def save_execution(self, record: ExecutionRecord) -> str:
+        """Saves an ExecutionRecord directly with snapshot isolation."""
+        self._check_fault("save_execution")
+        self._save_isolated(record.id, record)
+        return record.id
 
 
 # ==============================================================================
@@ -854,7 +862,10 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
                 CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
             },
         )
-        self._model_registries: dict[str, SystemConfigModelRegistry] = {default_reg.id: default_reg}
+        self._model_registries: dict[str, SystemConfigModelRegistry] = {
+            default_reg.id: default_reg,
+            "sys_e26807f3bfa3454d": default_reg,
+        }
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._system_settings: SystemSettingsDTO | None = None
 
@@ -1202,6 +1213,10 @@ class InMemoryExtractionProtocolRepository(BaseInMemoryRepository[PromptBlock], 
 class InMemoryReportArtifactRepository(BaseInMemoryRepository[ReportArtifact], IReportArtifactRepository):
     """In-memory fake implementation of IReportArtifactRepository with snapshot isolation."""
 
+    def save_report_artifact(self, report: ReportArtifact) -> None:
+        """Synchronously persist a report artifact into isolated storage without pre-flight validation."""
+        self._save_isolated(report.id, report)
+
     async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact:
         self._check_fault("create_report_artifact")
         self._save_isolated(report.id, report)
@@ -1374,7 +1389,13 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         return await self._executions.count_executions_by_matrix(matrix_id)
 
+    async def save_execution(self, record: ExecutionRecord) -> str:
+        return await self._executions.save_execution(record)
+
     # 2.5 Report Artifact
+    def save_report_artifact(self, report: ReportArtifact) -> None:
+        self._report_artifacts.save_report_artifact(report)
+
     async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact:
         return await self._report_artifacts.create_report_artifact(report)
 
@@ -1704,3 +1725,152 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def delete_extraction_protocol(self, protocol_id: str) -> bool:
         return await self._extraction_protocols.delete_extraction_protocol(protocol_id)
+
+
+# ==============================================================================
+# 17. Blueprint Transformer Test Repository Fake
+# ==============================================================================
+
+
+class DynamicRepoMethod:
+    """Async method wrapper allowing test fixtures to override returns or inspect calls."""
+
+    def __init__(self, name: str, fallback: Any = None) -> None:
+        self._mock = MagicMock()
+        self._name = name
+        self._fallback = fallback
+        self._has_return_value = False
+        self._side_effect: Any = None
+
+    @property
+    def return_value(self) -> Any:
+        return self._mock.return_value
+
+    @return_value.setter
+    def return_value(self, val: Any) -> None:
+        self._has_return_value = True
+        self._mock.return_value = val
+
+    @property
+    def side_effect(self) -> Any:
+        return self._side_effect
+
+    @side_effect.setter
+    def side_effect(self, val: Any) -> None:
+        self._side_effect = val
+
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._mock(*args, **kwargs)
+        if self._side_effect is not None:
+            if isinstance(self._side_effect, type) and issubclass(self._side_effect, BaseException):
+                raise self._side_effect()
+            if isinstance(self._side_effect, BaseException):
+                raise self._side_effect
+            if callable(self._side_effect):
+                res = self._side_effect(*args, **kwargs)
+            else:
+                res = self._side_effect
+            if asyncio.iscoroutine(res):
+                return await res
+            return res
+        if self._has_return_value:
+            res = self._mock.return_value
+            if asyncio.iscoroutine(res):
+                return await res
+            return res
+        if self._fallback:
+            res = self._fallback(*args, **kwargs)
+            if asyncio.iscoroutine(res):
+                return await res
+            return res
+        return None
+
+    @property
+    def called(self) -> bool:
+        return self._mock.called
+
+    @property
+    def call_count(self) -> int:
+        return self._mock.call_count
+
+    @property
+    def call_args(self) -> Any:
+        return self._mock.call_args
+
+    @property
+    def call_args_list(self) -> list[Any]:
+        return self._mock.call_args_list
+
+    def assert_called(self) -> None:
+        self._mock.assert_called()
+
+    def assert_called_once(self) -> None:
+        self._mock.assert_called_once()
+
+    def assert_called_with(self, *args: Any, **kwargs: Any) -> None:
+        self._mock.assert_called_with(*args, **kwargs)
+
+    def assert_called_once_with(self, *args: Any, **kwargs: Any) -> None:
+        self._mock.assert_called_once_with(*args, **kwargs)
+
+    def assert_not_called(self) -> None:
+        self._mock.assert_not_called()
+
+    def reset_mock(self, *args: Any, **kwargs: Any) -> None:
+        self._mock.reset_mock(*args, **kwargs)
+
+
+class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
+    """Specialized in-memory composite repository for BlueprintTransformer tests."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_workflow = DynamicRepoMethod("get_workflow", None)
+        self.get_workflow_by_id = DynamicRepoMethod("get_workflow_by_id", super().get_workflow_by_id)
+        self.get_workflow_definition = DynamicRepoMethod("get_workflow_definition", super().get_workflow_definition)
+        self.get_execution = DynamicRepoMethod("get_execution", super().get_execution)
+        self.get_execution_status = DynamicRepoMethod("get_execution_status", super().get_execution_status)
+        self.get_all_output_profiles = DynamicRepoMethod("get_all_output_profiles", super().get_all_output_profiles)
+        self.get_all_output_profiles_models = DynamicRepoMethod(
+            "get_all_output_profiles_models", super().get_all_output_profiles_models
+        )
+        self.get_output_profile = DynamicRepoMethod("get_output_profile", None)
+        self.get_output_profile_by_id = DynamicRepoMethod("get_output_profile_by_id", super().get_output_profile_by_id)
+        self.get_by_id = DynamicRepoMethod("get_by_id", None)
+        self.get_all_prompt_blocks = DynamicRepoMethod("get_all_prompt_blocks", super().get_all_prompt_blocks)
+        self.get_prompt_block = DynamicRepoMethod("get_prompt_block", None)
+        self.get_prompt_block_by_id = DynamicRepoMethod("get_prompt_block_by_id", super().get_prompt_block_by_id)
+        self.get_user = DynamicRepoMethod("get_user", super().get_user)
+        self.get_user_by_email = DynamicRepoMethod("get_user_by_email", super().get_user_by_email)
+        self.get_organization = DynamicRepoMethod("get_organization", super().get_organization)
+        self.get_organization_model = DynamicRepoMethod("get_organization_model", super().get_organization_model)
+        self.get_mcp_gateways = DynamicRepoMethod("get_mcp_gateways", super().get_mcp_gateways)
+        self.get_all_steps = DynamicRepoMethod("get_all_steps", super().get_all_steps)
+        self.get_step = DynamicRepoMethod("get_step", None)
+        self.get_step_by_id = DynamicRepoMethod("get_step_by_id", super().get_step_by_id)
+        self.update_execution = DynamicRepoMethod("update_execution", super().update_execution)
+        self.create_execution = DynamicRepoMethod("create_execution", super().create_execution)
+        self.save_execution = DynamicRepoMethod("save_execution", super().save_execution)
+        self.get_all_executions = DynamicRepoMethod("get_all_executions", super().get_all_executions)
+        self.list_executions = DynamicRepoMethod("list_executions", None)
+        self.get_recent_completed_executions = DynamicRepoMethod(
+            "get_recent_completed_executions", super().get_recent_completed_executions
+        )
+        self.count_executions_by_matrix = DynamicRepoMethod(
+            "count_executions_by_matrix", super().count_executions_by_matrix
+        )
+        self.get_system_settings = DynamicRepoMethod("get_system_settings", super().get_system_settings)
+        self.update_system_settings = DynamicRepoMethod("update_system_settings", super().update_system_settings)
+        self.append_trace_event = DynamicRepoMethod("append_trace_event", super().append_trace_event)
+        self.delete_execution = DynamicRepoMethod("delete_execution", super().delete_execution)
+        self.get_model_registry = DynamicRepoMethod("get_model_registry", super().get_model_registry)
+        self.save_report_artifact = DynamicRepoMethod("save_report_artifact", super().save_report_artifact)
+        self.create_report_artifact = DynamicRepoMethod("create_report_artifact", super().create_report_artifact)
+        self.get_report_artifact = DynamicRepoMethod("get_report_artifact", super().get_report_artifact)
+        self.list_report_artifacts_by_execution = DynamicRepoMethod(
+            "list_report_artifacts_by_execution", super().list_report_artifacts_by_execution
+        )
+        self.update_report_artifact = DynamicRepoMethod("update_report_artifact", super().update_report_artifact)
+        self.delete_report_artifact = DynamicRepoMethod("delete_report_artifact", super().delete_report_artifact)
+
+

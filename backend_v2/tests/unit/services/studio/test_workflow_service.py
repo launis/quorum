@@ -55,10 +55,8 @@ def mock_prompt_block_repo() -> AsyncMock:
 
 
 @pytest.fixture
-def mock_system_repo() -> AsyncMock:
-    repo = AsyncMock()
-    repo.get_all_model_registries = AsyncMock(return_value=[])
-    return repo
+def mock_system_repo() -> InMemorySystemRepository:
+    return InMemorySystemRepository()
 
 
 @pytest.fixture
@@ -927,11 +925,11 @@ async def test_save_workflow_malformed_dag_raises_validation_failed(
 
 async def test_create_workflow_draft_no_registries_raises_not_found(
     workflow_service: StudioWorkflowService,
-    mock_system_repo: AsyncMock,
+    mock_system_repo: InMemorySystemRepository,
     admin_token: TokenData,
 ) -> None:
     """Tests that creating a workflow draft when no model registries exist raises ResourceNotFoundError."""
-    mock_system_repo.get_all_model_registries.return_value = []
+    mock_system_repo._model_registries.clear()
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await workflow_service.create_workflow_draft(admin_token)
 

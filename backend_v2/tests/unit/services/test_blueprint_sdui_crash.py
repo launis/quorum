@@ -1,40 +1,50 @@
-from unittest.mock import AsyncMock
-
 import pytest
 
 from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import DisplayScale, ExecutionStatus, HistoricalContextMode, TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.mark.asyncio
 async def test_blueprint_variance_validation_success() -> None:
-    # Setup mock repositories
-    mock_prompt_block_repo = AsyncMock()
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
+    repo = InMemoryUnifiedWorkflowRepository()
 
-    mock_workflow_repo = AsyncMock()
-    mock_wf = AsyncMock()
-    mock_wf.default_strictness_level = 85
-    mock_workflow_repo.get_workflow.return_value = mock_wf
-    mock_workflow_repo.get_workflow_by_id.return_value = {
-        "id": "wf_1234567812345678",
-        "slug": "test",
-        "name": "test",
-        "description": "test",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-    }
-    mock_workflow_repo.get_all_steps.return_value = []
+    profile = OutputProfile(
+        id="prf_1234567812345678",
+        slug="test",
+        workflow_id="wf_1234567812345678",
+        name=I18nText(translations={"en": "test"}),
+        display_scale=DisplayScale.ORIGINAL,
+        target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+        visible_workflow_extensions=["variance_validation"],
+        variance_target_block="blk_fb15f8dcf23f4865",
+    )
+    await repo._output_profiles.create_output_profile(profile)
 
-    mock_exec_repo = AsyncMock()
-    # Provide a minimal valid ExecutionRecord
-    mock_exec_repo.get_execution.return_value = ExecutionRecord(
+    workflow = Workflow(
+        id="wf_1234567812345678",
+        slug="test",
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
+        status="draft",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        default_strictness_level=85,
+        default_profile_id="prf_1234567812345678",
+        steps=[],
+    )
+    await repo.save_workflow(workflow)
+
+    record = ExecutionRecord(
         id="exec_1234567812345678",
         workflow_id="wf_1234567812345678",
         output_profile_id="prf_1234567812345678",
@@ -54,38 +64,16 @@ async def test_blueprint_variance_validation_success() -> None:
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )
+    await repo.save_execution(record)
 
-    mock_profile_repo = AsyncMock()
-    mock_profile_dict = {
-        "id": "prf_1234567812345678",
-        "slug": "test",
-        "workflow_id": "wf_1234567812345678",
-        "name": {"translations": {"en": "test"}},
-        "target_block_order": ["variance_validation_block"],
-        "visible_workflow_extensions": ["variance_validation"],
-        "variance_target_block": "blk_fb15f8dcf23f4865",
-    }
-
-    mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]
-    mock_profile_repo.get_output_profile.return_value = mock_profile_dict
-    mock_profile_repo.get_profile_synthesis_cache.return_value = RenderedSynthesisCache(
-        extension_metrics=ExtensionMetricsDTO(
-            authenticity_score=75.0,
-            performative_phrases_count=0,
-            variance_score=0.1,
-            alignment_verdict="ALIGNED",
-        )
-    )
-
-    # Initialize transformer
     transformer = BlueprintTransformer(
-        exec_repo=mock_exec_repo,
-        output_profile_repo=mock_profile_repo,
-        workflow_repo=mock_workflow_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        comp_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        output_profile_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        comp_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     report = await transformer.build_report_dto("exec_1234567812345678", "prf_1234567812345678", "en")

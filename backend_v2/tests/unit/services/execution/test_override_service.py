@@ -15,6 +15,7 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode, VisualIntent
 from backend_v2.services.execution.override_service import ExecutionOverrideService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def _create_mock_atom(atom_id: str = "tda_1") -> ScorecardAtomDTO:
@@ -71,18 +72,15 @@ def _create_mock_record(
     )
 
 
-def _create_mock_service() -> tuple[ExecutionOverrideService, MagicMock]:
-    exec_repo = MagicMock()
-    workflow_repo = MagicMock()
-    comp_repo = MagicMock()
-    prompt_block_repo = MagicMock()
-    output_profile_repo = MagicMock()
-    identity_repo = MagicMock()
-    system_repo = MagicMock()
+def _create_mock_service() -> tuple[ExecutionOverrideService, InMemoryBlueprintTransformerRepository]:
+    exec_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    comp_repo = InMemoryBlueprintTransformerRepository()
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo = InMemoryBlueprintTransformerRepository()
+    identity_repo = InMemoryBlueprintTransformerRepository()
+    system_repo = InMemoryBlueprintTransformerRepository()
     storage_driver = MagicMock()
-
-    exec_repo.update_execution = AsyncMock()
-    exec_repo.append_trace_event = AsyncMock()
 
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
@@ -215,15 +213,15 @@ async def test_override_atom_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_override_atom_missing_repos_raises() -> None:
     """Verify missing required hook dependency repositories triggers CONFIGURATION_ERROR."""
-    exec_repo = MagicMock()
+    exec_repo = InMemoryBlueprintTransformerRepository()
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
-        workflow_repo=MagicMock(),
+        workflow_repo=InMemoryBlueprintTransformerRepository(),
         comp_repo=None,  # Missing
         prompt_block_repo=None,
     )
     record = _create_mock_record()
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(

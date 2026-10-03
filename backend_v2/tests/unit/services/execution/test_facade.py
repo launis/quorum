@@ -16,6 +16,10 @@ from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.execution.facade import ExecutionService, create_execution_record
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryExecutionRepository,
+    InMemoryWorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -27,8 +31,8 @@ def initiator() -> TokenData:
 @pytest.fixture
 def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
     """Fixture providing ExecutionService facade with mocked sub-services."""
-    exec_repo = AsyncMock()
-    workflow_repo = AsyncMock()
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
 
     service = ExecutionService(
         exec_repo=exec_repo,
@@ -58,8 +62,8 @@ def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
 
 def test_execution_service_init_with_defaults() -> None:
     """Verify ExecutionService initializes correctly with default optional dependencies."""
-    exec_repo = AsyncMock()
-    workflow_repo = AsyncMock()
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
     service = ExecutionService(exec_repo=exec_repo, workflow_repo=workflow_repo)
     assert service.exec_repo is exec_repo
     assert service.workflow_repo is workflow_repo
@@ -71,8 +75,8 @@ def test_execution_service_init_with_defaults() -> None:
 
 def test_execution_service_init_with_custom_deps() -> None:
     """Verify ExecutionService initializes correctly with custom injected dependencies."""
-    exec_repo = AsyncMock()
-    workflow_repo = AsyncMock()
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
     custom_export = MagicMock()
     custom_storage = MagicMock()
     custom_usage = MagicMock()

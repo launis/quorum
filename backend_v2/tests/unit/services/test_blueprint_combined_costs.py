@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -26,6 +25,7 @@ from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import SduiMetadataBlock
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.localization import LocalizationService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 _WORKFLOW_ID = "wf_0123456789abcdef0123456789abcdef"
 _PROFILE_ID = "prf_0123456789abcdef0123456789abcdef"
@@ -33,9 +33,9 @@ _USER_ID = "usr_0123456789abcdef"
 
 
 @pytest.fixture
-def mock_blueprint_repos() -> AsyncMock:
-    """Creates a mock repository suite for BlueprintTransformer testing."""
-    repo = AsyncMock()
+def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
+    """Creates an in-memory repository fake suite for BlueprintTransformer testing."""
+    repo = InMemoryUnifiedWorkflowRepository()
 
     profile = OutputProfile(
         id=_PROFILE_ID,
@@ -80,11 +80,9 @@ def mock_blueprint_repos() -> AsyncMock:
         created_at=datetime.now(timezone.utc),
     )
 
-    repo.get_workflow.return_value = workflow
-    repo.get_all_output_profiles.return_value = [profile.model_dump(mode="python")]
-    repo.get_all_prompt_blocks.return_value = []
-    repo.get_user.return_value = user
-    repo.get_mcp_gateways.return_value = None
+    repo._workflows._storage[workflow.id] = workflow
+    repo._output_profiles._storage[profile.id] = profile
+    repo._identities._storage[user.id] = user
     return repo
 
 
@@ -109,7 +107,7 @@ async def test_blueprint_combined_cost_and_tokens_from_execution_record(mock_blu
         cumulative_synthesis_cost=0.45,
         cumulative_synthesis_tokens=300,
     )
-    mock_blueprint_repos.get_execution.return_value = record
+    await mock_blueprint_repos.save_execution(record)
 
     transformer = BlueprintTransformer(
         exec_repo=mock_blueprint_repos,
@@ -187,7 +185,7 @@ async def test_blueprint_trace_fail_safe_when_dag_cost_zero(mock_blueprint_repos
         cumulative_synthesis_cost=0.12,
         cumulative_synthesis_tokens=150,
     )
-    mock_blueprint_repos.get_execution.return_value = record
+    await mock_blueprint_repos.save_execution(record)
 
     transformer = BlueprintTransformer(
         exec_repo=mock_blueprint_repos,
@@ -252,7 +250,7 @@ async def test_blueprint_consecutive_synthesis_accumulation(mock_blueprint_repos
     )
 
     # Run 1: initial synthesis
-    mock_blueprint_repos.get_execution.return_value = base_record
+    await mock_blueprint_repos.save_execution(base_record)
     dto1 = await transformer.build_report_dto("exe_00000000000000030000000000000003", profile_id=_PROFILE_ID)
     assert dto1.cost_estimate is not None
     assert dto1.cost_estimate == pytest.approx(1.20)
@@ -265,7 +263,7 @@ async def test_blueprint_consecutive_synthesis_accumulation(mock_blueprint_repos
             "cumulative_synthesis_tokens": 500,
         }
     )
-    mock_blueprint_repos.get_execution.return_value = accumulated_record
+    await mock_blueprint_repos.save_execution(accumulated_record)
     dto2 = await transformer.build_report_dto("exe_00000000000000030000000000000003", profile_id=_PROFILE_ID)
     assert dto2.cost_estimate is not None
     assert dto2.total_tokens is not None
@@ -296,7 +294,7 @@ async def test_blueprint_zero_tokens_and_cost_boundary(mock_blueprint_repos: Any
         cumulative_synthesis_cost=0.0,
         cumulative_synthesis_tokens=0,
     )
-    mock_blueprint_repos.get_execution.return_value = record
+    await mock_blueprint_repos.save_execution(record)
 
     transformer = BlueprintTransformer(
         exec_repo=mock_blueprint_repos,

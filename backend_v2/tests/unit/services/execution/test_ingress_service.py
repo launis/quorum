@@ -25,6 +25,7 @@ from backend_v2.services.execution.ingress_service import (
     _generate_sdui_hints,
     create_execution_record,
 )
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
@@ -131,11 +132,11 @@ def test_create_execution_record_validation_failure() -> None:
 async def test_get_workflow_ui_schema() -> None:
     """Verify get_workflow_ui_schema returns expected inputs or raises 404."""
     workflow = _create_test_workflow()
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
 
     service = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
     )
 
@@ -143,7 +144,7 @@ async def test_get_workflow_ui_schema() -> None:
     assert len(schema.expected_inputs) == 1
     assert schema.expected_inputs[0].input_key == "chat_log"
 
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=None)
+    workflow_repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await service.get_workflow_ui_schema("wor_0123456789abcdef")
 
@@ -190,10 +191,10 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         ],
     )
 
-    workflow_repo = AsyncMock()
-    workflow_repo.get_step_by_id = AsyncMock(return_value=step_obj.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
 
-    prompt_block_repo = AsyncMock()
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
 
     async def mock_get_pb(pb_id: str) -> dict[str, Any] | None:
         if pb_id == "blk_0123456789abcdef":
@@ -204,7 +205,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
             return matrix_block.model_dump()
         return None
 
-    prompt_block_repo.get_prompt_block_by_id = AsyncMock(side_effect=mock_get_pb)
+    prompt_block_repo.get_prompt_block_by_id.side_effect = mock_get_pb
 
     hints_dto = await _generate_sdui_hints(
         workflow=workflow,
@@ -230,13 +231,13 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
 async def test_generate_sdui_hints_missing_step_raises() -> None:
     """Verify _generate_sdui_hints raises ConfigurationError when step blueprint is missing."""
     workflow = _create_test_workflow()
-    workflow_repo = AsyncMock()
-    workflow_repo.get_step_by_id = AsyncMock(return_value=None)
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_step_by_id.return_value = None
 
     with pytest.raises(ConfigurationError):
         await _generate_sdui_hints(
             workflow=workflow,
-            prompt_block_repo=AsyncMock(),
+            prompt_block_repo=InMemoryBlueprintTransformerRepository(),
             workflow_repo=workflow_repo,
             target_locale="en",
         )
@@ -265,19 +266,18 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         visible_workflow_extensions=[],
     )
 
-    exec_repo = AsyncMock()
-    exec_repo.create_execution = AsyncMock()
+    exec_repo = InMemoryBlueprintTransformerRepository()
 
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
-    workflow_repo.get_step_by_id = AsyncMock(return_value=step_obj.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
 
-    prompt_block_repo = AsyncMock()
-    output_profile_repo = AsyncMock()
-    output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=profile_obj.model_dump())
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo.get_output_profile_by_id.return_value = profile_obj.model_dump()
 
-    system_repo = AsyncMock()
-    system_repo.get_model_registry = AsyncMock(return_value={"id": "sys_e26807f3bfa3454d"})
+    system_repo = InMemoryBlueprintTransformerRepository()
+    system_repo.get_model_registry.return_value = {"id": "sys_e26807f3bfa3454d"}
 
     usage_service = AsyncMock()
     usage_service.check_quota = AsyncMock(return_value=True)
@@ -333,11 +333,11 @@ async def test_start_execution_permission_denied(initiator: TokenData) -> None:
         update={"organization_id": "org_other_organization", "is_public": False}
     )
 
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
 
     service = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
     )
 
@@ -360,14 +360,14 @@ async def test_start_execution_permission_denied(initiator: TokenData) -> None:
 async def test_start_execution_quota_exceeded(initiator: TokenData) -> None:
     """Verify start_execution raises 402 RATE_LIMIT_EXCEEDED when quota is exhausted."""
     workflow = _create_test_workflow()
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
 
     usage_service = AsyncMock()
     usage_service.check_quota = AsyncMock(return_value=False)
 
     service = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         usage_service=usage_service,
     )
@@ -391,11 +391,11 @@ async def test_start_execution_quota_exceeded(initiator: TokenData) -> None:
 @pytest.mark.asyncio
 async def test_start_execution_workflow_not_found(initiator: TokenData) -> None:
     """Verify start_execution raises ResourceNotFoundError when workflow does not exist."""
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=None)
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = None
 
     service = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
     )
 
@@ -418,12 +418,12 @@ async def test_start_execution_workflow_not_found(initiator: TokenData) -> None:
 async def test_start_execution_missing_dependencies_and_entities(initiator: TokenData) -> None:
     """Verify start_execution Fail-Fast on missing repositories or non-existent configuration entities."""
     workflow = _create_test_workflow()
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
 
     # Case 1: Missing prompt_block_repo
     service = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=None,
     )
@@ -438,7 +438,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 2: Missing output_profile_repo when profile requested
-    prompt_block_repo = AsyncMock()
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
     step_obj = Step(
         id="stp_0123456789abcdef",
         slug="step-slug",
@@ -446,10 +446,10 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         type=StepType.LOGIC,
         hook="my_hook",
     )
-    workflow_repo.get_step_by_id = AsyncMock(return_value=step_obj.model_dump())
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
 
     service_no_profile_repo = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=None,
@@ -459,10 +459,10 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 3: Output profile not found
-    output_profile_repo = AsyncMock()
-    output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=None)
+    output_profile_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo.get_output_profile_by_id.return_value = None
     service_profile_missing = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=output_profile_repo,
@@ -481,9 +481,9 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         visible_block_extensions=[],
         visible_workflow_extensions=[],
     )
-    output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=mismatched_profile.model_dump())
+    output_profile_repo.get_output_profile_by_id.return_value = mismatched_profile.model_dump()
     service_mismatch = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=output_profile_repo,
@@ -493,7 +493,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 400
 
     # Case 5: Missing system_repo
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=workflow.model_dump())
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
     matching_profile = OutputProfile(
         id="prf_0123456789abcdef",
         slug="matching",
@@ -503,9 +503,9 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         visible_block_extensions=[],
         visible_workflow_extensions=[],
     )
-    output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=matching_profile.model_dump())
+    output_profile_repo.get_output_profile_by_id.return_value = matching_profile.model_dump()
     service_no_sys = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=output_profile_repo,
@@ -516,10 +516,10 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 7: Model registry not found
-    system_repo = AsyncMock()
-    system_repo.get_model_registry = AsyncMock(return_value=None)
+    system_repo = InMemoryBlueprintTransformerRepository()
+    system_repo.get_model_registry.return_value = None
     service_reg_missing = ExecutionIngressService(
-        exec_repo=AsyncMock(),
+        exec_repo=InMemoryBlueprintTransformerRepository(),
         workflow_repo=workflow_repo,
         prompt_block_repo=prompt_block_repo,
         output_profile_repo=output_profile_repo,
