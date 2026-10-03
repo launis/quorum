@@ -47,7 +47,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_156/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
-  - [ ] Step 2.1: Audit and Enhance In-Memory Repository Fakes
+  - [x] Step 2.1: Audit and Enhance In-Memory Repository Fakes
   - [ ] Step 2.2: Batch Refactor Unit and Integration Test Fixtures
   - [ ] Step 2.3: Promote QGR014 to FATAL Severity
   - [ ] Step 2.4: Implement Concurrency Stress Test Suite
@@ -179,7 +179,7 @@
 | Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [x] Verified |
 | Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.9 | Phase 1, Step 1.9 | [x] Verified |
 | Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [x] Verified |
-| Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [ ] Pending |
+| Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [x] Verified |
 | Batch refactor unit and integration test fixtures across `backend_v2/tests/`, eliminating 319 QGR014 mock instances | Section 3, Step 2.2 | Phase 2, Step 2.2 | [ ] Pending |
 | Promote QGR014 to FATAL severity in `scripts/_ast_guardrails.py` with 0 violations | Section 3, Step 2.3 | Phase 2, Step 2.3 | [ ] Pending |
 | Implement async concurrency stress test suite in `backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py` | Section 3, Step 2.4 | Phase 2, Step 2.4 | [ ] Pending |
