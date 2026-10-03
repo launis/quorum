@@ -27,7 +27,7 @@ def test_baseline_ledger_report_dto_validation() -> None:
         target_directory="backend_v2",
         fatal_count=0,
         warning_count=100,
-        warning_ceiling=1254,
+        warning_ceiling=934,
         rule_breakdown=[stat],
         is_clean_of_fatals=True,
         is_under_ceiling=True,

@@ -754,17 +754,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         )
                     )
                     if is_repo_target and ("service" in self.filepath.lower() or "interfaces.i" in target_lower):
-                        qgr014_patch_sev = (
-                            GuardrailSeverity.FATAL
-                            if ("service" in self.filepath.lower() or "interfaces.I" in target_str)
-                            else GuardrailSeverity.WARNING
-                        )
                         self._add_violation(
                             node,
                             "QGR014",
                             f"Banned `@patch` targeting repository `{target_str}` in tests.",
                             "Use dependency-injected In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of monkey-patching repositories.",
-                            severity=qgr014_patch_sev,
+                            severity=GuardrailSeverity.FATAL,
                         )
             case _:
                 pass
@@ -1372,7 +1367,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                     "QGR014",
                                     f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
                                     "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
-                                    severity=GuardrailSeverity.WARNING,
+                                    severity=GuardrailSeverity.FATAL,
                                 )
                             case _:
                                 pass
@@ -1892,7 +1887,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR011: Banned id field in CreateDTO / CreateRequest (FATAL)
   QGR012: In-Place Dictionary Modification Ban (WARNING)
   QGR013: Legacy TypeVar() Instantiation Ban (WARNING)
-  QGR014: Hardcoded Finnish Vocabulary in System Directives Ban (FATAL)
+  QGR014: AsyncMock / MagicMock on repository interfaces in tests (FATAL)
   QGR015: Direct Persistence Access from Routers Ban (FATAL)
   QGR016: Negative String Exclusion Filtering Ban (FATAL)
   QGR017: v2_core Legacy Facade Import Ban (FATAL)

@@ -966,13 +966,21 @@ def test_qgr014_asyncmock_repository_fatal() -> None:
     assert qgr014[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr014_mock_repo_variable_assignment_warning() -> None:
-    """QGR014: Variable assignment to mock_repo = AsyncMock() returns WARNING severity."""
+def test_qgr014_mock_repo_variable_assignment_fatal() -> None:
+    """QGR014: Variable assignment to mock_repo = AsyncMock() returns FATAL severity."""
     code = "from unittest.mock import AsyncMock\nmock_repo = AsyncMock()\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/services/test_sample.py")
     qgr014 = [v for v in violations if v.rule_code == "QGR014"]
     assert len(qgr014) >= 1
-    assert any(v.severity == GuardrailSeverity.WARNING for v in qgr014)
+    assert any(v.severity == GuardrailSeverity.FATAL for v in qgr014)
+
+
+def test_qgr014_mock_report_variable_assignment_emits_no_violation() -> None:
+    """QGR014 False-Positive Defense: mock_report = MagicMock() emits 0 violations."""
+    code = "from unittest.mock import MagicMock\nmock_report = MagicMock()\nmock_report_dto = MagicMock()\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/scripts/test_matrix_slice_engine.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 0
 
 
 def test_qgr014_patch_repository_fatal() -> None:
@@ -1270,6 +1278,7 @@ def test_qgr014_attribute_repository_spec_detected() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     qgr014 = [v for v in violations if v.rule_code == "QGR014"]
     assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr011_plain_assign_id_detected() -> None:
