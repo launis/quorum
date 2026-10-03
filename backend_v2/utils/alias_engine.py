@@ -113,8 +113,12 @@ class AliasEngine:
         self, alias_map: dict[str, str] | None = None, source_document_aliases: list[str] | None = None
     ) -> None:
         """Initialize with an optional pre-existing map for hydration."""
-        self.alias_map: dict[str, str] = alias_map if alias_map is not None else {}
-        self.source_document_aliases: list[str] = source_document_aliases if source_document_aliases is not None else []
+        self.alias_map: dict[str, str] = {}
+        if alias_map is not None:
+            self.alias_map = alias_map
+        self.source_document_aliases: list[str] = []
+        if source_document_aliases is not None:
+            self.source_document_aliases = source_document_aliases
         self._counters: dict[str, int] = defaultdict(int)
 
     def is_valid_source_id(

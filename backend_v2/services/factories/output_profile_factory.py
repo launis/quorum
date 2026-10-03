@@ -95,11 +95,9 @@ def build_draft_output_profile(
         TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
     ]
 
-    valid_variance_block = (
-        initial_target_block
-        if initial_target_block and re.match(OPAQUE_STRIPE_ID_REGEX, initial_target_block)
-        else None
-    )
+    valid_variance_block = None
+    if initial_target_block and re.match(OPAQUE_STRIPE_ID_REGEX, initial_target_block):
+        valid_variance_block = initial_target_block
 
     matrix_synthesis_groups: list[MatrixSynthesisGroup] = []
     if initial_target_block:

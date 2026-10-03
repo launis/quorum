@@ -61,7 +61,9 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     workflow_id = state.workflow_id
 
     unix_time = int(datetime.now(timezone.utc).timestamp())
-    initiator_id = state.global_context_vars.initiator_id or "system"
+    initiator_id = "system"
+    if state.global_context_vars.initiator_id:
+        initiator_id = state.global_context_vars.initiator_id
 
     metadata = StepMetadataDTO(
         execution_id=execution_id,

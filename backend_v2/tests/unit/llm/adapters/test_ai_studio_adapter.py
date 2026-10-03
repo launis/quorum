@@ -45,11 +45,17 @@ class MockGenAIModule:
         return mock_genai_client
 
 
-mock_google = MagicMock()
-mock_google.genai = MockGenAIModule
-mock_google.genai.types = MockGenAITypes
+try:
+    import google
 
-sys.modules["google"] = cast(Any, mock_google)
+    google.genai = MockGenAIModule
+except ImportError:
+    mock_google = MagicMock()
+    mock_google.__path__ = []
+    mock_google.genai = MockGenAIModule
+    mock_google.genai.types = MockGenAITypes
+    sys.modules["google"] = cast(Any, mock_google)
+
 sys.modules["google.genai"] = cast(Any, MockGenAIModule)
 sys.modules["google.genai.types"] = cast(Any, MockGenAITypes)
 

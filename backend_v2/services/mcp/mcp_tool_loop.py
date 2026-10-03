@@ -237,7 +237,9 @@ async def execute_tool_loop[T: BaseModel](
             elif not isinstance(msg, (str, int, float, bool, list)) and msg is not None:
                 if "role" in msg and msg["role"] == "user":
                     role_val = str(msg["role"])
-                    content_val = str(msg["content"]) if "content" in msg else ""
+                    content_val = ""
+                    if "content" in msg:
+                        content_val = str(msg["content"])
                     extraction_messages.append({"role": role_val, "content": content_val})
 
         # Internal Utility rule: lazy load LLMClient
@@ -440,8 +442,12 @@ async def execute_tool_loop[T: BaseModel](
         if isinstance(m, LLMMessageDTO):
             final_messages.append({"role": m.role, "content": m.content})
         elif not isinstance(m, (str, int, float, bool, list)) and m is not None:
-            role_val = str(m["role"]) if "role" in m else "user"
-            content_val = str(m["content"]) if "content" in m else ""
+            role_val = "user"
+            if "role" in m:
+                role_val = str(m["role"])
+            content_val = ""
+            if "content" in m:
+                content_val = str(m["content"])
             final_messages.append({"role": role_val, "content": content_val})
 
     if audit_traces:

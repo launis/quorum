@@ -199,9 +199,9 @@ class BlueprintTransformer:
             available_profiles_map[resolved_pid] = profile.name
 
         profile_name_dict = profile.name
-        workflow_ext_values = (
-            [v.value for v in profile.visible_workflow_extensions] if profile.visible_workflow_extensions else []
-        )
+        workflow_ext_values: list[str] = []
+        if profile.visible_workflow_extensions:
+            workflow_ext_values = [v.value for v in profile.visible_workflow_extensions]
 
         all_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
         blocks_by_id: dict[str, AnyPromptBlock] = {}
@@ -228,9 +228,9 @@ class BlueprintTransformer:
             if dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload:
                 has_warning = True
 
-        profile_cache = (
-            execution.profile_syntheses[resolved_pid] if resolved_pid in execution.profile_syntheses else None
-        )
+        profile_cache = None
+        if resolved_pid in execution.profile_syntheses:
+            profile_cache = execution.profile_syntheses[resolved_pid]
         section_syntheses: dict[str, list[AnySduiBlock]] = {}
 
         if profile_cache:
@@ -250,7 +250,8 @@ class BlueprintTransformer:
         if scoring_dto is not None:
             try:
                 t_score = scoring_dto.total_score
-                global_score = float(round(float(t_score), 1)) if t_score is not None else None
+                if t_score is not None:
+                    global_score = float(round(float(t_score), 1))
                 if scoring_dto.penalties_applied is not None:
                     for p in scoring_dto.penalties_applied:
                         p_str = str(p)
@@ -354,9 +355,9 @@ class BlueprintTransformer:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
 
-        workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
-        expected_inputs_list = workflow_obj.expected_inputs if workflow_obj.expected_inputs else []
-        expected_inputs_map = {inp.input_key: inp for inp in expected_inputs_list} if expected_inputs_list else {}
+        workflow_steps_map = {s.id: s for s in workflow_obj.steps}
+        expected_inputs_list = workflow_obj.expected_inputs
+        expected_inputs_map = {inp.input_key: inp for inp in expected_inputs_list}
         row_explanations_cache: dict[str, str] = {}
         row_curated_quotes_cache: dict[str, list[str]] = {}
 
@@ -517,14 +518,20 @@ class BlueprintTransformer:
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
-            visible_metadata = profile.visible_metadata if profile.visible_metadata else []
+            visible_metadata: list[Any] = []
+            if profile.visible_metadata:
+                visible_metadata = profile.visible_metadata
             inner_sdui_blocks: list[AnySduiBlock] = []
+
+            mcp_audit_map = None
+            if mcp_audit_data:
+                mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
 
             adapter_context = AdapterContext(
                 execution=execution,
                 locale=locale,
                 penalties_applied=penalties_applied,
-                mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
+                mcp_audit_map=mcp_audit_map,
                 global_score=global_score,
                 profile=profile,
                 profile_cache=profile_cache,

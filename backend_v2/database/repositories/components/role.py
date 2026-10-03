@@ -28,7 +28,9 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 roles.append(Role.model_validate(r, strict=False))
             except Exception as e:
-                item_id = r["id"] if "id" in r else "unknown"
+                item_id = "unknown"
+                if "id" in r:
+                    item_id = str(r["id"])
                 logger.error("Failed to parse Role %s: %s", item_id, e, exc_info=True)
                 raise AppException(
                     message=f"Failed to parse role {item_id} from database",

@@ -44,11 +44,13 @@ class ContextMapper:
             "Below is their ordinal mapping (1, 2, 3...) and ABSOLUTE mathematical bounds:\n"
         )
 
-        all_blocks = all_blocks or []
+        blocks_list = []
+        if all_blocks is not None:
+            blocks_list = all_blocks
 
         for b_idx, block_id in enumerate(target_blocks):
             extrema_str = ""
-            for b in all_blocks:
+            for b in blocks_list:
                 if not isinstance(b, PromptBlockBase):
                     msg = (
                         "Fail-Fast violation: ContextMapper MUST receive strictly typed "

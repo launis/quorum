@@ -48,26 +48,43 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
     try:
         x_axis = axes[0]
         y_axis = axes[1]
-        z_axis = axes[2] if len(axes) > 2 else None
+        z_axis = None
+        if len(axes) > 2:
+            z_axis = axes[2]
 
-        x_val = x_axis.score if x_axis.score is not None else 0.0
-        y_val = y_axis.score if y_axis.score is not None else 0.0
+        x_val = 0.0
+        if x_axis.score is not None:
+            x_val = float(x_axis.score)
 
-        x_min = x_axis.scale_min if x_axis.scale_min is not None else 0.0
-        x_max = x_axis.scale_max if x_axis.scale_max is not None else 6.0
+        y_val = 0.0
+        if y_axis.score is not None:
+            y_val = float(y_axis.score)
+
+        x_min = 0.0
+        if x_axis.scale_min is not None:
+            x_min = float(x_axis.scale_min)
+
+        x_max = x_min + 6.0
+        if x_axis.scale_max is not None:
+            x_max = float(x_axis.scale_max)
         if x_max <= x_min:
             x_max = x_min + 6.0
 
-        y_min = y_axis.scale_min if y_axis.scale_min is not None else 0.0
-        y_max = y_axis.scale_max if y_axis.scale_max is not None else 6.0
+        y_min = 0.0
+        if y_axis.scale_min is not None:
+            y_min = float(y_axis.scale_min)
+
+        y_max = y_min + 6.0
+        if y_axis.scale_max is not None:
+            y_max = float(y_axis.scale_max)
         if y_max <= y_min:
             y_max = y_min + 6.0
 
         area = 300
         if z_axis and z_axis.score is not None:
-            # Use SDUI pre-calculated plot ratio if available, otherwise fallback
-            pct = z_axis.ui_plot_ratio if z_axis.ui_plot_ratio is not None else 0.5
-            # Mapped to 6x visual diameter contrast (sqrt(1800/50) = 6) to match Flutter UI
+            pct = 0.5
+            if z_axis.ui_plot_ratio is not None:
+                pct = float(z_axis.ui_plot_ratio)
             area = int(50 + (pct * 1750))
 
         fig, ax = plt.subplots(figsize=(6, 4))
@@ -142,26 +159,43 @@ def generate_quadrant_matrix_chart(
     try:
         x_axis = axes[0]
         y_axis = axes[1]
-        z_axis = axes[2] if len(axes) > 2 else None
+        z_axis = None
+        if len(axes) > 2:
+            z_axis = axes[2]
 
-        x_val = x_axis.score if x_axis.score is not None else 0.0
-        y_val = y_axis.score if y_axis.score is not None else 0.0
+        x_val = 0.0
+        if x_axis.score is not None:
+            x_val = float(x_axis.score)
 
-        x_min = x_axis.scale_min if x_axis.scale_min is not None else 0.0
-        x_max = x_axis.scale_max if x_axis.scale_max is not None else 6.0
+        y_val = 0.0
+        if y_axis.score is not None:
+            y_val = float(y_axis.score)
+
+        x_min = 0.0
+        if x_axis.scale_min is not None:
+            x_min = float(x_axis.scale_min)
+
+        x_max = x_min + 6.0
+        if x_axis.scale_max is not None:
+            x_max = float(x_axis.scale_max)
         if x_max <= x_min:
             x_max = x_min + 6.0
 
-        y_min = y_axis.scale_min if y_axis.scale_min is not None else 0.0
-        y_max = y_axis.scale_max if y_axis.scale_max is not None else 6.0
+        y_min = 0.0
+        if y_axis.scale_min is not None:
+            y_min = float(y_axis.scale_min)
+
+        y_max = y_min + 6.0
+        if y_axis.scale_max is not None:
+            y_max = float(y_axis.scale_max)
         if y_max <= y_min:
             y_max = y_min + 6.0
 
         area = 300
         if z_axis and z_axis.score is not None:
-            # Use SDUI pre-calculated plot ratio if available, otherwise fallback
-            pct = z_axis.ui_plot_ratio if z_axis.ui_plot_ratio is not None else 0.5
-            # Mapped to 6x visual diameter contrast (sqrt(1800/50) = 6) to match Flutter UI
+            pct = 0.5
+            if z_axis.ui_plot_ratio is not None:
+                pct = float(z_axis.ui_plot_ratio)
             area = int(50 + (pct * 1750))
 
         fig, ax = plt.subplots(figsize=(6, 4))
@@ -332,7 +366,9 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         names = []
 
         for axis in axes:
-            score = axis.score if axis.score is not None else 0.0
+            score = 0.0
+            if axis.score is not None:
+                score = float(axis.score)
             values.append(score)
             names.append(axis.name)
 

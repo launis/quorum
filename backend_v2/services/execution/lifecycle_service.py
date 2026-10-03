@@ -35,9 +35,9 @@ class ExecutionLifecycleService:
         self.resumption_service = resumption_service
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self.report_repo = report_repo
-        self._check_resumability = check_resumability_fn or (
-            resumption_service.check_resumability if resumption_service else None
-        )
+        self._check_resumability = check_resumability_fn
+        if self._check_resumability is None and resumption_service is not None:
+            self._check_resumability = resumption_service.check_resumability
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
         """Fetch executions securely based on Tenant/Role."""

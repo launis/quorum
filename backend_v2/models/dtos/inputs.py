@@ -6,6 +6,7 @@ inputs into strict types, ensuring a Fail-Fast pipeline at the API boundary.
 
 from __future__ import annotations
 
+import re
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
@@ -59,7 +60,7 @@ class GuidedReflectionInputDTO(V2CoreBase):
             parts.append("  <metadata>")
             for k, v in sorted(self.metadata.items()):
                 # Clean keys to be valid XML tags (alphanumeric and underscore)
-                clean_k = "".join(c if c.isalnum() else "_" for c in k).strip("_")
+                clean_k = re.sub(r"[^a-zA-Z0-9_]", "_", k).strip("_")
                 parts.append(f"    <{clean_k}>{v}</{clean_k}>")
             parts.append("  </metadata>")
 

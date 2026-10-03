@@ -102,8 +102,8 @@ class MatrixPromptBlock(PromptBlockBase):
         if isinstance(data, cls):
             return data
 
-        scales = data["scales"] if "scales" in data else None
-        if scales:
+        if "scales" in data and data["scales"]:
+            scales = data["scales"]
             scores: list[int] = []
             for s in scales:
                 if isinstance(s, MatrixScale):

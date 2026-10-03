@@ -65,7 +65,9 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 blueprints.append(Step.model_validate(b, strict=False))
             except Exception as e:
-                item_id = b["id"] if "id" in b else "unknown"
+                item_id = "unknown"
+                if "id" in b:
+                    item_id = str(b["id"])
                 logger.error("Failed to parse Step blueprint %s: %s", item_id, e, exc_info=True)
                 raise AppException(
                     message=f"Failed to parse task blueprint {item_id} from database",

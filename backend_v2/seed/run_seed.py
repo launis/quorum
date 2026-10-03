@@ -130,7 +130,9 @@ def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[d
         pyd_adapter: Any = config["model"]
         dumped_buffer: list[dict[str, Any]] = []
 
-        items_to_process = seed_data[col_key] if col_key in seed_data else []
+        items_to_process: list[Any] = []
+        if col_key in seed_data:
+            items_to_process = seed_data[col_key]
         for item in items_to_process:
             try:
                 # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
@@ -147,7 +149,9 @@ def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[d
                 dumped_buffer.append(dumped)
 
             except ValidationError as ve:
-                item_id = item[id_field] if id_field in item else "unknown"
+                item_id = "unknown"
+                if id_field in item:
+                    item_id = item[id_field]
                 raise _fail_fast(f"Validation Error for {col_key} item {item_id}", ve) from ve
             except (KeyError, ValueError, TypeError) as e:
                 raise _fail_fast(f"Processing Error for {col_key} item", e) from e
@@ -235,9 +239,13 @@ async def _seed_tinydb(
     # Seed Standard Strict Collections
     for col_key, config in STANDARD_REGISTRY.items():
         table_name = str(config["table"])
-        target_table = db.table(table_name) if (not dry_run and db is not None) else None
+        target_table = None
+        if not dry_run and db is not None:
+            target_table = db.table(table_name)
         id_field = str(config["id_field"])
-        dumped_buffer = validated_buffers[col_key] if col_key in validated_buffers else []
+        dumped_buffer: list[Any] = []
+        if col_key in validated_buffers:
+            dumped_buffer = validated_buffers[col_key]
         count = 0
 
         # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
@@ -319,7 +327,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
         count = 0
         total = 0
         for item in items:
-            doc_id = item[id_field] if id_field in item else None
+            doc_id = None
+            if id_field in item:
+                doc_id = item[id_field]
             if not doc_id:
                 print(f"[Seeder V2] Error: Item in {collection_name} missing {id_field}. Skipping.")
                 continue
@@ -338,7 +348,9 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
 
     for col_key, config in STANDARD_REGISTRY.items():
         id_field = str(config["id_field"])
-        valid_items = validated_buffers[col_key] if col_key in validated_buffers else []
+        valid_items: list[Any] = []
+        if col_key in validated_buffers:
+            valid_items = validated_buffers[col_key]
         batch_upsert(col_key, valid_items, id_field=id_field)
 
 

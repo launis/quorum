@@ -199,7 +199,9 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     if isinstance(e, AppException):
         if e.status_code in (429, 503, 504):
             return True
-        error_code = e.details.get("error_code") if isinstance(e.details, dict) else None
+        error_code = None
+        if isinstance(e.details, dict):
+            error_code = e.details.get("error_code")
         if error_code in (
             ErrorCodes.UPSTREAM_TIMEOUT.value,
             ErrorCodes.UPSTREAM_TIMEOUT.name,
@@ -363,6 +365,15 @@ class _AdaptiveWaitWithRetryAfter(wait_base):
         return min(base_delay, self.max_seconds)
 
 
+def _format_attempt_error(rs: RetryCallState) -> str:
+    """Format exception name safely for retry logging."""
+    if rs.outcome and rs.outcome.failed:
+        exc = rs.outcome.exception()
+        if exc is not None:
+            return type(exc).__name__
+    return "Unknown"
+
+
 _INTERNAL_NON_API_KEYS: frozenset[str] = frozenset({"mock_identity", "validation_context"})
 
 
@@ -495,7 +506,10 @@ class LiteLLMProvider(LLMProvider):
         self.api_key = api_key
         self.settings = settings
         self.usage_service = usage_service
-        self.organization_id = organization_id or "UNKNOWN_ORG"
+        if organization_id:
+            self.organization_id = organization_id
+        else:
+            self.organization_id = "UNKNOWN_ORG"
         self.supports_grounding = supports_grounding
         self._config = config
 
@@ -522,8 +536,12 @@ class LiteLLMProvider(LLMProvider):
             logger.error("[LiteLLMProvider] %s", msg)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-        tpm = limits["tpm"] if "tpm" in limits else None
-        rpm = limits["rpm"] if "rpm" in limits else None
+        tpm = None
+        if "tpm" in limits:
+            tpm = limits["tpm"]
+        rpm = None
+        if "rpm" in limits:
+            rpm = limits["rpm"]
 
         if tpm is None or rpm is None:
             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
@@ -697,7 +715,8 @@ class LiteLLMProvider(LLMProvider):
             try:
                 schema_name = "dict"
                 if isinstance(response_schema, type):
-                    schema_name = response_schema.__name__ if hasattr(response_schema, "__name__") else "dict"
+                    if hasattr(response_schema, "__name__"):
+                        schema_name = response_schema.__name__
                 elif isinstance(response_schema, dict) and "json_schema" in response_schema:
                     schema_name = response_schema["json_schema"].get("name", "dict")
 
@@ -793,7 +812,10 @@ class LiteLLMProvider(LLMProvider):
 
             # Tier 4 Fix: HTTPX Configuration for Server Disconnected Issues
             _timeout_val = float(call_kwargs.get("timeout", self.settings.llm_default_timeout))
-            _client_key = f"httpx_{_timeout_val}_{self._config.provider if self._config else 'default'}"
+            provider_suffix = "default"
+            if self._config:
+                provider_suffix = self._config.provider
+            _client_key = f"httpx_{_timeout_val}_{provider_suffix}"
 
             # Use dynamic client in tests to prevent cross-loop event loop hangs
             if "PYTEST_CURRENT_TEST" in os.environ:
@@ -802,7 +824,9 @@ class LiteLLMProvider(LLMProvider):
                 pass
             else:
                 if _client_key not in self.__class__._httpx_clients:
-                    custom_client = adapter.build_http_client(_timeout_val) if adapter else None
+                    custom_client = None
+                    if adapter:
+                        custom_client = adapter.build_http_client(_timeout_val)
                     if custom_client:
                         logger.info(
                             "[LiteLLMProvider] Using provider-specific persistent HTTPX client for timeout %s s",
@@ -842,7 +866,7 @@ class LiteLLMProvider(LLMProvider):
                     "Initiating dynamic exponential backoff... | Error: %s",
                     rs.attempt_number,
                     max_rate_limit_retries,
-                    type(rs.outcome.exception()).__name__ if rs.outcome and rs.outcome.failed else "Unknown",
+                    _format_attempt_error(rs),
                 ),
             ):
                 with attempt:
@@ -862,10 +886,13 @@ class LiteLLMProvider(LLMProvider):
                                 else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
                             )
                             target_resource = self._config.model_name if self._config else self.model_name
+                            config_rpm_limit = None
+                            if self._config:
+                                config_rpm_limit = self._config.rpm_limit
                             await apply_provider_pacing(
                                 provider_name=provider_key,
                                 strategy_id=target_resource,
-                                rpm_limit=self._config.rpm_limit if self._config else None,
+                                rpm_limit=config_rpm_limit,
                             )
                             return await self.router.acompletion(**call_kwargs)
 
@@ -895,7 +922,9 @@ class LiteLLMProvider(LLMProvider):
             # Extract basic content
             choice = response.choices[0]
             message = choice.message
-            raw_content = message.content or ""
+            raw_content = ""
+            if message.content:
+                raw_content = message.content
 
             # Vertex AI / LiteLLM Structured Output Bug Fix:
             # If the response was forced into a tool call instead of content (common with Vertex Caching/Gemini),
@@ -903,16 +932,22 @@ class LiteLLMProvider(LLMProvider):
             if not raw_content and hasattr(message, "tool_calls") and message.tool_calls:
                 tc = message.tool_calls[0]
                 if hasattr(tc, "function") and hasattr(tc.function, "arguments"):
-                    raw_content = tc.function.arguments or ""
+                    raw_content = ""
+                    if tc.function.arguments:
+                        raw_content = tc.function.arguments
                 elif (
                     isinstance(tc, dict)
                     and "function" in tc
                     and isinstance(tc["function"], dict)
                     and "arguments" in tc["function"]
                 ):
-                    raw_content = tc["function"]["arguments"] or ""
+                    raw_content = ""
+                    if tc["function"]["arguments"]:
+                        raw_content = tc["function"]["arguments"]
 
-            finish_reason = choice.finish_reason if hasattr(choice, "finish_reason") else None
+            finish_reason = None
+            if hasattr(choice, "finish_reason"):
+                finish_reason = choice.finish_reason
 
             # --- EMERGENCY DIAGNOSTIC DUMP (TIER 4) ---
             if not raw_content:
@@ -939,7 +974,8 @@ class LiteLLMProvider(LLMProvider):
             # Fallback: Check top level attributes
             if not reasoning_token and hasattr(response, "model_extra"):  # noqa: QGR001 [REASON: Third-party LiteLLM response model_extra check]
                 me = response.model_extra
-                reasoning_token = me["thought_signature"] if "thought_signature" in me else None
+                if "thought_signature" in me:
+                    reasoning_token = me["thought_signature"]
 
             usage: dict[str, Any] = {}
             if hasattr(response, "usage") and response.usage:  # noqa: QGR001 [REASON: Third-party LiteLLM usage object check]
@@ -956,7 +992,12 @@ class LiteLLMProvider(LLMProvider):
                 elif p_tokens is not None or c_tokens is not None:
                     # STRICT MATHEMATICAL INVARIANT: Calculated explicitly at the boundary
                     # rather than relying on silent fallbacks in the domain model.
-                    usage["total_tokens"] = (p_tokens or 0) + (c_tokens or 0)
+                    sum_tokens = 0
+                    if p_tokens is not None:
+                        sum_tokens += p_tokens
+                    if c_tokens is not None:
+                        sum_tokens += c_tokens
+                    usage["total_tokens"] = sum_tokens
 
                 if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:  # noqa: QGR001 [REASON: Third-party LiteLLM prompt tokens details]
                     details = response.usage.prompt_tokens_details
@@ -985,18 +1026,26 @@ class LiteLLMProvider(LLMProvider):
                     active_span.set_attribute("gen_ai.usage.output_tokens", int(usage["completion_tokens"]))
 
             # --- ADVANCED TELEMETRY & METADATA ---
-            system_fingerprint = response.system_fingerprint if hasattr(response, "system_fingerprint") else None  # noqa: QGR001 [REASON: External LiteLLM response choice inspection]
+            system_fingerprint = None
+            if hasattr(response, "system_fingerprint"):
+                system_fingerprint = response.system_fingerprint
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
 
-            provider_meta = response.model_dump() if hasattr(response, "model_dump") else {}  # noqa: QGR001 [REASON: External LiteLLM response model dump]
+            provider_meta = {}
+            if hasattr(response, "model_dump"):
+                provider_meta = response.model_dump()
 
             # Rate limits
             if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM hidden params inspection]
-                headers = response._hidden_params["headers"] if "headers" in response._hidden_params else {}
+                headers = {}
+                if "headers" in response._hidden_params:
+                    headers = response._hidden_params["headers"]
                 if isinstance(headers, dict):  # noqa: QGR012 [REASON: External LiteLLM response headers inspection]
                     ratelimit_key = "x-ratelimit-remaining-requests"
-                    rem_reqs = headers[ratelimit_key] if ratelimit_key in headers else None
+                    rem_reqs = None
+                    if ratelimit_key in headers:
+                        rem_reqs = headers[ratelimit_key]
                     if rem_reqs:
                         provider_meta["rate_limit_remaining"] = rem_reqs
                         if str(rem_reqs).isdigit() and int(rem_reqs) < 10:
@@ -1006,7 +1055,9 @@ class LiteLLMProvider(LLMProvider):
             if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM model_extra metadata inspection]
                 if "safety_ratings" in response.model_extra:
                     provider_meta["safety_ratings"] = response.model_extra["safety_ratings"]
-                gm = response.model_extra["grounding_metadata"] if "grounding_metadata" in response.model_extra else {}
+                gm = {}
+                if "grounding_metadata" in response.model_extra:
+                    gm = response.model_extra["grounding_metadata"]
                 if isinstance(gm, dict) and "grounding_chunks" in gm:  # noqa: QGR012 [REASON: External LiteLLM grounding metadata inspection]
                     urls = [
                         chunk["web"]["uri"]
@@ -1035,20 +1086,40 @@ class LiteLLMProvider(LLMProvider):
             if self.usage_service:
                 try:
                     # Resolve IDs from kwargs (execution config) or provider instance
-                    target_org = kwargs.get("organization_id") or self.organization_id
-                    target_user = kwargs.get("user_id") or "system_agent"
+                    target_org = kwargs.get("organization_id")
+                    if not target_org:
+                        target_org = self.organization_id
+                    target_user = kwargs.get("user_id")
+                    if not target_user:
+                        target_user = "system_agent"
+
+                    in_tokens = 0
+                    if "prompt_tokens" in usage:
+                        in_tokens = int(usage["prompt_tokens"])
+                    out_tokens = 0
+                    if "completion_tokens" in usage:
+                        out_tokens = int(usage["completion_tokens"])
+                    cached_tok = 0
+                    if "cached_tokens" in usage:
+                        cached_tok = int(usage["cached_tokens"])
+                    reasoning_tok = 0
+                    if "reasoning_tokens" in usage:
+                        reasoning_tok = int(usage["reasoning_tokens"])
+                    finish_reason_str = None
+                    if finish_reason:
+                        finish_reason_str = str(finish_reason)
 
                     # Track usage asynchronously using the actual model name to log fallback statistics correctly.
                     await self.usage_service.track_usage(
                         org_id=target_org,
                         user_id=target_user,
                         model=self.model_name,
-                        input_tokens=int(usage["prompt_tokens"] if "prompt_tokens" in usage else 0),
-                        output_tokens=int(usage["completion_tokens"] if "completion_tokens" in usage else 0),
-                        cached_tokens=int(usage["cached_tokens"] if "cached_tokens" in usage else 0),
-                        reasoning_tokens=int(usage["reasoning_tokens"] if "reasoning_tokens" in usage else 0),
+                        input_tokens=in_tokens,
+                        output_tokens=out_tokens,
+                        cached_tokens=cached_tok,
+                        reasoning_tokens=reasoning_tok,
                         latency_ms=latency_ms,
-                        finish_reason=str(finish_reason) if finish_reason else None,
+                        finish_reason=finish_reason_str,
                         system_fingerprint=system_fingerprint,
                         cost_usd=cost,
                     )
@@ -1076,29 +1147,46 @@ class LiteLLMProvider(LLMProvider):
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc))
                     else:
                         fn = getattr(tc, "function", None)  # noqa: QGR001 [REASON: External LiteLLM tool call duck-typing]
-                        fn_name = getattr(fn, "name", "unknown") if fn else "unknown"  # noqa: QGR001 [REASON: External LiteLLM function name reflection]
-                        fn_args = getattr(fn, "arguments", "{}") if fn else "{}"  # noqa: QGR001 [REASON: External LiteLLM function arguments reflection]
+                        fn_name = "unknown"
+                        fn_args = "{}"
+                        if fn:
+                            fn_name = getattr(fn, "name", "unknown")
+                            fn_args = getattr(fn, "arguments", "{}")
                         fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
                         tc_id = str(getattr(tc, "id", f"call_{uuid.uuid4().hex[:8]}"))  # noqa: QGR001 [REASON: External LiteLLM tool call ID reflection]
                         extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 
+            prov_finish_str = None
+            if finish_reason:
+                prov_finish_str = str(finish_reason)
+            prov_raw_extra = None
+            if provider_meta:
+                prov_raw_extra = provider_meta
+
             provider_meta_dto = ProviderMetadataDTO(
-                finish_reason=str(finish_reason) if finish_reason else None,
-                raw_extra=provider_meta if provider_meta else None,
+                finish_reason=prov_finish_str,
+                raw_extra=prov_raw_extra,
             )
 
             typed_messages: list[LLMMessageDTO] = [
                 m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in final_messages
             ]
 
+            parsed_content_val = None
+            if response_schema:
+                parsed_content_val = parsed_obj
+            tool_calls_val = None
+            if extracted_tool_calls:
+                tool_calls_val = extracted_tool_calls
+
             return LLMResponse(
                 content=final_content,
-                parsed_content=parsed_obj if response_schema else None,
+                parsed_content=parsed_content_val,
                 reasoning_token=reasoning_token,
                 token_usage=TokenUsage.model_validate(usage),
                 provider_metadata=provider_meta_dto,
                 system_fingerprint=system_fingerprint,
-                tool_calls=extracted_tool_calls if extracted_tool_calls else None,
+                tool_calls=tool_calls_val,
                 messages=typed_messages,
                 override_reason=None,
             )
@@ -1262,7 +1350,10 @@ class MockProvider(LLMProvider):
         """
         self.model_name = model_name
         self.usage_service = usage_service
-        self.organization_id = organization_id or "UNKNOWN_ORG"
+        if organization_id:
+            self.organization_id = organization_id
+        else:
+            self.organization_id = "UNKNOWN_ORG"
 
     async def generate(
         self,
@@ -1349,7 +1440,9 @@ class MockProvider(LLMProvider):
         # Extract explicit identity if provided
         agent_identity = mock_identity
 
-        prompt_str = prompt or ""
+        prompt_str = ""
+        if prompt:
+            prompt_str = prompt
         if messages and not prompt_str:
             # Fallback to serializing messages if prompt is empty
             prompt_str = json.dumps(
@@ -1407,8 +1500,12 @@ class MockProvider(LLMProvider):
         # --- COST TRACKING (Mock) ---
         if self.usage_service:
             try:
-                target_org = kwargs.get("organization_id") or self.organization_id
-                target_user = kwargs.get("user_id") or "system_agent"
+                target_org = kwargs.get("organization_id")
+                if not target_org:
+                    target_org = self.organization_id
+                target_user = kwargs.get("user_id")
+                if not target_user:
+                    target_user = "system_agent"
 
                 await self.usage_service.track_usage(
                     org_id=target_org,
@@ -1518,8 +1615,12 @@ class LLMFactory:
             # Check Grounding Capability (Strict Mode: Fail Fast)
             # If caller requests grounding, but config says NO, we RAISE ERROR.
             # We do NOT fallback to non-grounded generation.
-            tools = kwargs["tools"] if "tools" in kwargs else []
-            enable_grounding = kwargs["enable_grounding"] if "enable_grounding" in kwargs else False
+            tools = []
+            if "tools" in kwargs:
+                tools = kwargs["tools"]
+            enable_grounding = False
+            if "enable_grounding" in kwargs:
+                enable_grounding = kwargs["enable_grounding"]
 
             # Check for Google Search tool or explicit flag
             has_search_intent = enable_grounding or (tools and any("google_search" in str(t) for t in tools))
@@ -1547,12 +1648,16 @@ class LLMFactory:
         # GLOBAL SAFETY: If 'settings.use_mock_llm' is True, we FORCE the MockProvider.
         # This guarantees that 'run_mock.bat' implies 100% offline mode, regardless of
         # what provider specific agents request (e.g. 'vertex_ai').
+        mock_model_name = "mock"
+        if model_name:
+            mock_model_name = model_name
+
         if settings.use_mock_llm:
             logger.warning(
                 "[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '%s' -> MockProvider.", provider_type
             )
             return MockProvider(
-                model_name=model_name or "mock",
+                model_name=mock_model_name,
                 usage_service=usage_service,
                 organization_id=organization_id,
             )
@@ -1562,7 +1667,7 @@ class LLMFactory:
         # unless explicitly requested. If 'vertex_ai' is requested, we get Vertex (or fail).
         if provider_type in ("mock", "mock_llm_99"):
             return MockProvider(
-                model_name=model_name or "mock",
+                model_name=mock_model_name,
                 usage_service=usage_service,
                 organization_id=organization_id,
             )

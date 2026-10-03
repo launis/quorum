@@ -364,7 +364,9 @@ class AppException(Exception):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
-        self.details = details or {}
+        self.details = {}
+        if details is not None:
+            self.details = details
 
     @property
     def error_code(self) -> str:
@@ -418,7 +420,9 @@ class AppException(Exception):
             problem["instance"] = instance
 
         # Include any extra details, ensuring error_code is always present for L10n
-        extra = self.details.copy() if self.details else {}
+        extra = {}
+        if self.details:
+            extra = self.details.copy()
 
         # Ensure error_code is in extensions even if redundant with type URI
         extra.setdefault("error_code", self.error_code)
@@ -566,9 +570,15 @@ def format_validation_error(exc: Exception) -> str:
 
             for err in errors:
                 # Parse location (e.g. ['body', 'field'] -> body.field)
-                loc = ".".join(str(loc_item) for loc_item in err["loc"]) if "loc" in err else "unknown"
-                msg = err["msg"] if "msg" in err else "Unknown error"
-                err_type = err["type"] if "type" in err else ""
+                loc = "unknown"
+                if "loc" in err:
+                    loc = ".".join(str(loc_item) for loc_item in err["loc"])
+                msg = "Unknown error"
+                if "msg" in err:
+                    msg = str(err["msg"])
+                err_type = ""
+                if "type" in err:
+                    err_type = str(err["type"])
 
                 if err_type == "missing":
                     missing_fields.append(loc)
@@ -764,7 +774,9 @@ class WorkflowExecutionError(AppException):
         """
         msg = f"Step '{step_id}' (Task: '{task_key}') failed: {str(original_error)}"
 
-        error_details = details or {}
+        error_details = {}
+        if details is not None:
+            error_details = dict(details)
         error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
         error_details.setdefault("error_code", ErrorCodes.WORKFLOW_EXECUTION_FAILED)
 
@@ -949,8 +961,11 @@ class SemanticEvidenceError(AppException):
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
+        err_details = {"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED}
+        if details is not None:
+            err_details = details
         super().__init__(
             message=message,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details=details or {"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED},
+            details=err_details,
         )

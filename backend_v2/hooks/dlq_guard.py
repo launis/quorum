@@ -93,6 +93,8 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "dlq_ratio": ratio},
             )
 
-    passed_ratio: float = (dlq_count / total_atoms * 100) if total_atoms > 0 else 0.0
+    passed_ratio: float = 0.0
+    if total_atoms > 0:
+        passed_ratio = dlq_count / total_atoms * 100
     logger.info("[DLQGuard] DLQ validation passed. Ratio: %.2f%% (%d/%d atoms)", passed_ratio, dlq_count, total_atoms)
     return HookResult(success=True, state_delta=HookDeltaDTO())

@@ -117,12 +117,15 @@ class PdfReportService:
             ConfigurationError: Triggered if template asset rendering fails due to missing .arb L10n tables.
         """
         try:
-            # 1. Resolve Locale and Profile Name directly from ReportDataDTO
-            target_locale = locale or "fi"
+            target_locale = "fi"
+            if locale:
+                target_locale = locale
 
             workflow_name = ""
             if report_dto.profile_name:
-                workflow_name = report_dto.profile_name.resolve(target_locale) or ""
+                resolved_wf_name = report_dto.profile_name.resolve(target_locale)
+                if resolved_wf_name:
+                    workflow_name = resolved_wf_name
 
             # 2. Generate static charts if DTO contains radar or scatter blocks
             charts: dict[int, str] = {}
@@ -246,7 +249,9 @@ class PdfReportService:
                 import weasyprint
 
                 pdf_data = weasyprint.HTML(string=html_content).write_pdf()
-                return bytes(pdf_data) if pdf_data else b""
+                if pdf_data:
+                    return bytes(pdf_data)
+                return b""
 
             pdf_bytes = await loop.run_in_executor(None, _render_pdf)
 

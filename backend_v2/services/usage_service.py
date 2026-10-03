@@ -97,13 +97,12 @@ class UsageService:
                 await self.audit_repo.upsert_usage_aggregate("user", user_id, period, update_dto)
                 await self.audit_repo.upsert_usage_aggregate("user", user_id, "all-time", update_dto)
 
-            # --- PROMPT_CACHING_DRIFT_ALERT ---
-            pricing_cfg = (
-                model_pricing_config
-                if isinstance(model_pricing_config, PricingConfig)
-                else (PricingConfig.model_validate(model_pricing_config) if model_pricing_config else None)
-            )
-            has_prompt_caching = pricing_cfg.cached_input_token_price is not None if pricing_cfg else False
+            pricing_cfg: PricingConfig | None = None
+            if isinstance(model_pricing_config, PricingConfig):
+                pricing_cfg = model_pricing_config
+            elif model_pricing_config is not None:
+                pricing_cfg = PricingConfig.model_validate(model_pricing_config)
+            has_prompt_caching = bool(pricing_cfg and pricing_cfg.cached_input_token_price is not None)
 
             if has_prompt_caching:
                 recent_records_data = await self.audit_repo.get_usage_records(scope="user", entity_id=user_id)
@@ -239,8 +238,8 @@ class UsageService:
             prompt_tokens = sum(r.input_tokens for r in records)
             completion_tokens = sum(r.output_tokens for r in records)
             total_tokens = sum((r.input_tokens + r.output_tokens) for r in records)
-            cached_tokens = sum((r.cached_tokens or 0) for r in records)
-            reasoning_tokens = sum((r.reasoning_tokens or 0) for r in records)
+            cached_tokens = sum(r.cached_tokens for r in records if r.cached_tokens is not None)
+            reasoning_tokens = sum(r.reasoning_tokens for r in records if r.reasoning_tokens is not None)
             cost_usd = sum(float(r.cost_usd) for r in records)
 
             token_usage = TokenUsage(

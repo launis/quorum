@@ -49,7 +49,9 @@ def get_storage_driver() -> FileDriver:
 
     if backend == StorageBackend.LOCAL:
         base_path = settings.files_dir
-        base_url = f"{settings.api_url}/files" if settings.api_url else None
+        base_url = None
+        if settings.api_url:
+            base_url = f"{settings.api_url}/files"
 
         logger.info("Initializing LocalFileDriver at: %s", base_path)
         return LocalFileDriver(base_path=base_path, base_url=base_url)

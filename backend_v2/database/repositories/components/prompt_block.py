@@ -78,7 +78,9 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 models.append(PromptBlockAdapter.validate_python(b, strict=False))
             except Exception as e:
-                item_id = b["id"] if "id" in b else "unknown"
+                item_id = "unknown"
+                if "id" in b:
+                    item_id = str(b["id"])
                 logger.error("Failed to parse PromptBlock %s: %s", item_id, e, exc_info=True)
                 raise AppException(
                     message=f"Failed to parse PromptBlock {item_id} from database",
@@ -210,7 +212,9 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             steps = await self.driver.query("steps")
             for s in steps:
                 if "prompt_blocks" in s and isinstance(s["prompt_blocks"], list) and block_id in s["prompt_blocks"]:
-                    step_ref = str(s["id"] if "id" in s else "unknown")
+                    step_ref = "unknown"
+                    if "id" in s:
+                        step_ref = str(s["id"])
                     raise AppException(
                         message="PromptBlock delete blocked by step usage.",
                         details={

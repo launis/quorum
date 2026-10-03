@@ -368,7 +368,9 @@ class BaseLLMAdapter(ABC):
         """
         if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema discriminator extraction]
             if "discriminator" in node and isinstance(node["discriminator"], dict):  # noqa: QGR012 [REASON: JSON schema discriminator object inspection]
-                prop_name = node["discriminator"]["propertyName"] if "propertyName" in node["discriminator"] else None
+                prop_name = None
+                if "propertyName" in node["discriminator"]:
+                    prop_name = node["discriminator"]["propertyName"]
                 if isinstance(prop_name, str) and prop_name:
                     result.add(prop_name)
             for v in node.values():

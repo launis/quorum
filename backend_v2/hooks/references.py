@@ -104,8 +104,8 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
             parsed_inputs = ReferencesInputsDTO.model_validate({"root": raw_inputs})
             if parsed_inputs.root:
                 for val in parsed_inputs.root.values():
-                    text = str(val) if val else ""
-                    text_dump += text + "\n"
+                    if val:
+                        text_dump += str(val) + "\n"
         except ValidationError as e:
             logger.error("[ReferenceHook] %s: Invalid inputs schema: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, e)
             raise AppException(

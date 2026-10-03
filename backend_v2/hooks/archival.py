@@ -154,9 +154,13 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                 score_summary = " | ".join(score_parts)
                 verdict_text = " || ".join(verdict_parts)
 
+                completed_date = ""
+                if res.completed_at:
+                    completed_date = res.completed_at.isoformat()
+
                 dto = ArchivalPrecedentDTO(
                     id=res.id,
-                    date=res.completed_at.isoformat() if res.completed_at else "",
+                    date=completed_date,
                     scores=score_summary,
                     verdict=verdict_text[:150],  # Truncate
                 )

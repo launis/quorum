@@ -61,17 +61,22 @@ def analyze_text(text: str) -> TextMetricsDTO:
     sentences = [s for s in sentences if s.strip()]
     sentence_count = len(sentences)
 
-    # 3. Averages
-    avg_sent_len = word_count / sentence_count if sentence_count > 0 else 0.0
+    avg_sent_len = 0.0
+    if sentence_count > 0:
+        avg_sent_len = word_count / sentence_count
 
     # 4. Diversity
     unique_words = set(words)
-    lex_diversity = len(unique_words) / word_count if word_count > 0 else 0.0
+    lex_diversity = 0.0
+    if word_count > 0:
+        lex_diversity = len(unique_words) / word_count
 
     # 5. Caps
     caps = sum(1 for c in text if c.isupper())
     total_chars = sum(1 for c in text if c.isalpha())
-    cap_ratio = caps / total_chars if total_chars > 0 else 0.0
+    cap_ratio = 0.0
+    if total_chars > 0:
+        cap_ratio = caps / total_chars
 
     return TextMetricsDTO(
         word_count=word_count,

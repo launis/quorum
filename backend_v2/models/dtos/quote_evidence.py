@@ -74,16 +74,24 @@ class LLMExtractedQuote(BaseSourceId):
         except (TypeError, ValueError) as exc:
             raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
 
-        source_id = d["source_id"] if "source_id" in d else None
+        source_id = None
+        if "source_id" in d:
+            source_id = d["source_id"]
         if not source_id:
             return d
 
         if info.context is None:
             return d
 
-        alias_map = info.context["alias_map"] if "alias_map" in info.context else {}
-        allowed_dynamic_keys = info.context["allowed_dynamic_keys"] if "allowed_dynamic_keys" in info.context else []
-        allowed_mcp_prefixes = info.context["allowed_mcp_prefixes"] if "allowed_mcp_prefixes" in info.context else []
+        alias_map = {}
+        if "alias_map" in info.context:
+            alias_map = info.context["alias_map"]
+        allowed_dynamic_keys = []
+        if "allowed_dynamic_keys" in info.context:
+            allowed_dynamic_keys = info.context["allowed_dynamic_keys"]
+        allowed_mcp_prefixes = []
+        if "allowed_mcp_prefixes" in info.context:
+            allowed_mcp_prefixes = info.context["allowed_mcp_prefixes"]
 
         if not alias_map and not allowed_dynamic_keys and not allowed_mcp_prefixes:
             return d
@@ -148,16 +156,24 @@ class QuoteEvidenceDTO(V2CoreBase):
                 return d
             raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
 
-        registry = info.context["alias_registry"] if "alias_registry" in info.context else {}
+        registry = {}
+        if "alias_registry" in info.context:
+            registry = info.context["alias_registry"]
 
-        raw_aliases = d["source_alias"] if "source_alias" in d else None
+        raw_aliases = None
+        if "source_alias" in d:
+            raw_aliases = d["source_alias"]
         if raw_aliases is None:
             raw_aliases = []
         elif isinstance(raw_aliases, str):
             if not raw_aliases.strip():
                 raw_aliases = []
             else:
-                raw_aliases = re.findall(r"DOC-\d+", raw_aliases) or [raw_aliases]
+                matches = re.findall(r"DOC-\d+", raw_aliases)
+                if matches:
+                    raw_aliases = matches
+                else:
+                    raw_aliases = [raw_aliases]
         elif isinstance(raw_aliases, list):
             extracted: list[str] = []
             for item in raw_aliases:
@@ -175,10 +191,8 @@ class QuoteEvidenceDTO(V2CoreBase):
         unverified: list[str] = []
 
         for alias in raw_aliases:
-            opaque_id = registry[alias] if (registry is not None and alias in registry) else None
-
-            if opaque_id is not None:
-                verified.append(str(opaque_id))
+            if registry is not None and alias in registry:
+                verified.append(str(registry[alias]))
             else:
                 unverified.append(str(alias))
 

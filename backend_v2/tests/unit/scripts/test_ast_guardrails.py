@@ -1044,31 +1044,31 @@ def test_purged_boundary_exemption_files() -> None:
 
 
 def test_qgr016_literal_string_fallback_fatal_in_domain() -> None:
-    """QGR016: x = val or 'default' in domain code emits WARNING violation."""
+    """QGR016: x = val or 'default' in domain code emits FATAL violation."""
     code = "locale = requested_locale or 'fi'\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
-    assert qgr016[0].severity == GuardrailSeverity.WARNING
+    assert qgr016[0].severity == GuardrailSeverity.FATAL
     assert "lazy literal fallback" in qgr016[0].message
 
 
 def test_qgr016_literal_collection_fallback_fatal_in_domain() -> None:
-    """QGR016: x = val or [] and x = val or {} in domain code emit WARNING violations."""
+    """QGR016: x = val or [] and x = val or {} in domain code emit FATAL violations."""
     code = "items = user_items or []\nmeta = data or {}\n"
     violations = _scan_snippet(code, filepath="backend_v2/hooks/scoring/matrix_hook.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 2
-    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr016)
 
 
 def test_qgr016_literal_none_and_number_fallback_fatal_in_domain() -> None:
-    """QGR016: x = val or None and x = val or 0 in domain code emit WARNING violations."""
+    """QGR016: x = val or None and x = val or 0 in domain code emit FATAL violations."""
     code = "score = raw_score or 0\nfallback = user_val or None\n"
     violations = _scan_snippet(code, filepath="backend_v2/models/domain/synthesis.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 2
-    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr016)
 
 
 def test_qgr016_multivariable_fallback_chain_fatal() -> None:
@@ -1108,12 +1108,12 @@ def test_qgr016_comment_suppression_works() -> None:
 
 
 def test_qgr016_ternary_literal_fallback_in_domain() -> None:
-    """QGR016: Ternary fallback (e.g. x if x is not None else 'default') emits WARNING violation in domain code."""
+    """QGR016: Ternary fallback (e.g. x if x is not None else 'default') emits FATAL violation in domain code."""
     code = "loc = user_locale if user_locale else 'fi'\nitems = raw_items if raw_items is not None else []\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 2
-    assert all(v.severity == GuardrailSeverity.WARNING for v in qgr016)
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr016)
     assert all("ternary lazy fallback" in v.message for v in qgr016)
 
 

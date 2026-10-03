@@ -41,20 +41,35 @@ class DocumentExtractionService:
             return None
 
         year = raw[0:4]
-        raw_month = raw[4:6] if len(raw) >= 6 else ""
-        month = raw_month if len(raw_month) == 2 and raw_month.isdigit() and 1 <= int(raw_month) <= 12 else "01"
+        month = "01"
+        if len(raw) >= 6:
+            raw_month = raw[4:6]
+            if len(raw_month) == 2 and raw_month.isdigit() and 1 <= int(raw_month) <= 12:
+                month = raw_month
 
-        raw_day = raw[6:8] if len(raw) >= 8 else ""
-        day = raw_day if len(raw_day) == 2 and raw_day.isdigit() and 1 <= int(raw_day) <= 31 else "01"
+        day = "01"
+        if len(raw) >= 8:
+            raw_day = raw[6:8]
+            if len(raw_day) == 2 and raw_day.isdigit() and 1 <= int(raw_day) <= 31:
+                day = raw_day
 
-        raw_hour = raw[8:10] if len(raw) >= 10 else ""
-        hour = raw_hour if len(raw_hour) == 2 and raw_hour.isdigit() and 0 <= int(raw_hour) <= 23 else "00"
+        hour = "00"
+        if len(raw) >= 10:
+            raw_hour = raw[8:10]
+            if len(raw_hour) == 2 and raw_hour.isdigit() and 0 <= int(raw_hour) <= 23:
+                hour = raw_hour
 
-        raw_min = raw[10:12] if len(raw) >= 12 else ""
-        minute = raw_min if len(raw_min) == 2 and raw_min.isdigit() and 0 <= int(raw_min) <= 59 else "00"
+        minute = "00"
+        if len(raw) >= 12:
+            raw_min = raw[10:12]
+            if len(raw_min) == 2 and raw_min.isdigit() and 0 <= int(raw_min) <= 59:
+                minute = raw_min
 
-        raw_sec = raw[12:14] if len(raw) >= 14 else ""
-        second = raw_sec if len(raw_sec) == 2 and raw_sec.isdigit() and 0 <= int(raw_sec) <= 59 else "00"
+        second = "00"
+        if len(raw) >= 14:
+            raw_sec = raw[12:14]
+            if len(raw_sec) == 2 and raw_sec.isdigit() and 0 <= int(raw_sec) <= 59:
+                second = raw_sec
 
         tz_str = "Z"
         if len(raw) > 14:

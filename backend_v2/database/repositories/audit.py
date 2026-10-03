@@ -155,7 +155,10 @@ class AuditRepositoryImpl(BaseRepository):
         Returns:
             The UsageAggregateDTO if found, otherwise None.
         """
-        agg_id = f"{scope}_{entity_id or 'system'}_{period}"
+        entity_key = "system"
+        if entity_id:
+            entity_key = entity_id
+        agg_id = f"{scope}_{entity_key}_{period}"
         doc = await self.driver.get("usage_aggregates", agg_id)
         if not doc:
             return None
@@ -172,7 +175,10 @@ class AuditRepositoryImpl(BaseRepository):
             period: Aggregation period.
             update_data: UsageAggregateUpdateDTO of usage increments.
         """
-        agg_id = f"{scope}_{entity_id or 'system'}_{period}"
+        entity_key = "system"
+        if entity_id:
+            entity_key = entity_id
+        agg_id = f"{scope}_{entity_key}_{period}"
         existing = await self.get_usage_aggregate(scope, entity_id, period)
 
         if existing:
@@ -189,7 +195,7 @@ class AuditRepositoryImpl(BaseRepository):
             new_execs = update_data.execution_count
 
         merged = UsageAggregateDTO(
-            organization_id=entity_id or "system",
+            organization_id=entity_key,
             period=period,
             total_input_tokens=new_input,
             total_output_tokens=new_output,
@@ -233,10 +239,16 @@ class AuditRepositoryImpl(BaseRepository):
                 total_cost += float(e["cost_estimate"])
             if "workflow_id" in e and e["workflow_id"]:
                 wid_str = str(e["workflow_id"])
-                workflows_used[wid_str] = (workflows_used[wid_str] + 1) if wid_str in workflows_used else 1
+                if wid_str in workflows_used:
+                    workflows_used[wid_str] += 1
+                else:
+                    workflows_used[wid_str] = 1
             if "models_used" in e and e["models_used"]:
                 for m, count in e["models_used"].items():
-                    models_used[m] = (models_used[m] + int(count)) if m in models_used else int(count)
+                    if m in models_used:
+                        models_used[m] += int(count)
+                    else:
+                        models_used[m] = int(count)
 
         period = "all-time"
         if since:
@@ -262,8 +274,12 @@ class AuditRepositoryImpl(BaseRepository):
         if agg:
             total_tokens = agg.total_input_tokens + agg.total_output_tokens
 
+        target_key = "system"
+        if target_id:
+            target_key = target_id
+
         return DetailedUsageDTO(
-            organization_id=target_id or "system",
+            organization_id=target_key,
             total_cost_usd=total_cost,
             total_tokens=total_tokens,
             by_model=models_used,

@@ -72,12 +72,14 @@ def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage
     orphaned_db_ids: list[str] = []
 
     for rec in db_records:
-        rec_id = rec["id"] if "id" in rec else None
-        if not rec_id:
+        if "id" not in rec or not rec["id"]:
             continue
-        db_execution_ids.add(str(rec_id))
+        rec_id = str(rec["id"])
+        db_execution_ids.add(rec_id)
 
-        trace_path_raw = rec["execution_trace_storage_path"] if "execution_trace_storage_path" in rec else None
+        trace_path_raw = None
+        if "execution_trace_storage_path" in rec:
+            trace_path_raw = rec["execution_trace_storage_path"]
         trace_exists = False
         if trace_path_raw and Path(trace_path_raw).exists():
             trace_exists = True
@@ -226,9 +228,13 @@ app = FastAPI(
 
 # --- 3. Middleware ---
 
+cors_origins = get_settings().cors_origins
+if not cors_origins:
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().cors_origins or ["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

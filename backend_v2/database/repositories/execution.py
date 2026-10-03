@@ -111,7 +111,10 @@ class ExecutionRepositoryImpl(BaseRepository):
                 try:
                     blob_data = await driver.read(data[path_key])
                     if not blob_data or not blob_data.strip():
-                        if field == "execution_trace" and (data["status"] if "status" in data else None) in [
+                        status_val = None
+                        if "status" in data:
+                            status_val = data["status"]
+                        if field == "execution_trace" and status_val in [
                             "PENDING",
                             "RUNNING",
                             "pending",
@@ -145,15 +148,24 @@ class ExecutionRepositoryImpl(BaseRepository):
                         details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]},
                     ) from e
 
-        doc_id = data["id"] if "id" in data else None
+        doc_id = None
+        if "id" in data:
+            doc_id = data["id"]
         if doc_id:
             try:
                 coll_path = f"executions/{doc_id}/audit_trails"
                 trails = await self.driver.query(coll_path)
                 if trails:
-                    trails.sort(key=lambda x: x["timestamp"] if "timestamp" in x else "")
+                    def _get_timestamp(item: dict[str, Any]) -> str:
+                        if "timestamp" in item:
+                            return str(item["timestamp"])
+                        return ""
+
+                    trails.sort(key=_get_timestamp)
                     audit_models = TypeAdapter(list[MCPAuditTrace]).validate_python(trails, strict=False)
-                    fc_data = data["frozen_context"] if "frozen_context" in data else None
+                    fc_data = None
+                    if "frozen_context" in data:
+                        fc_data = data["frozen_context"]
                     if fc_data:
                         fc = (
                             fc_data
@@ -219,7 +231,9 @@ class ExecutionRepositoryImpl(BaseRepository):
             The execution status string if found, otherwise None.
         """
         data = await self.driver.get("executions", execution_id)
-        return data["status"] if (data and "status" in data) else None
+        if data and "status" in data:
+            return data["status"]
+        return None
 
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         """Creates a new execution record.
@@ -274,7 +288,9 @@ class ExecutionRepositoryImpl(BaseRepository):
             logger.error("[ExecutionRepository] Failed to hydrate during append: %s", e, exc_info=True)
             raise
 
-        trace = data["execution_trace"] if "execution_trace" in data else []
+        trace = []
+        if "execution_trace" in data:
+            trace = data["execution_trace"]
         trace.append(event_dict)
 
         return await self.driver.update("executions", execution_id, {"execution_trace": trace})
@@ -315,7 +331,9 @@ class ExecutionRepositoryImpl(BaseRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
-                item_id = r["id"] if "id" in r else "unknown"
+                item_id = "unknown"
+                if "id" in r:
+                    item_id = str(r["id"])
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,
@@ -349,7 +367,9 @@ class ExecutionRepositoryImpl(BaseRepository):
             try:
                 parsed_results.append(ExecutionRecord.model_validate(r, strict=False))
             except Exception as e:
-                item_id = r["id"] if "id" in r else "unknown"
+                item_id = "unknown"
+                if "id" in r:
+                    item_id = str(r["id"])
                 logger.error(
                     "[ExecutionRepository] %s: Skipping corrupted execution %s: %s",
                     ErrorCodes.VALIDATION_FAILED.name,

@@ -431,6 +431,10 @@ class LLMClient:
                     validation_context=validation_context,
                 )
 
+            val_ctx_dict: dict[str, Any] | None = None
+            if validation_context is not None:
+                val_ctx_dict = dict(validation_context)
+
             try:
                 try:
                     # 3. Generate with Structured Output (Caching tags active if final_messages manipulated)
@@ -446,7 +450,7 @@ class LLMClient:
                         presence_penalty=presence_penalty,
                         mock_identity=mock_identity,
                         timeout=strict_timeout,
-                        validation_context=dict(validation_context) if validation_context is not None else None,
+                        validation_context=val_ctx_dict,
                         **extra_kwargs,
                     )
                 except Exception as gen_err:
@@ -477,7 +481,7 @@ class LLMClient:
                             presence_penalty=presence_penalty,
                             mock_identity=mock_identity,
                             timeout=strict_timeout,
-                            validation_context=dict(validation_context) if validation_context is not None else None,
+                            validation_context=val_ctx_dict,
                             **extra_kwargs,
                         )
                     else:

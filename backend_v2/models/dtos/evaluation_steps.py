@@ -39,11 +39,13 @@ class BaseExtractionDTO(V2CoreBase):
             raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
 
         for list_field in ["used_source_aliases", "source_document_aliases"]:
-            raw_list = d[list_field] if list_field in d else None
+            if list_field not in d:
+                continue
+            raw_list = d[list_field]
             if isinstance(raw_list, list):
-                field_info = cls.model_fields[list_field] if list_field in cls.model_fields else None
-                if not field_info:
+                if list_field not in cls.model_fields:
                     continue
+                field_info = cls.model_fields[list_field]
 
                 valid_literals = set()
                 args = get_args(field_info.annotation)

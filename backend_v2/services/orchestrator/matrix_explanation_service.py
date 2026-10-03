@@ -164,9 +164,12 @@ class MatrixExplanationService:
             if isinstance(payload, LightweightMatrixOutput):
                 lw_matrix = payload
             elif isinstance(payload, TraceMatrixPayloadDTO):
-                # Step 1: Pure explicit null check complying with QGR016
-                justification_val = payload.justification if payload.justification is not None else ""
-                evaluated_atoms_val = payload.evaluated_atoms if payload.evaluated_atoms is not None else {}
+                justification_val = ""
+                if payload.justification is not None:
+                    justification_val = payload.justification
+                evaluated_atoms_val: dict[str, Any] = {}
+                if payload.evaluated_atoms is not None:
+                    evaluated_atoms_val = payload.evaluated_atoms
                 lw_matrix = LightweightMatrixOutput(
                     raw_score=payload.raw_score,
                     normalized_score=payload.normalized_score,

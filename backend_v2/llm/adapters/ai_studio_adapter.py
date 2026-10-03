@@ -369,7 +369,9 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        model_key = call_kwargs["model"] if "model" in call_kwargs else ""
+        model_key = ""
+        if "model" in call_kwargs:
+            model_key = call_kwargs["model"]
         if not model_key and isinstance(config, ModelProfile):
             model_key = config.model_name
         model_name = str(model_key).lower()

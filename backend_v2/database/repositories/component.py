@@ -41,7 +41,9 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 components.append(PromptBlockAdapter.validate_python(item, strict=False))
             except Exception as e:
-                item_id = item["id"] if "id" in item else "unknown"
+                item_id = "unknown"
+                if "id" in item:
+                    item_id = str(item["id"])
                 logger.error("Failed to parse Component %s: %s", item_id, e, exc_info=True)
                 raise AppException(
                     message=f"Failed to parse Component {item_id} from database",

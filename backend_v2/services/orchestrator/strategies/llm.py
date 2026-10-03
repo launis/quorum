@@ -176,7 +176,11 @@ class LLMNodeStrategy(NodeStrategy):
                     if isinstance(item, AtomResultDTO):
                         dag_results[item.tda_id] = item
                     elif not isinstance(item, (str, int, float, bool, list)) and item is not None:
-                        a_id = item["tda_id"] if "tda_id" in item else (item["atom_id"] if "atom_id" in item else None)
+                        a_id = None
+                        if "tda_id" in item:
+                            a_id = item["tda_id"]
+                        elif "atom_id" in item:
+                            a_id = item["atom_id"]
                         if a_id:
                             if isinstance(item, AtomResultDTO):
                                 dag_results[str(a_id)] = item
@@ -202,9 +206,11 @@ class LLMNodeStrategy(NodeStrategy):
                         if isinstance(ev, AtomResultDTO):
                             dag_results[ev.tda_id] = ev
                         elif not isinstance(ev, (str, int, float, bool, list)) and ev is not None:
-                            extracted_a_id = (
-                                ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                            )
+                            extracted_a_id = None
+                            if "tda_id" in ev:
+                                extracted_a_id = ev["tda_id"]
+                            elif "atom_id" in ev:
+                                extracted_a_id = ev["atom_id"]
                             if extracted_a_id:
                                 ev_dict = dict(ev)
                                 ev_dict.pop("atom_id", None)
@@ -659,7 +665,9 @@ class LLMNodeStrategy(NodeStrategy):
                     exec_obj = execution_record_raw
                 else:
                     exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
-                manifest = exec_obj.source_identity_manifest if exec_obj.source_identity_manifest else {}
+                manifest = {}
+                if exec_obj.source_identity_manifest is not None:
+                    manifest = exec_obj.source_identity_manifest
 
                 source_docs = []
                 inputs_dict: object = inputs_payload
@@ -1000,12 +1008,16 @@ class LLMNodeStrategy(NodeStrategy):
                 meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
         final_dict["_step_metadata"] = meta_dict
 
+        generated_schema = None
+        if dynamic_schema is not None:
+            generated_schema = dynamic_schema.model_json_schema()
+
         trace_metadata = TraceEventMetadataDTO(
             latency_ms=latency_ms,
             chunk_size=len(chunks_list),
             context_char_length=context_char_length,
             prompt_contexts=all_prompt_contexts,
-            generated_schema=dynamic_schema.model_json_schema() if dynamic_schema is not None else None,
+            generated_schema=generated_schema,
         )
         return (
             pre_events

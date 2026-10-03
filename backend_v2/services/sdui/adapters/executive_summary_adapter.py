@@ -56,8 +56,12 @@ class ExecutiveSummaryAdapter:
                 None,
             )
             if target_matrix is not None and target_matrix.score is not None and target_matrix.level_names:
-                min_scale = int(target_matrix.scale_min) if target_matrix.scale_min is not None else 1
-                max_scale = int(target_matrix.scale_max) if target_matrix.scale_max is not None else 5
+                min_scale = 1
+                if target_matrix.scale_min is not None:
+                    min_scale = int(target_matrix.scale_min)
+                max_scale = 5
+                if target_matrix.scale_max is not None:
+                    max_scale = int(target_matrix.scale_max)
                 int_score = max(min_scale, min(max_scale, int(round(target_matrix.score))))
 
                 int_key = str(int_score)

@@ -342,7 +342,9 @@ class AuthService:
             # Verify ID token
             decoded_token = self.firebase_auth.verify_id_token(token)
             user_id = decoded_token["uid"]
-            email = decoded_token["email"] if "email" in decoded_token else None
+            email = None
+            if "email" in decoded_token:
+                email = decoded_token["email"]
 
             # Sync/Get User from our DB
             user = await self.repo.get_by_id(user_id)
@@ -912,9 +914,15 @@ class AuthService:
                 UserRole.VIEWER: 5,  # Assuming VIEWER exists or mapping it low
             }
 
-            init_val = role_values[initiator.role] if initiator.role in role_values else 0
-            target_val = role_values[target.role] if target.role in role_values else 0
-            new_val = role_values[new_role] if new_role in role_values else 0
+            init_val = 0
+            if initiator.role in role_values:
+                init_val = role_values[initiator.role]
+            target_val = 0
+            if target.role in role_values:
+                target_val = role_values[target.role]
+            new_val = 0
+            if new_role in role_values:
+                new_val = role_values[new_role]
 
             if init_val < target_val:
                 raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
@@ -996,7 +1004,9 @@ class AuthService:
             if not initiator.organization_id:
                 return []
             org = await self.get_organization(initiator, initiator.organization_id)
-            return [org] if org else []
+            if org:
+                return [org]
+            return []
         return await self.org_repo.list_all()
 
     async def get_user(self, initiator: TokenData, target_id: str) -> User:

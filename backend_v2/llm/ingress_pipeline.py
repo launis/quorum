@@ -92,6 +92,16 @@ class UniversalIngress:
 
         return discriminator_field, candidate_models
 
+    @staticmethod
+    def _extract_model_discriminator_tag(disc_info: Any) -> Any | None:
+        """Extract discriminator tag from field default or annotation literal."""
+        if disc_info.default:
+            return disc_info.default
+        args = get_args(disc_info.annotation)
+        if args:
+            return args[0]
+        return None
+
     @classmethod
     def _infer_and_heal_discriminator(
         cls,
@@ -110,10 +120,14 @@ class UniversalIngress:
             The matched BaseModel class, or None if no match found.
         """
         # If discriminator is already present, match directly by literal tag
-        current_tag = item[discriminator_field] if discriminator_field in item else None
+        current_tag = None
+        if discriminator_field in item:
+            current_tag = item[discriminator_field]
         if current_tag is not None:
             for model in candidate_models:
-                f_info = model.model_fields[discriminator_field] if discriminator_field in model.model_fields else None
+                f_info = None
+                if discriminator_field in model.model_fields:
+                    f_info = model.model_fields[discriminator_field]
                 if f_info:
                     # Check default value
                     if f_info.default == current_tag:
@@ -134,9 +148,7 @@ class UniversalIngress:
             for model in candidate_models:
                 if "severity" in model.model_fields and discriminator_field in model.model_fields:
                     disc_info = model.model_fields[discriminator_field]
-                    tag = disc_info.default or (
-                        get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None
-                    )
+                    tag = cls._extract_model_discriminator_tag(disc_info)
                     if tag:
                         item[discriminator_field] = tag
                         return model
@@ -146,9 +158,7 @@ class UniversalIngress:
             for model in candidate_models:
                 if "items" in model.model_fields and discriminator_field in model.model_fields:
                     disc_info = model.model_fields[discriminator_field]
-                    tag = disc_info.default or (
-                        get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None
-                    )
+                    tag = cls._extract_model_discriminator_tag(disc_info)
                     if tag:
                         item[discriminator_field] = tag
                         return model
@@ -158,9 +168,7 @@ class UniversalIngress:
             for model in candidate_models:
                 if "quote" in model.model_fields and discriminator_field in model.model_fields:
                     disc_info = model.model_fields[discriminator_field]
-                    tag = disc_info.default or (
-                        get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None
-                    )
+                    tag = cls._extract_model_discriminator_tag(disc_info)
                     if tag:
                         item[discriminator_field] = tag
                         return model
@@ -170,9 +178,7 @@ class UniversalIngress:
             for model in candidate_models:
                 if "message" in model.model_fields and discriminator_field in model.model_fields:
                     disc_info = model.model_fields[discriminator_field]
-                    tag = disc_info.default or (
-                        get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None
-                    )
+                    tag = cls._extract_model_discriminator_tag(disc_info)
                     if tag:
                         item[discriminator_field] = tag
                         return model
@@ -186,9 +192,7 @@ class UniversalIngress:
                     and "severity" not in model.model_fields
                 ):
                     disc_info = model.model_fields[discriminator_field]
-                    tag = disc_info.default or (
-                        get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None
-                    )
+                    tag = cls._extract_model_discriminator_tag(disc_info)
                     if tag:
                         item[discriminator_field] = tag
                         return model
@@ -205,7 +209,7 @@ class UniversalIngress:
 
         if best_model and discriminator_field in best_model.model_fields:
             disc_info = best_model.model_fields[discriminator_field]
-            tag = disc_info.default or (get_args(disc_info.annotation)[0] if get_args(disc_info.annotation) else None)
+            tag = cls._extract_model_discriminator_tag(disc_info)
             if tag:
                 item[discriminator_field] = tag
             return best_model
@@ -226,7 +230,9 @@ class UniversalIngress:
         if isinstance(val, list):
             if origin is list or annotation is list:
                 args = get_args(annotation)
-                inner_annotation = args[0] if args else None
+                inner_annotation = None
+                if args:
+                    inner_annotation = args[0]
                 if inner_annotation:
                     disc_name, candidate_models = cls._extract_discriminator_info(inner_annotation)
                     if not disc_name and isinstance(discriminator, str):

@@ -52,7 +52,9 @@ class MechanicalAnchorsPayload(V2CoreBase):
             raw_inputs = data.raw_inputs
         else:
             source = data
-            raw_inputs = data["raw_inputs"] if (data is not None and "raw_inputs" in data) else None
+            raw_inputs = None
+            if data is not None and "raw_inputs" in data:
+                raw_inputs = data["raw_inputs"]
             if (
                 raw_inputs
                 and "word_count" not in source
@@ -63,13 +65,17 @@ class MechanicalAnchorsPayload(V2CoreBase):
             ):
                 source = raw_inputs
 
-        raw_wc = source["word_count"] if (source is not None and "word_count" in source) else None
-        raw_sd = source["say_do_gap"] if (source is not None and "say_do_gap" in source) else None
-        raw_ab = source["automation_bias"] if (source is not None and "automation_bias" in source) else None
+        word_count = 0
+        if source is not None and "word_count" in source and isinstance(source["word_count"], (int, float)):
+            word_count = int(source["word_count"])
 
-        word_count = int(raw_wc) if isinstance(raw_wc, (int, float)) else 0
-        say_do_gap = float(raw_sd) if isinstance(raw_sd, (int, float)) else 0.0
-        automation_bias = float(raw_ab) if isinstance(raw_ab, (int, float)) else 0.0
+        say_do_gap = 0.0
+        if source is not None and "say_do_gap" in source and isinstance(source["say_do_gap"], (int, float)):
+            say_do_gap = float(source["say_do_gap"])
+
+        automation_bias = 0.0
+        if source is not None and "automation_bias" in source and isinstance(source["automation_bias"], (int, float)):
+            automation_bias = float(source["automation_bias"])
 
         raw_patterns = None
         if source is not None and "performative_patterns" in source:

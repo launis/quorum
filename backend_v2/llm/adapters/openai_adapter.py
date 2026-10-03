@@ -132,7 +132,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
             clean_model = model_name.removeprefix("openai/")
             info = litellm.get_model_info(clean_model)
-            raw_params = info["supported_openai_params"] if "supported_openai_params" in info else None
+            raw_params = None
+            if "supported_openai_params" in info:
+                raw_params = info["supported_openai_params"]
             supported_params: list[str] = []
             if isinstance(raw_params, list):
                 supported_params = [str(param) for param in raw_params if isinstance(param, str)]
@@ -204,7 +206,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             if "oneOf" in node:
                 node["anyOf"] = node.pop("oneOf")
 
-            node_type = node["type"] if "type" in node else None
+            node_type = None
+            if "type" in node:
+                node_type = node["type"]
             if node_type == "object" or "properties" in node:
                 node["additionalProperties"] = False
                 if "properties" in node:

@@ -195,9 +195,12 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
 
         evidence_lines: list[str] = []
         for claim in result.claims:
+            ans = ""
+            if claim.tavily_answer:
+                ans = claim.tavily_answer
             evidence_lines.append(
                 f'<claim status="{claim.status.value}" query="{claim.claim_text}">\n'
-                f"  <answer>{claim.tavily_answer or ''}</answer>\n"
+                f"  <answer>{ans}</answer>\n"
                 f"</claim>"
             )
 

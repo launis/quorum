@@ -1141,7 +1141,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     is_orelse_fallback = False
 
             if not is_body_constant and is_orelse_fallback:
-                qgr016_sev = GuardrailSeverity.WARNING
+                qgr016_sev = (
+                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
+                )
                 self._add_violation(
                     node,
                     "QGR016",
@@ -1500,7 +1502,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     is_literal_fallback = False
 
             if is_literal_fallback:
-                qgr016_sev = GuardrailSeverity.WARNING
+                qgr016_sev = (
+                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
+                )
                 self._add_violation(
                     node,
                     "QGR016",

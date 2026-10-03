@@ -69,7 +69,9 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
-    dynamic_inputs = exec_record.raw_inputs.dynamic_inputs or {}
+    dynamic_inputs = {}
+    if exec_record.raw_inputs.dynamic_inputs:
+        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
     storage = get_storage_driver()
 
     keys_to_check = set(list(inputs_dict.keys()) + list(dynamic_inputs.keys()))

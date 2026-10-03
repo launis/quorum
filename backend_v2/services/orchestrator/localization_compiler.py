@@ -136,8 +136,7 @@ class LocalizationCompiler:
 
                 if label or desc:
                     compiled_lines.append(f'<STATIC_INSTRUCTION label="{label}">\n{desc}\n</STATIC_INSTRUCTION>')
-
-        return "\n\n".join(compiled_lines) if compiled_lines else ""
+        return "\n\n".join(compiled_lines)
 
     def compile_dynamic_instructions(
         self,
@@ -230,5 +229,4 @@ class LocalizationCompiler:
 
                 if label or desc:
                     compiled_lines.append(f'<DYNAMIC_INSTRUCTION label="{label}">\n{desc}\n</DYNAMIC_INSTRUCTION>')
-
-        return "\n\n".join(compiled_lines) if compiled_lines else ""
+        return "\n\n".join(compiled_lines)

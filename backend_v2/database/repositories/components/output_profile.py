@@ -41,7 +41,9 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             try:
                 models.append(OutputProfile.model_validate(pd, strict=False))
             except Exception as e:
-                item_id = pd["id"] if "id" in pd else "unknown"
+                item_id = "unknown"
+                if "id" in pd:
+                    item_id = str(pd["id"])
                 logger.error("Failed to parse OutputProfile %s: %s", item_id, e, exc_info=True)
                 raise AppException(
                     message=f"Failed to parse profile {item_id} from database",

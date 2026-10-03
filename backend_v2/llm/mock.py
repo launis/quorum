@@ -118,8 +118,12 @@ class MockLLMService:
 
         # --- DYNAMIC JUDGE HYDRATION ---
         # If we are mocking the Judge, we try to detect which dimensions were requested in the JSON schema or text.
-        # We scan BOTH prompt and system_instruction.
-        scan_text = (prompt or "") + "\n" + (system_instruction or "")
+        scan_parts: list[str] = []
+        if prompt:
+            scan_parts.append(prompt)
+        if system_instruction:
+            scan_parts.append(system_instruction)
+        scan_text = "\n".join(scan_parts)
 
         if key == "judge_agent" and scan_text.strip():
             try:

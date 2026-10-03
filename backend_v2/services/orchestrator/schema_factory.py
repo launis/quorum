@@ -81,9 +81,17 @@ class SchemaFactory:
         # and delegating to an LRU cached private method.
         # Epic 43: Serialize strictly typed PromptBlocks back to json for the cache key.
         criteria_ids = "_".join(sorted(str(c.id) for c in criteria if c.id))
-        doc_ids_str = "_".join(sorted(source_document_ids)) if source_document_ids else ""
-        atom_ids_str = "_".join(sorted(allowed_atom_ids)) if allowed_atom_ids else ""
-        dynamic_keys_str = "_".join(sorted(allowed_dynamic_keys)) if allowed_dynamic_keys else ""
+        doc_ids_str = ""
+        if source_document_ids is not None:
+            doc_ids_str = "_".join(sorted(source_document_ids))
+
+        atom_ids_str = ""
+        if allowed_atom_ids is not None:
+            atom_ids_str = "_".join(sorted(allowed_atom_ids))
+
+        dynamic_keys_str = ""
+        if allowed_dynamic_keys is not None:
+            dynamic_keys_str = "_".join(sorted(allowed_dynamic_keys))
         cache_key = f"{schema_name}_{criteria_ids}_{has_shuffled_atoms}_{target_locale}_{strictness_level}_{doc_ids_str}_{atom_ids_str}_{dynamic_keys_str}"
 
         if cache_key in self._schema_cache:
