@@ -21,7 +21,7 @@ from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 # Setup mock modules for google.genai BEFORE importing adapter
-if not hasattr(sys, "_mock_genai_client"):
+if "_mock_genai_client" not in dir(sys):
     sys._mock_genai_client = MagicMock()  # type: ignore[attr-defined]
 
 mock_genai_client = sys._mock_genai_client  # type: ignore[attr-defined]

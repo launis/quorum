@@ -40,8 +40,9 @@ def test_state_module_exports() -> None:
         "WorkflowState",
     }
     assert set(state_module.__all__) == expected
+    state_module_members = dir(state_module)
     for name in state_module.__all__:
-        assert hasattr(state_module, name)
+        assert name in state_module_members
 
 
 def test_reasoning_trace_validation_success() -> None:
@@ -387,12 +388,11 @@ def test_workflow_state_none_branches() -> None:
 
 def test_state_projector_fold_trace_string_content() -> None:
     """Test fold_trace token calculation when event content is a string and fails fast."""
-    event = TraceEvent(
+    event = TraceEvent.model_construct(
         step_name="stp_str",
         event_type="output",
-        content={"blk_1": "data"},
+        content="string payload",
     )
-    object.__setattr__(event, "content", "string payload")
     projector = StateProjector()
     with pytest.raises(AppException, match="Legacy flat trace detected"):
         projector.fold_trace([event], max_tokens=100)

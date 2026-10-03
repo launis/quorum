@@ -188,7 +188,7 @@ def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None
 def test_settings_tda_concept_min_length_defined() -> None:
     """Verify Settings defines tda_concept_min_length == 10."""
     settings = get_settings()
-    assert hasattr(settings, "tda_concept_min_length"), "settings.tda_concept_min_length must be defined"
+    assert "tda_concept_min_length" in dir(settings), "settings.tda_concept_min_length must be defined"
     assert settings.tda_concept_min_length == 10, "settings.tda_concept_min_length must equal 10"
 
 

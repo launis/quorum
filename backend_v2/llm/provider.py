@@ -104,7 +104,7 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
             f.write(f"\n\n--- {model_name} ---\n")
             f.write(payload_str)
             f.write("\n")
-    except Exception as e:
+    except OSError as e:
         logger.error("Failed to dump prompt: %s", e)
 
 
@@ -149,12 +149,12 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     if isinstance(
         e,
         (
-            getattr(litellm, "RateLimitError", type(None)),
-            getattr(litellm, "Timeout", type(None)),
-            getattr(litellm, "ServiceUnavailableError", type(None)),
-            getattr(litellm, "APIConnectionError", type(None)),
-            getattr(litellm, "InternalServerError", type(None)),
-            getattr(litellm, "BadGatewayError", type(None)),
+            litellm.RateLimitError,
+            litellm.Timeout,
+            litellm.ServiceUnavailableError,
+            litellm.APIConnectionError,
+            litellm.InternalServerError,
+            litellm.BadGatewayError,
         ),
     ):
         return True
@@ -191,8 +191,7 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     # 4. Check HTTP Status Code attributes (e.g. 429, 500, 502, 503, 504) for upstream errors
     # Note: Domain AppExceptions are evaluated specifically in step 5 by their domain error_code.
     if not isinstance(e, AppException):
-        status_code = getattr(e, "status_code", None)
-        if isinstance(status_code, int) and status_code in (429, 500, 502, 503, 504):
+        if "status_code" in dir(e) and isinstance(e.status_code, int) and e.status_code in (429, 500, 502, 503, 504):
             return True
 
     # 5. Check AppException domain details for transient codes
@@ -225,16 +224,17 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return True
 
     # 7. Recursively inspect causes and wrapped exceptions
-    original_error = getattr(e, "original_error", None)
-    if isinstance(original_error, BaseException) and _is_transient_llm_error(original_error, _visited):
-        return True
+    if "original_error" in dir(e):
+        original_error = e.original_error
+        if isinstance(original_error, BaseException) and _is_transient_llm_error(original_error, _visited):
+            return True
 
     if e.__cause__ is not None and _is_transient_llm_error(e.__cause__, _visited):
         return True
 
     if (
         e.__context__ is not None
-        and not getattr(e, "__suppress_context__", False)
+        and not e.__suppress_context__
         and _is_transient_llm_error(e.__context__, _visited)
     ):
         return True
@@ -264,11 +264,14 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
     _visited.add(id(e))
 
     # 1. Check headers (direct or via response attribute)
-    headers = getattr(e, "headers", None)
-    if headers is None:
-        response = getattr(e, "response", None)
-        headers = getattr(response, "headers", None)
-    if headers and hasattr(headers, "items"):
+    headers = None
+    if "headers" in dir(e):
+        headers = e.headers
+    elif "response" in dir(e):
+        response = e.response
+        if "headers" in dir(response):
+            headers = response.headers
+    if headers and "items" in dir(headers):
         for k, v in headers.items():
             if str(k).lower() == "retry-after":
                 try:
@@ -300,18 +303,19 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
             return max(candidates)
 
     # 4. Recursively check original_error, __cause__, __context__
-    original_error = getattr(e, "original_error", None)
-    if isinstance(original_error, BaseException):
-        child_val = _extract_retry_after_seconds(original_error, _visited)
-        if child_val is not None:
-            return child_val
+    if "original_error" in dir(e):
+        original_error = e.original_error
+        if isinstance(original_error, BaseException):
+            child_val = _extract_retry_after_seconds(original_error, _visited)
+            if child_val is not None:
+                return child_val
 
     if e.__cause__ is not None:
         child_val = _extract_retry_after_seconds(e.__cause__, _visited)
         if child_val is not None:
             return child_val
 
-    if e.__context__ is not None and not getattr(e, "__suppress_context__", False):
+    if e.__context__ is not None and not e.__suppress_context__:
         child_val = _extract_retry_after_seconds(e.__context__, _visited)
         if child_val is not None:
             return child_val
@@ -447,17 +451,17 @@ class LogfireShieldedClient:
 
     def __getattr__(self, name: str) -> Any:
         """Forwards attributes to actual client."""
-        return getattr(self._client, name)
+        return object.__getattribute__(self._client, name)
 
     async def __aenter__(self) -> Any:
         """Forwards context manager enter to actual client."""
-        if hasattr(self._client, "__aenter__"):
+        if "__aenter__" in dir(self._client):
             return await self._client.__aenter__()
         return self
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
         """Forwards context manager exit to actual client."""
-        if hasattr(self._client, "__aexit__"):
+        if "__aexit__" in dir(self._client):
             return await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
     def __repr__(self) -> str:
@@ -683,7 +687,7 @@ class LiteLLMProvider(LLMProvider):
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
                 final_messages = adapter.sanitize_messages(final_messages)
-            except Exception as e:
+            except AppException as e:
                 logger.debug("[LiteLLMProvider] No adapter found (provider: %s): %s", self._config.provider, e)
 
         # STRICT CONFIGURATION (Jan 2026): Reject defaults.
@@ -719,8 +723,7 @@ class LiteLLMProvider(LLMProvider):
             try:
                 schema_name = "dict"
                 if isinstance(response_schema, type):
-                    if hasattr(response_schema, "__name__"):
-                        schema_name = response_schema.__name__
+                    schema_name = response_schema.__name__
                 elif isinstance(response_schema, dict) and "json_schema" in response_schema:
                     js = response_schema["json_schema"]
                     if isinstance(js, dict) and "name" in js and js["name"]:
@@ -785,7 +788,8 @@ class LiteLLMProvider(LLMProvider):
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
             for key in _INTERNAL_NON_API_KEYS:
-                call_kwargs.pop(key, None)
+                if key in call_kwargs:
+                    del call_kwargs[key]
 
             # Delegate provider-specific kwargs adjustments (e.g., Vertex caching, location)
             if adapter:
@@ -814,7 +818,8 @@ class LiteLLMProvider(LLMProvider):
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
             for key in _INTERNAL_NON_API_KEYS:
-                call_kwargs.pop(key, None)
+                if key in call_kwargs:
+                    del call_kwargs[key]
 
             # Tier 4 Fix: HTTPX Configuration for Server Disconnected Issues
             _timeout_val = float(self.settings.llm_default_timeout)
@@ -909,7 +914,7 @@ class LiteLLMProvider(LLMProvider):
             if response is None:
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
 
-            actual_model = getattr(response, "model", self.model_name)
+            actual_model = response.model if "model" in dir(response) else self.model_name
             clean_req = (
                 self.model_name.removeprefix("openai/").removeprefix("vertex_ai/").removeprefix("gemini/").lower()
             )
@@ -937,9 +942,9 @@ class LiteLLMProvider(LLMProvider):
             # Vertex AI / LiteLLM Structured Output Bug Fix:
             # If the response was forced into a tool call instead of content (common with Vertex Caching/Gemini),
             # extract the raw JSON string from the first tool call's arguments.
-            if not raw_content and hasattr(message, "tool_calls") and message.tool_calls:
+            if not raw_content and "tool_calls" in dir(message) and message.tool_calls:
                 tc = message.tool_calls[0]
-                if hasattr(tc, "function") and hasattr(tc.function, "arguments"):
+                if "function" in dir(tc) and "arguments" in dir(tc.function):
                     raw_content = ""
                     if tc.function.arguments:
                         raw_content = tc.function.arguments
@@ -954,14 +959,14 @@ class LiteLLMProvider(LLMProvider):
                         raw_content = tc["function"]["arguments"]
 
             finish_reason = None
-            if hasattr(choice, "finish_reason"):
+            if "finish_reason" in dir(choice):
                 finish_reason = choice.finish_reason
 
             # --- EMERGENCY DIAGNOSTIC DUMP (TIER 4) ---
             if not raw_content:
                 dump_str = (
-                    response.model_dump_json()  # noqa: QGR001 [REASON: Third-party LiteLLM response model dump check]
-                    if hasattr(response, "model_dump_json")  # noqa: QGR001 [REASON: Third-party LiteLLM response model dump check]
+                    response.model_dump_json()
+                    if "model_dump_json" in dir(response)
                     else str(response)
                 )
                 logger.critical("[DIAGNOSTIC] LLM Output was completely empty! Raw response object dump: %s", dump_str)
@@ -1037,13 +1042,13 @@ class LiteLLMProvider(LLMProvider):
 
             # --- ADVANCED TELEMETRY & METADATA ---
             system_fingerprint = None
-            if hasattr(response, "system_fingerprint"):
+            if hasattr(response, "system_fingerprint"):  # noqa: QGR001 [REASON: Third-party LiteLLM system fingerprint attribute check]
                 system_fingerprint = response.system_fingerprint
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
 
             provider_meta = {}
-            if hasattr(response, "model_dump"):
+            if hasattr(response, "model_dump"):  # noqa: QGR001 [REASON: Third-party LiteLLM model dump method check]
                 provider_meta = response.model_dump()
 
             # Rate limits
@@ -1146,24 +1151,24 @@ class LiteLLMProvider(LLMProvider):
 
             # Extract tool_calls from LLM response (MCP Tool Loop support)
             extracted_tool_calls: list[OpenAIToolCallDTO] = []
-            raw_tool_calls = getattr(message, "tool_calls", None)  # noqa: QGR001 [REASON: External LiteLLM response choice message inspection]
+            raw_tool_calls = message.tool_calls if "tool_calls" in dir(message) else None
             if raw_tool_calls:
                 for tc in raw_tool_calls:
                     if isinstance(tc, OpenAIToolCallDTO):
                         extracted_tool_calls.append(tc)
-                    elif hasattr(tc, "model_dump"):  # noqa: QGR001 [REASON: Pydantic model serialization]
+                    elif "model_dump" in dir(tc):
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc.model_dump()))
                     elif isinstance(tc, dict):  # noqa: QGR012 [REASON: External LiteLLM tool call dictionary validation]
                         extracted_tool_calls.append(OpenAIToolCallDTO.model_validate(tc))
                     else:
-                        fn = getattr(tc, "function", None)  # noqa: QGR001 [REASON: External LiteLLM tool call duck-typing]
+                        fn = tc.function if "function" in dir(tc) else None
                         fn_name = "unknown"
                         fn_args = "{}"
                         if fn:
-                            fn_name = getattr(fn, "name", "unknown")
-                            fn_args = getattr(fn, "arguments", "{}")
+                            fn_name = fn.name if "name" in dir(fn) else "unknown"
+                            fn_args = fn.arguments if "arguments" in dir(fn) else "{}"
                         fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
-                        tc_id = str(getattr(tc, "id", f"call_{uuid.uuid4().hex[:8]}"))  # noqa: QGR001 [REASON: External LiteLLM tool call ID reflection]
+                        tc_id = str(tc.id if "id" in dir(tc) else f"call_{uuid.uuid4().hex[:8]}")
                         extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 
             prov_finish_str = None
@@ -1216,7 +1221,7 @@ class LiteLLMProvider(LLMProvider):
 
             # 0. DIRECT PASS-THROUGH (Network Errors for BaseAgent)
             if (
-                isinstance(e, getattr(litellm, "APIConnectionError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                isinstance(e, litellm.APIConnectionError)
                 or "NameResolutionError" in error_type
                 or "ConnectTimeout" in error_type
                 or "gaierror" in error_type
@@ -1226,8 +1231,8 @@ class LiteLLMProvider(LLMProvider):
             # 1. RATE LIMITS & QUOTA (Critical Infra)
             # 429s are natively handled in the inner retry loop! If they bubble here, retries were exhausted.
             if (
-                isinstance(e, getattr(litellm, "RateLimitError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
-                or (hasattr(e, "status_code") and e.status_code == 429)  # noqa: QGR001 [REASON: Dynamic exception status code check]
+                isinstance(e, litellm.RateLimitError)
+                or ("status_code" in dir(e) and e.status_code == 429)
                 or "Resource exhausted" in error_msg
             ):
                 logger.error(
@@ -1255,8 +1260,8 @@ class LiteLLMProvider(LLMProvider):
 
             # 2. AUTHENTICATION ALERTS (Security/Config)
             elif (
-                isinstance(e, getattr(litellm, "AuthenticationError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
-                or (hasattr(e, "status_code") and e.status_code == 401)  # noqa: QGR001 [REASON: Dynamic exception status code check]
+                isinstance(e, litellm.AuthenticationError)
+                or ("status_code" in dir(e) and e.status_code == 401)
                 or "invalid_api_key" in error_msg
             ):
                 logger.critical(
@@ -1271,8 +1276,8 @@ class LiteLLMProvider(LLMProvider):
                 ) from e
 
             # 3. CONTEXT WINDOW (Data/Prompt Engineering)
-            elif isinstance(e, getattr(litellm, "ContextWindowExceededError", type(None))) or (  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
-                hasattr(e, "status_code")  # noqa: QGR001 [REASON: Dynamic exception status code check]
+            elif isinstance(e, litellm.ContextWindowExceededError) or (
+                "status_code" in dir(e)
                 and e.status_code == 400
                 and ("context" in error_msg.lower() or "token" in error_msg.lower())
             ):
@@ -1284,7 +1289,7 @@ class LiteLLMProvider(LLMProvider):
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_EXECUTION_CRITICAL, original_error=e, agent_name=self.model_name
                 ) from e
-            elif hasattr(e, "status_code") and e.status_code == 400:  # noqa: QGR001 [REASON: Dynamic exception status code check]
+            elif "status_code" in dir(e) and e.status_code == 400:
                 logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", ErrorCodes.AGENT_RESPONSE_MALFORMED.name, error_msg)
                 raise AgentExecutionError(
                     detail=ErrorCodes.AGENT_RESPONSE_MALFORMED, original_error=e, agent_name=self.model_name
@@ -1292,10 +1297,10 @@ class LiteLLMProvider(LLMProvider):
 
             # 4. SERVICE INSTABILITY (Infra)
             elif (
-                isinstance(e, getattr(litellm, "ServiceUnavailableError", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
-                or isinstance(e, getattr(litellm, "Timeout", type(None)))  # noqa: QGR001 [REASON: Optional dynamic LiteLLM exception class lookup]
+                isinstance(e, litellm.ServiceUnavailableError)
+                or isinstance(e, litellm.Timeout)
                 or isinstance(e, asyncio.TimeoutError)
-                or (hasattr(e, "status_code") and e.status_code in (500, 502, 503, 504))  # noqa: QGR001 [REASON: Dynamic exception status code check]
+                or ("status_code" in dir(e) and e.status_code in (500, 502, 503, 504))
             ):
                 logger.error(
                     "[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s",

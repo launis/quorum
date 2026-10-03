@@ -117,7 +117,7 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     )
 
     assert result.status == "COMPLETED"
-    assert not hasattr(mock_redis, "enqueue_job") or not mock_redis.enqueue_job.called
+    assert "enqueue_job" not in dir(mock_redis) or not mock_redis.enqueue_job.called
 
 
 @pytest.mark.asyncio

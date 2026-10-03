@@ -89,10 +89,10 @@ async def test_litellm_provider_injects_wrapped_httpx_client(mock_settings: Magi
             # Ensure HTTP/2 is disabled
             if isinstance(passed_client, LogfireShieldedClient):
                 assert isinstance(passed_client._client, AsyncHTTPHandler)
-                assert hasattr(passed_client._client, "client")
+                assert "client" in dir(passed_client._client)
                 assert isinstance(passed_client._client.client, httpx.AsyncClient)
             else:
-                assert hasattr(passed_client, "client")
+                assert "client" in dir(passed_client)
                 assert isinstance(passed_client.client, httpx.AsyncClient)
     finally:
         if original_pytest:

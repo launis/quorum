@@ -84,7 +84,8 @@ def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
-    sys.modules.pop("backend_v2.scripts.generate_openapi", None)
+    if "backend_v2.scripts.generate_openapi" in sys.modules:
+        del sys.modules["backend_v2.scripts.generate_openapi"]
 
     real_root_dir = Path(__file__).resolve().parents[4]
     output_file = real_root_dir / "docs" / "swagger" / "openapi.json"
@@ -116,7 +117,8 @@ def test_generate_openapi_main_block_exception(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
-    sys.modules.pop("backend_v2.scripts.generate_openapi", None)
+    if "backend_v2.scripts.generate_openapi" in sys.modules:
+        del sys.modules["backend_v2.scripts.generate_openapi"]
 
     with pytest.raises(SystemExit) as exc_info:
         runpy.run_module(

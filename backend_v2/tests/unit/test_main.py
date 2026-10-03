@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -91,7 +91,7 @@ async def test_lifespan_test_environment() -> None:
     test_app = FastAPI()
     with patch("backend_v2.main._validate_database_preflight"):
         async with lifespan(test_app):
-            assert hasattr(test_app.state, "arq_pool")
+            assert "arq_pool" in dir(test_app.state)
 
 
 @pytest.mark.asyncio
@@ -180,7 +180,7 @@ async def test_validation_exception_handler() -> None:
 
     try:
         SampleModel.model_validate({"name": 123}, strict=True)
-    except Exception:
+    except ValidationError:
         validation_exc = RequestValidationError(
             errors=[{"loc": ("body", "name"), "msg": "str type expected", "type": "string_type"}]
         )

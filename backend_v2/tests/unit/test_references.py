@@ -79,14 +79,13 @@ async def test_generate_bibliography_hook_invalid_inputs_raises() -> None:
 
     mock_inputs = MagicMock()
     mock_inputs.raw_inputs = 12345
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="123",
         workflow_id="wf1",
-        inputs=ExecutionInputsDTO(),
+        inputs=mock_inputs,
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    object.__setattr__(state, "inputs", mock_inputs)
     deps = MagicMock(spec=HookDependencies)
 
     with pytest.raises(AppException) as exc:
@@ -102,14 +101,13 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="123",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        global_context_vars=GlobalContextVarsDTO(),
+        global_context_vars=None,
         metadata=ExecutionMetadata(),
     )
-    object.__setattr__(state, "global_context_vars", None)
     deps = MagicMock(spec=HookDependencies)
 
     with pytest.raises(AppException) as exc:

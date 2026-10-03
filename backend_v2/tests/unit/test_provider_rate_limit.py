@@ -64,11 +64,8 @@ async def test_lite_llm_rate_limit_cooldown(mock_settings: Any, monkeypatch: Any
 
     # apply_provider_pacing removed from module
 
-    try:
-        response = await provider.generate(prompt="Test rate limit", temperature=0.7, max_tokens=1000)
-        assert response.content == "Success!"
-    except Exception as e:
-        pytest.fail(f"Provider crashed completely during rate limit test: {e}")
+    response = await provider.generate(prompt="Test rate limit", temperature=0.7, max_tokens=1000)
+    assert response.content == "Success!"
 
     # Verify that we slept (to wait out RPM limit using exponential backoff with jitter)
     assert len(sleep_calls) > 0, "No async sleep was invoked to mitigate the RateLimitError"

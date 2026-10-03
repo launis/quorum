@@ -69,8 +69,9 @@ def _to_status(val: Any) -> ExecutionStatus:
     """Helper to safely convert raw string or enum to ExecutionStatus."""
     if isinstance(val, ExecutionStatus):
         return val
-    raw = str(val.value if hasattr(val, "value") else val)
-    return ExecutionStatus(raw)
+    if isinstance(val, LaxExecutionStatus):
+        return ExecutionStatus(val.value)
+    return ExecutionStatus(str(val))
 
 
 def _make_step_dtos(

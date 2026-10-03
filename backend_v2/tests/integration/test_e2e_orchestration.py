@@ -24,7 +24,7 @@ def clear_logs() -> Any:
                 # This avoids Windows PermissionErrors if the backend is already running and holds a lock.
                 open(log_file, "w", encoding="utf-8").close()
                 print(f"Cleared content of {log_file}")
-            except Exception as e:
+            except OSError as e:
                 print(f"Failed to clear {log_file}: {e}")
 
 
@@ -169,5 +169,5 @@ def test_e2e_orchestration() -> None:
                 worker_process.wait()
             try:
                 backend_log_fp.close()
-            except Exception as e:
+            except OSError as e:
                 print(f"Failed to close backend_log_fp: {e}")

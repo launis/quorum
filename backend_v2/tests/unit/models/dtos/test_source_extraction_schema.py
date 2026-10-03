@@ -19,8 +19,9 @@ def test_source_extraction_schema_module_exports() -> None:
         "SourceVerificationPayloadDTO",
     }
     assert set(schema_module.__all__) == expected
+    schema_members = dir(schema_module)
     for name in schema_module.__all__:
-        assert hasattr(schema_module, name)
+        assert name in schema_members
 
 
 def test_source_extraction_response_schema_valid() -> None:

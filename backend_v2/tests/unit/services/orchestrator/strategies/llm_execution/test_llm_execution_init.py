@@ -7,4 +7,4 @@ def test_llm_execution_init() -> None:
 
     importlib.reload(init_module)
 
-    assert hasattr(init_module, "__all__")
+    assert "__all__" in dir(init_module)

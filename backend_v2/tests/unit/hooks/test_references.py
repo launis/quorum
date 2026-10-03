@@ -75,15 +75,14 @@ async def test_generate_bibliography_hook_success() -> None:
 @pytest.mark.asyncio
 async def test_generate_bibliography_hook_missing_context_vars_raises() -> None:
     """Test that missing global_context_vars raises VALIDATION_FAILED."""
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis"}),
-        global_context_vars=GlobalContextVarsDTO(),
+        global_context_vars=None,
     )
-    object.__setattr__(state, "global_context_vars", None)
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
         workflow_repo=cast(Any, MockRepository()),

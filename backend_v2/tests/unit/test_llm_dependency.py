@@ -12,7 +12,7 @@ app = FastAPI()
 
 @app.get("/test-llm-dep")
 async def route_test_llm_dep(llm_handler: Annotated[Any, Depends(get_llm_handler)]) -> Any:
-    return {"has_repo": hasattr(llm_handler, "repo")}
+    return {"has_repo": "repo" in dir(llm_handler)}
 
 
 @pytest.mark.asyncio

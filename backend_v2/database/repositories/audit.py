@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
@@ -34,7 +34,7 @@ class AuditRepositoryImpl(BaseRepository):
         doc_id = str(uuid.uuid4())
         payload["id"] = doc_id
         if "timestamp" not in payload or not payload["timestamp"]:
-            payload["timestamp"] = datetime.now().isoformat()
+            payload["timestamp"] = datetime.now(UTC).isoformat()
         await self.driver.upsert("audit_logs", payload, doc_id)
 
     async def get_audit_logs(

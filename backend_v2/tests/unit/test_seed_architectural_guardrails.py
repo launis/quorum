@@ -229,7 +229,7 @@ def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_gro
 
         # Validate with strict OutputProfile domain model
         profile = OutputProfile.model_validate(raw_profile)
-        assert hasattr(profile, "matrix_synthesis_groups")
+        assert "matrix_synthesis_groups" in profile.model_fields
         assert len(profile.matrix_synthesis_groups) >= 1
         for group in profile.matrix_synthesis_groups:
             assert len(group.target_blocks) >= 1

@@ -155,7 +155,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             # Map thinking budget tokens to reasoning effort
             if thinking_budget is not None and thinking_budget == 0:
                 # Explicit zero thinking budget: allow temperature, suppress reasoning_effort
-                call_kwargs.pop("reasoning_effort", None)
+                if "reasoning_effort" in call_kwargs:
+                    del call_kwargs["reasoning_effort"]
             elif settings is not None and settings.environment == "development":
                 call_kwargs["reasoning_effort"] = "low"
             elif thinking_budget is not None and thinking_budget > 0:
@@ -169,7 +170,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             # Strip sampling parameters that OpenAI reasoning models reject (400 Bad Request)
             if "reasoning_effort" in call_kwargs:
                 for param in ("temperature", "top_p", "frequency_penalty", "presence_penalty"):
-                    call_kwargs.pop(param, None)
+                    if param in call_kwargs:
+                        del call_kwargs[param]
 
         return call_kwargs
 
@@ -201,10 +203,13 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             node: Node within the JSON schema graph to inspect and mutate in-place.
         """
         if type(node) is dict:
-            node.pop("default", None)
-            node.pop("discriminator", None)
+            if "default" in node:
+                del node["default"]
+            if "discriminator" in node:
+                del node["discriminator"]
             if "oneOf" in node:
-                node["anyOf"] = node.pop("oneOf")
+                node["anyOf"] = node["oneOf"]
+                del node["oneOf"]
 
             node_type = None
             if "type" in node:

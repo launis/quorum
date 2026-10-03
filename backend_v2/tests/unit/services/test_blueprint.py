@@ -21,39 +21,31 @@ def fix_mock_dict(d: Any) -> Any:
     from backend_v2.models.enums import TargetBlockType
 
     if isinstance(d, list):
-        for item in d:
-            fix_mock_dict(item)
-        return d
+        return [fix_mock_dict(item) for item in d]
     if isinstance(d, OutputProfile):
+        updates: dict[str, Any] = {}
         if d.matrix_visible_columns is None:
-            object.__setattr__(d, "matrix_visible_columns", ["label", "score", "distribution", "quotes"])
+            updates["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
         elif "row_explanation" in d.matrix_visible_columns and len(d.matrix_visible_columns) == 5:
-            object.__setattr__(
-                d,
-                "matrix_visible_columns",
-                ["label", "score", "distribution", "quotes"],
-            )
+            updates["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
         if (
             TargetBlockType.MATRIX_GRAPHS_BLOCK in d.target_block_order
             or "matrix_graphs_block" in [str(t) for t in d.target_block_order]
         ) and not d.matrix_synthesis_groups:
-            object.__setattr__(
-                d,
-                "matrix_synthesis_groups",
-                [
-                    MatrixSynthesisGroup(
-                        id="grp_0000000000000001", title=I18nText(translations={"en": "Default"}), target_blocks=["*"]
-                    )
-                ],
-            )
+            updates["matrix_synthesis_groups"] = [
+                MatrixSynthesisGroup(
+                    id="grp_0000000000000001", title=I18nText(translations={"en": "Default"}), target_blocks=["*"]
+                )
+            ]
+        if updates:
+            return d.model_copy(update=updates)
         return d
     if isinstance(d, dict):
         import re
 
-        d.pop("metric_mappings", None)
-        d.pop("layouts", None)
-        d.pop("extension_labels", None)
-        d.pop("user_role_mappings", None)
+        for key in ("metric_mappings", "layouts", "extension_labels", "user_role_mappings"):
+            if key in d:
+                del d[key]
 
         if "workflow_id" in d and "id" in d:
             if "matrix_visible_columns" not in d:
@@ -72,7 +64,8 @@ def fix_mock_dict(d: Any) -> Any:
         if "claims" in d and isinstance(d["claims"], list):
             for claim_dict in d["claims"]:
                 if isinstance(claim_dict, dict):
-                    claim_dict.pop("ai_description", None)
+                    if "ai_description" in claim_dict:
+                        del claim_dict["ai_description"]
                     if "tda_assertions" not in claim_dict:
                         claim_dict["tda_assertions"] = [
                             {
@@ -97,7 +90,8 @@ def fix_mock_dict(d: Any) -> Any:
             and len(d["concept_description"]) < 10
         ):
             d["concept_description"] = "concept_description_valid"
-        d.pop("strictness_level", None)
+        if "strictness_level" in d:
+            del d["strictness_level"]
         if "default_strictness_level" in d:
             d["default_strictness_level"] = 85
         if "level_name" in d and "structural_location" in d:
@@ -2395,7 +2389,8 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
     )
 
     # Intentionally remove TargetBlockType.METADATA_BLOCK from hydrators to trigger Fail-Fast KeyError handling
-    transformer._target_block_hydrators.pop(TargetBlockType.METADATA_BLOCK, None)
+    if TargetBlockType.METADATA_BLOCK in transformer._target_block_hydrators:
+        del transformer._target_block_hydrators[TargetBlockType.METADATA_BLOCK]
 
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto(
@@ -2617,8 +2612,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
     assert exc_pen.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     # 2. Section syntheses is None fail-fast (lines 228-232)
-    mock_cache = RenderedSynthesisCache()
-    object.__setattr__(mock_cache, "section_syntheses", None)
+    mock_cache = RenderedSynthesisCache.model_construct(section_syntheses=None)
     mock_exec_cache = ExecutionRecord(
         id="exe_1111222233334444",
         workflow_id="wf_1234abcd1234abcd",
@@ -3470,7 +3464,7 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
 
     # Pure Dumb Painter Invariance: Zero DB updates / mutations permitted
     mock_repo_transformer.update_execution.assert_not_called()
-    assert hasattr(mock_repo_transformer, "update_execution")
+    assert callable(mock_repo_transformer.update_execution)
 
 
 @pytest.mark.asyncio

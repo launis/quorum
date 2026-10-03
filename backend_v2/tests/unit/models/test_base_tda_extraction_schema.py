@@ -35,7 +35,8 @@ def test_exact_quote_can_be_none() -> None:
     assert base_inst.exact_quotes == []
 
     payload_stripped = payload_base.copy()
-    payload_stripped.pop("localized_anchors_found", None)
+    if "localized_anchors_found" in payload_stripped:
+        del payload_stripped["localized_anchors_found"]
 
     stripped_inst = StrippedBaseTDAExtraction.model_validate(payload_stripped)
     assert stripped_inst.exact_quotes == []

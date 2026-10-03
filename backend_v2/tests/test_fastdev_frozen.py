@@ -42,4 +42,5 @@ async def test_fastdev_frozen_instance_override() -> None:
         client = await LLMClient.from_strategy("fast", mock_repo)
         assert client is not None
     finally:
-        os.environ.pop("ENVIRONMENT", None)
+        if "ENVIRONMENT" in os.environ:
+            del os.environ["ENVIRONMENT"]

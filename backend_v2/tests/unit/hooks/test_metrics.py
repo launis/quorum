@@ -99,8 +99,7 @@ def test_calculate_control_ratio_hook() -> None:
 
 
 def test_calculate_control_ratio_hook_invalid_payload() -> None:
-    inputs = ExecutionInputsDTO(raw_inputs={})
-    object.__setattr__(inputs, "raw_inputs", 12345)
+    inputs = ExecutionInputsDTO.model_construct(raw_inputs=12345)
     state = HookState(
         workflow_id="test",
         execution_id="test",
@@ -129,8 +128,7 @@ def test_text_metrics_empty_input_raises() -> None:
 
 
 def test_text_metrics_invalid_payload_raises() -> None:
-    inputs = ExecutionInputsDTO(raw_inputs={})
-    object.__setattr__(inputs, "raw_inputs", 12345)
+    inputs = ExecutionInputsDTO.model_construct(raw_inputs=12345)
     state = HookState(
         workflow_id="test",
         execution_id="test",

@@ -402,7 +402,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             scrubbed_keys: list[str] = []
             for deprecated_key in ("temperature", "top_p", "top_k", "frequency_penalty", "presence_penalty"):
                 if deprecated_key in call_kwargs:
-                    call_kwargs.pop(deprecated_key, None)
+                    del call_kwargs[deprecated_key]
                     scrubbed_keys.append(deprecated_key)
 
             if scrubbed_keys:

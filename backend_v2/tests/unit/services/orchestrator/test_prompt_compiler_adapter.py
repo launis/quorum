@@ -11,7 +11,7 @@ def test_prompt_compiler_adapter_delegation() -> None:
     # Verify delegation of build_dynamic_schema
     DynamicSchema = adapter.build_dynamic_schema("DynamicTest", [], False, "en", strictness_level=50)
     assert DynamicSchema is not None
-    assert hasattr(DynamicSchema, "model_fields")
+    assert "model_fields" in dir(DynamicSchema)
 
     # Verify delegation of calibrate_strictness
     assert "SCORING_STRICTNESS: 0/100" in adapter.calibrate_strictness(0)

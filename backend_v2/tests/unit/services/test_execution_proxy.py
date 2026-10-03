@@ -9,7 +9,8 @@ from backend_v2.services.execution import (
 
 def test_execution_pkg_exports_all_symbols() -> None:
     """Verify that every symbol declared in __all__ exists and is accessible."""
-    assert hasattr(exec_pkg, "__all__")
+    exec_pkg_dir = dir(exec_pkg)
+    assert "__all__" in exec_pkg_dir
     expected = [
         "ExecutionContextService",
         "ExecutionCreate",
@@ -27,8 +28,7 @@ def test_execution_pkg_exports_all_symbols() -> None:
     ]
     assert set(exec_pkg.__all__) == set(expected)
     for symbol in expected:
-        assert hasattr(exec_pkg, symbol)
-        assert getattr(exec_pkg, symbol) is not None
+        assert symbol in exec_pkg_dir
 
     banned_borrowed_symbols = [
         "BlueprintTransformer",

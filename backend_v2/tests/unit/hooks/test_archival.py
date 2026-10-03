@@ -54,7 +54,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
         metadata=ExecutionMetadata(),
     )
     now = datetime.now(timezone.utc)
-    mock_record = ExecutionRecord(
+    mock_record = ExecutionRecord.model_construct(
         id="exe_1234567890abcdef12",
         workflow_id="wor_1234567890abcdef12",
         organization_id="org_1234567890abcdef12",
@@ -64,8 +64,8 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
         metadata=ExecutionMetadata(),
         created_at=now,
         raw_inputs={},
+        updated_at=None,
     )
-    object.__setattr__(mock_record, "updated_at", None)
 
     mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]

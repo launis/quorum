@@ -85,7 +85,8 @@ async def test_real_llm_pdf_execution() -> None:
     if not is_backend_running():
         logger.info("Backend is not running. Starting local FastAPI instance on port 8000.")
         env = os.environ.copy()
-        env.pop("PYTEST_CURRENT_TEST", None)  # CRITICAL: Prevent FakeRedis isolation in subprocesses
+        if "PYTEST_CURRENT_TEST" in env:
+            del env["PYTEST_CURRENT_TEST"]  # CRITICAL: Prevent FakeRedis isolation in subprocesses
         env["USE_FIREBASE_AUTH"] = "false"
         env["PYTHONUTF8"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"

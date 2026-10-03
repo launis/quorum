@@ -34,7 +34,7 @@ def patch_pydantic_base_model_cache() -> None:
         import pydantic.root_model
 
         sys.modules["pydantic.root_model"] = pydantic.root_model
-    except Exception:
+    except ImportError:
         pass
 
     def custom_import_cached_base_model() -> Any:

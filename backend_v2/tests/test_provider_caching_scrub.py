@@ -56,17 +56,14 @@ async def test_provider_caching_payload_scrub_bug() -> None:
     ):
         # We provide system instruction and cached_content
         # By default, system instruction goes into final_messages
-        try:
-            await provider.generate(
-                prompt="User prompt here",
-                system_instruction="System prompt that is already cached",
-                temperature=0.0,
-                max_tokens=1024,
-                cached_content="projects/cognitive-quorum/locations/europe-north1/cachedContents/1317893878505799680",
-                timeout=10,
-            )
-        except Exception as e:
-            pytest.fail(f"Generate raised an exception: {e}")
+        await provider.generate(
+            prompt="User prompt here",
+            system_instruction="System prompt that is already cached",
+            temperature=0.0,
+            max_tokens=1024,
+            cached_content="projects/cognitive-quorum/locations/europe-north1/cachedContents/1317893878505799680",
+            timeout=10,
+        )
 
     # Inspect what the router was actually called with
     assert mock_router.acompletion.call_count == 1

@@ -328,15 +328,21 @@ class BaseLLMAdapter(ABC):
                 "multipleOf",
             ]
             for k in keys_to_strip:
-                schema_dict.pop(k, None)
+                if k in schema_dict:
+                    del schema_dict[k]
 
             if "const" in schema_dict:
-                schema_dict["enum"] = [schema_dict.pop("const")]
+                schema_dict["enum"] = [schema_dict["const"]]
+                del schema_dict["const"]
 
             # Remove contextual constraints not supported by standard strict schemas
             if "properties" in schema_dict:
-                schema_dict["properties"].pop("contextual_override", None)
-                schema_dict["properties"].pop("override_reason", None)
+                properties = schema_dict["properties"]
+                if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
+                    if "contextual_override" in properties:
+                        del properties["contextual_override"]
+                    if "override_reason" in properties:
+                        del properties["override_reason"]
 
                 # Ensure any discriminator property present in properties is marked required
                 properties = schema_dict["properties"]

@@ -46,7 +46,7 @@ import backend_v2.hooks.source_verification_hook as hook_module
 def test_source_verification_hook_exports() -> None:
     """Verify that source_verification_hook exports expected symbols via __all__."""
     assert hook_module.__all__ == ["source_verification_hook"]
-    assert hasattr(hook_module, "source_verification_hook")
+    assert "source_verification_hook" in dir(hook_module)
 
 
 def test_source_verification_hook_registered_in_hook_registry() -> None:
@@ -313,17 +313,12 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
         audit_traces=[],
     )
 
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={}),
-    )
-    object.__setattr__(
-        state,
-        "inputs",
-        SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
+        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
     )
 
     result = await source_verification_hook(state, mock_deps)
@@ -382,28 +377,26 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     )
 
     # 1. Test pure string input
-    state_str = HookState(
+    state_str = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs="A direct string input for source checking.",
     )
-    object.__setattr__(state_str, "inputs", "A direct string input for source checking.")
 
     result_str = await source_verification_hook(state_str, mock_deps)
     assert result_str.success is True
     mock_instance.run_full_verification.assert_called_with("A direct string input for source checking.")
 
     # 2. Test list of items input
-    state_list = HookState(
+    state_list = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=["Line one of content.", "Line two of content."],
     )
-    object.__setattr__(state_list, "inputs", ["Line one of content.", "Line two of content."])
 
     result_list = await source_verification_hook(state_list, mock_deps)
     assert result_list.success is True
@@ -436,14 +429,13 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         audit_traces=[],
     )
 
-    state_bm = HookState(
+    state_bm = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={}),
+        inputs=CustomDataModel(text="Generic base model text for verification."),
     )
-    object.__setattr__(state_bm, "inputs", CustomDataModel(text="Generic base model text for verification."))
 
     res = await source_verification_hook(state_bm, mock_deps)
     assert res.success is True

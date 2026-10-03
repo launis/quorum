@@ -326,8 +326,8 @@ def test_unified_workflow_repository_inheritance() -> None:
     unified = UnifiedWorkflowRepository(driver=mock_driver)
 
     assert isinstance(unified, ReportArtifactRepositoryImpl)
-    assert hasattr(unified, "create_report_artifact")
-    assert hasattr(unified, "get_report_artifact")
-    assert hasattr(unified, "list_report_artifacts_by_execution")
-    assert hasattr(unified, "update_report_artifact")
-    assert hasattr(unified, "delete_report_artifact")
+    assert callable(unified.create_report_artifact)
+    assert callable(unified.get_report_artifact)
+    assert callable(unified.list_report_artifacts_by_execution)
+    assert callable(unified.update_report_artifact)
+    assert callable(unified.delete_report_artifact)

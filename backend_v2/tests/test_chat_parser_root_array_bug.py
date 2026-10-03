@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.models.domain.system_config import ChatHistoryDTO
 
@@ -25,6 +26,6 @@ async def test_chat_parser_root_array_bug() -> None:
     try:
         ChatHistoryDTO.model_validate_json(raw_array_json)
         pytest.fail("Should have thrown ValidationError!")
-    except Exception as e:
+    except ValidationError as e:
         assert "Input should be an object" in str(e)
         assert "input_type=list" in str(e)

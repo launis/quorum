@@ -406,9 +406,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         # QGR001: Attribute access to .__dict__
         if node.attr == "__dict__":
             qgr001_sev = (
-                GuardrailSeverity.FATAL
-                if (self._is_domain_code and not self._is_boundary_exempt)
-                else GuardrailSeverity.WARNING
+                GuardrailSeverity.WARNING
+                if self._is_boundary_exempt
+                else GuardrailSeverity.FATAL
             )
             self._add_violation(
                 node,
@@ -422,9 +422,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         # QGR001: getattr / hasattr / setattr reflection duck-typing, vars, attrgetter, and frozen mutations
         qgr001_sev = (
-            GuardrailSeverity.FATAL
-            if (self._is_domain_code and not self._is_boundary_exempt)
-            else GuardrailSeverity.WARNING
+            GuardrailSeverity.WARNING
+            if self._is_boundary_exempt
+            else GuardrailSeverity.FATAL
         )
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
@@ -619,6 +619,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR010",
                     "Deprecated `datetime.utcnow()` call detected.",
                     "Use timezone-aware `datetime.now(UTC)` or `datetime.now(timezone.utc)` instead.",
+                    severity=GuardrailSeverity.FATAL,
                 )
             case ast.Attribute(value=ast.Name(id="datetime"), attr="now") | ast.Name(id="now"):
                 has_tz = False
@@ -634,6 +635,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR010",
                         "Naive `datetime.now()` call without timezone detected.",
                         "Use timezone-aware `datetime.now(UTC)` or `datetime.now(timezone.utc)` instead of naive timestamps.",
+                        severity=GuardrailSeverity.FATAL,
                     )
             case _:
                 pass
@@ -809,17 +811,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         pass
 
             if is_dict_pop:
-                qgr019_sev = (
-                    GuardrailSeverity.WARNING
-                    if (self._is_domain_code and not self._is_boundary_exempt)
-                    else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR019",
                     "Banned `.pop(key, ...)` dictionary mutation in domain code.",
                     "Use typed Pydantic V2 DTOs with model_dump(exclude=...) or immutable transformations instead of mutating dictionaries via .pop().",
-                    severity=qgr019_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
         # QGR025: Untyped Dict in model_copy(update=...) Ban
@@ -956,13 +953,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
         elif is_broad and not has_raise and not has_dlq_or_typed_dispatch:
-            # In non-domain or boundary exempt code, broad handlers lacking raise emit WARNING
+            # Broad handlers lacking raise emit FATAL
             self._add_violation(
                 node,
                 "QGR003",
                 "Broad `except Exception:` handler lacking `raise` detected.",
                 "Catch specific exception types (e.g. (OSError, UnicodeDecodeError)) or re-raise typed AppException inside handlers.",
-                severity=GuardrailSeverity.WARNING,
+                severity=GuardrailSeverity.FATAL,
             )
 
         self.generic_visit(node)

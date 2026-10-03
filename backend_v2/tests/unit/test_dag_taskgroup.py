@@ -383,7 +383,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
                 workflow=workflow,
                 raw_inputs=WorkflowInputs.model_construct(dynamic_inputs={}),
             )
-        except Exception as e:
+        except AppException as e:
             print(f"Exception caught in test: {e}")
             pass
 

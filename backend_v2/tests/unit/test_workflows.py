@@ -91,4 +91,5 @@ def test_get_workflow_ui_schema_success(client_member: Any) -> None:
         assert response.json() == {"expected_inputs": []}
         mock_exec.get_workflow_ui_schema.assert_awaited_once_with("wf_test123")
     finally:
-        app.dependency_overrides.pop(get_execution_service, None)
+        if get_execution_service in app.dependency_overrides:
+            del app.dependency_overrides[get_execution_service]

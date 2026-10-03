@@ -51,11 +51,7 @@ async def test_execute_blueprint_not_found(logic_strategy: LogicNodeStrategy) ->
     context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
     semaphore = asyncio.Semaphore(1)
 
-    from typing import cast
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    if hasattr(mock_repo, "get_step_by_id"):
-        mock_repo.get_step_by_id.return_value = None
+    logic_strategy.workflow_repo.get_step_by_id.return_value = None
 
     with pytest.raises(AppException) as exc:
         await logic_strategy.execute(step, projector, context, None, None, semaphore)
@@ -278,7 +274,7 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
 def test_logic_exports() -> None:
     from backend_v2.services.orchestrator.strategies import logic
 
-    assert hasattr(logic, "__all__")
+    assert "__all__" in dir(logic)
     assert "LogicNodeStrategy" in logic.__all__
 
 

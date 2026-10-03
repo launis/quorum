@@ -301,7 +301,7 @@ def test_output_profiles_scoring_configuration() -> None:
         assert prf_id in profiles, f"OutputProfile {prf_id} missing from seed_data.json"
         prf = profiles[prf_id]
         prf_model = OutputProfile.model_validate(prf)
-        assert not hasattr(prf_model, "strictness_level"), f"Profile '{prf_id}' must not contain strictness_level"
+        assert "strictness_level" not in dir(prf_model), f"Profile '{prf_id}' must not contain strictness_level"
         assert "strictness_level" not in prf, f"Raw profile '{prf_id}' must not contain strictness_level"
 
     workflows = {w["id"]: w for w in seed_data["workflows"]}

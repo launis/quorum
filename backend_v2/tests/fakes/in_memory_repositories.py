@@ -1877,11 +1877,13 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
             dyn_methods[name] = value
         elif callable(value):
             method = DynamicRepoMethod(name, value)
-            if hasattr(value, "return_value") or hasattr(value, "_mock_return_value"):
+            val_attrs = dir(value)
+            if "return_value" in val_attrs or "_mock_return_value" in val_attrs:
                 method.return_value = value.return_value
-            if hasattr(value, "side_effect") and value.side_effect is not None:
+            if "side_effect" in val_attrs and value.side_effect is not None:
                 method.side_effect = value.side_effect
             dyn_methods[name] = method
         else:
-            dyn_methods.pop(name, None)
+            if name in dyn_methods:
+                del dyn_methods[name]
             super().__setattr__(name, value)

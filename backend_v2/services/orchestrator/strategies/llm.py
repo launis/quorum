@@ -186,7 +186,8 @@ class LLMNodeStrategy(NodeStrategy):
                                 dag_results[str(a_id)] = item
                             else:
                                 item_dict = dict(item)
-                                item_dict.pop("atom_id", None)
+                                if "atom_id" in item_dict:
+                                    del item_dict["atom_id"]
                                 if "status" not in item_dict:
                                     item_dict["status"] = ExecutionStatus.PASSED
                                 if "source_quote" not in item_dict and (
@@ -213,7 +214,8 @@ class LLMNodeStrategy(NodeStrategy):
                                 extracted_a_id = ev["atom_id"]
                             if extracted_a_id:
                                 ev_dict = dict(ev)
-                                ev_dict.pop("atom_id", None)
+                                if "atom_id" in ev_dict:
+                                    del ev_dict["atom_id"]
                                 if "status" not in ev_dict:
                                     ev_dict["status"] = ExecutionStatus.PASSED
                                 if "source_quote" not in ev_dict and (
@@ -952,7 +954,8 @@ class LLMNodeStrategy(NodeStrategy):
                         step.id,
                     )
                     final_dict["anomaly_unresolved"] = True
-                    final_dict.pop("llm_anomaly_retry_requested", None)
+                    if "llm_anomaly_retry_requested" in final_dict:
+                        del final_dict["llm_anomaly_retry_requested"]
                     break
                 else:
                     logger.info(

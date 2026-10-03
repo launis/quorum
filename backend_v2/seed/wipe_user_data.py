@@ -6,7 +6,7 @@ Provides a clean slate for the Event Sourced Engine while preserving seeded syst
 import json
 import os
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "db_v2.json")
 BACKUP_DIR = os.path.join(os.path.dirname(__file__), "backups")
@@ -24,7 +24,7 @@ def wipe_dynamic_data() -> None:
 
     # 1. Create a timestamped backup first
     os.makedirs(BACKUP_DIR, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     backup_path = os.path.join(BACKUP_DIR, f"db_v2_backup_before_wipe_{timestamp}.json")
     shutil.copy(DB_PATH, backup_path)
     print(f"[Backup] Database backed up to {backup_path}")

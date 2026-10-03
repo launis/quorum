@@ -1,4 +1,5 @@
 import inspect
+from typing import Protocol
 
 from backend_v2.database import interfaces
 
@@ -17,11 +18,7 @@ def test_interfaces_are_protocols() -> None:
 
     for protocol_class in protocol_classes:
         assert inspect.isclass(protocol_class)
-        assert (
-            hasattr(protocol_class, "__parameters__")
-            or getattr(protocol_class, "_is_protocol", False)
-            or type(protocol_class).__name__ in ("_ProtocolMeta", "ProtocolMeta")
-        )
+        assert Protocol in protocol_class.__mro__
 
 
 def test_interfaces_can_be_imported() -> None:

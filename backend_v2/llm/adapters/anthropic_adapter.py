@@ -204,8 +204,8 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
                 raw_budget = 0
                 if thinking_budget is not None:
                     raw_budget = thinking_budget
-                thinking_budget = min(raw_budget, settings.dev_max_thinking_budget)
-                call_kwargs.pop("thinking", None)
+                if "thinking" in call_kwargs:
+                    del call_kwargs["thinking"]
             elif thinking_budget is not None and thinking_budget > 0:
                 call_kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
                 # Anthropic strictly requires temperature = 1.0 when extended thinking is enabled

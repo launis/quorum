@@ -173,13 +173,13 @@ def test_qgr001_attrgetter_detection() -> None:
     assert unsuppressed[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr001_test_file_warning_severity() -> None:
+def test_qgr001_test_file_fatal_severity() -> None:
     code = "val = getattr(obj, 'attr', None)\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     unsuppressed = [v for v in violations if not v.is_suppressed]
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
-    assert unsuppressed[0].severity == GuardrailSeverity.WARNING
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
 
 
 # ==============================================================================

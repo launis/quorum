@@ -65,7 +65,7 @@
   - [x] Step 3.2: Clean and Lock QGR012 (Duck-Typing isinstance(..., Mapping) Cascades)
   - [x] Step 3.3: Clean and Lock QGR016 (Ternary Lazy Fallbacks & Falsy or Chains)
   - [x] Step 3.4: Clean and Lock QGR002 (Chained Dictionary .get() Lookups in Tests and Domain Code)
-  - [ ] Step 3.5: Clean and Lock Residual Rules (QGR001, QGR019, QGR003, QGR010)
+  - [x] Step 3.5: Clean and Lock Residual Rules (QGR001, QGR019, QGR003, QGR010)
   - [ ] Step 3.6: Implement Mutation Invariance Verification Engine
   - [ ] Step 3.7: Synchronize Warning Baseline Ledger to Zero Ceiling & Execute Phase 3 Completion Gate
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -212,7 +212,7 @@
 | Expand `scripts/backend_audit_loop.py` to 8 stages (Clean Imports, DTO Parity) and fix Jinja Dumb Painter fallbacks | Section 3, Step 1.5 | Phase 1, Step 1.5 | [x] Verified |
 | Eradicate 79 pre-existing domain fatal violations (53 QGR003, 10 QGR000, 7 QGR012, 4 QGR002, 4 QGR018, 1 QGR022) | Section 3, Step 1.6 | Phase 1, Step 1.6 | [x] Verified |
 | Eradicate 46 low-count advisory warning violations (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011) | Section 3, Step 1.7 | Phase 1, Step 1.7 | [x] Verified |
-| Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, etc.) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [x] Verified |
+| Eradicate 22 advisory warnings in active tooling and audit scripts (`audit_database_atoms.py`, `reconcile_storage.py`, `audit_rules_staleness.py`, `matrix_slice_engine.py`) | Section 3, Step 1.8 | Phase 1, Step 1.8 | [x] Verified |
 | Promote cleaned rules to FATAL in `scripts/_ast_guardrails.py` and build `scripts/audit_warning_baseline.py` | Section 3, Step 1.9 | Phase 1, Step 1.9 | [x] Verified |
 | Synchronize agentic workflows in `AGENTS.md` and `.agents/workflows/` with mandatory strict quality gates | Section 3, Step 1.10 | Phase 1, Step 1.10 | [x] Verified |
 | Strategic alignment check across mock eradication baseline and fake repository parity | Section 3, Step 2.0 | Phase 2, Step 0 | [x] Verified |
@@ -225,7 +225,7 @@
 | Clean and lock QGR012 duck-typing isinstance(..., Mapping) cascades across services | Section 3, Step 3.2 | Phase 3, Step 3.2 | [x] Verified |
 | Clean and lock QGR016 ternary lazy fallbacks and falsy or chains across providers and repositories | Section 3, Step 3.3 | Phase 3, Step 3.3 | [x] Verified |
 | Clean and lock QGR002 chained dictionary .get() lookups in tests and domain code | Section 3, Step 3.4 | Phase 3, Step 3.4 | [x] Verified |
-| Clean and lock residual rules (QGR001 reflection, QGR019 dict.pop, QGR003 exception swallowing, QGR010 naive datetime) | Section 3, Step 3.5 | Phase 3, Step 3.5 | [ ] Pending |
+| Clean and lock residual rules (QGR001 reflection, QGR019 dict.pop, QGR003 exception swallowing, QGR010 naive datetime) | Section 3, Step 3.5 | Phase 3, Step 3.5 | [x] Verified |
 | Implement automated AST mutation testing engine in `scripts/audit_mutation_coverage.py` asserting 100% mutant kill rate | Section 3, Step 3.6 | Phase 3, Step 3.6 | [ ] Pending |
 | Synchronize warning baseline ledger to zero ceiling in `scripts/audit_warning_baseline.py` and execute completion gate | Section 3, Step 3.7 | Phase 3, Step 3.7 | [ ] Pending |
 | Invert strict default flag, reclassify all visitor rules to FATAL, and verify Exhaustive Violation Eradication Ledger | Section 3, Step 4.1-4.6 | Phase 4, Step 4.1 | [ ] Pending |
@@ -239,23 +239,29 @@
 - Step 3.2: Cleaned and locked QGR012 (duck-typing `isinstance(..., Mapping)` cascades) across services; promoted QGR012 to FATAL severity in domain code (`6ae019c2`).
 - Step 3.3: Cleaned and locked QGR016 (ternary lazy fallbacks and falsy `or` chains) across providers, repositories, and models; promoted QGR016 to unconditional FATAL severity (`f5297651`).
 - Step 3.4: Cleaned all 341 QGR002 occurrences across test suites and domain boundary files (`provider.py`, fakes, unit tests, integration tests). Promoted QGR002 to unconditional FATAL severity in `scripts/_ast_guardrails.py` with test client and registry exemptions (`59546332`).
-- Mathematically verified 0 QGR002 violations remaining across the entire repository (0 in `backend_v2` and tests).
-- All 122 unit tests in `backend_v2/tests/unit/scripts/test_ast_guardrails.py` pass with 100% green status.
-- All refactored unit, integration, and hook test suites pass with 100% green status.
+- Step 3.5: Eradicated 100% of residual advisory AST warnings across `backend_v2`:
+  - QGR001: Eliminated all 71 active dynamic reflection/hasattr/getattr/vars/setattr occurrences across domain code and test files, preserving legitimate LiteLLM boundary suppressions in `provider.py`. Promoted QGR001 to FATAL severity (retaining WARNING only for external boundary exemption files per Contract 2).
+  - QGR010: Converted 100% of naive datetimes to timezone-aware UTC timestamps; promoted QGR010 to unconditional FATAL severity in `scripts/_ast_guardrails.py`.
+  - QGR019: Converted 100% of in-place `.pop()` dictionary mutations to pure projections or explicit deletions; promoted QGR019 to unconditional FATAL severity in `scripts/_ast_guardrails.py`.
+  - QGR003: Replaced 100% of silent exception swallowings with specific exception handling and re-raises; promoted QGR003 to unconditional FATAL severity in `scripts/_ast_guardrails.py`.
+  - 0 FATAL violations remain across `backend_v2` (only 64 test-scoped QGR012/QGR016 warnings pending Phase 4).
+  - All 122 unit tests in `test_ast_guardrails.py` and all 772 script tests in `backend_v2/tests/unit/scripts/` pass 100% green.
 
 ## Learned
-- Using positive set membership checks and direct dictionary indexing (`if k in d: val = d[k]`) eliminates both QGR002 and QGR016 simultaneously, avoiding ternary literal fallback detections.
-- FastAPI `TestClient` fixture instances named `client_root`, `client_member`, etc. are correctly exempted from QGR002 via prefix matching `name.startswith("client_")` in `_ast_guardrails.py`.
-- `TaskRegistry.get` classmethods are exempted by naming in `_ast_guardrails.py` to prevent confusing registry lookups with dictionary `.get()`.
-- `I18nText.resolve(...)` is the strictly typed SSOT method for resolving localized strings; replacing `i18n.get(...)` with `i18n.resolve(...)` in tests enforces typed attribute integrity.
+- Replacing `node.pop(key, None)` with positive membership and `del node[key]` eliminates QGR019 without creating intermediate dictionary mutations or triggering guardrails.
+- Frozen Pydantic V2 models in unit tests should be constructed with `Model.model_construct(...)` or updated via `.model_copy(update={...})` rather than bypassing immutability via `object.__setattr__()`.
+- LiteLLM SDK exceptions (specifically: `RateLimitError`, `Timeout`, `ServiceUnavailableError`, `APIConnectionError`, `InternalServerError`) are natively exported by `litellm` and do not require defensive `getattr(litellm, ...)` lookups.
+- Test assertions checking whether a module or object exports an attribute should utilize `symbol in dir(target)` or `callable(target.method)` rather than reflection `hasattr()`.
+- LogRecord filter attributes in `test_logging_config.py` should be accessed via direct dot notation (`record.context_id`) instead of dynamic `record.__dict__["context_id"]`.
 
 ## Remaining
-- Step 3.5: Clean and Lock Residual Rules (QGR001 reflection, QGR019 dict.pop, QGR003 exception swallowing, QGR010 naive datetime).
-- Step 3.6: Implement Mutation Invariance Verification Engine (`scripts/audit_mutation_coverage.py`).
-- Step 3.7: Synchronize Warning Baseline Ledger to Zero Ceiling & Execute Phase 3 Completion Gate.
+- Step 3.6: Implement Mutation Invariance Verification Engine (`scripts/audit_mutation_coverage.py`), creating unit tests in `test_audit_mutation_coverage.py` asserting 100% mutant kill rate across `UnifiedScoringEngine` and `TopologicalEvaluator`.
+- Step 3.7: Synchronize Warning Baseline Ledger to Zero Ceiling in `scripts/audit_warning_baseline.py` (`CURRENT_WARNING_CEILING = 0`), run `uv run python scripts/audit_warning_baseline.py --verify-zero`, and execute the global Phase 3 completion gate `uv run python scripts/backend_audit_loop.py backend_v2/ --test`.
 
 ## Resume Command
 ```powershell
 /tier2-execute @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
 ```
+
+
 

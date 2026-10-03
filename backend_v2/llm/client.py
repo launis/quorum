@@ -457,12 +457,15 @@ class LLMClient:
                     err_str = str(gen_err).lower()
                     if "404" in err_str and ("cache" in err_str or "not found" in err_str):
                         logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
-                        extra_kwargs.pop("cached_content", None)
-                        if "extra_headers" in extra_kwargs:
-                            extra_kwargs["extra_headers"].pop("cached_content", None)
+                        if "cached_content" in extra_kwargs:
+                            del extra_kwargs["cached_content"]
+                        if "extra_headers" in extra_kwargs and "cached_content" in extra_kwargs["extra_headers"]:
+                            del extra_kwargs["extra_headers"]["cached_content"]
                         if "extra_body" in extra_kwargs:
-                            extra_kwargs["extra_body"].pop("cachedContent", None)
-                            extra_kwargs["extra_body"].pop("cached_content", None)
+                            if "cachedContent" in extra_kwargs["extra_body"]:
+                                del extra_kwargs["extra_body"]["cachedContent"]
+                            if "cached_content" in extra_kwargs["extra_body"]:
+                                del extra_kwargs["extra_body"]["cached_content"]
 
                         fallback_messages: list[LLMMessageDTO]
                         if compiled_prompt is not None:
@@ -732,12 +735,15 @@ class LLMClient:
                 err_str = str(gen_err).lower()
                 if "404" in err_str and ("cache" in err_str or "not found" in err_str):
                     logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
-                    extra_kwargs.pop("cached_content", None)
-                    if "extra_headers" in extra_kwargs:
-                        extra_kwargs["extra_headers"].pop("cached_content", None)
+                    if "cached_content" in extra_kwargs:
+                        del extra_kwargs["cached_content"]
+                    if "extra_headers" in extra_kwargs and "cached_content" in extra_kwargs["extra_headers"]:
+                        del extra_kwargs["extra_headers"]["cached_content"]
                     if "extra_body" in extra_kwargs:
-                        extra_kwargs["extra_body"].pop("cachedContent", None)
-                        extra_kwargs["extra_body"].pop("cached_content", None)
+                        if "cachedContent" in extra_kwargs["extra_body"]:
+                            del extra_kwargs["extra_body"]["cachedContent"]
+                        if "cached_content" in extra_kwargs["extra_body"]:
+                            del extra_kwargs["extra_body"]["cached_content"]
 
                     fallback_messages: list[LLMMessageDTO]
                     if compiled_prompt is not None:

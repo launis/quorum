@@ -522,7 +522,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
             scrubbed_keys: list[str] = []
             for deprecated_key in ("temperature", "top_p", "top_k", "frequency_penalty", "presence_penalty"):
                 if deprecated_key in call_kwargs:
-                    call_kwargs.pop(deprecated_key, None)
+                    del call_kwargs[deprecated_key]
                     scrubbed_keys.append(deprecated_key)
 
             if scrubbed_keys:
@@ -571,7 +571,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     "[VertexAdapter] Dynamic tool payload detected alongside Vertex Caching. "
                     "Bypassing caching dynamically to prevent 400 Bad Request."
                 )
-                call_kwargs.pop("cached_content", None)
+                if "cached_content" in call_kwargs:
+                    del call_kwargs["cached_content"]
             else:
                 cache_id = call_kwargs["cached_content"]
                 if "extra_headers" not in call_kwargs or call_kwargs["extra_headers"] is None:

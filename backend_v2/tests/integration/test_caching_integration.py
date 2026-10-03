@@ -10,7 +10,7 @@ import pytest
 from pydantic import BaseModel
 
 # Mock vertexai / GCP SDK BEFORE any imports
-if not hasattr(sys, "_mock_cached_contents"):
+if "_mock_cached_contents" not in dir(sys):
     sys._mock_cached_contents = MagicMock()  # type: ignore[attr-defined]
 
 mock_cached_contents = sys._mock_cached_contents  # type: ignore[attr-defined]
