@@ -45,7 +45,7 @@
 
 ### Phase 2: Test Suite Mock Eradication, Fake Repository Parity & Concurrency Stress Gate (QGR014)
 **Plan:** @[docs/epic/tasks_EPIC_156/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
   - [ ] Step 2.1: Audit and Enhance In-Memory Repository Fakes
   - [ ] Step 2.2: Batch Refactor Unit and Integration Test Fixtures
@@ -182,7 +182,7 @@
 | Audit and enhance in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` | Section 3, Step 2.1 | Phase 2, Step 2.1 | [ ] Pending |
 | Batch refactor unit and integration test fixtures across `backend_v2/tests/`, eliminating 319 QGR014 mock instances | Section 3, Step 2.2 | Phase 2, Step 2.2 | [ ] Pending |
 | Promote QGR014 to FATAL severity in `scripts/_ast_guardrails.py` with 0 violations | Section 3, Step 2.3 | Phase 2, Step 2.3 | [ ] Pending |
-| Implement async concurrency stress test suite in `backend_v2/tests/unit/orchestrator/test_concurrency_stress.py` | Section 3, Step 2.4 | Phase 2, Step 2.4 | [ ] Pending |
+| Implement async concurrency stress test suite in `backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py` | Section 3, Step 2.4 | Phase 2, Step 2.4 | [ ] Pending |
 | Eliminate domain duct-tape rules (QGR020, QGR012, QGR016, QGR002, QGR001, QGR019) and implement mutation coverage | Section 3, Step 3.1-3.6 | Phase 3, Step 3.1 | [ ] Pending |
 | Invert strict default flag, reclassify all visitor rules to FATAL, and verify Exhaustive Violation Eradication Ledger | Section 3, Step 4.1-4.6 | Phase 4, Step 4.1 | [ ] Pending |
 
@@ -205,20 +205,26 @@
 - Passed all 8 stages of the global backend audit loop (`backend_audit_loop.py backend_v2/`): 0 fatal AST violations, 355/355 modules imported cleanly, 45 DTOs in 1:1 parity, clean seeder validation.
 - Passed full test suite: 120/120 AST unit tests passing at 91% coverage.
 - Formally signed off on Phase 1 via Tier 8 Plan Audit (`red_team_audit_01_phase1_plan.md`).
+- Completed Tier 0 Red-Teaming and System 2 Five-Axis Deconstruction for Phase 2 (`docs/epic/tasks_EPIC_156/02_phase2_plan.md`).
+- Exhaustively mapped all 319 active QGR014 violations across 53 test files into 5 granular refactoring batches (Batch A Services: 135, Batch B Orchestrator/Workers: 45, Batch C Integration: 24, Batch D Hooks: 46, Batch E Root/LLM: 67).
+- Discovered and designed false-positive AST filtering in `scripts/_ast_guardrails.py` for non-repository variables (`mock_report`, `mock_report_dto`).
+- Synchronized Target Files, 5-Column Architectural Directives Table, Pre-Implementation Cleanups, and verified 100% compliance with `audit_markdown_boundaries.py` (0 errors).
 
 ## Learned
 - Dynamic `model_copy(update=...)` calls inside `dag_executor.py` progress tracking occur safely within `async with _update_lock:` concurrency boundaries; tracking `_in_update_lock` in the AST visitor adheres directly to `safe_model_copy_concurrency_boundary` without touching fragile DAG executor code.
-- Heterogeneous input dictionaries in hooks like `source_verification_hook.py` must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
+- Heterogeneous input dictionaries in hooks (specifically `source_verification_hook.py`) must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
 - `VersionIncrementDTO` cleanly replaces anonymous 3-tuples in repository versioning, eliminating QGR023 violations.
 - Logfire FastAPI instrumentation requires idempotency protection when testing repeated startup lifecycles; tracking instrumented apps by object ID prevents re-instrumentation crashes.
 - Instantiating Pydantic models with `Annotated[..., Field(default_factory=...)]` requires an explicit argument or assignment to satisfy MyPy's strict argument checker (`MonitorState(cursors={})`).
+- AST visitor variable matching on `_repo` in `scripts/_ast_guardrails.py` matches `mock_report` and `mock_report_dto`; excluding `"report"` and `"response"` from `target_id_lower` eliminates false positives cleanly.
+- MBD007 in `audit_markdown_boundaries.py` treats backticked uppercase member access as an SSOT enum unless defined in `enums.py` or `enums.dart`; script-level enums (specifically GuardrailSeverity) must be referenced without backticks.
+- Target file boundaries in markdown plans should use clean workspace-relative paths without arbitrary line numbers to prevent MBD004 AST bound errors across multi-function files.
 
 ## Remaining
-- Run Phase 2 Red-Teaming (System 2 Five-Axis Deconstruction): `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
 - Execute Phase 2 under Continuous Full-Auto Mode (eliminating 319 QGR014 mocks, promoting QGR014 to FATAL, concurrency stress suite): `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
 - Run Phase 2 Plan Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
 ```
