@@ -1333,12 +1333,11 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
 
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         nonlocal in_progress_cb
-        progress_cb = kwargs.get("progress_callback")
-        if progress_cb:
+        if "progress_callback" in kwargs and kwargs["progress_callback"]:
             in_progress_cb = True
             try:
-                await progress_cb(5, 20)
-                await progress_cb(100, 100)
+                await kwargs["progress_callback"](5, 20)
+                await kwargs["progress_callback"](100, 100)
             finally:
                 in_progress_cb = False
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
@@ -1366,11 +1365,10 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
 
     async def mock_rag_execute(*args: Any, **kwargs: Any) -> dict[str, Any]:
         nonlocal in_preflight_progress
-        emit_progress = kwargs.get("emit_progress")
-        if emit_progress:
+        if "emit_progress" in kwargs and kwargs["emit_progress"]:
             in_preflight_progress = True
             try:
-                await emit_progress("Indexing ontology...", 50)
+                await kwargs["emit_progress"]("Indexing ontology...", 50)
             finally:
                 in_preflight_progress = False
         return GlobalAtomBlackboard(atoms_by_input={})
@@ -1711,16 +1709,16 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
     observed_statuses: list[ExecutionStatus] = []
 
     async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
-        running_evt = kwargs.get("running_event")
-        if running_evt:
-            running_evt.set()
+        if "running_event" in kwargs and kwargs["running_event"]:
+            kwargs["running_event"].set()
             # Allow watcher task to run and commit
             await asyncio.sleep(0.05)
             # Record current status from commit_trace calls
             for call in executor.committer.commit_trace.call_args_list:  # type: ignore[attr-defined]
-                step_states_arg = call.kwargs.get("step_states", {})
-                if "stp_5555666677778888" in step_states_arg:
-                    observed_statuses.append(step_states_arg["stp_5555666677778888"].status)
+                if "step_states" in call.kwargs:
+                    step_states_arg = call.kwargs["step_states"]
+                    if "stp_5555666677778888" in step_states_arg:
+                        observed_statuses.append(step_states_arg["stp_5555666677778888"].status)
         return [TraceEvent(step_name=step.id, event_type="output", content={"ok": True})]
 
     with (
@@ -1850,9 +1848,8 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
         mock_strat = AsyncMock()
 
         async def capture_execute(*args: Any, **kwargs: Any) -> list[Any]:
-            ctx = kwargs.get("context")
-            if ctx is not None:
-                captured_context.append(ctx)
+            if "context" in kwargs and kwargs["context"] is not None:
+                captured_context.append(kwargs["context"])
             return []
 
         mock_strat.execute.side_effect = capture_execute

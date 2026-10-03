@@ -58,7 +58,7 @@ async def test_native_schema_delegates_to_adapter() -> None:
 
         # Check the passed response_schema
         kwargs = mock_provider.generate.call_args.kwargs
-        passed_schema = kwargs.get("response_schema")
+        passed_schema = kwargs["response_schema"]
 
         # Verify it passed the schema from the adapter
         assert passed_schema["type"] == "json_schema"

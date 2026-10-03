@@ -395,7 +395,7 @@ def test_firestore_table_remove_failure_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         table.remove(query=lambda d: True)
 
-    assert exc_info.value.details.get("error_code") == ErrorCodes.STORAGE_ACCESS_FAILED
+    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED
 
 
 def test_firestore_client(tmp_path: Any) -> None:
@@ -456,7 +456,7 @@ def test_firestore_client_ping_failure() -> None:
         with pytest.raises(AppException) as exc_info:
             FirestoreClient()
 
-        assert exc_info.value.details.get("error_code") == ErrorCodes.STORAGE_ACCESS_FAILED
+        assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED
 
 
 def test_get_db_client(tmp_path: Any) -> None:

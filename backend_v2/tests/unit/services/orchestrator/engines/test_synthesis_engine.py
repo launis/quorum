@@ -118,7 +118,7 @@ async def test_synthesis_engine_missing_blackboard_crashes(
         await engine.execute(req)
 
     assert exc_info.value.details is not None
-    assert exc_info.value.details.get("error_code") == "SYNTHESIS_ENGINE_ERROR"
+    assert exc_info.value.details["error_code"] == "SYNTHESIS_ENGINE_ERROR"
 
 
 @pytest.mark.asyncio
@@ -177,7 +177,7 @@ async def test_synthesis_engine_exception_wrapping(
     assert "Network Error" in str(exc_info.value)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details is not None
-    assert exc_info.value.details.get("error_code") == "SYNTHESIS_ENGINE_ERROR"
+    assert exc_info.value.details["error_code"] == "SYNTHESIS_ENGINE_ERROR"
 
 
 @pytest.mark.asyncio
@@ -196,7 +196,8 @@ async def test_synthesis_engine_app_exception_reraised(
 
     assert exc_info.value.status_code == 400
     assert "Direct AppException" in str(exc_info.value)
-    assert exc_info.value.details.get("error_code") == "CUSTOM_ERROR"
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == "CUSTOM_ERROR"
 
 
 @pytest.mark.asyncio

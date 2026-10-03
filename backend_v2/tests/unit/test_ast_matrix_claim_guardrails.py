@@ -136,14 +136,20 @@ def test_seed_claims_have_no_ai_description() -> None:
     with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    prompt_blocks = data.get("prompt_blocks", [])
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     violations = []
     for block in prompt_blocks:
-        if block.get("category_id") == "matrix":
-            for scale in block.get("scales", []):
-                for claim in scale.get("claims", []):
+        cat_id = block["category_id"] if "category_id" in block else None
+        if cat_id == "matrix":
+            scales = block["scales"] if "scales" in block else []
+            for scale in scales:
+                claims = scale["claims"] if "claims" in scale else []
+                for claim in claims:
                     if "ai_description" in claim:
-                        violations.append((block.get("id"), scale.get("score"), claim.get("label")))
+                        b_id = block["id"] if "id" in block else "unknown"
+                        s_score = scale["score"] if "score" in scale else "unknown"
+                        c_label = claim["label"] if "label" in claim else "unknown"
+                        violations.append((b_id, s_score, c_label))
 
     assert len(violations) == 0, f"Found {len(violations)} matrix claims with ai_description: {violations}"
 
@@ -155,18 +161,23 @@ def test_seed_claims_all_tda_assertions_have_valid_concept_description() -> None
     with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    prompt_blocks = data.get("prompt_blocks", [])
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     short_assertions = []
     total_assertions = 0
     for block in prompt_blocks:
-        if block.get("category_id") == "matrix":
-            for scale in block.get("scales", []):
-                for claim in scale.get("claims", []):
-                    for assertion in claim.get("tda_assertions", []):
+        cat_id = block["category_id"] if "category_id" in block else None
+        if cat_id == "matrix":
+            scales = block["scales"] if "scales" in block else []
+            for scale in scales:
+                claims = scale["claims"] if "claims" in scale else []
+                for claim in claims:
+                    tda_assertions = claim["tda_assertions"] if "tda_assertions" in claim else []
+                    for assertion in tda_assertions:
                         total_assertions += 1
-                        desc = assertion.get("concept_description", "")
+                        desc = assertion["concept_description"] if "concept_description" in assertion else ""
                         if not isinstance(desc, str) or len(desc.strip()) < 10:
-                            short_assertions.append((assertion.get("tda_id"), desc))
+                            tda_id = assertion["tda_id"] if "tda_id" in assertion else "unknown"
+                            short_assertions.append((tda_id, desc))
 
     assert total_assertions >= 152, f"Expected at least 152 assertions in seed, found {total_assertions}"
     assert len(short_assertions) == 0, (

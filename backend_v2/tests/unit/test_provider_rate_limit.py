@@ -92,7 +92,7 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
 
     # Mock router.acompletion for first two failed attempts
     async def mock_router_acompletion(*args: Any, **kwargs: Any) -> Any:
-        calls.append(("router", kwargs.get("model")))
+        calls.append(("router", kwargs["model"] if "model" in kwargs else None))
 
         class MockRateLimit(Exception):
             status_code = 429
@@ -101,7 +101,7 @@ async def test_lite_llm_fail_soft_fallback(mock_settings: Any, monkeypatch: Any)
 
     # Mock litellm.acompletion for the third fallback attempt
     async def mock_litellm_acompletion(*args: Any, **kwargs: Any) -> Any:
-        calls.append(("litellm", kwargs.get("model")))
+        calls.append(("litellm", kwargs["model"] if "model" in kwargs else None))
 
         class MockChoice:
             message = type(

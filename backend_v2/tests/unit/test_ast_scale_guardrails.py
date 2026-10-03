@@ -70,10 +70,12 @@ def test_seed_data_matrices_have_no_scale_min_or_max() -> None:
     assert seed_path.exists(), f"File {seed_path} does not exist"
 
     seed_data = json.loads(seed_path.read_text(encoding="utf-8"))
-    prompt_blocks = seed_data.get("prompt_blocks", [])
+    prompt_blocks = seed_data["prompt_blocks"]
     assert len(prompt_blocks) > 0, "seed_data.json must contain prompt_blocks"
 
     for pb in prompt_blocks:
-        pb_id = pb.get("id", "<unknown>")
+        pb_id = "<unknown>"
+        if "id" in pb:
+            pb_id = pb["id"]
         assert "scale_min" not in pb, f"PromptBlock '{pb_id}' in seed_data.json must NOT contain 'scale_min'"
         assert "scale_max" not in pb, f"PromptBlock '{pb_id}' in seed_data.json must NOT contain 'scale_max'"

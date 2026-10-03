@@ -82,7 +82,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
     assert len(data) == 1
 
     wf_data = data[0]
-    profiles = wf_data.get("output_profiles", {})
+    profiles = wf_data["output_profiles"]
     assert "prof_0123456789abcdef0123456789abcdef" in profiles
     profile_data = profiles["prof_0123456789abcdef0123456789abcdef"]
 

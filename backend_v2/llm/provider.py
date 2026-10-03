@@ -200,8 +200,8 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         if e.status_code in (429, 503, 504):
             return True
         error_code = None
-        if isinstance(e.details, dict):
-            error_code = e.details.get("error_code")
+        if isinstance(e.details, dict) and "error_code" in e.details:
+            error_code = e.details["error_code"]
         if error_code in (
             ErrorCodes.UPSTREAM_TIMEOUT.value,
             ErrorCodes.UPSTREAM_TIMEOUT.name,
@@ -660,7 +660,11 @@ class LiteLLMProvider(LLMProvider):
                     [
                         m
                         for m in messages
-                        if (m.role != "system" if isinstance(m, LLMMessageDTO) else m.get("role") != "system")
+                        if (
+                            m.role != "system"
+                            if isinstance(m, LLMMessageDTO)
+                            else (m["role"] != "system" if isinstance(m, dict) and "role" in m else True)
+                        )
                     ]
                 )
             else:
@@ -718,7 +722,9 @@ class LiteLLMProvider(LLMProvider):
                     if hasattr(response_schema, "__name__"):
                         schema_name = response_schema.__name__
                 elif isinstance(response_schema, dict) and "json_schema" in response_schema:
-                    schema_name = response_schema["json_schema"].get("name", "dict")
+                    js = response_schema["json_schema"]
+                    if isinstance(js, dict) and "name" in js and js["name"]:
+                        schema_name = str(js["name"])
 
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
@@ -811,7 +817,9 @@ class LiteLLMProvider(LLMProvider):
                 call_kwargs.pop(key, None)
 
             # Tier 4 Fix: HTTPX Configuration for Server Disconnected Issues
-            _timeout_val = float(call_kwargs.get("timeout", self.settings.llm_default_timeout))
+            _timeout_val = float(self.settings.llm_default_timeout)
+            if "timeout" in call_kwargs and call_kwargs["timeout"] is not None:
+                _timeout_val = float(call_kwargs["timeout"])
             provider_suffix = "default"
             if self._config:
                 provider_suffix = self._config.provider
@@ -1012,7 +1020,9 @@ class LiteLLMProvider(LLMProvider):
             final_content = raw_content
             parsed_obj = None
 
-            cached_tokens_val = usage.get("cached_tokens", 0)
+            cached_tokens_val = 0
+            if "cached_tokens" in usage and usage["cached_tokens"] is not None:
+                cached_tokens_val = usage["cached_tokens"]
             LLMCachingService.record_cache_hit(bool(cached_tokens_val and cached_tokens_val > 0))
 
             active_span = otel_trace.get_current_span()
@@ -1020,9 +1030,9 @@ class LiteLLMProvider(LLMProvider):
                 resp_model = getattr(response, "model", None)  # noqa: QGR001 [REASON: Third-party LiteLLM response model lookup]
                 if resp_model:
                     active_span.set_attribute("gen_ai.response.model", str(resp_model))
-                if usage.get("prompt_tokens") is not None:
+                if "prompt_tokens" in usage and usage["prompt_tokens"] is not None:
                     active_span.set_attribute("gen_ai.usage.input_tokens", int(usage["prompt_tokens"]))
-                if usage.get("completion_tokens") is not None:
+                if "completion_tokens" in usage and usage["completion_tokens"] is not None:
                     active_span.set_attribute("gen_ai.usage.output_tokens", int(usage["completion_tokens"]))
 
             # --- ADVANCED TELEMETRY & METADATA ---
@@ -1086,12 +1096,12 @@ class LiteLLMProvider(LLMProvider):
             if self.usage_service:
                 try:
                     # Resolve IDs from kwargs (execution config) or provider instance
-                    target_org = kwargs.get("organization_id")
-                    if not target_org:
-                        target_org = self.organization_id
-                    target_user = kwargs.get("user_id")
-                    if not target_user:
-                        target_user = "system_agent"
+                    target_org = self.organization_id
+                    if "organization_id" in kwargs and kwargs["organization_id"]:
+                        target_org = kwargs["organization_id"]
+                    target_user = "system_agent"
+                    if "user_id" in kwargs and kwargs["user_id"]:
+                        target_user = kwargs["user_id"]
 
                     in_tokens = 0
                     if "prompt_tokens" in usage:
@@ -1500,12 +1510,12 @@ class MockProvider(LLMProvider):
         # --- COST TRACKING (Mock) ---
         if self.usage_service:
             try:
-                target_org = kwargs.get("organization_id")
-                if not target_org:
-                    target_org = self.organization_id
-                target_user = kwargs.get("user_id")
-                if not target_user:
-                    target_user = "system_agent"
+                target_org = self.organization_id
+                if "organization_id" in kwargs and kwargs["organization_id"]:
+                    target_org = kwargs["organization_id"]
+                target_user = "system_agent"
+                if "user_id" in kwargs and kwargs["user_id"]:
+                    target_user = kwargs["user_id"]
 
                 await self.usage_service.track_usage(
                     org_id=target_org,

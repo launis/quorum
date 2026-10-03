@@ -57,7 +57,7 @@ def test_embedded_output_profile_description_parsing() -> None:
     }
     profile_success = OutputProfile.model_validate(valid_data)
     assert profile_success.description is not None
-    assert profile_success.description.get("en") == "A valid description"
+    assert profile_success.description.resolve("en") == "A valid description"
 
     # 2. Fail-fast case with invalid description
     invalid_data: dict[str, Any] = {
@@ -99,9 +99,9 @@ def test_execution_core_fields_inheritance_on_execution_record() -> None:
 
     # 2. Verify ExecutionCoreFields enforces V2CoreBase config
     config = ExecutionCoreFields.model_config
-    assert config.get("frozen") is True, "ExecutionCoreFields must be frozen"
-    assert config.get("strict") is True, "ExecutionCoreFields must be strict"
-    assert config.get("extra") == "forbid", "ExecutionCoreFields must forbid extra fields"
+    assert config["frozen"] is True, "ExecutionCoreFields must be frozen"
+    assert config["strict"] is True, "ExecutionCoreFields must be strict"
+    assert config["extra"] == "forbid", "ExecutionCoreFields must forbid extra fields"
 
     # 3. Verify all core fields are accessible on ExecutionRecord instances
     core_field_names = {

@@ -326,7 +326,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
+    assert "extension_metrics" in prof_synth["prof_1111111111111111"]
+    metrics = prof_synth["prof_1111111111111111"]["extension_metrics"]
     assert metrics is not None
     assert metrics["authenticity_score"] == 2.5
     assert metrics["performative_phrases_count"] == 2.0
@@ -378,7 +379,8 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
+    assert "extension_metrics" in prof_synth["prof_1111111111111111"]
+    metrics = prof_synth["prof_1111111111111111"]["extension_metrics"]
     assert metrics is not None
     assert metrics["authenticity_score"] == 1.5
     assert metrics["performative_phrases_count"] == 1.0
@@ -404,8 +406,10 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is None
+    assert (
+        "extension_metrics" not in prof_synth["prof_1111111111111111"]
+        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    )
 
 
 @pytest.mark.asyncio
@@ -448,8 +452,10 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is None
+    assert (
+        "extension_metrics" not in prof_synth["prof_1111111111111111"]
+        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    )
 
 
 @pytest.mark.asyncio
@@ -480,8 +486,10 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is None
+    assert (
+        "extension_metrics" not in prof_synth["prof_1111111111111111"]
+        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    )
 
 
 @pytest.mark.asyncio
@@ -523,8 +531,10 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is None
+    assert (
+        "extension_metrics" not in prof_synth["prof_1111111111111111"]
+        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
+    )
 
 
 @pytest.mark.asyncio
@@ -607,7 +617,7 @@ async def test_worker_synthesis_matrix_layout_directives(
             {
                 "id": "grp_1234567890123456",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
-                "target_blocks": target_blocks_map.get(view_type, ["blk_1"]),
+                "target_blocks": target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
                 "view_type": view_type,
             }
         ],
@@ -621,7 +631,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -664,7 +674,7 @@ async def test_worker_synthesis_matrix_layout_directives(
         group_calls = [
             call
             for call in mock_client.run_structured_task.call_args_list
-            if call.kwargs.get("response_model") is MatrixSectionSynthesesResult
+            if "response_model" in call.kwargs and call.kwargs["response_model"] is MatrixSectionSynthesesResult
         ]
         assert len(group_calls) == 0
         return
@@ -720,7 +730,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task_disabled(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -791,7 +801,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task_exec(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -879,7 +889,7 @@ async def test_worker_synthesis_multi_section_aggregation(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task_multi(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -965,7 +975,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task_empty(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -1061,7 +1071,7 @@ async def test_worker_synthesis_custom_directives_resolution(
     mock_client = AsyncMock()
 
     async def _mock_run_structured_task_custom(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        resp_model = kwargs.get("response_model")
+        resp_model = kwargs["response_model"] if "response_model" in kwargs else None
         usage = TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.001)
         if resp_model is ExecutiveSummarySectionResult:
             return (
@@ -1183,7 +1193,7 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
     assert prof_synth is not None
     # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
-    assert prof_synth["prof_1111111111111111"].get("extension_metrics") is None
+    assert "extension_metrics" not in prof_synth["prof_1111111111111111"] or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
 
 
 @pytest.mark.asyncio

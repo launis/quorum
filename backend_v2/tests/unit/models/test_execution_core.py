@@ -25,8 +25,8 @@ class TestExecutionCoreFieldsStructure:
     def test_model_config_strict_forbid(self) -> None:
         """ExecutionCoreFields must enforce strict and extra=forbid."""
         config = ExecutionCoreFields.model_config
-        assert config.get("strict") is True
-        assert config.get("extra") == "forbid"
+        assert config["strict"] is True
+        assert config["extra"] == "forbid"
 
     def test_defines_ssot_fields(self) -> None:
         """ExecutionCoreFields must define the shared SSOT fields."""
@@ -178,8 +178,8 @@ class TestExecutionMetadata:
     def test_model_config_strict_forbid(self) -> None:
         """ExecutionMetadata must enforce strict and extra=forbid."""
         config = ExecutionMetadata.model_config
-        assert config.get("strict") is True
-        assert config.get("extra") == "forbid"
+        assert config["strict"] is True
+        assert config["extra"] == "forbid"
 
     def test_defaults(self) -> None:
         """Verify default values on ExecutionMetadata."""

@@ -193,6 +193,7 @@ def test_qgr002_get_default_detection() -> None:
     unsuppressed = [v for v in violations if not v.is_suppressed]
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR002"
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
     assert ".get(key, default)" in unsuppressed[0].message
 
 
@@ -1203,7 +1204,7 @@ def test_qgr018_typeadapter_dto_allowed() -> None:
 
 
 def test_boundary_exemption_files_preserved() -> None:
-    code = "val = getattr(obj, 'k', None)\nval2 = data.get('k', 'def')\n"
+    code = "val = getattr(obj, 'k', None)\n"
     for exempt_file in ["tinydb_driver.py", "firestore_driver.py", "provider.py", "logging_config.py"]:
         violations = _scan_snippet(code, filepath=f"backend_v2/database/drivers/{exempt_file}")
         assert all(v.severity == GuardrailSeverity.WARNING for v in violations)

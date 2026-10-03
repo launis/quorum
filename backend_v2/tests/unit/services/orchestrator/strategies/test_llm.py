@@ -1773,7 +1773,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
         )
 
     assert len(traces) == 1
-    assert traces[0].content.get("anomaly_unresolved") is True
+    assert traces[0].content["anomaly_unresolved"] is True
 
 
 @pytest.mark.asyncio
@@ -2215,7 +2215,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
         assert len(traces) == 1
         req_call = mock_req.call_args
         assert req_call is not None
-        global_source_text = req_call.kwargs.get("global_source_text")
+        global_source_text = req_call.kwargs["global_source_text"]
         assert global_source_text is not None
         assert (
             '<ai_context_directive document="chat_log">Dialogue between coach and user.</ai_context_directive>'
@@ -2359,7 +2359,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
         req_call = mock_req.call_args
         assert req_call is not None
-        source_text_a = req_call.kwargs.get("global_source_text")
+        source_text_a = req_call.kwargs["global_source_text"]
         assert source_text_a is not None
         assert "Candidate final deliverable." in source_text_a
         assert "Executive recommendation deliverable." in source_text_a
@@ -2396,7 +2396,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
         req_call = mock_req.call_args
         assert req_call is not None
-        source_text_b = req_call.kwargs.get("global_source_text")
+        source_text_b = req_call.kwargs["global_source_text"]
         assert source_text_b == ""
 
     # Case C: step has empty input_mappings={} -> global_source_text is empty string
@@ -2429,7 +2429,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
         req_call = mock_req.call_args
         assert req_call is not None
-        source_text_c = req_call.kwargs.get("global_source_text")
+        source_text_c = req_call.kwargs["global_source_text"]
         assert source_text_c == ""
 
 

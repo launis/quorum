@@ -137,7 +137,9 @@ async def test_create_and_clone_output_profile(
     saved_profiles[p1.id] = p1
 
     async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        return saved_profiles.get(pid)
+        if pid in saved_profiles:
+            return saved_profiles[pid]
+        return None
 
     service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
 
@@ -244,7 +246,9 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
     service.output_profile_repo.create_output_profile.side_effect = mock_create
 
     async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        return saved_profiles.get(pid)
+        if pid in saved_profiles:
+            return saved_profiles[pid]
+        return None
 
     service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
 

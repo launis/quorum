@@ -632,8 +632,8 @@ def test_build_xml_context_unmapped_inputs_raises_app_exception() -> None:
 
     assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR
     assert "Unmapped input reference '$inputs.undeclared_input'" in str(exc_info.value)
-    assert exc_info.value.details.get("source_path") == "$inputs.undeclared_input"
-    assert exc_info.value.details.get("base_path") == "$inputs.undeclared_input"
+    assert exc_info.value.details["source_path"] == "$inputs.undeclared_input"
+    assert exc_info.value.details["base_path"] == "$inputs.undeclared_input"
 
 
 def test_all_standard_input_types_wrapped_in_user_payload() -> None:

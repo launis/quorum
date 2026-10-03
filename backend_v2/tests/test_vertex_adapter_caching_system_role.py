@@ -28,9 +28,9 @@ async def test_vertex_adapter_caching_system_role_bug() -> None:
     mock_caching_module.CachedContent = mock_cached_content
 
     def fake_create(**kwargs: Any) -> MagicMock:
-        contents = kwargs.get("contents", [])
+        contents = kwargs["contents"] if "contents" in kwargs else []
         for item in contents:
-            if item.get("role") == "system":
+            if "role" in item and item["role"] == "system":
                 # Simulate the exact GCP API Exception
                 from google.api_core.exceptions import InvalidArgument
 

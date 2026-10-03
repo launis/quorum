@@ -156,7 +156,7 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
 
     assert "strategy_id" in captured_pacing_kwargs
     assert captured_pacing_kwargs["strategy_id"] == "openai/gpt-5.1", (
-        f"Expected pacing strategy_id='openai/gpt-5.1', but got '{captured_pacing_kwargs.get('strategy_id')}'"
+        f"Expected pacing strategy_id='openai/gpt-5.1', but got '{captured_pacing_kwargs['strategy_id']}'"
     )
 
 

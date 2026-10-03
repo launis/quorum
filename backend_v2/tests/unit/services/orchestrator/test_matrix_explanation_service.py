@@ -84,18 +84,22 @@ def _make_step_dtos(
     """Helper to construct strictly typed StepOutputDTO collections for atom and matrix steps."""
     dtos: list[StepOutputDTO] = []
     if results:
-        atom_dtos = [
-            AtomResultDTO(
-                tda_id=r["tda_id"],
-                status=_to_status(r["status"]),
-                evaluation_reasoning=r.get("evaluation_reasoning"),
-                source_quote=r.get("source_quote"),
-                contextual_override=r.get("contextual_override", False),
-                is_inverse_evidence=r.get("is_inverse_evidence", False),
-            )
-            for r in results
-            if r is not None and isinstance(r, dict) and "tda_id" in r
-        ]
+        atom_dtos: list[AtomResultDTO] = []
+        for r in results:
+            if r is not None and isinstance(r, dict) and "tda_id" in r:
+                atom_data: dict[str, Any] = {
+                    "tda_id": r["tda_id"],
+                    "status": _to_status(r["status"]),
+                }
+                if "evaluation_reasoning" in r:
+                    atom_data["evaluation_reasoning"] = r["evaluation_reasoning"]
+                if "source_quote" in r:
+                    atom_data["source_quote"] = r["source_quote"]
+                if "contextual_override" in r:
+                    atom_data["contextual_override"] = r["contextual_override"]
+                if "is_inverse_evidence" in r:
+                    atom_data["is_inverse_evidence"] = r["is_inverse_evidence"]
+                atom_dtos.append(AtomResultDTO.model_validate(atom_data))
         if atom_dtos:
             dtos.append(
                 StepOutputDTO(

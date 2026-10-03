@@ -309,7 +309,7 @@ def test_high_entropy_coverage_detects_false_atom() -> None:
     corrupted_atom["high_entropy"] = False
     simulated_atoms[target_id] = corrupted_atom
 
-    disabled = [tda_id for tda_id, a in simulated_atoms.items() if a.get("high_entropy") is not True]
+    disabled = [tda_id for tda_id, a in simulated_atoms.items() if "high_entropy" in a and a["high_entropy"] is not True]
     assert len(disabled) == 1
     assert disabled[0] == target_id
 

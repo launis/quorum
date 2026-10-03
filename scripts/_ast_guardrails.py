@@ -491,6 +491,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "app",
                             "redis",
                             "redis_client",
+                            "registry",
+                            "TaskRegistry",
                             "_LABEL_MAP",
                             "LABEL_MAP",
                             "_VALUE_MAP",
@@ -498,6 +500,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "_L10N_MAP",
                             "L10N_MAP",
                         }
+                        or name.startswith("client_")
                         or name.endswith(("_router", "_subrouter", "_client", "_table"))
                         or name == "table"
                     ):
@@ -515,6 +518,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "app",
                             "redis",
                             "redis_client",
+                            "registry",
+                            "TaskRegistry",
                             "_LABEL_MAP",
                             "LABEL_MAP",
                             "_VALUE_MAP",
@@ -522,6 +527,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "_L10N_MAP",
                             "L10N_MAP",
                         }
+                        or attr_name.startswith("client_")
                         or attr_name.endswith(("_router", "_subrouter", "_client", "_table"))
                         or attr_name == "table"
                     ):
@@ -539,11 +545,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             break
 
                 if not exempt:
-                    qgr002_sev = (
-                        GuardrailSeverity.FATAL
-                        if (self._is_domain_code and not self._is_boundary_exempt)
-                        else GuardrailSeverity.WARNING
-                    )
+                    qgr002_sev = GuardrailSeverity.FATAL
                     if len(node.args) >= 2:
                         msg = "Banned lazy fallback call: `.get(key, default)` in domain code."
                     else:

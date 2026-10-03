@@ -440,11 +440,10 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
 
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         nonlocal in_progress_cb
-        progress_cb = kwargs.get("progress_callback")
-        if progress_cb:
+        if "progress_callback" in kwargs and kwargs["progress_callback"]:
             in_progress_cb = True
             try:
-                await progress_cb(50, 100)
+                await kwargs["progress_callback"](50, 100)
             finally:
                 in_progress_cb = False
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]

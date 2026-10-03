@@ -31,9 +31,9 @@ class MockGenAITypes:
     @staticmethod
     def CreateCachedContentConfig(*args: Any, **kwargs: Any) -> Any:
         config = MagicMock()
-        config.contents = kwargs.get("contents")
-        config.ttl = kwargs.get("ttl")
-        config.system_instruction = kwargs.get("system_instruction")
+        config.contents = kwargs["contents"] if "contents" in kwargs else None
+        config.ttl = kwargs["ttl"] if "ttl" in kwargs else None
+        config.system_instruction = kwargs["system_instruction"] if "system_instruction" in kwargs else None
         return config
 
 
@@ -461,7 +461,9 @@ def test_ai_studio_adapter_prepare_structured_output() -> None:
     assert isinstance(result, dict)
     assert result["type"] == "json_schema"
     assert result["json_schema"]["name"] == "SampleSchema"
-    assert "minLength" not in result["json_schema"]["schema"].get("properties", {}).get("name", {})
+    props = result["json_schema"]["schema"]["properties"] if "properties" in result["json_schema"]["schema"] else {}
+    name_prop = props["name"] if "name" in props else {}
+    assert "minLength" not in name_prop
 
 
 @pytest.mark.asyncio

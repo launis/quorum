@@ -74,11 +74,11 @@ async def test_provider_caching_payload_scrub_bug() -> None:
 
     # The cache ID should be present
     expected_cache_id = "projects/cognitive-quorum/locations/europe-north1/cachedContents/1317893878505799680"
-    assert call_kwargs.get("cached_content") == expected_cache_id
+    assert call_kwargs["cached_content"] == expected_cache_id
 
     # 1. No system messages should remain in the messages list
-    messages = call_kwargs.get("messages", [])
-    has_system = any(msg.get("role") == "system" for msg in messages)
+    messages = call_kwargs["messages"]
+    has_system = any(msg["role"] == "system" for msg in messages if "role" in msg)
 
     # This should fail if the bug is present!
     assert not has_system, "System messages MUST NOT be passed to LiteLLM when cached_content is active!"

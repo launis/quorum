@@ -385,7 +385,10 @@ class TestVarianceRunnerStrategies:
         captured_envs: list[dict[str, str]] = []
 
         def mock_popen(cmd: list[str], **kwargs: Any) -> Any:
-            captured_envs.append(dict(kwargs.get("env", {})))
+            if "env" in kwargs:
+                captured_envs.append(dict(kwargs["env"]))
+            else:
+                captured_envs.append({})
             return MagicMock()
 
         monkeypatch.setattr(run_e2e_variance_test, "force_kill_services", lambda: None)
@@ -399,7 +402,8 @@ class TestVarianceRunnerStrategies:
             )
 
         assert len(captured_envs) == 1
-        raw_aliases = captured_envs[0].get("STRATEGY_ALIASES")
+        assert "STRATEGY_ALIASES" in captured_envs[0]
+        raw_aliases = captured_envs[0]["STRATEGY_ALIASES"]
         assert raw_aliases is not None
         aliases = json.loads(raw_aliases)
         assert aliases["strict"] == "openai_strict"

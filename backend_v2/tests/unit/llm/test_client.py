@@ -44,8 +44,8 @@ class DummyStrictModel(BaseModel):
     def force_logic(cls, values: Any) -> Any:
         """Socratic logic constraint."""
         if isinstance(values, dict):
-            score = values.get("step_4_final_score")
-            quote = values.get("step_1_evidence_quote")
+            score = values["step_4_final_score"] if "step_4_final_score" in values else None
+            quote = values["step_1_evidence_quote"] if "step_1_evidence_quote" in values else None
             if score == 5 and not quote:
                 raise ValueError("CRITICAL LOGICAL ERROR: High score but no quote.")
         return values
@@ -132,7 +132,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
 
     # 3. Micro-CoT Feedback Injection Validation
     args, kwargs = mock_provider.generate.call_args_list[1]
-    msgs = kwargs.get("messages", [])
+    msgs = kwargs["messages"]
 
     # The self-healing loop appends to the existing user message
     assert len(msgs) == 1

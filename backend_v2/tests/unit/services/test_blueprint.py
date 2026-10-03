@@ -85,8 +85,11 @@ def fix_mock_dict(d: Any) -> Any:
                     else:
                         for assertion in claim_dict["tda_assertions"]:
                             if isinstance(assertion, dict):
-                                desc = assertion.get("concept_description", "")
-                                if not isinstance(desc, str) or len(desc) < 10:
+                                if (
+                                    "concept_description" not in assertion
+                                    or not isinstance(assertion["concept_description"], str)
+                                    or len(assertion["concept_description"]) < 10
+                                ):
                                     assertion["concept_description"] = "concept_description_valid"
         if (
             "concept_description" in d

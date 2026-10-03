@@ -303,12 +303,12 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     # V3: Returned messages are dynamic-only (rubrics, atoms, params)
     assert returned_msgs == prompt.to_dynamic_flat()
     assert any(
-        "<evaluation_criteria>" in str(m.content if isinstance(m, LLMMessageDTO) else m.get("content", ""))
+        "<evaluation_criteria>" in str(m.content if isinstance(m, LLMMessageDTO) else (m["content"] if isinstance(m, dict) and "content" in m else ""))
         for m in returned_msgs
     )
     # V3: Static source_data must NOT be in returned messages
     assert not any(
-        "<source_data>" in str(m.content if isinstance(m, LLMMessageDTO) else m.get("content", ""))
+        "<source_data>" in str(m.content if isinstance(m, LLMMessageDTO) else (m["content"] if isinstance(m, dict) and "content" in m else ""))
         for m in returned_msgs
     )
 
@@ -354,8 +354,8 @@ def test_vertex_adapter_sanitize_messages() -> None:
 
     sanitized = adapter.sanitize_messages(messages)
     assert len(sanitized) == 3
-    assert not any(m.get("tool_call_id") == "orphaned_call_999" for m in sanitized)
-    assert any(m.get("tool_call_id") == "call_123" for m in sanitized)
+    assert not any("tool_call_id" in m and m["tool_call_id"] == "orphaned_call_999" for m in sanitized)
+    assert any("tool_call_id" in m and m["tool_call_id"] == "call_123" for m in sanitized)
 
 
 def test_vertex_adapter_sanitizes_tool_calls_without_reflection() -> None:
@@ -377,7 +377,7 @@ def test_vertex_adapter_sanitizes_tool_calls_without_reflection() -> None:
     ]
     sanitized = adapter.sanitize_messages(messages)
     assert len(sanitized) == 4
-    tool_ids = [m.get("tool_call_id") for m in sanitized if m.get("role") == "tool"]
+    tool_ids = [m["tool_call_id"] for m in sanitized if "role" in m and m["role"] == "tool" and "tool_call_id" in m]
     assert "call_typed_1" in tool_ids
     assert "call_dict_2" in tool_ids
     assert "call_orphan_3" not in tool_ids
@@ -490,7 +490,9 @@ def test_vertex_adapter_prepare_structured_output() -> None:
     assert isinstance(structured, dict)
     assert structured["type"] == "json_schema"
     schema = structured["json_schema"]["schema"]
-    assert "minLength" not in schema.get("properties", {}).get("summary", {})
+    props = schema["properties"] if "properties" in schema else {}
+    summary_prop = props["summary"] if "summary" in props else {}
+    assert "minLength" not in summary_prop
 
 
 @pytest.mark.asyncio

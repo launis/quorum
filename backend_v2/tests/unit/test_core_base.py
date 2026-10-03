@@ -55,14 +55,12 @@ def test_i18n_text_validation_and_resolve() -> None:
     i18n_sanitized = I18nText(translations={"  EN  ": "Hello", "  FI  ": "Moi"})
     assert i18n_sanitized.translations == {"en": "Hello", "fi": "Moi"}
 
-    # 5. Resolve and get logic
+    # 5. Resolve logic
     i18n = I18nText(translations={"fi": "Moi", "en": "Hello", "sv": "Hej"})
     assert i18n.resolve("sv-SE") == "Hej"
+    assert i18n.resolve("sv") == "Hej"
     assert i18n.resolve("de", fallback_locale="fi") == "Moi"  # fallback to specified fallback_locale
     assert i18n.resolve("de") == "Hello"  # default fallback to en
-    assert i18n.get("sv") == "Hej"
-    assert i18n.get("de", fallback="fi") == "Moi"
-    assert i18n.get("de") == "Hello"
 
     # 6. Resolve with unresolvable locale and missing fallback raises AppException
     i18n_de = I18nText.model_construct(translations={"de": "Hallo"})

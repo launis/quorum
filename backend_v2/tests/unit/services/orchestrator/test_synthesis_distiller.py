@@ -59,7 +59,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    pruned = compressed_dict.get("results", [])
+    pruned = compressed_dict["results"]
     assert len(pruned) == 40
 
 

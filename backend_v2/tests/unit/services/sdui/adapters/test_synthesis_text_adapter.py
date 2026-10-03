@@ -141,4 +141,4 @@ def test_synthesis_text_adapter_empty_content_blocks() -> None:
 
 def test_synthesis_text_rules_attributes() -> None:
     """Test that SYNTHESIS_TEXT_RULES conforms to SynthesisTextAestheticsDTO schema."""
-    assert SYNTHESIS_TEXT_RULES.model_config.get("extra") == "forbid"
+    assert SYNTHESIS_TEXT_RULES.model_config["extra"] == "forbid"

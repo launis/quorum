@@ -429,7 +429,7 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
     )
 
     # Test each block-level extension type individually
-    block_extensions = [e for e in XaiExtensionType if XAI_EXTENSION_SCOPE.get(e) == XaiExtensionScope.BLOCK]
+    block_extensions = [e for e in XaiExtensionType if e in XAI_EXTENSION_SCOPE and XAI_EXTENSION_SCOPE[e] == XaiExtensionScope.BLOCK]
 
     for i, ext_type in enumerate(block_extensions):
         profile = OutputProfile(
@@ -463,6 +463,6 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
 
 def test_xai_aesthetics_rules_attributes() -> None:
     """Test that XAI_AESTHETICS_RULES adheres to strict aesthetics schema."""
-    assert XAI_AESTHETICS_RULES.model_config.get("extra") == "forbid"
+    assert XAI_AESTHETICS_RULES.model_config["extra"] == "forbid"
     assert "coaching" in XAI_AESTHETICS_RULES
     assert XAI_AESTHETICS_RULES["coaching"].severity == VisualIntent.SUCCESS

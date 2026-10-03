@@ -66,7 +66,7 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
 
     # In Pydantic V2, nested models are in $defs
     # Find the AtomResponse schema in $defs
-    defs = schema_json.get("$defs", {})
+    defs = schema_json["$defs"]
     atom_response_schema = None
     for def_name, def_schema in defs.items():
         if "AtomResponse" in def_name:
@@ -76,7 +76,7 @@ def test_atom_id_is_first_field_in_shuffled_atoms_schema() -> None:
     assert atom_response_schema is not None, "AtomResponse schema not found in $defs"
 
     # Get the ordered properties
-    properties = atom_response_schema.get("properties", {})
+    properties = atom_response_schema["properties"]
     fields_list = list(properties.keys())
 
     assert len(fields_list) > 0, "AtomResponse has no fields"

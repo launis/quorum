@@ -31,10 +31,13 @@ class DummyTestTool(BaseTool):
 
     async def execute(self, **kwargs: Any) -> MCPAuditTrace:
         self.last_kwargs = kwargs
+        query_val = "default_query"
+        if "query" in kwargs:
+            query_val = str(kwargs["query"])
         return MCPAuditTrace(
             tool_id=self._tool_id,
             step_name="step_test",
-            query=str(kwargs.get("query", "default_query")),
+            query=query_val,
             response_summary="dummy output",
         )
 
@@ -72,7 +75,7 @@ async def test_tool_dispatcher_execute_success() -> None:
     trace = await dispatcher.execute_tool("tool_a", query="search terms", extra_flag=True)
     assert trace.tool_id == "tool_a"
     assert trace.query == "search terms"
-    assert tool_a.last_kwargs.get("extra_flag") is True
+    assert tool_a.last_kwargs["extra_flag"] is True
 
 
 @pytest.mark.asyncio

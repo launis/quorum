@@ -38,9 +38,9 @@ def test_ast_domain_models_strict_frozen_config() -> None:
                             # Check Call to ConfigDict
                             if isinstance(stmt.value, ast.Call):
                                 kwargs = {kw.arg: kw.value for kw in stmt.value.keywords if kw.arg}
-                                strict_val = kwargs.get("strict")
-                                extra_val = kwargs.get("extra")
-                                frozen_val = kwargs.get("frozen")
+                                strict_val = kwargs["strict"] if "strict" in kwargs else None
+                                extra_val = kwargs["extra"] if "extra" in kwargs else None
+                                frozen_val = kwargs["frozen"] if "frozen" in kwargs else None
 
                                 is_strict = isinstance(strict_val, ast.Constant) and strict_val.value is True
                                 is_forbid = isinstance(extra_val, ast.Constant) and extra_val.value == "forbid"
@@ -196,9 +196,9 @@ class InvalidModel(BaseModel):
                         if isinstance(target, ast.Name) and target.id == "model_config":
                             if isinstance(stmt.value, ast.Call):
                                 kwargs = {kw.arg: kw.value for kw in stmt.value.keywords if kw.arg}
-                                strict_val = kwargs.get("strict")
-                                extra_val = kwargs.get("extra")
-                                frozen_val = kwargs.get("frozen")
+                                strict_val = kwargs["strict"] if "strict" in kwargs else None
+                                extra_val = kwargs["extra"] if "extra" in kwargs else None
+                                frozen_val = kwargs["frozen"] if "frozen" in kwargs else None
 
                                 is_strict = isinstance(strict_val, ast.Constant) and strict_val.value is True
                                 is_forbid = isinstance(extra_val, ast.Constant) and extra_val.value == "forbid"
@@ -466,8 +466,8 @@ def find_redundant_criteria_in_steps(
     """Scan step definitions for any redundant global mandate block IDs in criteria_block_ids."""
     violations: list[tuple[str, str]] = []
     for step in steps:
-        step_id = str(step.get("id", "unknown"))
-        criteria = step.get("criteria_block_ids", [])
+        step_id = str(step["id"]) if "id" in step else "unknown"
+        criteria = step["criteria_block_ids"] if "criteria_block_ids" in step else []
         if isinstance(criteria, list):
             for cid in criteria:
                 if isinstance(cid, str) and cid in candidate_ids:
@@ -481,8 +481,8 @@ def find_escaped_xml_tags_in_prompt_blocks(
     """Scan prompt block descriptions for escaped XML tags like &lt;tag&gt;."""
     violations: list[tuple[str, str]] = []
     for block in prompt_blocks:
-        block_id = str(block.get("id", "unknown"))
-        ai_desc = block.get("ai_description")
+        block_id = str(block["id"]) if "id" in block else "unknown"
+        ai_desc = block["ai_description"] if "ai_description" in block else None
         if isinstance(ai_desc, str) and ("&lt;" in ai_desc or "&gt;" in ai_desc):
             violations.append((block_id, ai_desc))
     return violations
@@ -495,7 +495,7 @@ def test_seed_steps_criteria_blocks_have_no_redundant_mandates() -> None:
     with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    steps = data.get("steps", [])
+    steps = data["steps"] if "steps" in data else []
     violations = find_redundant_criteria_in_steps(steps)
     assert len(violations) == 0, (
         f"Found {len(violations)} redundant global mandate block IDs in step criteria: {violations}"
@@ -509,7 +509,7 @@ def test_seed_prompt_blocks_zero_escaped_xml_tags() -> None:
     with open(seed_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    prompt_blocks = data.get("prompt_blocks", [])
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
     violations = find_escaped_xml_tags_in_prompt_blocks(prompt_blocks)
     assert len(violations) == 0, f"Found {len(violations)} prompt blocks containing escaped XML tags: {violations}"
 

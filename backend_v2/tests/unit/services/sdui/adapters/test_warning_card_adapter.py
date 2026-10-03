@@ -140,6 +140,6 @@ def test_warning_card_adapter_missing_rule_fail_fast(base_output_profile: Output
 
 def test_warning_card_rules_attributes() -> None:
     """Test that WARNING_CARD_RULES adheres to strict aesthetics schema."""
-    assert WARNING_CARD_RULES.model_config.get("extra") == "forbid"
+    assert WARNING_CARD_RULES.model_config["extra"] == "forbid"
     assert "starvation" in WARNING_CARD_RULES
     assert WARNING_CARD_RULES["starvation"].severity == VisualIntent.WARNING

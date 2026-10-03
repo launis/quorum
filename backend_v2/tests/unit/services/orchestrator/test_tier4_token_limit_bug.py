@@ -17,7 +17,7 @@ async def test_tier4_reasoning_trace_truncation_bug() -> None:
     (evaluation_notes, eval_1) are completely missing.
     """
     # 1. Create a dynamic schema using SchemaFactory
-    factory = SchemaFactory(resolve_i18n_fn=lambda data, locale: data.translations.get(locale, ""))
+    factory = SchemaFactory(resolve_i18n_fn=lambda data, locale: data.resolve(locale))
     criteria = [
         SystemRulePromptBlock(
             id="blk_0000000000000000",

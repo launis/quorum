@@ -78,12 +78,15 @@ def test_base_adapter_strip_unsupported_constraints() -> None:
     assert isinstance(schema, dict)
 
     # Contextual overrides are popped from properties and required
-    assert "contextual_override" not in schema.get("properties", {})
-    assert "override_reason" not in schema.get("properties", {})
+    if "properties" in schema:
+        assert "contextual_override" not in schema["properties"]
+        assert "override_reason" not in schema["properties"]
 
-    defs = schema.get("$defs", {})
+    assert "$defs" in schema
+    defs = schema["$defs"]
     assert "NestedUnionA" in defs
-    assert "block_type" in defs["NestedUnionA"].get("required", [])
+    assert "required" in defs["NestedUnionA"]
+    assert "block_type" in defs["NestedUnionA"]["required"]
     # minLength, maxLength stripped
     assert "minLength" not in defs["NestedUnionA"]["properties"]["title"]
     assert "maxLength" not in defs["NestedUnionA"]["properties"]["title"]

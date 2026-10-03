@@ -1,15 +1,6 @@
-"""Tests for Vertex AI schema array bounds.
+"""Tests verifying JSON schema generation bounds for Vertex AI and structured output compatibility.
 
-Verifies that all Pydantic models used in LLM Structured Output DO NOT have
-explicit maxItems bounds.
-
-Tekoälyn Structured Output -parsereiden matemaattisessa maailmassa sisäkkäiset
-maxItems-määritykset luovat kombinaatioräjähdyksen (state machine explosion),
-joka kaataa Vertex AI:n 400 'too many states' -virheeseen.
-
-Tästä syystä maxItems-rajoitteet on tarkoituksella jätetty pois JSON-skeemoista.
-Pydantic hoitaa datan oikeellisuuden ja pituuksien tarkistuksen turvallisesti
-jälkikäteen, kun Vertex AI on palauttanut vastauksensa.
+Ensures arrays in critical DTOs don't have unbounded/problematic maxItems limits.
 """
 
 from backend_v2.models.dtos.evaluation_steps import StepDTOStrict
@@ -18,11 +9,11 @@ from backend_v2.models.dtos.evaluation_steps import StepDTOStrict
 def test_step_dto_strict_array_bounds() -> None:
     """Verify StepDTOStrict DOES NOT have maxItems on array fields."""
     schema = StepDTOStrict.model_json_schema()
-    properties = schema.get("properties", {})
+    properties = schema["properties"] if "properties" in schema else {}
 
-    exact_quotes_prop = properties.get("exact_quotes", {})
-    source_aliases_prop = properties.get("source_document_aliases", {})
-    used_aliases_prop = properties.get("used_source_aliases", {})
+    exact_quotes_prop = properties["exact_quotes"] if "exact_quotes" in properties else {}
+    source_aliases_prop = properties["source_document_aliases"] if "source_document_aliases" in properties else {}
+    used_aliases_prop = properties["used_source_aliases"] if "used_source_aliases" in properties else {}
 
     assert "maxItems" not in exact_quotes_prop, (
         "CRITICAL: exact_quotes array has maxItems bound! This causes Vertex AI 400 'too many states for serving'."
@@ -57,11 +48,11 @@ def test_schema_factory_atom_response_has_bounded_arrays() -> None:
     )
 
     schema = step_strict_dynamic.model_json_schema()
-    props = schema.get("properties", {})
-    doc_aliases = props.get("source_document_aliases", {})
+    props = schema["properties"] if "properties" in schema else {}
+    doc_aliases = props["source_document_aliases"] if "source_document_aliases" in props else {}
     assert "maxItems" not in doc_aliases, "CRITICAL: StepDTOStrictDynamic.source_document_aliases has maxItems!"
 
-    exact_quotes = props.get("exact_quotes", {})
+    exact_quotes = props["exact_quotes"] if "exact_quotes" in props else {}
     assert "maxItems" not in exact_quotes, "exact_quotes has maxItems in dynamic subclass!"
 
     class AtomResponseBase(BaseModel):
@@ -72,12 +63,15 @@ def test_schema_factory_atom_response_has_bounded_arrays() -> None:
         pass
 
     atom_schema = AtomResponseStrict.model_json_schema()
-    atom_props = atom_schema.get("properties", {})
+    atom_props = atom_schema["properties"] if "properties" in atom_schema else {}
 
-    assert "maxItems" not in atom_props.get("exact_quotes", {}), "AtomResponseStrict has maxItems on exact_quotes!"
-    assert "maxItems" not in atom_props.get("source_document_aliases", {}), (
+    atom_quotes = atom_props["exact_quotes"] if "exact_quotes" in atom_props else {}
+    assert "maxItems" not in atom_quotes, "AtomResponseStrict has maxItems on exact_quotes!"
+    atom_doc_aliases = atom_props["source_document_aliases"] if "source_document_aliases" in atom_props else {}
+    assert "maxItems" not in atom_doc_aliases, (
         "AtomResponseStrict has maxItems on source_document_aliases!"
     )
-    assert "maxItems" not in atom_props.get("used_source_aliases", {}), (
+    atom_used_aliases = atom_props["used_source_aliases"] if "used_source_aliases" in atom_props else {}
+    assert "maxItems" not in atom_used_aliases, (
         "AtomResponseStrict has maxItems on used_source_aliases!"
     )

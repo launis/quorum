@@ -25,9 +25,9 @@ def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, Any]:
     """Load model_registry system config from seed_data.json."""
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
-    for cfg in data.get("system_config", []):
-        if cfg.get("type") == "model_registry":
-            if registry_id is None or cfg.get("id") == registry_id:
+    for cfg in data["system_config"]:
+        if "type" in cfg and cfg["type"] == "model_registry":
+            if registry_id is None or ("id" in cfg and cfg["id"] == registry_id):
                 return cast(dict[str, Any], cfg)
     raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
 

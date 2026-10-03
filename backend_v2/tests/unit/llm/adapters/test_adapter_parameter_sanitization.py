@@ -145,5 +145,5 @@ class TestAdapterParameterSanitization:
 
         # Standard models should keep their configured temperature and sampling params
         assert result["temperature"] == 0.4
-        assert result.get("top_k") == 40
-        assert result.get("frequency_penalty") == 0.2
+        assert result["top_k"] == 40
+        assert result["frequency_penalty"] == 0.2

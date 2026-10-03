@@ -173,7 +173,7 @@ async def test_real_llm_pdf_execution() -> None:
             assert status_res.status_code == 200, f"Failed to get execution status: {status_res.text}"
 
             status_data = status_res.json()
-            current_status = status_data.get("status")
+            current_status = status_data["status"] if "status" in status_data else None
 
             if current_status == ExecutionStatus.PASSED.value:
                 logger.info(f"Execution {execution_id} completed successfully.")

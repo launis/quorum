@@ -438,14 +438,14 @@ async def test_validate_non_empty_payload_with_cdata_encapsulation() -> None:
     with pytest.raises(AppException) as exc_empty:
         _validate_non_empty_payload([LLMMessageDTO(role="user", content=empty_cdata)])
     assert exc_empty.value.status_code == 400
-    assert exc_empty.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_empty.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     # Whitespace-only CDATA block MUST raise AppException
     ws_cdata = "<source_data>\n<![CDATA[   \n\t  ]]>\n</source_data>"
     with pytest.raises(AppException) as exc_ws:
         _validate_non_empty_payload([LLMMessageDTO(role="user", content=ws_cdata)])
     assert exc_ws.value.status_code == 400
-    assert exc_ws.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_ws.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

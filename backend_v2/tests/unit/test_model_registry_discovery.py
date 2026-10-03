@@ -355,7 +355,7 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
             with pytest.raises(ConfigurationError) as exc_info:
                 handler._fetch_ai_studio_models(settings=mock_settings)
 
-            assert exc_info.value.details.get("error_code") == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+            assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
 
     def test_openai_discovery_fails_fast_when_api_key_missing(self) -> None:
         """Negative Boundary 1b: OpenAI discovery raises ConfigurationError when API key is missing."""
@@ -369,7 +369,7 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
             with pytest.raises(ConfigurationError) as exc_info:
                 handler._fetch_openai_models(["openai"], mock_settings, models_dict)
 
-            assert exc_info.value.details.get("error_code") == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+            assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
 
     def test_unauthorized_user_cannot_access_supported_locations(self) -> None:
         """Negative Boundary 2: Non-admin/non-root user triggers PermissionDeniedError on locations endpoint."""

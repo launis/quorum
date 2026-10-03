@@ -189,7 +189,7 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.xlsx"
     assert len(bytes_out) > 0
-    assert comp_repo._call_counts.get("get_all_components", 0) == 1
+    assert comp_repo._call_counts["get_all_components"] == 1
 
 
 @pytest.mark.asyncio

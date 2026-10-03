@@ -26,9 +26,9 @@ def test_engine_execution_result_is_frozen() -> None:
 
 def test_engine_execution_request_is_frozen() -> None:
     """Test that EngineExecutionRequest is immutable."""
-    assert EngineExecutionRequest.model_config.get("frozen") is True
-    assert EngineExecutionRequest.model_config.get("extra") == "forbid"
-    assert EngineExecutionRequest.model_config.get("strict") is True
+    assert EngineExecutionRequest.model_config["frozen"] is True
+    assert EngineExecutionRequest.model_config["extra"] == "forbid"
+    assert EngineExecutionRequest.model_config["strict"] is True
 
 
 def test_flattened_atom_forbids_extra_fields() -> None:

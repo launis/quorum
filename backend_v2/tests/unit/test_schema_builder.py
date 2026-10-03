@@ -88,7 +88,7 @@ def test_schema_compiler_xai_extensions() -> None:
     DynamicModel = SchemaCompilerService.compile([block])
     schema = DynamicModel.model_json_schema()
 
-    properties = schema.get("properties", {})
+    properties = schema["properties"]
     assert "eval_1" in properties
 
     coaching_key = f"eval_1_{XaiExtensionType.COACHING.value}"
@@ -114,7 +114,7 @@ def test_schema_compiler_all_xai_extensions_descriptions() -> None:
 
     DynamicModel = SchemaCompilerService.compile([block])
     schema = DynamicModel.model_json_schema()
-    props = schema.get("properties", {})
+    props = schema["properties"]
 
     assert props[f"eval_1_{XaiExtensionType.MISSING_CONTEXT.value}"]["description"] == XAI_DESC_MISSING_CONTEXT
     assert props[f"eval_1_{XaiExtensionType.RISK_FLAG.value}"]["description"] == XAI_DESC_RISK_FLAG

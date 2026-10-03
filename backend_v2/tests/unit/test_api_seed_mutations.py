@@ -114,8 +114,9 @@ def test_seed_workflow_legal_mutations(client_admin: Any, mock_studio_service_ad
     # Let's find a node that nobody depends on.
     all_deps = set()
     for s in wf["steps"]:
-        for d in s.get("depends_on", []):
-            all_deps.add(d)
+        if "depends_on" in s and s["depends_on"]:
+            for d in s["depends_on"]:
+                all_deps.add(d)
 
     leaf_nodes = [s["id"] for s in wf["steps"] if s["id"] not in all_deps]
     assert len(leaf_nodes) > 0, "No leaf nodes found in DAG!"
@@ -150,7 +151,7 @@ def test_seed_workflow_illegal_orphan(client_admin: Any, mock_studio_service_adm
     wf = copy.deepcopy(get_audit_workflow())
 
     # Delete the very first step (root node)
-    root_nodes = [s["id"] for s in wf["steps"] if not s.get("depends_on")]
+    root_nodes = [s["id"] for s in wf["steps"] if "depends_on" not in s or not s["depends_on"]]
     assert len(root_nodes) > 0
     node_to_remove = root_nodes[0]
 

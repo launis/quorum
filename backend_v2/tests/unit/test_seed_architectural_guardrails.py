@@ -23,7 +23,7 @@ def test_prompt_blocks_do_not_contain_ui_logic() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    blocks = [PromptBlockAdapter.validate_python(b) for b in data.get("prompt_blocks", [])]
+    blocks = [PromptBlockAdapter.validate_python(b) for b in data["prompt_blocks"]] if "prompt_blocks" in data else []
 
     for block in blocks:
         desc_text = ""
@@ -80,14 +80,15 @@ def test_output_profiles_do_not_contain_scoring_penalties() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    profiles = data.get("output_profiles", [])
+    profiles = data["output_profiles"] if "output_profiles" in data else []
     assert profiles, "At least one output profile must exist in master seed"
 
     penalty_keys = ["security_penalty", "post_hoc_penalty", "passivity_penalty"]
     for raw_profile in profiles:
+        prof_id = raw_profile["id"] if "id" in raw_profile else "unknown"
         for p_key in penalty_keys:
             assert p_key not in raw_profile, (
-                f"Scoring penalty key '{p_key}' found in OutputProfile '{raw_profile.get('id')}'. "
+                f"Scoring penalty key '{p_key}' found in OutputProfile '{prof_id}'. "
                 "Penalties belong strictly to Workflow (Phase 1 Execution Tier)."
             )
 
@@ -101,14 +102,15 @@ def test_workflows_contain_scoring_penalties() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    workflows = data.get("workflows", [])
+    workflows = data["workflows"] if "workflows" in data else []
     assert workflows, "At least one workflow must exist in master seed"
 
     penalty_keys = ["security_penalty", "post_hoc_penalty", "passivity_penalty"]
     for raw_wf in workflows:
+        wf_id = raw_wf["id"] if "id" in raw_wf else "unknown"
         for p_key in penalty_keys:
             assert p_key in raw_wf, (
-                f"Scoring penalty key '{p_key}' missing from Workflow '{raw_wf.get('id')}'. "
+                f"Scoring penalty key '{p_key}' missing from Workflow '{wf_id}'. "
                 "Workflows must sovereignly own automated scoring penalties."
             )
             val = raw_wf[p_key]
@@ -127,38 +129,55 @@ def test_model_strategies_are_bound_to_registry() -> None:
 
     # 1. Collect valid tiers from registry
     valid_tiers: set[str] = set()
-    for sys_cfg in data.get("system_config", []):
-        if sys_cfg.get("type") == "model_registry" and "tier_definitions" in sys_cfg:
+    sys_configs = data["system_config"] if "system_config" in data else []
+    for sys_cfg in sys_configs:
+        if "type" in sys_cfg and sys_cfg["type"] == "model_registry" and "tier_definitions" in sys_cfg:
             valid_tiers.update(sys_cfg["tier_definitions"].keys())
 
     assert valid_tiers, "Model registry must contain at least one cognitive tier"
 
     # 2. Check steps
-    for raw_step in data.get("steps", []):
-        tier = raw_step.get("cognitive_tier") or raw_step.get("model_strategy")
+    raw_steps = data["steps"] if "steps" in data else []
+    for raw_step in raw_steps:
+        tier = None
+        if "cognitive_tier" in raw_step and raw_step["cognitive_tier"]:
+            tier = raw_step["cognitive_tier"]
+        elif "model_strategy" in raw_step and raw_step["model_strategy"]:
+            tier = raw_step["model_strategy"]
         if tier:
-            assert tier in valid_tiers, f"Step '{raw_step.get('slug')}' references unknown cognitive_tier '{tier}'"
+            step_slug = raw_step["slug"] if "slug" in raw_step else "unknown"
+            assert tier in valid_tiers, f"Step '{step_slug}' references unknown cognitive_tier '{tier}'"
 
     # 3. Check output profiles
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
-            synthesis = raw_profile.get("synthesis", {})
-            tier = synthesis.get("cognitive_tier") or synthesis.get("model_strategy")
+            synthesis = raw_profile["synthesis"] if "synthesis" in raw_profile else {}
+            tier = None
+            if "cognitive_tier" in synthesis and synthesis["cognitive_tier"]:
+                tier = synthesis["cognitive_tier"]
+            elif "model_strategy" in synthesis and synthesis["model_strategy"]:
+                tier = synthesis["model_strategy"]
             if tier:
+                prof_id = raw_profile["id"] if "id" in raw_profile else "unknown"
                 assert tier in valid_tiers, (
-                    f"Profile '{raw_profile.get('id')}' references unknown cognitive_tier '{tier}'"
+                    f"Profile '{prof_id}' references unknown cognitive_tier '{tier}'"
                 )
 
     # 4. Check embedded profiles in workflows
     if "workflows" in data:
         for raw_wf in data["workflows"]:
-            profiles = raw_wf.get("output_profiles", {})
+            profiles = raw_wf["output_profiles"] if "output_profiles" in raw_wf else {}
             for p_id, profile in profiles.items():
-                synthesis = profile.get("synthesis", {})
-                tier = synthesis.get("cognitive_tier") or synthesis.get("model_strategy")
+                synthesis = profile["synthesis"] if "synthesis" in profile else {}
+                tier = None
+                if "cognitive_tier" in synthesis and synthesis["cognitive_tier"]:
+                    tier = synthesis["cognitive_tier"]
+                elif "model_strategy" in synthesis and synthesis["model_strategy"]:
+                    tier = synthesis["model_strategy"]
                 if tier:
+                    wf_slug = raw_wf["slug"] if "slug" in raw_wf else "unknown"
                     assert tier in valid_tiers, (
-                        f"Workflow '{raw_wf.get('slug')}' profile '{p_id}' references unknown cognitive_tier '{tier}'"
+                        f"Workflow '{wf_slug}' profile '{p_id}' references unknown cognitive_tier '{tier}'"
                     )
 
 
@@ -168,12 +187,13 @@ def test_output_profiles_zero_legacy_diagnostic_scorecard() -> None:
         data = json.load(f)
 
     # Positive seed verification
-    profiles = data.get("output_profiles", [])
+    profiles = data["output_profiles"] if "output_profiles" in data else []
     assert profiles, "At least one output profile must exist in master seed"
 
     for profile in profiles:
+        prof_id = profile["id"] if "id" in profile else "unknown"
         assert "include_diagnostic_scorecard" not in profile, (
-            f"Legacy key 'include_diagnostic_scorecard' found in profile '{profile.get('id')}'"
+            f"Legacy key 'include_diagnostic_scorecard' found in profile '{prof_id}'"
         )
 
     # Anti-happy-path negative verification
@@ -196,14 +216,15 @@ def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_gro
         "text_delivery_mode",
     ]
 
-    profiles = data.get("output_profiles", [])
+    profiles = data["output_profiles"] if "output_profiles" in data else []
     assert profiles, "At least one output profile must exist in master seed"
 
     for raw_profile in profiles:
+        prof_id = raw_profile["id"] if "id" in raw_profile else "unknown"
         # Assert 0 legacy dictionaries in master seed
         for leg_key in legacy_keys:
             assert leg_key not in raw_profile, (
-                f"Legacy dictionary/field '{leg_key}' found in output_profile '{raw_profile.get('id')}'"
+                f"Legacy dictionary/field '{leg_key}' found in output_profile '{prof_id}'"
             )
 
         # Validate with strict OutputProfile domain model
@@ -212,8 +233,8 @@ def test_output_profiles_zero_legacy_dictionaries_and_valid_matrix_synthesis_gro
         assert len(profile.matrix_synthesis_groups) >= 1
         for group in profile.matrix_synthesis_groups:
             assert len(group.target_blocks) >= 1
-            assert group.title.get("en")
-            assert group.title.get("fi")
+            assert "en" in group.title.translations and group.title.translations["en"]
+            assert "fi" in group.title.translations and group.title.translations["fi"]
             assert re.match(r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$", group.id), (
                 f"Group id '{group.id}' in profile '{profile.id}' is not a valid 16-hex Opaque Stripe ID"
             )
@@ -284,8 +305,8 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
 
     for path, record in i18n_records:
         translations = record["translations"]
-        en_text = translations.get("en", "").strip()
-        fi_text = translations.get("fi", "").strip()
+        en_text = translations["en"].strip() if "en" in translations else ""
+        fi_text = translations["fi"].strip() if "fi" in translations else ""
         assert en_text, f"I18nText at '{path}' has empty or missing 'en' translation"
         assert fi_text, f"I18nText at '{path}' has empty or missing 'fi' translation"
 
@@ -294,7 +315,9 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
         if not isinstance(rec, dict) or "translations" not in rec or not isinstance(rec["translations"], dict):
             return False
         tr = rec["translations"]
-        return bool(tr.get("en", "").strip()) and bool(tr.get("fi", "").strip())
+        has_en = "en" in tr and bool(tr["en"].strip())
+        has_fi = "fi" in tr and bool(tr["fi"].strip())
+        return has_en and has_fi
 
     assert _is_valid_bilingual_i18n({"translations": {"en": "Hello", "fi": "Hei"}})
     assert not _is_valid_bilingual_i18n({"translations": {"en": "Hello"}})
@@ -310,29 +333,31 @@ def test_output_profiles_enums_valid() -> None:
 
     valid_display_scales = {"original", "custom", "normalized_100"}
 
-    profiles = data.get("output_profiles", [])
+    profiles = data["output_profiles"] if "output_profiles" in data else []
     assert profiles, "At least one output profile must exist in master seed"
 
     for profile in profiles:
+        prof_id = profile["id"] if "id" in profile else "unknown"
         if "display_scale" in profile:
             assert profile["display_scale"] in valid_display_scales, (
-                f"Invalid display_scale '{profile['display_scale']}' in profile '{profile.get('id')}'"
+                f"Invalid display_scale '{profile['display_scale']}' in profile '{prof_id}'"
             )
         assert "scoring_strategy" not in profile, (
-            f"Legacy scoring_strategy must be pruned from profile '{profile.get('id')}'"
+            f"Legacy scoring_strategy must be pruned from profile '{prof_id}'"
         )
         assert "strictness_level" not in profile, (
-            f"strictness_level must be pruned from profile '{profile.get('id')}' and owned by Workflow"
+            f"strictness_level must be pruned from profile '{prof_id}' and owned by Workflow"
         )
 
-    workflows = data.get("workflows", [])
+    workflows = data["workflows"] if "workflows" in data else []
     assert workflows, "At least one workflow must exist in master seed"
     for workflow in workflows:
+        wf_id = workflow["id"] if "id" in workflow else "unknown"
         assert "default_strictness_level" in workflow, (
-            f"Mandatory default_strictness_level missing from workflow '{workflow.get('id')}'"
+            f"Mandatory default_strictness_level missing from workflow '{wf_id}'"
         )
         assert 0 <= workflow["default_strictness_level"] <= 100, (
-            f"default_strictness_level out of bounds in workflow '{workflow.get('id')}'"
+            f"default_strictness_level out of bounds in workflow '{wf_id}'"
         )
 
     # Anti-happy-path negative verification
@@ -357,26 +382,28 @@ def test_model_registry_calibrated_limits() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    sys_configs = data.get("system_config", [])
-    model_registries = [c for c in sys_configs if c.get("type") == "model_registry"]
+    sys_configs = data["system_config"] if "system_config" in data else []
+    model_registries = [c for c in sys_configs if "type" in c and c["type"] == "model_registry"]
     assert model_registries, "SystemConfig with type 'model_registry' must exist in seed"
 
     required_tiers = {"deep", "fast", "balanced", "reasoning"}
     for registry_conf in model_registries:
-        tier_defs = registry_conf.get("tier_definitions", {})
-        assert tier_defs, f"Model registry {registry_conf.get('id')} tier_definitions must not be empty"
+        tier_defs = registry_conf["tier_definitions"] if "tier_definitions" in registry_conf else {}
+        reg_id = registry_conf["id"] if "id" in registry_conf else "unknown"
+        reg_name = registry_conf["name"] if "name" in registry_conf else "unknown"
+        assert tier_defs, f"Model registry {reg_id} tier_definitions must not be empty"
         assert required_tiers.issubset(set(tier_defs.keys())), (
-            f"Model registry '{registry_conf.get('name')}' must contain all required tiers: {required_tiers}"
+            f"Model registry '{reg_name}' must contain all required tiers: {required_tiers}"
         )
         for tier_name, model_def in tier_defs.items():
-            max_tokens = model_def.get("max_tokens", 0)
+            max_tokens = model_def["max_tokens"] if "max_tokens" in model_def else 0
             assert max_tokens >= 32768, (
-                f"Registry '{registry_conf.get('name')}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
+                f"Registry '{reg_name}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
             )
 
     # Anti-happy-path negative verification
     def validate_strategy_limits(strat_dict: dict[str, Any]) -> bool:
-        tokens = strat_dict.get("max_tokens", 0)
+        tokens = strat_dict["max_tokens"] if "max_tokens" in strat_dict else 0
         return bool(tokens >= 32768)
 
     assert validate_strategy_limits({"max_tokens": 32768, "temperature": 0.1})
@@ -389,14 +416,18 @@ def test_synthesis_strategy_isolation() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    steps = data.get("steps", [])
+    steps = data["steps"] if "steps" in data else []
     assert steps, "Steps registry must contain step definitions"
 
     for step in steps:
-        step_id = step.get("id")
-        cat = step.get("category_id")
-        is_eval = step.get("is_evaluative", False)
-        tier = step.get("cognitive_tier") or step.get("model_strategy")
+        step_id = step["id"] if "id" in step else "unknown"
+        cat = step["category_id"] if "category_id" in step else None
+        is_eval = step["is_evaluative"] if "is_evaluative" in step else False
+        tier = None
+        if "cognitive_tier" in step and step["cognitive_tier"]:
+            tier = step["cognitive_tier"]
+        elif "model_strategy" in step and step["model_strategy"]:
+            tier = step["model_strategy"]
 
         # Evaluative matrix steps must strictly isolate from synthesis strategy
         if cat == "matrix" or is_eval is True:
@@ -406,9 +437,9 @@ def test_synthesis_strategy_isolation() -> None:
 
     # Anti-happy-path negative verification
     def validate_evaluative_isolation(step_dict: dict[str, Any]) -> bool:
-        c = step_dict.get("category_id")
-        ie = step_dict.get("is_evaluative", False)
-        strat = step_dict.get("model_strategy")
+        c = step_dict["category_id"] if "category_id" in step_dict else None
+        ie = step_dict["is_evaluative"] if "is_evaluative" in step_dict else False
+        strat = step_dict["model_strategy"] if "model_strategy" in step_dict else None
         if (c == "matrix" or ie is True) and strat == "synthesis":
             return False
         return True

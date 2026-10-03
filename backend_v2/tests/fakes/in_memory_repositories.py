@@ -111,9 +111,10 @@ class BaseInMemoryRepository[T: BaseModel]:
 
     def _check_fault(self, method_name: str) -> None:
         """Check and trigger any injected faults before method execution."""
-        self._call_counts[method_name] = (
-            self._call_counts.get(method_name, 0) + 1  # noqa: QGR002 [REASON: Test fake call counter initialization]
-        )
+        current_count = 0
+        if method_name in self._call_counts:
+            current_count = self._call_counts[method_name]
+        self._call_counts[method_name] = current_count + 1
         if method_name in self._faults:
             exc, trigger_count = self._faults[method_name]
             if trigger_count is None:
@@ -152,7 +153,9 @@ class BaseInMemoryRepository[T: BaseModel]:
 
     def get_call_count(self, method_name: str) -> int:
         """Get the number of times a method was invoked."""
-        return self._call_counts.get(method_name, 0)  # noqa: QGR002 [REASON: Test fake call count query]
+        if method_name in self._call_counts:
+            return self._call_counts[method_name]
+        return 0
 
 
 # ==============================================================================
@@ -236,7 +239,11 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         self._check_fault("count_executions_by_matrix")
         count = 0
         for x in self._storage.values():
-            if isinstance(x.context_variables, dict) and x.context_variables.get("matrix_id") == matrix_id:  # noqa: QGR002, QGR012 [REASON: In-memory test fake filter simulation]
+            if (
+                isinstance(x.context_variables, dict)
+                and "matrix_id" in x.context_variables
+                and x.context_variables["matrix_id"] == matrix_id
+            ):
                 count += 1
         return count
 
@@ -509,7 +516,9 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         self._check_fault("get_org_usage_total")
-        return self._usage_totals.get(org_id, 0.0)  # noqa: QGR002 [REASON: Test fake usage total query with default 0.0]
+        if org_id in self._usage_totals:
+            return self._usage_totals[org_id]
+        return 0.0
 
 
 # ==============================================================================

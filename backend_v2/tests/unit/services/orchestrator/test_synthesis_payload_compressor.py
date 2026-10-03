@@ -41,7 +41,7 @@ def test_compress_synthesis_payload_strips_atom_quotes() -> None:
     compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     compressed_dict = json.loads(compressed_str)
 
-    pruned_evals = compressed_dict.get("results", [])
+    pruned_evals = compressed_dict["results"]
     assert len(pruned_evals) == 1
     assert len(pruned_evals[0]["exact_quotes"][0]) <= 300
     assert len(pruned_evals[0]["semantic_reasoning"]) <= 300
@@ -147,7 +147,7 @@ def test_compress_payload_unbounded_when_zero_evaluations_limit() -> None:
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    result_evals = compressed_dict.get("results", [])
+    result_evals = compressed_dict["results"]
     assert len(result_evals) == 100
 
 
@@ -181,7 +181,7 @@ def test_compress_payload_prioritized_stratification_retains_critical_deficits_o
         compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
         compressed_dict = json.loads(compressed_str)
 
-    result_evals = compressed_dict.get("results", [])
+    result_evals = compressed_dict["results"]
     assert len(result_evals) == 10
 
     def_count = sum(1 for e in result_evals if str(e["atom_id"]).startswith("def_"))
@@ -207,7 +207,7 @@ def test_compress_payload_stratification_is_100_percent_deterministic_with_tiebr
 
     assert compressed_str_1 == compressed_str_2
     compressed_dict = json.loads(compressed_str_1)
-    result_evals = compressed_dict.get("results", [])
+    result_evals = compressed_dict["results"]
     atom_ids = [e["atom_id"] for e in result_evals]
     assert atom_ids == sorted(atom_ids)
 

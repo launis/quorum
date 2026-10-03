@@ -133,7 +133,7 @@ async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: R
         )
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -168,7 +168,7 @@ async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: R
         )
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert "has no cognitive_tier" in exc_info.value.message
 
 
@@ -338,7 +338,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
             )
 
         assert exc_info.value.status_code == 400
-        assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

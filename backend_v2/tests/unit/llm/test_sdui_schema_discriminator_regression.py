@@ -43,16 +43,18 @@ def test_schema_generator_requires_discriminator_properties():
     adapter = DummyAdapter()
     schema = adapter.prepare_structured_output(MatrixSectionSynthesesResult)
     assert isinstance(schema, dict)
-    defs = schema.get("$defs", {})
+    defs = schema["$defs"] if "$defs" in schema else {}
 
     # In strict mode, discriminator fields like block_type MUST be listed in required
     assert "ParagraphBlock" in defs
-    assert "block_type" in defs["ParagraphBlock"].get("required", []), (
+    p_req = defs["ParagraphBlock"]["required"] if "required" in defs["ParagraphBlock"] else []
+    assert "block_type" in p_req, (
         "ParagraphBlock schema must require 'block_type' so LLM outputs the discriminator"
     )
 
     assert "AlertBlock" in defs
-    assert "block_type" in defs["AlertBlock"].get("required", []), (
+    a_req = defs["AlertBlock"]["required"] if "required" in defs["AlertBlock"] else []
+    assert "block_type" in a_req, (
         "AlertBlock schema must require 'block_type' so LLM outputs the discriminator"
     )
 
@@ -158,12 +160,14 @@ def test_strip_unsupported_constraints_preserves_custom_discriminator_names():
 
     adapter = DummyAdapter()
     schema = adapter.prepare_structured_output(CustomContainer)
-    defs = schema.get("$defs", {})
+    defs = schema["$defs"] if "$defs" in schema else {}
 
     assert "VariantA" in defs
-    assert "extension_type" in defs["VariantA"].get("required", [])
+    va_req = defs["VariantA"]["required"] if "required" in defs["VariantA"] else []
+    assert "extension_type" in va_req
     assert "VariantB" in defs
-    assert "extension_type" in defs["VariantB"].get("required", [])
+    vb_req = defs["VariantB"]["required"] if "required" in defs["VariantB"] else []
+    assert "extension_type" in vb_req
 
 
 def test_ingress_pipeline_rejects_completely_invalid_union_dict():

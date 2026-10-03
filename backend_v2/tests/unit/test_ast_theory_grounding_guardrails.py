@@ -20,11 +20,14 @@ def test_seed_matrices_have_no_epistemic_anchor_in_ai_description() -> None:
     with seed_file.open(encoding="utf-8") as f:
         data = json.load(f)
 
-    matrix_blocks = [b for b in data.get("prompt_blocks", []) if b.get("category_id") == "matrix"]
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    matrix_blocks = [
+        b for b in prompt_blocks if isinstance(b, dict) and "category_id" in b and b["category_id"] == "matrix"
+    ]
     assert len(matrix_blocks) == 13, f"Expected 13 matrix blocks, found {len(matrix_blocks)}"
 
     for b in matrix_blocks:
-        ai_desc = b.get("ai_description", "")
+        ai_desc = b["ai_description"] if "ai_description" in b and b["ai_description"] else ""
         assert "EPISTEMIC ANCHOR:" not in ai_desc, (
             f"Matrix block {b['id']} still contains EPISTEMIC ANCHOR: in ai_description"
         )
@@ -36,13 +39,16 @@ def test_seed_matrices_have_valid_theory_grounding() -> None:
     with seed_file.open(encoding="utf-8") as f:
         data = json.load(f)
 
-    matrix_blocks = [b for b in data.get("prompt_blocks", []) if b.get("category_id") == "matrix"]
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    matrix_blocks = [
+        b for b in prompt_blocks if isinstance(b, dict) and "category_id" in b and b["category_id"] == "matrix"
+    ]
     for b in matrix_blocks:
-        tg = b.get("theory_grounding")
+        tg = b["theory_grounding"] if "theory_grounding" in b else None
         assert tg is not None, f"Matrix block {b['id']} is missing theory_grounding"
         assert isinstance(tg, dict), f"Matrix block {b['id']} theory_grounding is not a dict"
-        assert tg.get("source_url"), f"Matrix block {b['id']} theory_grounding missing source_url"
-        assert tg.get("citation_reference"), f"Matrix block {b['id']} theory_grounding missing citation_reference"
+        assert "source_url" in tg and tg["source_url"], f"Matrix block {b['id']} theory_grounding missing source_url"
+        assert "citation_reference" in tg and tg["citation_reference"], f"Matrix block {b['id']} theory_grounding missing citation_reference"
 
 
 def test_matrix_sensor_prompt_builder_ast_uses_pure_theory_citation() -> None:

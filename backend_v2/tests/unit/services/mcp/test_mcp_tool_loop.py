@@ -28,7 +28,7 @@ def _make_mock_executor(extracted_claims: list[str] | None = None) -> MagicMock:
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         from backend_v2.models.domain.mcp import CitationCorrectionResult
 
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [
                 CitationExtractionItemDTO(claim_text=c, search_query=c, reasoning="Mock reasoning.")
@@ -124,7 +124,11 @@ async def test_execute_tool_loop_deterministic_search() -> None:
         from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
-            query = args[0] if args else kwargs.get("query", "test")
+            query = "test"
+            if args:
+                query = args[0]
+            elif "query" in kwargs and kwargs["query"]:
+                query = kwargs["query"]
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
@@ -162,7 +166,7 @@ async def test_ensemble_vote_consensus() -> None:
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         nonlocal call_count
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             call_count += 1
             if call_count == 1:
@@ -190,7 +194,7 @@ async def test_ensemble_vote_consensus() -> None:
         from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs.get("query") or (args[0] if args else "")
+            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
@@ -229,7 +233,7 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
         from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs.get("query") or (args[0] if args else "")
+            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
@@ -265,7 +269,7 @@ async def test_agentic_self_reflection_success() -> None:
     from backend_v2.models.domain.mcp import CitationCorrectionResult
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [
                 CitationExtractionItemDTO(
@@ -294,7 +298,7 @@ async def test_agentic_self_reflection_success() -> None:
         from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs.get("query") or (args[0] if args else "")
+            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
                 step_name="test_step",
@@ -330,7 +334,7 @@ async def test_agentic_self_reflection_failure_raises_error() -> None:
     from backend_v2.models.domain.mcp import CitationCorrectionResult
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [
                 CitationExtractionItemDTO(
@@ -532,7 +536,7 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
     client = _make_mock_llm_client()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
             return (
@@ -639,7 +643,7 @@ async def test_extraction_dict_model_validation() -> None:
     client = _make_mock_llm_client()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             # Return raw dictionary instead of Pydantic model instance
             return (
@@ -688,7 +692,7 @@ async def test_phase2_app_exception_passthrough() -> None:
     client = _make_mock_llm_client()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        response_model = kwargs.get("response_model")
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [CitationExtractionItemDTO(claim_text="valid claim", search_query="valid claim", reasoning="r")]
             return (

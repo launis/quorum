@@ -222,7 +222,7 @@ def test_verify_structure_ignored_keys_and_no_content() -> None:
 
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
-    assert exc.value.details.get("error_code") == "VALIDATION_FAILED"
+    assert exc.value.details["error_code"] == "VALIDATION_FAILED"
     assert "No valid analysis content was provided" in str(exc.value)
 
 
@@ -322,7 +322,7 @@ def test_verify_structure_invalid_payload_source_raises() -> None:
     )
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
-    assert exc.value.details.get("error_code") == "INVALID_OUTPUT_SCHEMA"
+    assert exc.value.details["error_code"] == "INVALID_OUTPUT_SCHEMA"
 
 
 def test_verify_output_language_invalid_system_warnings_raises() -> None:
@@ -352,7 +352,7 @@ def test_verify_output_language_invalid_system_warnings_raises() -> None:
     )
     with pytest.raises(AppException) as exc:
         verify_output_language(state, deps)
-    assert exc.value.details.get("error_code") == "INVALID_OUTPUT_SCHEMA"
+    assert exc.value.details["error_code"] == "INVALID_OUTPUT_SCHEMA"
 
 
 def test_verify_anomaly_invalid_atom_type() -> None:
@@ -386,7 +386,7 @@ def test_verify_anomaly_invalid_atom_type() -> None:
     with pytest.raises(AppException) as exc_info:
         verify_anomaly(state, deps)
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details.get("error_code") == "VALIDATION_FAILED"
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_validation_hook_rejects_malformed_dto() -> None:
@@ -420,7 +420,7 @@ def test_validation_hook_rejects_malformed_dto() -> None:
     with pytest.raises(AppException) as exc_info:
         verify_anomaly(state, deps)
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details.get("error_code") == "VALIDATION_FAILED"
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_verify_structure_none_state_raises_empty_input() -> None:
@@ -436,7 +436,7 @@ def test_verify_structure_none_state_raises_empty_input() -> None:
     )
     with pytest.raises(AppException) as exc:
         verify_structure(None, deps)
-    assert exc.value.details.get("error_code") == "EMPTY_INPUT"
+    assert exc.value.details["error_code"] == "EMPTY_INPUT"
 
 
 def test_verify_output_language_none_state_returns_success() -> None:
@@ -476,7 +476,7 @@ def test_verify_output_language_missing_target_locale_raises() -> None:
     )
     with pytest.raises(AppException) as exc:
         verify_output_language(state, deps)
-    assert exc.value.details.get("error_code") == "VALIDATION_FAILED"
+    assert exc.value.details["error_code"] == "VALIDATION_FAILED"
 
 
 def test_verify_anomaly_detects_guttman_inversion() -> None:

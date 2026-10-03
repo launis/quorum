@@ -12,11 +12,14 @@ def test_seed_data_output_profiles_have_valid_synthesis_config() -> None:
     with seed_file.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    profiles = data.get("output_profiles", [])
+    profiles = data["output_profiles"]
     assert profiles, "At least one output profile must exist in seed_data.json"
 
     for profile in profiles:
-        assert "synthesis" not in profile, f"Profile {profile.get('id')} must not contain legacy 'synthesis' key"
+        prof_id = "<unknown>"
+        if "id" in profile:
+            prof_id = profile["id"]
+        assert "synthesis" not in profile, f"Profile {prof_id} must not contain legacy 'synthesis' key"
         op = OutputProfile.model_validate(profile, strict=False)
         assert isinstance(op, OutputProfile)
         assert isinstance(op.requires_executive_synthesis, bool)

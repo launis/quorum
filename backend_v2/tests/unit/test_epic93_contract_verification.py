@@ -170,8 +170,8 @@ class TestPhase2PipelineUnification:
             seed_data = json.load(f)
 
         # Find prompt_blocks collection
-        prompt_blocks = seed_data.get("prompt_blocks", [])
-        slugs = [pb.get("slug", "") for pb in prompt_blocks]
+        prompt_blocks = seed_data["prompt_blocks"]
+        slugs = [pb["slug"] for pb in prompt_blocks if "slug" in pb]
 
         assert "blk_synthesis_global_rules" in slugs, (
             "BROKEN CONTRACT: blk_synthesis_global_rules not in seed_data.json prompt_blocks. "
@@ -193,8 +193,8 @@ class TestPhase2PipelineUnification:
         with seed_path.open("r", encoding="utf-8") as f:
             seed_data = json.load(f)
 
-        steps = seed_data.get("steps", [])
-        step_slugs = [s.get("slug", "") for s in steps]
+        steps = seed_data["steps"]
+        step_slugs = [s["slug"] for s in steps if "slug" in s]
 
         assert "sp_synthesis_distiller" in step_slugs, (
             "BROKEN CONTRACT: sp_synthesis_distiller step not in seed_data.json."
@@ -257,7 +257,7 @@ class TestPhase2PipelineUnification:
             compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"results": evals})
             compressed_dict = json.loads(compressed_str)
 
-        pruned = compressed_dict.get("results", [])
+        pruned = compressed_dict["results"]
         assert len(pruned) == 40
 
     def test_matrices_to_explain_assembly(self) -> None:

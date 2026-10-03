@@ -177,7 +177,7 @@ def test_openai_adapter_strict_json_schema_compliance() -> None:
     assert "maxLength" not in schema["properties"]["title"]
 
     # Check nested $defs
-    defs = schema.get("$defs", {})
+    defs = schema["$defs"] if "$defs" in schema else {}
     assert "SubItem" in defs
     sub_schema = defs["SubItem"]
     assert sub_schema["additionalProperties"] is False
@@ -247,8 +247,8 @@ def test_openai_adapter_gpt4o_mini_non_reasoning() -> None:
     result = adapter.prepare_kwargs(call_kwargs, config=config)
 
     assert "reasoning_effort" not in result
-    assert result.get("temperature") == 0.0
-    assert result.get("top_p") == 1.0
+    assert "temperature" in result and result["temperature"] == 0.0
+    assert "top_p" in result and result["top_p"] == 1.0
 
 
 def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
@@ -335,7 +335,7 @@ def test_openai_adapter_strips_unsupported_constraints_from_union_branches() -> 
     schema = result["json_schema"]["schema"]
 
     # Verify union definition in $defs
-    defs = schema.get("$defs", {})
+    defs = schema["$defs"] if "$defs" in schema else {}
     assert "OptionUnion" in defs
     union_def = defs["OptionUnion"]
     assert "anyOf" in union_def
@@ -377,7 +377,7 @@ def test_gpt_5_4_mini_zero_thinking_budget() -> None:
 
     # In development with thinking_budget=0: reasoning_effort is suppressed and temperature preserved
     assert "reasoning_effort" not in result
-    assert result.get("temperature") == 0.0
+    assert "temperature" in result and result["temperature"] == 0.0
 
 
 def test_gpt_5_4_reasoning_effort_mappings() -> None:

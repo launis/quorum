@@ -273,7 +273,7 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: di
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.HOOK_EXECUTION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.HOOK_EXECUTION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -294,7 +294,7 @@ async def test_matrix_scoring_hook_missing_blueprint_id_raises(matrix_setup: dic
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -316,7 +316,7 @@ async def test_matrix_scoring_hook_step_not_found_raises(matrix_setup: dict[str,
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 @pytest.mark.asyncio
@@ -336,7 +336,7 @@ async def test_matrix_scoring_hook_missing_results_array_raises(matrix_setup: di
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -356,7 +356,7 @@ async def test_matrix_scoring_hook_results_not_list_raises(matrix_setup: dict[st
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 # ==============================================================================
@@ -487,7 +487,7 @@ async def test_matrix_scoring_hook_missing_execution_id_raises(matrix_setup: dic
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -509,7 +509,7 @@ async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: dict
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details.get("error_code") == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 @pytest.mark.asyncio
@@ -531,7 +531,7 @@ async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: dict[
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details.get("error_code") == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 @pytest.mark.asyncio
@@ -553,7 +553,7 @@ async def test_matrix_scoring_hook_output_profile_not_found_raises(matrix_setup:
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -578,7 +578,7 @@ async def test_matrix_scoring_hook_missing_strictness_level_raises(matrix_setup:
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -603,7 +603,7 @@ async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: dict[str
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -625,7 +625,7 @@ async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: di
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -647,7 +647,7 @@ async def test_matrix_scoring_hook_prompt_block_validation_error_raises(matrix_s
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -668,7 +668,7 @@ async def test_matrix_scoring_hook_evaluation_item_malformed_raises(matrix_setup
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -727,7 +727,7 @@ async def test_matrix_scoring_hook_extracted_facts_invalid_json_raises(matrix_se
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -774,4 +774,4 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
         await matrix_scoring_hook(state, deps)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

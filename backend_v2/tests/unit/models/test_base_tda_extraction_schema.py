@@ -6,7 +6,7 @@ def test_base_tda_extraction_has_correct_phase4_fields() -> None:
     and avoids complex constraints (like max_length) that crash Gemini 2.5 Pro JSON Schema.
     """
     schema = BaseTDAExtraction.model_json_schema()
-    props = schema.get("properties", {})
+    props = schema["properties"]
 
     assert "localized_anchors_found" in props, "Missing localized_anchors_found"
     assert "semantic_reasoning" in props, "Missing semantic_reasoning"
@@ -14,9 +14,9 @@ def test_base_tda_extraction_has_correct_phase4_fields() -> None:
     assert "step_2_mitigating_context" not in props, "Legacy step_2_mitigating_context should be deleted"
 
     # Verify no complex constraints on exact_quote that cause Vertex AI 400 Bad Request
-    exact_quote_prop = props.get("exact_quotes", {})
-    err_msg = "max_length constraint causes 400 Bad Request in Gemini 2.5 Pro"
-    assert "maxLength" not in exact_quote_prop, err_msg
+    if "exact_quotes" in props:
+        err_msg = "max_length constraint causes 400 Bad Request in Gemini 2.5 Pro"
+        assert "maxLength" not in props["exact_quotes"], err_msg
 
 
 def test_exact_quote_can_be_none() -> None:

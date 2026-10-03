@@ -91,7 +91,7 @@ async def test_tda_engine_execute_success(
     mock_dag_executor_instance = mock_dag_executor.return_value
 
     async def mock_execute_phase_0(*args: object, **kwargs: object) -> tuple[str, TokenUsage]:
-        progress_cb = kwargs.get("progress_callback")
+        progress_cb = kwargs["progress_callback"] if "progress_callback" in kwargs else None
         if callable(progress_cb):
             await progress_cb(1, 1)
         return "mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
@@ -99,7 +99,7 @@ async def test_tda_engine_execute_success(
     mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
 
     async def mock_execute_graph(*args: object, **kwargs: object) -> tuple[dict[str, object], TokenUsage]:
-        progress_cb = kwargs.get("progress_callback")
+        progress_cb = kwargs["progress_callback"] if "progress_callback" in kwargs else None
         if callable(progress_cb):
             await progress_cb(1, 1)
         return {"state": "done"}, TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
@@ -119,8 +119,8 @@ async def test_tda_engine_execute_success(
     mock_atomizer_instance.execute_phase_0.assert_called_once()
     mock_dag_executor_instance.execute_graph.assert_called_once()
     _, eg_kwargs = mock_dag_executor_instance.execute_graph.call_args
-    assert eg_kwargs.get("execution_id") == engine_request.context.execution_id
-    assert eg_kwargs.get("step_id") == engine_request.step.id
+    assert eg_kwargs["execution_id"] == engine_request.context.execution_id
+    assert eg_kwargs["step_id"] == engine_request.step.id
     mock_projector.project.assert_called_once()
 
     assert engine_request.progress_callback is not None
@@ -365,7 +365,7 @@ async def test_tda_engine_execute_with_matrix_context(
 
     assert isinstance(result, EngineExecutionResult)
     _, eg_kwargs = mock_dag_executor_instance.execute_graph.call_args
-    passed_matrix_context = eg_kwargs.get("matrix_context")
+    passed_matrix_context = eg_kwargs["matrix_context"]
     assert passed_matrix_context is not None
     assert passed_matrix_context.matrix_objective == "Objective test"
     assert passed_matrix_context.matrix_assertions == req.shuffled_atoms

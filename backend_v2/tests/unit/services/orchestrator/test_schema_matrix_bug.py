@@ -21,9 +21,9 @@ def test_schema_matrix_bug_repro(schema_factory: SchemaFactory) -> None:
     with open(seed_path, encoding="utf-8") as f:
         seed_data = json.load(f)
 
-    raw_blocks = seed_data.get("prompt_blocks", [])
-    matrix_blocks = [b for b in raw_blocks if b.get("category_id") == "matrix"]
-    protocol_blocks = [b for b in raw_blocks if b.get("category_id") == "protocol"]
+    raw_blocks = seed_data["prompt_blocks"]
+    matrix_blocks = [b for b in raw_blocks if "category_id" in b and b["category_id"] == "matrix"]
+    protocol_blocks = [b for b in raw_blocks if "category_id" in b and b["category_id"] == "protocol"]
 
     assert len(matrix_blocks) > 0, "Seed data must contain at least one matrix block"
     assert len(protocol_blocks) > 0, "Seed data must contain at least one protocol block"

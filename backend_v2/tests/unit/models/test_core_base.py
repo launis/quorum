@@ -77,21 +77,17 @@ def test_i18n_text_key_sanitization_and_resolution() -> None:
 
     # Exact language code
     assert i18n.resolve("en") == "English Text"
-    assert i18n.get("en") == "English Text"
 
     # Regional language code extraction ('fi-FI' -> 'fi')
     i18n_bilingual = I18nText(translations={"en": "Hello", "fi": "Moi", "de": "Hallo"})
     assert i18n_bilingual.resolve("fi-FI") == "Moi"
     assert i18n_bilingual.resolve("fi_FI") == "Moi"
-    assert i18n_bilingual.get("fi-FI") == "Moi"
 
     # Fallback to custom locale when target missing
     assert i18n_bilingual.resolve("fr", fallback_locale="de") == "Hallo"
-    assert i18n_bilingual.get("fr", fallback="de") == "Hallo"
 
     # Fallback to English baseline when target missing and default fallback used
     assert i18n_bilingual.resolve("fr") == "Hello"
-    assert i18n_bilingual.get("fr") == "Hello"
 
     # Fallback to English baseline when custom fallback locale is missing from translations
     i18n_only_en = I18nText(translations={"en": "Only English"})

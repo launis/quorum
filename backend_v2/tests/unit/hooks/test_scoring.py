@@ -333,8 +333,15 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     parsed_output = delta.matrix_outputs["tb_1234567890123456"]
     extensions = parsed_output.extensions
 
-    assert extensions[XaiExtensionType.CITATION] == "Ote lähteestä" or extensions.get("citation") == "Ote lähteestä"
-    assert extensions[XaiExtensionType.FALSIFICATION] == "Vastalause" or extensions.get("falsification") == "Vastalause"
+    if XaiExtensionType.CITATION in extensions:
+        assert extensions[XaiExtensionType.CITATION] == "Ote lähteestä"
+    else:
+        assert extensions["citation"] == "Ote lähteestä"
+
+    if XaiExtensionType.FALSIFICATION in extensions:
+        assert extensions[XaiExtensionType.FALSIFICATION] == "Vastalause"
+    else:
+        assert extensions["falsification"] == "Vastalause"
 
     justification = parsed_output.justification
     assert "Tämä on perustelu" in justification
@@ -2885,10 +2892,10 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
 
     extensions = matrix_output.extensions
     assert XaiExtensionType.COACHING in extensions or "coaching" in extensions
-    assert (
-        extensions.get(XaiExtensionType.COACHING) == "This is a coaching tip."
-        or extensions.get("coaching") == "This is a coaching tip."
-    )
+    if XaiExtensionType.COACHING in extensions:
+        assert extensions[XaiExtensionType.COACHING] == "This is a coaching tip."
+    else:
+        assert extensions["coaching"] == "This is a coaching tip."
 
 
 @pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")

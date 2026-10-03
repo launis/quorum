@@ -77,7 +77,7 @@ def test_generate_theory_opponent_card_missing_grounding_resilience(tmp_path: Pa
     seed_text = Path("backend_v2/seed/seed_data.json").read_text(encoding="utf-8")
     data = json.loads(seed_text)
     for b in data["prompt_blocks"]:
-        if b.get("id") == "blk_440a5fef9331451b":
+        if "id" in b and b["id"] == "blk_440a5fef9331451b":
             b["theory_grounding"] = None
             break
     mock_seed = tmp_path / "seed_no_theory.json"
