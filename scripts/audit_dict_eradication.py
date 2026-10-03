@@ -510,6 +510,20 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.function_depth -= 1
 
+    def _is_dict_or_mapping_type_node(self, node: ast.AST) -> bool:
+        """Checks if an AST node in isinstance() targets dict, Mapping, or MutableMapping."""
+        match node:
+            case ast.Name(id="dict" | "Mapping" | "MutableMapping"):
+                return True
+            case ast.Attribute(attr="dict" | "Mapping" | "MutableMapping"):
+                return True
+            case ast.Tuple(elts=elts):
+                return any(self._is_dict_or_mapping_type_node(elt) for elt in elts)
+            case ast.BinOp(left=left, op=ast.BitOr(), right=right):
+                return self._is_dict_or_mapping_type_node(left) or self._is_dict_or_mapping_type_node(right)
+            case _:
+                return False
+
     def visit_Call(self, node: ast.Call) -> None:
         """Inspects isinstance calls, reflection, and banned .get() lookups.
 
@@ -521,25 +535,13 @@ class DictEradicationVisitor(ast.NodeVisitor):
             if not self.is_test and self.is_domain_or_service:
                 if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
                     target_type = node.args[1]
-                    is_dict = False
-                    match target_type:
-                        case ast.Name(id="dict"):
-                            is_dict = True
-                        case ast.Tuple(elts=elts):
-                            for elt in elts:
-                                if isinstance(elt, ast.Name) and elt.id == "dict":
-                                    is_dict = True
-                                    break
-                        case _:
-                            is_dict = False
-
-                    if is_dict:
+                    if self._is_dict_or_mapping_type_node(target_type):
                         self.violations.append(
                             AuditViolation(
                                 filepath=self.filepath,
                                 line=node.lineno,
                                 metric="service_duck_typing",
-                                message=f"Banned isinstance(..., dict) duck-typing: `{ast.unparse(node)}`",
+                                message=f"Banned isinstance(..., dict | Mapping) duck-typing: `{ast.unparse(node)}`",
                             )
                         )
 

@@ -9,7 +9,7 @@
 
 <catastrophic_system_bans>
     <rule_block id="the_duct_tape_ban">
-        <mandate>NEVER catch-all with `except Exception: pass`, return empty dicts `{}`, use `.get("key", default)`, use lazy fallback operators (`or "en"`, `or {}`, `or []`), or chain multi-variable fallbacks (`a or b or c`). ALL state resolution (e.g. output profiles, locales) MUST occur strictly at Ingress boundaries. Downstream hooks and services MUST access state via direct dot notation. ALL errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults) and Fail-Fast on missing required values.</mandate>
+        <mandate>NEVER catch-all with `except Exception: pass`, return empty dicts `{}`, mutate unannotated dictionary accumulators (`meta_dict = {}` mutated via `d[k] = v`), duck-type with `isinstance(..., (Mapping, MutableMapping))` or union checks (`BaseModel | Mapping`), use `.get("key", default)`, use lazy fallback operators (`or "en"`, `or {}`, `or []`), or chain multi-variable fallbacks (`a or b or c`). ALL state and metadata transit MUST be strictly encapsulated in typed Pydantic V2 DTOs (e.g. `StepTraceMetadataDTO.model_validate(data)`). ALL state resolution (e.g. output profiles, locales) MUST occur strictly at Ingress boundaries. Downstream hooks and services MUST access state via direct dot notation. ALL errors MUST be caught, logged, and re-raised via `AppException`. Rely strictly on Pydantic validation (schema-level defaults) and Fail-Fast on missing required values.</mandate>
     </rule_block>
     
     <rule_block id="partial_mocking_srp_ban">
@@ -144,7 +144,7 @@
     </rule_block>
 
     <rule_block id="no_naked_dicts_in_state">
-        <mandate>NEVER pass, store, or process raw dictionaries (`dict`, `dict[str, Any]`, `dict[str, object]`, `list[dict]`, `Mapping[str, Any]`), `TypedDict`, `cast(Any, ...)`, `Any` in state signatures, `isinstance(x, dict)`, in-place dictionary mutations via `dict.pop(key)`, or `match/case` dict patterns for domain state transit, function arguments, hook states, or intermediate execution data. ALWAYS validate raw incoming data at ingress boundaries using strongly typed Pydantic V2 DTOs and `TypeAdapter`. All function signatures, hook states, and DAG outputs MUST declare explicit typed Pydantic V2 models or strict discriminated union types. If database (MongoDB) or transport (FastAPI/HTTP) serialization requires JSON dictionaries, execute conversion explicitly at the absolute persistence/network boundary via `MyModel.model_dump(mode='json')` or `MyModel.model_validate(raw_doc)`.</mandate>
+        <mandate>NEVER pass, store, or process raw dictionaries (`dict`, `dict[str, Any]`, `dict[str, object]`, `list[dict]`, `Mapping[str, Any]`), `TypedDict`, `cast(Any, ...)`, `Any` in state signatures, `isinstance(x, (dict, Mapping, MutableMapping))` or Python 3.10+ union checks (`BaseModel | Mapping`), unannotated dictionary mutation accumulators (`meta_dict = {}`), in-place dictionary mutations via `dict.pop(key)`, or `match/case` dict patterns for domain state transit, function arguments, hook states, or intermediate execution data. ALWAYS validate raw incoming data at ingress boundaries using strongly typed Pydantic V2 DTOs and `TypeAdapter`. All function signatures, hook states, and DAG outputs MUST declare explicit typed Pydantic V2 models or strict discriminated union types. If database (MongoDB) or transport (FastAPI/HTTP) serialization requires JSON dictionaries, execute conversion explicitly at the absolute persistence/network boundary via `MyModel.model_dump(mode='json')` or `MyModel.model_validate(raw_doc)`.</mandate>
     </rule_block>
 
     <rule_block id="ban_anonymous_state_tuples">
@@ -160,7 +160,7 @@
     </rule_block>
 
     <rule_block id="polymorphic_dag_payload_handling">
-        <mandate>NEVER inspect payload types using `isinstance(x, dict)` or `match x: case dict():`. Downstream payload consumers MUST validate heterogeneous DAG state via strict Pydantic V2 Discriminated Unions or TypeAdapters (`TypeAdapter(list[AtomResultDTO] | str | int | float).validate_python(payload)`), enforcing Fail-Fast upon malformed payloads with ZERO naked dictionaries.</mandate>
+        <mandate>NEVER inspect payload types using `isinstance(x, (dict, Mapping, MutableMapping))` or Python 3.10+ union checks (`BaseModel | Mapping`) or `match x: case dict():`. Downstream payload consumers MUST validate heterogeneous DAG state via strict Pydantic V2 Discriminated Unions or TypeAdapters (`TypeAdapter(list[AtomResultDTO] | str | int | float).validate_python(payload)`), enforcing Fail-Fast upon malformed payloads with ZERO naked dictionaries.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_native_field_priority">

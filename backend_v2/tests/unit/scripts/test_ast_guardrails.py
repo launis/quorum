@@ -1021,7 +1021,6 @@ def test_purged_boundary_exemption_files() -> None:
     }
 
 
-
 # ==============================================================================
 # Partition: QGR016 Lazy Fallback Prohibition
 # ==============================================================================
@@ -1242,6 +1241,21 @@ def test_qgr012_tuple_mapping_duck_typing_detected() -> None:
     assert "Mapping" in qgr012[0].message
 
 
+def test_qgr012_union_bitor_mapping_and_dict_duck_typing_detected() -> None:
+    """QGR012: isinstance(..., BaseModel | Mapping) and isinstance(..., BaseModel | dict) trigger QGR012 violation."""
+    code_mapping = "if isinstance(payload, BaseModel | Mapping):\n    pass\n"
+    violations_mapping = _scan_snippet(code_mapping, filepath="backend_v2/services/sample_service.py")
+    qgr012_mapping = [v for v in violations_mapping if v.rule_code == "QGR012"]
+    assert len(qgr012_mapping) == 1
+    assert "Mapping" in qgr012_mapping[0].message
+
+    code_dict = "if isinstance(payload, BaseModel | dict):\n    pass\n"
+    violations_dict = _scan_snippet(code_dict, filepath="backend_v2/services/sample_service.py")
+    qgr012_dict = [v for v in violations_dict if v.rule_code == "QGR012"]
+    assert len(qgr012_dict) == 1
+    assert "dict" in qgr012_dict[0].message
+
+
 def test_qgr019_dict_pop_variable_and_two_args() -> None:
     """QGR019: d.pop(key_var) and d.pop('k', 'default') are detected."""
     code = "payload.pop(key_var)\npayload.pop('k', 'default')\n"
@@ -1315,3 +1329,44 @@ def test_qgr021_llm_debug_logger_import_detected() -> None:
         assert "llm_debug_logger" in v.message
 
 
+def test_qgr022_unshielded_fstring_prompt_xml_detected() -> None:
+    """QGR022: Unshielded f-strings containing prompt XML tags or raw payload variables trigger FATAL violation."""
+    from scripts._ast_guardrails import GuardrailSeverity
+
+    code1 = 'prompt = f"<user_payload>{content}</user_payload>"\n'
+    v1 = _scan_snippet(code1, filepath="backend_v2/services/orchestrator/pipeline.py")
+    qgr022_1 = [v for v in v1 if v.rule_code == "QGR022"]
+    assert len(qgr022_1) >= 1
+    assert qgr022_1[0].severity == GuardrailSeverity.FATAL
+
+    code2 = 'prompt = f"<prompt_instructions>{rules}</prompt_instructions>"\n'
+    v2 = _scan_snippet(code2, filepath="backend_v2/services/orchestrator/prompts/builder.py")
+    qgr022_2 = [v for v in v2 if v.rule_code == "QGR022"]
+    assert len(qgr022_2) >= 1
+    assert qgr022_2[0].severity == GuardrailSeverity.FATAL
+
+    code3 = 'text = f"Processing: {raw_paste}"\n'
+    v3 = _scan_snippet(code3, filepath="backend_v2/services/orchestrator/pipeline.py")
+    qgr022_3 = [v for v in v3 if v.rule_code == "QGR022"]
+    assert len(qgr022_3) >= 1
+    assert qgr022_3[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr023_anonymous_state_tuple_detected() -> None:
+    """QGR023: Anonymous 3+ tuples and 2-tuples with identical primitives trigger QGR023 warning."""
+    code1 = "def run() -> tuple[str, int, bool]:\n    pass\n"
+    v1 = _scan_snippet(code1, filepath="backend_v2/services/runner.py")
+    qgr023_1 = [v for v in v1 if v.rule_code == "QGR023"]
+    assert len(qgr023_1) == 1
+    assert "Tuple Hell" in qgr023_1[0].message
+
+    code2 = "coords: tuple[str, str] = ('a', 'b')\n"
+    v2 = _scan_snippet(code2, filepath="backend_v2/services/runner.py")
+    qgr023_2 = [v for v in v2 if v.rule_code == "QGR023"]
+    assert len(qgr023_2) == 1
+    assert "identical primitive types" in qgr023_2[0].message
+
+    code3 = "items: tuple[str, ...] = ('a',)\n"
+    v3 = _scan_snippet(code3, filepath="backend_v2/services/runner.py")
+    qgr023_3 = [v for v in v3 if v.rule_code == "QGR023"]
+    assert len(qgr023_3) == 0

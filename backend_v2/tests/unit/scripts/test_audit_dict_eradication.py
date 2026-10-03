@@ -84,7 +84,7 @@ def test_audit_dict_eradication_detects_primitive_obsession_nested_dict(tmp_path
 
 
 def test_audit_dict_eradication_detects_service_duck_typing(tmp_path: Path) -> None:
-    """Verifies detection of isinstance(..., dict) and tuple in service layers."""
+    """Verifies detection of isinstance(..., dict | Mapping) and unions/tuples in service layers."""
     service_dir = tmp_path / "services"
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "worker_service.py"
@@ -92,13 +92,16 @@ def test_audit_dict_eradication_detects_service_duck_typing(tmp_path: Path) -> N
         "def check(data: object) -> bool:\n"
         "    a = isinstance(data, dict)\n"
         "    b = isinstance(data, (dict, list))\n"
-        "    return a and b\n",
+        "    c = isinstance(data, Mapping)\n"
+        "    d = isinstance(data, (MutableMapping, list))\n"
+        "    e = isinstance(data, BaseModel | Mapping)\n"
+        "    return a and b and c and d and e\n",
         encoding="utf-8",
     )
 
     report = audit_dict_eradication(target_file)
-    assert report.service_duck_typing == 2
-    assert report.total_violations >= 2
+    assert report.service_duck_typing == 5
+    assert report.total_violations >= 5
 
 
 def test_audit_dict_eradication_detects_dynamic_reflection(tmp_path: Path) -> None:
@@ -305,4 +308,3 @@ def test_audit_dict_eradication_detects_mutable_class_default(tmp_path: Path) ->
 
     exit_code = main([str(target_file)])
     assert exit_code == 1
-

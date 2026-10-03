@@ -569,27 +569,27 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
         if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
             types_arg = node.args[1]
-            is_dict_check = False
-            is_mapping_check = False
-            match types_arg:
-                case ast.Name(id="dict"):
-                    is_dict_check = True
-                case ast.Name(id="Mapping" | "MutableMapping") | ast.Attribute(attr="Mapping" | "MutableMapping"):
-                    is_mapping_check = True
-                case ast.Tuple(elts=elts):
-                    for elt in elts:
-                        match elt:
-                            case ast.Name(id="dict"):
-                                is_dict_check = True
-                            case (
-                                ast.Name(id="Mapping" | "MutableMapping")
-                                | ast.Attribute(attr="Mapping" | "MutableMapping")
-                            ):
-                                is_mapping_check = True
-                            case _:
-                                pass
-                case _:
-                    pass
+            def _check_isinstance_target(t_node: ast.AST) -> tuple[bool, bool]:
+                match t_node:
+                    case ast.Name(id="dict"):
+                        return True, False
+                    case ast.Name(id="Mapping" | "MutableMapping") | ast.Attribute(attr="Mapping" | "MutableMapping"):
+                        return False, True
+                    case ast.Tuple(elts=elts):
+                        has_d, has_m = False, False
+                        for elt in elts:
+                            d, m = _check_isinstance_target(elt)
+                            has_d = has_d or d
+                            has_m = has_m or m
+                        return has_d, has_m
+                    case ast.BinOp(left=left, op=ast.BitOr(), right=right):
+                        d1, m1 = _check_isinstance_target(left)
+                        d2, m2 = _check_isinstance_target(right)
+                        return (d1 or d2), (m1 or m2)
+                    case _:
+                        return False, False
+
+            is_dict_check, is_mapping_check = _check_isinstance_target(types_arg)
 
             if is_dict_check:
                 qgr012_sev = (
@@ -1479,7 +1479,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.WARNING,
                         )
                     elif len(elts) == 2:
-                        elt_names = []
+                        elt_names: list[str | None] = []
                         for e in elts:
                             match e:
                                 case ast.Name(id=name):
