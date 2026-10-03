@@ -112,7 +112,7 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> Fin
     telemetry_file = Path(telemetry_file_path)
 
     if not state_file.exists():
-        state_file.write_text(MonitorState().model_dump_json(), encoding="utf-8")
+        state_file.write_text(MonitorState(cursors={}).model_dump_json(), encoding="utf-8")
 
     state = MonitorState.model_validate_json(state_file.read_text(encoding="utf-8"))
 

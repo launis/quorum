@@ -41,7 +41,7 @@
   - [x] Step 1.9: Promote Cleaned Rules to FATAL Severity & Build Baseline Ledger
   - [x] Step 1.10: Synchronize Agentic Workflows & Quality Gate Alignment
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ### Phase 2: Test Suite Mock Eradication, Fake Repository Parity & Concurrency Stress Gate (QGR014)
 **Plan:** @[docs/epic/tasks_EPIC_156/02_phase2_plan.md]
@@ -202,17 +202,32 @@
 - Implemented `scripts/audit_warning_baseline.py` and unit tests in `test_audit_warning_baseline.py` (0 fatals, 1,253 warnings under ceiling).
 - Synchronized `AGENTS.md` and agentic workflows (`tier2-execute.md`, `tier1-tracker-generator.md`, `tier1-plan-tracker-generator.md`, `tier8-audit-plan.md`, `tier8-red-teaming-audit.md`, `tier2-hardening-knowledge.md`, `tier0-create-epic.md`, `tier0-research-epic.md`, `tier3-minify-customization.md`, `tier3-database-reset.md`).
 - Passed all 7 validation gate checks and 8-stage backend audit loop with 120/120 AST unit tests passing at 91% coverage.
+- Remediated all 6 Phase 1 quality gate blockers identified in Tier 8 audit (`report_template.jinja2`, `trace.py`, `ExecutionCreateDTO` ID generation authority, `model_validate` signatures, Ruff B904/F841, and global quality loop).
+- Verified full 8-stage global backend audit loop (`backend_audit_loop.py backend_v2/ --test`): 4,781 tests passed, 0 failed, 96.90% line coverage (exceeds >=90% threshold), 355/355 modules imported cleanly, 45 DTOs in 1:1 parity, 0 fatal AST violations.
+- Verified AST advisory warning baseline ledger (`audit_warning_baseline.py`): 0 fatals, 1,253 warnings (below 1,254 ceiling).
+- Verified database atom audit (`audit_database_atoms.py`): 13 matrices, 305 atoms, 19 steps, 6 workflows, 6 profiles clean with 0 issues.
+- Verified plan-tracker parity (`audit_plan_tracker_parity.py`): 0 fatal errors.
 
 ## Learned
 - Dynamic `model_copy(update=...)` calls inside `dag_executor.py` progress tracking occur safely within `async with _update_lock:` concurrency boundaries; tracking `_in_update_lock` in the AST visitor adheres directly to `safe_model_copy_concurrency_boundary` without touching fragile DAG executor code.
 - Heterogeneous input dictionaries in hooks like `source_verification_hook.py` must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
 - `VersionIncrementDTO` cleanly replaces anonymous 3-tuples in repository versioning, eliminating QGR023 violations.
+- Logfire FastAPI instrumentation requires idempotency protection when testing repeated startup lifecycles; tracking instrumented apps by object ID prevents re-instrumentation crashes.
+
+## Achieved (Audit Update)
+- Successfully completed Tier 8 Red Team Plan Audit (`red_team_audit_01_phase1_plan.md`) with 100% compliance across all 11 steps of Phase 1.
+- Verified physical implementation of QGR024 (deferred annotations without quotes) and QGR025 (model_copy dictionary ban).
+- Verified clean import tool across 355/355 modules and 7/7 unit tests.
+- Verified full 8-stage global backend audit loop (`backend_audit_loop.py backend_v2/`): exit code 0 across all 8 stages.
+- Verified AST advisory warning baseline ledger (`audit_warning_baseline.py`): 0 fatals, 1,253 warnings (below 1,254 ceiling).
+- Verified database atom audit (`audit_database_atoms.py --strict`): 0 errors across 13 matrices and 305 atoms.
+- Resolved MyPy strict call-arg requirement on `MonitorState(cursors={})` in `finops_trace_analyzer.py`.
+- Formally approved and signed off on Phase 1.
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
 - Proceed to Phase 2: `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_156/01_phase1_plan.md] @[docs/epic/EPIC_156_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
 ```
