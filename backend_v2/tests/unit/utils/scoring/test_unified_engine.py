@@ -246,3 +246,24 @@ def test_unified_scoring_engine_xai_log_stats_key_stringification() -> None:
         assert isinstance(val, dict)
         assert "hits" in val
         assert "total" in val
+
+
+def test_unified_scoring_engine_xai_debug_trace_mathematical_precision() -> None:
+    """Verify that xai_log debug trace contains mathematically accurate ratio, curved_ratio, and log lines."""
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=5, total=10, dlqs=2),
+        2.0: LevelStatsDTO(hits=3, total=10, dlqs=0),
+    }
+    result = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
+    trace = result.xai_log.engine_debug_trace
+    expected_ratio = 11.0 / 28.0
+    expected_curved = expected_ratio**1.25
+    assert abs(trace["linear_ratio"] - expected_ratio) < 1e-6
+    assert abs(trace["curved_ratio"] - expected_curved) < 1e-6
+    assert any("Weighted Points: 11.0 / 28.0" in line for line in trace["log_trace"])
+    assert any("Linear: 39%" in line for line in trace["log_trace"])
+    assert any("Curved: 31%" in line for line in trace["log_trace"])
+    assert any("Level 1.0 (Weight x1.0): 5/8 hits" in line for line in trace["log_trace"])
+    assert any("Level 2.0 (Weight x2.0): 3/10 hits" in line for line in trace["log_trace"])
+
