@@ -11,6 +11,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.enums import ExecutionStatus, TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.tests.unit.test_worker_synthesis import *  # noqa: F403
 from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
 
@@ -26,7 +27,7 @@ async def test_synthesis_worker_empty_accept_language_raises() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_missing_execution_returns() -> None:
     """Test generate_profile_synthesis_and_pdf_task returns early if execution does not exist."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = None
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
@@ -51,7 +52,7 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
         metadata=ExecutionMetadata(),
         profile_syntheses={prof_id: cache},
     )
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = rec.model_dump(mode="json")
     mock_redis = AsyncMock()
     mock_artifact = MagicMock()
@@ -92,7 +93,7 @@ async def test_synthesis_worker_profile_not_found_raises() -> None:
         target_locale="en",
         metadata=ExecutionMetadata(),
     )
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = rec.model_dump(mode="json")
     mock_repo.get_output_profile_by_id.return_value = None
 
@@ -125,7 +126,7 @@ async def test_synthesis_worker_workflow_not_found_raises() -> None:
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = rec.model_dump(mode="json")
     mock_repo.get_output_profile_by_id.return_value = prof.model_dump(mode="json")
     mock_repo.get_workflow_by_id.return_value = None

@@ -21,11 +21,12 @@ from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataD
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
 def mock_repo() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "type": "logic",
@@ -333,7 +334,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
     mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [
         SystemRulePromptBlock(
             id="blk_1234567890abcdef",
@@ -449,7 +450,7 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = None
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -493,7 +494,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
     matrix_block = MatrixPromptBlock(
         id="blk_1111222233334444",
         slug="matrix-block",
@@ -575,7 +576,7 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_blocks_by_ids.return_value = [
         SystemRulePromptBlock(
             id="blk_1111222233334444",
@@ -1143,7 +1144,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
     block = SystemRulePromptBlock(
         id="blk_0123456789abcdef0123456789abcdef",
         slug="common-block",
@@ -1246,7 +1247,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
     }
     mock_repo.get_execution.return_value = None
 
-    prompt_block_repo = AsyncMock()
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
     prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
 
     executor = DAGExecutor(
@@ -1809,7 +1810,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
 
 @pytest.mark.asyncio
 async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
-    mock_repo: AsyncMock, mock_compiler: Any
+    mock_repo: Any, mock_compiler: Any
 ) -> None:
     """Verify NodeExecutor accepts arq_pool and derives global_context_vars from metadata."""
     from backend_v2.models.enums import StepType
@@ -1817,7 +1818,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
     mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
 
     deps = StrategyDependencies(

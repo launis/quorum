@@ -1840,6 +1840,9 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
         self.get_all_prompt_blocks = DynamicRepoMethod("get_all_prompt_blocks", super().get_all_prompt_blocks)
         self.get_prompt_block = DynamicRepoMethod("get_prompt_block", None)
         self.get_prompt_block_by_id = DynamicRepoMethod("get_prompt_block_by_id", super().get_prompt_block_by_id)
+        self.get_prompt_blocks_by_ids = DynamicRepoMethod(
+            "get_prompt_blocks_by_ids", super().get_prompt_blocks_by_ids
+        )
         self.get_user = DynamicRepoMethod("get_user", super().get_user)
         self.get_user_by_email = DynamicRepoMethod("get_user_by_email", super().get_user_by_email)
         self.get_organization = DynamicRepoMethod("get_organization", super().get_organization)

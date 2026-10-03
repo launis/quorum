@@ -26,6 +26,7 @@ from backend_v2.models.enums import ExecutionStatus, RoleClassification, TargetB
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers.synthesis_reducers import (
     extract_user_role_from_trace,
     handle_starvation_if_detected,
@@ -241,7 +242,7 @@ async def test_handle_starvation_if_detected_true() -> None:
         content={"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
     )
     exec_rec = _make_execution([evt])
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
@@ -284,7 +285,7 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
         content={"event_type": "starvation", "total_atoms": 0, "reason": "none"},
     )
     exec_rec = _make_execution([evt])
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
@@ -412,7 +413,7 @@ async def test_recover_trace_telemetry_error_raises_corruption() -> None:
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state() -> None:
     """Test handle_synthesis_failure_state updates virtual step state."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wor_0123456789abcdef01",
@@ -508,7 +509,7 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     prof_id = "pro_0123456789abcdef01"
     v_step_id = f"sys_render_{prof_id}"
     v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wor_0123456789abcdef01",
@@ -530,7 +531,7 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state_db_error_raises() -> None:
     """Test handle_synthesis_failure_state raises AppException on repository exception."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.side_effect = OSError("DB unavailable")
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):

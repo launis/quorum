@@ -26,16 +26,19 @@ from backend_v2.services.orchestrator.rag_preflight_service import (
 )
 
 
-@pytest.fixture
-def mock_workflow_repo() -> MagicMock:
-    """Mock workflow repository."""
-    return AsyncMock()
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
-def mock_system_repo() -> MagicMock:
-    """Mock system repository."""
-    repo = AsyncMock()
+def mock_workflow_repo() -> InMemoryBlueprintTransformerRepository:
+    """In-memory workflow repository."""
+    return InMemoryBlueprintTransformerRepository()
+
+
+@pytest.fixture
+def mock_system_repo() -> InMemoryBlueprintTransformerRepository:
+    """In-memory system repository."""
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_model_registry.return_value = {
         "id": "sys_e26807f3bfa3454d",
         "name": "Default Stack",

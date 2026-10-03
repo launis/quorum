@@ -15,50 +15,45 @@ from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
 def mock_repos() -> dict[str, Any]:
-    exec_repo = AsyncMock()
-    exec_repo.get_execution = AsyncMock(return_value=None)
-    exec_repo.create_execution = AsyncMock(side_effect=lambda rec: rec)
-    exec_repo.update_execution = AsyncMock()
-
-    workflow_repo = AsyncMock()
-    workflow_repo.get_step_by_id = AsyncMock(
-        side_effect=lambda bp_id: {
-            "id": bp_id,
-            "type": "logic",
-            "cognitive_tier": "fast",
-            "slug": f"slug_{bp_id}",
-            "name": {"translations": {"en": f"Step {bp_id}"}},
-            "description": {"translations": {"en": "Desc"}},
-            "hook": "mock_hook",
-            "criteria_block_ids": [],
-        }
-    )
-    workflow_repo.get_workflow_by_id = AsyncMock(
-        side_effect=lambda wf_id: {
-            "id": wf_id,
-            "slug": f"slug_{wf_id}",
-            "name": {"translations": {"en": "Workflow"}},
-            "description": {"translations": {"en": "Desc"}},
-            "version": 1,
-            "status": "active",
-            "default_profile_id": "prof_1111111111111111",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "steps": [],
-        }
-    )
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_execution.return_value = None
+    repo.get_step_by_id.side_effect = lambda bp_id: {
+        "id": bp_id,
+        "type": "logic",
+        "cognitive_tier": "fast",
+        "slug": f"slug_{bp_id}",
+        "name": {"translations": {"en": f"Step {bp_id}"}},
+        "description": {"translations": {"en": "Desc"}},
+        "hook": "mock_hook",
+        "criteria_block_ids": [],
+    }
+    repo.get_workflow_by_id.side_effect = lambda wf_id: {
+        "id": wf_id,
+        "slug": f"slug_{wf_id}",
+        "name": {"translations": {"en": "Workflow"}},
+        "description": {"translations": {"en": "Desc"}},
+        "version": 1,
+        "status": "active",
+        "default_profile_id": "prof_1111111111111111",
+        "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
+        "steps": [],
+    }
 
     return {
-        "exec_repo": exec_repo,
-        "workflow_repo": workflow_repo,
-        "comp_repo": AsyncMock(),
-        "prompt_block_repo": AsyncMock(),
-        "output_profile_repo": AsyncMock(),
-        "identity_repo": AsyncMock(),
-        "audit_repo": AsyncMock(),
-        "system_repo": AsyncMock(),
+        "exec_repo": repo,
+        "workflow_repo": repo,
+        "comp_repo": repo,
+        "prompt_block_repo": repo,
+        "output_profile_repo": repo,
+        "identity_repo": repo,
+        "audit_repo": repo,
+        "system_repo": repo,
         "prompt_compiler": MagicMock(),
         "rag_preflight": AsyncMock(),
     }

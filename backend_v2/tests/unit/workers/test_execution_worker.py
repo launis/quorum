@@ -13,6 +13,7 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers.execution_worker import execute_workflow_job
 
 
@@ -55,10 +56,9 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -95,10 +95,9 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     mock_workflow = _create_mock_workflow(strictness=50)
     mock_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -125,10 +124,9 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
 async def test_execution_worker_missing_workflow_raises() -> None:
     """Verify missing workflow routes to DLQ and returns failure."""
     mock_record = _create_mock_record()
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=None)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = None
+    mock_repo.get_execution.return_value = mock_record
 
     ctx = {
         "repository": mock_repo,
@@ -149,10 +147,9 @@ async def test_execution_worker_missing_workflow_raises() -> None:
 async def test_execution_worker_missing_execution_raises() -> None:
     """Verify missing execution in DB routes to DLQ and returns failure."""
     mock_workflow = _create_mock_workflow()
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=None)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = None
 
     ctx = {
         "repository": mock_repo,
@@ -175,10 +172,9 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record(target_locale="")
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     ctx = {
         "repository": mock_repo,
@@ -253,10 +249,9 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
         }
     )
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -321,10 +316,9 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
         }
     )
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -363,10 +357,9 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
         }
     )
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -406,10 +399,9 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     )
     mock_executed_record = base_record.model_copy(update={"execution_trace": [event]})
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -438,10 +430,9 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=RuntimeError("Engine failure"))
@@ -471,10 +462,9 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=asyncio.CancelledError())
@@ -504,10 +494,10 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=base_record)
-    mock_repo.update_execution = AsyncMock(side_effect=OSError("DB write error"))
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = base_record
+    mock_repo.update_execution.side_effect = OSError("DB write error")
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=RuntimeError("Engine crashed"))
@@ -570,10 +560,9 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
         }
     )
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -608,10 +597,9 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record()
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -651,10 +639,9 @@ async def test_execution_worker_w3c_trace_propagation_with_carrier() -> None:
     mock_record = _create_mock_record()
     mock_record = mock_record.model_copy(update={"metadata": ExecutionMetadata(telemetry=carrier)})
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -689,10 +676,9 @@ async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
     assert mock_record.metadata is not None
     assert mock_record.metadata.telemetry is None
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_workflow.return_value = mock_workflow
+    mock_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)

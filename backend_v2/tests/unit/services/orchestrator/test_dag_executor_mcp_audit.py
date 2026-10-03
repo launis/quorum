@@ -17,9 +17,12 @@ from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
 def mock_repo() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_step_by_id.return_value = {
         "id": "stp_1111222233334444",
         "slug": "logic",

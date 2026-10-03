@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers.report_worker import (
     generate_pdf_job,
     generate_pdf_task,
@@ -45,8 +46,7 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
         )
     )
 
-    mock_repo = MagicMock()
-    mock_repo.update_execution = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
 
     with (
         patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
@@ -136,7 +136,7 @@ async def test_generate_pdf_task_execution_not_found() -> None:
     """Verify generate_pdf_task skips processing when execution does not exist in repo."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
 
@@ -149,7 +149,7 @@ async def test_generate_pdf_task_success_path() -> None:
     """Verify generate_pdf_task happy path: delegates to ReportService for default artifact compilation."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",
@@ -182,7 +182,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches failure and updates execution status."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = {
                 "id": "exe_1234567890123456",

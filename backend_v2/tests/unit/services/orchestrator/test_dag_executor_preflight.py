@@ -17,9 +17,12 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    repo = AsyncMock()
+def mock_repo() -> InMemoryBlueprintTransformerRepository:
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "type": "logic",

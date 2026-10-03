@@ -19,6 +19,9 @@ from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
 def mock_compiler() -> MagicMock:
     compiler = MagicMock()
@@ -27,41 +30,36 @@ def mock_compiler() -> MagicMock:
 
 
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    repo = MagicMock()
-    repo.get_step_by_id = AsyncMock()
-    repo.get_all_prompt_blocks = AsyncMock(return_value=[])
-    repo.get_output_profile_by_id = AsyncMock(
-        return_value={
-            "id": "prof_0123456789abcdef0123456789abcdef",
-            "slug": "test",
-            "name": {"translations": {"en": "Test"}},
-            "workflow_id": "wf_123",
-            "organization_id": "root",
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_1234567890123456",
-                    "title": {"translations": {"en": "Test"}},
-                    "target_blocks": ["*"],
-                }
-            ],
-        }
-    )
-    repo.get_workflow = AsyncMock(
-        return_value={
-            "id": "wf_0123456789abcdef0123456789abcdef",
-            "slug": "test",
-            "name": {"translations": {"en": "Test"}},
-            "description": {"translations": {"en": "Test"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "steps": [],
-        }
-    )
-    repo.get_execution = AsyncMock(return_value=None)
+def mock_repo() -> InMemoryBlueprintTransformerRepository:
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_all_prompt_blocks.return_value = []
+    repo.get_output_profile_by_id.return_value = {
+        "id": "prof_0123456789abcdef0123456789abcdef",
+        "slug": "test",
+        "name": {"translations": {"en": "Test"}},
+        "workflow_id": "wf_123",
+        "organization_id": "root",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1234567890123456",
+                "title": {"translations": {"en": "Test"}},
+                "target_blocks": ["*"],
+            }
+        ],
+    }
+    repo.get_workflow.return_value = {
+        "id": "wf_0123456789abcdef0123456789abcdef",
+        "slug": "test",
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof",
+        "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
+        "steps": [],
+    }
+    repo.get_execution.return_value = None
     return repo
 
 

@@ -16,83 +16,79 @@ from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 class DummySynthesisOutputDTO(BaseModel):
     model_config = ConfigDict(extra="allow")
     output: str = ""
 
 
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    repo = MagicMock()
-    repo.get_step_by_id = AsyncMock()
-    repo.get_all_prompt_blocks = AsyncMock(return_value=[])
-    repo.get_output_profile_by_id = AsyncMock(
-        return_value={
-            "id": "prof_0123456789abcdef0123456789abcdef",
-            "slug": "test",
-            "name": {"translations": {"en": "Test"}},
-            "workflow_id": "wf_123",
-            "organization_id": "root",
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_1234567890123456",
-                    "title": {"translations": {"en": "Test"}},
-                    "target_blocks": ["*"],
-                }
-            ],
-        }
-    )
-    repo.get_workflow = AsyncMock(
-        return_value={
-            "id": "wf_0123456789abcdef",
-            "slug": "test",
-            "name": {"translations": {"en": "Test"}},
-            "description": {"translations": {"en": "Test"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "steps": [],
-        }
-    )
-    repo.get_execution = AsyncMock(return_value=None)
-    repo.get_model_registry = AsyncMock(
-        return_value={
-            "id": "sys_e26807f3bfa3454d",
-            "name": "Default Stack",
-            "tier_definitions": {
-                "fast": {
-                    "provider": "google",
-                    "model_name": "gemini-2.5-flash",
-                    "temperature": 0.0,
-                    "tpm_limit": 100000,
-                    "rpm_limit": 100,
-                },
-                "balanced": {
-                    "provider": "google",
-                    "model_name": "gemini-2.5-flash",
-                    "temperature": 0.0,
-                    "tpm_limit": 100000,
-                    "rpm_limit": 100,
-                },
-                "deep": {
-                    "provider": "google",
-                    "model_name": "gemini-2.5-pro",
-                    "temperature": 0.0,
-                    "tpm_limit": 100000,
-                    "rpm_limit": 100,
-                },
-                "reasoning": {
-                    "provider": "google",
-                    "model_name": "gemini-2.5-pro",
-                    "temperature": 0.0,
-                    "tpm_limit": 100000,
-                    "rpm_limit": 100,
-                },
+def mock_repo() -> InMemoryBlueprintTransformerRepository:
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_all_prompt_blocks.return_value = []
+    repo.get_output_profile_by_id.return_value = {
+        "id": "prof_0123456789abcdef0123456789abcdef",
+        "slug": "test",
+        "name": {"translations": {"en": "Test"}},
+        "workflow_id": "wf_123",
+        "organization_id": "root",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1234567890123456",
+                "title": {"translations": {"en": "Test"}},
+                "target_blocks": ["*"],
+            }
+        ],
+    }
+    repo.get_workflow.return_value = {
+        "id": "wf_0123456789abcdef",
+        "slug": "test",
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "prof",
+        "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
+        "steps": [],
+    }
+    repo.get_execution.return_value = None
+    repo.get_model_registry.return_value = {
+        "id": "sys_e26807f3bfa3454d",
+        "name": "Default Stack",
+        "tier_definitions": {
+            "fast": {
+                "provider": "google",
+                "model_name": "gemini-2.5-flash",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
             },
-        }
-    )
+            "balanced": {
+                "provider": "google",
+                "model_name": "gemini-2.5-flash",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+            "deep": {
+                "provider": "google",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+            "reasoning": {
+                "provider": "google",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+        },
+    }
     return repo
 
 
