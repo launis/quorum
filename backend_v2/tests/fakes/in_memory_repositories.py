@@ -1829,76 +1829,27 @@ class DynamicRepoMethod:
 class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
     """Specialized in-memory composite repository for BlueprintTransformer tests."""
 
+    _dynamic_methods: dict[str, DynamicRepoMethod]
+
     def __init__(self) -> None:
         super().__init__()
-        self.get_workflow = DynamicRepoMethod("get_workflow", None)
-        self.get_workflow_by_id = DynamicRepoMethod("get_workflow_by_id", super().get_workflow_by_id)
-        self.get_workflow_definition = DynamicRepoMethod("get_workflow_definition", super().get_workflow_definition)
-        self.get_execution = DynamicRepoMethod("get_execution", super().get_execution)
-        self.get_execution_status = DynamicRepoMethod("get_execution_status", super().get_execution_status)
-        self.get_all_output_profiles = DynamicRepoMethod("get_all_output_profiles", super().get_all_output_profiles)
-        self.get_all_output_profiles_models = DynamicRepoMethod(
-            "get_all_output_profiles_models", super().get_all_output_profiles_models
-        )
-        self.get_output_profile = DynamicRepoMethod("get_output_profile", None)
-        self.get_output_profile_by_id = DynamicRepoMethod("get_output_profile_by_id", super().get_output_profile_by_id)
-        self.get_by_id = DynamicRepoMethod("get_by_id", None)
-        self.get_all_prompt_blocks = DynamicRepoMethod("get_all_prompt_blocks", super().get_all_prompt_blocks)
-        self.get_prompt_block = DynamicRepoMethod("get_prompt_block", None)
-        self.get_prompt_block_by_id = DynamicRepoMethod("get_prompt_block_by_id", super().get_prompt_block_by_id)
-        self.get_prompt_blocks_by_ids = DynamicRepoMethod(
-            "get_prompt_blocks_by_ids", super().get_prompt_blocks_by_ids
-        )
-        self.get_all_components = DynamicRepoMethod("get_all_components", super().get_all_components)
-        self.get_user = DynamicRepoMethod("get_user", super().get_user)
-        self.get_user_by_email = DynamicRepoMethod("get_user_by_email", super().get_user_by_email)
-        self.get_organization = DynamicRepoMethod("get_organization", super().get_organization)
-        self.get_organization_model = DynamicRepoMethod("get_organization_model", super().get_organization_model)
-        self.get_mcp_gateways = DynamicRepoMethod("get_mcp_gateways", super().get_mcp_gateways)
-        self.get_all_steps = DynamicRepoMethod("get_all_steps", super().get_all_steps)
-        self.get_step = DynamicRepoMethod("get_step", None)
-        self.get_step_by_id = DynamicRepoMethod("get_step_by_id", super().get_step_by_id)
-        self.update_execution = DynamicRepoMethod("update_execution", super().update_execution)
-        self.create_execution = DynamicRepoMethod("create_execution", super().create_execution)
-        self.save_execution = DynamicRepoMethod("save_execution", super().save_execution)
-        self.get_all_executions = DynamicRepoMethod("get_all_executions", super().get_all_executions)
-        self.list_executions = DynamicRepoMethod("list_executions", None)
-        self.get_recent_completed_executions = DynamicRepoMethod(
-            "get_recent_completed_executions", super().get_recent_completed_executions
-        )
-        self.count_executions_by_matrix = DynamicRepoMethod(
-            "count_executions_by_matrix", super().count_executions_by_matrix
-        )
-        self.get_system_settings = DynamicRepoMethod("get_system_settings", super().get_system_settings)
-        self.update_system_settings = DynamicRepoMethod("update_system_settings", super().update_system_settings)
-        self.append_trace_event = DynamicRepoMethod("append_trace_event", super().append_trace_event)
-        self.delete_execution = DynamicRepoMethod("delete_execution", super().delete_execution)
-        self.get_model_registry = DynamicRepoMethod("get_model_registry", super().get_model_registry)
-        self.get_all_model_registries = DynamicRepoMethod(
-            "get_all_model_registries", super().get_all_model_registries
-        )
-        self.save_report_artifact = DynamicRepoMethod("save_report_artifact", super().save_report_artifact)
-        self.create_report_artifact = DynamicRepoMethod("create_report_artifact", super().create_report_artifact)
-        self.get_report_artifact = DynamicRepoMethod("get_report_artifact", super().get_report_artifact)
-        self.list_report_artifacts_by_execution = DynamicRepoMethod(
-            "list_report_artifacts_by_execution", super().list_report_artifacts_by_execution
-        )
-        self.update_report_artifact = DynamicRepoMethod("update_report_artifact", super().update_report_artifact)
-        self.delete_report_artifact = DynamicRepoMethod("delete_report_artifact", super().delete_report_artifact)
+        self._dynamic_methods = {}
 
-        for attr_name in dir(self):
-            if not attr_name.startswith("_") and attr_name not in self.__dict__:
-                val = getattr(self, attr_name)
-                if callable(val) and not isinstance(val, type):
-                    self.__dict__[attr_name] = DynamicRepoMethod(attr_name, val)
-
-    def __getattr__(self, name: str) -> Any:
-        """Dynamically synthesize a DynamicRepoMethod for un-mocked repo calls."""
+    def __getattribute__(self, name: str) -> Any:
+        """Dynamically wraps or synthesizes a DynamicRepoMethod for legacy mock compatibility."""
         if name.startswith("_"):
-            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-        method = DynamicRepoMethod(name, None)
-        self.__dict__[name] = method
-        return method
-
-
-
+            return super().__getattribute__(name)
+        dyn_methods = super().__getattribute__("_dynamic_methods")
+        if name in dyn_methods:
+            return dyn_methods[name]
+        try:
+            val = super().__getattribute__(name)
+        except AttributeError:
+            method = DynamicRepoMethod(name, None)
+            dyn_methods[name] = method
+            return method
+        if callable(val) and not isinstance(val, type):
+            method = DynamicRepoMethod(name, val)
+            dyn_methods[name] = method
+            return method
+        return val
