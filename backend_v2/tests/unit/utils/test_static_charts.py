@@ -9,7 +9,7 @@ import base64
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.utils.static_charts import (
@@ -262,3 +262,144 @@ def test_generate_radar_chart_success() -> None:
     ]
     result = generate_radar_chart(axes)
     assert result.startswith("iVBORw0KGgo") or len(result) > 100
+
+
+def test_generate_quadrant_matrix_chart_single_axis() -> None:
+    """Test quadrant chart raises AppException when only 1 axis is provided."""
+    single_axis = [
+        MatrixScorecardRowDTO(
+            name="Single Axis",
+            score=2.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b1",
+            label_i18n=get_i18n("L1"),
+            row_explanation="E1",
+            is_evaluative=True,
+        )
+    ]
+    with pytest.raises(AppException) as exc_info:
+        generate_quadrant_matrix_chart(single_axis)
+    assert exc_info.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA.value
+
+
+def test_generate_scatter_chart_rendering_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test scatter chart wraps rendering failure into CHART_GENERATION_FAILED AppException."""
+    import matplotlib.pyplot as plt
+
+    def _broken_subplots(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("Simulated matplotlib failure")
+
+    monkeypatch.setattr(plt, "subplots", _broken_subplots)
+
+    axes = [
+        MatrixScorecardRowDTO(
+            name="X",
+            score=1.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b1",
+            label_i18n=get_i18n("X"),
+            row_explanation="X",
+            is_evaluative=True,
+        ),
+        MatrixScorecardRowDTO(
+            name="Y",
+            score=2.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b2",
+            label_i18n=get_i18n("Y"),
+            row_explanation="Y",
+            is_evaluative=True,
+        ),
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        generate_scatter_chart(axes)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CHART_GENERATION_FAILED.value
+
+
+def test_generate_quadrant_matrix_chart_rendering_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test quadrant chart wraps rendering failure into CHART_GENERATION_FAILED AppException."""
+    import matplotlib.pyplot as plt
+
+    def _broken_subplots(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("Simulated matplotlib failure")
+
+    monkeypatch.setattr(plt, "subplots", _broken_subplots)
+
+    axes = [
+        MatrixScorecardRowDTO(
+            name="X",
+            score=1.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b1",
+            label_i18n=get_i18n("X"),
+            row_explanation="X",
+            is_evaluative=True,
+        ),
+        MatrixScorecardRowDTO(
+            name="Y",
+            score=2.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b2",
+            label_i18n=get_i18n("Y"),
+            row_explanation="Y",
+            is_evaluative=True,
+        ),
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        generate_quadrant_matrix_chart(axes)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CHART_GENERATION_FAILED.value
+
+
+def test_generate_radar_chart_rendering_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test radar chart wraps rendering failure into CHART_GENERATION_FAILED AppException."""
+    import matplotlib.pyplot as plt
+
+    def _broken_subplots(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("Simulated matplotlib failure")
+
+    monkeypatch.setattr(plt, "subplots", _broken_subplots)
+
+    axes = [
+        MatrixScorecardRowDTO(
+            name="X",
+            score=1.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b1",
+            label_i18n=get_i18n("X"),
+            row_explanation="X",
+            is_evaluative=True,
+        ),
+        MatrixScorecardRowDTO(
+            name="Y",
+            score=2.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b2",
+            label_i18n=get_i18n("Y"),
+            row_explanation="Y",
+            is_evaluative=True,
+        ),
+        MatrixScorecardRowDTO(
+            name="Z",
+            score=3.0,
+            scale_min=0.0,
+            scale_max=5.0,
+            block_id="b3",
+            label_i18n=get_i18n("Z"),
+            row_explanation="Z",
+            is_evaluative=True,
+        ),
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        generate_radar_chart(axes)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CHART_GENERATION_FAILED.value
+

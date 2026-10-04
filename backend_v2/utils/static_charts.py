@@ -18,6 +18,12 @@ from backend_v2.services.localization import LocalizationService
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "generate_quadrant_matrix_chart",
+    "generate_radar_chart",
+    "generate_scatter_chart",
+]
+
 
 def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
     """Generate a Cartesian 2D scatter matrix plot from the provided axes.
@@ -31,9 +37,15 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         A Base64 string literal of the generated PNG file.
 
     Raises:
-        AppException: If chart generation fails or if insufficient axes are provided.
+        AppException: If fewer than 2 axes are provided (ErrorCodes.INVALID_OUTPUT_SCHEMA)
+            or if chart rendering fails (ErrorCodes.CHART_GENERATION_FAILED).
     """
     if len(axes) < 2:
+        logger.error(
+            "Scatter chart requires at least 2 axes, got %d",
+            len(axes),
+            extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
         raise AppException(
             message="Scatter chart requires at least 2 axes.",
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -118,7 +130,11 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
         return base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception as e:
-        logger.error("Scatter chart generation failed", exc_info=True)
+        logger.error(
+            "Scatter chart generation failed",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CHART_GENERATION_FAILED.value},
+        )
         raise AppException(
             message=f"Scatter chart generation failed: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -142,9 +158,15 @@ def generate_quadrant_matrix_chart(
         A Base64 string literal of the generated PNG file.
 
     Raises:
-        AppException: If chart generation fails or if insufficient axes are provided.
+        AppException: If fewer than 2 axes are provided (ErrorCodes.INVALID_OUTPUT_SCHEMA)
+            or if chart rendering fails (ErrorCodes.CHART_GENERATION_FAILED).
     """
     if len(axes) < 2:
+        logger.error(
+            "Quadrant matrix chart requires at least 2 axes, got %d",
+            len(axes),
+            extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
         raise AppException(
             message="Quadrant matrix chart requires at least 2 axes.",
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -323,7 +345,11 @@ def generate_quadrant_matrix_chart(
 
         return base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception as e:
-        logger.error("Quadrant matrix chart generation failed", exc_info=True)
+        logger.error(
+            "Quadrant matrix chart generation failed",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CHART_GENERATION_FAILED.value},
+        )
         raise AppException(
             message=f"Quadrant matrix chart generation failed: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -343,9 +369,15 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
         A Base64 string literal of the generated PNG radar polygon.
 
     Raises:
-        AppException: If chart generation fails or if insufficient axes are provided.
+        AppException: If fewer than 3 axes are provided (ErrorCodes.INVALID_OUTPUT_SCHEMA)
+            or if chart rendering fails (ErrorCodes.CHART_GENERATION_FAILED).
     """
     if len(axes) < 3:
+        logger.error(
+            "Radar chart requires at least 3 axes, got %d",
+            len(axes),
+            extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
         raise AppException(
             message="Radar chart requires at least 3 axes.",
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -399,7 +431,11 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
         return base64.b64encode(buf.getvalue()).decode("utf-8")
     except Exception as e:
-        logger.error("Radar chart generation failed", exc_info=True)
+        logger.error(
+            "Radar chart generation failed",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CHART_GENERATION_FAILED.value},
+        )
         raise AppException(
             message=f"Radar chart generation failed: {str(e)}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -174,7 +174,7 @@
   - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[backend_v2/llm/provider.py]
-  - [ ] @[backend_v2/utils/static_charts.py]
+  - [x] @[backend_v2/utils/static_charts.py]
   - [ ] @[backend_v2/services/document_extraction.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/adapters/base_adapter.py]
