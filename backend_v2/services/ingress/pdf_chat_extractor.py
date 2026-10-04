@@ -121,6 +121,15 @@ class PdfChatExtractorService:
 
         Note:
             d is an External PyMuPDF API boundary dict from page.get_drawings().
+
+        Args:
+            d: Raw drawing dictionary from PyMuPDF get_drawings.
+            page_width: Page width in points.
+            page_height: Page height in points.
+            table_rects: Optional list of identified table rectangles for shielding.
+
+        Returns:
+            True if the drawing meets all user bubble geometric criteria, False otherwise.
         """
         rect_obj = None
         if "rect" in d:
@@ -162,12 +171,24 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _dlq_log_extraction_error(context: str, exc: Exception) -> None:
-        """Route non-fatal PDF table extraction exceptions to dead-letter diagnostic logs."""
+        """Route non-fatal PDF table extraction exceptions to dead-letter diagnostic logs.
+
+        Args:
+            context: Contextual label identifying where extraction encountered a fault.
+            exc: Underlying exception caught during parsing.
+        """
         logger.debug("[PdfChatExtractorService] DLQ table extraction fault in %s: %s", context, exc)
 
     @staticmethod
     def _get_page_table_rects(page: fitz.Page) -> list[fitz.Rect]:
-        """Extracts valid table bounding boxes, guarding against empty cell collections and outer page containers."""
+        """Extracts valid table bounding boxes, guarding against empty cell collections and outer page containers.
+
+        Args:
+            page: PyMuPDF Page instance to scan for tabular structures.
+
+        Returns:
+            List of valid fitz.Rect bounding boxes representing identified tables.
+        """
         table_rects: list[fitz.Rect] = []
         page_w = page.rect.width
         page_h = page.rect.height
@@ -249,7 +270,14 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _extract_page_user_bubbles(page: fitz.Page) -> list[fitz.Rect]:
-        """Extracts sanitized user speech bubble rectangles on a page."""
+        """Extracts sanitized user speech bubble rectangles on a page.
+
+        Args:
+            page: PyMuPDF Page instance to inspect for user bubble drawings.
+
+        Returns:
+            List of fitz.Rect rectangles identified as user speech bubbles.
+        """
         page_w = page.rect.width
         page_h = page.rect.height
         table_rects = PdfChatExtractorService._get_page_table_rects(page)
@@ -267,7 +295,14 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _check_truncation(text: str) -> None:
-        """Checks for ChatGPT overflow buttons outside code fences and raises actionable warning."""
+        """Checks for ChatGPT overflow buttons outside code fences and raises actionable warning.
+
+        Args:
+            text: Extracted text content to scan for truncation buttons.
+
+        Raises:
+            AppException: If truncation artifacts are detected (ErrorCodes.VALIDATION_FAILED).
+        """
         lines = text.split("\n")
         in_code_fence = False
         for line in lines:
@@ -281,11 +316,11 @@ class PdfChatExtractorService:
             line_lower = stripped.lower()
             for indicator in _TRUNCATION_INDICATORS:
                 if indicator in line_lower:
-                    logger.warning(
+                    logger.error(
                         "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' "
                         "in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
                         indicator,
-                        extra={"error_code": "PROMPT_TRUNCATION_WARNING", "token": indicator},
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "token": indicator},
                     )
                     raise AppException(
                         message=(
@@ -309,6 +344,12 @@ class PdfChatExtractorService:
 
         Quantizes vertical coordinate into 10pt bands to group inline elements,
         then orders left-to-right by x0.
+
+        Args:
+            page_blocks: List of text blocks to sort.
+
+        Returns:
+            Sorted list of text blocks in reading order.
         """
         return sorted(page_blocks, key=lambda b: (round(b.y0 / 10.0), b.x0))
 
@@ -317,7 +358,15 @@ class PdfChatExtractorService:
         page_blocks: list[PdfTextBlockDTO],
         table_rects: list[fitz.Rect],
     ) -> list[PdfTextBlockDTO]:
-        """Suppresses raw text blocks that intersect identified table bounding boxes."""
+        """Suppresses raw text blocks that intersect identified table bounding boxes.
+
+        Args:
+            page_blocks: List of candidate text blocks on the page.
+            table_rects: List of bounding boxes for recognized tables.
+
+        Returns:
+            Filtered list of text blocks not intersecting any table rectangle.
+        """
         if not table_rects:
             return page_blocks
 
@@ -334,7 +383,15 @@ class PdfChatExtractorService:
         page: fitz.Page,
         table_rects: list[fitz.Rect],
     ) -> list[tuple[fitz.Rect, str]]:
-        """Extracts tables from a page and formats them as Markdown pipe tables."""
+        """Extracts tables from a page and formats them as Markdown pipe tables.
+
+        Args:
+            page: PyMuPDF Page instance containing tables.
+            table_rects: Pre-extracted bounding boxes for identified tables.
+
+        Returns:
+            List of tuples pairing each table rectangle with its Markdown representation.
+        """
         if not table_rects:
             return []
 
@@ -400,7 +457,14 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _detect_attachment_cards(page: fitz.Page) -> list[tuple[fitz.Rect, str]]:
-        """Detects 76x76 pt file attachment cards and normalizes them to [Liite: <filename>]."""
+        """Detects 76x76 pt file attachment cards and normalizes them to [Liite: <filename>].
+
+        Args:
+            page: PyMuPDF Page instance to scan for attachment cards.
+
+        Returns:
+            List of tuples pairing the attachment card rectangle with formatted label text.
+        """
         cards: list[tuple[fitz.Rect, str]] = []
         page_blocks = page.get_text("blocks")
 
@@ -447,10 +511,13 @@ class PdfChatExtractorService:
             ChatHistoryDTO containing the ordered chronological conversation.
 
         Raises:
-            AppException: If doc is empty/corrupt or truncation artifacts are detected.
+            AppException: If doc is empty/corrupt or truncation artifacts are detected (ErrorCodes.VALIDATION_FAILED).
         """
         if len(doc) == 0:
-            logger.error("[PdfChatExtractorService] Document has 0 pages.")
+            logger.error(
+                "[PdfChatExtractorService] Document has 0 pages.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(
                 message="PDF document contains no pages.",
                 status_code=422,
@@ -599,7 +666,10 @@ class PdfChatExtractorService:
         messages = [ChatMessageDTO(role=turn.role, content=turn.content) for turn in raw_turns if turn.content.strip()]
 
         if not messages:
-            logger.error("[PdfChatExtractorService] No conversational messages extracted from PDF.")
+            logger.error(
+                "[PdfChatExtractorService] No conversational messages extracted from PDF.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(
                 message="No conversational messages could be extracted from the PDF document.",
                 status_code=422,
