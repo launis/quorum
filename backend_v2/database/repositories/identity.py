@@ -19,6 +19,8 @@ from backend_v2.models.auth import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["IdentityRepositoryImpl"]
+
 
 class IdentityRepositoryImpl(BaseRepository):
     """Repository implementation for Users and Organizations."""
@@ -30,7 +32,7 @@ class IdentityRepositoryImpl(BaseRepository):
             List of validated Organization domain models.
 
         Raises:
-            AppException: If an organization record is corrupted.
+            AppException: If an organization record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         raw_orgs = await self.driver.query("organizations")
         orgs: list[Organization] = []
@@ -51,7 +53,7 @@ class IdentityRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted organization {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return orgs
 
@@ -128,6 +130,9 @@ class IdentityRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated User domain models.
+
+        Raises:
+            AppException: If a user record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if org_id:
@@ -151,7 +156,7 @@ class IdentityRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted user {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return users
 

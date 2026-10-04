@@ -9,7 +9,15 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserRole, UserUpdate
+from backend_v2.models.auth import (
+    Organization,
+    OrganizationCreate,
+    OrganizationUpdateDTO,
+    SystemOrganizations,
+    User,
+    UserRole,
+    UserUpdate,
+)
 
 
 @pytest.fixture
@@ -170,3 +178,67 @@ async def test_get_org_usage_total(repo: IdentityRepositoryImpl, mock_driver: As
     ]
     total = await repo.get_org_usage_total("org_1", since="2026-08-01T00:00:00Z")
     assert total == pytest.approx(0.08)
+
+
+@pytest.mark.asyncio
+async def test_create_organization_from_dto_generates_prefixed_id(
+    repo: IdentityRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Positive/Edge: tests creating an organization from OrganizationCreate generates a lowercase prefixed ID."""
+    org_create = OrganizationCreate(
+        name="Acme Corp",
+        admin_email="admin@acme.com",
+        admin_password="securepassword",
+        admin_name="Acme Admin",
+        tpm_limit=5000,
+        rpm_limit=50,
+    )
+    mock_driver.upsert.return_value = "org_acme corp"
+    doc_id = await repo.create_organization(org_create)
+    assert doc_id == "org_acme corp"
+    mock_driver.upsert.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_empty_updates_short_circuit(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Boundary: tests that empty updates immediately return True without calling driver."""
+    res_org = await repo.update_organization("org_123", OrganizationUpdateDTO())
+    assert res_org is True
+
+    res_user = await repo.update_user("usr_123", UserUpdate())
+    assert res_user is True
+
+    mock_driver.update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_corruption_without_id_reports_unknown(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted records without an 'id' attribute report item_id='unknown'."""
+    mock_driver.query.return_value = [{"invalid_key": "corrupted"}]
+    with pytest.raises(AppException) as exc_org:
+        await repo.list_organizations()
+    assert exc_org.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_org.value.details["item_id"] == "unknown"
+
+    with pytest.raises(AppException) as exc_user:
+        await repo.list_users()
+    assert exc_user.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_user.value.details["item_id"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_delete_org_data_preserves_root_system_workflows(
+    repo: IdentityRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Boundary: tests that workflows belonging to ROOT_SYSTEM are not purged during org data deletion."""
+    mock_driver.query.side_effect = [
+        [],  # users
+        [],  # executions
+        [
+            {"id": "wf_tenant", "organization_id": "org_tenant"},
+            {"id": "wf_root", "organization_id": SystemOrganizations.ROOT_SYSTEM},
+        ],
+    ]
+    await repo.delete_org_data("org_tenant")
+    # Only wf_tenant should be deleted, not wf_root
+    mock_driver.delete.assert_awaited_once_with("workflows", "wf_tenant")
