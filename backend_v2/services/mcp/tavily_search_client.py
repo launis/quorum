@@ -87,8 +87,8 @@ async def tavily_search(query: str) -> TavilySearchResult:
         TavilySearchResult with answer, source URLs, and raw content.
 
     Raises:
-        ConfigurationError: If the Tavily API key is not configured.
-        AppException: On network failures or malformed API responses.
+        ConfigurationError: If the Tavily API key is not configured (ErrorCodes.CONFIGURATION_ERROR).
+        AppException: If query is empty or network/validation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.FETCH_FAILED).
     """
     if not query or not str(query).strip():
         msg = "Tavily search query cannot be empty. Zero-Compromise Fail-Fast enforced."
@@ -247,6 +247,14 @@ async def tavily_search(query: str) -> TavilySearchResult:
 
 
 def _is_transient_error(e: BaseException) -> bool:
+    """Determine whether an exception represents a transient network condition eligible for retry.
+
+    Args:
+        e: BaseException instance caught during search execution.
+
+    Returns:
+        True if the error is a transient network fault, False otherwise.
+    """
     if isinstance(e, AppException):
         if e.error_code == ErrorCodes.VALIDATION_FAILED.value:
             return False  # Structural error, do not retry
