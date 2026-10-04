@@ -156,9 +156,9 @@
   - [x] @[backend_v2/utils/scoring/unified_engine.py]
   - [x] @[backend_v2/services/orchestrator/topological_evaluator.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/services/report_service.py]
-  - [ ] @[backend_v2/models/dtos/studio.py]
-  - [ ] @[backend_v2/models/view/sdui.py]
+  - [x] @[backend_v2/services/report_service.py]
+  - [x] @[backend_v2/models/dtos/studio.py]
+  - [x] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/models/dtos/synthesis.py]
   - [ ] @[backend_v2/models/dtos/dag_models.py]
   - [ ] @[backend_v2/models/domain/xai.py]
@@ -270,6 +270,7 @@
 - Post-Implementation Gates (Hardening Batch 16): Audited and verified `backend_v2/services/ingress/pdf_chat_extractor.py`, `backend_v2/services/mcp/tavily_search_client.py`, and `backend_v2/services/orchestrator/two_pass_atomizer.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (96%, 97%, and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero unannotated accumulators, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks with explicit ErrorCode enumerations, RFC 7807 structured dual-logging with `extra={"error_code": ...}`, and comprehensive ISTQB boundary and negative exception tests (`bbc2a2bad`, `d4f4015c0`, `bbd11cad0`).
 - Post-Implementation Gates (Hardening Batch 17): Audited and verified `backend_v2/templates/report_template.jinja2`, `backend_v2/workers/synthesis_reducers.py`, and `scripts/audit_mutation_coverage.py` via `/tier2-hardening-backend`. All targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (95% for `synthesis_reducers.py`, 99% for `audit_mutation_coverage.py`), passed AST strict guardrails with 0 violations, verified 0 lazy fallbacks in `report_template.jinja2`, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Split AST operator constructors into strictly typed `AST_COMPARE_CONSTRUCTORS` and `AST_BINOP_CONSTRUCTORS`, narrowed Windows stdout/stderr reconfigure to `io.TextIOWrapper`, and expanded unit test coverage across all mutation failure and CLI modes.
 - Post-Implementation Gates (Hardening Batch 18): Audited and verified `backend_v2/utils/scoring/unified_engine.py`, `backend_v2/services/orchestrator/topological_evaluator.py`, and `backend_v2/services/orchestrator/dag_executor.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100% for `unified_engine.py`, 99% for `topological_evaluator.py`, 93% for `dag_executor.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, completed PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, verified RFC 7807 structured dual-logging, and added comprehensive ISTQB negative exception tests covering DLQ error state propagation and omitted batch response nodes.
+- Post-Implementation Gates (Hardening Batch 19): Audited and verified `backend_v2/services/report_service.py`, `backend_v2/models/dtos/studio.py`, and `backend_v2/models/view/sdui.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93% for `report_service.py`, 100% for `studio.py`, 100% for `sdui.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero duck typing, RFC 7807 structured dual-logging, and PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks.
 
 ## Learned
 - GCS File Driver Error Semantics & Re-Raise Propagation: In `GCSFileDriver`, `_get_bucket` and storage operations must explicitly intercept and re-raise pre-existing `AppException` instances (`except AppException: raise`) to prevent double-wrapping inner domain exceptions in generic `GCS Initialization Failed` errors while preserving RFC 7807 status codes.
@@ -286,12 +287,14 @@
 - Synthesis Reducers Data Starvation & Failure Isolation: In `synthesis_reducers.py`, Phase 3 synthesis failures update virtual step states (`sys_render_{profile_id}`) without failing Phase 1 execution status, preserving execution audit trails and RFC 7807 structured logging.
 - Topological Evaluator Interface Encapsulation & DLQ Error Propagation: Adding explicit `__all__ = ["TopologicalEvaluator"]` formalizes public module exports, and covering `_dlq_mark_node_error` and missing batch response nodes brings unit test line coverage to 99% (73/74 stmts).
 - DAG Executor Architectural Invariance: `dag_executor.py` maintains strict architectural adherence to Phase 9 directives, with 0 AST violations across all 25 guardrail rules, 93% line coverage (581 statements, 28 passed tests), and formal decomposition across `DAGExecutor`, `NodeExecutor`, and `ExecutionCommitter`.
+- Report Service Storage & Compilation Isolation: In `ReportService`, Phase 3 presentation compilation safely handles pre-rendered static artifacts, ensures idempotent skipping when reports are already ready, updates execution step states without leaking raw dictionaries, and catches storage I/O failures with RFC 7807 structured errors.
+- Studio DTOs & SDUI Discriminated Union Parity: In `studio.py` and `sdui.py`, all models enforce `ConfigDict(strict=True, extra="forbid")`, export exhaustive `__all__ = [...]` lists, and validate polymorphic structures via `AnySduiBlock` discriminated unions with 100% test coverage.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/services/report_service.py`, `backend_v2/models/dtos/studio.py`, `backend_v2/models/view/sdui.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/models/dtos/synthesis.py`, `backend_v2/models/dtos/dag_models.py`, `backend_v2/models/domain/xai.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/services/report_service.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/models/view/sdui.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/models/dtos/synthesis.py] @[backend_v2/models/dtos/dag_models.py] @[backend_v2/models/domain/xai.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
