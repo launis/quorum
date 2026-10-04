@@ -171,9 +171,9 @@
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
-  - [ ] @[backend_v2/services/blueprint.py]
-  - [ ] @[backend_v2/llm/provider.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
+  - [x] @[backend_v2/services/blueprint.py]
+  - [x] @[backend_v2/llm/provider.py]
   - [ ] @[backend_v2/utils/static_charts.py]
   - [ ] @[backend_v2/services/document_extraction.py]
   - [ ] @[backend_v2/llm/client.py]
@@ -273,6 +273,7 @@
 - Post-Implementation Gates (Hardening Batch 19): Audited and verified `backend_v2/services/report_service.py`, `backend_v2/models/dtos/studio.py`, and `backend_v2/models/view/sdui.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93% for `report_service.py`, 100% for `studio.py`, 100% for `sdui.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero duck typing, RFC 7807 structured dual-logging, and PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks.
 - Post-Implementation Gates (Hardening Batch 20): Audited and verified `backend_v2/models/dtos/atom_result.py`, `backend_v2/models/domain/report_artifact.py`, and `backend_v2/models/dtos/finops.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved 100% line coverage across all three files (84/84 for `atom_result.py`, 12/12 for `report_artifact.py`, and 17/17 for `finops.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, PEP 257 Google-style docstrings with complete `Attributes:` sections, strict Pydantic V2 ConfigDicts (`extra="forbid"`), native Rust `ge=0` bounds on integer durations and counts, and comprehensive ISTQB boundary and negative exception tests.
 - Post-Implementation Gates (Hardening Batch 21): Audited and verified `backend_v2/services/orchestrator/strategies/base.py`, `backend_v2/services/orchestrator/strategies/llm.py`, and `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (99% for `base.py`, 92% for `llm.py`, 92% for `context_builder.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero naked dictionaries, RFC 7807 structured dual-logging, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, and eliminated transitive MyPy call-arg errors across `topological_evaluator.py`, `tda_engine.py`, and `mock_data.py`.
+- Post-Implementation Gates (Hardening Batch 22): Audited and verified `backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`, `backend_v2/services/blueprint.py`, and `backend_v2/llm/provider.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100% for `execution_time_resolver.py`, 94% for `blueprint.py`, 93% for `provider.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero duck-typing or `TypeAdapter(dict)` laundering (via `HydratedReferencesPayloadDTO`), RFC 7807 structured dual-logging (`exc_info=True`), PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, and added comprehensive ISTQB negative exception tests covering path traversal bounds, factory configuration edge cases, router caching, and error mapping.
 
 ## Learned
 - GCS File Driver Error Semantics & Re-Raise Propagation: In `GCSFileDriver`, `_get_bucket` and storage operations must explicitly intercept and re-raise pre-existing `AppException` instances (`except AppException: raise`) to prevent double-wrapping inner domain exceptions in generic `GCS Initialization Failed` errors while preserving RFC 7807 status codes.
@@ -293,13 +294,17 @@
 - Studio DTOs & SDUI Discriminated Union Parity: In `studio.py` and `sdui.py`, all models enforce `ConfigDict(strict=True, extra="forbid")`, export exhaustive `__all__ = [...]` lists, and validate polymorphic structures via `AnySduiBlock` discriminated unions with 100% test coverage.
 - FinOps DTO Native Rust Bounds & Report Artifact Docstring Governance: In `finops.py`, enforcing `Field(ge=0)` on all duration and call counts executes fast Rust bounds validation, while `ReportArtifact` encapsulates `Attributes:` docstrings and strict Opaque Stripe ID regex verification without permissive dictionary conversions.
 - Strategy Execution Architecture & Transitive Call-Arg Parity: In `base.py`, `llm.py`, and `context_builder.py`, execution strategies maintain clean protocol decoupling with `NodeStrategy` and `StrategyDependencies`. Model instantiations of `AtomExecutionState` and `XAIOutput` require explicit list and dict arguments in callers (`topological_evaluator.py`, `tda_engine.py`, `mock_data.py`) to satisfy MyPy's pydantic plugin when duplicate `Field()` default assignments are eradicated per QGR020.
+- Banned Type Laundering (QGR018): Instantiating `TypeAdapter(dict)` is strictly banned under AST guardrail QGR018. To validate dictionary payloads without duck-typing, wrap payloads in dedicated Pydantic V2 DTOs (`HydratedReferencesPayloadDTO`).
+- Opaque Stripe ID Validation Bounds: All domain model IDs enforce `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"`. Test IDs must use valid 16-hex characters (e.g. `prf_0000000000000001`).
+- OpenTelemetry Trace Context Propagation in Tests: When testing LLM providers with mocked tracing spans and Logfire background thread dispatching, `mock_span.get_span_context()` must return a valid `SpanContext` with integer trace IDs to satisfy `format_trace_id`.
+- LiteLLM Model Name Provider Routing: `LLMFactory.create_provider` requires model names with provider prefixes (e.g. `anthropic/claude-3-5-sonnet`, `gemini/gemini-1.5-pro`) to ensure LiteLLM router deployment resolution without runtime `BadRequestError`.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`, `backend_v2/services/blueprint.py`, `backend_v2/llm/provider.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/utils/static_charts.py`, `backend_v2/services/document_extraction.py`, `backend_v2/llm/client.py`, `backend_v2/llm/adapters/base_adapter.py`, `backend_v2/seed/wipe_user_data.py`).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py] @[backend_v2/services/blueprint.py] @[backend_v2/llm/provider.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/utils/static_charts.py] @[backend_v2/services/document_extraction.py] @[backend_v2/llm/client.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
