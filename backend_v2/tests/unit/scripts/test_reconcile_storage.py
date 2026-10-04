@@ -308,4 +308,3 @@ def test_resolve_trace_path_variations(tmp_path: Path) -> None:
     full_rel.parent.mkdir(parents=True, exist_ok=True)
     full_rel.write_text("[]", encoding="utf-8")
     assert _resolve_trace_path(storage_dir, "exe_rel", rel_path) == full_rel
-

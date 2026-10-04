@@ -567,7 +567,9 @@ async def test_auth_service_verify_token_impersonation_branches(mock_repo: Any) 
     assert exc_missing.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
 
     # Expired token
-    expired_token = jwt.encode({"sub": "usr_impersonated1", "exp": time.time() - 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    expired_token = jwt.encode(
+        {"sub": "usr_impersonated1", "exp": time.time() - 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM
+    )
     with pytest.raises(AuthenticationError) as exc_exp:
         await auth.verify_token(expired_token)
     assert exc_exp.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
@@ -1170,8 +1172,12 @@ async def test_auth_service_organization_read_and_update(mock_repo: Any) -> None
 
     # 1. list_organizations
     root_token = TokenData(id="usr_root00000001", role=UserRole.ROOT, email="root@test.com")
-    member_with_org = TokenData(id="usr_member000001", role=UserRole.MEMBER, email="m@test.com", organization_id="org_test00000001")
-    member_no_org = TokenData(id="usr_orphan000001", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None)
+    member_with_org = TokenData(
+        id="usr_member000001", role=UserRole.MEMBER, email="m@test.com", organization_id="org_test00000001"
+    )
+    member_no_org = TokenData(
+        id="usr_orphan000001", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
+    )
 
     mock_repo.get_organization.return_value = test_org
     mock_repo.list_organizations.return_value = [test_org]

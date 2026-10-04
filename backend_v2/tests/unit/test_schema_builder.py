@@ -170,4 +170,3 @@ def test_schema_compiler_int_and_remaining_extensions() -> None:
     # Negative test: missing required field raises ValidationError
     with pytest.raises(ValidationError):
         DynamicModel.model_validate({"eval_1": 4})
-

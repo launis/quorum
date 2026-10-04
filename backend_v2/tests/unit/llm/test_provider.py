@@ -601,7 +601,9 @@ def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch)
     prov_openai = LLMFactory.create_provider("openai", "gpt-4o", limits={"tpm": 1000, "rpm": 100})
     assert prov_openai.api_key == "fake-openai-key"
 
-    prov_anthropic = LLMFactory.create_provider("anthropic", "anthropic/claude-3-5-sonnet", limits={"tpm": 1000, "rpm": 100})
+    prov_anthropic = LLMFactory.create_provider(
+        "anthropic", "anthropic/claude-3-5-sonnet", limits={"tpm": 1000, "rpm": 100}
+    )
     assert prov_anthropic.api_key == "fake-anthropic-key"
 
     prov_ai_studio = LLMFactory.create_provider("ai_studio", "gemini/gemini-1.5-pro", limits={"tpm": 1000, "rpm": 100})
@@ -619,7 +621,7 @@ def test_sync_diagnostic_dump(tmp_path: Any) -> None:
     dump_file = str(tmp_path / "dump.txt")
     _sync_diagnostic_dump(dump_file, "gemini-pro", "test prompt payload")
 
-    with open(dump_file, "r", encoding="utf-8") as f:
+    with open(dump_file, encoding="utf-8") as f:
         content = f.read()
     assert "--- gemini-pro ---" in content
     assert "test prompt payload" in content
@@ -958,6 +960,7 @@ async def test_litellm_provider_generate_full_telemetry(monkeypatch: pytest.Monk
 async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     """Verify MockProvider parameter checks, prompt dump, and usage tracking."""
     from unittest.mock import patch
+
     from pydantic import BaseModel
 
     from backend_v2.exceptions import AppException, ConfigurationError
@@ -1006,7 +1009,7 @@ async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp
 
         assert resp.content == '{"answer": "mocked_json"}'
         usage_service.track_usage.assert_called_once()
-        with open(dump_target, "r", encoding="utf-8") as f:
+        with open(dump_target, encoding="utf-8") as f:
             dump_content = f.read()
         assert "Test prompt" in dump_content
 
@@ -1030,7 +1033,7 @@ async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp
 
         mock_inst.generate_content.return_value = MockPydanticModel(msg="pydantic-ok")
         resp_model = await mock_prov.generate("test model", temperature=0.0, max_tokens=50)
-        assert 'pydantic-ok' in resp_model.content
+        assert "pydantic-ok" in resp_model.content
 
         # Unparseable JSON string result
         mock_inst.generate_content.return_value = "invalid-json-{broken"
@@ -1045,38 +1048,3 @@ async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp
 
 
 # Re-export provider-focused unit test suites so backend_audit_loop discovers full coverage
-from backend_v2.tests.unit.llm.test_google_providers_separation import (
-    test_cache_adapter_factory_purged_google_raises_validation_failed,
-    test_cache_adapter_factory_returns_ai_studio_adapter,
-    test_cache_adapter_factory_returns_vertex_adapter,
-    test_create_provider_strict_credential_routing,
-    test_istqb_anti_heuristic_model_validation_derives_platform_from_provider,
-    test_istqb_equivalence_enabled_providers_independence,
-    test_istqb_isolation_non_vertex_discovery_without_location,
-    test_istqb_negative_ai_studio_missing_api_key_raises_configuration_error,
-    test_istqb_negative_vertex_ai_missing_adc_raises_authentication_failed,
-    test_istqb_negative_vertex_ai_missing_deps_raises_service_dependency_missing,
-    test_vertex_discovery_uses_us_central1_hub_constant,
-)
-from backend_v2.tests.unit.llm.test_provider_retry_after import (
-    test_adaptive_wait_clamping_to_max_seconds,
-    test_client_strategy_scoping_in_provider_pacing,
-    test_extract_retry_after_circular_reference_safety,
-    test_extract_retry_after_from_header_non_numeric,
-    test_extract_retry_after_from_header_numeric,
-    test_extract_retry_after_from_nested_exception_group,
-    test_extract_retry_after_negative_and_zero_values,
-    test_provider_respects_upstream_retry_after_delay,
-)
-from backend_v2.tests.unit.llm.test_provider_toolcalls import (
-    test_lite_llm_provider_tool_calls_content_extraction,
-)
-from backend_v2.tests.unit.llm.test_transient_error_detection import (
-    test_is_transient_llm_error_direct_and_wrapped,
-    test_is_transient_llm_error_recognizes_http_500_status_code,
-    test_provider_generate_retries_on_upstream_500_in_development_environment,
-    test_provider_generate_uses_transient_retries_even_in_fast_mode,
-    test_settings_development_environment_preserves_transient_retries,
-)
-
-

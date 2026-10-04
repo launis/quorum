@@ -7,10 +7,10 @@ surviving mutant detection, and full mathematical invariance across targets.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -314,4 +314,3 @@ def test_main_cli_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
             assert exc_info.value.code == 1
             captured = capsys.readouterr()
             assert '"success": false' in captured.out
-

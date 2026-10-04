@@ -344,5 +344,3 @@ def test_configure_llm_context_hook_unexpected_exception(mock_get_settings: Magi
         configure_llm_context_hook(state, deps)
     assert exc.value.status_code == 500
     assert "LLM Hook failed" in exc.value.message
-
-

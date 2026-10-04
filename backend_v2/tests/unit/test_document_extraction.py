@@ -236,4 +236,3 @@ def test_pdf_metadata_creation_date_fallback() -> None:
     text, parsed_date = service._extract_pdf_sync(pdf_bytes)
     assert "Test document text" in text
     assert parsed_date == "2026-01-01T12:00:00Z"
-

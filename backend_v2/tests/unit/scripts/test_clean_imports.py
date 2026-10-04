@@ -227,9 +227,7 @@ def test_clean_imports_skips_dot_files(clean_import_env: Path) -> None:
     assert report.failed_imports == 0
 
 
-def test_clean_imports_cli_main_plain_output(
-    clean_import_env: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_clean_imports_cli_main_plain_output(clean_import_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """Positive: verify CLI main without --json prints console summary table on success."""
     pkg_dir = clean_import_env / "synth_cli_plain_pkg"
     pkg_dir.mkdir(parents=True, exist_ok=True)
@@ -250,9 +248,7 @@ def test_clean_imports_cli_main_plain_output(
     assert "All 1 modules imported cleanly" in captured.out
 
 
-def test_clean_imports_cli_main_failure_output(
-    clean_import_env: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_clean_imports_cli_main_failure_output(clean_import_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """Negative: verify CLI main prints failed imports list when errors occur."""
     pkg_dir = clean_import_env / "synth_cli_fail_out_pkg"
     pkg_dir.mkdir(parents=True, exist_ok=True)
@@ -271,4 +267,3 @@ def test_clean_imports_cli_main_failure_output(
     captured = capsys.readouterr()
     assert "FAILED IMPORTS (1):" in captured.out
     assert "ModuleNotFoundError" in captured.out
-

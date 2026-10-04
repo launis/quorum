@@ -552,4 +552,3 @@ def test_grid_schema_strategy_matrix_more_than_six_extensions_warning() -> None:
         strictness_level=100,
     )
     assert "global_matrices" in schema.model_fields
-

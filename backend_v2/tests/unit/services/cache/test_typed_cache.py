@@ -140,4 +140,3 @@ async def test_typed_cache_get_cached_auto_eviction_delete_fails() -> None:
 
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     mock_redis.delete.assert_called_once_with("corrupted_key")
-

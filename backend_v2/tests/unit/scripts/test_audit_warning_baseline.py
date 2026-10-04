@@ -217,7 +217,6 @@ def test_main_cli_execution_plain_table(capsys: pytest.CaptureFixture[str]) -> N
         assert "PASSED" in out
 
 
-
 def test_main_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
     """Positive: verifies CLI execution with --json and success exit code 0."""
     fake_violations: list[GuardrailViolation] = []

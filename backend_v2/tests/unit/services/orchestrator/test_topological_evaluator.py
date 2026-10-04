@@ -340,4 +340,3 @@ async def test_missing_node_from_batch_response() -> None:
     assert states["tda_1111111111111111"].status == ExecutionStatus.PASSED
     assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
     assert states["tda_2222222222222222"].evaluation_reasoning == "Missing from batch response"
-

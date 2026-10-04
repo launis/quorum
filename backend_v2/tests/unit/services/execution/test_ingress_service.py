@@ -688,4 +688,3 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 404
-

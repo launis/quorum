@@ -292,9 +292,7 @@ async def test_get_step_by_id_embedded_fallback(
 
 
 @pytest.mark.asyncio
-async def test_get_step_by_id_embedded_corruption(
-    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock
-) -> None:
+async def test_get_step_by_id_embedded_corruption(repo: WorkflowRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Negative: corrupted embedded step in workflow raises AppException with VALIDATION_FAILED."""
     mock_driver.get.return_value = None
     mock_driver.query.return_value = [{"id": "wf_with_embedded", "steps": [{"id": "stp_corrupt_embedded"}]}]
@@ -302,4 +300,3 @@ async def test_get_step_by_id_embedded_corruption(
         await repo.get_step_by_id("stp_corrupt_embedded")
     assert exc_info.value.status_code == 500
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
-

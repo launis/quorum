@@ -271,7 +271,8 @@ def test_parse_llm_output_repair_unexpected_type_raises_app_exception(monkeypatc
 
 def test_extract_discriminator_info_edge_cases():
     """Verify various discriminator annotations and edge cases."""
-    from typing import Annotated, Union
+    from typing import Annotated
+
     from pydantic import BaseModel, Discriminator, Field
 
     class ModA(BaseModel):
@@ -284,19 +285,19 @@ def test_extract_discriminator_info_edge_cases():
     assert UniversalIngress._extract_discriminator_info(None) == (None, [])
 
     # Direct Discriminator meta
-    ann1 = Annotated[Union[ModA, ModB], Discriminator("tag")]
+    ann1 = Annotated[ModA | ModB, Discriminator("tag")]
     disc1, models1 = UniversalIngress._extract_discriminator_info(ann1)
     assert disc1 == "tag"
     assert len(models1) == 2
 
     # Field with Discriminator object
-    ann2 = Annotated[Union[ModA, ModB], Field(discriminator=Discriminator("tag"))]
+    ann2 = Annotated[ModA | ModB, Field(discriminator=Discriminator("tag"))]
     disc2, models2 = UniversalIngress._extract_discriminator_info(ann2)
     assert disc2 == "tag"
     assert len(models2) == 2
 
     # Annotated inside union
-    ann3 = Annotated[Union[Annotated[ModA, "meta"], ModB], Field(discriminator="tag")]
+    ann3 = Annotated[Annotated[ModA, "meta"] | ModB, Field(discriminator="tag")]
     disc3, models3 = UniversalIngress._extract_discriminator_info(ann3)
     assert disc3 == "tag"
     assert len(models3) == 2
@@ -311,7 +312,8 @@ def test_extract_discriminator_info_edge_cases():
 def test_clean_dict_against_model_advanced_branches():
     """Verify clean_dict branches for single candidate, missing matches, and discriminator preservation."""
     from typing import Annotated
-    from pydantic import BaseModel, ConfigDict, Discriminator, Field
+
+    from pydantic import BaseModel, ConfigDict, Field
 
     class Inner(BaseModel):
         model_config = ConfigDict(strict=True, extra="forbid")
@@ -380,4 +382,3 @@ def test_clean_dict_against_model_advanced_branches():
         )
         is None
     )
-

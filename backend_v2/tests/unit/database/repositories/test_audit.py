@@ -247,4 +247,3 @@ async def test_get_detailed_usage_user_scope(repo: AuditRepositoryImpl, mock_dri
     assert usage.total_cost_usd == pytest.approx(0.05)
     assert usage.by_model == {"gpt-4o": 3}
     assert usage.by_workflow == {"wf_1": 2}
-

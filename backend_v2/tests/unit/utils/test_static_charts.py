@@ -402,4 +402,3 @@ def test_generate_radar_chart_rendering_failure(monkeypatch: pytest.MonkeyPatch)
     with pytest.raises(AppException) as exc_info:
         generate_radar_chart(axes)
     assert exc_info.value.details["error_code"] == ErrorCodes.CHART_GENERATION_FAILED.value
-

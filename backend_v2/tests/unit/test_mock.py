@@ -1,4 +1,5 @@
 import json
+
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -105,7 +106,9 @@ def test_mock_llm_service_judge_agent_hydration_failure_raises(monkeypatch: pyte
     monkeypatch.setattr(settings, "use_mock_llm", True)
 
     service = MockLLMService()
-    monkeypatch.setattr("backend_v2.llm.mock.re.findall", lambda *a, **kw: (_ for _ in ()).throw(ValueError("Hydration test failure")))
+    monkeypatch.setattr(
+        "backend_v2.llm.mock.re.findall", lambda *a, **kw: (_ for _ in ()).throw(ValueError("Hydration test failure"))
+    )
 
     with pytest.raises(AppException, match="Mock Hydration Failed") as exc:
         service.generate_content("text (ID: dim1)", agent_identity="JudgeAgent")

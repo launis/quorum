@@ -103,7 +103,6 @@ def test_xai_output_confidence_score_negative_out_of_bounds() -> None:
     assert exc_info_neg.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
 
-
 def test_additional_extension_types_and_results() -> None:
     """Test all additional XAI extension models and ReportResult."""
     just = JustificationExtension(reasoning="Because of metric evidence.")

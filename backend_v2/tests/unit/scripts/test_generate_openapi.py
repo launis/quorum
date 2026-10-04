@@ -173,4 +173,3 @@ def test_generate_openapi_main_block_keyboard_interrupt(monkeypatch: pytest.Monk
             "backend_v2.scripts.generate_openapi",
             run_name="__main__",
         )
-

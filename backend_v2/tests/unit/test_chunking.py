@@ -83,4 +83,3 @@ def test_chunk_extra_fields_forbidden() -> None:
     with pytest.raises(ValidationError) as exc_info:
         Chunk[str].model_validate(data)
     assert "extra_forbidden" in str(exc_info.value)
-

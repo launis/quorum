@@ -3895,9 +3895,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
                 event_type="output",
                 content={
                     "results": [atom_res],
-                    "hydrated_references": {
-                        "tda_00000000000000000000000000000001": hydrated_dto
-                    },
+                    "hydrated_references": {"tda_00000000000000000000000000000001": hydrated_dto},
                 },
             ),
         ],
@@ -3917,5 +3915,3 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     assert report.total_tokens == 250
     assert report.cost_estimate == 0.012
     assert report.org_name == "Test Org Inc"
-
-

@@ -299,7 +299,9 @@ def test_expected_input_questionnaire_modes_validation() -> None:
             questionnaire_definition=[],
         )
 
-    with pytest.raises(ValidationError, match="cannot have questionnaire_definition when 'questionnaire' mode is not active"):
+    with pytest.raises(
+        ValidationError, match="cannot have questionnaire_definition when 'questionnaire' mode is not active"
+    ):
         ExpectedInput(
             input_key="test_q",
             label=I18nText(translations={"en": "Q"}),
@@ -318,7 +320,9 @@ def test_expected_input_questionnaire_modes_validation() -> None:
 
 def test_expected_input_endorsed_deliverable_mutual_exclusion() -> None:
     """Test ExpectedInput is_endorsed_deliverable mutual exclusion invariants."""
-    with pytest.raises(ValidationError, match="cannot be simultaneously marked as both is_chat_history and is_endorsed_deliverable"):
+    with pytest.raises(
+        ValidationError, match="cannot be simultaneously marked as both is_chat_history and is_endorsed_deliverable"
+    ):
         ExpectedInput(
             input_key="test_endorsed",
             label=I18nText(translations={"en": "Deliverable"}),
@@ -329,7 +333,9 @@ def test_expected_input_endorsed_deliverable_mutual_exclusion() -> None:
             description=I18nText(translations={"en": "Desc"}),
         )
 
-    with pytest.raises(ValidationError, match="cannot be simultaneously marked as both an assignment and is_endorsed_deliverable"):
+    with pytest.raises(
+        ValidationError, match="cannot be simultaneously marked as both an assignment and is_endorsed_deliverable"
+    ):
         ExpectedInput(
             input_key="test_endorsed",
             label=I18nText(translations={"en": "Deliverable"}),
@@ -339,7 +345,9 @@ def test_expected_input_endorsed_deliverable_mutual_exclusion() -> None:
             description=I18nText(translations={"en": "Desc"}),
         )
 
-    with pytest.raises(ValidationError, match="cannot be simultaneously marked as both a questionnaire and is_endorsed_deliverable"):
+    with pytest.raises(
+        ValidationError, match="cannot be simultaneously marked as both a questionnaire and is_endorsed_deliverable"
+    ):
         ExpectedInput(
             input_key="test_endorsed",
             label=I18nText(translations={"en": "Deliverable"}),

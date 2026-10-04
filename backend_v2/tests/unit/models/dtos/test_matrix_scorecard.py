@@ -153,10 +153,7 @@ def test_scorecard_atom_validate_from_instance() -> None:
 def test_matrix_scorecard_models_forbid_extra() -> None:
     """Test that all models in matrix_scorecard forbid extra fields."""
     with pytest.raises(ValidationError):
-        HumanOverrideRequest.model_validate(
-            {"new_status": "PASSED", "reason": "test", "extra_field": "forbidden"}
-        )
+        HumanOverrideRequest.model_validate({"new_status": "PASSED", "reason": "test", "extra_field": "forbidden"})
 
     with pytest.raises(ValidationError):
         TDAPending.model_validate({"runtimeType": "pending", "extra": 123})
-

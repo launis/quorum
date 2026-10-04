@@ -380,4 +380,3 @@ def test_is_hallucinated_empty_normalized() -> None:
         return_value=("", {}),
     ):
         assert _is_hallucinated("Valid quote text", "norm_corpus", threshold=80.0) is True
-

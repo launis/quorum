@@ -38,7 +38,6 @@ def test_metrics_payload_dto_from_instance() -> None:
     assert validated.root == {"key": "val"}
 
 
-
 def test_text_metrics_dto_valid_defaults() -> None:
     """Test that TextMetricsDTO instantiates with non-negative defaults."""
     dto = TextMetricsDTO()

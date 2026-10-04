@@ -179,4 +179,3 @@ def test_security_extra_fields_forbidden() -> None:
                 "extra": 1,
             }
         )
-

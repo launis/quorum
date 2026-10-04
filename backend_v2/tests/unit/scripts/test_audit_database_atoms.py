@@ -523,7 +523,9 @@ def test_audit_concept_corrupted_and_patterns() -> None:
 
     # 3. Institution overfit in concept description
     b4 = _create_clean_matrix_block()
-    b4["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "Grounding on Työterveyslaitos guidelines."
+    b4["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = (
+        "Grounding on Työterveyslaitos guidelines."
+    )
     issues4, _, _ = audit_prompt_blocks([b4])
     assert any(i.issue_type == "INSTITUTION_OVERFIT" for i in issues4)
 
@@ -705,4 +707,3 @@ def test_audit_database_atoms_all_exports() -> None:
     assert "FullDatabaseAuditReport" in mod.__all__
     assert "run_full_database_audit" in mod.__all__
     assert "main" in mod.__all__
-

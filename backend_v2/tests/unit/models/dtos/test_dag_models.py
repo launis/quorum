@@ -232,4 +232,3 @@ def test_chunk_packet_dto_forbids_extra() -> None:
             packet_keys=["k1"],
             extra_field="disallowed",  # type: ignore[call-arg]
         )
-

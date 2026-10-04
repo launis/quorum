@@ -80,4 +80,3 @@ def test_finops_dto_rejects_negative_bounds() -> None:
 
     with pytest.raises(ValidationError):
         FinOpsFinalizeSummaryDTO(healing_cost_events=-1, usd_cost=0.0)
-

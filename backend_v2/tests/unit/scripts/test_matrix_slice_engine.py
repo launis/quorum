@@ -456,4 +456,3 @@ def test_audit_atom_coherence_extended_rules() -> None:
     assert "SCOPE_RULE_MISMATCH" in issue_codes
     assert "EXEMPLAR_DEFECT" in issue_codes
     assert "CRITERIA_RULE_DISCORDANCE" in issue_codes
-

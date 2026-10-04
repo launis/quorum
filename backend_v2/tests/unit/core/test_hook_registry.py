@@ -194,4 +194,3 @@ def test_hook_registry_singleton_integrity() -> None:
     reg2 = HookRegistry()
     assert reg1 is reg2
     assert reg1 is hook_registry
-

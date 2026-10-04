@@ -212,18 +212,14 @@ def test_trace_event_metadata_envelope_hydration() -> None:
     assert env_clean.step_metadata.chunk_size == 4
 
     # 3. Branch: non-dict object passed to model_validate
-    existing_envelope = TraceEventMetadataEnvelope(
-        step_metadata=StepTraceMetadataDTO(model_strategy="reasoning")
-    )
+    existing_envelope = TraceEventMetadataEnvelope(step_metadata=StepTraceMetadataDTO(model_strategy="reasoning"))
     validated_from_obj = TraceEventMetadataEnvelope.model_validate(existing_envelope)
     assert validated_from_obj.step_metadata is not None
     assert validated_from_obj.step_metadata.model_strategy == "reasoning"
 
     # 4. Invalid step_metadata payload rejected
     with pytest.raises(ValidationError):
-        TraceEventMetadataEnvelope.model_validate(
-            {"step_metadata": "invalid_not_a_model"}
-        )
+        TraceEventMetadataEnvelope.model_validate({"step_metadata": "invalid_not_a_model"})
 
 
 def test_atom_quote_item_dto_validation_and_strictness() -> None:
@@ -258,4 +254,3 @@ def test_trace_matrix_extensions_dto_validation_and_strictness() -> None:
     # Extra field forbidden
     with pytest.raises(ValidationError):
         TraceMatrixExtensionsDTO.model_validate({"coaching": "Good", "extra": 1})
-
