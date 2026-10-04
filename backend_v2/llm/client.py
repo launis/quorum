@@ -44,6 +44,11 @@ class LLMClient:
     """
 
     def __init__(self, config: Mapping[str, JsonValue] | LLMProviderConfig | None = None) -> None:
+        """Initialize the LLMClient instance.
+
+        Args:
+            config: Optional configuration dictionary or typed provider configuration.
+        """
         self._config: LLMProviderConfig | None
         if config is not None:
             self._config = LLMProviderConfig.model_validate(config)
@@ -58,18 +63,21 @@ class LLMClient:
 
     @property
     def provider_name(self) -> str:
+        """Return the provider name or 'unknown' if unconfigured."""
         if self._config is not None:
             return str(self._config.provider)
         return "unknown"
 
     @property
     def model_name(self) -> str:
+        """Return the model name or 'unknown' if unconfigured."""
         if self._config is not None:
             return str(self._config.model_name)
         return "unknown"
 
     @property
     def config(self) -> LLMProviderConfig | None:
+        """Return the underlying provider configuration."""
         return self._config
 
     def _build_structured_schema(
@@ -78,7 +86,19 @@ class LLMClient:
         final_messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]],
         validation_context: Mapping[str, JsonValue] | None,
     ) -> Any:
-        """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
+        """Build the structured JSON schema for the provider, applying caching and strictness constraints.
+
+        Args:
+            response_model: The Pydantic model class to validate output against.
+            final_messages: Sequence of formatted messages.
+            validation_context: Optional context mapping for validation.
+
+        Returns:
+            A provider-specific structured schema dictionary or type.
+
+        Raises:
+            AppException: If preparing structured output fails (ErrorCodes.CONFIGURATION_ERROR).
+        """
         adapter_schema: Any = {"type": "json_schema"}
         if self._config and self._config.provider:
             try:
@@ -89,6 +109,7 @@ class LLMClient:
                     "[LLMClient] Could not fetch adapter for structured output: %s",
                     e,
                     exc_info=True,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
                 raise AppException(
                     message=f"Could not prepare structured output for {self._config.provider}: {e}",
@@ -128,6 +149,10 @@ class LLMClient:
             ConfigurationError (ErrorCodes.CONFIGURATION_ERROR): If the tier or provider is missing or misconfigured.
         """
         if not repository:
+            logger.error(
+                "Repository dependency must be provided to LLMClient.from_tier.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_tier.")
 
         # 0. Load Execution Pipelines from static registry
@@ -143,9 +168,21 @@ class LLMClient:
             else:
                 all_registries = await repository.get_all_model_registries()
                 if not all_registries:
+                    logger.error(
+                        "No model registries found in repository.",
+                        extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                    )
                     raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
                 raw_registry = all_registries[0]
         except Exception as e:
+            if isinstance(e, ResourceNotFoundError):
+                raise
+            logger.error(
+                "System config 'model_registry' missing or query failed: %s",
+                e,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
+            )
             raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}") from e
 
         # 2. Strict Pydantic Inflation (Flattened V2 structure)
@@ -161,11 +198,21 @@ class LLMClient:
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}) from e
 
         if not registry or not registry.tier_definitions:
+            logger.error(
+                "ModelRegistry is severely corrupted or empty.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
 
         # 3. Resolve Tier directly from flat tier_definitions in O(1)
         tier_enum = tier if isinstance(tier, CognitiveTier) else CognitiveTier(str(tier).lower())
         if tier_enum not in registry.tier_definitions:
+            logger.error(
+                "CognitiveTier '%s' not found in registry '%s' tier_definitions.",
+                tier,
+                registry.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(
                 f"CognitiveTier '{tier}' not found in registry '{registry.name}' (id={registry.id}) tier_definitions.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -175,6 +222,12 @@ class LLMClient:
 
         # Fail-Fast check on provider override mismatch if explicitly specified
         if provider is not None and provider != target_strategy.provider:
+            logger.error(
+                "Provider '%s' not found in registry tier_definitions for stack '%s'.",
+                provider,
+                registry.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(
                 f"Provider '{provider}' not found in registry tier_definitions for stack '{registry.name}' "
                 f"(configured for provider '{target_strategy.provider}').",
@@ -187,17 +240,35 @@ class LLMClient:
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_rpm_limit is None:
+            logger.error(
+                "Strict Mode: Tier '%s' in Model Registry '%s' is missing required tpm_limit or rpm_limit.",
+                tier,
+                registry.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(
                 f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'tpm_limit' "
                 "or 'rpm_limit' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.temperature is None:
+            logger.error(
+                "Strict Mode: Tier '%s' in Model Registry '%s' is missing required temperature.",
+                tier,
+                registry.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(
                 f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'temperature' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.max_tokens is None:
+            logger.error(
+                "Strict Mode: Tier '%s' in Model Registry '%s' is missing required max_tokens.",
+                tier,
+                registry.name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
             raise ConfigurationError(
                 f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'max_tokens' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -245,10 +316,31 @@ class LLMClient:
         registry_id: str | None = None,
         provider: LLMProvider | None = None,
     ) -> Self:
-        """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier."""
+        """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier.
+
+        Args:
+            strategy_name: Name of the strategy or tier.
+            repository: Required DB repository instance.
+            execution_profile: Optional execution profile.
+            pipeline_name: Optional explicit pipeline context.
+            registry_id: Optional specific model registry stack ID.
+            provider: Optional explicit provider override.
+
+        Returns:
+            A configured client instance ready for execution.
+
+        Raises:
+            ConfigurationError: If the strategy name is invalid or tier lookup fails (ErrorCodes.CONFIGURATION_ERROR).
+        """
         try:
             tier = CognitiveTier(strategy_name.lower())
         except ValueError as e:
+            logger.error(
+                "Unknown strategy or tier '%s'. Must be a canonical CognitiveTier.",
+                strategy_name,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
+            )
             raise ConfigurationError(
                 f"Unknown strategy or tier '{strategy_name}'. Must be a canonical CognitiveTier.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -296,6 +388,10 @@ class LLMClient:
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
             if not self._config:
+                logger.error(
+                    "Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
@@ -359,7 +455,12 @@ class LLMClient:
                 )
                 extra_kwargs.update(adapter.prepare_provider_kwargs(str(target_model_name)))
             except Exception as e:
-                logger.error("Could not fetch adapter for kwargs injection.", exc_info=True)
+                logger.error(
+                    "Could not fetch adapter for kwargs injection: %s",
+                    e,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
                 raise ConfigurationError(
                     f"LLM Adapter loading failed for provider {self._config.provider}: {e}",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -405,7 +506,7 @@ class LLMClient:
                         "similar tag to separate the static cache from the dynamic prompt. "
                         "Vertex AI will reject this with a 400 Bad Request."
                     )
-                    logger.error(error_msg)
+                    logger.error(error_msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                     raise AppException(
                         message=error_msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     )
@@ -521,6 +622,11 @@ class LLMClient:
                     finish_reason = str(response.provider_metadata.finish_reason)
 
                 if finish_reason and str(finish_reason).lower() in ("safety", "content_filtered", "recitation"):
+                    logger.error(
+                        "Safety Filter Triggered - LLM output blocked (finish_reason: %s)",
+                        finish_reason,
+                        extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                    )
                     raise AgentExecutionError(
                         detail=ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
                         original_error=Exception(
@@ -529,6 +635,10 @@ class LLMClient:
                     )
 
                 if not raw_content or not str(raw_content).strip():
+                    logger.error(
+                        "Safety Filter Triggered - LLM output was empty or blocked without explicit reason.",
+                        extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                    )
                     raise LLMSchemaValidationError(
                         validation_error_msg=(
                             "Safety Filter Triggered - LLM output was empty or blocked without explicit reason."
@@ -645,6 +755,10 @@ class LLMClient:
         # If client was bound via Strategy Factory, it has priority unless explicitly overridden.
         if model is None:
             if not self._config:
+                logger.error(
+                    "Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
                 raise AppException(
                     message="Model Configuration Missing: No bound Strategy config and no 'model' var passed.",
                     status_code=500,
@@ -786,6 +900,6 @@ class LLMClient:
                 exc_info=True,
             )
             raise AgentExecutionError(
-                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL,
+                detail=ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
                 original_error=e,
             ) from e
