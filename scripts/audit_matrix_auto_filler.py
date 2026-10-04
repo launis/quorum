@@ -4,14 +4,123 @@ Reduces JSON syntax overhead for LLMs by automatically filling the matrix with
 unique justifications to pass the anti-laziness check in audit_matrix_manager.py.
 """
 
+from __future__ import annotations
+
 import argparse
-import json
+import io
 import sys
 from pathlib import Path
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
+
+try:
+    from scripts._ast_guardrails import GuardrailViolation
+except ModuleNotFoundError:
+    from _ast_guardrails import GuardrailViolation  # type: ignore[no-redef]
+
+# Force UTF-8 encoding for stdout on Windows without reflection
+if isinstance(sys.stdout, io.TextIOWrapper):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except AttributeError, io.UnsupportedOperation:
+        pass
+
+__all__ = [
+    "AutoFillMatrixDTO",
+    "AutoFillRuleDTO",
+    "auto_fill_matrix",
+    "main",
+]
+
+
+class AutoFillRuleDTO(BaseModel):
+    """Pydantic V2 DTO representing an individual rule evaluation entry in an audit matrix."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rule_id: Annotated[str, Field(default="unknown", description="Unique rule identifier e.g. the_duct_tape_ban")]
+    banned_pattern: Annotated[str, Field(default="N/A", description="Banned architectural pattern")]
+    mandatory_pattern: Annotated[str, Field(default="N/A", description="Mandatory architectural pattern")]
+    status: Annotated[str, Field(default="PENDING", description="Evaluation status")]
+    evidence_type: Annotated[str, Field(default="MANUAL_AUDIT", description="Evidence type")]
+    ast_violations: Annotated[
+        list[GuardrailViolation], Field(default_factory=list, description="Static AST violations if any")
+    ]
+    justification: Annotated[str, Field(default="", description="Substantive human or agent justification")]
+
+
+class AutoFillMatrixDTO(BaseModel):
+    """Pydantic V2 DTO representing the complete audit matrix payload."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    target_file: Annotated[
+        str, Field(default="target", description="Normalized target file path relative to repo root")
+    ]
+    generated_at: Annotated[str, Field(default="", description="ISO timestamp of matrix generation")]
+    rules: Annotated[list[AutoFillRuleDTO], Field(description="List of rule evaluation entries")]
+
+
+def auto_fill_matrix(
+    matrix_dto: AutoFillMatrixDTO,
+    target_override: str | None = None,
+    fail_rules: list[str] | None = None,
+    na_rules: list[str] | None = None,
+) -> AutoFillMatrixDTO:
+    """Populate rule evaluations in an audit matrix DTO with contextual justifications.
+
+    Args:
+        matrix_dto: Input matrix DTO to populate.
+        target_override: Optional path overriding target_file metadata.
+        fail_rules: Optional list of rule IDs to designate as FAIL.
+        na_rules: Optional list of rule IDs to designate as NA.
+
+    Returns:
+        New AutoFillMatrixDTO with updated rule evaluations.
+    """
+    effective_target = target_override.strip() if target_override else matrix_dto.target_file.strip()
+    if not effective_target:
+        effective_target = "target"
+
+    fail_set = set(fail_rules) if fail_rules else set()
+    na_set = set(na_rules) if na_rules else set()
+
+    updated_rules: list[AutoFillRuleDTO] = []
+    for rule in matrix_dto.rules:
+        rule_id = rule.rule_id
+        if rule_id in fail_set:
+            status = "FAIL"
+            justification = f"Manual override FAIL for rule {rule_id} in {effective_target}. Code violates architectural constraints."
+        elif rule_id in na_set:
+            status = "NA"
+            justification = f"Manual override NA for rule {rule_id}. Rule is not applicable to this target."
+        else:
+            status = "PASS"
+            justification = f"Automated PASS for rule {rule_id} in {effective_target}. The target code adheres to all architectural constraints."
+
+        updated_rule = rule.model_copy(
+            update={
+                "status": status,
+                "justification": justification,
+            }
+        )
+        updated_rules.append(updated_rule)
+
+    return matrix_dto.model_copy(
+        update={
+            "target_file": effective_target,
+            "rules": updated_rules,
+        }
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Execute the matrix auto-filler."""
+    """Execute the matrix auto-filler CLI command.
+
+    Args:
+        argv: Optional list of command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description="""Neuro-Symbolic Audit Matrix Auto-Filler Engine.
 
@@ -54,59 +163,39 @@ Automatically populates audit matrix JSON files with unique, context-aware justi
         sys.exit(1)
 
     try:
-        with open(matrix_path, encoding="utf-8") as f:
-            matrix = json.load(f)
-    except (OSError, json.JSONDecodeError) as e:
+        raw_text = matrix_path.read_text(encoding="utf-8")
+        matrix_dto = AutoFillMatrixDTO.model_validate_json(raw_text)
+    except (ValueError, OSError) as e:
         print(f"Error parsing JSON: {e}")
         sys.exit(1)
 
-    if args.target:
-        matrix["target_file"] = Path(args.target).as_posix()
-
-    target_name = ""
-    if "target_file" in matrix and isinstance(matrix["target_file"], str):
-        target_name = matrix["target_file"].strip()
-    if not target_name:
-        target_name = "target"
-
-    if "rules" not in matrix or not isinstance(matrix["rules"], list) or not matrix["rules"]:
+    if not matrix_dto.rules:
         print("Error: No rules found in matrix.")
         sys.exit(1)
-    rules = matrix["rules"]
 
     fail_list = [r.strip() for r in args.fail.split(",")] if args.fail else []
     na_list = [r.strip() for r in args.na.split(",")] if args.na else []
 
-    modified_count = 0
+    target_override = Path(args.target).as_posix() if args.target else None
 
-    for rule in rules:
-        rule_id = "unknown"
-        if "rule_id" in rule and isinstance(rule["rule_id"], str):
-            rule_id = rule["rule_id"]
+    updated_dto = auto_fill_matrix(
+        matrix_dto=matrix_dto,
+        target_override=target_override,
+        fail_rules=fail_list,
+        na_rules=na_list,
+    )
 
-        if rule_id in fail_list:
-            rule["status"] = "FAIL"
-            rule["justification"] = (
-                f"Manual override FAIL for rule {rule_id} in {target_name}. Code violates architectural constraints."
-            )
-        elif rule_id in na_list:
-            rule["status"] = "NA"
-            rule["justification"] = f"Manual override NA for rule {rule_id}. Rule is not applicable to this target."
-        else:
-            rule["status"] = "PASS"
-            rule["justification"] = (
-                f"Automated PASS for rule {rule_id} in {target_name}. The target code adheres to all architectural constraints."
-            )
+    matrix_path.write_text(updated_dto.model_dump_json(indent=2), encoding="utf-8")
 
-        modified_count += 1
+    fail_count = len(fail_list)
+    na_count = len(na_list)
+    total_count = len(updated_dto.rules)
+    pass_count = total_count - fail_count - na_count
 
-    with open(matrix_path, "w", encoding="utf-8") as f:
-        json.dump(matrix, f, indent=2)
-
-    print(f"[SUCCESS] Auto-filled {modified_count} rules in {matrix_path} for target '{target_name}'")
-    print(f"  - FAIL: {len(fail_list)} rules")
-    print(f"  - NA: {len(na_list)} rules")
-    print(f"  - PASS: {modified_count - len(fail_list) - len(na_list)} rules")
+    print(f"[SUCCESS] Auto-filled {total_count} rules in {matrix_path} for target '{updated_dto.target_file}'")
+    print(f"  - FAIL: {fail_count} rules")
+    print(f"  - NA: {na_count} rules")
+    print(f"  - PASS: {pass_count} rules")
 
 
 if __name__ == "__main__":
