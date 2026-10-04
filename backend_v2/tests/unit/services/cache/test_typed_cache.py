@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import BaseModel, ConfigDict
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.cache.typed_cache import TypedCacheService
 
 
@@ -57,15 +58,16 @@ async def test_typed_cache_get_cached_hit() -> None:
 
 @pytest.mark.asyncio
 async def test_typed_cache_get_cached_auto_eviction_on_validation_error() -> None:
-    """Verify get_cached auto-evicts corrupted payload on ValidationError and returns None."""
+    """Verify get_cached auto-evicts corrupted payload on ValidationError and raises AppException."""
     mock_redis = AsyncMock()
     # Malformed payload missing required field 'count' and having unexpected field 'extra'
     mock_redis.get.return_value = '{"id": "s1", "name": "Test", "extra": "invalid"}'
 
     cache_service = TypedCacheService(redis=mock_redis)
-    result = await cache_service.get_cached("corrupted_key", SampleModel)
+    with pytest.raises(AppException) as exc_info:
+        await cache_service.get_cached("corrupted_key", SampleModel)
 
-    assert result is None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     mock_redis.delete.assert_called_once_with("corrupted_key")
 
 
@@ -123,3 +125,19 @@ async def test_typed_cache_delete_no_redis() -> None:
     """Verify delete does not fail when Redis is None."""
     cache_service = TypedCacheService(redis=None)
     await cache_service.delete("sample_key")
+
+
+@pytest.mark.asyncio
+async def test_typed_cache_get_cached_auto_eviction_delete_fails() -> None:
+    """Verify get_cached raises AppException when auto-eviction delete fails."""
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = '{"id": "s1", "name": "Test", "extra": "invalid"}'
+    mock_redis.delete.side_effect = ConnectionError("Redis unreachable")
+
+    cache_service = TypedCacheService(redis=mock_redis)
+    with pytest.raises(AppException) as exc_info:
+        await cache_service.get_cached("corrupted_key", SampleModel)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    mock_redis.delete.assert_called_once_with("corrupted_key")
+

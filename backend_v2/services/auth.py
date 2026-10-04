@@ -47,11 +47,24 @@ JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
 JWT_ALGORITHM = "HS256"
 
 # Constants for System Root Entities
-SYSTEM_ROOT_USER_ID = "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b"
+SYSTEM_ROOT_USER_ID = "usr_a3fd6b3d77c748f4"
+LEGACY_SYSTEM_ROOT_USER_ID = "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b"
 LEGACY_SYSTEM_ORG_ID = "436d84de-c526-43b7-93ef-634912be0d2f"
 LEGACY_ROOT_MASTER_ID = "root_master"
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "JWT_ALGORITHM",
+    "JWT_SECRET",
+    "LEGACY_ROOT_MASTER_ID",
+    "LEGACY_SYSTEM_ORG_ID",
+    "LEGACY_SYSTEM_ROOT_USER_ID",
+    "SYSTEM_ROOT_USER_ID",
+    "AuthService",
+    "OrganizationRepository",
+    "UserRepository",
+]
 
 
 # --- Repository Layer (Organization) ---
@@ -284,29 +297,38 @@ class AuthService:
             # We enforce the secret check here.
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             if "sub" not in payload or not payload["sub"]:
+                logger.error(
+                    "[AuthService] %s: Invalid internal token: missing 'sub'.", ErrorCodes.AUTHENTICATION_FAILED.name
+                )
                 raise AuthenticationError(
-                    message="Invalid internal token: missing 'sub'.", details={"error_code": "INVALID_TOKEN"}
+                    message="Invalid internal token: missing 'sub'.",
+                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
                 )
             id = str(payload["sub"])
 
             user = await self.repo.get_by_id(id)
             if not user:
+                logger.error(
+                    "[AuthService] %s: Impersonated user not found: %s", ErrorCodes.AUTH_TOKEN_EXPIRED.name, id
+                )
                 raise AuthenticationError(
                     message=f"Impersonated User not found: {id}",
-                    details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED},
+                    details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED.value},
                 )
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         except jwt.ExpiredSignatureError:
+            logger.error("[AuthService] %s: Token expired.", ErrorCodes.AUTH_TOKEN_EXPIRED.name)
             raise AuthenticationError(
-                message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED}
+                message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED.value}
             ) from None
 
         except jwt.PyJWTError as jwt_err:
             if not self.use_firebase and not token.startswith("mock-token:"):
+                logger.error("[AuthService] %s: Invalid JWT token: %s", ErrorCodes.AUTHENTICATION_FAILED.name, jwt_err)
                 raise AuthenticationError(
                     message=f"Invalid JWT token: {jwt_err}",
-                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED},
+                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
                 ) from jwt_err
             logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
@@ -316,8 +338,12 @@ class AuthService:
 
         # 1. Reject mock tokens in production or cloud environments immediately (Fail-Fast)
         if is_mock_token and not settings.allow_mock_tokens:
+            logger.error(
+                "[AuthService] %s: Mock tokens are strictly forbidden in production.", ErrorCodes.PERMISSION_DENIED.name
+            )
             raise AuthenticationError(
-                message="Mock tokens are strictly forbidden in production.", details={"error_code": "FORBIDDEN_TOKEN"}
+                message="Mock tokens are strictly forbidden in production.",
+                details={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
 
         if not self.use_firebase or (is_mock_token and settings.allow_mock_tokens):
@@ -330,9 +356,12 @@ class AuthService:
             # Check if user exists in our DB
             user = await self.repo.get_by_id(user_id)
             if not user:
+                logger.error(
+                    "[AuthService] %s: Mock User not found for ID: %s", ErrorCodes.PERMISSION_DENIED.name, user_id
+                )
                 raise AuthenticationError(
                     message=f"Mock User not found for ID: {user_id}",
-                    details={"error_code": ErrorCodes.PERMISSION_DENIED},  # Or similar
+                    details={"error_code": ErrorCodes.PERMISSION_DENIED.value},
                 )
 
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
@@ -352,9 +381,12 @@ class AuthService:
             if not user:
                 # Auto-registration for missing users found in Firebase
                 if not email:
+                    logger.error(
+                        "[AuthService] %s: Firebase token missing email claim.", ErrorCodes.AUTHENTICATION_FAILED.name
+                    )
                     raise AuthenticationError(
                         message="Cannot auto-register user: Firebase token is missing email claim.",
-                        details={"error_code": "AUTH_TOKEN_MISSING_EMAIL"},
+                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
                     )
 
                 logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", user_id)
@@ -377,9 +409,10 @@ class AuthService:
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 
         except Exception as e:
-            error_code = "AUTH_TOKEN_VERIFICATION_FAILED"
-            logger.error("%s: %s", error_code, e, exc_info=True)
-            raise AuthenticationError(message="Invalid credentials", details={"error_code": error_code}) from e
+            logger.error("[AuthService] %s: %s", ErrorCodes.AUTHENTICATION_FAILED.name, e, exc_info=True)
+            raise AuthenticationError(
+                message="Invalid credentials", details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
+            ) from e
 
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
@@ -493,7 +526,9 @@ class AuthService:
         if force_org_id:
             target_org_id = force_org_id
         elif creator.role == UserRole.ROOT:
-            target_org_id = user_data.organization_id or creator.organization_id
+            target_org_id = (
+                user_data.organization_id if user_data.organization_id is not None else creator.organization_id
+            )
         else:
             if user_data.organization_id and user_data.organization_id != creator.organization_id:
                 raise PermissionDeniedError("Cannot create users in other organizations.")
@@ -513,10 +548,15 @@ class AuthService:
             org_exists = await self.org_repo.get_by_id(target_org_id)
 
             if not org_exists and target_org_id != SystemOrganizations.ROOT_SYSTEM:
+                logger.error(
+                    "[AuthService] %s: Target Organization '%s' does not exist.",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    target_org_id,
+                )
                 raise AppException(
                     message=f"Target Organization '{target_org_id}' does not exist.",
                     status_code=404,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
         # Enforce Role Hierarchy
@@ -548,7 +588,7 @@ class AuthService:
                     raise AppException(
                         message=f"Failed to create Firebase user: {e}",
                         status_code=500,
-                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
         else:
             # Generate a mock UID
@@ -671,7 +711,7 @@ class AuthService:
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
-        if target_id == LEGACY_ROOT_MASTER_ID or target_id == SYSTEM_ROOT_USER_ID:
+        if target_id in (LEGACY_ROOT_MASTER_ID, SYSTEM_ROOT_USER_ID, LEGACY_SYSTEM_ROOT_USER_ID):
             raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
         # LAST ADMIN PROTECTION
@@ -680,10 +720,14 @@ class AuthService:
             admin_count = await self._count_org_admins(target.organization_id)
 
             if admin_count <= 1:
+                logger.error(
+                    "[AuthService] %s: Cannot delete the last Administrator of an Organization.",
+                    ErrorCodes.CONFLICT_ERROR.name,
+                )
                 raise ConflictError(
                     message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
                     "Promote another user first.",
-                    details={"error_code": "LAST_ADMIN_PROTECTION"},
+                    details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
                 )
 
         # Execute
@@ -752,9 +796,14 @@ class AuthService:
         logger.info("[AuthService] Organization %s has %s users.", target_org_id, user_count)
 
         if user_count > 0 and not force:
+            logger.error(
+                "[AuthService] %s: Organization is not empty (%s users). Use force=True to delete.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                user_count,
+            )
             raise ConflictError(
                 message=f"Organization is not empty ({user_count} users). Use force=True to delete.",
-                details={"error_code": "ORG_NOT_EMPTY", "count": user_count},
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "ORG_NOT_EMPTY", "count": user_count},
             )
 
         # 3. Delete Logic (Cascading)
@@ -842,9 +891,13 @@ class AuthService:
                     admin_count = await self._count_org_admins(target.organization_id)
 
                     if admin_count <= 1:
+                        logger.error(
+                            "[AuthService] %s: Cannot demote the last Administrator of an Organization.",
+                            ErrorCodes.CONFLICT_ERROR.name,
+                        )
                         raise ConflictError(
-                            message="Cannot demote the last Administrator of an Organization.",
-                            details={"error_code": "LAST_ADMIN_PROTECTION"},
+                            message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
+                            details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
                         )
 
         updated_user = await self.repo.update(target_id, updates)
@@ -941,10 +994,13 @@ class AuthService:
                 count = await self._count_org_admins(target.organization_id)
 
                 if count <= 1:
-                    # Specific error string to be caught by router
+                    logger.error(
+                        "[AuthService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
+                        ErrorCodes.CONFLICT_ERROR.name,
+                    )
                     raise ConflictError(
                         message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
-                        details={"error_code": "LAST_ADMIN_PROTECTION"},
+                        details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
                     )
 
         # 3. Apply Update
@@ -1137,14 +1193,15 @@ class AuthService:
         root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
 
         if not root:
-            # STRICT DB AUTHORITY: No fallback creation.
-            # User must run 'backend.seed.run_seed' to populate db.json.
-            logger.critical("No Root user found in database! Strict Authority Enforced. Please run seed script.")
+            logger.critical(
+                "[AuthService] %s: No Root user found in database! Strict Authority Enforced.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+            )
 
             raise AppException(
                 message="Root user 'root_master' missing from DB. Run 'python -m backend_v2.seed.run_seed local'.",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         if root.organization_id not in [
@@ -1169,7 +1226,7 @@ class AuthService:
             raise AppException(
                 message="Failed to obtain Root user.",
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
 
         return root

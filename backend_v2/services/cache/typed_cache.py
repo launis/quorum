@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,10 @@ class TypedCacheService:
             model_cls: Target Pydantic model class for Rust-level deserialization.
 
         Returns:
-            Validated model instance, or None if key is absent, Redis unavailable, or corrupted.
+            Validated model instance, or None if key is absent or Redis is unavailable.
+
+        Raises:
+            AppException: VALIDATION_FAILED if cached data is corrupted or auto-eviction fails.
         """
         if self.redis is None:
             return None
@@ -47,20 +50,32 @@ class TypedCacheService:
         try:
             return model_cls.model_validate_json(raw_val)
         except ValidationError as val_err:
-            if isinstance(val_err, (KeyboardInterrupt, SystemExit)):
-                raise
-            logger.warning(
+            logger.error(
                 "Corrupted cache payload encountered for key %s, auto-evicting",
                 key,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
             )
             try:
                 await self.redis.delete(key)
             except (ConnectionError, TimeoutError, OSError) as e:
-                if isinstance(e, (KeyboardInterrupt, SystemExit)):
-                    raise
-                logger.error("Failed to auto-evict corrupted cache key %s: %s", key, e)
-            return None
+                logger.error(
+                    "Failed to auto-evict corrupted cache key %s: %s",
+                    key,
+                    e,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
+                raise AppException(
+                    message=f"Failed to auto-evict corrupted cache key '{key}': {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "key": key},
+                ) from e
+            raise AppException(
+                message=f"Corrupted cache payload encountered for key '{key}': {val_err}",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "key": key},
+            ) from val_err
 
     async def set_cached(self, key: str, model: BaseModel, expire_seconds: int | None = None) -> None:
         """Serialize and store a Pydantic model in Redis cache.
