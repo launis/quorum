@@ -164,6 +164,22 @@ class TraceEventMetadataEnvelope(BaseDTO):
         context: Any | None = None,
         **kwargs: Any,
     ) -> TraceEventMetadataEnvelope:
+        """Hydrate metadata envelope extracting step metadata from dictionary or object.
+
+        Args:
+            obj: Raw payload dictionary or object to validate.
+            *args: Positional arguments forwarded to Pydantic model_validate.
+            strict: Strict validation flag.
+            from_attributes: Whether to extract attributes from obj.
+            context: Validation context dictionary.
+            **kwargs: Keyword arguments forwarded to Pydantic model_validate.
+
+        Returns:
+            Validated TraceEventMetadataEnvelope instance.
+
+        Raises:
+            ValidationError: If model validation fails.
+        """
         if type(obj) is dict:
             extracted: dict[str, Any] = {}
             if "_step_metadata" in obj:

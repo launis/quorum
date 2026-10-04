@@ -2,8 +2,12 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.trace import (
+    AtomQuoteItemDTO,
     ProgressTracePayloadDTO,
+    StepTraceMetadataDTO,
     TraceEventMetadataDTO,
+    TraceEventMetadataEnvelope,
+    TraceMatrixExtensionsDTO,
     TraceMatrixPayloadDTO,
     TraceScoringPayloadDTO,
 )
@@ -189,3 +193,69 @@ def test_trace_event_metadata_dto_validation_and_strictness() -> None:
     # Extra forbidden
     with pytest.raises(ValidationError):
         TraceEventMetadataDTO.model_validate({"latency_ms": 10.0, "unauthorized_extra": True})
+
+
+def test_trace_event_metadata_envelope_hydration() -> None:
+    """Test TraceEventMetadataEnvelope model_validate across alias branches and non-dict objects."""
+    # 1. Branch: dict with _step_metadata alias
+    payload_underscore = {"_step_metadata": {"model_strategy": "fast", "chunk_size": 2}}
+    env_underscore = TraceEventMetadataEnvelope.model_validate(payload_underscore)
+    assert env_underscore.step_metadata is not None
+    assert env_underscore.step_metadata.model_strategy == "fast"
+    assert env_underscore.step_metadata.chunk_size == 2
+
+    # 2. Branch: dict with step_metadata
+    payload_clean = {"step_metadata": {"model_strategy": "deep", "chunk_size": 4}}
+    env_clean = TraceEventMetadataEnvelope.model_validate(payload_clean)
+    assert env_clean.step_metadata is not None
+    assert env_clean.step_metadata.model_strategy == "deep"
+    assert env_clean.step_metadata.chunk_size == 4
+
+    # 3. Branch: non-dict object passed to model_validate
+    existing_envelope = TraceEventMetadataEnvelope(
+        step_metadata=StepTraceMetadataDTO(model_strategy="reasoning")
+    )
+    validated_from_obj = TraceEventMetadataEnvelope.model_validate(existing_envelope)
+    assert validated_from_obj.step_metadata is not None
+    assert validated_from_obj.step_metadata.model_strategy == "reasoning"
+
+    # 4. Invalid step_metadata payload rejected
+    with pytest.raises(ValidationError):
+        TraceEventMetadataEnvelope.model_validate(
+            {"step_metadata": "invalid_not_a_model"}
+        )
+
+
+def test_atom_quote_item_dto_validation_and_strictness() -> None:
+    """Test AtomQuoteItemDTO positive and negative boundary validation."""
+    dto = AtomQuoteItemDTO(quote="Exact evidence text", level=3.0, level_name="Proficient")
+    assert dto.quote == "Exact evidence text"
+    assert dto.level == 3.0
+    assert dto.level_name == "Proficient"
+
+    # Missing mandatory quote
+    with pytest.raises(ValidationError):
+        AtomQuoteItemDTO.model_validate({"level": 1.0})
+
+    # Extra field forbidden
+    with pytest.raises(ValidationError):
+        AtomQuoteItemDTO.model_validate({"quote": "Valid", "extra_bad": True})
+
+
+def test_trace_matrix_extensions_dto_validation_and_strictness() -> None:
+    """Test TraceMatrixExtensionsDTO attributes and extra='forbid'."""
+    ext = TraceMatrixExtensionsDTO(
+        coaching="Focus on strategic leadership",
+        falsification="No evidence of cross-functional alignment",
+        risk_flag=True,
+        confidence=0.88,
+    )
+    assert ext.coaching == "Focus on strategic leadership"
+    assert ext.falsification == "No evidence of cross-functional alignment"
+    assert ext.risk_flag is True
+    assert ext.confidence == 0.88
+
+    # Extra field forbidden
+    with pytest.raises(ValidationError):
+        TraceMatrixExtensionsDTO.model_validate({"coaching": "Good", "extra": 1})
+
