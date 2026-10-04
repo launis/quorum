@@ -99,6 +99,8 @@ class TopologicalEvaluator:
             states[tda_id] = AtomExecutionState(
                 tda_id=tda_id,
                 status=ExecutionStatus.PENDING,
+                short_circuit_reason_tda_ids=[],
+                extensions={},
             )
             in_degree[tda_id] = 0
             adj[tda_id] = []

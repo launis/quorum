@@ -140,6 +140,7 @@ class TDAEngine(ExecutionEngine):
                     tda_id=atom.atom_id,
                     status=ExecutionStatus.FAILED,
                     evaluation_reasoning="Insufficient input data (Data Starvation).",
+                    short_circuit_reason_tda_ids=[],
                     extensions={},
                 )
 

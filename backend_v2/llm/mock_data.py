@@ -255,6 +255,7 @@ MOCK_ARCHIVIST_OUTPUT = ArchivistOutput(
 )
 
 MOCK_XAI_OUTPUT = XAIOutput(
+    output_extensions=[],
     thought_process="Mock XAI Trace: Generated report.",
     conclusion="Report complete.",
     metadata=MOCK_METADATA.model_copy(update={"agentti": "XAIReporterAgent"}),
