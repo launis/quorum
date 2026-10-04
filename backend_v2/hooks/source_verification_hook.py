@@ -5,7 +5,6 @@ the Tavily AI search client to verify them against live web data.
 """
 
 import logging
-from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -36,8 +35,19 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["source_verification_hook"]
 
+type CandidateInputs = (
+    ExecutionInputsDTO
+    | SourceVerificationInputsDTO
+    | SourceVerificationPayloadDTO
+    | BaseModel
+    | str
+    | list[object]
+    | dict[str, object]
+    | None
+)
 
-def _extract_text_polymorphically(inputs: Any) -> str:
+
+def _extract_text_polymorphically(inputs: CandidateInputs) -> str:
     """Extract candidate text from heterogeneous input state partitions.
 
     Args:
@@ -47,7 +57,7 @@ def _extract_text_polymorphically(inputs: Any) -> str:
         Consolidated input text.
 
     Raises:
-        AppException: If input cannot be parsed or validated.
+        AppException: With ErrorCodes.VALIDATION_FAILED if input cannot be parsed or validated.
     """
     if not inputs:
         return ""
@@ -56,9 +66,9 @@ def _extract_text_polymorphically(inputs: Any) -> str:
         return inputs.strip()
 
     if isinstance(inputs, ExecutionInputsDTO):
-        text = _extract_text_polymorphically(inputs.raw_inputs)
+        text = _extract_text_polymorphically(dict(inputs.raw_inputs))
         if not text:
-            text = _extract_text_polymorphically(inputs.dynamic_inputs)
+            text = _extract_text_polymorphically(dict(inputs.dynamic_inputs))
         return text
 
     if isinstance(inputs, BaseModel):
@@ -80,7 +90,7 @@ def _extract_text_polymorphically(inputs: Any) -> str:
     if type(inputs) is dict:
         try:
             known_keys = {"document_text", "prior_analysis", "text", "document"}
-            payload_data: dict[str, Any] = {k: v for k, v in inputs.items() if k in known_keys}
+            payload_data: dict[str, object] = {k: v for k, v in inputs.items() if k in known_keys}
             extra_data = {str(k): str(v) for k, v in inputs.items() if k not in known_keys and v is not None}
             if extra_data:
                 payload_data["extra_sections"] = extra_data
@@ -116,7 +126,9 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         HookResult with state_delta containing metadata.mcp_audit_traces and global_context_vars.external_evidence.
 
     Raises:
-        AppException: If configuration dependencies are missing or execution fails.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if system_repo is missing in deps,
+            ErrorCodes.VALIDATION_FAILED if input extraction fails, or ErrorCodes.FETCH_FAILED
+            if downstream source verification execution fails.
     """
     settings = get_settings()
 
@@ -152,22 +164,19 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
 
     if not deps.system_repo:
         msg = "Missing system_repo in HookDependencies"
-        logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    target_locale = (
-        state.inputs.target_locale
-        if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale
-        else (
-            state.global_context_vars.language
-            if state.global_context_vars and state.global_context_vars.language
-            else SystemLocale.EN.value
-        )
-    )
+    target_locale = SystemLocale.EN.value
+    if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
+        target_locale = state.inputs.target_locale
+    elif state.global_context_vars and state.global_context_vars.language:
+        target_locale = state.global_context_vars.language
+
     if target_locale:
         set_language(target_locale)
 
