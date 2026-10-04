@@ -73,20 +73,27 @@
 
 ### Phase 4: Universal AST Strictness Lockdown, Mathematical Proof & Permanent CI Enforcement
 **Plan:** @[docs/epic/tasks_EPIC_156/04_phase4_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 4.1: Invert Strict Default Flag in backend_audit_loop.py & Add Permissive Diagnostic Mode
+  - [x] Step 4.2: Reclassify All Visitor Rules to FATAL Severity in scripts/_ast_guardrails.py
+  - [x] Step 4.3: Execute Exhaustive Violation Eradication Ledger Verification
+  - [x] Step 4.4: Execute Clean Imports, DTO Parity, and Mutation Gates
+  - [x] Step 4.5: Full Test Suite & 8-Stage Quality Gate Execution
+  - [x] Step 4.6: Mandatory Final E2E REST API Verification Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ---
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Backend Parity & Quality Loop**: Full execution of `uv run python scripts/backend_audit_loop.py backend_v2/ --test` passing Ruff, MyPy strict typing, and Pytest coverage gates (>90%).
-- [ ] **[NOK] AST Guardrails Strict Verification**: Full AST Guardrail audit passing `uv run python scripts/_ast_guardrails.py backend_v2/ --ast-strict` and unit tests.
-- [ ] **[NOK] Clean Import Smoke Test**: Codebase-wide import smoke test execution via `uv run python scripts/audit_clean_imports.py backend_v2/`.
-- [ ] **[NOK] Warning Baseline Ledger Audit**: Verification of `uv run python scripts/audit_warning_baseline.py` guaranteeing zero fatal violations and warning ceiling compliance.
-- [ ] **[NOK] Seed Vault & Database Ingress**: Clean seeding via `uv run python backend_v2/seed/run_seed.py local`.
+- [x] **[OK] Backend Parity & Quality Loop**: Full execution of `uv run python scripts/backend_audit_loop.py backend_v2/ --test` passing Ruff, MyPy strict typing, and Pytest coverage gates (>90%).
+- [x] **[OK] AST Guardrails Strict Verification**: Full AST Guardrail audit passing `uv run python scripts/_ast_guardrails.py backend_v2/ --strict` and unit tests.
+- [x] **[OK] Clean Import Smoke Test**: Codebase-wide import smoke test execution via `uv run python scripts/audit_clean_imports.py backend_v2/`.
+- [x] **[OK] Warning Baseline Ledger Audit**: Verification of `uv run python scripts/audit_warning_baseline.py` guaranteeing zero fatal violations and warning ceiling compliance.
+- [x] **[OK] Seed Vault & Database Ingress**: Clean seeding via `uv run python backend_v2/seed/run_seed.py local`.
 
 ---
 
@@ -227,38 +234,41 @@
 | Clean and lock QGR002 chained dictionary .get() lookups in tests and domain code | Section 3, Step 3.4 | Phase 3, Step 3.4 | [x] Verified |
 | Clean and lock residual rules (QGR001 reflection, QGR019 dict.pop, QGR003 exception swallowing, QGR010 naive datetime) | Section 3, Step 3.5 | Phase 3, Step 3.5 | [x] Verified |
 | Implement automated AST mutation testing engine in `scripts/audit_mutation_coverage.py` asserting 100% mutant kill rate | Section 3, Step 3.6 | Phase 3, Step 3.6 | [x] Verified |
-| Synchronize warning baseline ledger to zero ceiling in `scripts/audit_warning_baseline.py` and execute completion gate | Section 3, Step 3.7 | Phase 3, Step 3.7 | [x] Verified |
-| Invert strict default flag, reclassify all visitor rules to FATAL, and verify Exhaustive Violation Eradication Ledger | Section 3, Step 4.1-4.6 | Phase 4, Step 4.1 | [ ] Pending |
+| Synchronize warning baseline ledger to zero ceiling and execute phase 3 completion gate | Section 3, Step 3.7 | Phase 3, Step 3.7 | [x] Verified |
+| Invert strict default flag in `scripts/backend_audit_loop.py` and add permissive diagnostic mode | Section 3, Step 4.1 | Phase 4, Step 4.1 | [x] Verified |
+| Reclassify all visitor methods in `scripts/_ast_guardrails.py` to unconditionally emit FATAL severity | Section 3, Step 4.2 | Phase 4, Step 4.2 | [x] Verified |
+| Execute Exhaustive Violation Eradication Ledger verification proving zero fatals and zero warnings | Section 3, Step 4.3 | Phase 4, Step 4.3 | [x] Verified |
+| Execute clean imports, DTO parity, and mathematical core mutation testing gates | Section 3, Step 4.4 | Phase 4, Step 4.4 | [x] Verified |
+| Execute full test suite and 8-stage universal quality gate in default strict mode | Section 3, Step 4.5 | Phase 4, Step 4.5 | [x] Verified |
+| Mandatory final live E2E REST API verification gate | Section 3, Step 4.6 | Phase 4, Step 4.6 | [x] Verified |
 
 ---
 
 # Session Handover Context
 
 ## Achieved
-- Step 3.1: Cleaned and locked QGR020 (mutable class defaults and duplicate `Field()` assignments) across domain models; promoted QGR020 to FATAL severity (`e0a049b3`).
-- Step 3.2: Cleaned and locked QGR012 (duck-typing `isinstance(..., Mapping)` cascades) across services; promoted QGR012 to FATAL severity in domain code (`6ae019c2`).
-- Step 3.3: Cleaned and locked QGR016 (ternary lazy fallbacks and falsy `or` chains) across providers, repositories, and models; promoted QGR016 to unconditional FATAL severity (`f5297651`).
-- Step 3.4: Cleaned all 341 QGR002 occurrences across test suites and domain boundary files (`provider.py`, fakes, unit tests, integration tests). Promoted QGR002 to unconditional FATAL severity in `scripts/_ast_guardrails.py` with test client and registry exemptions (`59546332`).
-- Step 3.5: Eradicated 100% of residual advisory AST warnings across `backend_v2` (`e1480d9a9`).
-- Step 3.6: Implemented pure Python stdlib AST mutation testing engine in `scripts/audit_mutation_coverage.py` with typed Pydantic V2 DTOs (`MutationSpec`, `MutationResult`, `TargetAuditReport`, `MutationCoverageReport`). Tested against mathematical cores (`UnifiedScoringEngine` and `TopologicalEvaluator`), killing 100% of mutants (13/13 in TopologicalEvaluator, 25/25 in UnifiedScoringEngine). Created comprehensive unit test suite in `backend_v2/tests/unit/scripts/test_audit_mutation_coverage.py` (10 tests) and precision trace assertions in `test_unified_engine.py` (`b1823341e`).
-- Step 3.7: Eradicated all remaining advisory AST warnings down to 0 warnings and 0 fatals across all 896 modules in `backend_v2`. Set `CURRENT_WARNING_CEILING = 0` in `scripts/audit_warning_baseline.py`. Verified `--verify-zero` (0 fatals, 0 warnings), strict AST guardrails (`_ast_guardrails.py backend_v2 --strict`), localized unit tests (141/141 passed in `test_ast_guardrails.py`, `test_audit_warning_baseline.py`, `test_audit_mutation_coverage.py`), and the full 8-stage global `backend_audit_loop.py backend_v2/` quality gate with 100% pass rate.
-- Phase 3 Audit: Successfully executed Tier 8 plan audit; 100% mutant kill rate verified (13/13 TopologicalEvaluator, 25/25 UnifiedScoringEngine), 0 AST violations, 0 baseline warnings, and 8-stage global quality gate passed (4,810 tests passed, 96.80% coverage). Resolved minor test assertion regressions in `test_scripts_cli_help.py` (canonical script count 28), `test_matrix_explanation_service.py` (`isinstance` on Annotated alias), and `test_main.py` (state attribute assertion).
+- Step 4.1: Inverted `ast_strict` default flag to `True` in `scripts/backend_audit_loop.py` and provided `--permissive-warn` flag for emergency diagnostics; updated unit tests in `test_backend_audit_loop.py` (43 passed) (`85bf1ac7d`).
+- Step 4.2: Reclassified all AST visitor rules (QGR001, QGR012, QGR013, QGR015, QGR016, QGR018) and `_add_violation` default in `scripts/_ast_guardrails.py` to `GuardrailSeverity.FATAL` unconditionally; updated unit tests in `test_ast_guardrails.py` (123 passed) (`c7b06ec58`).
+- Step 4.3: Added `test_warning_baseline_ledger_rejects_any_nonzero_warning_violation` to `test_audit_warning_baseline.py`; proved 0 fatal violations and 0 advisory warnings across all 896 backend modules via `audit_warning_baseline.py --verify-zero` and `_ast_guardrails.py backend_v2 --strict` (`dfb7a09e0`).
+- Step 4.4: Executed Clean Imports (355/355 modules imported cleanly), Cross-Language DTO Parity (45/45 models 1:1 aligned), and Mathematical Core Mutation Testing (100% mutant kill rate: 13/13 `TopologicalEvaluator`, 25/25 `UnifiedScoringEngine` via `scripts/audit_mutation_coverage.py`).
+- Step 4.5: Executed full 8-stage universal quality gate (`scripts/backend_audit_loop.py backend_v2/ --test`) in default strict AST mode: 8/8 stages passed, 4,813 tests passed, 96.80% coverage.
+- Step 4.6: Executed mandatory live E2E REST API verification gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`). Supported `ProfilerMetricsDTO` in `StepPayloadValue` for trace folding, implemented TCP FakeRedis fallback in `test_integration_real_llm.py`, and verified full end-to-end workflow execution, trace generation, SDUI parity, and PDF rendering (`047135f97`).
+- Integration Checkpoint: Executed clean database reset and seed vault verification via `run_seed.py local` with 100% pass rate.
 
 ## Learned
-- LiteLLM Exception Re-export Parity: When running with `mypy --strict`, LiteLLM exceptions must be imported directly from `litellm.exceptions` (with domain exceptions disambiguated via `ServiceUnavailableError as LiteLLMServiceUnavailableError`) to prevent shadowing domain AppExceptions and avoiding `[attr-defined]` re-export errors.
-- Exception Attribute Introspection: External third-party exception attribute inspection (e.g. `status_code`, `headers`, `original_error`) on `BaseException` must use typed `getattr(e, "attr", None)` with explicit `# noqa: QGR001 [REASON: ...]` in boundary files to satisfy both AST guardrails and MyPy strict attribute checks.
-- Coverage Blindness in Mathematical Traces: `UnifiedScoringEngine` generated `linear_ratio`, `curved_ratio`, and detailed logs for `xai_log.engine_debug_trace` which were not asserted in pre-existing tests. Adding mathematical precision assertions for `linear_ratio` and `curved_ratio` killed 100% of arithmetic mutants (25/25).
-- Windows Terminal Unicode Charmap: Windows `cp1252` encoding throws `UnicodeEncodeError` on emojis like `\u2705`. Enforcing UTF-8 reconfiguration with fallback ASCII badges (`[PASS]`, `[FAIL]`) ensures bulletproof cross-platform CLI output.
-- AST Type Annotation Exclusion: Python 3.10+ union annotations like `CausalEdge | None` are parsed as `ast.BinOp(op=ast.BitOr())`. Mutation engines targeting arithmetic operators must explicitly exclude `AnnAssign.annotation` and function definitions annotations to avoid corrupting type signatures.
-- Concurrent AST Mutation Isolation: AST mutation testing mutates physical source files on disk. Running multiple mutation testing processes or test runners in parallel causes file write contention where one process reads another process's temporary mutant as original code. Mutation runs must execute in clean serial isolation.
+- Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
+- Arq Worker FakeRedis Compatibility: FakeRedis does not implement the Redis `INFO` command; calling `_patch_arq_logging()` no-ops the startup banner log in `Worker.main` and prevents pipe crashes against FakeRedis.
+- Step Output Polymorphic Union Completeness: When cognitive profiling hooks attach structured metrics under `profiler_metrics`, `StepPayloadValue` in `models/dtos/step_output.py` must include `ProfilerMetricsDTO` in its closed type union to allow Pydantic `strict=True` validation during `StateProjector.fold_trace`.
+- Universal AST Strict Default: Defaulting `ast_strict=True` in `backend_audit_loop.py` permanently prevents silent regressions by ensuring all developer and CI runs enforce zero unsuppressed AST violations.
 
 ## Remaining
-- Phase 4: Create Plan: Run `/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4`.
+- Phase 4 Plan Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4
+/tier8-audit-plan @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md]
 ```
+
 
 
 
