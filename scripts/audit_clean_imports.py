@@ -32,6 +32,13 @@ CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+__all__ = [
+    "ImportAuditReportDTO",
+    "ImportFailureDTO",
+    "main",
+    "scan_clean_imports",
+]
+
 
 class ImportFailureDTO(BaseModel):
     """Pydantic V2 DTO representing an import failure for a single module."""
@@ -57,7 +64,15 @@ class ImportAuditReportDTO(BaseModel):
 
 
 def _resolve_module_name(file_path: Path, repo_root: Path) -> str:
-    """Resolve the canonical Python module name for a file relative to the repo root."""
+    """Resolve the canonical Python module name for a file relative to the repo root.
+
+    Args:
+        file_path: Absolute or relative path to the Python file.
+        repo_root: Root directory of the repository for module anchoring.
+
+    Returns:
+        Dotted canonical module name string.
+    """
     rel_path = file_path.resolve().relative_to(repo_root.resolve())
     parts = list(rel_path.parts)
     if parts[-1] == "__init__.py":
@@ -67,7 +82,15 @@ def _resolve_module_name(file_path: Path, repo_root: Path) -> str:
 
 
 def _attempt_module_import(module_name: str, file_path_str: str) -> ImportFailureDTO | None:
-    """Attempt importing a single module, capturing failures as typed DTO."""
+    """Attempt importing a single module, capturing failures as typed DTO.
+
+    Args:
+        module_name: Fully qualified Python module name.
+        file_path_str: Path string of the module file for error reporting.
+
+    Returns:
+        ImportFailureDTO if an exception occurred during import, else None.
+    """
     try:
         importlib.import_module(module_name)
         return None
@@ -85,7 +108,16 @@ def scan_clean_imports(
     repo_root: Path | str | None = None,
     exclude_dirs: tuple[str, ...] = ("tests", "__pycache__", ".venv"),
 ) -> ImportAuditReportDTO:
-    """Recursively scan and import all Python modules in the target directory."""
+    """Recursively scan and import all Python modules in the target directory.
+
+    Args:
+        target_dir: Target directory path or string to scan for Python files.
+        repo_root: Optional repository root path for resolving module paths.
+        exclude_dirs: Tuple of directory names to exclude from scanning.
+
+    Returns:
+        ImportAuditReportDTO summarizing aggregate scan results and failures.
+    """
     if repo_root is None:
         resolved_repo_root = Path(".").resolve()
     else:
@@ -142,7 +174,14 @@ def scan_clean_imports(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint for clean import audit."""
+    """CLI entrypoint for clean import audit.
+
+    Args:
+        argv: Optional list of command-line argument strings.
+
+    Returns:
+        Integer exit code (0 for success, 1 for failures).
+    """
     parser = argparse.ArgumentParser(
         description="Audit clean imports across Python modules to detect circular dependencies and import errors."
     )

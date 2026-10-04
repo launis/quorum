@@ -192,3 +192,83 @@ def test_clean_imports_cli_main_failure(clean_import_env: Path) -> None:
     )
 
     assert exit_code == 1
+
+
+def test_clean_imports_nonexistent_directory(clean_import_env: Path) -> None:
+    """Boundary: verify scanning non-existent target directory returns empty passed report."""
+    non_existent = clean_import_env / "does_not_exist"
+
+    report = scan_clean_imports(
+        target_dir=non_existent,
+        repo_root=clean_import_env,
+    )
+
+    assert report.passed is True
+    assert report.total_modules_scanned == 0
+    assert report.successful_imports == 0
+    assert report.failed_imports == 0
+    assert len(report.failures) == 0
+
+
+def test_clean_imports_skips_dot_files(clean_import_env: Path) -> None:
+    """Boundary: verify files starting with a dot are skipped from module discovery."""
+    pkg_dir = clean_import_env / "synth_dot_pkg"
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / ".hidden.py").write_text("invalid syntax (\n", encoding="utf-8")
+
+    report = scan_clean_imports(
+        target_dir=pkg_dir,
+        repo_root=clean_import_env,
+    )
+
+    assert report.passed is True
+    assert report.total_modules_scanned == 1
+    assert report.failed_imports == 0
+
+
+def test_clean_imports_cli_main_plain_output(
+    clean_import_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Positive: verify CLI main without --json prints console summary table on success."""
+    pkg_dir = clean_import_env / "synth_cli_plain_pkg"
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+
+    exit_code = audit_clean_imports_main(
+        [
+            "--target-dir",
+            str(pkg_dir),
+            "--repo-root",
+            str(clean_import_env),
+        ]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "=== Clean Import Audit ===" in captured.out
+    assert "All 1 modules imported cleanly" in captured.out
+
+
+def test_clean_imports_cli_main_failure_output(
+    clean_import_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Negative: verify CLI main prints failed imports list when errors occur."""
+    pkg_dir = clean_import_env / "synth_cli_fail_out_pkg"
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    (pkg_dir / "__init__.py").write_text("import broken_phantom_mod_777\n", encoding="utf-8")
+
+    exit_code = audit_clean_imports_main(
+        [
+            "--target-dir",
+            str(pkg_dir),
+            "--repo-root",
+            str(clean_import_env),
+        ]
+    )
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "FAILED IMPORTS (1):" in captured.out
+    assert "ModuleNotFoundError" in captured.out
+
