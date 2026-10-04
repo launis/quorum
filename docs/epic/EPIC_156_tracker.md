@@ -111,12 +111,12 @@
   - [x] @[scripts/audit_matrix_auto_filler.py]
   - [x] @[scripts/audit_matrix_manager.py]
   - [x] @[scripts/matrix_slice_engine.py]
-  - [ ] @[backend_v2/core/hook_registry.py]
-  - [ ] @[backend_v2/core/registry.py]
-  - [ ] @[backend_v2/database/repositories/audit.py]
-  - [ ] @[backend_v2/database/repositories/base.py]
-  - [ ] @[backend_v2/database/repositories/identity.py]
-  - [ ] @[backend_v2/database/repositories/knowledge.py]
+  - [x] @[backend_v2/core/hook_registry.py]
+  - [x] @[backend_v2/core/registry.py]
+  - [x] @[backend_v2/database/repositories/audit.py]
+  - [x] @[backend_v2/database/repositories/base.py]
+  - [x] @[backend_v2/database/repositories/identity.py]
+  - [x] @[backend_v2/database/repositories/knowledge.py]
   - [ ] @[backend_v2/database/repositories/workflow.py]
   - [ ] @[backend_v2/database/wrapper.py]
   - [ ] @[backend_v2/hooks/integrity.py]
@@ -258,6 +258,8 @@
 - Post-Implementation Gates (Hardening Batch 2): Audited and verified `scripts/audit_clean_imports.py` and `scripts/audit_warning_baseline.py` via `/tier2-hardening-backend`. Both passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >90% line coverage (94% and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Added explicit `__all__ = [...]` interface encapsulation and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`0c880f0b4`, `41da75029`).
 - Post-Implementation Gates (Hardening Batch 3): Audited and verified `scripts/audit_database_atoms.py`, `scripts/reconcile_storage.py`, and `scripts/audit_rules_staleness.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (98%, 97%, and 95%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, English documentation, and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`27f9a7c0a`, `bbcd00386`).
 - Post-Implementation Gates (Hardening Batch 4): Audited and verified `scripts/audit_matrix_auto_filler.py`, `scripts/audit_matrix_manager.py`, and `scripts/matrix_slice_engine.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (94%, 94%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero naked dictionaries, Windows UTF-8 stdout configuration, and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`90240a3f2`, `3893cba9f`, `1ec552e74`).
+- Post-Implementation Gates (Hardening Batch 5): Audited and verified `backend_v2/core/hook_registry.py`, `backend_v2/core/registry.py`, and `backend_v2/database/repositories/audit.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 93%, and 100%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero naked dictionaries, and PEP 257 Google-style docstrings with `Args:`, `Returns:`, and `Raises:` blocks (`73ca32d6d`, `276fa2d91`, `44707576a`).
+- Post-Implementation Gates (Hardening Batch 6): Audited and verified `backend_v2/database/repositories/base.py`, `backend_v2/database/repositories/identity.py`, and `backend_v2/database/repositories/knowledge.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved 100% line coverage across all three files (21/21, 101/101, and 107/107 statements), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, standardized error details dictionary formatting (`ErrorCodes.VALIDATION_FAILED.value`), and added PEP 257 Google-style docstrings with `Args:`, `Returns:`, and `Raises:` blocks (`db42e1204`, `531725aee`, `420aede3d`).
 
 ## Learned
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
@@ -266,14 +268,18 @@
 - Universal AST Strict Default: Defaulting `ast_strict=True` in `backend_audit_loop.py` permanently prevents silent regressions by ensuring all developer and CI runs enforce zero unsuppressed AST violations.
 - Neuro-Symbolic Audit Traceability: Standalone scripts require precise, non-conflicting code evidence anchoring directly to the target file stem while categorizing domain/presentation rules into cleanly segregated NA buckets to respect anti-laziness limits (<40 duplicates).
 - CLI Output Typing & Serialization: CLI tools invoking helper export functions must ensure the helper's return type matches the serialization expectation; returning a Path object from an export function requires writing to disk directly within the helper or wrapping rather than passing directly to json.dumps.
+- Repository Reconstitution Boundary: Repositories act as the strict hydration firewall between raw storage drivers (returning untyped dictionaries) and service callers, reconstituting models via `model_validate()` and ensuring zero naked dictionary leakage.
+- Pydantic Pattern Validation for Striped IDs: When constructing prompt block domain models in tests, `id` fields strictly require matching `OPAQUE_STRIPE_ID_REGEX` (`^([a-z]{2,5})_[a-fA-F0-9]{16,32}$`), and `MatrixPromptBlock.scales` requires at least one scale claim.
+- Repository Error Reporting Resilience: In repository reconstitution error handlers, checking `if "id" in doc:` allows logging the specific item identifier while safely defaulting to `"unknown"` when the ID key is missing or non-string, preventing secondary crashes inside exception handling blocks.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`backend_v2/core/hook_registry.py`, `backend_v2/core/registry.py`, `backend_v2/database/repositories/audit.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`backend_v2/database/repositories/workflow.py`, `backend_v2/database/wrapper.py`, `backend_v2/hooks/integrity.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/core/hook_registry.py] @[backend_v2/core/registry.py] @[backend_v2/database/repositories/audit.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/database/repositories/workflow.py] @[backend_v2/database/wrapper.py] @[backend_v2/hooks/integrity.py] @[docs/epic/EPIC_156_tracker.md]
 ```
+
 
 
 
