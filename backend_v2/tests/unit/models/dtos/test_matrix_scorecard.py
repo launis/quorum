@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import (
@@ -120,3 +123,40 @@ def test_matrix_scorecard_row_dto() -> None:
     assert row.name == "Row Name"
     assert row.label_i18n.resolve("fi") == "Suomi"
     assert row.is_evaluative is True
+
+
+def test_scorecard_atom_validate_from_instance() -> None:
+    """Test map_contested_to_warning with an already instantiated ScorecardAtomDTO."""
+    atom = ScorecardAtomDTO(
+        atom_id="atm_2",
+        level=1,
+        level_name="Taso 1",
+        claim_label="Label",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="1",
+            step_2_scan_source="2",
+            step_3_evaluate_anti_patterns="3",
+            step_4_final_conclusion="4",
+        ),
+        status=LaxExecutionStatus.FAILED,
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        chart_display_label="Chart",
+        visual_intent=VisualIntent.NEUTRAL,
+    )
+    validated = ScorecardAtomDTO.model_validate(atom)
+    assert validated.atom_id == "atm_2"
+
+
+def test_matrix_scorecard_models_forbid_extra() -> None:
+    """Test that all models in matrix_scorecard forbid extra fields."""
+    with pytest.raises(ValidationError):
+        HumanOverrideRequest.model_validate(
+            {"new_status": "PASSED", "reason": "test", "extra_field": "forbidden"}
+        )
+
+    with pytest.raises(ValidationError):
+        TDAPending.model_validate({"runtimeType": "pending", "extra": 123})
+
