@@ -49,7 +49,7 @@ def test_warning_baseline_ledger_asserts_zero_ceiling() -> None:
         assert report.is_under_ceiling is True
 
 
-def test_warning_baseline_fails_on_nonzero_warning_count() -> None:
+def test_warning_baseline_ledger_rejects_any_nonzero_warning_violation() -> None:
     """Contract: verifies that nonzero warning count with verify_zero triggers failure."""
     fake_violations = [
         GuardrailViolation(
