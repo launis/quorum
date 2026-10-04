@@ -9,10 +9,10 @@ from __future__ import annotations
 import datetime
 import logging
 import re
-from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.prompt import LLMContextDataDTO
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -57,7 +57,7 @@ class ExecutionTimeResolver:
 
     @staticmethod
     def resolve(
-        llm_context_data: LLMContextDataDTO | Mapping[str, Any] | None = None,
+        llm_context_data: LLMContextDataDTO | None = None,
         execution_id: str | None = None,
         inputs: ExecutionInputsDTO | None = None,
         metadata: ExecutionMetadata | None = None,
@@ -70,16 +70,27 @@ class ExecutionTimeResolver:
             3. Database context metadata timestamps
 
         Args:
-            llm_context_data: Context DTO or mapping containing inputs, metadata, and state.
+            llm_context_data: Typed context DTO containing inputs, metadata, and state.
             execution_id: Parent execution tracking ID for physical file inspection.
             inputs: Optional typed ExecutionInputsDTO.
             metadata: Optional typed ExecutionMetadata.
 
         Returns:
             Resolved datetime object (in UTC if applicable) or None if no timestamp exists.
+
+        Raises:
+            AppException: If invalid context types or path traversal execution_id are provided (VALIDATION_FAILED).
         """
         # 1. Client explicit document date check from ExecutionInputsDTO
         if inputs is not None:
+            if not isinstance(inputs, ExecutionInputsDTO):
+                msg = f"Invalid inputs type: {type(inputs).__name__}, expected ExecutionInputsDTO"
+                logger.error("[ExecutionTimeResolver] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
             for key in ("document_date", "input_file_date", "last_modified"):
                 if key in inputs.dynamic_inputs:
                     parsed = ExecutionTimeResolver._parse_datetime(inputs.dynamic_inputs[key])
@@ -93,7 +104,16 @@ class ExecutionTimeResolver:
                         return parsed
 
         # Check LLMContextDataDTO
-        if isinstance(llm_context_data, LLMContextDataDTO):
+        if llm_context_data is not None:
+            if not isinstance(llm_context_data, LLMContextDataDTO):
+                msg = f"Invalid context type: {type(llm_context_data).__name__}, expected LLMContextDataDTO"
+                logger.error("[ExecutionTimeResolver] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
             if llm_context_data.execution_time:
                 return llm_context_data.execution_time
             if llm_context_data.inputs:
@@ -117,38 +137,17 @@ class ExecutionTimeResolver:
                             )
                             return parsed
 
-        # Dictionary fallback for legacy / test payloads
-        elif llm_context_data is not None and not isinstance(llm_context_data, (str, int, float, bool, list)):
-            ctx_dict = dict(llm_context_data)
-            raw_inputs = None
-            if "raw_inputs" in ctx_dict:
-                raw_inputs = ctx_dict["raw_inputs"]
-            if raw_inputs is not None and not isinstance(raw_inputs, (str, int, float, bool, list)):
-                raw_dict = dict(raw_inputs)
-                if "dynamic_inputs" in raw_dict and not isinstance(
-                    raw_dict["dynamic_inputs"], (str, int, float, bool, list)
-                ):
-                    dynamic_inputs = dict(raw_dict["dynamic_inputs"])
-                    for key in ("document_date", "input_file_date", "last_modified"):
-                        if key in dynamic_inputs:
-                            parsed = ExecutionTimeResolver._parse_datetime(dynamic_inputs[key])
-                            if parsed:
-                                logger.info(
-                                    "[ExecutionTimeResolver] Client-supplied document date found in dict dynamic_inputs."
-                                )
-                                return parsed
-
-            if "inputs" in ctx_dict and not isinstance(ctx_dict["inputs"], (str, int, float, bool, list)):
-                inputs_dict = dict(ctx_dict["inputs"])
-                for key in ("document_date", "input_file_date", "last_modified"):
-                    if key in inputs_dict:
-                        parsed = ExecutionTimeResolver._parse_datetime(inputs_dict[key])
-                        if parsed:
-                            logger.info("[ExecutionTimeResolver] Client-supplied document date found in dict inputs.")
-                            return parsed
-
         # 2. Physical input file inspection on disk
         if execution_id:
+            if ".." in execution_id or "/" in execution_id or "\\" in execution_id:
+                msg = f"Path traversal detected in execution_id: {execution_id}"
+                logger.error("[ExecutionTimeResolver] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
             for filename in ("input_chat_log.md", "input_product_text.md", "input_reflection_text.md"):
                 file_path = Path("data") / "files" / "executions" / execution_id / "inputs" / filename
                 if file_path.exists():
@@ -163,43 +162,14 @@ class ExecutionTimeResolver:
                     except OSError as exc:
                         ExecutionTimeResolver._dlq_stat_fallback(exc)
 
-        # 3. Context metadata timestamps
-        if isinstance(metadata, ExecutionMetadata):
-            pass
-
-        if llm_context_data is not None and not isinstance(
-            llm_context_data, (LLMContextDataDTO, str, int, float, bool, list)
-        ):
-            ctx_dict = dict(llm_context_data)
-            if "metadata" in ctx_dict and not isinstance(ctx_dict["metadata"], (str, int, float, bool, list)):
-                ctx_metadata = dict(ctx_dict["metadata"])
-                for key in ("created_at", "timestamp"):
-                    if key in ctx_metadata:
-                        parsed = ExecutionTimeResolver._parse_datetime(ctx_metadata[key])
-                        if parsed:
-                            logger.info("[ExecutionTimeResolver] Using metadata timestamp.")
-                            return parsed
-
-            if "raw_inputs" in ctx_dict and not isinstance(ctx_dict["raw_inputs"], (str, int, float, bool, list)):
-                raw_inputs = dict(ctx_dict["raw_inputs"])
-                if "timestamp" in raw_inputs:
-                    parsed = ExecutionTimeResolver._parse_datetime(raw_inputs["timestamp"])
-                    if parsed:
-                        logger.info("[ExecutionTimeResolver] Using raw_inputs timestamp.")
-                        return parsed
-                if "metadata" in raw_inputs and not isinstance(raw_inputs["metadata"], (str, int, float, bool, list)):
-                    raw_meta = dict(raw_inputs["metadata"])
-                    if "timestamp" in raw_meta:
-                        parsed = ExecutionTimeResolver._parse_datetime(raw_meta["timestamp"])
-                        if parsed:
-                            logger.info("[ExecutionTimeResolver] Using raw_inputs metadata timestamp.")
-                            return parsed
-
-            for key in ("created_at", "timestamp"):
-                if key in ctx_dict:
-                    parsed = ExecutionTimeResolver._parse_datetime(ctx_dict[key])
-                    if parsed:
-                        logger.info("[ExecutionTimeResolver] Using top-level context timestamp.")
-                        return parsed
+        # 3. Context metadata validation
+        if metadata is not None and not isinstance(metadata, ExecutionMetadata):
+            msg = f"Invalid metadata type: {type(metadata).__name__}, expected ExecutionMetadata"
+            logger.error("[ExecutionTimeResolver] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         return None
