@@ -18,7 +18,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
     ServiceUnavailableError,
 )
-from backend_v2.llm.provider import LLMFactory
+from backend_v2.llm.provider import LLMFactory, LLMProvider
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import LLMPlatformType, LLMProviderName
@@ -81,14 +81,14 @@ class LLMHandler:
         """Initializes the handler.
 
         Args:
-            repo: The IWorkflowRepository instance (injected via dependencies.py).
+            repo: The repository instance (injected via dependencies.py).
         """
         self.repo = repo
         self._cached_openai_models: list[str] = []
         self._cached_vertex_locations: list[GCPLocationDTO] = []
         self._cached_ai_studio_models: list[str] = []
 
-    def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
+    def _fetch_mock_models(self, providers: list[str], settings: Settings, models: dict[str, list[str] | str]) -> None:
         """Fetch mock models for specified providers during test runs or mock execution mode.
 
         Args:
@@ -130,6 +130,10 @@ class LLMHandler:
         try:
             source_region = settings.discovery_location
             if not source_region:
+                logger.error(
+                    "Strict Fail-Fast: 'discovery_location' is required in settings.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                )
                 raise ConfigurationError(
                     message="Strict Fail-Fast: 'discovery_location' is required in settings.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -141,6 +145,10 @@ class LLMHandler:
             )
 
             if not GOOGLE_DEPS_AVAILABLE:
+                logger.error(
+                    "Missing required dependencies for Google Vertex AI discovery.",
+                    extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.name},
+                )
                 raise ConfigurationError(
                     message="Missing required dependencies for Google Vertex AI discovery.",
                     details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -164,6 +172,12 @@ class LLMHandler:
             try:
                 credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
             except Exception as auth_err:
+                logger.error(
+                    "Google Authentication failed during Vertex AI discovery: %s",
+                    auth_err,
+                    extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.name},
+                    exc_info=True,
+                )
                 raise ConfigurationError(
                     message="Google Authentication failed during Vertex AI discovery.",
                     details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
@@ -257,7 +271,7 @@ class LLMHandler:
                 details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
             ) from e
 
-    def fetch_vertex_locations(self, settings: Any) -> list[GCPLocationDTO]:
+    def fetch_vertex_locations(self, settings: Settings) -> list[GCPLocationDTO]:
         """Fetch all available Google Cloud Vertex AI locations dynamically via ADC.
 
         Caches results in memory for zero-latency subsequent access.
@@ -313,6 +327,10 @@ class LLMHandler:
             return mock_locations
 
         if not GOOGLE_DEPS_AVAILABLE:
+            logger.error(
+                "Google Authentication libraries (google-auth) are not installed.",
+                extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.name},
+            )
             raise ConfigurationError(
                 message="Google Authentication libraries (google-auth) are not installed.",
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -322,12 +340,22 @@ class LLMHandler:
             try:
                 credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
             except Exception as auth_err:
+                logger.error(
+                    "Google Authentication failed during Vertex AI location discovery: %s",
+                    auth_err,
+                    extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.name},
+                    exc_info=True,
+                )
                 raise ConfigurationError(
                     message="Google Authentication failed during Vertex AI location discovery.",
                     details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
                 ) from auth_err
 
             if not project:
+                logger.error(
+                    "Google Cloud project could not be resolved from ADC.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                )
                 raise ConfigurationError(
                     message="Google Cloud project could not be resolved from ADC.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -348,6 +376,12 @@ class LLMHandler:
                     params["pageToken"] = next_page_token
                 resp = requests.get(url, headers=headers, params=params, timeout=timeout_sec)
                 if resp.status_code != 200:
+                    logger.error(
+                        "Google Cloud Vertex AI locations query failed with HTTP %s: %s",
+                        resp.status_code,
+                        resp.text,
+                        extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.name},
+                    )
                     raise ServiceUnavailableError(
                         message=(
                             f"Google Cloud Vertex AI locations query failed with HTTP {resp.status_code}: {resp.text}"
@@ -406,7 +440,7 @@ class LLMHandler:
                 details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "original_error": str(e)},
             ) from e
 
-    def _fetch_ai_studio_models(self, settings: Any) -> list[str]:
+    def _fetch_ai_studio_models(self, settings: Settings) -> list[str]:
         """Discovers and validates models available via direct Google AI Studio API key.
 
         Args:
@@ -424,6 +458,10 @@ class LLMHandler:
 
         api_key = settings.google_api_key
         if not api_key:
+            logger.error(
+                "GOOGLE_API_KEY / GEMINI_API_KEY not found in environment or settings for AI Studio discovery.",
+                extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.name},
+            )
             raise ConfigurationError(
                 message="GOOGLE_API_KEY / GEMINI_API_KEY not found in environment or settings for AI Studio discovery.",
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -446,6 +484,10 @@ class LLMHandler:
                     discovered.append(f"gemini/{clean_name}")
 
             if not discovered:
+                logger.error(
+                    "Google AI Studio returned 0 available models for the configured API key.",
+                    extra={"error_code": ErrorCodes.MODEL_LIST_FAILED.name},
+                )
                 raise ServiceUnavailableError(
                     message="Google AI Studio returned 0 available models for the configured API key.",
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value},
@@ -470,7 +512,9 @@ class LLMHandler:
                 details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
             ) from e
 
-    def _fetch_openai_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
+    def _fetch_openai_models(
+        self, providers: list[str], settings: Settings, models: dict[str, list[str] | str]
+    ) -> None:
         """Discovers and validates models available via OpenAI API key.
 
         Args:
@@ -517,6 +561,10 @@ class LLMHandler:
                         self._cached_openai_models = sorted(list(set(discovered)))
                         models["openai"] = self._cached_openai_models
                     else:
+                        logger.error(
+                            "OPENAI_API_KEY not found in environment or settings.",
+                            extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.name},
+                        )
                         raise ConfigurationError(
                             message="OPENAI_API_KEY not found in environment or settings.",
                             details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -536,7 +584,20 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
                 ) from e
 
-    def _fetch_anthropic_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
+    def _fetch_anthropic_models(
+        self, providers: list[str], settings: Settings, models: dict[str, list[str] | str]
+    ) -> None:
+        """Discovers and validates models available via Anthropic API key.
+
+        Args:
+            providers: Provider identifier list containing target providers.
+            settings: Central application settings.
+            models: Output dictionary mapping provider keys to discovered model names.
+
+        Raises:
+            ConfigurationError: If Anthropic API key is missing.
+            ServiceUnavailableError: If communication with Anthropic API fails.
+        """
         if "anthropic" in providers:
             try:
                 anthropic_models = [
@@ -548,6 +609,10 @@ class LLMHandler:
                 if settings.anthropic_api_key:
                     models["anthropic"] = anthropic_models
                 else:
+                    logger.error(
+                        "ANTHROPIC_API_KEY not found in environment or settings.",
+                        extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.name},
+                    )
                     raise ConfigurationError(
                         message="ANTHROPIC_API_KEY not found in environment or settings.",
                         details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -584,6 +649,9 @@ class LLMHandler:
 
         Returns:
             Dictionary mapping provider/platform keys to lists of available model strings.
+
+        Raises:
+            ConfigurationError: If target location is missing when discovering Vertex AI models.
         """
         settings = get_settings()
         models: dict[str, list[str] | str] = {}
@@ -614,6 +682,10 @@ class LLMHandler:
 
         if norm_platform == LLMPlatformType.VERTEX_AI.value:
             if not target_location:
+                logger.error(
+                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                )
                 raise ConfigurationError(
                     message=(
                         "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
@@ -650,6 +722,10 @@ class LLMHandler:
 
         if LLMPlatformType.VERTEX_AI.value in active_providers or "vertex" in active_providers:
             if not target_location:
+                logger.error(
+                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                )
                 raise ConfigurationError(
                     message=(
                         "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
@@ -681,11 +757,15 @@ class LLMHandler:
             The raw dictionary representation of the validated configuration.
 
         Raises:
-            ResourceNotFoundError: If the configuration is missing.
-            AppException: If validation fails.
+            ResourceNotFoundError: If the configuration is missing from the database.
+            AppException: If schema validation fails.
         """
         record = await self.repo.get_system_config("global_model_registry")
         if not record:
+            logger.error(
+                "SystemConfig resource 'global_model_registry' not found in database.",
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name},
+            )
             raise ResourceNotFoundError(
                 resource_type="SystemConfig",
                 resource_id="global_model_registry",
@@ -702,7 +782,12 @@ class LLMHandler:
             validated = SystemConfigModelRegistry.model_validate(raw_config)
             return validated.model_dump()
         except Exception as e:
-            logger.error("[LLMHandler] %s: Schema validation failed: %s", ErrorCodes.VALIDATION_FAILED.name, e)
+            logger.error(
+                "[LLMHandler] %s: Schema validation failed: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                e,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
             raise AppException(
                 message=f"Model registry validation failed: {e}",
                 status_code=500,
@@ -713,11 +798,11 @@ class LLMHandler:
         """Retrieves a specific model configuration for a provider/mode.
 
         Args:
-            provider (str): Provider name (e.g., 'openai'). Legacy argument, mostly ignored now.
-            mode (str): Mode name (e.g., 'smart', 'fast'). This maps to the V2 strategy slug.
+            provider: Provider name (e.g., 'openai'). Legacy argument, mostly ignored now.
+            mode: Mode name (e.g., 'smart', 'fast'). This maps to the V2 strategy slug.
 
         Returns:
-            Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
+            Configuration dictionary if found, else None.
         """
         registry = await self.get_active_model_registry()
         models: dict[str, Any]
@@ -732,17 +817,20 @@ class LLMHandler:
             return dict(models[mode])
         return None
 
-    async def create_provider_for_strategy(self, mode: str) -> Any:
+    async def create_provider_for_strategy(self, mode: str) -> LLMProvider:
         """Dynamically instantiates and returns an LLM Provider configured for a specific strategy.
 
         Args:
-            mode (str): The strategy name (e.g., 'primary', 'fast', 'creative', 'embedding').
+            mode: The strategy name (e.g., 'primary', 'fast', 'creative', 'embedding').
 
         Returns:
-            LLMProvider: Configured and validated provider instance.
+            Configured and validated provider instance.
 
         Raises:
-            AppException: If configuration is invalid, missing, or model is not available.
+            ConfigurationError: If strategy is not configured in model registry or model is unavailable.
+            ServiceUnavailableError: If strategy is deactivated or provider creation fails.
+            ResourceNotFoundError: If global model registry is missing from database.
+            AppException: If model registry validation fails.
         """
         registry = await self.get_active_model_registry()
         models: dict[str, Any]
@@ -754,6 +842,11 @@ class LLMHandler:
             models = {}
 
         if mode not in models:
+            logger.error(
+                "Strategy '%s' not configured in global model registry.",
+                mode,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise ConfigurationError(
                 message=f"Strategy '{mode}' not configured in global model registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -825,7 +918,12 @@ class LLMHandler:
                         f"is NOT available for platform '{target_platform}'{location_detail}. "
                         f"Available models: {valid_models[:5]}..."
                     )
-                    logger.error("[LLMHandler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg)
+                    logger.error(
+                        "[LLMHandler] %s: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        error_msg,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                    )
                     raise ConfigurationError(
                         message=error_msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     )
@@ -868,6 +966,12 @@ class LLMHandler:
 
             # FAIL FAST: Check Active Status
             if not provider_config.is_active:
+                logger.error(
+                    "Model Strategy '%s/%s' is deactivated.",
+                    provider,
+                    mode,
+                    extra={"error_code": ErrorCodes.SERVICE_DISABLED.name},
+                )
                 raise ServiceUnavailableError(
                     message=f"Model Strategy '{provider}/{mode}' is deactivated.",
                     details={"error_code": ErrorCodes.SERVICE_DISABLED.value},

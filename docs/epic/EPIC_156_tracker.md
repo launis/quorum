@@ -123,9 +123,9 @@
   - [x] @[backend_v2/hooks/llm.py]
   - [x] @[backend_v2/hooks/source_verification_hook.py]
   - [x] @[backend_v2/llm/adapters/ai_studio_adapter.py]
-  - [ ] @[backend_v2/llm/adapters/openai_adapter.py]
-  - [ ] @[backend_v2/llm/adapters/vertex_adapter.py]
-  - [ ] @[backend_v2/llm/handler.py]
+  - [x] @[backend_v2/llm/adapters/openai_adapter.py]
+  - [x] @[backend_v2/llm/adapters/vertex_adapter.py]
+  - [x] @[backend_v2/llm/handler.py]
   - [ ] @[backend_v2/llm/ingress_pipeline.py]
   - [ ] @[backend_v2/llm/mock.py]
   - [ ] @[backend_v2/llm/schema_builder.py]
@@ -261,6 +261,7 @@
 - Post-Implementation Gates (Hardening Batch 5): Audited and verified `backend_v2/core/hook_registry.py`, `backend_v2/core/registry.py`, and `backend_v2/database/repositories/audit.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 93%, and 100%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero naked dictionaries, and PEP 257 Google-style docstrings with `Args:`, `Returns:`, and `Raises:` blocks (`73ca32d6d`, `276fa2d91`, `44707576a`).
 - Post-Implementation Gates (Hardening Batch 6): Audited and verified `backend_v2/database/repositories/base.py`, `backend_v2/database/repositories/identity.py`, and `backend_v2/database/repositories/knowledge.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved 100% line coverage across all three files (21/21, 101/101, and 107/107 statements), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, standardized error details dictionary formatting (`ErrorCodes.VALIDATION_FAILED.value`), and added PEP 257 Google-style docstrings with `Args:`, `Returns:`, and `Raises:` blocks (`db42e1204`, `531725aee`, `420aede3d`).
 - Post-Implementation Gates (Hardening Batch 7): Audited and verified `backend_v2/hooks/llm.py`, `backend_v2/hooks/source_verification_hook.py`, and `backend_v2/llm/adapters/ai_studio_adapter.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, eradicated naked dictionaries and `Any` typings, removed ternary fallback operators (QGR016), implemented RFC 7807 dual-logging with `exc_info=True`, and added PEP 257 Google-style docstrings with formal `Raises:` error code enumerations (`6338620be`, `e042d9694`, `6f069e060`).
+- Post-Implementation Gates (Hardening Batch 8): Audited and verified `backend_v2/llm/adapters/openai_adapter.py`, `backend_v2/llm/adapters/vertex_adapter.py`, and `backend_v2/llm/handler.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, tightened parameter and return typings (`Settings`, `LLMProvider`), added connection pooling for async Redis in Vertex AI caching, implemented RFC 7807 structured dual-logging across all error pathways, and added PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks (`36a84897e`, `df0b9283a`).
 
 ## Learned
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
@@ -274,13 +275,15 @@
 - Repository Error Reporting Resilience: In repository reconstitution error handlers, checking `if "id" in doc:` allows logging the specific item identifier while safely defaulting to `"unknown"` when the ID key is missing or non-string, preventing secondary crashes inside exception handling blocks.
 - Cognitive Tier Registry Completeness: `SystemConfigModelRegistry` enforces completeness across all four canonical tiers (`fast`, `balanced`, `deep`, `reasoning`) in `tier_definitions`; mock settings in test fixtures must supply definitions for all four tiers to prevent model validation errors during inflation.
 - Duck-Typing QGR012 Invariant: `isinstance(x, (dict, Mapping))` is strictly banned by QGR012; exact type checks (`type(x) is dict`) or Pydantic DTO encapsulation (`SourceVerificationPayloadDTO.model_validate()`) must be used for heterogeneous input extraction.
+- LLM Provider Factory Typings: Typing `LLMHandler.create_provider_for_strategy` with explicit return type `-> LLMProvider` establishes a strict compile-time contract with callers while avoiding loose `Any` return types.
+- RFC 7807 Dual-Logging in LLM Discovery: Explicitly logging structured errors via `logger.error(..., extra={"error_code": ...})` before raising domain exceptions (`ConfigurationError`, `ServiceUnavailableError`, `ResourceNotFoundError`) preserves traceability when external provider APIs fail or regional credentials are unconfigured.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/llm/adapters/openai_adapter.py`, `backend_v2/llm/adapters/vertex_adapter.py`, `backend_v2/llm/handler.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/llm/ingress_pipeline.py`, `backend_v2/llm/mock.py`, `backend_v2/llm/schema_builder.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/llm/adapters/openai_adapter.py] @[backend_v2/llm/adapters/vertex_adapter.py] @[backend_v2/llm/handler.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/llm/ingress_pipeline.py] @[backend_v2/llm/mock.py] @[backend_v2/llm/schema_builder.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
