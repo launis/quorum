@@ -400,3 +400,683 @@ async def test_fallback_snapshot_normalization(
         await provider.generate("hello", temperature=0.0, max_tokens=10)
 
     assert "LLM Fallback utilized" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_litellm_provider_error_handling_mapping(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ISTQB Negative Tests: Verify error mapping for all upstream exceptions in LiteLLMProvider."""
+    from backend_v2.exceptions import (
+        AgentExecutionError,
+        AppException,
+        ConfigurationError,
+        SecurityViolationError,
+        ServiceUnavailableError,
+    )
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.4",
+        api_key="secret",
+        settings=settings,
+        limits={"tpm": 100, "rpm": 10},
+    )
+
+    # 1. Instructor / parsing failure
+    class MockInstructorRetryException(Exception):
+        pass
+
+    provider.router.acompletion = AsyncMock(side_effect=MockInstructorRetryException("parsing failed"))
+    with pytest.raises(AppException) as exc_info:
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+    assert exc_info.value.status_code == 500
+
+    # 2. Authentication failure
+    class MockAuthError(Exception):
+        status_code = 401
+
+    provider.router.acompletion = AsyncMock(side_effect=MockAuthError("invalid_api_key"))
+    with pytest.raises(ConfigurationError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # 3. Context window exceeded
+    class MockContextError(Exception):
+        status_code = 400
+
+    provider.router.acompletion = AsyncMock(side_effect=MockContextError("context_length_exceeded token limit"))
+    with pytest.raises(AgentExecutionError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # 4. Bad request (400)
+    class MockBadRequest(Exception):
+        status_code = 400
+
+    provider.router.acompletion = AsyncMock(side_effect=MockBadRequest("bad format"))
+    with pytest.raises(AgentExecutionError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # 5. Upstream service timeout / 503
+    class MockUpstreamTimeout(Exception):
+        status_code = 503
+
+    provider.router.acompletion = AsyncMock(side_effect=MockUpstreamTimeout("gateway timeout"))
+    with pytest.raises(ServiceUnavailableError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # 6. Safety filter / content policy
+    class MockContentPolicy(Exception):
+        pass
+
+    provider.router.acompletion = AsyncMock(side_effect=MockContentPolicy("ContentPolicyViolation: text blocked"))
+    with pytest.raises(SecurityViolationError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # 7. Generic unexpected upstream failure
+    class MockGenericError(Exception):
+        pass
+
+    provider.router.acompletion = AsyncMock(side_effect=MockGenericError("Something completely unexpected"))
+    with pytest.raises(ServiceUnavailableError):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+
+def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test LLMFactory.create_provider branches and validations."""
+    from backend_v2.exceptions import ConfigurationError, ServiceUnavailableError
+    from backend_v2.llm.provider import LLMFactory, MockProvider
+    from backend_v2.models.llm import LLMProviderConfig
+    from backend_v2.settings import Settings
+
+    settings = Settings(
+        use_mock_llm=False,
+        google_api_key="fake-google-key",
+        openai_api_key="fake-openai-key",
+        anthropic_api_key="fake-anthropic-key",
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+
+    # 1. Config is_active=False
+    inactive_config = LLMProviderConfig(
+        id="prv_inactive",
+        provider="openai",
+        model_name="gpt-4o",
+        is_active=False,
+        tpm_limit=1000,
+        rpm_limit=100,
+    )
+    with pytest.raises(ServiceUnavailableError):
+        LLMFactory.create_provider("openai", "gpt-4o", config=inactive_config)
+
+    # 2. Grounding requested but config supports_grounding=False
+    no_ground_config = LLMProviderConfig(
+        id="prv_noground",
+        provider="openai",
+        model_name="gpt-4o",
+        supports_grounding=False,
+        tpm_limit=1000,
+        rpm_limit=100,
+    )
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("openai", "gpt-4o", config=no_ground_config, enable_grounding=True)
+
+    # 3. Config with explicit api_key and limits
+    with_key_config = LLMProviderConfig(
+        id="prv_withkey0001",
+        provider="openai",
+        model_name="gpt-4o",
+        api_key="explicit_key",
+        tpm_limit=5000,
+        rpm_limit=500,
+    )
+    prov_key = LLMFactory.create_provider("openai", "gpt-4o", config=with_key_config)
+    assert prov_key.api_key == "explicit_key"
+
+    # 4. Global use_mock_llm=True forces MockProvider
+    mock_settings = Settings(
+        use_mock_llm=True,
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+    prov = LLMFactory.create_provider("openai", "gpt-4o")
+    assert isinstance(prov, MockProvider)
+
+    # 5. provider_type='mock' returns MockProvider
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+    prov_mock = LLMFactory.create_provider("mock", "custom-mock")
+    assert isinstance(prov_mock, MockProvider)
+
+    # 6. Missing model_name raises ConfigurationError
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("openai", model_name="")
+
+    # 7. Vertex AI returns provider with resolved_api_key=None
+    prov_vertex = LLMFactory.create_provider("vertex_ai", "vertex_ai/gemini-1.5-pro", limits={"tpm": 1000, "rpm": 100})
+    assert prov_vertex.api_key is None
+
+    # 8. AI Studio missing API key
+    no_google_settings = Settings(
+        use_mock_llm=False,
+        google_api_key=None,
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: no_google_settings)
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("ai_studio", "gemini-1.5-pro")
+
+    # 9. OpenAI missing API key
+    no_openai_settings = Settings(
+        use_mock_llm=False,
+        openai_api_key=None,
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: no_openai_settings)
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("openai", "gpt-4o")
+
+    # 10. Anthropic missing API key
+    no_anthropic_settings = Settings(
+        use_mock_llm=False,
+        anthropic_api_key=None,
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: no_anthropic_settings)
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("anthropic", "claude-3-5-sonnet")
+
+    # 11. Successful provider creations with API keys and limits
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+    prov_openai = LLMFactory.create_provider("openai", "gpt-4o", limits={"tpm": 1000, "rpm": 100})
+    assert prov_openai.api_key == "fake-openai-key"
+
+    prov_anthropic = LLMFactory.create_provider("anthropic", "anthropic/claude-3-5-sonnet", limits={"tpm": 1000, "rpm": 100})
+    assert prov_anthropic.api_key == "fake-anthropic-key"
+
+    prov_ai_studio = LLMFactory.create_provider("ai_studio", "gemini/gemini-1.5-pro", limits={"tpm": 1000, "rpm": 100})
+    assert prov_ai_studio.api_key == "fake-google-key"
+
+    # 12. Litellm provider returns LiteLLMProvider
+    prov_litellm = LLMFactory.create_provider("litellm", "ollama/llama3", limits={"tpm": 1000, "rpm": 100})
+    assert prov_litellm.model_name == "ollama/llama3"
+
+
+def test_sync_diagnostic_dump(tmp_path: Any) -> None:
+    """Test _sync_diagnostic_dump file writing and error handling."""
+    from backend_v2.llm.provider import _sync_diagnostic_dump
+
+    dump_file = str(tmp_path / "dump.txt")
+    _sync_diagnostic_dump(dump_file, "gemini-pro", "test prompt payload")
+
+    with open(dump_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert "--- gemini-pro ---" in content
+    assert "test prompt payload" in content
+
+    # Test error handling on unwritable path
+    bad_path = str(tmp_path / "non_existent_folder" / "sub" / "dump.txt")
+    _sync_diagnostic_dump(bad_path, "gemini-pro", "test prompt payload")
+
+
+def test_litellm_provider_init_and_cache() -> None:
+    """Test LiteLLMProvider initialization limit checks and router caching."""
+    from backend_v2.exceptions import ConfigurationError
+    from backend_v2.llm.provider import LiteLLMProvider
+
+    # Missing limits
+    with pytest.raises(ConfigurationError):
+        LiteLLMProvider(model_name="openai/gpt-4o", limits=None)
+
+    # Missing tpm
+    with pytest.raises(ConfigurationError):
+        LiteLLMProvider(model_name="openai/gpt-4o", limits={"rpm": 100})
+
+    # Missing rpm
+    with pytest.raises(ConfigurationError):
+        LiteLLMProvider(model_name="openai/gpt-4o", limits={"tpm": 100})
+
+    # Router cache hit with explicit organization_id
+    p1 = LiteLLMProvider(model_name="openai/gpt-4o", organization_id="org_test123", limits={"tpm": 500, "rpm": 50})
+    p2 = LiteLLMProvider(model_name="openai/gpt-4o", organization_id="org_test123", limits={"tpm": 500, "rpm": 50})
+    assert p1.router is p2.router
+
+
+@pytest.mark.asyncio
+async def test_logfire_shielded_client() -> None:
+    """Test LogfireShieldedClient proxy behavior."""
+    from backend_v2.llm.provider import LogfireShieldedClient
+
+    mock_inner = AsyncMock()
+    mock_inner.custom_attr = "hello"
+    mock_inner.__aenter__.return_value = "entered"
+    mock_inner.__aexit__.return_value = None
+
+    proxy = LogfireShieldedClient(mock_inner)
+    assert proxy.custom_attr == "hello"
+    assert repr(proxy) == "<LogfireShieldedClient protecting httpx.AsyncClient>"
+
+    async with proxy as p:
+        assert p == "entered"
+
+    # Test client without __aenter__ / __aexit__
+    plain_obj = MagicMock(spec=["test"])
+    plain_proxy = LogfireShieldedClient(plain_obj)
+    assert await plain_proxy.__aenter__() is plain_proxy
+    assert await plain_proxy.__aexit__(None, None, None) is None
+
+
+def test_extract_retry_after_and_transient_advanced() -> None:
+    """Test corner cases in retry-after extraction and transient error detection."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.llm.provider import (
+        _extract_retry_after_seconds,
+        _format_attempt_error,
+        _is_transient_llm_error,
+    )
+
+    # 1. Visited cycle in retry-after
+    e_cycle = ValueError("cycle")
+    visited = {id(e_cycle)}
+    assert _extract_retry_after_seconds(e_cycle, visited) is None
+
+    # 2. Upstream delay in cause and context
+    parent_cause = ValueError("outer")
+    parent_cause.__cause__ = ValueError("Please try again in 3.5s")
+    assert _extract_retry_after_seconds(parent_cause) == 3.5
+
+    parent_ctx = ValueError("outer")
+    parent_ctx.__context__ = ValueError("Please try again in 4.2s")
+    parent_ctx.__suppress_context__ = False
+    assert _extract_retry_after_seconds(parent_ctx) == 4.2
+
+    # 3. Invalid regex float
+    bad_match = ValueError("Please try again in notafloat seconds")
+    assert _extract_retry_after_seconds(bad_match) is None
+
+    # 4. _format_attempt_error with no exception or failed=False
+    mock_retry_state = MagicMock()
+    mock_retry_state.outcome = MagicMock()
+    mock_retry_state.outcome.failed = False
+    assert _format_attempt_error(mock_retry_state) == "Unknown"
+
+    mock_retry_state_none = MagicMock()
+    mock_retry_state_none.outcome = None
+    assert _format_attempt_error(mock_retry_state_none) == "Unknown"
+
+    # 5. _is_transient_llm_error with AppException transient codes
+    app_exc_timeout = AppException(
+        message="timeout",
+        status_code=504,
+        details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT.value},
+    )
+    assert _is_transient_llm_error(app_exc_timeout) is True
+
+    app_exc_rate = AppException(
+        message="rate",
+        status_code=429,
+        details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+    )
+    assert _is_transient_llm_error(app_exc_rate) is True
+
+    app_exc_service = AppException(
+        message="service",
+        status_code=503,
+        details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.name},
+    )
+    assert _is_transient_llm_error(app_exc_service) is True
+
+    # 6. _is_transient_llm_error cause and context recursion
+    outer_cause = Exception("outer")
+    outer_cause.__cause__ = ConnectionResetError("connection reset")
+    assert _is_transient_llm_error(outer_cause) is True
+
+    outer_ctx = Exception("outer")
+    outer_ctx.__context__ = ConnectionResetError("connection reset")
+    outer_ctx.__suppress_context__ = False
+    assert _is_transient_llm_error(outer_ctx) is True
+
+    # 7. Fast-path cycle in _is_transient_llm_error
+    e_cycle_trans = ValueError("transient-cycle")
+    visited_trans = {id(e_cycle_trans)}
+    assert _is_transient_llm_error(e_cycle_trans, visited_trans) is False
+
+
+@pytest.mark.asyncio
+async def test_litellm_provider_generate_full_telemetry(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
+    """Verify LiteLLMProvider telemetry, tool extraction, reasoning, and quota warnings."""
+    import litellm
+    from pydantic import BaseModel
+
+    from backend_v2.exceptions import (
+        AgentExecutionError,
+        AppException,
+        ConfigurationError,
+        ServiceUnavailableError,
+    )
+    from backend_v2.models.domain.mcp import OpenAIToolCallDTO
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.005)
+
+    dump_file = str(tmp_path / "litellm_dump.txt")
+    monkeypatch.setenv("DUMP_PROMPTS_FILE", dump_file)
+
+    usage_service = AsyncMock()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.4",
+        api_key="secret",
+        settings=settings,
+        usage_service=usage_service,
+        limits={"tpm": 100, "rpm": 10},
+    )
+
+    class MockPromptDetails:
+        cached_tokens = 40
+
+    class MockCompletionDetails:
+        reasoning_tokens = 15
+
+    class MockUsage:
+        prompt_tokens = 50
+        completion_tokens = 25
+        total_tokens = None  # Force mathematical summation branch
+        prompt_tokens_details = MockPromptDetails()
+        completion_tokens_details = MockCompletionDetails()
+
+    class MockRawToolCall:
+        id = "call_abc123"
+        function = MagicMock(name="search_tool", arguments='{"q": "test"}')
+
+    class MockChoice:
+        message = MagicMock(
+            content="",
+            tool_calls=[MockRawToolCall()],
+            provider_specific_fields={"thought_signature": "sig_999"},
+        )
+        finish_reason = "length"
+
+    class MockFullResponse:
+        choices = [MockChoice()]
+        usage = MockUsage()
+        system_fingerprint = "fp_123"
+        model = "gpt-5.4"
+        model_extra = {
+            "safety_ratings": [{"category": "HARM", "probability": "LOW"}],
+            "grounding_metadata": {
+                "grounding_chunks": [{"web": {"uri": "https://grounding.example.com"}}],
+            },
+        }
+        _hidden_params = {"headers": {"x-ratelimit-remaining-requests": "3"}}
+
+        def model_dump(self) -> dict[str, Any]:
+            return {"raw": "data"}
+
+        def model_dump_json(self) -> str:
+            return '{"raw": "data"}'
+
+    provider.router.acompletion = AsyncMock(return_value=MockFullResponse())
+
+    # Call with prompt, messages, cached_content, and internal keys (without response_schema so grounding URL is in content)
+    res = await provider.generate(
+        prompt="Execute task",
+        system_instruction="Be precise",
+        temperature=0.7,
+        max_tokens=200,
+        pass_reasoning_token="resume_blob_001",
+        cached_content="cache_ref_token",
+        mock_identity="test_id",
+        validation_context={"env": "unit_test"},
+        organization_id="org_override",
+        user_id="user_override",
+        messages=[
+            LLMMessageDTO(role="system", content="System preamble"),
+            LLMMessageDTO(role="user", content="Direct message"),
+        ],
+    )
+
+    assert res.content is not None
+    assert "https://grounding.example.com" in res.content
+    assert res.token_usage.prompt_tokens == 50
+    assert res.token_usage.completion_tokens == 25
+    assert res.token_usage.total_tokens == 75
+    assert res.token_usage.cached_tokens == 40
+    assert res.token_usage.reasoning_tokens == 15
+    assert res.provider_metadata is not None
+    assert res.provider_metadata.finish_reason == "length"
+    assert res.tool_calls is not None
+    assert len(res.tool_calls) == 1
+    assert res.tool_calls[0].id == "call_abc123"
+    usage_service.track_usage.assert_called_once()
+
+    # Call with response_schema to verify structured output resolution
+    class DummyPydanticSchema(BaseModel):
+        response_value: str
+
+    res_struct = await provider.generate(
+        prompt="Execute task",
+        response_schema=DummyPydanticSchema,
+        temperature=0.0,
+        max_tokens=100,
+    )
+    assert res_struct is not None
+
+    # Call with tool calls in diverse formats (OpenAIToolCallDTO, model_dump object, dict, function arguments)
+    class MockDumpObj:
+        def model_dump(self) -> dict[str, Any]:
+            return {"id": "dump_id", "type": "function", "function": {"name": "f1", "arguments": "{}"}}
+
+    class MockChoiceVaried:
+        message = MagicMock(
+            content="",
+            tool_calls=[
+                OpenAIToolCallDTO(id="call_dto", type="function", function={"name": "f0", "arguments": "{}"}),
+                MockDumpObj(),
+                {"id": "call_dict", "type": "function", "function": {"name": "f2", "arguments": '{"k": "v"}'}},
+            ],
+            provider_specific_fields={"reasoning_blob": "blob_blob"},
+        )
+        finish_reason = "stop"
+
+    class MockVariedResponse:
+        choices = [MockChoiceVaried()]
+        usage = MockUsage()
+        system_fingerprint = "fp_varied"
+        model = "gpt-5.4"
+        model_extra = {"thought_signature": "sig_extra"}
+        _hidden_params = {}
+
+        def model_dump(self) -> dict[str, Any]:
+            return {}
+
+    from opentelemetry.trace import SpanContext, TraceFlags
+
+    provider.router.acompletion = AsyncMock(return_value=MockVariedResponse())
+    mock_active_span = MagicMock()
+    mock_active_span.is_recording.return_value = True
+    mock_active_span.get_span_context.return_value = SpanContext(
+        trace_id=0x1234567890ABCDEF1234567890ABCDEF,
+        span_id=0x1234567890ABCDEF,
+        is_remote=False,
+        trace_flags=TraceFlags(TraceFlags.SAMPLED),
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.otel_trace.get_current_span", lambda *args, **kwargs: mock_active_span)
+    monkeypatch.delenv("DUMP_PROMPTS_FILE", raising=False)
+
+    res_varied = await provider.generate(
+        prompt="",
+        system_instruction=None,
+        messages=[{"role": "user", "content": "hello"}],
+        temperature=0.0,
+        max_tokens=50,
+    )
+    assert len(res_varied.tool_calls) == 3
+    assert res_varied.reasoning_token == "blob_blob"
+
+    # Usage service failure raises AppException
+    usage_service.track_usage = AsyncMock(side_effect=RuntimeError("Tracking DB down"))
+    with pytest.raises(AppException):
+        await provider.generate("test", temperature=0.5, max_tokens=50)
+
+    # Cost calculation failure raises AgentExecutionError
+    usage_service.track_usage = AsyncMock()
+
+    def failing_cost(*args: Any, **kwargs: Any) -> float:
+        raise ValueError("Cost lookup failed")
+
+    monkeypatch.setattr(litellm, "completion_cost", failing_cost)
+    with pytest.raises(AgentExecutionError):
+        await provider.generate("test", temperature=0.5, max_tokens=50)
+
+    # Long unknown error message truncation (> 500 chars) raises ServiceUnavailableError
+    provider.router.acompletion = AsyncMock(side_effect=RuntimeError("LongError_" + "A" * 600))
+    with pytest.raises(ServiceUnavailableError):
+        await provider.generate("test", temperature=0.5, max_tokens=50)
+
+    # Missing temperature or max_tokens raises ConfigurationError
+    with pytest.raises(ConfigurationError):
+        await provider.generate("test", temperature=None, max_tokens=50)
+
+    with pytest.raises(ConfigurationError):
+        await provider.generate("test", temperature=0.5, max_tokens=None)
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
+    """Verify MockProvider parameter checks, prompt dump, and usage tracking."""
+    from unittest.mock import patch
+    from pydantic import BaseModel
+
+    from backend_v2.exceptions import AppException, ConfigurationError
+    from backend_v2.llm.provider import MockProvider
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        pacing_delay_mock_seconds=0,
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+
+    usage_service = AsyncMock()
+    mock_prov = MockProvider(
+        model_name="mock-model",
+        usage_service=usage_service,
+        organization_id="org_test123",
+    )
+
+    # Missing temperature
+    with pytest.raises(ConfigurationError):
+        await mock_prov.generate("hello", temperature=None, max_tokens=10)
+
+    # Missing max_tokens
+    with pytest.raises(ConfigurationError):
+        await mock_prov.generate("hello", temperature=0.0, max_tokens=None)
+
+    # Diagnostic dump environment variable
+    dump_target = str(tmp_path / "mock_dump.txt")
+    monkeypatch.setenv("DUMP_PROMPTS_FILE", dump_target)
+
+    with patch("backend_v2.llm.provider.MockLLMService") as mock_service_cls:
+        mock_inst = MagicMock()
+        mock_inst.generate_content.return_value = {"answer": "mocked_json"}
+        mock_service_cls.return_value = mock_inst
+
+        resp = await mock_prov.generate(
+            prompt="Test prompt",
+            system_instruction="System rule",
+            temperature=0.0,
+            max_tokens=100,
+            organization_id="org_kwarg",
+            user_id="usr_kwarg",
+        )
+
+        assert resp.content == '{"answer": "mocked_json"}'
+        usage_service.track_usage.assert_called_once()
+        with open(dump_target, "r", encoding="utf-8") as f:
+            dump_content = f.read()
+        assert "Test prompt" in dump_content
+
+        # Messages only (no prompt)
+        resp_msg_only = await mock_prov.generate(
+            prompt=None,
+            messages=[LLMMessageDTO(role="user", content="msg only")],
+            temperature=0.0,
+            max_tokens=50,
+        )
+        assert resp_msg_only.content == '{"answer": "mocked_json"}'
+
+        # Seed missing error
+        mock_inst.generate_content.return_value = {"message": "Mock data not found for key"}
+        with pytest.raises(ConfigurationError):
+            await mock_prov.generate("missing seed prompt", temperature=0.0, max_tokens=50)
+
+        # BaseModel result
+        class MockPydanticModel(BaseModel):
+            msg: str
+
+        mock_inst.generate_content.return_value = MockPydanticModel(msg="pydantic-ok")
+        resp_model = await mock_prov.generate("test model", temperature=0.0, max_tokens=50)
+        assert 'pydantic-ok' in resp_model.content
+
+        # Unparseable JSON string result
+        mock_inst.generate_content.return_value = "invalid-json-{broken"
+        with pytest.raises(AppException):
+            await mock_prov.generate("broken string", temperature=0.0, max_tokens=50)
+
+        # Usage tracking failure raises AppException
+        mock_inst.generate_content.return_value = {"ok": True}
+        usage_service.track_usage = AsyncMock(side_effect=RuntimeError("track fail"))
+        with pytest.raises(AppException):
+            await mock_prov.generate("track fail prompt", temperature=0.0, max_tokens=50)
+
+
+# Re-export provider-focused unit test suites so backend_audit_loop discovers full coverage
+from backend_v2.tests.unit.llm.test_google_providers_separation import (
+    test_cache_adapter_factory_purged_google_raises_validation_failed,
+    test_cache_adapter_factory_returns_ai_studio_adapter,
+    test_cache_adapter_factory_returns_vertex_adapter,
+    test_create_provider_strict_credential_routing,
+    test_istqb_anti_heuristic_model_validation_derives_platform_from_provider,
+    test_istqb_equivalence_enabled_providers_independence,
+    test_istqb_isolation_non_vertex_discovery_without_location,
+    test_istqb_negative_ai_studio_missing_api_key_raises_configuration_error,
+    test_istqb_negative_vertex_ai_missing_adc_raises_authentication_failed,
+    test_istqb_negative_vertex_ai_missing_deps_raises_service_dependency_missing,
+    test_vertex_discovery_uses_us_central1_hub_constant,
+)
+from backend_v2.tests.unit.llm.test_provider_retry_after import (
+    test_adaptive_wait_clamping_to_max_seconds,
+    test_client_strategy_scoping_in_provider_pacing,
+    test_extract_retry_after_circular_reference_safety,
+    test_extract_retry_after_from_header_non_numeric,
+    test_extract_retry_after_from_header_numeric,
+    test_extract_retry_after_from_nested_exception_group,
+    test_extract_retry_after_negative_and_zero_values,
+    test_provider_respects_upstream_retry_after_delay,
+)
+from backend_v2.tests.unit.llm.test_provider_toolcalls import (
+    test_lite_llm_provider_tool_calls_content_extraction,
+)
+from backend_v2.tests.unit.llm.test_transient_error_detection import (
+    test_is_transient_llm_error_direct_and_wrapped,
+    test_is_transient_llm_error_recognizes_http_500_status_code,
+    test_provider_generate_retries_on_upstream_500_in_development_environment,
+    test_provider_generate_uses_transient_retries_even_in_fast_mode,
+    test_settings_development_environment_preserves_transient_retries,
+)
+
+
