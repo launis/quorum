@@ -102,9 +102,9 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Verify zero deprecated proxy symbols or dangling legacy adapters remain.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified production targets:
   - [x] @[scripts/_ast_guardrails.py]
-  - [ ] [NEW] @[scripts/audit_clean_imports.py]
+  - [x] [NEW] @[scripts/audit_clean_imports.py]
   - [x] @[scripts/backend_audit_loop.py]
-  - [ ] [NEW] @[scripts/audit_warning_baseline.py]
+  - [x] [NEW] @[scripts/audit_warning_baseline.py]
   - [ ] @[scripts/audit_database_atoms.py]
   - [ ] @[scripts/reconcile_storage.py]
   - [ ] @[scripts/audit_rules_staleness.py]
@@ -255,6 +255,7 @@
 - Step 4.6: Executed mandatory live E2E REST API verification gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`). Supported `ProfilerMetricsDTO` in `StepPayloadValue` for trace folding, implemented TCP FakeRedis fallback in `test_integration_real_llm.py`, and verified full end-to-end workflow execution, trace generation, SDUI parity, and PDF rendering (`047135f97`).
 - Integration Checkpoint: Executed clean database reset and seed vault verification via `run_seed.py local` with 100% pass rate.
 - Post-Implementation Gates (Hardening Batch 1): Audited and verified `scripts/_ast_guardrails.py` and `scripts/backend_audit_loop.py` via `/tier2-hardening-backend`. Both passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >90% line coverage (91% and 93%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`).
+- Post-Implementation Gates (Hardening Batch 2): Audited and verified `scripts/audit_clean_imports.py` and `scripts/audit_warning_baseline.py` via `/tier2-hardening-backend`. Both passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >90% line coverage (94% and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Added explicit `__all__ = [...]` interface encapsulation and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`0c880f0b4`, `41da75029`).
 
 ## Learned
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
@@ -264,11 +265,11 @@
 - Neuro-Symbolic Audit Traceability: Standalone scripts require precise, non-conflicting code evidence anchoring directly to the target file stem while categorizing domain/presentation rules into cleanly segregated NA buckets to respect anti-laziness limits (<40 duplicates).
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`scripts/audit_clean_imports.py`, `scripts/audit_warning_baseline.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`scripts/audit_database_atoms.py`, `scripts/reconcile_storage.py`, `scripts/audit_rules_staleness.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[scripts/audit_clean_imports.py] @[scripts/audit_warning_baseline.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[scripts/audit_database_atoms.py] @[scripts/reconcile_storage.py] @[scripts/audit_rules_staleness.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
