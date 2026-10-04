@@ -14,19 +14,19 @@ Additionally, the script can update OpenAPI specifications (--openapi) and run u
 Execute this script from the workspace root using `uv run python`:
 
 ```bash
-uv run python scripts/backend_audit_loop.py <target_folder_or_file> [--ast-strict] [--openapi] [--test]
+uv run python scripts/backend_audit_loop.py <target_folder_or_file> [--permissive-warn] [--openapi] [--test]
 ```
 
 **Examples:**
 
-1. Check and format a single file:
+1. Check and format a single file (executes strict AST guardrails by default):
 ```bash
 uv run python scripts/backend_audit_loop.py backend_v2/hooks/scoring.py
 ```
 
-2. Check with strict AST guardrails:
+2. Check in advisory mode for emergency diagnostics:
 ```bash
-uv run python scripts/backend_audit_loop.py scripts/backend_audit_loop.py --ast-strict
+uv run python scripts/backend_audit_loop.py scripts/backend_audit_loop.py --permissive-warn
 ```
 
 3. Check an entire folder and execute tests with coverage:
@@ -333,7 +333,14 @@ Optional steps:
         "--strict",
         dest="ast_strict",
         action="store_true",
-        help="Enforce strict AST Guardrail validation (fail on warnings as well as fatal errors).",
+        default=True,
+        help="Enforce strict AST Guardrail validation (default: enabled; fail on warnings as well as fatal errors).",
+    )
+    parser.add_argument(
+        "--permissive-warn",
+        dest="ast_strict",
+        action="store_false",
+        help="Enable advisory AST mode for emergency diagnostics only (warn on advisory violations, fail on fatal).",
     )
     parser.add_argument(
         "--logfire",
@@ -345,7 +352,9 @@ Optional steps:
     args = parser.parse_args(argv)
 
     if not args.targets:
-        print("Usage: python backend_audit_loop.py <target_folder_or_files...> [--ast-strict] [--openapi] [--test]")
+        print(
+            "Usage: python backend_audit_loop.py <target_folder_or_files...> [--permissive-warn] [--openapi] [--test]"
+        )
         sys.exit(1)
 
     targets: list[str] = args.targets
@@ -444,7 +453,9 @@ Optional steps:
     print("\n⏳ 8/8: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
     res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py"])
     if res_dto.returncode != 0:
-        print("\n❌ DTO Parity Audit failed! Discrepancies between backend Pydantic models and frontend Freezed models.\n")
+        print(
+            "\n❌ DTO Parity Audit failed! Discrepancies between backend Pydantic models and frontend Freezed models.\n"
+        )
         sys.exit(res_dto.returncode)
     print("✅ DTO Parity verified.")
 

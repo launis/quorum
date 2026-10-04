@@ -152,7 +152,20 @@ def test_jinja_validation_fails_fast_on_read_error(
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 @patch("sys.exit")
+def test_backend_audit_loop_defaults_to_strict(mock_exit: MagicMock, mock_sub: MagicMock) -> None:
+    """Assert that backend_audit_loop.py invokes scan_files_for_guardrails with strict=True by default."""
+    mock_exit.side_effect = SystemExit(1)
+    with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True)) as mock_scan:
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py"]):
+            main()
+            assert mock_scan.called
+            assert mock_scan.call_args[1]["strict"] is True
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+@patch("sys.exit")
 def test_ast_gate_strict_mode_fails_on_warning_violation(mock_exit: MagicMock, mock_sub: MagicMock) -> None:
+    """Assert that passing explicit --ast-strict fails when unsuppressed warnings exist."""
     mock_exit.side_effect = SystemExit(1)
     warning_violation = GuardrailViolation(
         filepath="backend_v2/test.py",
@@ -174,7 +187,58 @@ def test_ast_gate_strict_mode_fails_on_warning_violation(mock_exit: MagicMock, m
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 @patch("sys.exit")
-def test_ast_gate_advisory_mode_fails_on_fatal_qgr000(mock_exit: MagicMock, mock_sub: MagicMock) -> None:
+def test_backend_audit_loop_fails_fast_on_any_unsuppressed_violation(
+    mock_exit: MagicMock, mock_sub: MagicMock
+) -> None:
+    """Assert that default execution (without flags) fails fast on any unsuppressed AST violation."""
+    mock_exit.side_effect = SystemExit(1)
+    warning_violation = GuardrailViolation(
+        filepath="backend_v2/test.py",
+        lineno=5,
+        col_offset=2,
+        rule_code="QGR001",
+        message="getattr reflection",
+        remediation="Use match/case",
+        severity=GuardrailSeverity.WARNING,
+        is_suppressed=False,
+    )
+
+    with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([warning_violation], False)):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_backend_audit_loop_permissive_warn_flag_allows_advisory_mode(mock_sub: MagicMock) -> None:
+    """Assert that passing --permissive-warn sets strict=False and allows execution to pass on warnings."""
+    warning_violation = GuardrailViolation(
+        filepath="backend_v2/test.py",
+        lineno=5,
+        col_offset=2,
+        rule_code="QGR001",
+        message="getattr reflection",
+        remediation="Use match/case",
+        severity=GuardrailSeverity.WARNING,
+        is_suppressed=False,
+    )
+
+    with patch(
+        "scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([warning_violation], True)
+    ) as mock_scan:
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py", "--permissive-warn"]):
+            main()
+            assert mock_scan.called
+            assert mock_scan.call_args[1]["strict"] is False
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+@patch("sys.exit")
+def test_backend_audit_loop_permissive_warn_still_fails_on_fatal(
+    mock_exit: MagicMock, mock_sub: MagicMock
+) -> None:
+    """Assert that --permissive-warn mode still fails fast on FATAL violations."""
     mock_exit.side_effect = SystemExit(1)
     fatal_violation = GuardrailViolation(
         filepath="backend_v2/test.py",
@@ -188,28 +252,10 @@ def test_ast_gate_advisory_mode_fails_on_fatal_qgr000(mock_exit: MagicMock, mock
     )
 
     with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([fatal_violation], False)):
-        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py"]):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py", "--permissive-warn"]):
             with pytest.raises(SystemExit) as exc:
                 main()
             assert exc.value.code == 1
-
-
-@patch("subprocess.run", return_value=_mock_completed_process(0))
-def test_ast_gate_advisory_mode_passes_on_warning_only(mock_sub: MagicMock) -> None:
-    warning_violation = GuardrailViolation(
-        filepath="backend_v2/test.py",
-        lineno=5,
-        col_offset=2,
-        rule_code="QGR001",
-        message="getattr reflection",
-        remediation="Use match/case",
-        severity=GuardrailSeverity.WARNING,
-        is_suppressed=False,
-    )
-
-    with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([warning_violation], True)):
-        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/test.py"]):
-            main()
 
 
 # ==============================================================================
