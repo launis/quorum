@@ -31,6 +31,15 @@ class ExecutionLifecycleService:
         report_repo: IReportArtifactRepository | None = None,
         check_resumability_fn: Callable[..., Awaitable[bool]] | None = None,
     ) -> None:
+        """Initialize the execution lifecycle service with dependencies.
+
+        Args:
+            exec_repo: Execution record repository.
+            resumption_service: Optional service for evaluating resumption capabilities.
+            storage_driver: Optional file storage driver for blob artifact management.
+            report_repo: Optional repository for report artifact records.
+            check_resumability_fn: Optional custom resumability evaluation callable.
+        """
         self.exec_repo = exec_repo
         self.resumption_service = resumption_service
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
@@ -40,7 +49,17 @@ class ExecutionLifecycleService:
             self._check_resumability = resumption_service.check_resumability
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
-        """Fetch executions securely based on Tenant/Role."""
+        """Fetch executions securely based on Tenant/Role.
+
+        Args:
+            initiator: Authenticated user token data.
+
+        Returns:
+            List of ExecutionRecord models accessible to the user.
+
+        Raises:
+            AppException: If repository lookup or resumability evaluation fails (ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
         try:
             executions = await self.exec_repo.get_all_executions()
 
@@ -64,7 +83,11 @@ class ExecutionLifecycleService:
         except Exception as e:
             msg = f"Failed to list executions: {str(e)}"
             logger.error(
-                "[ExecutionLifecycleService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
+                "[ExecutionLifecycleService] %s: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
@@ -77,13 +100,40 @@ class ExecutionLifecycleService:
         hydrate: bool = True,
         skip_resumability: bool = False,
     ) -> ExecutionRecord:
-        """Fetch single execution securely with tenant validation."""
+        """Fetch single execution securely with tenant validation.
+
+        Args:
+            initiator: Authenticated user token data.
+            execution_id: Canonical Opaque Stripe ID of the execution.
+            hydrate: Whether to hydrate offloaded blob storage into the model.
+            skip_resumability: Whether to skip resumability checking.
+
+        Returns:
+            Validated ExecutionRecord domain model.
+
+        Raises:
+            ResourceNotFoundError: If the execution does not exist.
+            PermissionDeniedError: If initiator lacks access to the execution.
+        """
         data = await self.exec_repo.get_execution(execution_id, hydrate=hydrate)
         if not data:
+            logger.error(
+                "[ExecutionLifecycleService] %s: Execution '%s' not found",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                execution_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         org_id = initiator.organization_id
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
+            logger.error(
+                "[ExecutionLifecycleService] %s: User '%s' denied access to execution '%s'",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                execution_id,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
             raise PermissionDeniedError("You do not have permission to view this execution.")
 
         if skip_resumability or not self._check_resumability:
@@ -93,13 +143,39 @@ class ExecutionLifecycleService:
         return data.model_copy(update={"is_resumable": is_resumable})
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
-        """Securely delete an execution and cascade clean its report artifacts and storage."""
+        """Securely delete an execution and cascade clean its report artifacts and storage.
+
+        Args:
+            initiator: Authenticated user token data.
+            execution_id: Canonical Opaque Stripe ID of the execution.
+
+        Returns:
+            True if the execution record and artifacts were successfully deleted.
+
+        Raises:
+            ResourceNotFoundError: If the execution does not exist.
+            PermissionDeniedError: If initiator lacks deletion rights.
+            AppException: If cascading storage or repository deletion fails (ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
         record = await self.exec_repo.get_execution(execution_id, hydrate=False)
         if not record:
+            logger.error(
+                "[ExecutionLifecycleService] %s: Execution '%s' not found",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                execution_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
         org_id = initiator.organization_id
         if initiator.role != "ROOT" and record.organization_id != org_id and record.created_by != initiator.id:
+            logger.error(
+                "[ExecutionLifecycleService] %s: User '%s' denied deletion of execution '%s'",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                execution_id,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
             raise PermissionDeniedError("You do not have permission to delete this execution.")
 
         try:
@@ -126,15 +202,18 @@ class ExecutionLifecycleService:
                         "[ExecutionLifecycleService] Report cascade cleanup non-fatal error: %s", cascade_err
                     )
 
-            # Clean up all offloaded blobs and directory files using just-in-time storage resolution
-            storage_drv = storage.get_storage_driver()
+            # Clean up all offloaded blobs and directory files using storage driver
             try:
-                await storage_drv.delete_directory(f"executions/{execution_id}")
+                await self.storage.delete_directory(f"executions/{execution_id}")
             except AppException as e:
                 if e.status_code != 404:
                     msg = f"Failed to clean up directory executions/{execution_id} during deletion."
                     logger.error(
-                        "[ExecutionLifecycleService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
+                        "[ExecutionLifecycleService] %s: %s",
+                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        msg,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     )
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
@@ -142,7 +221,11 @@ class ExecutionLifecycleService:
             except Exception as e:
                 msg = f"Failed to clean up directory executions/{execution_id} during deletion."
                 logger.error(
-                    "[ExecutionLifecycleService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
+                    "[ExecutionLifecycleService] %s: %s",
+                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                 )
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
@@ -150,9 +233,15 @@ class ExecutionLifecycleService:
 
             return await self.exec_repo.delete_execution(execution_id)
         except Exception as e:
+            if isinstance(e, AppException):
+                raise
             msg = f"Failed to delete execution {execution_id}: {str(e)}"
             logger.error(
-                "[ExecutionLifecycleService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True
+                "[ExecutionLifecycleService] %s: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
