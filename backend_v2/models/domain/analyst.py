@@ -15,6 +15,15 @@ from backend_v2.models.domain.integrity import CitationAudit
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "AnalystDTO",
+    "AnalystInput",
+    "AnalystOutput",
+    "Hypothesis",
+    "SearchResult",
+    "SearchResultItem",
+]
+
 
 class AnalystInput(V2CoreBase):
     """Strict input schema for AnalystAgent.
@@ -27,7 +36,7 @@ class AnalystInput(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(description="Mandatory chatlog to analyze.")]
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
@@ -48,7 +57,7 @@ class Hypothesis(V2CoreBase):
         quotes: Direct quotes found.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     id: Annotated[str, Field(pattern=r"^hyp_[a-zA-Z0-9]+$", min_length=1, description="Hypothesis ID.")]
     claim_text: Annotated[
@@ -76,17 +85,17 @@ class Hypothesis(V2CoreBase):
     def validate_consistency(self) -> Self:
         """Validate consistency of evidence and quotes.
 
-        Raises:
-            ValueError: If evidence_found is True but quotes are missing.
-
         Returns:
             The validated Hypothesis instance.
+
+        Raises:
+            ValueError: If evidence_found is True but quotes are missing.
         """
         if self.evidence_found and not self.quotes:
             # Strict: If evidence is found, quotes MUST be provided.
             # This prevents "hallucinated" evidence flags without backing data.
             msg = "Hypothesis claims evidence_found=True but provides no quotes."
-            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AnalystModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return self
 
@@ -101,7 +110,7 @@ class AnalystDTO(ReasoningTraceDTO):
         integrity_audit: Integrity audit results for citations.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     hypotheses: Annotated[
         list[Hypothesis],
@@ -130,8 +139,9 @@ class AnalystDTO(ReasoningTraceDTO):
 
 
 class AnalystOutput(AnalystDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Analyst Agent."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class SearchResultItem(V2CoreBase):
@@ -143,7 +153,7 @@ class SearchResultItem(V2CoreBase):
         snippet: Snippet of the result.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     title: Annotated[
         str,
@@ -166,7 +176,7 @@ class SearchResult(V2CoreBase):
         results: Search results.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     results: Annotated[
         list[SearchResultItem],

@@ -142,7 +142,7 @@ def test_search_result_valid() -> None:
 
 def test_search_result_min_length() -> None:
     """Test SearchResult requires at least one result."""
-    data = {  # type: ignore
+    data = {
         "results": []  # Empty list should raise ValidationError
     }
     with pytest.raises(ValidationError):
