@@ -4,8 +4,10 @@ Provides strict Pydantic V2 validation schemas for the metrics hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, override
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -13,6 +15,13 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "BehavioralMetricsDTO",
+    "MetricsPayloadDTO",
+    "ProfilerMetricsDTO",
+    "TextMetricsDTO",
+]
 
 
 class MetricsPayloadDTO(V2CoreBase):
@@ -24,8 +33,12 @@ class MetricsPayloadDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    root: Annotated[dict[str, Any], Field(default_factory=dict)]
+    root: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="The root dictionary payload."),
+    ]
 
+    @override
     @classmethod
     def model_validate(
         cls,
@@ -38,6 +51,20 @@ class MetricsPayloadDTO(V2CoreBase):
         by_name: bool | None = None,
         extra: Any | None = None,
     ) -> MetricsPayloadDTO:
+        """Validate and wrap arbitrary incoming payload into MetricsPayloadDTO.
+
+        Args:
+            obj: The object or raw dictionary payload to validate.
+            strict: Whether to enforce strict types.
+            from_attributes: Whether to extract attributes from objects.
+            context: Optional validation context.
+            by_alias: Whether to query by alias.
+            by_name: Whether to query by name.
+            extra: Extra validation configuration.
+
+        Returns:
+            Validated MetricsPayloadDTO instance.
+        """
         if type(obj) is dict:
             return cls(root=obj)
         return super().model_validate(
@@ -65,12 +92,12 @@ class TextMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = 0
-    sentence_count: int = 0
-    avg_sentence_length: float = 0.0
-    lexical_diversity: float = 0.0
-    capitalization_ratio: float = 0.0
-    control_ratio: float = 0.0
+    word_count: Annotated[int, Field(default=0, description="Number of words.")] = 0
+    sentence_count: Annotated[int, Field(default=0, description="Number of sentences.")] = 0
+    avg_sentence_length: Annotated[float, Field(default=0.0, description="Average length of a sentence.")] = 0.0
+    lexical_diversity: Annotated[float, Field(default=0.0, description="Lexical diversity score.")] = 0.0
+    capitalization_ratio: Annotated[float, Field(default=0.0, description="Ratio of capitalized letters.")] = 0.0
+    control_ratio: Annotated[float, Field(default=0.0, description="Control ratio score.")] = 0.0
 
     @field_validator(
         "word_count",
@@ -91,12 +118,12 @@ class TextMetricsDTO(V2CoreBase):
             The validated non-negative value.
 
         Raises:
-            AppException: If value is negative.
+            AppException: If value is negative (VALIDATION_FAILED).
         """
         if v < 0:
             msg = f"Text metric must be >= 0, got {v}"
-            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -112,10 +139,10 @@ class BehavioralMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    say_do_gap: float = 0.0
-    automation_bias: float = 0.0
-    illusion_of_competence: float = 0.0
-    imperative_command_count: int = 0
+    say_do_gap: Annotated[float, Field(default=0.0, description="Gap between what is said and done.")] = 0.0
+    automation_bias: Annotated[float, Field(default=0.0, description="Bias towards automation.")] = 0.0
+    illusion_of_competence: Annotated[float, Field(default=0.0, description="Illusion of competence score.")] = 0.0
+    imperative_command_count: Annotated[int, Field(default=0, description="Number of imperative commands.")] = 0
 
     @field_validator(
         "say_do_gap",
@@ -134,12 +161,12 @@ class BehavioralMetricsDTO(V2CoreBase):
             The validated non-negative value.
 
         Raises:
-            AppException: If value is negative.
+            AppException: If value is negative (VALIDATION_FAILED).
         """
         if v < 0:
             msg = f"Behavioral metric must be >= 0, got {v}"
-            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
@@ -161,16 +188,18 @@ class ProfilerMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    word_count: int = 0
-    sentence_count: int = 0
-    avg_sentence_length: float = 0.0
-    lexical_diversity: float = 0.0
-    capitalization_ratio: float = 0.0
-    control_ratio: float = 0.0
-    say_do_gap: float = 0.0
-    automation_bias: float = 0.0
-    illusion_of_competence: float = 0.0
-    imperative_command_count: int = 0
+    word_count: Annotated[int, Field(default=0, description="Total word count.")] = 0
+    sentence_count: Annotated[int, Field(default=0, description="Total sentence count.")] = 0
+    avg_sentence_length: Annotated[float, Field(default=0.0, description="Average words per sentence.")] = 0.0
+    lexical_diversity: Annotated[float, Field(default=0.0, description="Unique words / total words.")] = 0.0
+    capitalization_ratio: Annotated[
+        float, Field(default=0.0, description="Uppercase characters / total characters.")
+    ] = 0.0
+    control_ratio: Annotated[float, Field(default=0.0, description="User/AI token ratio.")] = 0.0
+    say_do_gap: Annotated[float, Field(default=0.0, description="Discrepancy between intent and action.")] = 0.0
+    automation_bias: Annotated[float, Field(default=0.0, description="Over-reliance on AI.")] = 0.0
+    illusion_of_competence: Annotated[float, Field(default=0.0, description="False sense of mastery.")] = 0.0
+    imperative_command_count: Annotated[int, Field(default=0, description="Number of imperative commands.")] = 0
 
     @field_validator(
         "word_count",
@@ -195,10 +224,10 @@ class ProfilerMetricsDTO(V2CoreBase):
             The validated non-negative value.
 
         Raises:
-            AppException: If value is negative.
+            AppException: If value is negative (VALIDATION_FAILED).
         """
         if v < 0:
             msg = f"Profiler metric must be >= 0, got {v}"
-            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[MetricsModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
