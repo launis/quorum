@@ -22,6 +22,8 @@ from backend_v2.models.enums import SystemLocale
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["KnowledgeRepositoryImpl"]
+
 
 class KnowledgeRepositoryImpl(BaseRepository):
     """Repository implementation for Knowledge base, Banned phrases and Prompts."""
@@ -33,7 +35,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
             List of validated BannedPhrase domain models.
 
         Raises:
-            AppException: If a banned phrase record is corrupted.
+            AppException: If a banned phrase record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("banned_phrases")
         phrases: list[BannedPhrase] = []
@@ -54,7 +56,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted banned phrase {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return phrases
 
@@ -116,7 +118,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
             List of validated Concept domain models.
 
         Raises:
-            AppException: If a concept record is corrupted.
+            AppException: If a concept record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("concepts")
         concepts: list[Concept] = []
@@ -137,7 +139,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted concept {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return concepts
 
@@ -148,7 +150,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
             List of validated Reference domain models.
 
         Raises:
-            AppException: If a reference record is corrupted.
+            AppException: If a reference record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("references")
         refs: list[Reference] = []
@@ -169,7 +171,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted reference {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return refs
 
@@ -180,7 +182,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
             List of validated Claim domain models.
 
         Raises:
-            AppException: If a claim record is corrupted.
+            AppException: If a claim record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("claims")
         claims: list[Claim] = []
@@ -201,7 +203,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted claim {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return claims
 

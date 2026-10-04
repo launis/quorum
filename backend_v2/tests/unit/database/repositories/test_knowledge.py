@@ -118,26 +118,74 @@ async def test_concepts_references_claims_lifecycle(repo: KnowledgeRepositoryImp
 
 @pytest.mark.asyncio
 async def test_concepts_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted concept raises AppException."""
-    mock_driver.query.return_value = [{"name": "No ID Concept"}]
+    """Negative: tests that corrupted concept raises AppException and reports item_id."""
+    mock_driver.query.return_value = [{"id": "c_corrupt", "extra_forbidden": True}]
     with pytest.raises(AppException) as exc_info:
         await repo.get_concepts()
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["item_id"] == "c_corrupt"
 
 
 @pytest.mark.asyncio
 async def test_references_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted reference raises AppException."""
-    mock_driver.query.return_value = [{"name": "No ID Ref"}]
+    """Negative: tests that corrupted reference raises AppException and reports item_id."""
+    mock_driver.query.return_value = [{"id": "ref_corrupt", "extra_forbidden": True}]
     with pytest.raises(AppException) as exc_info:
         await repo.get_references()
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["item_id"] == "ref_corrupt"
 
 
 @pytest.mark.asyncio
 async def test_claims_corruption_fail_fast(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Negative: tests that corrupted claim raises AppException."""
-    mock_driver.query.return_value = [{"name": "No ID Claim"}]
+    """Negative: tests that corrupted claim raises AppException and reports item_id."""
+    mock_driver.query.return_value = [{"id": "claim_corrupt", "extra_forbidden": True}]
     with pytest.raises(AppException) as exc_info:
         await repo.get_claims()
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["item_id"] == "claim_corrupt"
+
+
+@pytest.mark.asyncio
+async def test_add_banned_phrase_idempotent_when_already_exists(
+    repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Boundary: tests that add_banned_phrase does not upsert if the phrase already exists."""
+    mock_driver.query.return_value = [{"id": "bp_existing", "phrase": "existing slop", "language": "en"}]
+    await repo.add_banned_phrase("existing slop")
+    mock_driver.upsert.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_prompt_template_empty_prompts_fallback(
+    repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Edge: tests prompt template retrieval when prompt keys are missing."""
+    mock_driver.get.return_value = {"id": "tpl_empty"}
+    template = await repo.get_prompt_template("tpl_empty")
+    assert template is not None
+    assert template.system == ""
+    assert template.user == ""
+
+
+@pytest.mark.asyncio
+async def test_banned_phrase_corruption_without_id_reports_unknown(
+    repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Negative: tests that corrupted banned phrase without an 'id' attribute reports item_id='unknown'."""
+    mock_driver.query.return_value = [{"corrupted_field": "val"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_banned_phrases()
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["item_id"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_concepts_corruption_without_id_reports_unknown(
+    repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Negative: tests that corrupted concept without ID reports item_id='unknown'."""
+    mock_driver.query.return_value = [{"invalid_key": "val"}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_concepts()
+    assert exc_info.value.details["item_id"] == "unknown"
