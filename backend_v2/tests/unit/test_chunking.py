@@ -37,3 +37,50 @@ def test_chunking_request_empty_items() -> None:
     with pytest.raises(ValidationError) as exc_info:
         ChunkingRequest[str].model_validate(data)
     assert "Cannot chunk an empty list" in str(exc_info.value)
+
+
+def test_chunk_negative_index_boundary() -> None:
+    """Test Chunk fails when index is negative boundary value."""
+    data = {
+        "index": -1,
+        "items": ["a"],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        Chunk[str].model_validate(data)
+    assert "greater_than_equal" in str(exc_info.value)
+
+
+def test_chunk_invalid_id_pattern() -> None:
+    """Test Chunk fails when id does not match opaque stripe pattern."""
+    data = {
+        "id": "invalid_chunk_id",
+        "index": 0,
+        "items": ["a"],
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        Chunk[str].model_validate(data)
+    assert "string_pattern_mismatch" in str(exc_info.value)
+
+
+def test_chunking_request_invalid_chunk_size_boundary() -> None:
+    """Test ChunkingRequest fails when max_chunk_size is non-positive boundary value 0."""
+    data = {
+        "items": ["a"],
+        "max_chunk_size": 0,
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        ChunkingRequest[str].model_validate(data)
+    assert "greater_than" in str(exc_info.value)
+
+
+def test_chunk_extra_fields_forbidden() -> None:
+    """Test Chunk enforces extra='forbid'."""
+    data = {
+        "index": 0,
+        "items": ["a"],
+        "unexpected_field": "disallowed",
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        Chunk[str].model_validate(data)
+    assert "extra_forbidden" in str(exc_info.value)
+
