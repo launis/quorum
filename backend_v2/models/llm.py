@@ -21,6 +21,15 @@ from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "AdHocTestRequest",
+    "AdHocTestResponse",
+    "LLMMessageDTO",
+    "LLMProviderConfig",
+    "LLMResponse",
+    "ProviderMetadataDTO",
+]
+
 
 class LLMMessageDTO(BaseDTO):
     """Strictly typed LLM Message Data Transfer Object.
@@ -368,7 +377,17 @@ class LLMProviderConfig(BaseDTO):
     @field_validator("frequency_penalty", mode="after")
     @classmethod
     def validate_frequency_penalty(cls, v: float | None) -> float | None:
-        """Validates that frequency_penalty is within bounds [-2.0, 2.0] at runtime."""
+        """Validates that frequency_penalty is within bounds [-2.0, 2.0] at runtime.
+
+        Args:
+            v: The frequency penalty to validate.
+
+        Returns:
+            The validated frequency penalty.
+
+        Raises:
+            AppException: If frequency penalty is outside the range [-2.0, 2.0].
+        """
         if v is not None and not (-2.0 <= v <= 2.0):
             msg = "frequency_penalty must be between -2.0 and 2.0"
             logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -382,7 +401,17 @@ class LLMProviderConfig(BaseDTO):
     @field_validator("presence_penalty", mode="after")
     @classmethod
     def validate_presence_penalty(cls, v: float | None) -> float | None:
-        """Validates that presence_penalty is within bounds [-2.0, 2.0] at runtime."""
+        """Validates that presence_penalty is within bounds [-2.0, 2.0] at runtime.
+
+        Args:
+            v: The presence penalty to validate.
+
+        Returns:
+            The validated presence penalty.
+
+        Raises:
+            AppException: If presence penalty is outside the range [-2.0, 2.0].
+        """
         if v is not None and not (-2.0 <= v <= 2.0):
             msg = "presence_penalty must be between -2.0 and 2.0"
             logger.error("[LLMProviderConfig] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
