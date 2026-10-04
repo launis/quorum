@@ -231,3 +231,75 @@ async def test_delete_step_not_found(repo: WorkflowRepositoryImpl, mock_driver: 
     """Positive: returns False if step does not exist."""
     mock_driver.get.return_value = None
     assert await repo.delete_step("stp_missing") is False
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_definition_from_disk_success(
+    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
+) -> None:
+    """Positive: loads workflow from disk file when driver returns None."""
+    import json
+    from pathlib import Path
+
+    wf_id = "wf_1234567890abcdef"
+    disk_file = Path(f"data/workflows/{wf_id}.json")
+    disk_file.parent.mkdir(parents=True, exist_ok=True)
+    file_doc = dict(valid_workflow_doc)
+    file_doc["id"] = wf_id
+    disk_file.write_text(json.dumps(file_doc), encoding="utf-8")
+    try:
+        mock_driver.get.return_value = None
+        wf = await repo.get_workflow_definition(wf_id)
+        assert wf is not None
+        assert wf.id == wf_id
+    finally:
+        if disk_file.exists():
+            disk_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_definition_from_disk_corruption(
+    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Negative: corrupted disk workflow file raises AppException with STORAGE_ACCESS_FAILED."""
+    from pathlib import Path
+
+    wf_id = "wf_abcdef1234567890"
+    disk_file = Path(f"data/workflows/{wf_id}.json")
+    disk_file.parent.mkdir(parents=True, exist_ok=True)
+    disk_file.write_text("{not valid json", encoding="utf-8")
+    try:
+        mock_driver.get.return_value = None
+        with pytest.raises(AppException) as exc_info:
+            await repo.get_workflow_definition(wf_id)
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED
+    finally:
+        if disk_file.exists():
+            disk_file.unlink()
+
+
+@pytest.mark.asyncio
+async def test_get_step_by_id_embedded_fallback(
+    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_step_doc: dict
+) -> None:
+    """Positive: locates step embedded in workflow when standalone step is None."""
+    mock_driver.get.return_value = None
+    mock_driver.query.return_value = [{"id": "wf_with_embedded", "steps": [valid_step_doc]}]
+    step = await repo.get_step_by_id(valid_step_doc["id"])
+    assert step is not None
+    assert step.id == valid_step_doc["id"]
+
+
+@pytest.mark.asyncio
+async def test_get_step_by_id_embedded_corruption(
+    repo: WorkflowRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Negative: corrupted embedded step in workflow raises AppException with VALIDATION_FAILED."""
+    mock_driver.get.return_value = None
+    mock_driver.query.return_value = [{"id": "wf_with_embedded", "steps": [{"id": "stp_corrupt_embedded"}]}]
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_step_by_id("stp_corrupt_embedded")
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+

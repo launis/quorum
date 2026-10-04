@@ -1,9 +1,11 @@
 """Database repository implementation module for Workflows and Steps."""
 
+from __future__ import annotations
+
 import json
 import logging
-import os
 import uuid
+from pathlib import Path
 from typing import Any, cast
 
 from fastapi.concurrency import run_in_threadpool
@@ -23,6 +25,8 @@ from backend_v2.models.dtos.studio import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["WorkflowRepositoryImpl"]
+
 
 class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Workflows and Steps."""
@@ -37,13 +41,13 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             The validated Workflow domain model if found, otherwise None.
 
         Raises:
-            AppException: If loading from disk or validation fails.
+            AppException: If loading from disk or validation fails (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         data = await self.driver.get("workflows", workflow_id)
 
         if not data:
             file_path = f"data/workflows/{workflow_id}.json"
-            if os.path.exists(file_path):
+            if Path(file_path).is_file():
                 try:
 
                     def _read_file() -> dict[str, Any]:
@@ -73,6 +77,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The validated Workflow domain model if found, otherwise None.
+
+        Raises:
+            AppException: If loading from disk or validation fails (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         return await self.get_workflow_definition(workflow_id)
 
@@ -85,6 +92,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of validated Workflow domain models.
+
+        Raises:
+            AppException: If a workflow record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if role != "ROOT":
@@ -110,7 +120,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                 raise AppException(
                     message=f"Corrupted workflow {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return workflows
 
@@ -171,6 +181,11 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
         """
         old_doc = await self.driver.get("workflows", workflow_id)
         if not old_doc:
+            logger.error(
+                "[WorkflowRepository] %s: Workflow %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                workflow_id,
+            )
             raise WorkflowNotFoundError(workflow_id)
 
         update_dict = updates.model_dump(mode="json", exclude_unset=True)
@@ -186,6 +201,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The new versioned workflow ID.
+
+        Raises:
+            WorkflowNotFoundError: If the existing workflow cannot be found.
         """
         return await self.update_workflow(workflow_id, definition_data)
 
@@ -215,6 +233,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of validated Step domain models.
+
+        Raises:
+            AppException: If a step record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("steps")
         steps: list[Step] = []
@@ -235,7 +256,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                 raise AppException(
                     message=f"Corrupted step {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return steps
 
@@ -247,6 +268,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The validated Step domain model if found, otherwise None.
+
+        Raises:
+            AppException: If an embedded step record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         step = await self.driver.get("steps", step_id)
         if step:
@@ -274,7 +298,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
                         raise AppException(
                             message=f"Corrupted embedded step {item_id}: {e}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                         ) from e
         return None
 
@@ -286,6 +310,9 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The validated Step domain model if found, otherwise None.
+
+        Raises:
+            AppException: If an embedded step record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         return await self.get_step_by_id(step_id)
 
@@ -340,7 +367,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             True if deleted, False if step does not exist.
 
         Raises:
-            AppException: If step deletion is blocked by active workflow usage.
+            AppException: If step deletion is blocked by active workflow usage (ErrorCodes.DELETE_BLOCKED_BY_USAGE).
         """
         step = await self.driver.get("steps", step_id)
         if not step:
@@ -351,6 +378,12 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             for wf in wfs:
                 for rule in wf.steps:
                     if rule.task_blueprint == step_id:
+                        logger.error(
+                            "[WorkflowRepository] %s: Step delete blocked by workflow %s usage for step %s",
+                            ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                            wf.id,
+                            step_id,
+                        )
                         raise AppException(
                             message="Step delete blocked by workflow usage.",
                             details={
