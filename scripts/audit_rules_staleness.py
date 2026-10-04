@@ -8,24 +8,31 @@ in the active codebase (`backend_v2/` and `scripts/`).
 from __future__ import annotations
 
 import argparse
+import io
 import re
 import sys
 from pathlib import Path
-
-import io
 
 # Force UTF-8 encoding for stdout/stderr to support emojis on Windows
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError, io.UnsupportedOperation):
+    except AttributeError, ValueError, io.UnsupportedOperation:
         pass
 
 if isinstance(sys.stderr, io.TextIOWrapper):
     try:
         sys.stderr.reconfigure(encoding="utf-8")
-    except (AttributeError, ValueError, io.UnsupportedOperation):
+    except AttributeError, ValueError, io.UnsupportedOperation:
         pass
+
+__all__ = [
+    "COMMON_RESERVED_SYMBOLS",
+    "audit_rules_staleness",
+    "extract_code_symbols_from_rules",
+    "main",
+    "verify_symbols_exist",
+]
 
 # Curated exclusion set for common keywords, types, and Markdown noise
 COMMON_RESERVED_SYMBOLS: set[str] = {
@@ -79,7 +86,14 @@ COMMON_RESERVED_SYMBOLS: set[str] = {
 
 
 def extract_code_symbols_from_rules(rules_dir: Path) -> dict[str, set[str]]:
-    """Extract backtick-enclosed code symbols from XML blocks in rule markdown files."""
+    """Extract backtick-enclosed code symbols from XML blocks in rule markdown files.
+
+    Args:
+        rules_dir: Directory path containing system rule Markdown files.
+
+    Returns:
+        Mapping of rule filename to a set of extracted code symbol strings.
+    """
     if not rules_dir.exists():
         return {}
 
@@ -111,7 +125,15 @@ def extract_code_symbols_from_rules(rules_dir: Path) -> dict[str, set[str]]:
 
 
 def verify_symbols_exist(symbols: set[str], search_dirs: list[Path]) -> set[str]:
-    """Check if symbols exist in any source file across target directories."""
+    """Check if symbols exist in any source file across target directories.
+
+    Args:
+        symbols: Set of code symbol names to locate.
+        search_dirs: List of directory paths to scan recursively for symbol occurrences.
+
+    Returns:
+        Set of symbol names that were not found in any source files.
+    """
     if not symbols:
         return set()
 
@@ -140,7 +162,16 @@ def verify_symbols_exist(symbols: set[str], search_dirs: list[Path]) -> set[str]
 
 
 def audit_rules_staleness(rules_dir: Path, search_dirs: list[Path]) -> tuple[dict[str, set[str]], int]:
-    """Audit rule files and return orphaned symbols per rule file."""
+    """Audit rule files and return orphaned symbols per rule file.
+
+    Args:
+        rules_dir: Directory containing system rule Markdown files.
+        search_dirs: List of directory paths to search for symbols.
+
+    Returns:
+        Tuple containing a mapping of rule filenames to their orphaned symbols,
+        and the total count of unique symbols checked.
+    """
     rule_symbols = extract_code_symbols_from_rules(rules_dir)
     all_symbols: set[str] = set()
     for s_set in rule_symbols.values():
@@ -158,7 +189,11 @@ def audit_rules_staleness(rules_dir: Path, search_dirs: list[Path]) -> tuple[dic
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI Entrypoint for Rules Staleness Auditor."""
+    """CLI Entrypoint for Rules Staleness Auditor.
+
+    Args:
+        argv: Optional list of command-line argument strings.
+    """
     parser = argparse.ArgumentParser(
         description="""Architectural Rule Staleness & Dead Symbol Auditor.
 

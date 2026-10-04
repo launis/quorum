@@ -116,3 +116,31 @@ def test_audit_rules_staleness_edge_cases(tmp_path: Path) -> None:
     bad_src = src_dir / "bad_src.py"
     bad_src.write_bytes(b"\xff\xfe\x00\x00class Sym: pass")
     assert verify_symbols_exist({"Sym"}, [src_dir]) == {"Sym"}
+
+
+def test_audit_rules_staleness_all_exports() -> None:
+    """Verify that __all__ defines and exposes the complete public symbol interface."""
+    import scripts.audit_rules_staleness as mod
+
+    expected_symbols = {
+        "COMMON_RESERVED_SYMBOLS",
+        "audit_rules_staleness",
+        "extract_code_symbols_from_rules",
+        "main",
+        "verify_symbols_exist",
+    }
+    assert set(mod.__all__) == expected_symbols
+    for sym in mod.__all__:
+        assert hasattr(mod, sym)
+
+
+def test_verify_symbols_exist_early_break(tmp_path: Path) -> None:
+    """Verify that searching breaks early once all symbols are found."""
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    (src_dir / "a_file.py").write_text("class TargetSym: pass\n", encoding="utf-8")
+    (src_dir / "b_file.py").write_text("class UnreadSym: pass\n", encoding="utf-8")
+
+    orphans = verify_symbols_exist({"TargetSym"}, [src_dir])
+    assert orphans == set()
+

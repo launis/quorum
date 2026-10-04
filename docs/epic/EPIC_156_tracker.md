@@ -107,7 +107,7 @@
   - [x] [NEW] @[scripts/audit_warning_baseline.py]
   - [x] @[scripts/audit_database_atoms.py]
   - [x] @[scripts/reconcile_storage.py]
-  - [ ] @[scripts/audit_rules_staleness.py]
+  - [x] @[scripts/audit_rules_staleness.py]
   - [ ] @[scripts/audit_matrix_auto_filler.py]
   - [ ] @[scripts/audit_matrix_manager.py]
   - [ ] @[scripts/matrix_slice_engine.py]
@@ -256,6 +256,7 @@
 - Integration Checkpoint: Executed clean database reset and seed vault verification via `run_seed.py local` with 100% pass rate.
 - Post-Implementation Gates (Hardening Batch 1): Audited and verified `scripts/_ast_guardrails.py` and `scripts/backend_audit_loop.py` via `/tier2-hardening-backend`. Both passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >90% line coverage (91% and 93%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`).
 - Post-Implementation Gates (Hardening Batch 2): Audited and verified `scripts/audit_clean_imports.py` and `scripts/audit_warning_baseline.py` via `/tier2-hardening-backend`. Both passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >90% line coverage (94% and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Added explicit `__all__ = [...]` interface encapsulation and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`0c880f0b4`, `41da75029`).
+- Post-Implementation Gates (Hardening Batch 3): Audited and verified `scripts/audit_database_atoms.py`, `scripts/reconcile_storage.py`, and `scripts/audit_rules_staleness.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (98%, 97%, and 95%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, English documentation, and PEP 257 Google-style docstrings with `Args:` and `Returns:` blocks (`27f9a7c0a`, `bbcd00386`).
 
 ## Learned
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
@@ -265,11 +266,11 @@
 - Neuro-Symbolic Audit Traceability: Standalone scripts require precise, non-conflicting code evidence anchoring directly to the target file stem while categorizing domain/presentation rules into cleanly segregated NA buckets to respect anti-laziness limits (<40 duplicates).
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`scripts/audit_database_atoms.py`, `scripts/reconcile_storage.py`, `scripts/audit_rules_staleness.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining modified production targets (`scripts/audit_matrix_auto_filler.py`, `scripts/audit_matrix_manager.py`, `scripts/matrix_slice_engine.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[scripts/audit_database_atoms.py] @[scripts/reconcile_storage.py] @[scripts/audit_rules_staleness.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[scripts/audit_matrix_auto_filler.py] @[scripts/audit_matrix_manager.py] @[scripts/matrix_slice_engine.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
