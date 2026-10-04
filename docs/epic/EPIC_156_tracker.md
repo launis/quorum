@@ -168,9 +168,9 @@
   - [x] @[backend_v2/models/llm.py]
   - [x] @[backend_v2/models/domain/analyst.py]
   - [x] @[backend_v2/models/dtos/sdui_rules.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/base.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/base.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
   - [ ] @[backend_v2/services/blueprint.py]
   - [ ] @[backend_v2/llm/provider.py]
@@ -272,6 +272,7 @@
 - Post-Implementation Gates (Hardening Batch 18): Audited and verified `backend_v2/utils/scoring/unified_engine.py`, `backend_v2/services/orchestrator/topological_evaluator.py`, and `backend_v2/services/orchestrator/dag_executor.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100% for `unified_engine.py`, 99% for `topological_evaluator.py`, 93% for `dag_executor.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, completed PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, verified RFC 7807 structured dual-logging, and added comprehensive ISTQB negative exception tests covering DLQ error state propagation and omitted batch response nodes.
 - Post-Implementation Gates (Hardening Batch 19): Audited and verified `backend_v2/services/report_service.py`, `backend_v2/models/dtos/studio.py`, and `backend_v2/models/view/sdui.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93% for `report_service.py`, 100% for `studio.py`, 100% for `sdui.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero duck typing, RFC 7807 structured dual-logging, and PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks.
 - Post-Implementation Gates (Hardening Batch 20): Audited and verified `backend_v2/models/dtos/atom_result.py`, `backend_v2/models/domain/report_artifact.py`, and `backend_v2/models/dtos/finops.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved 100% line coverage across all three files (84/84 for `atom_result.py`, 12/12 for `report_artifact.py`, and 17/17 for `finops.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, PEP 257 Google-style docstrings with complete `Attributes:` sections, strict Pydantic V2 ConfigDicts (`extra="forbid"`), native Rust `ge=0` bounds on integer durations and counts, and comprehensive ISTQB boundary and negative exception tests.
+- Post-Implementation Gates (Hardening Batch 21): Audited and verified `backend_v2/services/orchestrator/strategies/base.py`, `backend_v2/services/orchestrator/strategies/llm.py`, and `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` via `/tier2-hardening-backend`. All three targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (99% for `base.py`, 92% for `llm.py`, 92% for `context_builder.py`), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, strict Pydantic V2 DTOs with zero naked dictionaries, RFC 7807 structured dual-logging, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, and eliminated transitive MyPy call-arg errors across `topological_evaluator.py`, `tda_engine.py`, and `mock_data.py`.
 
 ## Learned
 - GCS File Driver Error Semantics & Re-Raise Propagation: In `GCSFileDriver`, `_get_bucket` and storage operations must explicitly intercept and re-raise pre-existing `AppException` instances (`except AppException: raise`) to prevent double-wrapping inner domain exceptions in generic `GCS Initialization Failed` errors while preserving RFC 7807 status codes.
@@ -291,13 +292,15 @@
 - Report Service Storage & Compilation Isolation: In `ReportService`, Phase 3 presentation compilation safely handles pre-rendered static artifacts, ensures idempotent skipping when reports are already ready, updates execution step states without leaking raw dictionaries, and catches storage I/O failures with RFC 7807 structured errors.
 - Studio DTOs & SDUI Discriminated Union Parity: In `studio.py` and `sdui.py`, all models enforce `ConfigDict(strict=True, extra="forbid")`, export exhaustive `__all__ = [...]` lists, and validate polymorphic structures via `AnySduiBlock` discriminated unions with 100% test coverage.
 - FinOps DTO Native Rust Bounds & Report Artifact Docstring Governance: In `finops.py`, enforcing `Field(ge=0)` on all duration and call counts executes fast Rust bounds validation, while `ReportArtifact` encapsulates `Attributes:` docstrings and strict Opaque Stripe ID regex verification without permissive dictionary conversions.
+- Strategy Execution Architecture & Transitive Call-Arg Parity: In `base.py`, `llm.py`, and `context_builder.py`, execution strategies maintain clean protocol decoupling with `NodeStrategy` and `StrategyDependencies`. Model instantiations of `AtomExecutionState` and `XAIOutput` require explicit list and dict arguments in callers (`topological_evaluator.py`, `tda_engine.py`, `mock_data.py`) to satisfy MyPy's pydantic plugin when duplicate `Field()` default assignments are eradicated per QGR020.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/models/llm.py`, `backend_v2/models/domain/analyst.py`, `backend_v2/models/dtos/sdui_rules.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`, `backend_v2/services/blueprint.py`, `backend_v2/llm/provider.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/models/llm.py] @[backend_v2/models/domain/analyst.py] @[backend_v2/models/dtos/sdui_rules.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py] @[backend_v2/services/blueprint.py] @[backend_v2/llm/provider.py] @[docs/epic/EPIC_156_tracker.md]
 ```
+
 
 
