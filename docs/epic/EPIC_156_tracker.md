@@ -186,7 +186,7 @@
 ---
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to scan the codebase, anchor the physical implementation map in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to scan the codebase, anchor the physical implementation map in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
 
 ---
 
@@ -303,25 +303,16 @@
 - Document Extraction Short Timezone & CreationDate Fallback: In `document_extraction.py`, timezone parsing accommodates short timezone offsets (`+03`), PDF metadata extraction safely falls back across `creationDate` and `CreationDate`, and invalid ingress payloads raise 422 `AppException` with RFC 7807 structured dual-logging.
 - Base Adapter Interface Encapsulation & Pacing Lock Safety: In `base_adapter.py`, explicit `__all__ = ["BaseLLMAdapter", "apply_provider_pacing", "get_redis_client_for_pacing"]` formalizes public exports, dead `_redis_loop` state was eradicated, logger strings were modernized to percent-format parameters, and unit tests verify 94% coverage with negative AppException branches.
 - Seed User Data Wiping Fail-Fast & AST Compliance: In `wipe_user_data.py`, explicit `__all__` export protects public symbols, `force: bool = False` flag allows headless CI test automation, missing or corrupted database files trigger 404/500 `AppException` with RFC 7807 structured dual-logging, ternary fallback expressions (`len(...) if ... else 0`) were eradicated per QGR016 in favor of explicit `if` statements, and unit tests achieve 98% line coverage.
+- As-Built Architectural Synchronization (`/tier7-describe-architecture`): Synchronized `ki_zero_permissive_typing.md`, `ki_god_code_prevention.md`, and `ki_python_314_concurrency_strictness.md` (and their respective `metadata.json` files) to document the complete 26-rule FATAL AST Guardrail Engine (`QGR000`-`QGR025`), mock eradication to in-memory fakes (`QGR014`), Python 3.14 PEP 649/749 unquoted annotations (`QGR024`), untyped dict in `model_copy` ban (`QGR025`), zero-warning ceiling baseline ledger (`scripts/audit_warning_baseline.py`), clean import smoke test gate (`scripts/audit_clean_imports.py`), and mathematical core mutation testing invariance (`scripts/audit_mutation_coverage.py`). Synchronized physical module mapping in `.agents/rules/04_directory_reference.md` and updated timeless architectural pillar narratives in `docs/architecture/01_system_context_and_invariants.md` and `docs/architecture/05_resilience_and_observability.md`.
 
 ## Remaining
-- Documentation & Knowledge Item Update: Run `/tier7-describe-architecture` to scan the codebase, anchor the physical implementation map in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
 - Final Epic Audit: Run `/tier8-audit-epic @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/EPIC_156_tracker.md]` to verify full Epic completion and Quorum 2026 architectural invariants.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/epic/EPIC_156_tracker.md] @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[ki_zero_permissive_typing.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md]
+/tier8-audit-epic @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/EPIC_156_tracker.md]
 ```
 
-### Directives for Tier 7 Agent:
-1. **Target KIs to Synchronize:**
-   - `@[ki_zero_permissive_typing.md]`: Document the 26 AST guardrails (`QGR000`-`QGR025`) promoted to FATAL severity, zero-warning ceiling baseline ledger (`scripts/audit_warning_baseline.py`), clean import smoke test gate (`scripts/audit_clean_imports.py`), and fake repository mutation verification standard (`QGR014`).
-   - `@[ki_god_code_prevention.md]`: Document automated AST boundary guardrails and mutation coverage verification (`scripts/audit_mutation_coverage.py`).
-   - `@[ki_python_314_concurrency_strictness.md]`: Document Python 3.14 deferred annotation standards (`QGR024`), `model_copy` untyped dictionary ban (`QGR025`), and TaskGroup concurrency stress gates.
-2. **Directory Reference Sync:**
-   - Update `@[.agents/rules/04_directory_reference.md]` to register new audit tooling (`scripts/audit_clean_imports.py`, `scripts/audit_warning_baseline.py`, `scripts/audit_mutation_coverage.py`).
-3. **Pillar Documentation Sync:**
-   - Update timeless narratives in `docs/architecture/` (specifically `05_resilience_and_fail_fast.md` and related pillars) reflecting universal AST strictness, 8-stage audit loop, and zero permissive typing.
 
 
 

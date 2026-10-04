@@ -28,6 +28,8 @@ Concurrency limits are governed by a two-tier semaphore architecture:
 
 Isolating macro and micro limiters prevents recursive lock acquisition and eliminates thread deadlocks. Concurrency limiters incorporate null-context fallbacks to enable unconstrained execution in test environments without raising runtime attribute errors. Task lifecycle telemetry marks tasks as actively running only after the concurrency limiter is acquired, ensuring queue wait times do not falsely inflate execution latency metrics.
 
+Concurrency stress test suites verify memory lock atomicity and zero lock starvation under high-concurrency TaskGroup workloads. Coroutines acquire bounded update locks (`_update_lock`) exclusively for shallow dictionary updates and event signaling, never holding update locks across asynchronous I/O, database commits, or network requests.
+
 ### 2.4. Schema Validation Self-Healing & Capped Reflection Loops
 When structured model output violates required schemas or produces malformed syntax, a deterministic reflection mechanism intercepts the validation failure. Up to a strict, centrally configured retry limit, the specific schema violation and field expectations are reflected back to the model in a targeted correction prompt, enabling autonomous repair of formatting errors.
 
@@ -70,19 +72,14 @@ Output length constraints and character limits are governed by sentence-boundary
 
 If no sentence boundary exists within a reasonable threshold of the budget limit, the engine preserves the first complete sentence or trims at the nearest word boundary with terminal punctuation. This prevents mid-sentence truncation, broken words, and dangling clauses, maintaining high editorial quality and semantic integrity in executive reports.
 
-### 2.12. Static AST & Dart Architectural Guardrails & Evidentiary Verification
-Architectural invariants and coding standards are statically enforced at build and test time through an automated AST Codebase Guardrails Engine and client-side Dart Guardrails Engine. The engines inspect source trees to detect and block architectural anti-patterns prior to test execution:
-- Prohibition of runtime reflection and dynamic duck-typing.
-- Ban on lazy dictionary fallback lookups, multi-variable fallback chains, and default fallback operators in domain code.
-- Elimination of unstructured concurrency in favor of structured task groups.
-- Prohibition of permissive model configurations and in-place mutation of frozen models.
-- Ban on anonymous multi-value state tuples, hardcoded magic timeouts, and naive timestamps.
-- Prevention of unverified persistence mocking in automated tests.
-- Elimination of permissive untyped map returns in client API clients, controllers, and providers (DGR001).
-- Ban on UI component concealment via empty box placeholders (DGR002).
-- Enforcement of compile-time localization for client UI text (DGR003).
-- Prohibition of unauthorized linter suppressions in handwritten client code (DGR004).
-- Elimination of ad-hoc prompt file loggers, enforcing centralized OpenTelemetry instrumentation (QGR021).
+### 2.12. Static AST & Dart Architectural Guardrails, Clean Imports & Mutation Invariance
+Architectural invariants and coding standards are statically enforced at build and test time through an automated AST Codebase Guardrails Engine, client-side Dart Guardrails Engine, clean import verification, and mathematical core mutation testing:
+- **Comprehensive 26-Rule FATAL Guardrails Engine**: Enforces unconditional FATAL severity across all 26 guardrail rules (QGR000-QGR025) in domain code. The engine eliminates runtime reflection and duck-typing, bans dictionary `.get()` lookups and lazy fallbacks, eradicates silent exception swallowing in handlers, prohibits missing strict Pydantic `ConfigDict(strict=True, extra="forbid")`, eliminates deceptive persistence mocking in test suites in favor of stateful in-memory fakes (QGR014), bans legacy string-quoted type annotations under Python 3.14 deferred evaluation (QGR024), and prohibits untyped dictionary state injection into `model_copy(update=...)` (QGR025).
+- **Zero-Warning Ceiling Baseline Ledger**: An automated warning ledger (`audit_warning_baseline.py`) cryptographically verifies an absolute zero-warning ceiling (0 fatal violations, 0 advisory warnings) across all backend modules via `--verify-zero`.
+- **Clean Import & Circular Dependency Verification**: A codebase-wide import verification engine (`audit_clean_imports.py`) dynamically imports every module across the system in Step 7/8 of the backend audit loop, proving zero circular dependencies and zero module-level initialization errors before test execution.
+- **Cross-Language DTO Parity Verification**: Automated DTO parity analysis (`audit_dto_parity.py`) in Step 8/8 of the backend audit loop guarantees 1:1 synchronization between backend Pydantic models and frontend Dart Freezed models.
+- **Mathematical Core Mutation Testing Invariance**: Foundational mathematical engines (`UnifiedScoringEngine`, `TopologicalEvaluator`) enforce a 100% mutant kill rate under automated AST mutation testing (`audit_mutation_coverage.py`), mathematically proving that test assertions actively verify exact boundary values and arithmetic operations rather than merely executing superficial line paths.
+- **Client-Side Dart Guardrails**: Enforces DGR001 (elimination of untyped loose map returns), DGR002 (ban on empty box UI concealment), DGR003 (compile-time localization), and DGR004 (ban on unauthorized linter suppressions).
 
 In cognitive processing, evidentiary quotes are strictly validated against source texts using exact lexical matching and XML entity escaping, guaranteeing evidentiary integrity and eliminating quote hallucination.
 

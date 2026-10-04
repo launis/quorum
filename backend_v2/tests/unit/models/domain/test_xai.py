@@ -96,11 +96,11 @@ def test_xai_output_confidence_score_negative_out_of_bounds() -> None:
 
     with pytest.raises(AppException) as exc_info:
         XAIOutputDTO.validate_confidence_score_bounds(1.5)
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
     with pytest.raises(AppException) as exc_info_neg:
         XAIOutputDTO.validate_confidence_score_bounds(-0.1)
-    assert exc_info_neg.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED
+    assert exc_info_neg.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
 
 

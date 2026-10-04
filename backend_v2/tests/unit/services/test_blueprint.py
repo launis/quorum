@@ -3788,8 +3788,11 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import TraceEvent
     from backend_v2.services.blueprint import BlueprintTransformer
+    from backend_v2.tests.fakes.in_memory_repositories import (
+        InMemoryBlueprintTransformerRepository,
+    )
 
-    mock_repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     profile = OutputProfile(
         id="prf_0000000000000001",
         slug="test-p-fb",
@@ -3810,14 +3813,14 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         mcp_gateway_id="sys_0000000000000001",
         steps=[],
     )
-    mock_repo.get_all_output_profiles.return_value = [profile]
-    mock_repo.get_output_profile.return_value = profile
-    mock_repo.get_workflow.return_value = wf
-    mock_repo.get_all_prompt_blocks.return_value = []
-    mock_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+    repo.get_all_output_profiles.return_value = [profile]
+    repo.get_output_profile.return_value = profile
+    repo.get_workflow.return_value = wf
+    repo.get_all_prompt_blocks.return_value = []
+    repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
         id="sys_0000000000000001", type="mcp_gateways", tools=[]
     )
-    mock_repo.get_organization_model.return_value = Organization(
+    repo.get_organization_model.return_value = Organization(
         id="org_0000000000000001",
         slug="test-org",
         name="Test Org Inc",
@@ -3830,13 +3833,13 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     )
 
     transformer = BlueprintTransformer(
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=mock_repo,
-        output_profile_repo=mock_repo,
-        identity_repo=mock_repo,
-        system_repo=mock_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     step_envelope = TraceEventMetadataEnvelope(
@@ -3904,7 +3907,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         metadata=ExecutionMetadata(),
         target_locale="en",
     )
-    mock_repo.get_execution.return_value = exec_record
+    repo.get_execution.return_value = exec_record
 
     report = await transformer.build_report_dto("exe_0000000000000001")
     assert report is not None

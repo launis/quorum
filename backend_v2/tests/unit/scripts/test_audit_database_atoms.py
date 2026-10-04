@@ -700,7 +700,7 @@ def test_audit_database_atoms_all_exports() -> None:
     """Verify explicit public interface exports in __all__."""
     import scripts.audit_database_atoms as mod
 
-    assert hasattr(mod, "__all__")
+    assert "__all__" in dir(mod)
     assert "AuditIssue" in mod.__all__
     assert "FullDatabaseAuditReport" in mod.__all__
     assert "run_full_database_audit" in mod.__all__

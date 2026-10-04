@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.exceptions import AppException, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
@@ -247,7 +247,11 @@ async def test_stream_status_generic_exception_emits_error_event(
         call_count += 1
         if call_count == 1:
             return rec  # Preflight passes
-        raise AppException("Fatal Redis failure", status_code=500)
+        raise AppException(
+            "Fatal Redis failure",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        )
 
     from backend_v2.settings import Settings
 

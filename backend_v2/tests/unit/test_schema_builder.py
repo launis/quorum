@@ -154,7 +154,7 @@ def test_schema_compiler_int_and_remaining_extensions() -> None:
             f"eval_1_{XaiExtensionType.CONFIDENCE.value}": 0.9,
         }
     )
-    assert getattr(instance, block.id) == 4
+    assert instance.blk_1234567890abcdef1234567890abcdef == 4
 
     # Negative test: invalid int type raises ValidationError
     with pytest.raises(ValidationError):

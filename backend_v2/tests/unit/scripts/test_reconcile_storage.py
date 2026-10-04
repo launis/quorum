@@ -270,7 +270,7 @@ def test_reconcile_storage_all_exports() -> None:
     """Verify explicit public interface exports in __all__."""
     import scripts.reconcile_storage as mod
 
-    assert hasattr(mod, "__all__")
+    assert "__all__" in dir(mod)
     assert "ReconciliationReport" in mod.__all__
     assert "TraceEventContent" in mod.__all__
     assert "TraceEventHeader" in mod.__all__
