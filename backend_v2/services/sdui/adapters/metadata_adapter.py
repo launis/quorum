@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-METADATA_RULES: MetadataAestheticsDTO = MetadataAestheticsDTO()
+METADATA_RULES: MetadataAestheticsDTO = MetadataAestheticsDTO(default_metadata={})
 
 
 # ============================================================================

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 
-from backend_v2.models.dtos.sdui_rules import McpAuditAestheticsDTO
+from backend_v2.models.dtos.sdui_rules import McpAuditAestheticsDTO, McpAuditItemDTO
 from backend_v2.models.view.sdui import AnySduiBlock, SduiAuditTrailBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-MCP_AUDIT_RULES: McpAuditAestheticsDTO = McpAuditAestheticsDTO()
+MCP_AUDIT_RULES: McpAuditAestheticsDTO = McpAuditAestheticsDTO(default=McpAuditItemDTO())
 
 
 # ============================================================================

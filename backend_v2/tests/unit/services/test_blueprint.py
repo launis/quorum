@@ -3770,3 +3770,149 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     assert report is not None
     assert report.custom_preface_md == "# Custom Preface"
     assert "ref_1" in report.hydrated_references
+
+
+@pytest.mark.asyncio
+async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
+    """Test token usage fallback from execution_trace and reverse MCP axis mapping."""
+    from backend_v2.models.auth import Organization, SubscriptionStatus
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
+    from backend_v2.models.domain.usage import TokenUsage
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, TargetBlockType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.services.blueprint import BlueprintTransformer
+
+    mock_repo = AsyncMock()
+    profile = OutputProfile(
+        id="prf_0000000000000001",
+        slug="test-p-fb",
+        workflow_id="wf_0000000000000001",
+        name=I18nText(translations={"en": "P"}),
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+    )
+    wf = Workflow(
+        id="wf_0000000000000001",
+        slug="wf-fb",
+        name=I18nText(translations={"en": "WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="published",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode="DISABLED",
+        default_profile_id=profile.id,
+        mcp_gateway_id="sys_0000000000000001",
+        steps=[],
+    )
+    mock_repo.get_all_output_profiles.return_value = [profile]
+    mock_repo.get_output_profile.return_value = profile
+    mock_repo.get_workflow.return_value = wf
+    mock_repo.get_all_prompt_blocks.return_value = []
+    mock_repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_0000000000000001", type="mcp_gateways", tools=[]
+    )
+    mock_repo.get_organization_model.return_value = Organization(
+        id="org_0000000000000001",
+        slug="test-org",
+        name="Test Org Inc",
+        is_active=True,
+        tier="pro",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=1000.0,
+        tpm_limit=10000,
+        rpm_limit=100,
+    )
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        system_repo=mock_repo,
+    )
+
+    step_envelope = TraceEventMetadataEnvelope(
+        step_metadata=StepTraceMetadataDTO(
+            token_usage=TokenUsage(
+                prompt_tokens=150,
+                completion_tokens=75,
+                reasoning_tokens=25,
+                total_tokens=250,
+                cost_usd=0.012,
+            )
+        )
+    )
+
+    audit_trace = MCPAuditTrace(
+        id="ev_src_1",
+        tool_id="tavily_search",
+        step_name="step_tokens",
+        query="search query",
+    )
+
+    atom_res = AtomResultDTO(
+        tda_id="tda_00000000000000000000000000000001",
+        status=ExecutionStatus.PASSED,
+        source_quote="sample quote",
+        evaluation_reasoning="Passed valid reason",
+    )
+
+    hydrated_dto = HydratedAtomDTO(
+        sdui_component=SDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Claim text",
+        source_quote="sample quote",
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id=wf.id,
+        organization_id="org_0000000000000001",
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=0,
+        completion_tokens=0,
+        reasoning_tokens=0,
+        dag_cost_usd=0.0,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_tokens",
+                event_type="progress",
+                content=step_envelope,
+            ),
+            TraceEvent(
+                step_name="step_results",
+                event_type="output",
+                content={
+                    "results": [atom_res],
+                    "hydrated_references": {
+                        "tda_00000000000000000000000000000001": hydrated_dto
+                    },
+                },
+            ),
+        ],
+        frozen_context=FrozenContext(
+            mcp_tool_audit=[audit_trace],
+        ),
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    mock_repo.get_execution.return_value = exec_record
+
+    report = await transformer.build_report_dto("exe_0000000000000001")
+    assert report is not None
+    assert report.prompt_tokens == 150
+    assert report.completion_tokens == 75
+    assert report.reasoning_tokens == 25
+    assert report.total_tokens == 250
+    assert report.cost_estimate == 0.012
+    assert report.org_name == "Test Org Inc"
+
+

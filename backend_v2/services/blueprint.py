@@ -3,8 +3,9 @@
 import logging
 import re
 from collections.abc import Callable
+from typing import Annotated
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -17,6 +18,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways
@@ -47,6 +49,14 @@ from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighligh
 logger = logging.getLogger(__name__)
 
 __all__ = ["BlueprintTransformer"]
+
+
+class HydratedReferencesPayloadDTO(V2CoreBase):
+    """Wrapper DTO for validating hydrated references from execution trace payloads."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    hydrated_references: Annotated[dict[str, HydratedAtomDTO], Field(default_factory=dict)]
 
 
 class BlueprintTransformer:
@@ -134,7 +144,7 @@ class BlueprintTransformer:
         execution = await self.exec_repo.get_execution(execution_id)
         if not execution:
             msg = f"Execution {execution_id} not found."
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
@@ -142,7 +152,7 @@ class BlueprintTransformer:
         workflow_obj = await self.workflow_repo.get_workflow(execution.workflow_id)
         if not workflow_obj:
             msg = f"Executing workflow {execution.workflow_id} not found."
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
@@ -157,7 +167,7 @@ class BlueprintTransformer:
                     mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
             except (ValidationError, TypeError, AttributeError) as gw_err:
                 msg = f"Failed to parse MCP gateway config for gateway '{mcp_gw_id}': {gw_err}"
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -174,7 +184,7 @@ class BlueprintTransformer:
                 "Strict Fail-Fast Enforced: 'locale' is mandatory "
                 "(either via accept_language or execution target_locale) and cannot be resolved."
             )
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         default_profile_ref = workflow_obj.default_profile_id
@@ -187,7 +197,7 @@ class BlueprintTransformer:
 
         if not profile:
             msg = f"Output profile '{resolved_pid_request}' not found in the database. Failing fast."
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
             raise AppException(
                 message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
@@ -195,9 +205,6 @@ class BlueprintTransformer:
         resolved_pid = str(profile.id)
 
         available_profiles_map = {p.id: p.name for p in all_profiles}
-        if resolved_pid not in available_profiles_map:
-            available_profiles_map[resolved_pid] = profile.name
-
         profile_name_dict = profile.name
         workflow_ext_values: list[str] = []
         if profile.visible_workflow_extensions:
@@ -219,7 +226,7 @@ class BlueprintTransformer:
                     scoring_dto = TypeAdapter(TraceScoringPayloadDTO).validate_python(dto.payload)
                 except ValidationError as val_err:
                     msg = f"Failed to parse TraceScoringPayloadDTO from scoring step: {val_err}"
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -241,9 +248,6 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-
-        if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
-            has_warning = True
 
         global_score = None
         penalties_applied: list[str] = []
@@ -325,39 +329,24 @@ class BlueprintTransformer:
                     v2_results.extend(parsed_atoms)
                 except ValidationError as val_err:
                     msg = f"Failed to parse AtomResultDTO list in execution results: {val_err}"
-                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                     raise AppException(
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from val_err
-            elif (
-                dto.block_id == "hydrated_references"
-                and not isinstance(dto.payload, (str, int, float, bool, list))
-                and dto.payload is not None
-            ):
-                for k, v in dto.payload.items():  # type: ignore[union-attr]
-                    if isinstance(v, HydratedAtomDTO):
-                        v2_hydrated_refs[str(k)] = v
-                    elif not isinstance(v, (str, int, float, bool, list)) and v is not None:
-                        try:
-                            v2_hydrated_refs[str(k)] = HydratedAtomDTO.model_validate(v)
-                        except ValidationError as val_err:
-                            msg = f"Failed to parse HydratedAtomDTO in execution results: {val_err}"
-                            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                            raise AppException(
-                                message=msg,
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from val_err
-                    else:
-                        msg = f"Invalid hydrated reference format for key '{k}' in execution results."
-                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
+            elif dto.block_id == "hydrated_references" and dto.payload:
+                try:
+                    wrapper = HydratedReferencesPayloadDTO.model_validate({"hydrated_references": dto.payload})
+                    v2_hydrated_refs.update(wrapper.hydrated_references)
+                except (ValidationError, TypeError, AttributeError, ValueError) as val_err:
+                    msg = f"Failed to parse HydratedAtomDTO in execution results: {val_err}"
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from val_err
 
         workflow_steps_map = {s.id: s for s in workflow_obj.steps}
         expected_inputs_list = workflow_obj.expected_inputs
@@ -414,7 +403,9 @@ class BlueprintTransformer:
                             step_meta = TraceEventMetadataEnvelope.model_validate(ev.content).step_metadata
                         except (ValidationError, ValueError) as val_err:
                             msg = f"Corrupted TraceEventMetadataEnvelope in execution trace: {val_err}"
-                            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            logger.error(
+                                "[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True
+                            )
                             raise AppException(
                                 message=msg,
                                 status_code=500,
