@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import argparse
 import ast
-from copy import deepcopy
-from dataclasses import dataclass
-from pathlib import Path
 import subprocess
 import sys
 import time
+from copy import deepcopy
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -56,7 +56,7 @@ MUTATION_MAP_BINOP: dict[type[ast.operator], type[ast.operator]] = {
     ast.Pow: ast.Mult,
 }
 
-AST_OP_CONSTRUCTORS: dict[str, type[ast.AST]] = {
+AST_COMPARE_CONSTRUCTORS: dict[str, type[ast.cmpop]] = {
     "Eq": ast.Eq,
     "NotEq": ast.NotEq,
     "Lt": ast.Lt,
@@ -67,6 +67,9 @@ AST_OP_CONSTRUCTORS: dict[str, type[ast.AST]] = {
     "NotIn": ast.NotIn,
     "Is": ast.Is,
     "IsNot": ast.IsNot,
+}
+
+AST_BINOP_CONSTRUCTORS: dict[str, type[ast.operator]] = {
     "Add": ast.Add,
     "Sub": ast.Sub,
     "Mult": ast.Mult,
@@ -240,7 +243,7 @@ class SingleASTMutator(ast.NodeTransformer):
             and node.col_offset == self.spec.col_offset
         ):
             new_ops = list(node.ops)
-            target_op_cls = AST_OP_CONSTRUCTORS[self.spec.mutated_op]
+            target_op_cls = AST_COMPARE_CONSTRUCTORS[self.spec.mutated_op]
             new_ops[self.spec.op_index] = target_op_cls()
             node.ops = new_ops
             self.mutated = True
@@ -253,7 +256,7 @@ class SingleASTMutator(ast.NodeTransformer):
             and node.lineno == self.spec.lineno
             and node.col_offset == self.spec.col_offset
         ):
-            target_op_cls = AST_OP_CONSTRUCTORS[self.spec.mutated_op]
+            target_op_cls = AST_BINOP_CONSTRUCTORS[self.spec.mutated_op]
             node.op = target_op_cls()
             self.mutated = True
         return self.generic_visit(node)
@@ -265,7 +268,7 @@ class SingleASTMutator(ast.NodeTransformer):
             and node.lineno == self.spec.lineno
             and node.col_offset == self.spec.col_offset
         ):
-            target_op_cls = AST_OP_CONSTRUCTORS[self.spec.mutated_op]
+            target_op_cls = AST_BINOP_CONSTRUCTORS[self.spec.mutated_op]
             node.op = target_op_cls()
             self.mutated = True
         return self.generic_visit(node)
@@ -508,8 +511,12 @@ def main() -> None:
         print(report.model_dump_json(indent=2))
         sys.exit(0 if report.success else 1)
 
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    import io
+
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if isinstance(sys.stderr, io.TextIOWrapper):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
     print("=" * 80)
     print("QUORUM V2 AST MUTATION INVARIANCE REPORT")
@@ -519,13 +526,17 @@ def main() -> None:
         print(f"\nTarget: {target_report.target_name}")
         print(f"  Source File: {target_report.target_file}")
         print(f"  Test File:   {target_report.test_file}")
-        print(f"  Mutants:     {target_report.killed_mutants}/{target_report.total_mutants} killed ({target_report.kill_rate:.1f}%)")
+        print(
+            f"  Mutants:     {target_report.killed_mutants}/{target_report.total_mutants} killed ({target_report.kill_rate:.1f}%)"
+        )
 
         if target_report.survived_mutants > 0:
             print("  [WARN] SURVIVING MUTANTS DETECTED:")
             for res in target_report.results:
                 if not res.killed:
-                    print(f"    - L{res.spec.lineno}:{res.spec.col_offset} [{res.spec.original_op} -> {res.spec.mutated_op}] {res.spec.description}")
+                    print(
+                        f"    - L{res.spec.lineno}:{res.spec.col_offset} [{res.spec.original_op} -> {res.spec.mutated_op}] {res.spec.description}"
+                    )
 
     print("\n" + "-" * 80)
     print(f"Overall Mutant Kill Rate: {report.overall_kill_rate:.1f}% ({elapsed:.2f}s)")

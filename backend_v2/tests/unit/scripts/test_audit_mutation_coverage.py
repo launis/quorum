@@ -7,20 +7,24 @@ surviving mutant detection, and full mathematical invariance across targets.
 from __future__ import annotations
 
 import ast
-import tempfile
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 from unittest.mock import patch
 
 import pytest
 
 from scripts.audit_mutation_coverage import (
     DEFAULT_TARGETS,
+    MutationResult,
     MutationSpec,
     TargetAuditReport,
     TargetConfig,
     apply_mutation,
     audit_target_mutations,
     collect_mutation_sites,
+    main,
     run_mutation_audit,
 )
 
@@ -189,3 +193,125 @@ def test_mutation_coverage_kills_all_arithmetic_mutants() -> None:
     assert report.survived_mutants == 0
     assert report.kill_rate == 100.0
     assert all(r.killed for r in report.results)
+
+
+def test_audit_target_mutations_missing_source_file_raises() -> None:
+    """Verifies that audit_target_mutations raises FileNotFoundError for missing source file."""
+    target = TargetConfig(name="missing", target_file="nonexistent_src.py", test_file="tests/test_foo.py")
+    with pytest.raises(FileNotFoundError, match="Target source file not found"):
+        audit_target_mutations(target)
+
+
+def test_audit_target_mutations_missing_test_file_raises() -> None:
+    """Verifies that audit_target_mutations raises FileNotFoundError for missing test file."""
+    existing_src = DEFAULT_TARGETS[0].target_file
+    target = TargetConfig(name="missing_test", target_file=existing_src, test_file="nonexistent_test.py")
+    with pytest.raises(FileNotFoundError, match="Target test suite file not found"):
+        audit_target_mutations(target)
+
+
+def test_audit_target_mutations_timeout_expired() -> None:
+    """Verifies that timeout during mutant execution treats mutant as killed."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        dummy_src = tmp_path / "dummy_math.py"
+        dummy_test = tmp_path / "test_dummy_math.py"
+        dummy_src.write_text("def f(x: int) -> int:\n    return x + 1\n", encoding="utf-8")
+        dummy_test.write_text("def test_f(): pass\n", encoding="utf-8")
+
+        target = TargetConfig(name="dummy", target_file=str(dummy_src), test_file=str(dummy_test))
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd=["pytest"], timeout=1.0)):
+            report = audit_target_mutations(target, max_mutants=1)
+            assert report.total_mutants == 1
+            assert report.killed_mutants == 1
+            assert "TIMEOUT" in (report.results[0].killer_output or "")
+
+
+def test_main_cli_dry_run_json(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies CLI execution with --dry-run and --json."""
+    test_args = [
+        "scripts/audit_mutation_coverage.py",
+        "--dry-run",
+        "--json",
+        "--target=topological_evaluator",
+        "--max-mutants=2",
+    ]
+    with patch.object(sys, "argv", test_args):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 0
+        captured = capsys.readouterr()
+        assert '"success": true' in captured.out
+
+
+def test_main_cli_dry_run_console_success(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies CLI execution with --dry-run and human-readable console report."""
+    test_args = ["scripts/audit_mutation_coverage.py", "--dry-run", "--target=unified_engine", "--max-mutants=2"]
+    with patch.object(sys, "argv", test_args):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 0
+        captured = capsys.readouterr()
+        assert "QUORUM V2 AST MUTATION INVARIANCE REPORT" in captured.out
+        assert "[PASS] MUTATION INVARIANCE VERIFIED" in captured.out
+
+
+def test_main_cli_surviving_mutants_failure(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies CLI handles surviving mutants in console reporting and exits with 1."""
+    failing_report = TargetAuditReport(
+        target_name="mock_target",
+        target_file="mock.py",
+        test_file="test_mock.py",
+        total_mutants=2,
+        killed_mutants=1,
+        survived_mutants=1,
+        kill_rate=50.0,
+        results=[
+            MutationResult(
+                spec=MutationSpec(
+                    target_type="Compare",
+                    filepath="mock.py",
+                    lineno=10,
+                    col_offset=4,
+                    op_index=0,
+                    original_op="Eq",
+                    mutated_op="NotEq",
+                    description="mock mutation",
+                ),
+                killed=False,
+                killer_output=None,
+            )
+        ],
+    )
+    with patch("scripts.audit_mutation_coverage.audit_target_mutations", return_value=failing_report):
+        test_args = ["scripts/audit_mutation_coverage.py", "--target=unified_engine", "--strict"]
+        with patch.object(sys, "argv", test_args):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+            captured = capsys.readouterr()
+            assert "[WARN] SURVIVING MUTANTS DETECTED" in captured.out
+            assert "[FAIL] MUTATION AUDIT FAILED" in captured.out
+
+
+def test_main_cli_json_failure(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies CLI exits with 1 on JSON output failure."""
+    failing_report = TargetAuditReport(
+        target_name="mock_target",
+        target_file="mock.py",
+        test_file="test_mock.py",
+        total_mutants=1,
+        killed_mutants=0,
+        survived_mutants=1,
+        kill_rate=0.0,
+        results=[],
+    )
+    with patch("scripts.audit_mutation_coverage.audit_target_mutations", return_value=failing_report):
+        test_args = ["scripts/audit_mutation_coverage.py", "--json"]
+        with patch.object(sys, "argv", test_args):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1
+            captured = capsys.readouterr()
+            assert '"success": false' in captured.out
+

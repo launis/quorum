@@ -150,9 +150,9 @@
   - [x] @[backend_v2/services/ingress/pdf_chat_extractor.py]
   - [x] @[backend_v2/services/mcp/tavily_search_client.py]
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
-  - [ ] @[backend_v2/templates/report_template.jinja2]
-  - [ ] @[backend_v2/workers/synthesis_reducers.py]
-  - [ ] [NEW] @[scripts/audit_mutation_coverage.py]
+  - [x] @[backend_v2/templates/report_template.jinja2]
+  - [x] @[backend_v2/workers/synthesis_reducers.py]
+  - [x] [NEW] @[scripts/audit_mutation_coverage.py]
   - [ ] @[backend_v2/utils/scoring/unified_engine.py]
   - [ ] @[backend_v2/services/orchestrator/topological_evaluator.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
@@ -268,6 +268,7 @@
 - Post-Implementation Gates (Hardening Batch 14): Audited and verified `backend_v2/services/chat_normalizer.py`, `backend_v2/services/chat_parser.py`, and `backend_v2/services/drivers/gcs_file_driver.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93%, 95%, and 100%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero naked dictionaries, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks with explicit ErrorCode enumerations, RFC 7807 structured dual-logging with `extra={"error_code": ...}` and `exc_info=True`, and added comprehensive ISTQB negative exception tests covering boundary values, client lazy initialization, and blob/directory streaming errors.
 - Post-Implementation Gates (Hardening Batch 15): Audited and verified `backend_v2/services/execution/ingress_service.py`, `backend_v2/services/execution/lifecycle_service.py`, and `backend_v2/services/execution/stream_service.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 96%, and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero naked dictionaries, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks with explicit ErrorCode enumerations, RFC 7807 structured dual-logging with `extra={"error_code": ...}` and `exc_info=True`, and added comprehensive ISTQB negative and boundary test cases covering malformed step blueprints, missing prompt blocks, model registry failures, multi-tenant execution isolation, cascading artifact deletions, SSE status streaming transitions, and transient connection retries (`0329a3d1e`, `0739de3e3`, `12c448307`).
 - Post-Implementation Gates (Hardening Batch 16): Audited and verified `backend_v2/services/ingress/pdf_chat_extractor.py`, `backend_v2/services/mcp/tavily_search_client.py`, and `backend_v2/services/orchestrator/two_pass_atomizer.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (96%, 97%, and 97%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, typed Pydantic V2 DTOs with zero unannotated accumulators, PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks with explicit ErrorCode enumerations, RFC 7807 structured dual-logging with `extra={"error_code": ...}`, and comprehensive ISTQB boundary and negative exception tests (`bbc2a2bad`, `d4f4015c0`, `bbd11cad0`).
+- Post-Implementation Gates (Hardening Batch 17): Audited and verified `backend_v2/templates/report_template.jinja2`, `backend_v2/workers/synthesis_reducers.py`, and `scripts/audit_mutation_coverage.py` via `/tier2-hardening-backend`. All targets passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (95% for `synthesis_reducers.py`, 99% for `audit_mutation_coverage.py`), passed AST strict guardrails with 0 violations, verified 0 lazy fallbacks in `report_template.jinja2`, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Split AST operator constructors into strictly typed `AST_COMPARE_CONSTRUCTORS` and `AST_BINOP_CONSTRUCTORS`, narrowed Windows stdout/stderr reconfigure to `io.TextIOWrapper`, and expanded unit test coverage across all mutation failure and CLI modes.
 
 ## Learned
 - GCS File Driver Error Semantics & Re-Raise Propagation: In `GCSFileDriver`, `_get_bucket` and storage operations must explicitly intercept and re-raise pre-existing `AppException` instances (`except AppException: raise`) to prevent double-wrapping inner domain exceptions in generic `GCS Initialization Failed` errors while preserving RFC 7807 status codes.
@@ -279,11 +280,15 @@
 - PDF Vector Bubble Classification & Error Propagation: In `PdfChatExtractorService`, truncation warnings and zero-message errors log RFC 7807 structured errors with `extra={"error_code": ErrorCodes.VALIDATION_FAILED.value}` before raising 422 AppException, and all helper routines enforce PEP 257 parameter blocks.
 - Tavily Client Retry Predicate Docstrings: In `tavily_search_client.py`, `_is_transient_error` provides a Google-style docstring terminating with a period, and blanket `# type: ignore` comments were eradicated.
 - Two-Pass Atomizer Accumulator Typing: In `TwoPassAtomizer`, all intermediate accumulator lists, dictionaries (`all_entities`, `local_alias_map`), and asyncio Task collections are explicitly typed with generic Pydantic DTOs and primitives, preventing duck-typing and unannotated dict mutation.
+- AST Mutation Constructor Typing Parity: In `scripts/audit_mutation_coverage.py`, `AST_OP_CONSTRUCTORS` was partitioned into `AST_COMPARE_CONSTRUCTORS: dict[str, type[ast.cmpop]]` and `AST_BINOP_CONSTRUCTORS: dict[str, type[ast.operator]]` to satisfy strict MyPy typed assignment across node operators.
+- Python 3.14 Standard Stream Reconfiguration: `sys.stdout.reconfigure()` and `sys.stderr.reconfigure()` must guard access with `isinstance(sys.stdout, io.TextIOWrapper)` to guarantee type safety under MyPy strict mode.
+- Synthesis Reducers Data Starvation & Failure Isolation: In `synthesis_reducers.py`, Phase 3 synthesis failures update virtual step states (`sys_render_{profile_id}`) without failing Phase 1 execution status, preserving execution audit trails and RFC 7807 structured logging.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/templates/report_template.jinja2`, `backend_v2/workers/synthesis_reducers.py`, `scripts/audit_mutation_coverage.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/utils/scoring/unified_engine.py`, `backend_v2/services/orchestrator/topological_evaluator.py`, `backend_v2/services/orchestrator/dag_executor.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/templates/report_template.jinja2] @[backend_v2/workers/synthesis_reducers.py] @[scripts/audit_mutation_coverage.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/utils/scoring/unified_engine.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[docs/epic/EPIC_156_tracker.md]
 ```
+
