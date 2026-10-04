@@ -528,3 +528,164 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     with pytest.raises(AppException) as exc_info:
         await service_reg_missing.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_generate_sdui_hints_invalid_step_format_raises() -> None:
+    """Verify _generate_sdui_hints raises AppException when step blueprint fails Pydantic validation."""
+    workflow = _create_test_workflow()
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_step_by_id.return_value = {"id": "invalid_id_not_matching_step_schema"}
+
+    with pytest.raises(AppException) as exc_info:
+        await _generate_sdui_hints(
+            workflow=workflow,
+            prompt_block_repo=InMemoryBlueprintTransformerRepository(),
+            workflow_repo=workflow_repo,
+            target_locale="en",
+        )
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> None:
+    """Verify _generate_sdui_hints raises ConfigurationError on missing PB and AppException on malformed PB."""
+    workflow = _create_test_workflow()
+    step_obj = Step(
+        id="stp_0123456789abcdef",
+        slug="analytical-step",
+        name=I18nText(translations={"en": "Analytical Step"}),
+        type=StepType.LOGIC,
+        hook="my_hook",
+        role_block_id="blk_0123456789abcdef",
+    )
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    prompt_block_repo.get_prompt_block_by_id.return_value = None
+
+    # Missing PB raises ConfigurationError
+    with pytest.raises(ConfigurationError):
+        await _generate_sdui_hints(
+            workflow=workflow,
+            prompt_block_repo=prompt_block_repo,
+            workflow_repo=workflow_repo,
+            target_locale="en",
+        )
+
+    # Malformed PB raises AppException(status_code=500)
+    prompt_block_repo.get_prompt_block_by_id.return_value = {"id": "invalid_not_prompt_block"}
+    with pytest.raises(AppException) as exc_info:
+        await _generate_sdui_hints(
+            workflow=workflow,
+            prompt_block_repo=prompt_block_repo,
+            workflow_repo=workflow_repo,
+            target_locale="en",
+        )
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
+    """Verify start_execution invokes doc_service.process_ingress_payload when provided."""
+    workflow = _create_test_workflow()
+    step_obj = Step(
+        id="stp_0123456789abcdef",
+        slug="analytical-step",
+        name=I18nText(translations={"en": "Analytical Step"}),
+        type=StepType.LOGIC,
+        hook="my_hook",
+    )
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
+
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo.get_output_profile_by_id.return_value = OutputProfile(
+        id="prf_0123456789abcdef",
+        slug="test-profile",
+        name=I18nText(translations={"en": "Test Profile"}),
+        workflow_id="wor_0123456789abcdef",
+        target_block_order=[],
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
+    ).model_dump()
+
+    system_repo = InMemoryBlueprintTransformerRepository()
+    system_repo.get_model_registry.return_value = {"id": "sys_e26807f3bfa3454d"}
+
+    service = ExecutionIngressService(
+        exec_repo=InMemoryBlueprintTransformerRepository(),
+        workflow_repo=workflow_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=output_profile_repo,
+        system_repo=system_repo,
+    )
+
+    doc_service = AsyncMock()
+    processed_ingress = WorkflowInputsIngress(dynamic_inputs={"chat_log": "Extracted text"})
+    doc_service.process_ingress_payload = AsyncMock(return_value=processed_ingress)
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Raw input"}),
+        target_locale="en",
+    )
+
+    record = await service.start_execution(
+        initiator=initiator,
+        payload=payload,
+        arq_pool=AsyncMock(),
+        doc_service=doc_service,
+    )
+    assert record.raw_inputs.dynamic_inputs["chat_log"] == "Extracted text"
+    assert doc_service.process_ingress_payload.called
+
+
+@pytest.mark.asyncio
+async def test_start_execution_missing_model_registry_id_raises(initiator: TokenData) -> None:
+    """Verify start_execution raises 404 when model_registry_id resolves to empty."""
+    workflow = _create_test_workflow()
+    step_obj = Step(
+        id="stp_0123456789abcdef",
+        slug="analytical-step",
+        name=I18nText(translations={"en": "Analytical Step"}),
+        type=StepType.LOGIC,
+        hook="my_hook",
+    )
+    workflow_repo = InMemoryBlueprintTransformerRepository()
+    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
+
+    prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo = InMemoryBlueprintTransformerRepository()
+    output_profile_repo.get_output_profile_by_id.return_value = OutputProfile(
+        id="prf_0123456789abcdef",
+        slug="test-profile",
+        name=I18nText(translations={"en": "Test Profile"}),
+        workflow_id="wor_0123456789abcdef",
+        target_block_order=[],
+        visible_block_extensions=[],
+        visible_workflow_extensions=[],
+    ).model_dump()
+
+    service = ExecutionIngressService(
+        exec_repo=InMemoryBlueprintTransformerRepository(),
+        workflow_repo=workflow_repo,
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=output_profile_repo,
+        system_repo=InMemoryBlueprintTransformerRepository(),
+    )
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
+        target_locale="en",
+        model_registry_id="",
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator, payload, AsyncMock())
+    assert exc_info.value.status_code == 404
+
