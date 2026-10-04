@@ -1,10 +1,24 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.xai import (
     CitationExtension,
+    CoachingExtension,
+    ComparisonDataDTO,
+    ConfidenceExtension,
     EmotionalSentimentExtension,
+    FalsificationExtension,
+    JustificationExtension,
+    MissingContextExtension,
+    RemediationStepsExtension,
+    ReportResult,
+    RiskFlagExtension,
+    SourceIDExtension,
+    TheoryLinkExtension,
+    VarianceValidationExtension,
     XAIOutput,
+    XAIOutputDTO,
     XAIReporterInput,
     XAIScoreItem,
 )
@@ -74,3 +88,64 @@ def test_xai_output_frozen_and_strict() -> None:
     }
     with pytest.raises(ValidationError):
         XAIOutput.model_validate(data)
+
+
+def test_xai_output_confidence_score_negative_out_of_bounds() -> None:
+    """Test that confidence_score < 0.0 or > 1.0 raises AppException with VALIDATION_FAILED."""
+    assert XAIOutputDTO.validate_confidence_score_bounds(0.8) == 0.8
+
+    with pytest.raises(AppException) as exc_info:
+        XAIOutputDTO.validate_confidence_score_bounds(1.5)
+    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED
+
+    with pytest.raises(AppException) as exc_info_neg:
+        XAIOutputDTO.validate_confidence_score_bounds(-0.1)
+    assert exc_info_neg.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED
+
+
+
+def test_additional_extension_types_and_results() -> None:
+    """Test all additional XAI extension models and ReportResult."""
+    just = JustificationExtension(reasoning="Because of metric evidence.")
+    assert just.reasoning == "Because of metric evidence."
+
+    fals = FalsificationExtension(counter_argument="Alternative hypothesis.", vulnerabilities=["v1"])
+    assert fals.counter_argument == "Alternative hypothesis."
+
+    theory = TheoryLinkExtension(theory_name="Kahneman L1", relevance="High relevance.")
+    assert theory.theory_name == "Kahneman L1"
+
+    risk = RiskFlagExtension(risk_level="HIGH", description="Severe hazard.")
+    assert risk.risk_level == "HIGH"
+
+    coach = CoachingExtension(actionable_steps=["step 1"])
+    assert len(coach.actionable_steps) == 1
+
+    missing = MissingContextExtension(context_needed="User intent.")
+    assert missing.context_needed == "User intent."
+
+    rem = RemediationStepsExtension(steps=["Fix step"])
+    assert len(rem.steps) == 1
+
+    conf = ConfidenceExtension(confidence_score=0.85, rationale="Consistent evidence.")
+    assert conf.confidence_score == 0.85
+
+    src = SourceIDExtension(source_id="src_42")
+    assert src.source_id == "src_42"
+
+    var = VarianceValidationExtension(
+        mechanical_metric_ref="met_1",
+        cognitive_metric_ref="cog_1",
+        variance_score=0.15,
+        alignment_verdict="ALIGNED",
+    )
+    assert var.variance_score == 0.15
+
+    comp = ComparisonDataDTO(baseline_score=4.0, delta=0.5, trend="UPWARD")
+    assert comp.baseline_score == 4.0
+
+    rep = ReportResult(report_content="# Summary\nAll good.")
+    assert rep.format == "markdown"
+
+    with pytest.raises(ValidationError):
+        JustificationExtension(reasoning="Valid", extra_field="fail")  # type: ignore[call-arg]

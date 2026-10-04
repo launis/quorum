@@ -7,6 +7,7 @@ from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
     AtomExecutionState,
     CausalEdge,
+    ChunkPacketDTO,
     ExtractedAtom,
     GlobalOntologyMap,
     LinkedAtomGraph,
@@ -208,3 +209,27 @@ def test_atom_evaluation_result_dto_source_quote_max_length() -> None:
             status=ExecutionStatus.PASSED,
             source_quote=oversized_quote,
         )
+
+
+def test_chunk_packet_dto_valid() -> None:
+    """Test ChunkPacketDTO with valid data."""
+    packet = ChunkPacketDTO(
+        start_block="blk_start",
+        end_block="blk_end",
+        packet_keys=["k1", "k2"],
+    )
+    assert packet.start_block == "blk_start"
+    assert packet.end_block == "blk_end"
+    assert packet.packet_keys == ["k1", "k2"]
+
+
+def test_chunk_packet_dto_forbids_extra() -> None:
+    """Test ChunkPacketDTO strictly forbids extra fields."""
+    with pytest.raises(ValidationError):
+        ChunkPacketDTO(
+            start_block="blk_start",
+            end_block="blk_end",
+            packet_keys=["k1"],
+            extra_field="disallowed",  # type: ignore[call-arg]
+        )
+

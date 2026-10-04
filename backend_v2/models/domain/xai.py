@@ -27,6 +27,28 @@ from backend_v2.models.enums import XaiExtensionType
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CitationExtension",
+    "CoachingExtension",
+    "ComparisonDataDTO",
+    "ConfidenceExtension",
+    "EmotionalSentimentExtension",
+    "FalsificationExtension",
+    "JustificationExtension",
+    "MissingContextExtension",
+    "RemediationStepsExtension",
+    "ReportResult",
+    "RiskFlagExtension",
+    "SourceIDExtension",
+    "TheoryLinkExtension",
+    "VarianceValidationExtension",
+    "XAIExtension",
+    "XAIOutput",
+    "XAIOutputDTO",
+    "XAIReporterInput",
+    "XAIScoreItem",
+]
+
 
 class XAIReporterInput(V2CoreBase):
     """Strict input schema for XAIReporterAgent.
@@ -98,7 +120,14 @@ class XAIScoreItem(V2CoreBase):
 
 
 class CitationExtension(V2CoreBase):
-    """Citation extension block metadata."""
+    """Citation extension block metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.CITATION.
+        source_id: Unique reference document source ID.
+        snippet: The captured exact contextual snippet text.
+        url: Optional direct reference web link.
+    """
 
     model_config = ConfigDict(title="citation", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.CITATION] = XaiExtensionType.CITATION
@@ -108,7 +137,12 @@ class CitationExtension(V2CoreBase):
 
 
 class JustificationExtension(V2CoreBase):
-    """Reasoning justification extension metadata."""
+    """Reasoning justification extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.JUSTIFICATION.
+        reasoning: The explanatory text justification.
+    """
 
     model_config = ConfigDict(title="justification", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.JUSTIFICATION] = XaiExtensionType.JUSTIFICATION
@@ -116,7 +150,13 @@ class JustificationExtension(V2CoreBase):
 
 
 class FalsificationExtension(V2CoreBase):
-    """Falsification extension metadata."""
+    """Falsification extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.FALSIFICATION.
+        counter_argument: The key falsification counter argument.
+        vulnerabilities: Specific logical vulnerabilities detected.
+    """
 
     model_config = ConfigDict(title="falsification", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.FALSIFICATION] = XaiExtensionType.FALSIFICATION
@@ -128,7 +168,13 @@ class FalsificationExtension(V2CoreBase):
 
 
 class TheoryLinkExtension(V2CoreBase):
-    """Theory link extension metadata."""
+    """Theory link extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.THEORY_LINK.
+        theory_name: Name of referenced academic/logical framework.
+        relevance: Direct relevance alignment explanation.
+    """
 
     model_config = ConfigDict(title="theory_link", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.THEORY_LINK] = XaiExtensionType.THEORY_LINK
@@ -137,7 +183,13 @@ class TheoryLinkExtension(V2CoreBase):
 
 
 class RiskFlagExtension(V2CoreBase):
-    """Risk flag extension metadata."""
+    """Risk flag extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.RISK_FLAG.
+        risk_level: Assessed hazard status.
+        description: Explaining context behind hazard determination.
+    """
 
     model_config = ConfigDict(title="risk_flag", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.RISK_FLAG] = XaiExtensionType.RISK_FLAG
@@ -146,7 +198,12 @@ class RiskFlagExtension(V2CoreBase):
 
 
 class CoachingExtension(V2CoreBase):
-    """Coaching guidance extensions metadata."""
+    """Coaching guidance extensions metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.COACHING.
+        actionable_steps: Structured actions for improvement.
+    """
 
     model_config = ConfigDict(title="coaching", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.COACHING] = XaiExtensionType.COACHING
@@ -157,7 +214,12 @@ class CoachingExtension(V2CoreBase):
 
 
 class MissingContextExtension(V2CoreBase):
-    """Missing context indicator metadata."""
+    """Missing context indicator metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.MISSING_CONTEXT.
+        context_needed: Explicit context points missing from execution pipeline.
+    """
 
     model_config = ConfigDict(title="missing_context", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.MISSING_CONTEXT] = XaiExtensionType.MISSING_CONTEXT
@@ -165,7 +227,12 @@ class MissingContextExtension(V2CoreBase):
 
 
 class RemediationStepsExtension(V2CoreBase):
-    """Remediation steps suggestions metadata."""
+    """Remediation steps suggestions metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.REMEDIATION_STEPS.
+        steps: Sequence of operations to apply to mitigate errors.
+    """
 
     model_config = ConfigDict(title="remediation_steps", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.REMEDIATION_STEPS] = XaiExtensionType.REMEDIATION_STEPS
@@ -176,7 +243,13 @@ class RemediationStepsExtension(V2CoreBase):
 
 
 class EmotionalSentimentExtension(V2CoreBase):
-    """Linguistic emotion assessment extension metadata."""
+    """Linguistic emotion assessment extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.EMOTIONAL_SENTIMENT.
+        sentiment: Detected subjective linguistic tone.
+        intensity: Numeric magnitude of evaluated emotional tone.
+    """
 
     model_config = ConfigDict(title="emotional_sentiment", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.EMOTIONAL_SENTIMENT] = XaiExtensionType.EMOTIONAL_SENTIMENT
@@ -185,7 +258,13 @@ class EmotionalSentimentExtension(V2CoreBase):
 
 
 class ConfidenceExtension(V2CoreBase):
-    """Mathematical confidence assessment extension metadata."""
+    """Mathematical confidence assessment extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.CONFIDENCE.
+        confidence_score: Numeric value between 0.0 and 1.0 indicating security factor.
+        rationale: Systematic evaluation context behind computed confidence level.
+    """
 
     model_config = ConfigDict(title="confidence", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.CONFIDENCE] = XaiExtensionType.CONFIDENCE
@@ -196,7 +275,12 @@ class ConfidenceExtension(V2CoreBase):
 
 
 class SourceIDExtension(V2CoreBase):
-    """Source referencing extension metadata."""
+    """Source referencing extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.SOURCE_ID.
+        source_id: The exact reference target key index identifier.
+    """
 
     model_config = ConfigDict(title="source_id", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.SOURCE_ID] = XaiExtensionType.SOURCE_ID
@@ -204,7 +288,15 @@ class SourceIDExtension(V2CoreBase):
 
 
 class VarianceValidationExtension(V2CoreBase):
-    """Variance validation extension metadata."""
+    """Variance validation extension metadata.
+
+    Attributes:
+        extension_type: Category discriminator matching XaiExtensionType.VARIANCE_VALIDATION.
+        mechanical_metric_ref: Reference to the mechanical metric key used.
+        cognitive_metric_ref: Reference to the cognitive agent score key used.
+        variance_score: Calculated absolute variance between mechanical and cognitive assessments.
+        alignment_verdict: Abstract verdict (e.g., 'ALIGNED', 'MISALIGNED_SYCOPHANCY').
+    """
 
     model_config = ConfigDict(title="variance_validation", strict=True, extra="forbid")
     extension_type: Literal[XaiExtensionType.VARIANCE_VALIDATION] = XaiExtensionType.VARIANCE_VALIDATION
@@ -270,7 +362,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    output_extensions: list[XAIExtension] = Field(default_factory=list, description="XAI extensions.")
+    output_extensions: Annotated[list[XAIExtension], Field(default_factory=list, description="XAI extensions.")]
     comparison_data: Annotated[
         ComparisonDataDTO | None,
         Field(description="Structured comparison data.", json_schema_extra={"x-ui-label": "Comparison Data"}),
