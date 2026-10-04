@@ -4,8 +4,10 @@ Provides strict Pydantic V2 validation schemas for the security hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Annotated, Any
+from typing import Annotated, Any, Self, override
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -15,6 +17,13 @@ from backend_v2.models.domain.base import ReasoningTraceDTO
 from backend_v2.models.enums import LaxRiskLevel, LaxSimulationType
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "InputProcessingOutputDTO",
+    "SanitizationResultDTO",
+    "SecurityCheck",
+    "SecurityPayloadDTO",
+]
 
 
 class SecurityPayloadDTO(V2CoreBase):
@@ -26,8 +35,12 @@ class SecurityPayloadDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    root: Annotated[dict[str, Any], Field(default_factory=dict)]
+    root: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="Raw state inputs mapping."),
+    ]
 
+    @override
     @classmethod
     def model_validate(
         cls,
@@ -40,6 +53,20 @@ class SecurityPayloadDTO(V2CoreBase):
         by_name: bool | None = None,
         extra: Any | None = None,
     ) -> SecurityPayloadDTO:
+        """Validate and wrap arbitrary incoming payload into SecurityPayloadDTO.
+
+        Args:
+            obj: The object or raw dictionary payload to validate.
+            strict: Whether to enforce strict types.
+            from_attributes: Whether to extract attributes from objects.
+            context: Optional validation context.
+            by_alias: Whether to query by alias.
+            by_name: Whether to query by name.
+            extra: Extra validation configuration.
+
+        Returns:
+            Validated SecurityPayloadDTO instance.
+        """
         if type(obj) is dict:
             return cls(root=obj)
         return super().model_validate(
@@ -62,7 +89,7 @@ class SanitizationResultDTO(V2CoreBase):
         threat_detected: Flag indicating if a threat was detected.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     sanitized_inputs: Annotated[dict[str, str], Field(description="The inputs after sanitization")]
     security_status: Annotated[str, Field(min_length=1, description="Status of the security check")]
@@ -82,7 +109,7 @@ class SecurityCheck(V2CoreBase):
         pii_findings: List of PII findings.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     threat_detected: Annotated[
         bool,
@@ -129,13 +156,14 @@ class SecurityCheck(V2CoreBase):
         """
         if not (1.0 <= v <= 3.0):
             msg = "Score must be between 1.0 and 3.0 inclusive."
-            logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[GuardModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     simulation_result: Annotated[
         LaxSimulationType | None,
         Field(
+            default=None,
             description="Simulation result description.",
             json_schema_extra={"x-ui-label": "Simulation Result"},
         ),
@@ -166,7 +194,7 @@ class InputProcessingOutputDTO(ReasoningTraceDTO):
         security_check: Nested security check details.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     is_safe: Annotated[
         bool,
@@ -178,6 +206,7 @@ class InputProcessingOutputDTO(ReasoningTraceDTO):
     rejection_reason: Annotated[
         str | None,
         Field(
+            default=None,
             description="Reason for rejection if unsafe.",
             json_schema_extra={"x-ui-label": "Rejection Reason"},
         ),
@@ -185,13 +214,14 @@ class InputProcessingOutputDTO(ReasoningTraceDTO):
     security_check: Annotated[
         SecurityCheck | None,
         Field(
+            default=None,
             description="Security scan results.",
             json_schema_extra={"x-ui-label": "Security Check"},
         ),
     ] = None
 
     @model_validator(mode="after")
-    def validate_safety_reason(self) -> InputProcessingOutputDTO:
+    def validate_safety_reason(self) -> Self:
         """Validates that a rejection reason is provided if is_safe is False.
 
         Returns:
@@ -201,5 +231,7 @@ class InputProcessingOutputDTO(ReasoningTraceDTO):
             ValueError: If is_safe is False and rejection_reason is missing.
         """
         if not self.is_safe and not self.rejection_reason:
-            raise ValueError("rejection_reason must be provided if is_safe is False")
+            msg = "rejection_reason must be provided if is_safe is False"
+            logger.error("[SecurityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
         return self
