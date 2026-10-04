@@ -127,3 +127,50 @@ def test_generate_openapi_main_block_exception(monkeypatch: pytest.MonkeyPatch, 
         )
 
     assert exc_info.value.code == 1
+
+
+def test_generate_openapi_schema_custom_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Tests generate_openapi_schema with an explicit custom output_path."""
+    from backend_v2.scripts.generate_openapi import generate_openapi_schema
+
+    mock_app = MagicMock()
+    mock_app.openapi.return_value = {"openapi": "3.1.0", "info": {"title": "Custom Target"}}
+
+    class MockMain:
+        app = mock_app
+
+    import sys
+
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
+
+    custom_dest = tmp_path / "custom_dir" / "custom_schema.json"
+    result_path = generate_openapi_schema(custom_dest)
+
+    assert result_path == custom_dest
+    assert custom_dest.exists()
+    data = json.loads(custom_dest.read_text(encoding="utf-8"))
+    assert data["info"]["title"] == "Custom Target"
+
+
+def test_generate_openapi_main_block_keyboard_interrupt(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests that KeyboardInterrupt in __main__ block is re-raised cleanly."""
+    import runpy
+    import sys
+
+    mock_app = MagicMock()
+    mock_app.openapi.side_effect = KeyboardInterrupt()
+
+    class MockMain:
+        app = mock_app
+
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
+
+    if "backend_v2.scripts.generate_openapi" in sys.modules:
+        del sys.modules["backend_v2.scripts.generate_openapi"]
+
+    with pytest.raises(KeyboardInterrupt):
+        runpy.run_module(
+            "backend_v2.scripts.generate_openapi",
+            run_name="__main__",
+        )
+
