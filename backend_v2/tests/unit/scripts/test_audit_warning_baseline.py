@@ -175,6 +175,49 @@ def test_format_report_table() -> None:
     assert "PASSED" in table_str
 
 
+def test_format_report_table_failure_fatals() -> None:
+    """Negative: verifies table formatting reports failure when fatal violations exist."""
+    report = BaselineLedgerReportDTO(
+        target_directory="backend_v2",
+        fatal_count=2,
+        warning_count=0,
+        warning_ceiling=10,
+        rule_breakdown=[],
+        is_clean_of_fatals=False,
+        is_under_ceiling=True,
+    )
+    table_str = format_report_table(report)
+    assert "FAILED: Detected 2 fatal violations" in table_str
+
+
+def test_format_report_table_failure_ceiling() -> None:
+    """Negative: verifies table formatting reports failure when warning count exceeds ceiling."""
+    report = BaselineLedgerReportDTO(
+        target_directory="backend_v2",
+        fatal_count=0,
+        warning_count=12,
+        warning_ceiling=10,
+        rule_breakdown=[RuleWarningStatDTO(rule_code="QGR001", count=12)],
+        is_clean_of_fatals=True,
+        is_under_ceiling=False,
+    )
+    table_str = format_report_table(report)
+    assert "FAILED: Warning count (12) exceeds ceiling (10)" in table_str
+
+
+def test_main_cli_execution_plain_table(capsys: pytest.CaptureFixture[str]) -> None:
+    """Positive: verifies CLI execution with plain table output and success exit code 0."""
+    fake_violations: list[GuardrailViolation] = []
+    with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--target", "backend_v2"])
+        assert exc_info.value.code == 0
+        out, _ = capsys.readouterr()
+        assert "AST ADVISORY WARNING BASELINE LEDGER" in out
+        assert "PASSED" in out
+
+
+
 def test_main_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
     """Positive: verifies CLI execution with --json and success exit code 0."""
     fake_violations: list[GuardrailViolation] = []

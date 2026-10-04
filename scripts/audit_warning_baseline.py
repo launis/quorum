@@ -31,6 +31,15 @@ from scripts._ast_guardrails import GuardrailSeverity, scan_files_for_guardrails
 
 CURRENT_WARNING_CEILING = 0
 
+__all__ = [
+    "CURRENT_WARNING_CEILING",
+    "BaselineLedgerReportDTO",
+    "RuleWarningStatDTO",
+    "format_report_table",
+    "generate_baseline_report",
+    "main",
+]
+
 
 class RuleWarningStatDTO(V2CoreBase):
     """Warning statistics for a specific AST guardrail rule."""
@@ -60,7 +69,7 @@ def generate_baseline_report(
     ceiling: int = CURRENT_WARNING_CEILING,
     verify_zero: bool = False,
 ) -> BaselineLedgerReportDTO:
-    """Scans target directory and compiles a typed baseline ledger report.
+    """Scan target directory and compile a typed baseline ledger report.
 
     Args:
         target: Target directory or file to scan.
@@ -95,7 +104,7 @@ def generate_baseline_report(
 
 
 def format_report_table(report: BaselineLedgerReportDTO) -> str:
-    """Formats a BaselineLedgerReportDTO into a human-readable console table.
+    """Format a BaselineLedgerReportDTO into a human-readable console table.
 
     Args:
         report: BaselineLedgerReportDTO to format.
@@ -130,7 +139,11 @@ def format_report_table(report: BaselineLedgerReportDTO) -> str:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entry point for running the warning baseline ledger."""
+    """CLI entry point for running the warning baseline ledger.
+
+    Args:
+        argv: Optional list of command-line argument strings.
+    """
     parser = argparse.ArgumentParser(
         description="AST Warning Baseline Ledger (EPIC 156)",
     )
