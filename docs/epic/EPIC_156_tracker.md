@@ -135,9 +135,9 @@
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/domain/validation.py]
   - [x] @[backend_v2/models/dtos/matrix_scorecard.py]
-  - [ ] @[backend_v2/models/dtos/trace.py]
-  - [ ] @[backend_v2/run_worker.py]
-  - [ ] @[backend_v2/scripts/generate_openapi.py]
+  - [x] @[backend_v2/models/dtos/trace.py]
+  - [x] @[backend_v2/run_worker.py]
+  - [x] @[backend_v2/scripts/generate_openapi.py]
   - [ ] @[backend_v2/seed/run_seed.py]
   - [ ] @[backend_v2/services/auth.py]
   - [ ] @[backend_v2/services/cache/typed_cache.py]
@@ -263,9 +263,12 @@
 - Post-Implementation Gates (Hardening Batch 7): Audited and verified `backend_v2/hooks/llm.py`, `backend_v2/hooks/source_verification_hook.py`, and `backend_v2/llm/adapters/ai_studio_adapter.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, eradicated naked dictionaries and `Any` typings, removed ternary fallback operators (QGR016), implemented RFC 7807 dual-logging with `exc_info=True`, and added PEP 257 Google-style docstrings with formal `Raises:` error code enumerations (`6338620be`, `e042d9694`, `6f069e060`).
 - Post-Implementation Gates (Hardening Batch 8): Audited and verified `backend_v2/llm/adapters/openai_adapter.py`, `backend_v2/llm/adapters/vertex_adapter.py`, and `backend_v2/llm/handler.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, tightened parameter and return typings (`Settings`, `LLMProvider`), added connection pooling for async Redis in Vertex AI caching, implemented RFC 7807 structured dual-logging across all error pathways, and added PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks (`36a84897e`, `df0b9283a`).
 - Post-Implementation Gates (Hardening Batch 9): Audited and verified `backend_v2/llm/ingress_pipeline.py`, `backend_v2/llm/mock.py`, and `backend_v2/llm/schema_builder.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (94%, 100%, and 100%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, added RFC 7807 structured dual-logging (`exc_info=True`, `extra={"error_code": ...}`), added PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, and added ISTQB negative exception tests (`2ce385bbb`, `bc53f32bb`, `37e616be7`).
-- Post-Implementation Gates (Hardening Batch 11): Audited and verified `backend_v2/models/domain/step.py`, `backend_v2/models/domain/validation.py`, and `backend_v2/models/dtos/matrix_scorecard.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (98%, 100%, and 99%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, PEP 593 `Annotated` field definitions, RFC 7807 dual-logging with `exc_info=True`, and added comprehensive ISTQB negative, boundary, and model validation test cases (`d1ac46cfe`, `8a2bb6e03`, `b33f59d94`).
+- Post-Implementation Gates (Hardening Batch 12): Audited and verified `backend_v2/models/dtos/trace.py`, `backend_v2/run_worker.py`, and `backend_v2/scripts/generate_openapi.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 100%, and 95%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, PEP 257 Google-style docstrings with `Args:`, `Returns:`, and `Raises:` blocks, RFC 7807 structured dual-logging, and comprehensive ISTQB boundary and negative exception tests (`244b88dde`, `8ab5d3e0c`, `a169b1cac`).
 
 ## Learned
+- Pydantic Annotated Field Factory Assignment: In Pydantic V2 and MyPy strict mode, when a model attribute has `Field(default_factory=...)` inside PEP 593 `Annotated`, assigning `= Field(default_factory=...)` directly or using `Annotated[T, "description"] = Field(default_factory=...)` ensures MyPy's Pydantic plugin synthesizes an optional parameter in `__init__`, enabling zero-argument instantiation for parent models using `Field(default_factory=ChildModel)`.
+- AST QGR009 Enum Name Resolution: When instantiating `AppException`, details dictionaries must pass the enum attribute reference directly (e.g. `details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value}`) rather than local variable aliases (`error_code.value`) so that AST static guardrails can verify typed ErrorCodes binding.
+- OpenAPI Generator Extracted Helper Pattern: Extracting `generate_openapi_schema(output_path: Path | None = None) -> Path` from `main()` in CLI generation scripts allows unit tests to cleanly pass isolated temporary directories without patching global root paths or mutating production Swagger assets.
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
 - Arq Worker FakeRedis Compatibility: FakeRedis does not implement the Redis `INFO` command; calling `_patch_arq_logging()` no-ops the startup banner log in `Worker.main` and prevents pipe crashes against FakeRedis.
 - Step Output Polymorphic Union Completeness: When cognitive profiling hooks attach structured metrics under `profiler_metrics`, `StepPayloadValue` in `models/dtos/step_output.py` must include `ProfilerMetricsDTO` in its closed type union to allow Pydantic `strict=True` validation during `StateProjector.fold_trace`.
@@ -287,11 +290,11 @@
 - Model Validator Exception Typing Parity: In Pydantic `@model_validator(mode="after")`, docstrings must document `ValueError` rather than `AppException` when native `ValueError` is raised, maintaining strict Google-style docstring accuracy.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/models/dtos/trace.py`, `backend_v2/run_worker.py`, `backend_v2/scripts/generate_openapi.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/seed/run_seed.py`, `backend_v2/services/auth.py`, `backend_v2/services/cache/typed_cache.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/models/dtos/trace.py] @[backend_v2/run_worker.py] @[backend_v2/scripts/generate_openapi.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/seed/run_seed.py] @[backend_v2/services/auth.py] @[backend_v2/services/cache/typed_cache.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
