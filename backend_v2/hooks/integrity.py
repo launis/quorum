@@ -1,5 +1,7 @@
 """Integrity hooks for verifying citations and hypothesis linking."""
 
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
@@ -22,10 +24,16 @@ from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.integrity import CitationAudit
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.storage import get_storage_driver
-from backend_v2.settings import get_settings
+from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.paths import get_forensic_input_path
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "PayloadCitationVerificationDTO",
+    "enforce_hypothesis_linking_hook",
+    "verify_citation_integrity_hook",
+]
 
 
 @functools.lru_cache(maxsize=1)
@@ -58,7 +66,7 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
         A list of decoded string contents from forensic input files.
 
     Raises:
-        AppException: If the execution record cannot be found.
+        AppException: If the execution record cannot be found (ErrorCodes.STATE_INTEGRITY_ERROR).
     """
     source_texts: list[str] = []
     exec_record = await deps.exec_repo.get_execution(execution_id)
@@ -66,7 +74,7 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
     if not exec_record or not exec_record.raw_inputs:
         msg = f"Data Integrity Violation: Missing execution record for {execution_id}"
         logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
     dynamic_inputs = {}
@@ -131,7 +139,14 @@ def _is_hallucinated(quote: str, norm_corpus: str, threshold: float) -> bool:
 
 
 class PayloadCitationVerificationDTO(V2CoreBase):
-    """Result of citation verification against source corpus."""
+    """Result of citation verification against source corpus.
+
+    Attributes:
+        payload: AnalystOutput or EvaluationResult domain model with verified citations.
+        total_count: Total number of citations processed.
+        valid_count: Number of verified valid citations.
+        invalid_citations: List of hallucinated citation strings removed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -212,14 +227,14 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     Raises:
         AppException: If execution records or necessary input texts are missing,
-            or if local context documents fail to load.
+            or if local context documents fail to load (ErrorCodes.STATE_INTEGRITY_ERROR).
     """
     source_texts = await _gather_source_texts(state.execution_id, deps)
 
     if not source_texts:
         msg = "Data Integrity Violation: Missing input text in disk."
         logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name})
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     # 1b. Gather Context (RAG)
     rag_text = _gather_rag_context(state.global_context_vars)
@@ -232,7 +247,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         raise AppException(
             message=msg,
             status_code=500,
-            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
+            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
         ) from e
 
     # Phase 2: Unified normalized text space (BP-3/BP-4 Harmonization)
@@ -253,8 +268,6 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
     system_locale = state.global_context_vars.system_locale
-    from backend_v2.settings import get_lexical_fuzz_threshold
-
     threshold = get_lexical_fuzz_threshold(system_locale)
 
     verification = _verify_payload_citations(parsed_payload, norm_corpus, threshold)
@@ -305,7 +318,8 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
         A HookResult signifying completion.
 
     Raises:
-        AppException: If a hypothesis is missing an ID or contains a duplicate ID.
+        AppException: If a hypothesis is missing an ID (ErrorCodes.VALIDATION_FAILED)
+            or contains a duplicate ID (ErrorCodes.STATE_INTEGRITY_ERROR).
     """
     payload = state.inputs.raw_inputs
 

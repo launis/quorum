@@ -320,3 +320,64 @@ def test_read_docs_with_files(tmp_path: Path) -> None:
         mock_settings.return_value.docs_dir = str(tmp_path)
         content = _read_docs()
     assert "Markdown documentation content" in content
+
+
+@pytest.mark.asyncio
+async def test_verify_citation_integrity_hook_read_docs_os_error() -> None:
+    """Negative: test that OSError during reading local context docs raises AppException."""
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(raw_inputs={"test": "data"}),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+
+    with patch("backend_v2.hooks.integrity._gather_source_texts", new_callable=AsyncMock) as mock_gather:
+        mock_gather.return_value = ["Source text"]
+        with patch("backend_v2.hooks.integrity._read_docs", side_effect=OSError("Read failure")):
+            with pytest.raises(AppException) as exc:
+                await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
+            assert exc.value.status_code == 500
+            assert "Failed to load local context documents" in exc.value.message
+
+
+def test_enforce_hypothesis_linking_hook_missing_id() -> None:
+    """Negative: test that hypothesis without ID raises AppException with VALIDATION_FAILED."""
+    hyp = Hypothesis.model_construct(
+        id="",
+        claim_text="C1",
+        evidence_found=False,
+        search_query="Q1",
+        quotes=[],
+    )
+    analyst_output = AnalystOutput.model_construct(
+        thought_process="Thinking...",
+        conclusion="Concluded.",
+        confidence_score=0.9,
+        hypotheses=[hyp],
+    )
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO.model_construct(raw_inputs=analyst_output),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    with pytest.raises(AppException) as exc:
+        enforce_hypothesis_linking_hook(state, deps)
+    assert exc.value.status_code == 500
+    assert "Hypothesis missing ID" in exc.value.message
+
+
+def test_is_hallucinated_empty_normalized() -> None:
+    """Negative: quote whose normalization produces empty text is treated as hallucinated."""
+    with patch(
+        "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.normalize_text_with_mapping",
+        return_value=("", {}),
+    ):
+        assert _is_hallucinated("Valid quote text", "norm_corpus", threshold=80.0) is True
+
