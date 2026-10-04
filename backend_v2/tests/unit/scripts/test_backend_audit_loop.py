@@ -187,9 +187,7 @@ def test_ast_gate_strict_mode_fails_on_warning_violation(mock_exit: MagicMock, m
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 @patch("sys.exit")
-def test_backend_audit_loop_fails_fast_on_any_unsuppressed_violation(
-    mock_exit: MagicMock, mock_sub: MagicMock
-) -> None:
+def test_backend_audit_loop_fails_fast_on_any_unsuppressed_violation(mock_exit: MagicMock, mock_sub: MagicMock) -> None:
     """Assert that default execution (without flags) fails fast on any unsuppressed AST violation."""
     mock_exit.side_effect = SystemExit(1)
     warning_violation = GuardrailViolation(
@@ -235,9 +233,7 @@ def test_backend_audit_loop_permissive_warn_flag_allows_advisory_mode(mock_sub: 
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 @patch("sys.exit")
-def test_backend_audit_loop_permissive_warn_still_fails_on_fatal(
-    mock_exit: MagicMock, mock_sub: MagicMock
-) -> None:
+def test_backend_audit_loop_permissive_warn_still_fails_on_fatal(mock_exit: MagicMock, mock_sub: MagicMock) -> None:
     """Assert that --permissive-warn mode still fails fast on FATAL violations."""
     mock_exit.side_effect = SystemExit(1)
     fatal_violation = GuardrailViolation(
