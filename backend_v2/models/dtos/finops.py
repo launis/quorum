@@ -25,8 +25,8 @@ class FinOpsMonitorSummaryDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    total_duration_ms: Annotated[int, Field(description="Total execution duration in milliseconds")]
-    total_calls: Annotated[int, Field(description="Total LLM API calls executed")]
+    total_duration_ms: Annotated[int, Field(ge=0, description="Total execution duration in milliseconds")]
+    total_calls: Annotated[int, Field(ge=0, description="Total LLM API calls executed")]
     alerts: Annotated[list[str], Field(default_factory=list, description="FinOps alert messages")]
 
 
@@ -43,7 +43,7 @@ class FinOpsFinalizeSummaryDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    healing_cost_events: Annotated[int, Field(description="Count of healing cost events")]
+    healing_cost_events: Annotated[int, Field(ge=0, description="Count of healing cost events")]
     structural_warnings: Annotated[
         list[str], Field(default_factory=list, description="Structural pipeline duplication warnings")
     ]

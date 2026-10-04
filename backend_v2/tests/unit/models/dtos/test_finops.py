@@ -68,3 +68,16 @@ def test_finops_dto_negative_strict_type() -> None:
     """Test strict type validation rejects non-integer duration."""
     with pytest.raises(ValidationError):
         FinOpsMonitorSummaryDTO(total_duration_ms="invalid", total_calls=2)  # type: ignore[arg-type]
+
+
+def test_finops_dto_rejects_negative_bounds() -> None:
+    """Test boundary validation rejects negative integer counts and durations."""
+    with pytest.raises(ValidationError):
+        FinOpsMonitorSummaryDTO(total_duration_ms=-1, total_calls=5)
+
+    with pytest.raises(ValidationError):
+        FinOpsMonitorSummaryDTO(total_duration_ms=100, total_calls=-1)
+
+    with pytest.raises(ValidationError):
+        FinOpsFinalizeSummaryDTO(healing_cost_events=-1, usd_cost=0.0)
+

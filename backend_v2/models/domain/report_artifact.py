@@ -20,7 +20,23 @@ __all__ = ["ReportArtifact"]
 
 
 class ReportArtifact(V2CoreBase):
-    """Domain model representing an independently versioned, materialized report artifact."""
+    """Domain model representing an independently versioned, materialized report artifact.
+
+    Attributes:
+        id: Unique identifier prefixed with 'rep_'. Valid Stripe Pattern Opaque ID.
+        execution_id: Associated analytical execution ID.
+        workflow_id: Associated workflow definition ID.
+        profile_id: Associated presentation profile ID.
+        locale: Report target locale code (e.g., 'fi', 'en').
+        title: Human-readable title of the report artifact.
+        status: Current lifecycle compilation status.
+        storage_paths: Physical storage artifact paths on disk/cloud.
+        metadata: FinOps and generation telemetry metadata.
+        custom_preface_md: Optional custom preface Markdown text.
+        error_message: Detailed error description if report compilation failed.
+        created_at: Creation timestamp in UTC.
+        updated_at: Last update timestamp in UTC.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
