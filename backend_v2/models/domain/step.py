@@ -94,7 +94,7 @@ class Step(V2CoreBase):
         """Strict fail-fast validation to ensure Step is structurally complete.
 
         Raises:
-            AppException: If structure is malformed or internally inconsistent.
+            ValueError: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized Step matching schema expectations.
