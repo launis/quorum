@@ -257,6 +257,20 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         5. Atomic Checkpoint Commits: Commit each verified logical step individually with explicit relative paths in English.</mandatory_pattern>
       <catastrophic_reason>Bypassing multi-tier regression safeguards leads to silent interface drift, un-rollbackable dirty working trees, and cascading system outages.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="parameterized_tier7_documentation_mandate">
+      <banned_pattern>Generating a bare, unparameterized `/tier7-describe-architecture` command in trackers, plans, handover instructions, or resume commands.</banned_pattern>
+      <mandatory_pattern>A bare `/tier7-describe-architecture` command is STRICTLY FORBIDDEN. You MUST ALWAYS generate a fully parameterized command and structured directives block for the Tier 7 agent. The command MUST include:
+        1. The Tracker path: `@[docs/epic/EPIC_XXX_tracker.md]` (or `@[docs/implementationplans/TRACKER_xxx.md]`).
+        2. The Epic / Plan path: `@[docs/epic/EPIC_XXX.md]` (or `@[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md]`).
+        3. All target Knowledge Items: `@-references` to all KIs declared in the Epic/Plan `<required_context_rules>` block or touched by the architectural changes.
+        
+        IMMEDIATELY following the command (both under the tracker's `### Documentation & Knowledge Item Update` section and in the `# Session Handover Context` `## Resume Command` when transitioning to Tier 7), you MUST output structured directives for the Tier 7 agent:
+        - **1. Target KIs to Synchronize:** Explicit bullet points per target KI specifying the exact architectural mechanisms, guardrails, DTO contracts, or protocols introduced in the Epic to document.
+        - **2. Directory Reference Sync:** Specific instructions detailing which new or modified modules, tools, and scripts must be registered in `@[.agents/rules/04_directory_reference.md]`.
+        - **3. Pillar Documentation Sync:** Specific pillar document(s) in `docs/architecture/` (e.g., `01_system_context_and_invariants.md`, `05_resilience_and_observability.md`) to update with timeless, present-tense narratives reflecting the new invariants without historical language or Epic IDs.</mandatory_pattern>
+      <catastrophic_reason>A bare `/tier7-describe-architecture` command leaves the Tier 7 architectural auditor blind to which KIs need updating, which new tools must be registered in directory references, and which architecture pillars represent the core capabilities affected. This causes stale KIs, missing directory entries, and fragmented documentation.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_epic_planner">
@@ -401,10 +415,29 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
           - `[ ] **[NOK] Pre-Delete Audit**`: Verify no orphaned dependencies remain.
           - `[ ] **[NOK] Semantic Coverage & Zero-Loss Audit**`: Mathematically verify line coverage >90% for surviving business logic.
         - **`### Documentation & Knowledge Item Update`**:
-          - `- [ ] **[NOK]** As-Built Architectural Sync: Run \`/tier7-describe-architecture\` to scan the codebase, anchor the physical implementation map in \`docs/architecture/\`, update KIs, and update \`.agents/rules/04_directory_reference.md\`.`
+          - You MUST NEVER generate a bare or unparameterized `/tier7-describe-architecture` command. A plain `/tier7-describe-architecture` is strictly forbidden because it leaves the Tier 7 auditor without execution context, target KIs, or architectural directives.
+          - You MUST generate an Epic-scoped, fully parameterized command and explicit directives block:
+            ```markdown
+            ### Documentation & Knowledge Item Update
+            - [ ] **[NOK]** As-Built Architectural Sync: Run:
+              ```powershell
+              /tier7-describe-architecture @[docs/epic/EPIC_XXX_tracker.md] @[docs/epic/EPIC_XXX.md] @[ki_1.md] @[ki_2.md] ...
+              ```
+
+              #### Directives for Tier 7 Agent:
+              1. **Target KIs to Synchronize:**
+                 - `@[ki_1.md]`: [Explicit summary of architectural mechanisms, rules, or schemas introduced in this Epic to document]
+                 - `@[ki_2.md]`: [Explicit summary of invariants or patterns to document]
+              2. **Directory Reference Sync:**
+                 - Update `@[.agents/rules/04_directory_reference.md]` to register all newly created or structurally relocated modules, scripts, and utilities from this Epic.
+              3. **Pillar Documentation Sync:**
+                 - Update timeless narratives in `docs/architecture/` (specifically identifying target pillars: e.g., `01_system_context_and_invariants.md`, `05_resilience_and_observability.md`) describing newly established invariants in present tense without historical language or Epic IDs.
+            ```
+          - **TARGET KI DERIVATION LAW:** The list of `@-referenced` KIs MUST be extracted directly from the parent Epic's `<required_context_rules>` block (`<knowledge_item>@[...]</knowledge_item>`), plus any domain KIs governing modified systems.
+          - **RESUME COMMAND SYNCHRONIZATION:** When all implementation and hardening phases are complete and the tracker advances to the Documentation & KI gate, the `## Resume Command` in `# Session Handover Context` MUST output this EXACT parameterized `/tier7-describe-architecture` command, immediately followed by the `### Directives for Tier 7 Agent:` block.
         - **`### Final Epic Audit`**:
           - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
-        - **`## Instructions for the Execution Agent`**: Specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule, and the mandatory workflow loop (`[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`).
+        - **`## Instructions for the Execution Agent`**: Specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule, and the mandatory workflow loop (`[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan -> /tier2-hardening-backend -> /tier2-hardening-frontend -> parameterized /tier7-describe-architecture (with target KIs and directives) -> /tier8-audit-epic`).
         - **`## Requirements Traceability Matrix`**: Break down the Epic into highly granular, micro-level logical requirements. Extract every single technical detail from the Epic into a separate row and map each requirement to the specific `<step id>` in the XML plan.
         - **`# Session Handover Context`**: Format EXACTLY at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.
       </constraint>

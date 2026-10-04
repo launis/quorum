@@ -3,7 +3,8 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
 ---
 
 ### 🟣 TIER 7: DESCRIBE ARCHITECTURE (As-Built Documentation)
-*Usage: Use this workflow to generate or update architectural documentation that describes how the system is currently structured and how data flows through it. This produces a forensic, code-derived description — not a design aspiration.*
+*Usage: `/tier7-describe-architecture @[docs/epic/EPIC_XXX_tracker.md] @[docs/epic/EPIC_XXX.md] @[ki_1.md] @[ki_2.md] ...`*
+*Note: Always invoked with explicit Tracker, Epic/Plan, and Target Knowledge Item references along with structured Directives specifying KIs to synchronize, directory references to register, and target architecture pillars to update.*
 
 ```xml
 <system_prompt>
@@ -58,7 +59,7 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
   </architectural_invariants>
 
   <execution_protocol level="7">
-    <step id="1">THEORETICAL INGESTION: Read the 6 architectural pillar documents in `docs\architecture\`. Understand the 6 core capabilities (Context, Seeding, Orchestration, SDUI, Resilience, Enriched Atom Graph Engine). Do NOT attempt to evaluate KI updates at this stage before scanning the physical code.</step>
+    <step id="1">THEORETICAL INGESTION &amp; TARGET SCOPING: When invoked with an Epic, Tracker, and Target Knowledge Items (`@[ki_*.md]`) accompanied by structured Directives for Tier 7 Agent, first ingest the Epic context, Tracker state, and the specified target KIs. Review the directives detailing: (1) Target KIs to synchronize, (2) New tools/modules for directory reference registration, and (3) Target architecture pillars in `docs\architecture\`. Also read the 6 architectural pillar documents in `docs\architecture\` to understand the overarching system context.</step>
     
     <step id="2">TOP-DOWN ANCHORING (Physical Verification): Use targeted `grep_search` with specific architectural signatures (e.g., `class .*Service`, `implements PromptBlock`, `extends Riverpod`) to verify the physical files that implement the 6 capabilities. You MUST strictly exclude and NEVER scan `build/`, `.venv/`, `.dart_tool/`, and `__pycache__/` directories. Ensure physical paths are mapped in `.agents\rules\04_directory_reference.md`, NOT in the architecture pillars.</step>
     
@@ -66,9 +67,9 @@ description: Tier 7 (Describe Architecture) - Generates "As-Built" architectural
     
     <step id="4">ORPHAN REPORTING: If you discover any files, folders, or modules that DO NOT logically fit into the 6 pillars, you MUST generate an "Orphan Report" artifact. Flag these as either "Rogue/Legacy Code to be deleted" or "Missing Architectural Capability" and wait for User guidance.</step>
     
-    <step id="5">EVIDENCE-BASED KI EVALUATION &amp; TIMELESS CLEANUP: Based on the Orphan Report and your physical mapping, evaluate if recent changes necessitate an update to the Knowledge Items (KI database). CRITICALLY: Do NOT guess how to create KIs. If a new KI is needed, you MUST instruct the user to create it using the IDE's KI interface, OR carefully generate it in the rigid `<appDataDir>\knowledge\<ki_name>` directory with `metadata.json` and `artifacts/` structure. Only after the KI exists may you adjust the English theory in the pillar documents. When adjusting the theory, you MUST simultaneously execute a timelessness cleanup (removing Epic IDs, project phases, Law/Enforcement labels, historical language, and inline physical paths) on the target pillar, describing purely and exclusively what the system currently has and how it operates right now.</step>
+    <step id="5">EVIDENCE-BASED KI EVALUATION &amp; TIMELESS CLEANUP: Synchronize the target KIs explicitly passed in the command arguments and directives, updating their artifacts and `metadata.json` to document the newly implemented invariants, mechanisms, and contracts. Seamlessly integrate the updated theoretical foundation into the target architecture pillars identified in the directives. Follow the timelessness mandate: describe purely, directly, and authoritatively what the system currently has and how it operates in present tense, with 0 project phases, 0 Epic IDs, 0 dates, 0 historical language, and 0 Law/Enforcement labels.</step>
 
-    <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to ensure the directory map precisely reflects the anchored component clusters.</step>
+    <step id="6">DIRECTORY REFERENCE SYNC: Update `.agents\rules\04_directory_reference.md` using your file editing tools to register all newly created or structurally relocated modules, tools, and scripts specified in the directives and anchored during the scan.</step>
     
     <step id="7">MID-EXECUTION HANDOVER (Context Window Protection): If you have executed more than 15 tool calls (searches/reads) or you feel the context window is filling up, DO NOT attempt to rewrite all documents at once. You MUST initiate a session handover. Create or update a Tracker file (e.g., `task.md`) detailing `achieved`, `learned`, and `remaining` pillar documents to update. Provide the user with the exact `/tier5-resume` command formatted exactly like this: `/tier5-resume --target="[absolute_path_to_tracker_artifact]" --workflow=/tier7-describe-architecture --rules="00-antigravity-core.md, [other_relevant_rules]"`.</step>
   </execution_protocol>

@@ -80,7 +80,7 @@ trigger: always_on
         <mandate>When querying `seed_data.json` or debug prompts, use `grep_search` first and `view_file` with strict line bounds. NEVER read multi-megabyte `execution_trace.json` directly (parse it via Python in `scratch/`). Output files like `report.pdf` or `inputs/` represent finalized state.</mandate>
     </rule_block>
     <rule_block id="dual_axis_documentation_mandate">
-        <mandate>Follow the Dual-Axis Documentation Paradigm: AI agents read `rules/` and KIs; humans read `docs/architecture/`. NEVER manually edit `docs/architecture/01_` through `06_` during coding workflows (route structural updates via KI creation -> `/tier7-describe-architecture`). You MAY directly edit `.agents/rules/04_directory_reference.md` and `docs/architecture/00_README_META_ARCHITECTURE.md`.</mandate>
+        <mandate>Follow the Dual-Axis Documentation Paradigm: AI agents read `rules/` and KIs; humans read `docs/architecture/`. NEVER manually edit `docs/architecture/01_` through `06_` during coding workflows (route structural updates via KI creation -> `/tier7-describe-architecture`). You MAY directly edit `.agents/rules/04_directory_reference.md` and `docs/architecture/00_README_META_ARCHITECTURE.md`. When invoking or planning `/tier7-describe-architecture`, commands MUST be fully parameterized with the target tracker, Epic, and `@-referenced` target KIs accompanied by structured directives (Target KIs to Synchronize, Directory Reference Sync, Pillar Documentation Sync); bare `/tier7-describe-architecture` commands are strictly forbidden.</mandate>
     </rule_block>
 </ide_orchestration_protocol>
 
