@@ -20,7 +20,7 @@ from backend_v2.models.domain.blackboard import (
     LLMDraftAtomList,
 )
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ChunkPacketDTO, ExtractedAtom, GlobalOntologyMap
+from backend_v2.models.dtos.dag_models import ChunkPacketDTO, ExtractedAtom, GlobalOntologyMap, OntologyEntity
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -57,7 +57,7 @@ class TwoPassAtomizer:
         Returns:
             List of ChunkPacketDTO instances containing start_block, end_block, and packet_keys.
         """
-        block_keys = []
+        block_keys: list[str] = []
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
                 block_keys.append(line[1 : line.find("]")])
@@ -94,8 +94,8 @@ class TwoPassAtomizer:
         Returns:
             A tuple of merged GlobalOntologyMap and aggregated TokenUsage.
         """
-        all_entities = {}
-        all_rules = set()
+        all_entities: dict[str, OntologyEntity] = {}
+        all_rules: set[str] = set()
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         packets = self._calculate_packets(hydrated_text)
@@ -120,7 +120,7 @@ class TwoPassAtomizer:
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
-                tasks = []
+                tasks: list[asyncio.Task[tuple[GlobalOntologyMap, TokenUsage]]] = []
                 completed = 0
 
                 async def track_task(start_b: str, end_b: str) -> tuple[GlobalOntologyMap, TokenUsage]:
@@ -220,11 +220,11 @@ class TwoPassAtomizer:
             provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
         )
 
-        all_atoms = []
+        all_atoms: list[ExtractedAtom] = []
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
-                tasks = []
+                tasks: list[asyncio.Task[tuple[list[ExtractedAtom], TokenUsage]]] = []
                 completed = 0
 
                 async def track_task(
@@ -298,7 +298,7 @@ class TwoPassAtomizer:
                 response_model=LLMDraftAtomList,
             )
 
-            local_alias_map = {}
+            local_alias_map: dict[str, str] = {}
             for line in hydrated_text.split("\n\n"):
                 if line.startswith("[") and "] " in line:
                     b_id = line[1 : line.find("]")]
@@ -306,7 +306,7 @@ class TwoPassAtomizer:
                     local_alias_map[b_id] = text
             alias_engine = AliasEngine(alias_map=local_alias_map)
 
-            final_atoms = []
+            final_atoms: list[ExtractedAtom] = []
             for draft in draft_result.atoms:
                 tda_id = f"tda_{uuid.uuid4().hex[:8]}"
                 exact_quote = None
@@ -398,12 +398,12 @@ class TwoPassAtomizer:
             provider_name=client.provider_name, compiled_prompt=compiled_prompt, model_name=client.model_name
         )
 
-        all_atoms = []
+        all_atoms: list[DraftExtractedAtom] = []
         has_dlq = False
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
-                tasks = []
+                tasks: list[asyncio.Task[tuple[DraftAtomList, TokenUsage]]] = []
                 completed = 0
 
                 async def track_task(
@@ -485,7 +485,7 @@ class TwoPassAtomizer:
                 response_model=LLMDraftAtomList,
             )
 
-            local_alias_map = {}
+            local_alias_map: dict[str, str] = {}
             for line in hydrated_text.split("\n\n"):
                 if line.startswith("[") and "] " in line:
                     b_id = line[1 : line.find("]")]
@@ -493,7 +493,7 @@ class TwoPassAtomizer:
                     local_alias_map[b_id] = text
             alias_engine = AliasEngine(alias_map=local_alias_map)
 
-            final_drafts = []
+            final_drafts: list[DraftExtractedAtom] = []
             for draft in draft_result.atoms:
                 if draft.is_logical_deduction:
                     final_drafts.append(
