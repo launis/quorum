@@ -121,3 +121,53 @@ def test_schema_compiler_all_xai_extensions_descriptions() -> None:
     assert props[f"eval_1_{XaiExtensionType.REMEDIATION_STEPS.value}"]["description"] == XAI_DESC_REMEDIATION_STEPS
     assert props[f"eval_1_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}"]["description"] == XAI_DESC_EMOTIONAL_SENTIMENT
     assert props[f"eval_1_{XaiExtensionType.THEORY_LINK.value}"]["description"] == XAI_DESC_THEORY_LINK
+
+
+def test_schema_compiler_int_and_remaining_extensions() -> None:
+    """Test compiling integer blocks and remaining extensions (justification, citation, confidence)."""
+    block = create_mock_block(
+        "int_metric",
+        BlockDataType.INT,
+        [
+            XaiExtensionType.JUSTIFICATION.value,
+            XaiExtensionType.CITATION.value,
+            XaiExtensionType.CONFIDENCE.value,
+        ],
+    )
+
+    DynamicModel = SchemaCompilerService.compile([block])
+    schema = DynamicModel.model_json_schema()
+    props = schema["properties"]
+
+    assert "eval_1" in props
+    assert props["eval_1"]["type"] == "integer"
+    assert f"eval_1_{XaiExtensionType.JUSTIFICATION.value}" in props
+    assert f"eval_1_{XaiExtensionType.CITATION.value}" in props
+    assert f"eval_1_{XaiExtensionType.CONFIDENCE.value}" in props
+
+    # Valid validation
+    instance = DynamicModel.model_validate(
+        {
+            "eval_1": 4,
+            f"eval_1_{XaiExtensionType.JUSTIFICATION.value}": "Justification text",
+            f"eval_1_{XaiExtensionType.CITATION.value}": "Citation text",
+            f"eval_1_{XaiExtensionType.CONFIDENCE.value}": 0.9,
+        }
+    )
+    assert getattr(instance, block.id) == 4
+
+    # Negative test: invalid int type raises ValidationError
+    with pytest.raises(ValidationError):
+        DynamicModel.model_validate(
+            {
+                "eval_1": "not_an_int",
+                f"eval_1_{XaiExtensionType.JUSTIFICATION.value}": "Justification",
+                f"eval_1_{XaiExtensionType.CITATION.value}": "Citation",
+                f"eval_1_{XaiExtensionType.CONFIDENCE.value}": 0.9,
+            }
+        )
+
+    # Negative test: missing required field raises ValidationError
+    with pytest.raises(ValidationError):
+        DynamicModel.model_validate({"eval_1": 4})
+

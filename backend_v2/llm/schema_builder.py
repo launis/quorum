@@ -1,3 +1,5 @@
+"""Schema Compiler Service for compiling PromptBlocks into dynamic Pydantic models."""
+
 import functools
 import hashlib
 import json
@@ -22,6 +24,8 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_THEORY_LINK,
 )
 
+__all__ = ["DynamicFieldSpecDTO", "SchemaCompilerService"]
+
 
 class DynamicFieldSpecDTO(V2CoreBase):
     """Specification of a dynamically generated schema field."""
@@ -34,7 +38,11 @@ class DynamicFieldSpecDTO(V2CoreBase):
     alias: str
 
     def to_field_definition(self) -> tuple[Any, Any]:
-        """Convert specification into a Pydantic create_model field definition tuple."""
+        """Convert specification into a Pydantic create_model field definition tuple.
+
+        Returns:
+            Tuple of (type_hint, FieldInfo) representing the field definition.
+        """
         return (self.type_hint, Field(..., description=self.description, alias=self.alias))
 
 
