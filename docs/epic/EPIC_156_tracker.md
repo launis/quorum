@@ -310,8 +310,19 @@
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture
+/tier7-describe-architecture @[docs/epic/EPIC_156_tracker.md] @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[ki_zero_permissive_typing.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md]
 ```
+
+### Directives for Tier 7 Agent:
+1. **Target KIs to Synchronize:**
+   - `@[ki_zero_permissive_typing.md]`: Document the 26 AST guardrails (`QGR000`-`QGR025`) promoted to FATAL severity, zero-warning ceiling baseline ledger (`scripts/audit_warning_baseline.py`), clean import smoke test gate (`scripts/audit_clean_imports.py`), and fake repository mutation verification standard (`QGR014`).
+   - `@[ki_god_code_prevention.md]`: Document automated AST boundary guardrails and mutation coverage verification (`scripts/audit_mutation_coverage.py`).
+   - `@[ki_python_314_concurrency_strictness.md]`: Document Python 3.14 deferred annotation standards (`QGR024`), `model_copy` untyped dictionary ban (`QGR025`), and TaskGroup concurrency stress gates.
+2. **Directory Reference Sync:**
+   - Update `@[.agents/rules/04_directory_reference.md]` to register new audit tooling (`scripts/audit_clean_imports.py`, `scripts/audit_warning_baseline.py`, `scripts/audit_mutation_coverage.py`).
+3. **Pillar Documentation Sync:**
+   - Update timeless narratives in `docs/architecture/` (specifically `05_resilience_and_fail_fast.md` and related pillars) reflecting universal AST strictness, 8-stage audit loop, and zero permissive typing.
+
 
 
 
