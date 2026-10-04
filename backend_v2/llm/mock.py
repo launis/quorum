@@ -12,6 +12,8 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["MockLLMService"]
+
 
 class MockLLMService:
     """Simulates LLM responses for testing and development without API costs.
@@ -89,7 +91,12 @@ class MockLLMService:
                 "STRICT FAIL-FAST: Mock service was called without an explicit 'agent_identity'. "
                 "Keyword heuristics are DEPRECATED."
             )
-            logger.error("[MockLLM] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[MockLLM] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         # Replaced manual file write with logger.debug to use standard logging infrastructure
@@ -147,7 +154,12 @@ class MockLLMService:
                         }
                     data["pisteet"] = dynamic_scores
             except Exception as e:
-                logger.error("[MockLLM] Failed hydration: %s", e)
+                logger.error(
+                    "[MockLLM] Failed hydration: %s",
+                    e,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
                 raise AppException(
                     message=f"Mock Hydration Failed: {e}",
                     status_code=500,
