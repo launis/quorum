@@ -20,6 +20,8 @@ from backend_v2.models.domain.base import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["AuditRepositoryImpl"]
+
 
 class AuditRepositoryImpl(BaseRepository):
     """Repository implementation for Audit Logs and Usage Data."""
@@ -54,6 +56,10 @@ class AuditRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated AuditLogEntry domain models.
+
+        Raises:
+            AppException: If an audit log entry fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if organization_id:
@@ -84,7 +90,7 @@ class AuditRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted audit log {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return logs
 
@@ -111,6 +117,10 @@ class AuditRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated UsageRecord domain models.
+
+        Raises:
+            AppException: If a usage record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if scope == "organization" and entity_id:
@@ -140,7 +150,7 @@ class AuditRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Corrupted usage record {item_id}: {e}",
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "item_id": item_id},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": item_id},
                 ) from e
         return records
 
@@ -217,6 +227,10 @@ class AuditRepositoryImpl(BaseRepository):
 
         Returns:
             DetailedUsageDTO containing calculated metrics.
+
+        Raises:
+            AppException: If the since timestamp format is invalid
+                (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if since:
@@ -266,7 +280,7 @@ class AuditRepositoryImpl(BaseRepository):
                 raise AppException(
                     message=f"Invalid date format '{since}': {e}",
                     status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED, "since": since},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "since": since},
                 ) from e
 
         mapped_scope = "organization" if scope == "org" else scope

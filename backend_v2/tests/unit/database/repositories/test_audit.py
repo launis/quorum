@@ -212,3 +212,39 @@ async def test_get_detailed_usage_calculation(repo: AuditRepositoryImpl, mock_dr
     assert usage.total_tokens == 1400
     assert usage.by_model == {"gpt-4o": 2, "claude-3-5-sonnet": 1}
     assert usage.by_workflow == {"wf_1": 2}
+
+
+@pytest.mark.asyncio
+async def test_get_detailed_usage_user_scope(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Positive: tests detailed usage calculation for user scope with accumulating model counts."""
+    mock_execs = [
+        {
+            "id": "exe_1",
+            "cost_estimate": 0.02,
+            "duration_ms": 500,
+            "workflow_id": "wf_1",
+            "models_used": {"gpt-4o": 1},
+            "completed_at": "2026-08-15T12:00:00Z",
+        },
+        {
+            "id": "exe_2",
+            "cost_estimate": 0.03,
+            "duration_ms": 600,
+            "workflow_id": "wf_1",
+            "models_used": {"gpt-4o": 2},
+            "completed_at": "2026-08-16T12:00:00Z",
+        },
+    ]
+    mock_driver.query.return_value = mock_execs
+    mock_driver.get.return_value = None
+
+    usage = await repo.get_detailed_usage(
+        scope="user",
+        target_id="usr_456",
+        since="2026-08-01T00:00:00Z",
+    )
+    assert usage.organization_id == "usr_456"
+    assert usage.total_cost_usd == pytest.approx(0.05)
+    assert usage.by_model == {"gpt-4o": 3}
+    assert usage.by_workflow == {"wf_1": 2}
+
