@@ -20,6 +20,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["UniversalIngress"]
+
 _CONTROL_CHAR_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
@@ -33,6 +35,12 @@ class UniversalIngress:
         Preserves standard whitespace characters (\n, \r, \t) while stripping
         low-level control codes (e.g. U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F)
         such as EOT (0x04) or ACK (0x06).
+
+        Args:
+            text: The raw input string to sanitize.
+
+        Returns:
+            The sanitized string with control characters removed.
         """
         return _CONTROL_CHAR_RE.sub("", text)
 
@@ -94,7 +102,14 @@ class UniversalIngress:
 
     @staticmethod
     def _extract_model_discriminator_tag(disc_info: Any) -> Any | None:
-        """Extract discriminator tag from field default or annotation literal."""
+        """Extract discriminator tag from field default or annotation literal.
+
+        Args:
+            disc_info: FieldInfo instance containing discriminator metadata.
+
+        Returns:
+            Extracted tag string, default value, or None if not found.
+        """
         if disc_info.default:
             return disc_info.default
         args = get_args(disc_info.annotation)
@@ -218,7 +233,16 @@ class UniversalIngress:
 
     @classmethod
     def _clean_value_against_annotation(cls, val: Any, annotation: Any, discriminator: Any = None) -> Any:
-        """Clean a single value or collection against its type annotation."""
+        """Clean a single value or collection against its type annotation.
+
+        Args:
+            val: The raw value to inspect and clean.
+            annotation: The type annotation of the field.
+            discriminator: Optional discriminator information or field name.
+
+        Returns:
+            The sanitized and cleaned value.
+        """
         if val is None:
             if annotation is str:
                 return ""
@@ -377,6 +401,12 @@ class UniversalIngress:
                 parsed_data = cast(dict[str, Any], repaired_obj)
                 logger.warning(f"[UniversalIngress] Self-healing successful for JSONDecodeError: {original_error}")
             except Exception as repair_e:
+                logger.error(
+                    "UniversalIngress parsing failure: %s",
+                    repair_e,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.PARSING_FAILED.value},
+                )
                 raise AppException(
                     status_code=500,
                     message="Malformed JSON in LLM output. Self-healing failed.",

@@ -246,3 +246,138 @@ def test_clean_dict_against_model_overlap_inference_and_unmatched():
     assert UniversalIngress._clean_value_against_annotation(None, None) is None
     assert UniversalIngress._clean_value_against_annotation(None, int) is None
     assert UniversalIngress._clean_value_against_annotation(None, str) == ""
+
+
+def test_parse_llm_output_generic_markdown_code_fence():
+    """Test parsing strips generic markdown code fences without json tag."""
+    raw_text = """```
+{
+  "key": "generic_fence"
+}
+```"""
+    result = UniversalIngress.parse_llm_output(raw_text)
+    assert result["key"] == "generic_fence"
+
+
+def test_parse_llm_output_repair_unexpected_type_raises_app_exception(monkeypatch: pytest.MonkeyPatch):
+    """Negative test: verify AppException is raised if repair_json returns non-dict/non-list."""
+    monkeypatch.setattr("backend_v2.llm.ingress_pipeline.repair_json", lambda *a, **kw: "invalid_string_output")
+    with pytest.raises(AppException) as exc:
+        UniversalIngress.parse_llm_output("{broken json without end")
+
+    assert exc.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+    assert "Self-healing failed" in exc.value.message
+
+
+def test_extract_discriminator_info_edge_cases():
+    """Verify various discriminator annotations and edge cases."""
+    from typing import Annotated, Union
+    from pydantic import BaseModel, Discriminator, Field
+
+    class ModA(BaseModel):
+        tag: str
+
+    class ModB(BaseModel):
+        tag: str
+
+    # None annotation
+    assert UniversalIngress._extract_discriminator_info(None) == (None, [])
+
+    # Direct Discriminator meta
+    ann1 = Annotated[Union[ModA, ModB], Discriminator("tag")]
+    disc1, models1 = UniversalIngress._extract_discriminator_info(ann1)
+    assert disc1 == "tag"
+    assert len(models1) == 2
+
+    # Field with Discriminator object
+    ann2 = Annotated[Union[ModA, ModB], Field(discriminator=Discriminator("tag"))]
+    disc2, models2 = UniversalIngress._extract_discriminator_info(ann2)
+    assert disc2 == "tag"
+    assert len(models2) == 2
+
+    # Annotated inside union
+    ann3 = Annotated[Union[Annotated[ModA, "meta"], ModB], Field(discriminator="tag")]
+    disc3, models3 = UniversalIngress._extract_discriminator_info(ann3)
+    assert disc3 == "tag"
+    assert len(models3) == 2
+
+    # Target union that is single BaseModel (not a Union)
+    ann4 = Annotated[ModA, Field(discriminator="tag")]
+    disc4, models4 = UniversalIngress._extract_discriminator_info(ann4)
+    assert disc4 == "tag"
+    assert len(models4) == 1
+
+
+def test_clean_dict_against_model_advanced_branches():
+    """Verify clean_dict branches for single candidate, missing matches, and discriminator preservation."""
+    from typing import Annotated
+    from pydantic import BaseModel, ConfigDict, Discriminator, Field
+
+    class Inner(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        val: str
+
+    class Outer(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        nested: Inner
+        items: list[Inner]
+        not_a_list_target: int
+
+    # Passing single candidate model inside list and nested dict
+    raw = {
+        "nested": {"val": "hello", "extra_strip": 123},
+        "items": [{"val": "one", "drop_me": 456}],
+        "not_a_list_target": 42,
+    }
+    cleaned = UniversalIngress.clean_dict_against_model(raw, Outer)
+    assert cleaned["nested"] == {"val": "hello"}
+    assert cleaned["items"] == [{"val": "one"}]
+
+    # Val is list but target is not list
+    cleaned_not_list = UniversalIngress._clean_value_against_annotation([1, 2], int)
+    assert cleaned_not_list == [1, 2]
+
+    # Nested with Discriminator object passed to _clean_value_against_annotation
+    from typing import Literal
+
+    class DiscModelA(BaseModel):
+        tag: Literal["a"] = "a"
+        x: int
+
+    class DiscModelB(BaseModel):
+        tag: Literal["b"] = "b"
+        y: int
+
+    class ContainerDisc(BaseModel):
+        item: Annotated[DiscModelA | DiscModelB, Field(discriminator="tag")]
+
+    res_disc = UniversalIngress.clean_dict_against_model(
+        {"item": {"tag": "a", "x": 10}},
+        ContainerDisc,
+    )
+    assert res_disc["item"]["x"] == 10
+
+    # Discriminator field present in item but no matching models found
+    class UnmatchedTagModel(BaseModel):
+        tag: str = "fixed"
+        val: int
+
+    assert (
+        UniversalIngress._infer_and_heal_discriminator(
+            {"tag": "completely_unmatched_tag"},
+            "tag",
+            [UnmatchedTagModel],
+        )
+        == UnmatchedTagModel
+    )
+
+    # Heuristic complete failure returns None
+    assert (
+        UniversalIngress._infer_and_heal_discriminator(
+            {"unrelated_key": 999},
+            "tag",
+            [],
+        )
+        is None
+    )
+
