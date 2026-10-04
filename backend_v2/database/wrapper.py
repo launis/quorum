@@ -1,5 +1,7 @@
 """Database wrapper implementations."""
 
+from __future__ import annotations
+
 import importlib.util
 import json
 import logging
@@ -10,6 +12,7 @@ import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 from tinydb import Storage, TinyDB
@@ -17,9 +20,6 @@ from tinydb.table import Table
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
-
-# from backend_v2.config import USE_MOCK_DB, DB_PATH # Removed
-
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -47,9 +47,38 @@ if HAS_FCNTL:
     import fcntl
 
 
+MAX_REPLACE_RETRIES: int = 20
+REPLACE_RETRY_DELAY_SEC: float = 0.05
+
+__all__ = [
+    "FIRESTORE_AVAILABLE",
+    "MAX_REPLACE_RETRIES",
+    "REPLACE_RETRY_DELAY_SEC",
+    "AbstractDatabase",
+    "AbstractTable",
+    "AtomicJSONStorage",
+    "FirestoreClient",
+    "FirestoreTable",
+    "TinyDBClient",
+    "TinyDBTable",
+    "db_lock",
+    "get_db_client",
+]
+
+
 @contextmanager
 def db_lock(db_path: str) -> Generator[None]:
-    """Acquire cross-process and cross-thread lock for TinyDB file access."""
+    """Acquire cross-process and cross-thread lock for TinyDB file access.
+
+    Args:
+        db_path: Path to the database file to lock.
+
+    Yields:
+        None when the lock is successfully held.
+
+    Raises:
+        TimeoutError: If the database lock cannot be acquired within the configured timeout.
+    """
     lock_file_path = db_path + ".lock"
     start_time = time.time()
     settings = get_settings()
@@ -134,37 +163,87 @@ class AbstractTable(ABC):
 
     @abstractmethod
     def insert(self, document: dict[str, Any]) -> Any:
-        """Insert a document."""
+        """Insert a document.
+
+        Args:
+            document: Document data dictionary to insert.
+
+        Returns:
+            Identifier of inserted document.
+        """
         pass
 
     @abstractmethod
     def all(self) -> list[dict[str, Any]]:
-        """Retrieve all documents."""
+        """Retrieve all documents.
+
+        Returns:
+            List of all documents in the table.
+        """
         pass
 
     @abstractmethod
     def search(self, query: Any) -> list[dict[str, Any]]:
-        """Search documents matching a query."""
+        """Search documents matching a query.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            List of matching documents.
+        """
         pass
 
     @abstractmethod
     def get(self, query: Any) -> dict[str, Any] | None:
-        """Get a single document matching a query."""
+        """Get a single document matching a query.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            Matching document dictionary if found, otherwise None.
+        """
         pass
 
     @abstractmethod
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Update documents."""
+        """Update documents.
+
+        Args:
+            fields: Dictionary of fields to update.
+            query: Optional query predicate.
+            doc_ids: Optional document ID list.
+
+        Returns:
+            List of affected document IDs.
+        """
         pass
 
     @abstractmethod
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
-        """Upsert a document."""
+        """Upsert a document.
+
+        Args:
+            document: Document data dictionary.
+            query: Query predicate.
+
+        Returns:
+            List of affected document IDs.
+        """
         pass
 
     @abstractmethod
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Remove documents."""
+        """Remove documents.
+
+        Args:
+            query: Optional query predicate.
+            doc_ids: Optional document ID list.
+
+        Returns:
+            List of affected document IDs.
+        """
         pass
 
     @abstractmethod
@@ -174,12 +253,26 @@ class AbstractTable(ABC):
 
     @abstractmethod
     def count(self, query: Any = None) -> int:
-        """Count documents."""
+        """Count documents.
+
+        Args:
+            query: Optional query predicate.
+
+        Returns:
+            Count of documents matching query.
+        """
         pass
 
     @abstractmethod
     def contains(self, query: Any) -> bool:
-        """Check if document exists."""
+        """Check if document exists.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            True if matching document exists, False otherwise.
+        """
         pass
 
 
@@ -188,30 +281,23 @@ class AbstractDatabase(ABC):
 
     @abstractmethod
     def table(self, name: str) -> AbstractTable:
-        """Get a table by name."""
+        """Get a table by name.
+
+        Args:
+            name: Table name.
+
+        Returns:
+            AbstractTable instance.
+        """
         pass
 
     @abstractmethod
     def close(self) -> None:
-        """Close the database connection.
-
-        Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
-        """
+        """Close the database connection."""
         pass
 
 
 # --- TinyDB Implementation ---
-
-MAX_REPLACE_RETRIES: int = 20
-REPLACE_RETRY_DELAY_SEC: float = 0.05
 
 
 class AtomicJSONStorage(Storage):
@@ -234,9 +320,8 @@ class AtomicJSONStorage(Storage):
         self._encoding = encoding
         self.kwargs = kwargs
         if create_dirs:
-            dir_name = os.path.dirname(path)
-            if dir_name:
-                os.makedirs(dir_name, exist_ok=True)
+            parent_dir = Path(path).parent
+            parent_dir.mkdir(parents=True, exist_ok=True)
 
     def read(self) -> dict[str, dict[str, Any]] | None:
         """Read the current state of the database.
@@ -244,7 +329,8 @@ class AtomicJSONStorage(Storage):
         Returns:
             Parsed database dictionary, or None if the file is missing or empty.
         """
-        if not os.path.exists(self._path) or os.path.getsize(self._path) == 0:
+        p = Path(self._path)
+        if not p.is_file() or p.stat().st_size == 0:
             return None
         with open(self._path, encoding=self._encoding) as f:
             data: dict[str, dict[str, Any]] = json.load(f)
@@ -290,9 +376,10 @@ class AtomicJSONStorage(Storage):
                     )
                     time.sleep(REPLACE_RETRY_DELAY_SEC)
         finally:
-            if os.path.exists(temp_path):
+            temp_p = Path(temp_path)
+            if temp_p.is_file():
                 try:
-                    os.remove(temp_path)
+                    temp_p.unlink()
                 except OSError:
                     pass
 
@@ -304,7 +391,7 @@ class AtomicJSONStorage(Storage):
 class TinyDBTable(AbstractTable):
     """TinyDB implementation of AbstractTable."""
 
-    def __init__(self, db_path: str, table_name: str):
+    def __init__(self, db_path: str, table_name: str) -> None:
         """Initialize TinyDB table.
 
         Args:
@@ -325,7 +412,14 @@ class TinyDBTable(AbstractTable):
         return db.table(self._name)
 
     def insert(self, document: dict[str, Any]) -> int:
-        """Insert document."""
+        """Insert document into table.
+
+        Args:
+            document: Document data dictionary.
+
+        Returns:
+            Inserted document internal ID.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).insert(document)
@@ -334,7 +428,11 @@ class TinyDBTable(AbstractTable):
         return res
 
     def all(self) -> list[dict[str, Any]]:
-        """Retrieve all documents."""
+        """Retrieve all documents.
+
+        Returns:
+            List of all documents in the table.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).all()
@@ -343,7 +441,14 @@ class TinyDBTable(AbstractTable):
         return list(res)
 
     def search(self, query: Any) -> list[dict[str, Any]]:
-        """Search documents."""
+        """Search documents matching query.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            List of matching documents.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).search(query)
@@ -352,7 +457,14 @@ class TinyDBTable(AbstractTable):
         return list(res)
 
     def get(self, query: Any) -> dict[str, Any] | None:
-        """Get document."""
+        """Get single document matching query.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            Matching document or None.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).get(query)
@@ -366,7 +478,16 @@ class TinyDBTable(AbstractTable):
         return res
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Update documents."""
+        """Update documents matching query.
+
+        Args:
+            fields: Fields to update.
+            query: Optional query predicate.
+            doc_ids: Optional document IDs.
+
+        Returns:
+            List of updated document IDs.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
@@ -375,7 +496,15 @@ class TinyDBTable(AbstractTable):
         return res
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
-        """Upsert document."""
+        """Upsert document.
+
+        Args:
+            document: Document data.
+            query: Query predicate.
+
+        Returns:
+            List of upserted document IDs.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).upsert(document, query)
@@ -384,7 +513,15 @@ class TinyDBTable(AbstractTable):
         return res
 
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Remove documents."""
+        """Remove documents.
+
+        Args:
+            query: Optional query predicate.
+            doc_ids: Optional document IDs.
+
+        Returns:
+            List of removed document IDs.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).remove(query, doc_ids=doc_ids)
@@ -401,7 +538,14 @@ class TinyDBTable(AbstractTable):
         logger.debug("[TinyDBTable:%s] Truncate completed in %.1f ms", self._name, db_time)
 
     def count(self, query: Any = None) -> int:
-        """Count documents."""
+        """Count documents matching query.
+
+        Args:
+            query: Optional query predicate.
+
+        Returns:
+            Document count.
+        """
         db_start = time.time()
         with self._open_db() as db:
             if query:
@@ -413,7 +557,14 @@ class TinyDBTable(AbstractTable):
         return res
 
     def contains(self, query: Any) -> bool:
-        """Check if document exists."""
+        """Check if document exists.
+
+        Args:
+            query: Query predicate.
+
+        Returns:
+            True if matching document exists, False otherwise.
+        """
         db_start = time.time()
         with self._open_db() as db:
             res = self._get_table(db).contains(query)
@@ -425,22 +576,14 @@ class TinyDBTable(AbstractTable):
 class TinyDBClient(AbstractDatabase):
     """TinyDB implementation of AbstractDatabase."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         """Initialize TinyDB Client.
 
         Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
+            path: Target database file path.
         """
-        dir_name = os.path.dirname(path)
-        if dir_name:
-            os.makedirs(dir_name, exist_ok=True)
+        parent_dir = Path(path).parent
+        parent_dir.mkdir(parents=True, exist_ok=True)
         self.path = path
         # Verify creation/access under lock but don't hold connection
         with db_lock(self.path):
@@ -448,22 +591,18 @@ class TinyDBClient(AbstractDatabase):
                 pass
 
     def table(self, name: str) -> AbstractTable:
-        """Get table."""
+        """Get table by name.
+
+        Args:
+            name: Name of table.
+
+        Returns:
+            TinyDBTable instance.
+        """
         return TinyDBTable(self.path, name)
 
     def close(self) -> None:
-        """Close client.
-
-        Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
-        """
+        """Close client."""
         pass
 
 
@@ -477,31 +616,40 @@ class FirestoreTable(AbstractTable):
         """Initialize Firestore Table.
 
         Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
+            collection_ref: Firestore CollectionReference instance.
         """
         self._collection = collection_ref
 
     def insert(self, document: dict[str, Any]) -> Any:
-        """Insert document."""
+        """Insert document into Firestore collection.
+
+        Args:
+            document: Document data dictionary.
+
+        Returns:
+            Created document ID.
+        """
         _, doc_ref = self._collection.add(document)
         return doc_ref.id
 
     def all(self) -> list[dict[str, Any]]:
-        """Retrieve all documents."""
+        """Retrieve all documents.
+
+        Returns:
+            List of all document data dictionaries.
+        """
         docs = self._collection.stream()
         return [doc.to_dict() for doc in docs]
 
     def search(self, query: Any) -> list[dict[str, Any]]:
-        """Search documents."""
-        # Fetch all and filter in memory using TinyDB query evaluation
-        # This is inefficient for large datasets but acceptable for configuration tables.
+        """Search documents matching query.
+
+        Args:
+            query: Query predicate function.
+
+        Returns:
+            List of matching document dictionaries.
+        """
         docs = self._collection.stream()
         results = []
         for doc in docs:
@@ -511,8 +659,14 @@ class FirestoreTable(AbstractTable):
         return results
 
     def get(self, query: Any) -> dict[str, Any] | None:
-        """Get document."""
-        # Return the first match
+        """Get single document matching query.
+
+        Args:
+            query: Query predicate function.
+
+        Returns:
+            First matching document dictionary or None.
+        """
         docs = self._collection.stream()
         for doc in docs:
             data = doc.to_dict()
@@ -522,22 +676,35 @@ class FirestoreTable(AbstractTable):
         return None
 
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Update documents."""
-        # Firestore implementation ignores doc_ids (int) as it uses string IDs.
-        # Ideally, repository should use Query for compatibility.
+        """Update documents matching query.
+
+        Args:
+            fields: Fields dictionary to update.
+            query: Optional query predicate function.
+            doc_ids: Ignored by Firestore.
+
+        Returns:
+            List of count indicators for updated documents.
+        """
         docs = self._collection.stream()
         updated_count = 0
         for doc in docs:
             data = doc.to_dict()
-            # If query is None and we intend to update all or singleton?
-            # Existing implementation required query.
             if query and query(data):
                 doc.reference.update(fields)
                 updated_count += 1
         return [1] * updated_count
 
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
-        """Upsert document."""
+        """Upsert document.
+
+        Args:
+            document: Document data dictionary.
+            query: Query predicate function.
+
+        Returns:
+            List indicating affected document count.
+        """
         docs = self._collection.stream()
         matches = []
         for doc in docs:
@@ -545,12 +712,10 @@ class FirestoreTable(AbstractTable):
                 matches.append(doc)
 
         if matches:
-            # Update existing
             for doc in matches:
                 doc.reference.update(document)
             return [1] * len(matches)
         else:
-            # Insert new
             if "id" in document and document["id"]:
                 self._collection.document(str(document["id"])).set(document)
             else:
@@ -558,27 +723,38 @@ class FirestoreTable(AbstractTable):
             return [1]
 
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
-        """Remove documents."""
+        """Remove documents matching query.
+
+        Args:
+            query: Query predicate function.
+            doc_ids: Ignored by Firestore.
+
+        Returns:
+            List indicating removed document count.
+
+        Raises:
+            AppException: If document deletion fails (ErrorCodes.STORAGE_ACCESS_FAILED).
+        """
         docs = self._collection.stream()
         removed_count = 0
         to_delete = []
 
-        # 1. Identify docs (Scan)
         for doc in docs:
-            # If query is None, do we delete ALL? No, only valid queries.
-            # But truncate uses different method.
             if query and query(doc.to_dict()):
                 to_delete.append(doc.reference)
 
-        # 2. Delete (Batch/Serial)
-        # Note: We do serial delete here to match interface, but batching would be better for performance.
-        # For safety/simplicity in this wrapper, we keep it serial but decoupled from stream.
         for ref in to_delete:
             try:
                 ref.delete()
                 removed_count += 1
             except Exception as e:
-                logger.error("[FirestoreTable] Failed to delete doc %s: %s", ref.id, e, exc_info=True)
+                logger.error(
+                    "[FirestoreTable] %s: Failed to delete doc %s: %s",
+                    ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                    ref.id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to delete document {ref.id}: {e}",
                     status_code=500,
@@ -588,8 +764,7 @@ class FirestoreTable(AbstractTable):
         return [1] * removed_count
 
     def truncate(self) -> None:
-        """Truncate the table (Legacy/Dev: Delete all documents)."""
-        # Batch delete for Firestore in chunks of 500
+        """Truncate the table by batch deleting documents."""
         batch_size = 500
         docs = self._collection.limit(batch_size).stream()
         deleted = 0
@@ -599,13 +774,21 @@ class FirestoreTable(AbstractTable):
             deleted += 1
 
         if deleted >= batch_size:
-            # Recursively call if more exist
             self.truncate()
 
     def count(self, query: Any = None) -> int:
-        """Count documents."""
+        """Count documents matching query.
+
+        Args:
+            query: Optional query predicate function.
+
+        Returns:
+            Document count.
+
+        Raises:
+            AppException: If aggregate count query fails (ErrorCodes.STORAGE_ACCESS_FAILED).
+        """
         if query:
-            # In-memory count for query
             docs = self._collection.stream()
             c = 0
             for doc in docs:
@@ -613,13 +796,17 @@ class FirestoreTable(AbstractTable):
                     c += 1
             return c
         else:
-            # Total count
             try:
                 aggregate_query = self._collection.count()
                 snapshots = aggregate_query.get()
                 return int(snapshots[0][0].value)
             except Exception as e:
-                logger.error("[FirestoreTable] Firestore aggregate count failed: %s", e, exc_info=True)
+                logger.error(
+                    "[FirestoreTable] %s: Firestore aggregate count failed: %s",
+                    ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Firestore count operation failed: {e}",
                     status_code=500,
@@ -627,23 +814,19 @@ class FirestoreTable(AbstractTable):
                 ) from e
 
     def contains(self, query: Any) -> bool:
-        """Check if document exists."""
+        """Check if document exists.
+
+        Args:
+            query: Query predicate function.
+
+        Returns:
+            True if matching document exists, False otherwise.
+        """
         matches = self.search(query)
         return len(matches) > 0
 
     def close(self) -> None:
-        """Close the table connection (no-op for Firestore).
-
-        Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
-        """
+        """Close the table connection (no-op for Firestore)."""
         pass
 
 
@@ -651,50 +834,36 @@ class FirestoreClient(AbstractDatabase):
     """Firestore implementation of AbstractDatabase."""
 
     def __init__(self) -> None:
-        """Initialize Firestore Client and verify connection.
-
-        Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
+        """Initialize Firestore Client and verify connectivity.
 
         Raises:
-            Exception: If operation fails.
+            AppException: If Firestore connection verification fails (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
-        # Lazy import settings to avoid circular deps if any
         settings = get_settings()
 
         if not firebase_admin._apps:
-            # Locate service-account.json in project root
-            root_dir = os.path.dirname(settings.base_dir)
-            sa_path = os.path.join(root_dir, "service-account.json")
+            root_dir = Path(settings.base_dir).parent
+            sa_path = root_dir / "service-account.json"
 
-            if not os.path.exists(sa_path):
-                # Fallback check or error
+            if not sa_path.is_file():
                 logger.error("Service Account not found at %s", sa_path)
 
-            cred = credentials.Certificate(sa_path)
+            cred = credentials.Certificate(str(sa_path))
             firebase_admin.initialize_app(cred)
 
         self.db = firestore.client()
 
-        # ACTIVE PING TEST (Strict Zero-Fallback)
         try:
-            # Attempt to access a collection (lightweight validation)
-            # Note: list_collections is a generator, so we just get the first one or simply call it.
-            # Better: try to get a non-existent doc to prove connectivity without permissions error
-            # if list is restricted
-            # But list_collections is standard matching `wrapper.py` previous intent.
-            # Actually, just next(self.db.collections(), None) is enough to verify auth.
             logger.info("[Firestore] Verifying connection...")
-            # self.db.collection('system_settings').limit(1).get() # Might fail if empty? No, returns empty list.
-            # Simpler:
             list(self.db.collection("connectivity_test").limit(1).stream())
             logger.info("[Firestore] Connection VERIFIED successfully.")
         except Exception as e:
-            logger.critical("[Firestore] Connection ping FAILED: %s", e, exc_info=True)
+            logger.error(
+                "[FirestoreClient] %s: Connection ping FAILED: %s",
+                ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Firestore connectivity test failed. Error: {e}",
                 status_code=500,
@@ -702,33 +871,33 @@ class FirestoreClient(AbstractDatabase):
             ) from e
 
     def table(self, name: str) -> AbstractTable:
-        """Get table."""
+        """Get table by name.
+
+        Args:
+            name: Table name.
+
+        Returns:
+            FirestoreTable instance.
+        """
         return FirestoreTable(self.db.collection(name))
 
     def close(self) -> None:
-        """Close client.
-
-        Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
-        """
+        """Close client."""
         pass
 
 
-# --- Factory Function ---
-
-
 def get_db_client() -> AbstractDatabase:
-    """Factory to get the appropriate database client based on configuration."""
+    """Factory to get the appropriate database client based on configuration.
+
+    Returns:
+        Configured AbstractDatabase client instance.
+
+    Raises:
+        ImportError: If STORAGE_BACKEND is FIRESTORE but firebase_admin is missing.
+        ValueError: If active_backend is unknown or unsupported.
+    """
     settings = get_settings()
 
-    # Use computed property which handles None and Defaults safely
     backend = settings.active_backend
 
     if backend == "FIRESTORE":
@@ -738,8 +907,4 @@ def get_db_client() -> AbstractDatabase:
     elif backend == "LOCAL":
         return TinyDBClient(settings.prod_db_path)
     else:
-        # Should be unreachable if active_backend is strict
         raise ValueError(f"CRITICAL: Unknown/Unsupported BACKEND '{backend}'.")
-
-
-# --- Factory Function ---
