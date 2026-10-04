@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
 from backend_v2.services.document_extraction import DocumentExtractionService
 
@@ -193,3 +194,46 @@ def test_extract_pdf_sync_sitra_conversation_no_segfault() -> None:
     assert '"role": "user"' in extracted_text or '"role":"user"' in extracted_text
     assert "Sitra" in extracted_text or "sitra" in extracted_text
     assert parsed_date is not None
+
+
+@pytest.mark.asyncio
+async def test_process_ingress_payload_extraction_failure() -> None:
+    """Test that extraction failures raise AppException with VALIDATION_FAILED."""
+    service = DocumentExtractionService()
+    ingress = WorkflowInputsIngress(
+        dynamic_inputs={
+            "broken_pdf": Base64Attachment(
+                filename="broken.pdf",
+                content_base64=base64.b64encode(b"invalid pdf").decode("utf-8"),
+            )
+        }
+    )
+
+    with patch.object(service, "_extract_pdf_sync", side_effect=RuntimeError("PyMuPDF parser failure")):
+        with pytest.raises(AppException) as exc_info:
+            await service.process_ingress_payload(ingress)
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_pdf_date_parser_short_offset() -> None:
+    """Test parse_pdf_date handles short timezone offsets like +03 and -05."""
+    assert DocumentExtractionService.parse_pdf_date("D:20260526064500+03") == "2026-05-26T06:45:00+03:00"
+    assert DocumentExtractionService.parse_pdf_date("D:20260526064500-05") == "2026-05-26T06:45:00-05:00"
+
+
+def test_pdf_metadata_creation_date_fallback() -> None:
+    """Test that _extract_pdf_sync falls back to creationDate when modDate is absent."""
+    service = DocumentExtractionService()
+    import fitz
+
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((50, 50), "Test document text")
+    doc.set_metadata({"creationDate": "D:20260101120000Z", "modDate": ""})
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    text, parsed_date = service._extract_pdf_sync(pdf_bytes)
+    assert "Test document text" in text
+    assert parsed_date == "2026-01-01T12:00:00Z"
+

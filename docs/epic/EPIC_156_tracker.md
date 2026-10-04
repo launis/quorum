@@ -175,7 +175,7 @@
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[backend_v2/llm/provider.py]
   - [x] @[backend_v2/utils/static_charts.py]
-  - [ ] @[backend_v2/services/document_extraction.py]
+  - [x] @[backend_v2/services/document_extraction.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/adapters/base_adapter.py]
   - [ ] @[backend_v2/seed/wipe_user_data.py]

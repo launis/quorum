@@ -16,6 +16,10 @@ from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngr
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DocumentExtractionService",
+]
+
 
 class DocumentExtractionService:
     """Service for handling CPU-bound document extraction tasks."""
@@ -90,8 +94,11 @@ class DocumentExtractionService:
     def _extract_pdf_sync(file_bytes: bytes) -> tuple[str, str | None]:
         """Isolated CPU-bound PyMuPDF extraction.
 
+        Args:
+            file_bytes: Raw binary bytes of the PDF document.
+
         Returns:
-            A tuple of (extracted_markdown_text, parsed_pdf_date_iso_str)
+            A tuple of (extracted_markdown_text, parsed_pdf_date_iso_str).
         """
         import sys
 
@@ -158,7 +165,7 @@ class DocumentExtractionService:
             WorkflowInputsIngress with all attachments converted to extracted string content.
 
         Raises:
-            AppException: If file extraction or decoding fails.
+            AppException: If file extraction or decoding fails (ErrorCodes.VALIDATION_FAILED).
         """
         extracted_dates = []
 
@@ -186,7 +193,13 @@ class DocumentExtractionService:
                         decoded_text = file_bytes.decode("utf-8", errors="replace")
                         new_dynamic_inputs[key] = decoded_text
                 except Exception as e:
-                    logger.error("[DocumentExtractionService] Failed to extract %s", attachment.filename, exc_info=True)
+                    logger.error(
+                        "[DocumentExtractionService] Failed to extract %s: %s",
+                        attachment.filename,
+                        str(e),
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
                     raise AppException(
                         message=f"Failed to extract text from {attachment.filename}",
                         status_code=status.HTTP_400_BAD_REQUEST,
