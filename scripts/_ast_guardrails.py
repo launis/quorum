@@ -354,7 +354,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         rule_code: str,
         message: str,
         remediation: str,
-        severity: GuardrailSeverity = GuardrailSeverity.WARNING,
+        severity: GuardrailSeverity = GuardrailSeverity.FATAL,
     ) -> None:
         """Helper to append a structured GuardrailViolation to the visitor violations list.
 
@@ -405,27 +405,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         # QGR001: Attribute access to .__dict__
         if node.attr == "__dict__":
-            qgr001_sev = (
-                GuardrailSeverity.WARNING
-                if self._is_boundary_exempt
-                else GuardrailSeverity.FATAL
-            )
             self._add_violation(
                 node,
                 "QGR001",
                 "Banned dynamic `.__dict__` access detected.",
                 "Use typed Pydantic `.model_dump()` or direct attribute dot-notation instead of accessing `.__dict__` directly.",
-                severity=qgr001_sev,
+                severity=GuardrailSeverity.FATAL,
             )
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
         # QGR001: getattr / hasattr / setattr reflection duck-typing, vars, attrgetter, and frozen mutations
-        qgr001_sev = (
-            GuardrailSeverity.WARNING
-            if self._is_boundary_exempt
-            else GuardrailSeverity.FATAL
-        )
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
                 self._add_violation(
@@ -433,7 +423,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     f"Banned reflection duck-typing or in-place mutation call: `{node.func.id}()`.",
                     "Use strict Pydantic V2 schema modeling, typed DTO fields, or class hierarchy properties instead of reflection.",
-                    severity=qgr001_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
             case ast.Name(id="vars"):
                 self._add_violation(
@@ -441,7 +431,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     "Banned `vars()` reflection call in domain code.",
                     "Use explicit Pydantic `.model_dump()` or typed property access instead of dynamic `vars()` reflection.",
-                    severity=qgr001_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
             case ast.Name(id="attrgetter") | ast.Attribute(value=ast.Name(id="operator"), attr="attrgetter"):
                 self._add_violation(
@@ -449,7 +439,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     "Banned `operator.attrgetter` dynamic reflection call.",
                     "Use static lambda expressions or direct property access instead of dynamic attrgetter reflection.",
-                    severity=qgr001_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
             case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
                 self._add_violation(
@@ -457,7 +447,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR001",
                     "Banned `object.__setattr__()` in-place model mutation call.",
                     "Use pre-instantiation field validation or .model_copy(update=...) instead of mutating frozen models.",
-                    severity=qgr001_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
             case _:
                 pass
@@ -667,30 +657,20 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             is_dict_check, is_mapping_check = _check_isinstance_target(types_arg)
 
             if is_dict_check:
-                qgr012_sev = (
-                    GuardrailSeverity.FATAL
-                    if (self._is_domain_code and not self._is_boundary_exempt)
-                    else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR012",
                     "Banned `isinstance(..., dict)` duck-typing check in domain code.",
                     "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc dict inspection.",
-                    severity=qgr012_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
             elif is_mapping_check:
-                qgr012_sev = (
-                    GuardrailSeverity.FATAL
-                    if (self._is_domain_code and not self._is_boundary_exempt)
-                    else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR012",
                     "Banned `isinstance(..., Mapping)` duck-typing check in domain code.",
                     "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc Mapping inspection.",
-                    severity=qgr012_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
         # QGR013: TypeVar() instantiation ban
@@ -704,7 +684,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR013",
                     "Banned legacy `TypeVar()` instantiation detected.",
                     "Use modern Python 3.12+ PEP 695 generic syntax `[T]` or `[F: HookFunction]` instead of TypeVar.",
-                    severity=GuardrailSeverity.WARNING,
+                    severity=GuardrailSeverity.FATAL,
                 )
             case _:
                 pass
@@ -779,17 +759,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         if is_type_adapter and node.args:
             first_arg = node.args[0]
             if _is_dict_type_node(first_arg):
-                qgr018_sev = (
-                    GuardrailSeverity.FATAL
-                    if (self._is_domain_code and not self._is_boundary_exempt)
-                    else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR018",
                     "Banned type laundering: `TypeAdapter` instantiated with dictionary type.",
                     "Instantiate `TypeAdapter` with strongly typed Pydantic V2 DTOs or domain models instead of naked dictionaries.",
-                    severity=qgr018_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
         # QGR019: Dictionary .pop(key, ...) in-place mutation ban in domain code
@@ -1140,15 +1115,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     is_orelse_fallback = False
 
             if not is_body_constant and is_orelse_fallback:
-                qgr016_sev = (
-                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR016",
                     f"Banned ternary lazy fallback `{ast.unparse(node)}` detected in domain code.",
                     "Enforce strict Pydantic V2 schema defaults, typed DTO fields, or raise explicit AppException instead of ternary fallbacks.",
-                    severity=qgr016_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
         self.generic_visit(node)
@@ -1253,17 +1225,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         pass
 
                 if is_dict_pattern:
-                    qgr012_sev = (
-                        GuardrailSeverity.FATAL
-                        if (self._is_domain_code and not self._is_boundary_exempt)
-                        else GuardrailSeverity.WARNING
-                    )
                     self._add_violation(
                         node,
                         "QGR012",
                         "Banned `match/case dict()` or dictionary mapping pattern matching in domain code.",
                         "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, Discriminated Unions) instead of match/case dictionary unpacking.",
-                        severity=qgr012_sev,
+                        severity=GuardrailSeverity.FATAL,
                     )
 
         self.generic_visit(node)
@@ -1424,7 +1391,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR015",
                         "Banned `TypeGuard` import detected.",
                         "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
-                        severity=GuardrailSeverity.WARNING,
+                        severity=GuardrailSeverity.FATAL,
                     )
 
         # QGR017: Banned import from eradicated facade v2_core
@@ -1480,7 +1447,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR015",
                 "Banned legacy `TypeGuard` type annotation detected.",
                 "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
-                severity=GuardrailSeverity.WARNING,
+                severity=GuardrailSeverity.FATAL,
             )
         self.generic_visit(node)
 
@@ -1501,28 +1468,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     is_literal_fallback = False
 
             if is_literal_fallback:
-                qgr016_sev = (
-                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR016",
                     f"Banned lazy literal fallback `{ast.unparse(node)}` in domain code.",
                     "Enforce strict Pydantic V2 schema defaults or raise explicit AppException instead of inline `or` fallbacks.",
-                    severity=qgr016_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
             # Check 2: Chained multi-variable fallbacks (>= 3 alternatives, e.g. `a or b or c`)
             if len(node.values) >= 3 and not is_literal_fallback and node not in self._bool_condition_nodes:
-                qgr016_chain_sev = (
-                    GuardrailSeverity.FATAL if not self._is_boundary_exempt else GuardrailSeverity.WARNING
-                )
                 self._add_violation(
                     node,
                     "QGR016",
                     f"Banned multi-fallback chain `{ast.unparse(node)}` detected in domain code.",
                     "Consolidate input state into a Single Source of Truth (SSOT) or use an explicit resolver function with Fail-Fast logging.",
-                    severity=qgr016_chain_sev,
+                    severity=GuardrailSeverity.FATAL,
                 )
 
         self.generic_visit(node)

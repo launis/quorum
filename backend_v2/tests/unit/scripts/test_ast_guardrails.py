@@ -681,16 +681,16 @@ def test_multifile_scanning_resilience(tmp_path: Path) -> None:
     assert rule_codes == {"QGR000", "QGR001"}
 
 
-def test_multifile_scanning_advisory_pass(tmp_path: Path) -> None:
-    # QGR013 (TypeVar instantiation) is a WARNING severity rule
+def test_multifile_scanning_qgr013_fatal(tmp_path: Path) -> None:
+    # QGR013 (TypeVar instantiation) is FATAL severity
     file1 = tmp_path / "warning_only.py"
     file1.write_text("from typing import TypeVar\nT = TypeVar('T')\n", encoding="utf-8")
 
     violations, is_success = scan_files_for_guardrails([tmp_path], strict=False)
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR013"
-    assert violations[0].severity == GuardrailSeverity.WARNING
-    assert is_success is True  # In advisory mode, warnings don't fail
+    assert violations[0].severity == GuardrailSeverity.FATAL
+    assert is_success is False  # In advisory mode, fatal violations fail
 
 
 def test_format_violations_table() -> None:
@@ -886,13 +886,13 @@ def test_relative_path_fatal_enforcement() -> None:
     assert v5[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr012_warning_severity_in_test_files() -> None:
-    """Verifies that test files receive WARNING severity for isinstance dict checks."""
+def test_qgr012_fatal_severity_in_test_files() -> None:
+    """Verifies that test files receive FATAL severity for isinstance dict checks."""
     code = "if isinstance(payload, dict):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_item.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR012"
-    assert violations[0].severity == GuardrailSeverity.WARNING
+    assert violations[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr012_mapping_fatal_in_domain_code() -> None:
@@ -939,13 +939,13 @@ def test_ast_guardrails_fatal_rejection_on_dict_messages() -> None:
     assert violations[0].severity == GuardrailSeverity.FATAL
 
 
-def test_ast_guardrails_allows_exempt_driver_annotations() -> None:
-    """Contract 2: Exempt boundary files receive WARNING severity instead of FATAL."""
+def test_ast_guardrails_exempt_driver_fatal_severity() -> None:
+    """Contract 2: Exempt boundary files receive FATAL severity unconditionally."""
     code = "val = getattr(obj, 'x', None)\n"
     violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
-    assert violations[0].severity == GuardrailSeverity.WARNING
+    assert violations[0].severity == GuardrailSeverity.FATAL
 
 
 def test_ast_guardrails_qgr001_fatal_in_models() -> None:
@@ -957,13 +957,13 @@ def test_ast_guardrails_qgr001_fatal_in_models() -> None:
     assert violations[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr013_typevar_warning() -> None:
-    """QGR013: Banned TypeVar instantiation returns WARNING severity."""
+def test_qgr013_typevar_fatal() -> None:
+    """QGR013: Banned TypeVar instantiation returns FATAL severity."""
     code = "from typing import TypeVar\nT = TypeVar('T')\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/sample.py")
     qgr013 = [v for v in violations if v.rule_code == "QGR013"]
     assert len(qgr013) == 1
-    assert qgr013[0].severity == GuardrailSeverity.WARNING
+    assert qgr013[0].severity == GuardrailSeverity.FATAL
     assert "TypeVar" in qgr013[0].message
 
 
@@ -1004,13 +1004,13 @@ def test_qgr014_patch_repository_fatal() -> None:
     assert qgr014[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr015_typeguard_import_and_usage_warning() -> None:
-    """QGR015: TypeGuard import and annotation returns WARNING severity."""
+def test_qgr015_typeguard_import_and_usage_fatal() -> None:
+    """QGR015: TypeGuard import and annotation returns FATAL severity."""
     code = "from typing import TypeGuard\ndef is_str(val: object) -> TypeGuard[str]:\n    return isinstance(val, str)\n"
     violations = _scan_snippet(code, filepath="backend_v2/utils/narrowing.py")
     qgr015 = [v for v in violations if v.rule_code == "QGR015"]
     assert len(qgr015) >= 1
-    assert qgr015[0].severity == GuardrailSeverity.WARNING
+    assert qgr015[0].severity == GuardrailSeverity.FATAL
 
 
 def test_purged_boundary_exemption_files() -> None:
@@ -1090,13 +1090,13 @@ def test_qgr016_boolean_condition_allowed_false_positive_immunity() -> None:
     assert len(qgr016) == 0
 
 
-def test_qgr016_boundary_exempt_file_warning() -> None:
-    """QGR016: Boundary exemption files degrade literal fallback from FATAL to WARNING."""
+def test_qgr016_boundary_exempt_file_fatal() -> None:
+    """QGR016: Boundary exemption files emit FATAL severity unconditionally."""
     code = "conn = raw_conn or 'localhost'\n"
     violations = _scan_snippet(code, filepath="backend_v2/database/drivers/tinydb_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
-    assert qgr016[0].severity == GuardrailSeverity.WARNING
+    assert qgr016[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr016_comment_suppression_works() -> None:
@@ -1207,8 +1207,20 @@ def test_boundary_exemption_files_preserved() -> None:
     code = "val = getattr(obj, 'k', None)\n"
     for exempt_file in ["tinydb_driver.py", "firestore_driver.py", "provider.py", "logging_config.py"]:
         violations = _scan_snippet(code, filepath=f"backend_v2/database/drivers/{exempt_file}")
-        assert all(v.severity == GuardrailSeverity.WARNING for v in violations)
-        assert not any(v.severity == GuardrailSeverity.FATAL for v in violations)
+        assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
+
+
+def test_qgr013_qgr015_emit_fatal_severity() -> None:
+    """Contract: Scan code snippets containing TypeVar (QGR013) or TypeGuard (QGR015) emit FATAL severity."""
+    typevar_code = "from typing import TypeVar\nT = TypeVar('T')\n"
+    v_typevar = _scan_snippet(typevar_code, filepath="backend_v2/services/typevar_service.py")
+    assert len(v_typevar) == 1
+    assert v_typevar[0].rule_code == "QGR013"
+    assert v_typevar[0].severity == GuardrailSeverity.FATAL
+
+    typeguard_code = "from typing import TypeGuard\ndef is_str(val: object) -> TypeGuard[str]:\n    return True\n"
+    v_typeguard = _scan_snippet(typeguard_code, filepath="backend_v2/services/guard_service.py")
+    assert any(v.rule_code == "QGR015" and v.severity == GuardrailSeverity.FATAL for v in v_typeguard)
 
 
 def test_ast_guardrails_python3_tuple_exceptions() -> None:
