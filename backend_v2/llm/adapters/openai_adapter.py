@@ -12,8 +12,11 @@ from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["OpenAICacheAdapter"]
 
 
 class OpenAICacheAdapter(BaseLLMAdapter):
@@ -106,7 +109,10 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         return {}
 
     def prepare_kwargs(
-        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+        self,
+        call_kwargs: dict[str, Any],
+        config: ModelProfile | None = None,
+        settings: Settings | None = None,
     ) -> dict[str, Any]:
         """Prepare OpenAI specific kwargs, translating reasoning effort and stripping unsupported sampling params.
 
@@ -177,7 +183,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
     def _enforce_openai_strict_schema(
         self,
-        schema_dict: Any,
+        schema_dict: dict[str, Any],
         known_discriminators: set[str] | None = None,
     ) -> None:
         """Enforce strict OpenAI JSON schema requirements across root and nested definitions.
