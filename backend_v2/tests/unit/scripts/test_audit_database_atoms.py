@@ -492,3 +492,217 @@ def test_helper_empty_string_handling() -> None:
     assert _check_backend_leak_patterns("") is None
     assert _check_institution_overfit("") is None
     assert _check_toy_domain_leak("") is None
+
+
+def test_audit_matrix_schema_validation_error() -> None:
+    """Ensure invalid matrix block triggers SCHEMA_VALIDATION_ERROR issue."""
+    invalid_block = {
+        "id": "blk_invalid_schema",
+        "category_id": "matrix",
+        "slug": "invalid-schema",
+        "scales": "not-a-list",  # Causes Pydantic ValidationError
+    }
+    issues, matrices, _ = audit_prompt_blocks([invalid_block])
+    assert matrices == 1
+    assert any(i.issue_type == "SCHEMA_VALIDATION_ERROR" for i in issues)
+
+
+def test_audit_concept_corrupted_and_patterns() -> None:
+    """Test corrupted grammar and pattern checks in concept description."""
+    # 1. Corrupted grammar ('in an block')
+    b2 = _create_clean_matrix_block()
+    b2["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "Verifies criteria in an block context."
+    issues2, _, _ = audit_prompt_blocks([b2])
+    assert any(i.issue_type == "CORRUPTED_GRAMMAR" for i in issues2)
+
+    # 2. Chat hardcoding in concept description
+    b3 = _create_clean_matrix_block()
+    b3["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "Evaluates user inputs within dialogue."
+    issues3, _, _ = audit_prompt_blocks([b3])
+    assert any(i.issue_type == "CHAT_HARDCODING" for i in issues3)
+
+    # 3. Institution overfit in concept description
+    b4 = _create_clean_matrix_block()
+    b4["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "Grounding on Työterveyslaitos guidelines."
+    issues4, _, _ = audit_prompt_blocks([b4])
+    assert any(i.issue_type == "INSTITUTION_OVERFIT" for i in issues4)
+
+    # 4. Toy domain leak in concept description
+    b5 = _create_clean_matrix_block()
+    b5["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = "Queries stored in SQLite database."
+    issues5, _, _ = audit_prompt_blocks([b5])
+    assert any(i.issue_type == "TOY_DOMAIN_LEAK" for i in issues5)
+
+
+def test_audit_extraction_rule_corrupted_and_banned() -> None:
+    """Test corrupted grammar and banned phrase in extraction_rule."""
+    b1 = _create_clean_matrix_block()
+    b1["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = "Check phrases in an block structure."
+    issues1, _, _ = audit_prompt_blocks([b1])
+    assert any(i.issue_type == "CORRUPTED_GRAMMAR" for i in issues1)
+
+    b2 = _create_clean_matrix_block()
+    b2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = "Apply FAIL FAST and discard quote."
+    issues2, _, _ = audit_prompt_blocks([b2])
+    assert any(i.issue_type == "BANNED_PHRASE" for i in issues2)
+
+    b3 = _create_clean_matrix_block()
+    b3["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = "Requires pydantic hooks for execution."
+    issues3, _, _ = audit_prompt_blocks([b3])
+    assert any(i.issue_type == "BACKEND_CODE_LEAK" for i in issues3)
+
+
+def test_audit_steps_all_edge_cases() -> None:
+    """Test steps with empty criteria_blocks, missing protocol, orphan role, orphan persona, and malformed inputs."""
+    known_block_ids = {"blk_matrix_01", "blk_protocol_01"}
+
+    # 1. Empty criteria_block_ids
+    s1 = {
+        "id": "stp_001",
+        "type": "llm",
+        "cognitive_tier": "fast",
+        "criteria_block_ids": [],
+        "extraction_protocol_block_id": "blk_protocol_01",
+    }
+    issues1, _ = audit_steps([s1], known_block_ids)
+    assert any(i.issue_type == "EMPTY_CRITERIA_BLOCKS" for i in issues1)
+
+    # 2. Missing extraction_protocol_block_id
+    s2 = {
+        "id": "stp_002",
+        "type": "llm",
+        "cognitive_tier": "fast",
+        "criteria_block_ids": ["blk_matrix_01"],
+        "extraction_protocol_block_id": None,
+    }
+    issues2, _ = audit_steps([s2], known_block_ids)
+    assert any(i.issue_type == "MISSING_EXTRACTION_PROTOCOL" for i in issues2)
+
+    # 3. Orphan role and persona blocks
+    s3 = {
+        "id": "stp_003",
+        "type": "llm",
+        "cognitive_tier": "fast",
+        "criteria_block_ids": ["blk_matrix_01"],
+        "extraction_protocol_block_id": "blk_protocol_01",
+        "role_block_id": "blk_missing_role",
+        "execution_persona_block_id": "blk_missing_persona",
+        "expected_inputs": ["valid_key", "invalid key with spaces", ""],
+    }
+    issues3, _ = audit_steps([s3], known_block_ids)
+    assert any(i.issue_type == "ORPHAN_ROLE_BLOCK" for i in issues3)
+    assert any(i.issue_type == "ORPHAN_PERSONA_BLOCK" for i in issues3)
+    assert any(i.issue_type == "MALFORMED_INPUT_KEY" for i in issues3)
+
+
+def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
+    """Test workflow validation error, raw XML in input description, and orphan task blueprint."""
+    # 1. Schema validation error
+    wf1 = {
+        "id": "wor_invalid",
+        "steps": "not-a-list",
+    }
+    issues1, _ = audit_workflows([wf1], set())
+    assert any(i.issue_type == "SCHEMA_VALIDATION_ERROR" for i in issues1)
+
+    # 2. Raw XML in input description & orphan step blueprint
+    wf2 = {
+        "id": "wor_0123456789abcdef",
+        "slug": "clean-workflow-2",
+        "name": {"translations": {"en": "Workflow 2"}},
+        "description": {"translations": {"en": "Description"}},
+        "status": "ACTIVE",
+        "version": 1,
+        "model_registry_id": "cfg_model_registry_01",
+        "historical_context_mode": "DISABLED",
+        "expected_inputs": [
+            {
+                "input_key": "raw_xml_input",
+                "label": {"translations": {"en": "XML Input"}},
+                "description": {"translations": {"en": "Desc"}},
+                "required": True,
+                "ai_description": "<directive>Raw XML in input</directive>",
+                "input_modes": ["text"],
+            }
+        ],
+        "steps": [
+            {
+                "id": "sr_0123456789abcdef",
+                "task_blueprint": "stp_0123456789abcdef",
+                "input_mappings": {},
+            }
+        ],
+    }
+    issues2, _ = audit_workflows([wf2], {"stp_known_1234567890"})
+    assert any(i.issue_type == "RAW_XML" for i in issues2)
+    assert any(i.issue_type == "ORPHAN_STEP_BLUEPRINT" for i in issues2)
+
+
+def test_audit_output_profiles_validation_error_and_xml_directive() -> None:
+    """Test output profile schema validation error and raw XML in executive_summary_directive."""
+    # 1. Schema validation error
+    prof1 = {
+        "id": "prf_invalid",
+        "matrix_synthesis_groups": "not-a-list",
+    }
+    issues1, _ = audit_output_profiles([prof1], set())
+    assert any(i.issue_type == "SCHEMA_VALIDATION_ERROR" for i in issues1)
+
+    # 2. Raw XML in executive_summary_directive
+    prof2 = {
+        "id": "prf_0123456789abcdef",
+        "workflow_id": "wor_0123456789abcdef",
+        "name": {"translations": {"en": "Profile XML"}},
+        "slug": "profile-xml",
+        "description": {"translations": {"en": "Description"}},
+        "executive_summary_directive": "<directive>Executive directive with XML</directive>",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_0123456789abcdef",
+                "title": {"translations": {"en": "Group 1"}},
+                "target_blocks": ["blk_0123456789abcdef"],
+            }
+        ],
+    }
+    issues2, _ = audit_output_profiles([prof2], set())
+    assert any(i.issue_type == "RAW_XML" and "executive_summary_directive" in i.field_path for i in issues2)
+
+
+def test_print_audit_report_formatting(capsys: pytest.CaptureFixture[str]) -> None:
+    """Ensure print_audit_report prints both summary and detailed findings."""
+    from scripts.audit_database_atoms import print_audit_report
+
+    issue = AuditIssue(
+        collection="prompt_blocks",
+        entity_id="tda_demo_01",
+        field_path="concept_description",
+        issue_type="DEMO_ISSUE",
+        message="Demo message for printing.",
+        severity="WARNING",
+    )
+    report = FullDatabaseAuditReport(
+        total_matrices=2,
+        total_atoms=10,
+        total_steps=5,
+        total_workflows=2,
+        total_profiles=1,
+        issues=[issue],
+        all_passed=True,
+    )
+    print_audit_report(report)
+    captured = capsys.readouterr().out
+    assert "QUORUM FULL DATABASE PROMPT VERIFICATION REPORT" in captured
+    assert "Total Matrices Inspected:  2" in captured
+    assert "[001] WARNING | prompt_blocks | tda_demo_01 | DEMO_ISSUE" in captured
+
+
+def test_audit_database_atoms_all_exports() -> None:
+    """Verify explicit public interface exports in __all__."""
+    import scripts.audit_database_atoms as mod
+
+    assert hasattr(mod, "__all__")
+    assert "AuditIssue" in mod.__all__
+    assert "FullDatabaseAuditReport" in mod.__all__
+    assert "run_full_database_audit" in mod.__all__
+    assert "main" in mod.__all__
+

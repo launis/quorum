@@ -1,36 +1,36 @@
 """Full Database Prompt & Matrix Atom Verification Engine.
 
-Tämä skripti on Quorum-järjestelmän keskeinen Single Source of Truth (SSOT) -laadunvarmistustyökalu
-tietokannan (`backend_v2/seed/seed_data.json`) prompt- ja matriisikokoelmille.
+This script serves as the Single Source of Truth (SSOT) quality gate
+for database (`backend_v2/seed/seed_data.json`) prompt and matrix collections.
 
-KÄYTTÖOHJEET JA TYÖNKULKU:
-==========================
-1. Yleinen laaduntarkastus (Kaikki kokoelmat):
+WORKFLOW AND USAGE:
+===================
+1. General Quality Audit (All Collections):
    `uv run python scripts/audit_database_atoms.py --strict`
-   - Tarkistaa, että kaikki prompt_blocks (matriisit), steps, workflows ja output_profiles
-     ovat 100 % Pydantic V2 -yhteensopivia ilman skeemavirheitä tai tyhjiä kriteereitä.
+   - Validates that all prompt_blocks (matrices), steps, workflows, and output_profiles
+     are 100% Pydantic V2 compliant without schema errors or empty criteria.
 
-2. Matriisien ja atomien kovennussilmukka (Matrix & Atom Hardening):
+2. Matrix and Atom Hardening Loop:
    `uv run python scripts/matrix_hardening_loop.py --status`
-   - Tarkistaa atomitiheyden per taso (varoittaa, jos solussa on < 3 atomia -> Cliff-riski).
-   - Tarkasta yksittäinen matriisi:
+   - Checks atom density per scale level (warns if a cell contains < 3 atoms).
+   - Inspects a single matrix:
      `uv run python scripts/matrix_hardening_loop.py --inspect <matrix_id>`
-   - Merkitse matriisi valmiiksi auditoiduksi:
+   - Marks a matrix as audited:
      `uv run python scripts/matrix_hardening_loop.py --done <matrix_id>`
 
-3. Automaattinen aukkojen kartoitus ja generointi:
+3. Automated Gap Identification and Generation:
    `uv run python scripts/matrix_hardening_generator.py --all-gaps`
    `uv run python scripts/matrix_hardening_generator.py --plan <matrix_id>`
 
-4. Paikallisen tietokannan uudelleensiemennys validoinnin jälkeen:
+4. Local Database Reseeding After Validation:
    `uv run python backend_v2/seed/run_seed.py local`
 
-AUDITOITAVAT KOKOELMAT:
------------------------
-1. prompt_blocks (Matriisien TDA-väitteet, persoonat, arviointisäännöt)
-2. steps (LLM-suoritusvaiheet, strategiat, syötesopimukset)
-3. workflows (DAG-orientoituneet työnkulut, reititykset)
-4. output_profiles (Synteesiprofiilit, SDUI-lohkojen ryhmittelyt)
+AUDITED COLLECTIONS:
+--------------------
+1. prompt_blocks (Matrix TDA assertions, personas, evaluation guidelines)
+2. steps (LLM execution steps, strategies, expected inputs contracts)
+3. workflows (DAG-oriented execution workflows, variable routing)
+4. output_profiles (Synthesis profiles, SDUI block groupings)
 
 Strictly adheres to Zero-Reflection Mandate (no getattr/hasattr) and Pydantic V2.
 """
@@ -63,6 +63,18 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import PromptBlockCategory
+
+__all__ = [
+    "AuditIssue",
+    "FullDatabaseAuditReport",
+    "audit_output_profiles",
+    "audit_prompt_blocks",
+    "audit_steps",
+    "audit_workflows",
+    "main",
+    "print_audit_report",
+    "run_full_database_audit",
+]
 
 
 class AuditIssue(V2CoreBase):
@@ -210,6 +222,12 @@ def _check_ambiguity_patterns(text: str) -> str | None:
     Per 05_llm_architecture.md (prompt_illustrative_examples_mandate), illustrative
     examples (e.g., 'a0', 'a1') in LLM instructions and prompt blocks are explicitly
     exempted and permitted.
+
+    Args:
+        text: The string to inspect.
+
+    Returns:
+        The matched ambiguity token if found, else None.
     """
     if not text:
         return None
@@ -221,7 +239,14 @@ def _check_ambiguity_patterns(text: str) -> str | None:
 
 
 def _check_backend_leak_patterns(text: str) -> str | None:
-    """Checks if text leaks backend software architecture or internal frameworks."""
+    """Checks if text leaks backend software architecture or internal frameworks.
+
+    Args:
+        text: The string to inspect.
+
+    Returns:
+        The matched backend architecture leak string if found, else None.
+    """
     if not text:
         return None
     match = BACKEND_LEAK_REGEX.search(text)
@@ -229,7 +254,14 @@ def _check_backend_leak_patterns(text: str) -> str | None:
 
 
 def _check_institution_overfit(text: str) -> str | None:
-    """Checks if text overfits to specific real-world institutions."""
+    """Checks if text overfits to specific real-world institutions.
+
+    Args:
+        text: The string to inspect.
+
+    Returns:
+        The matched institution name if found, else None.
+    """
     if not text:
         return None
     match = INSTITUTION_OVERFIT_REGEX.search(text)
@@ -237,7 +269,14 @@ def _check_institution_overfit(text: str) -> str | None:
 
 
 def _check_toy_domain_leak(text: str) -> str | None:
-    """Checks if text contains toy-domain database references."""
+    """Checks if text contains toy-domain database references.
+
+    Args:
+        text: The string to inspect.
+
+    Returns:
+        The matched database technology name if found, else None.
+    """
     if not text:
         return None
     match = TOY_DOMAIN_REGEX.search(text)
@@ -1002,8 +1041,7 @@ def audit_output_profiles(
                             field_path=f"matrix_synthesis_groups[{g_idx}].target_blocks[{tb_idx}]",
                             issue_type="ORPHAN_TARGET_BLOCK",
                             message=(
-                                f"OutputProfile '{profile_id}' group '{grp_id}' targets unknown "
-                                f"prompt_block '{tb_id}'."
+                                f"OutputProfile '{profile_id}' group '{grp_id}' targets unknown prompt_block '{tb_id}'."
                             ),
                         )
                     )
@@ -1092,7 +1130,11 @@ def print_audit_report(report: FullDatabaseAuditReport) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for full database prompt verification."""
+    """CLI entrypoint for full database prompt verification.
+
+    Args:
+        argv: Optional command-line argument list (defaults to sys.argv[1:]).
+    """
     parser = argparse.ArgumentParser(
         description="""Comprehensive Database Atom & Prompt Audit Gate.
 
