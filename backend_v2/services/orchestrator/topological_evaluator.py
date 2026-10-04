@@ -19,6 +19,8 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.enums import ExecutionStatus
 
+__all__ = ["TopologicalEvaluator"]
+
 
 class TopologicalEvaluator:
     """Evaluates a DAG of LinkedAtomGraphs deterministically via Kahn's Algorithm.
@@ -42,7 +44,15 @@ class TopologicalEvaluator:
 
     @staticmethod
     def _dlq_mark_node_error(state: AtomExecutionState, exc: AppException) -> AtomExecutionState:
-        """Dead-letter error recording for failed atom evaluations within wave."""
+        """Dead-letter error recording for failed atom evaluations within wave.
+
+        Args:
+            state: The current atom execution state to update.
+            exc: The caught application exception to record.
+
+        Returns:
+            Updated atom execution state with SYSTEM_ERROR status.
+        """
         return state.model_copy(
             update={
                 "status": ExecutionStatus.SYSTEM_ERROR,

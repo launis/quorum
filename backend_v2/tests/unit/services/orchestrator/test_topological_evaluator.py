@@ -2,6 +2,7 @@
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
     AtomExecutionState,
@@ -283,3 +284,60 @@ async def test_na_short_circuit_cascade() -> None:
     assert dispatched_atom_ids == ["tda_1111111111111111"]
     assert "tda_2222222222222222" not in dispatched_atom_ids
     assert "tda_3333333333333333" not in dispatched_atom_ids
+
+
+@pytest.mark.asyncio
+async def test_dlq_marking_on_app_exception() -> None:
+    """Tests that when batch_evaluation_callback raises AppException, nodes are marked with SYSTEM_ERROR."""
+    evaluator = TopologicalEvaluator()
+    nodes = [
+        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+    ]
+
+    async def failing_callback(
+        batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        raise AppException(
+            message="Simulated callback failure",
+            details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+        )
+
+    states = await evaluator.evaluate_graph(nodes, failing_callback)
+
+    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert "EVALUATION_CRASH: Simulated callback failure" in states["tda_1111111111111111"].evaluation_reasoning
+    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert "EVALUATION_CRASH: Simulated callback failure" in states["tda_2222222222222222"].evaluation_reasoning
+
+
+@pytest.mark.asyncio
+async def test_missing_node_from_batch_response() -> None:
+    """Tests that nodes omitted from callback results dict are isolated with SYSTEM_ERROR."""
+    evaluator = TopologicalEvaluator()
+    nodes = [
+        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+    ]
+
+    async def partial_callback(
+        batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        # Only return result for the first node; omit the second
+        return {
+            "tda_1111111111111111": AtomEvaluationResultDTO(
+                status=ExecutionStatus.PASSED,
+                reasoning="OK",
+                source_quote="quote",
+                extensions={},
+            )
+        }
+
+    states = await evaluator.evaluate_graph(nodes, partial_callback)
+
+    assert states["tda_1111111111111111"].status == ExecutionStatus.PASSED
+    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_2222222222222222"].evaluation_reasoning == "Missing from batch response"
+
