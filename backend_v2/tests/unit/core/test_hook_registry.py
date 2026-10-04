@@ -9,6 +9,7 @@ from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
+    HookRegistry,
     HookResult,
     HookState,
     hook_registry,
@@ -185,3 +186,12 @@ async def test_hook_registry_fail_fast_conditions() -> None:
         assert "execution failed" in exc_err.value.message
     finally:
         hook_registry._hooks = saved_hooks
+
+
+def test_hook_registry_singleton_integrity() -> None:
+    """Test that HookRegistry enforces singleton instance identity."""
+    reg1 = HookRegistry()
+    reg2 = HookRegistry()
+    assert reg1 is reg2
+    assert reg1 is hook_registry
+

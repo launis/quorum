@@ -51,7 +51,15 @@ class ISearchClient(Protocol):
     """Protocol for abstracting search client I/O from hook execution."""
 
     async def search(self, query: str, max_results: int = 5) -> list[TavilySearchResultDTO]:
-        """Executes a search query and returns search results."""
+        """Executes a search query and returns search results.
+
+        Args:
+            query: The search query string.
+            max_results: Maximum number of results to return.
+
+        Returns:
+            A list of search result DTOs.
+        """
         ...
 
 
@@ -109,7 +117,11 @@ class HookRegistry:
     _hooks: dict[str, HookFunction]
 
     def __new__(cls) -> HookRegistry:
-        """Create or return the singleton instance of HookRegistry."""
+        """Create or return the singleton instance of HookRegistry.
+
+        Returns:
+            The singleton HookRegistry instance.
+        """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._hooks = {}
@@ -122,10 +134,11 @@ class HookRegistry:
             name: The unique identifier for the hook.
 
         Returns:
-            The decorator function.
+            The decorator function wrapping the hook function.
 
         Raises:
-            AppException: If a hook with the given name is already registered.
+            AppException: If a hook with the given name is already registered
+                (ErrorCodes.CONFIGURATION_ERROR).
         """
 
         def decorator(func: F) -> F:
@@ -148,13 +161,14 @@ class HookRegistry:
         """Retrieves a registered hook function by name.
 
         Args:
-            name (str): The name of the hook.
+            name: The unique identifier of the hook.
 
         Returns:
-            HookFunction: The executable hook function.
+            The executable hook function.
 
         Raises:
-            AppException: If the hook is not found (Fail-Fast).
+            AppException: If the hook is not found in the registry
+                (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         if name not in self._hooks:
             msg = f"Hook '{name}' not found in registry."
@@ -173,15 +187,16 @@ class HookRegistry:
         the strict HookState and HookDependencies injection, ensuring Fail-Fast protocol.
 
         Args:
-            name (str): The name of the hook to execute.
-            state (HookState): The immutable data payload.
-            deps (HookDependencies): The strictly typed DI container.
+            name: The unique identifier of the hook to execute.
+            state: The immutable data payload for hook execution.
+            deps: The strictly typed dependency injection container.
 
         Returns:
-            HookResult: The explicit state delta result.
+            The explicit state delta result produced by the hook.
 
         Raises:
-            AppException: If execution fails or returns an invalid type.
+            AppException: If execution fails or returns an invalid type
+                (ErrorCodes.AGENT_EXECUTION_CRITICAL, ErrorCodes.RESOURCE_NOT_FOUND).
         """
         hook_func = self.get_hook(name)
 
@@ -227,11 +242,7 @@ class HookRegistry:
         return list(self._hooks.keys())
 
     def clear(self) -> None:
-        """Clears all registered hooks. (Mainly for testing).
-
-        Returns:
-            None.
-        """
+        """Clears all registered hooks (primarily used for test teardown)."""
         self._hooks.clear()
 
 
