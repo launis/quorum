@@ -110,7 +110,7 @@
   - [x] @[scripts/audit_rules_staleness.py]
   - [x] @[scripts/audit_matrix_auto_filler.py]
   - [x] @[scripts/audit_matrix_manager.py]
-  - [ ] @[scripts/matrix_slice_engine.py]
+  - [x] @[scripts/matrix_slice_engine.py]
   - [ ] @[backend_v2/core/hook_registry.py]
   - [ ] @[backend_v2/core/registry.py]
   - [ ] @[backend_v2/database/repositories/audit.py]

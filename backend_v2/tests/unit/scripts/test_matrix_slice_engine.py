@@ -24,6 +24,7 @@ from scripts.matrix_slice_engine import (
     export_matrix_slice,
     generate_theory_opponent_card,
     load_matrix_by_id,
+    main,
 )
 
 
@@ -316,3 +317,143 @@ def test_apply_matrix_slice_rejects_incoherent_controls(tmp_path: Path) -> None:
     # Seed vault backup must not be created
     backups_dir = mock_seed.parent / "backups"
     assert not backups_dir.exists() or len(list(backups_dir.glob("*.json"))) == 0
+
+
+def test_main_cli_no_args_returns_1() -> None:
+    """Test matrix_slice_engine.main with no arguments prints usage and returns 1."""
+    assert main([]) == 1
+
+
+def test_main_cli_export(tmp_path: Path) -> None:
+    """Test matrix_slice_engine.main with --export."""
+    out_file = tmp_path / "exported_slice.json"
+    res = main(["--export", "blk_440a5fef9331451b", "--output", str(out_file)])
+    assert res == 0
+    assert out_file.exists()
+
+
+def test_main_cli_audit_contamination(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test matrix_slice_engine.main with --audit-contamination."""
+    res = main(["--audit-contamination", "blk_440a5fef9331451b"])
+    assert res == 0
+    out = capsys.readouterr().out
+    assert "contamination" in out.lower()
+
+
+def test_main_cli_audit_coherence(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test matrix_slice_engine.main with --audit-coherence."""
+    res = main(["--audit-coherence", "blk_440a5fef9331451b"])
+    assert res == 0
+    out = capsys.readouterr().out
+    assert "coherence" in out.lower()
+
+
+def test_main_cli_theory_card(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test matrix_slice_engine.main with --theory-card to file and stdout."""
+    card_file = tmp_path / "card.md"
+    res1 = main(["--theory-card", "blk_440a5fef9331451b", "--output", str(card_file)])
+    assert res1 == 0
+    assert card_file.exists()
+
+    res2 = main(["--theory-card", "blk_440a5fef9331451b"])
+    assert res2 == 0
+    assert "<bars_scale_specifications>" in capsys.readouterr().out
+
+
+def test_main_cli_patch_and_explain(tmp_path: Path) -> None:
+    """Test matrix_slice_engine.main with --patch and --explain."""
+    slice_file = tmp_path / "slice.json"
+    export_matrix_slice("blk_440a5fef9331451b", output_path=slice_file)
+
+    res_patch = main(["--patch", str(slice_file), "--dry-run"])
+    assert res_patch == 0
+
+    res_explain = main(["--explain", "blk_440a5fef9331451b"])
+    assert res_explain == 0
+
+
+def test_apply_matrix_slice_missing_matrix_in_seed(tmp_path: Path) -> None:
+    """Test apply_matrix_slice raises ValueError if matrix ID not in seed_data.json."""
+    mock_seed = tmp_path / "mock_seed.json"
+    mock_seed.write_text(json.dumps({"prompt_blocks": []}), encoding="utf-8")
+
+    mat = load_matrix_by_id("blk_440a5fef9331451b")
+    slice_file = tmp_path / "slice.json"
+    slice_file.write_text(mat.model_dump_json(), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not found in"):
+        apply_matrix_slice(slice_file, seed_path=mock_seed)
+
+
+def test_apply_matrix_slice_invalid_category(tmp_path: Path) -> None:
+    """Test apply_matrix_slice raises ValueError if slice category is not matrix."""
+    slice_file = tmp_path / "bad_cat_slice.json"
+    mat = load_matrix_by_id("blk_440a5fef9331451b")
+    raw = mat.model_dump(mode="json")
+    raw["category_id"] = "prompt"
+    slice_file.write_text(json.dumps(raw), encoding="utf-8")
+
+    mock_seed = tmp_path / "seed_data.json"
+    mock_seed.write_text(Path("backend_v2/seed/seed_data.json").read_text(encoding="utf-8"), encoding="utf-8")
+
+    with pytest.raises((ValueError, ValidationError)):
+        apply_matrix_slice(slice_file, seed_path=mock_seed)
+
+
+def test_detect_empirical_contamination_patterns() -> None:
+    """Test detect_empirical_contamination catches ambiguity, backend leaks, and toy domains."""
+    base_mat = load_matrix_by_id("blk_440a5fef9331451b")
+    bad_tda = (
+        base_mat.scales[0]
+        .claims[0]
+        .tda_assertions[0]
+        .model_copy(
+            update={
+                "extraction_rule": "e.g. check pydantic postgresql mongodb and stanford metrics",
+                "concept_description": "Valid concept description for testing patterns",
+            }
+        )
+    )
+    bad_claim = base_mat.scales[0].claims[0].model_copy(update={"tda_assertions": [bad_tda]})
+    bad_scale = base_mat.scales[0].model_copy(update={"claims": [bad_claim]})
+    mutated_mat = base_mat.model_copy(update={"scales": [bad_scale] + list(base_mat.scales[1:])})
+
+    findings = detect_empirical_contamination(mutated_mat)
+    reasons = [f.reason for f in findings]
+    assert any("Ambiguity" in r for r in reasons)
+    assert any("Backend leak" in r for r in reasons)
+    assert any("Institution" in r for r in reasons)
+    assert any("Toy domain" in r for r in reasons)
+
+
+def test_audit_atom_coherence_extended_rules() -> None:
+    """Test audit_atom_coherence detects scope mismatch, exemplar defects, and discordance."""
+    base_mat = load_matrix_by_id("blk_440a5fef9331451b")
+    from backend_v2.models.domain.matrix import ContrastivePairDTO
+
+    bad_tda = (
+        base_mat.scales[0]
+        .claims[0]
+        .tda_assertions[0]
+        .model_copy(
+            update={
+                "bounding_box_scope": "sentence",
+                "concept_description": "Comparative contrastive relational trade-off",
+                "contrastive_example": ContrastivePairDTO(
+                    acceptable="Tämä on suomenkielinen teksti", rejected="valid long enough rejection text"
+                ),
+                "acceptance_criteria": "",
+                "extraction_rule": "A" * 85,
+            }
+        )
+    )
+    bad_claim = base_mat.scales[0].claims[0].model_copy(update={"tda_assertions": [bad_tda]})
+    bad_scale = base_mat.scales[0].model_copy(update={"claims": [bad_claim]})
+    mutated_mat = base_mat.model_copy(update={"scales": [bad_scale] + list(base_mat.scales[1:])})
+
+    issues = audit_atom_coherence(mutated_mat)
+    issue_codes = {i.issue for i in issues}
+    assert "SCOPE_RULE_MISMATCH" in issue_codes
+    assert "EXEMPLAR_DEFECT" in issue_codes
+    assert "CRITERIA_RULE_DISCORDANCE" in issue_codes
+

@@ -7,6 +7,7 @@ adversarial Theory Opponent Card generation, atomic seed patching, and theory co
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import logging
 import re
@@ -14,6 +15,13 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Annotated, Any
+
+# Force UTF-8 encoding for stdout on Windows without reflection
+if isinstance(sys.stdout, io.TextIOWrapper):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except AttributeError, io.UnsupportedOperation:
+        pass
 
 _workspace_root = Path(__file__).resolve().parent.parent
 if str(_workspace_root) not in sys.path:
@@ -473,10 +481,8 @@ adversarial Theory Opponent Card generation, atomic seed patching, and theory co
         return 1
 
     if args.export:
-        slice_data = export_matrix_slice(args.export, seed_path=args.seed_path)
         out_path = args.output or Path(f"data/slices/{args.export}.json")
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(slice_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        export_matrix_slice(args.export, output_path=out_path, seed_path=args.seed_path)
         print(f"Exported matrix slice '{args.export}' to {out_path}")
 
     if args.audit_contamination:
