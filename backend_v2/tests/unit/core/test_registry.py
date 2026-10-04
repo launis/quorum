@@ -502,3 +502,54 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
 
     fields = schema.model_fields
     assert "global_matrices" in fields
+
+
+def test_grid_schema_strategy_empty_fields_adds_acknowledged_instruction() -> None:
+    """Test that GridSchemaStrategy adds fallback acknowledged_instruction when fields is empty."""
+    strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
+    schema = strat.build_schema(
+        "EmptySchema",
+        criteria=[],
+        has_shuffled_atoms=False,
+        strictness_level=70,
+    )
+    assert issubclass(schema, BaseModel)
+    assert "evaluation_notes" in schema.model_fields
+    assert "reasoning_trace" in schema.model_fields
+
+
+def test_grid_schema_strategy_matrix_more_than_six_extensions_warning() -> None:
+    """Test that GridSchemaStrategy logs warning when matrix has >6 dynamic output extensions."""
+    strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
+    matrix_block = MatrixPromptBlock(
+        id="pb_1111222233334444",
+        slug="many-ext-matrix",
+        label=I18nText(translations={"en": "Many Ext Matrix"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[],
+            )
+        ],
+        output_extensions=[
+            "ext1",
+            "ext2",
+            "ext3",
+            "ext4",
+            "ext5",
+            "ext6",
+            "ext7",
+        ],
+    )
+    schema = strat.build_schema(
+        "ManyExtSchema",
+        criteria=[matrix_block],
+        has_shuffled_atoms=False,
+        strictness_level=100,
+    )
+    assert "global_matrices" in schema.model_fields
+

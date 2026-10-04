@@ -189,7 +189,11 @@ class SchemaBuilderStrategy(ABC):
     """Abstract base for SDUI schema builder strategies."""
 
     def __init__(self, resolve_i18n: Callable[..., str]) -> None:
-        """Initialize with I18n resolution capability."""
+        """Initialize with I18n resolution capability.
+
+        Args:
+            resolve_i18n: Callable to resolve internationalized text strings.
+        """
         self._resolve_i18n = resolve_i18n
 
     @abstractmethod
@@ -207,7 +211,23 @@ class SchemaBuilderStrategy(ABC):
         max_evaluations: int | None = None,
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
-        """Build and return the Pydantic model for this SDUI type."""
+        """Build and return the Pydantic model for this SDUI type.
+
+        Args:
+            schema_name: Unique name for the generated Pydantic schema model.
+            criteria: List of prompt blocks to generate schema fields for.
+            has_shuffled_atoms: Whether atoms are shuffled for randomized evaluation.
+            target_locale: System locale string for localized descriptions.
+            strictness_level: Integer evaluation strictness level (0-100).
+            source_document_ids: Optional list of authorized document identifiers.
+            allowed_atom_ids: Optional list of authorized atom identifiers.
+            allowed_dynamic_keys: Optional list of authorized dynamic keys.
+            max_evaluations: Optional ceiling on evaluations count.
+            dag_results: Optional prior DAG evaluation results for filtering evidence.
+
+        Returns:
+            The compiled Pydantic model class for this SDUI layout type.
+        """
         pass
 
 
@@ -215,7 +235,18 @@ _SDUI_SCHEMA_REGISTRY: dict[str, type[SchemaBuilderStrategy]] = {}
 
 
 def register_sdui_schema(sdui_type: str) -> Callable[[type[SchemaBuilderStrategy]], type[SchemaBuilderStrategy]]:
-    """Decorator to register a SchemaBuilderStrategy for an SDUI type."""
+    """Decorator to register a SchemaBuilderStrategy for an SDUI type.
+
+    Args:
+        sdui_type: The unique string identifier for the SDUI layout type.
+
+    Returns:
+        A class decorator registering and returning the strategy class.
+
+    Raises:
+        AppException: If a strategy for the given SDUI type is already registered
+            (ErrorCodes.CONFIGURATION_ERROR).
+    """
 
     def decorator(cls_strategy: type[SchemaBuilderStrategy]) -> type[SchemaBuilderStrategy]:
         if sdui_type in _SDUI_SCHEMA_REGISTRY:
@@ -233,7 +264,18 @@ def register_sdui_schema(sdui_type: str) -> Callable[[type[SchemaBuilderStrategy
 
 
 def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
-    """Resolve strategy by SDUI type."""
+    """Resolve schema strategy by SDUI type.
+
+    Args:
+        sdui_type: The string identifier of the desired SDUI layout.
+
+    Returns:
+        The registered SchemaBuilderStrategy class.
+
+    Raises:
+        AppException: If the requested SDUI type is unknown
+            (ErrorCodes.INVALID_OUTPUT_SCHEMA).
+    """
     if sdui_type not in _SDUI_SCHEMA_REGISTRY:
         msg = f"Fail-Fast: Unknown expected_sdui_type '{sdui_type}'"
         logger.error("[SchemaRegistry] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
@@ -246,7 +288,14 @@ def get_schema_strategy(sdui_type: str) -> type[SchemaBuilderStrategy]:
 
 
 def _coerce_bool(v: Any) -> Any:
-    """Coerces strings like 'true'/'false' into actual booleans for Vertex AI type safety."""
+    """Coerces strings like 'true'/'false' into actual booleans for Vertex AI type safety.
+
+    Args:
+        v: Incoming value to coerce to a boolean if string representation.
+
+    Returns:
+        A boolean if string matches a boolean literal, otherwise the original value.
+    """
     if isinstance(v, str):
         v_lower = v.strip().lower()
         if v_lower in {"true", "1", "yes"}:
@@ -315,14 +364,31 @@ class GlobalMatricesBase(V2CoreBase):
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
     def __getitem__(self, item: str) -> Any:
-        """Allow subscript access for dynamic matrix extraction evaluations."""
+        """Allow subscript access for dynamic matrix extraction evaluations.
+
+        Args:
+            item: Matrix identifier key to retrieve.
+
+        Returns:
+            The evaluated matrix result attribute value.
+
+        Raises:
+            KeyError: If the specified matrix identifier is not found on the instance.
+        """
         try:
             return object.__getattribute__(self, item)
         except AttributeError as exc:
             raise KeyError(f"Matrix evaluation for '{item}' not found in GlobalMatrices.") from exc
 
     def __contains__(self, item: object) -> bool:
-        """Check if matrix evaluation exists."""
+        """Check if matrix evaluation exists on the model fields.
+
+        Args:
+            item: Identifier candidate to check against defined model fields.
+
+        Returns:
+            True if the string exists in defined model fields, False otherwise.
+        """
         if not isinstance(item, str):
             return False
         return item in type(self).model_fields
@@ -346,7 +412,23 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
-        """Build the static MarkdownBlock response model."""
+        """Build the static MarkdownBlock response model.
+
+        Args:
+            schema_name: Name for the compiled schema.
+            criteria: List of prompt blocks (unused for static markdown).
+            has_shuffled_atoms: Unused flag for static markdown.
+            target_locale: System locale for descriptions.
+            strictness_level: Integer strictness level.
+            source_document_ids: Optional document identifiers.
+            allowed_atom_ids: Optional atom identifiers.
+            allowed_dynamic_keys: Optional dynamic keys.
+            max_evaluations: Optional max evaluation count.
+            dag_results: Optional prior DAG results.
+
+        Returns:
+            The static MarkdownBlock Pydantic model class.
+        """
         return MarkdownBlock
 
 
@@ -368,7 +450,23 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
-        """Build the static HeroInsightBlock response model."""
+        """Build the static HeroInsightBlock response model.
+
+        Args:
+            schema_name: Name for the compiled schema.
+            criteria: List of prompt blocks (unused for static hero insight).
+            has_shuffled_atoms: Unused flag for static hero insight.
+            target_locale: System locale for descriptions.
+            strictness_level: Integer strictness level.
+            source_document_ids: Optional document identifiers.
+            allowed_atom_ids: Optional atom identifiers.
+            allowed_dynamic_keys: Optional dynamic keys.
+            max_evaluations: Optional max evaluation count.
+            dag_results: Optional prior DAG results.
+
+        Returns:
+            The static HeroInsightBlock Pydantic model class.
+        """
         return HeroInsightBlock
 
 
@@ -390,7 +488,29 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
-        """Build dynamic column grid response model."""
+        """Build dynamic column grid response model.
+
+        Args:
+            schema_name: Unique name for the generated Pydantic schema model.
+            criteria: List of prompt blocks to generate schema fields for.
+            has_shuffled_atoms: Whether atoms are shuffled for randomized evaluation.
+            target_locale: System locale string for localized descriptions.
+            strictness_level: Integer evaluation strictness level (0-100).
+            source_document_ids: Optional list of authorized document identifiers.
+            allowed_atom_ids: Optional list of authorized atom identifiers.
+            allowed_dynamic_keys: Optional list of authorized dynamic keys.
+            max_evaluations: Optional ceiling on evaluations count.
+            dag_results: Optional prior DAG evaluation results for filtering evidence.
+
+        Returns:
+            The dynamically generated Pydantic model class for grid extraction.
+
+        Raises:
+            ConfigurationError: If any prompt block criterion is missing its required label
+                (ErrorCodes.VALIDATION_FAILED).
+            AppException: If an unexpected error occurs during dynamic model creation
+                (ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
         step_strict_class: type[BaseModel] = StepDTOStrict
         step_semantic_class: type[BaseModel] = StepDTOSemantic
 
