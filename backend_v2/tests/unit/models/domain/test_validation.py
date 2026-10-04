@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.validation import (
+    GuttmanAtomItemDTO,
     HardeningRetryDirectiveDTO,
     SystemWarningsStateDTO,
     ValidationHookPayloadDTO,
@@ -129,8 +132,34 @@ def test_hardening_retry_directive() -> None:
     with pytest.raises(AppException):
         HardeningRetryDirectiveDTO.model_validate(invalid_data)
 
+    invalid_negative_strictness = data.copy()
+    invalid_negative_strictness["strictness_override"] = -5
+    with pytest.raises(AppException):
+        HardeningRetryDirectiveDTO.model_validate(invalid_negative_strictness)
+
     # Test max_retries limit bounds
     invalid_max = data.copy()
     invalid_max["max_retries"] = 10
     with pytest.raises(AppException):
         HardeningRetryDirectiveDTO.model_validate(invalid_max)
+
+    invalid_min_retries = data.copy()
+    invalid_min_retries["max_retries"] = 0
+    with pytest.raises(AppException):
+        HardeningRetryDirectiveDTO.model_validate(invalid_min_retries)
+
+    # Test current_retry_count non-negative
+    invalid_current = data.copy()
+    invalid_current["current_retry_count"] = -1
+    with pytest.raises(AppException):
+        HardeningRetryDirectiveDTO.model_validate(invalid_current)
+
+
+def test_guttman_atom_item_valid() -> None:
+    """Test GuttmanAtomItemDTO valid instantiation and field rejection."""
+    item = GuttmanAtomItemDTO(score_level=2.5, hit=True)
+    assert item.score_level == 2.5
+    assert item.hit is True
+
+    with pytest.raises(ValidationError):
+        GuttmanAtomItemDTO.model_validate({"score_level": 1.0, "hit": True, "extra": "forbidden"})

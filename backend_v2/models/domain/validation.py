@@ -4,6 +4,8 @@ Provides strict Pydantic V2 validation schemas for the validation hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated, Any
 
@@ -13,6 +15,15 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "GuttmanAtomItemDTO",
+    "HardeningRetryDirectiveDTO",
+    "SystemWarningsStateDTO",
+    "ValidationHookPayloadDTO",
+    "ValidationResultDTO",
+    "ValidationWarningDTO",
+]
 
 
 class ValidationHookPayloadDTO(V2CoreBase):
@@ -143,8 +154,8 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         """
         if v < 1 or v > 5:
             msg = "max_retries must be between 1 and 5"
-            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("current_retry_count", mode="before")
@@ -163,8 +174,8 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         """
         if v < 0:
             msg = "current_retry_count must be non-negative"
-            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
     @field_validator("strictness_override", mode="before")
@@ -183,8 +194,8 @@ class HardeningRetryDirectiveDTO(V2CoreBase):
         """
         if v is not None and (v < 0 or v > 100):
             msg = "strictness_override must be between 0 and 100"
-            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+            logger.error("[HardeningRetryDirectiveDTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         return v
 
 
