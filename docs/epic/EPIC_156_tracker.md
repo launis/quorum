@@ -98,8 +98,8 @@
 ---
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure zero `@pytest.mark.skip` or commented-out assertions were introduced.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Verify zero deprecated proxy symbols or dangling legacy adapters remain.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure zero `@pytest.mark.skip` or commented-out assertions were introduced.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Verify zero deprecated proxy symbols or dangling legacy adapters remain.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified production targets:
   - [x] @[scripts/_ast_guardrails.py]
   - [x] [NEW] @[scripts/audit_clean_imports.py]
@@ -179,9 +179,9 @@
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/llm/adapters/base_adapter.py]
   - [x] @[backend_v2/seed/wipe_user_data.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files (None in this Backend/AST Epic).
-- [ ] **[NOK] Pre-Delete Audit**: Verify zero dangling consumers before proxy removal.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify test coverage exceeds 90% across modified domains.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files (None in this Backend/AST Epic - N/A).
+- [x] **[OK] Pre-Delete Audit**: Verify zero dangling consumers before proxy removal.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify test coverage exceeds 90% across modified domains.
 
 ---
 
@@ -301,15 +301,18 @@
 - LiteLLM Model Name Provider Routing: `LLMFactory.create_provider` requires model names with provider prefixes (e.g. `anthropic/claude-3-5-sonnet`, `gemini/gemini-1.5-pro`) to ensure LiteLLM router deployment resolution without runtime `BadRequestError`.
 - Static Charts Interface Encapsulation & Rendering Fault Isolation: In `static_charts.py`, explicit `__all__` export locks the public API, docstrings enumerate `ErrorCodes.INVALID_OUTPUT_SCHEMA` and `ErrorCodes.CHART_GENERATION_FAILED`, and rendering exceptions log RFC 7807 structured diagnostics with `extra={"error_code": ...}` and `exc_info=True`.
 - Document Extraction Short Timezone & CreationDate Fallback: In `document_extraction.py`, timezone parsing accommodates short timezone offsets (`+03`), PDF metadata extraction safely falls back across `creationDate` and `CreationDate`, and invalid ingress payloads raise 422 `AppException` with RFC 7807 structured dual-logging.
-- LLM Client Error Code Enum Parity & Exception Handling: In `client.py`, `AgentExecutionError` expects string `detail=ErrorCodes.*.value`, `from_tier` safely re-raises inner `ResourceNotFoundError` before fallback handlers, and all failure branches log RFC 7807 structured telemetry before raising domain exceptions.
+- Base Adapter Interface Encapsulation & Pacing Lock Safety: In `base_adapter.py`, explicit `__all__ = ["BaseLLMAdapter", "apply_provider_pacing", "get_redis_client_for_pacing"]` formalizes public exports, dead `_redis_loop` state was eradicated, logger strings were modernized to percent-format parameters, and unit tests verify 94% coverage with negative AppException branches.
+- Seed User Data Wiping Fail-Fast & AST Compliance: In `wipe_user_data.py`, explicit `__all__` export protects public symbols, `force: bool = False` flag allows headless CI test automation, missing or corrupted database files trigger 404/500 `AppException` with RFC 7807 structured dual-logging, ternary fallback expressions (`len(...) if ... else 0`) were eradicated per QGR016 in favor of explicit `if` statements, and unit tests achieve 98% line coverage.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/llm/adapters/base_adapter.py`, `backend_v2/seed/wipe_user_data.py`).
+- Documentation & Knowledge Item Update: Run `/tier7-describe-architecture` to scan the codebase, anchor the physical implementation map in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
+- Final Epic Audit: Run `/tier8-audit-epic @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/EPIC_156_tracker.md]` to verify full Epic completion and Quorum 2026 architectural invariants.
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/llm/adapters/base_adapter.py] @[backend_v2/seed/wipe_user_data.py] @[docs/epic/EPIC_156_tracker.md]
+/tier7-describe-architecture
 ```
+
 
 
 
