@@ -2274,6 +2274,7 @@ async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_execution_storage_cleanup_error_branches() -> None:
+    storage_mock = AsyncMock()
     service = ExecutionService(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),
@@ -2284,6 +2285,7 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
         system_repo=AsyncMock(),
         usage_service=AsyncMock(),
         executor=Mock(),
+        storage_driver=storage_mock,
     )
     rec = Mock(spec=ExecutionRecord)
     rec.status = ExecutionStatus.PASSED
@@ -2301,33 +2303,28 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
     initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
 
     # 404 is ignored
-    storage_mock = AsyncMock()
     storage_mock.delete_directory.side_effect = AppException("Not found", status_code=404)
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        deleted = await service.delete_execution(initiator, "exe_0123456789abcdef")
-        assert deleted is True
+    deleted = await service.delete_execution(initiator, "exe_0123456789abcdef")
+    assert deleted is True
 
     # 500 AppException raised
     storage_mock.delete_directory.side_effect = AppException("Storage error", status_code=500)
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        with pytest.raises(AppException) as exc_info:
-            await service.delete_execution(initiator, "exe_0123456789abcdef")
-        assert exc_info.value.status_code == 500
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_execution(initiator, "exe_0123456789abcdef")
+    assert exc_info.value.status_code == 500
 
     # Generic Exception raised
     storage_mock.delete_directory.side_effect = Exception("Generic disk crash")
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        with pytest.raises(AppException) as exc_info:
-            await service.delete_execution(initiator, "exe_0123456789abcdef")
-        assert exc_info.value.status_code == 500
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_execution(initiator, "exe_0123456789abcdef")
+    assert exc_info.value.status_code == 500
 
     # Repo delete error
     storage_mock.delete_directory.side_effect = None
     service.exec_repo.delete_execution.side_effect = Exception("DB crash")
-    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        with pytest.raises(AppException) as exc_info:
-            await service.delete_execution(initiator, "exe_0123456789abcdef")
-        assert exc_info.value.status_code == 500
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_execution(initiator, "exe_0123456789abcdef")
+    assert exc_info.value.status_code == 500
 
 
 @pytest.mark.asyncio
@@ -2972,7 +2969,9 @@ async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> No
 
 @pytest.mark.asyncio
 async def test_start_execution_fails_fast_when_no_registry_id() -> None:
-    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when neither payload nor workflow has model_registry_id."""
+    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when
+    neither payload nor workflow has model_registry_id.
+    """
     service = ExecutionService(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),

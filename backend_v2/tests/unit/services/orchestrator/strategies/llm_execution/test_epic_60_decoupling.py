@@ -104,6 +104,8 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         )
     ]
 
+    from backend_v2.models.dtos.prompt import LLMContextDataDTO
+
     payload = PromptFactory.build(
         compiler=compiler,
         role_block=role_block,
@@ -113,7 +115,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=LLMContextDataDTO(),
         expected_inputs=None,
         has_shuffled_atoms=True,
     )

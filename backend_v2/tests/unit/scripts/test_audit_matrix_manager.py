@@ -105,35 +105,6 @@ def test_check_conflicting_file_references() -> None:
     assert "Conflicting file reference 'auth_service.py' detected" in conflict_err
 
 
-def test_extract_rule_blocks(tmp_path: Path) -> None:
-    """Test extracting rule blocks dynamically from markdown."""
-    rules_md = tmp_path / "rules.md"
-    rules_md.write_text(
-        '<rule_block id="test_rule_1">\n'
-        "  <banned_pattern>banned pattern 1</banned_pattern>\n"
-        "  <mandatory_pattern>mandatory pattern 1</mandatory_pattern>\n"
-        "</rule_block>\n"
-        '<rule_block id="test_rule_2">\n'
-        "  <banned_pattern>banned pattern 2</banned_pattern>\n"
-        "  <mandatory_pattern>mandatory pattern 2</mandatory_pattern>\n"
-        "</rule_block>\n",
-        encoding="utf-8",
-    )
-
-    rules = extract_rule_blocks(rules_md)
-    assert len(rules) == 2
-    assert rules[0]["rule_id"] == "test_rule_1"
-    assert rules[0]["banned_pattern"] == "banned pattern 1"
-    assert rules[1]["rule_id"] == "test_rule_2"
-
-
-def test_extract_rule_blocks_missing_file(tmp_path: Path) -> None:
-    """Test extract_rule_blocks exits with code 1 when file does not exist."""
-    with pytest.raises(SystemExit) as exc_info:
-        extract_rule_blocks(tmp_path / "nonexistent.md")
-    assert exc_info.value.code == 1
-
-
 def test_cmd_generate_backend_and_frontend(tmp_path: Path) -> None:
     """Test generating audit matrices for backend and frontend targets."""
     out_backend = tmp_path / "matrix_backend.json"
@@ -504,4 +475,3 @@ def test_extract_rule_blocks_missing_file(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as exc:
         extract_rule_blocks(tmp_path / "non_existent.md")
     assert exc.value.code == 1
-

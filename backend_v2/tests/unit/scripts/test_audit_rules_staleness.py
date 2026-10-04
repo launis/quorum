@@ -129,6 +129,7 @@ def test_audit_rules_staleness_all_exports() -> None:
         "main",
         "verify_symbols_exist",
     }
+    assert set(mod.__all__) == expected_symbols
     mod_dir = set(dir(mod))
     for sym in mod.__all__:
         assert sym in mod_dir
@@ -143,4 +144,3 @@ def test_verify_symbols_exist_early_break(tmp_path: Path) -> None:
 
     orphans = verify_symbols_exist({"TargetSym"}, [src_dir])
     assert orphans == set()
-

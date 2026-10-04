@@ -22,9 +22,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-SYNTHESIS_TEXT_RULES: SynthesisTextAestheticsDTO = SynthesisTextAestheticsDTO(
-    default_text=SynthesisTextModeDTO()
-)
+SYNTHESIS_TEXT_RULES: SynthesisTextAestheticsDTO = SynthesisTextAestheticsDTO(default_text=SynthesisTextModeDTO())
 
 
 # ============================================================================

@@ -98,7 +98,7 @@ A rigorous cross-reference between Quorum's architectural laws (`@[.agents/rules
    - *Remediation in EPIC 156:* Wire `audit_dto_parity.py` directly into Step 8/8 of `@[scripts/backend_audit_loop.py]`.
 7. **Blindspot 7: Async Concurrency Race Conditions & Lock Starvation**
    - *Unenforced Rule:* `two_tier_semaphore_architecture` mandates that parallel execution under `asyncio.TaskGroup` must never deadlock or starve memory-state update locks.
-   - *Remediation in EPIC 156:* Implement [NEW] `@[backend_v2/tests/unit/orchestrator/test_concurrency_stress.py]` running 50+ concurrent atom simulations under high load.
+   - *Remediation in EPIC 156:* Implement [NEW] `@[backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py]` running 50+ concurrent atom simulations under high load.
 8. **Blindspot 8: Quality Gate Verification Leniency & Cross-Language Strictness Desynchronization**
    - *Unenforced Rule:* `universal_fail_fast` mandates that all verification tools fail fast on structural defects. Currently, `@[scripts/audit_database_atoms.py]` evaluates `all_passed = error_count == 0`, ignoring warnings even when `--strict` is supplied, while simultaneously emitting false-positive `AMBIGUOUS_TOKEN` warnings on illustrative examples in prompt blocks contrary to `prompt_illustrative_examples_mandate` (`@[.agents/rules/05_llm_architecture.md]`). Concurrently, `@[scripts/backend_audit_loop.py]` Stage 5 Jinja validation only checks `| default` and `.get(`, missing loose fallback operators (`or ''`, `or []`, `or {}`), and `@[scripts/flutter_audit_loop.py]` runs Dart guardrails without `--strict` by default, concealing 66 DGR warnings.
    - *Remediation in EPIC 156:* 1) In `@[scripts/audit_database_atoms.py]`, exempt illustrative examples in LLM prompts from ambiguity flags per SSOT, eliminate the 12 `isinstance(..., dict)` duck-typing checks, and assert fail-fast on all unexempt structural defects in `--strict`; 2) In `@[scripts/backend_audit_loop.py]`, expand Jinja Dumb Painter regex to detect fallback operators (`or ''`, `or []`, `or {}`); 3) Consolidate the 10 metrics of `@[scripts/audit_dict_eradication.py]` permanently into `QuorumGuardrailVisitor` in `@[scripts/_ast_guardrails.py]`.
@@ -280,7 +280,7 @@ All codebase targets refactored under EPIC 156 must strictly comply with Python 
   - In `scripts/_ast_guardrails.py`, update QGR014 severity classification to FATAL severity.
   - Run `uv run python scripts/_ast_guardrails.py backend_v2/tests` to verify 0 violations.
   - Verify total codebase warning count drops from 1,214 to 895.
-- **Step 2.4: Implement Concurrency Stress Test Suite ([NEW] @[backend_v2/tests/unit/orchestrator/test_concurrency_stress.py])**
+- **Step 2.4: Implement Concurrency Stress Test Suite ([NEW] @[backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py])**
   - Build an automated stress harness spawning 50+ concurrent atoms within `asyncio.TaskGroup`.
   - Simulate high-frequency state updates and verify zero deadlocks, zero lock starvation, and deterministic state transitions.
 
@@ -393,7 +393,7 @@ The Definition of Done requires that every single violation category identified 
 - `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test`
 - `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_ast_guardrails.py --test`
 - `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/scripts/test_clean_imports.py --test`
-- `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/orchestrator/test_concurrency_stress.py --test`
+- `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py --test`
 - `uv run python scripts/backend_audit_loop.py backend_v2/tests/fakes/in_memory_repositories.py --test`
 - `uv run python scripts/backend_audit_loop.py scripts/audit_database_atoms.py`
 - `uv run python scripts/backend_audit_loop.py backend_v2/services/ --test`

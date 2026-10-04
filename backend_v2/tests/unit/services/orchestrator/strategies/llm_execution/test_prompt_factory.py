@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.prompt import LLMContextDataDTO
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
@@ -18,7 +19,12 @@ def mock_compiler() -> MagicMock:
     return compiler
 
 
-def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
+@pytest.fixture
+def default_context() -> LLMContextDataDTO:
+    return LLMContextDataDTO()
+
+
+def test_prompt_factory_build_success(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
     """Test successful compilation of PromptPayload."""
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
@@ -69,7 +75,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=True,
     )
@@ -90,7 +96,7 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
     assert len(payload.atom_to_block_ids) == 2
 
 
-def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
     """Test Fail-Fast when tda_assertions are missing."""
     from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -118,7 +124,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
             target_locale="en",
             effective_mcp_tools=None,
             input_mappings={},
-            llm_context_data={},
+            llm_context_data=default_context,
             expected_inputs=None,
             has_shuffled_atoms=True,
         )
@@ -127,7 +133,7 @@ def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None
     assert "missing mandatory 'tda_assertions'" in str(exc_info.value.message)
 
 
-def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
     """Test that static linguistic protocol is in base_system_prompt and parameters in user_payload."""
     payload = PromptFactory.build(
         compiler=mock_compiler,
@@ -138,7 +144,7 @@ def test_prompt_factory_includes_language_mandate(mock_compiler: MagicMock) -> N
         target_locale="fi",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
@@ -161,12 +167,14 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
             scales=[],
         )
     ]
-    llm_context_data = {
-        "word_count": 150,
-        "say_do_gap": 0.5,
-        "automation_bias": 0.2,
-        "performative_phrases": ["test phrase"],
-    }
+    llm_context_data = LLMContextDataDTO(
+        raw_inputs={
+            "word_count": 150,
+            "say_do_gap": 0.5,
+            "automation_bias": 0.2,
+            "performative_phrases": ["test phrase"],
+        }
+    )
 
     payload = PromptFactory.build(
         compiler=mock_compiler,
@@ -187,7 +195,7 @@ def test_prompt_factory_prompt_purity_assertion(mock_compiler: MagicMock) -> Non
     assert "<word_count>150</word_count>" in payload.user_payload
 
 
-def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock, default_context: LLMContextDataDTO) -> None:
     """Test that missing anchor data defaults correctly and maintains prompt purity."""
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.enums import PromptBlockCategory
@@ -210,7 +218,7 @@ def test_prompt_factory_missing_anchors_data(mock_compiler: MagicMock) -> None:
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
@@ -244,7 +252,9 @@ def test_prompt_factory_has_zero_reflection_via_ast() -> None:
     assert len(banned_calls) == 0, f"Found banned reflection calls in prompt_factory.py: {banned_calls}"
 
 
-def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_polymorphic_blocks_resolution(
+    mock_compiler: MagicMock, default_context: LLMContextDataDTO
+) -> None:
     """Test polymorphic resolution of PersonaPromptBlock, ProtocolPromptBlock, and SystemRulePromptBlock."""
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import (
@@ -290,7 +300,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
@@ -303,7 +313,9 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
     )
 
 
-def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMock) -> None:
+def test_prompt_factory_system_rule_and_default_branches(
+    mock_compiler: MagicMock, default_context: LLMContextDataDTO
+) -> None:
     """Test SystemRulePromptBlock and default fallback persona in PromptFactory."""
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
@@ -347,7 +359,7 @@ def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMoc
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
@@ -367,7 +379,7 @@ def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMoc
         target_locale="en",
         effective_mcp_tools=None,
         input_mappings={},
-        llm_context_data={},
+        llm_context_data=default_context,
         expected_inputs=None,
         has_shuffled_atoms=False,
     )
