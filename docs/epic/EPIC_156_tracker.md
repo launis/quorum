@@ -100,7 +100,7 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure zero `@pytest.mark.skip` or commented-out assertions were introduced.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Verify zero deprecated proxy symbols or dangling legacy adapters remain.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified production targets:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified production targets:
   - [x] @[scripts/_ast_guardrails.py]
   - [x] [NEW] @[scripts/audit_clean_imports.py]
   - [x] @[scripts/backend_audit_loop.py]
@@ -177,8 +177,8 @@
   - [x] @[backend_v2/utils/static_charts.py]
   - [x] @[backend_v2/services/document_extraction.py]
   - [x] @[backend_v2/llm/client.py]
-  - [ ] @[backend_v2/llm/adapters/base_adapter.py]
-  - [ ] @[backend_v2/seed/wipe_user_data.py]
+  - [x] @[backend_v2/llm/adapters/base_adapter.py]
+  - [x] @[backend_v2/seed/wipe_user_data.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files (None in this Backend/AST Epic).
 - [ ] **[NOK] Pre-Delete Audit**: Verify zero dangling consumers before proxy removal.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify test coverage exceeds 90% across modified domains.
