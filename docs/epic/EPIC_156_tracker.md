@@ -129,9 +129,9 @@
   - [x] @[backend_v2/llm/ingress_pipeline.py]
   - [x] @[backend_v2/llm/mock.py]
   - [x] @[backend_v2/llm/schema_builder.py]
-  - [ ] @[backend_v2/models/chunking.py]
-  - [ ] @[backend_v2/models/domain/metrics.py]
-  - [ ] @[backend_v2/models/domain/security.py]
+  - [x] @[backend_v2/models/chunking.py]
+  - [x] @[backend_v2/models/domain/metrics.py]
+  - [x] @[backend_v2/models/domain/security.py]
   - [ ] @[backend_v2/models/domain/step.py]
   - [ ] @[backend_v2/models/domain/validation.py]
   - [ ] @[backend_v2/models/dtos/matrix_scorecard.py]
@@ -263,6 +263,7 @@
 - Post-Implementation Gates (Hardening Batch 7): Audited and verified `backend_v2/hooks/llm.py`, `backend_v2/hooks/source_verification_hook.py`, and `backend_v2/llm/adapters/ai_studio_adapter.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (100%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, eradicated naked dictionaries and `Any` typings, removed ternary fallback operators (QGR016), implemented RFC 7807 dual-logging with `exc_info=True`, and added PEP 257 Google-style docstrings with formal `Raises:` error code enumerations (`6338620be`, `e042d9694`, `6f069e060`).
 - Post-Implementation Gates (Hardening Batch 8): Audited and verified `backend_v2/llm/adapters/openai_adapter.py`, `backend_v2/llm/adapters/vertex_adapter.py`, and `backend_v2/llm/handler.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (93%, 91%, and 92%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, tightened parameter and return typings (`Settings`, `LLMProvider`), added connection pooling for async Redis in Vertex AI caching, implemented RFC 7807 structured dual-logging across all error pathways, and added PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks (`36a84897e`, `df0b9283a`).
 - Post-Implementation Gates (Hardening Batch 9): Audited and verified `backend_v2/llm/ingress_pipeline.py`, `backend_v2/llm/mock.py`, and `backend_v2/llm/schema_builder.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved >=90% line coverage (94%, 100%, and 100%), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, added RFC 7807 structured dual-logging (`exc_info=True`, `extra={"error_code": ...}`), added PEP 257 Google-style docstrings with typed `Args:`, `Returns:`, and `Raises:` blocks, and added ISTQB negative exception tests (`2ce385bbb`, `bc53f32bb`, `37e616be7`).
+- Post-Implementation Gates (Hardening Batch 10): Audited and verified `backend_v2/models/chunking.py`, `backend_v2/models/domain/metrics.py`, and `backend_v2/models/domain/security.py` via `/tier2-hardening-backend`. All three passed all 8 stages of the backend audit loop (`--ast-strict`), achieved 100% line coverage (28/28, 67/67, and 53/53 statements), passed AST strict guardrails with 0 violations, and verified 100% against the 177-rule Neuro-Symbolic Audit Matrix (`audit_matrix_manager.py verify`). Enforced explicit `__all__ = [...]` interface encapsulation, PEP 593 `Annotated` field definitions, immutable `frozen=True` configs, RFC 7807 dual-logging with `exc_info=True`, and added comprehensive ISTQB negative and boundary test cases (`08434b73d`, `769f3c12a`, `f6c68b55e`).
 
 ## Learned
 - Redis Server Fallback in Integration Suites: When running integration suites outside Docker or managed background Redis daemons, spawning an in-memory `fakeredis.TcpFakeServer(("127.0.0.1", 6379))` on a daemon thread provides an exact, transparent socket backend that both FastAPI uvicorn and Arq worker processes connect to without mock fragmentation.
@@ -281,13 +282,15 @@
 - Ingress Anti-Corruption Layer Testing: Testing the ingress parsing pipeline requires comprehensive boundary coverage of malformed JSON code fences, discriminator tag resolution across single/union candidates, and self-healing repair failure exception handling.
 - Mock Service Zero-Token Fidelity: Full-branch testing of `MockLLMService` ensures offline testing fidelity across registry hits (`MOCK_REGISTRY`), schema title lookups, direct agent identity fallback, dynamic Judge hydration regex extraction (Strategy A and B), and datetime serialization.
 - Dynamic Pydantic Model Schema Generation: `SchemaCompilerService` generates strictly typed Pydantic models with `ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)` cached via `lru_cache`, supporting all 10 XAI output extensions deterministically.
+- QGR020 Mutable Default Prohibition: In Pydantic model classes, using `Field(default_factory=list)` requires omitting the class attribute assignment (`= []`); assigning `= []` directly violates QGR020 regardless of Annotated Field wrappers.
+- Dedicated Domain Model Unit Test Isolation: Placing unit tests in direct parity subdirectories (e.g. `backend_v2/tests/unit/models/domain/test_metrics.py`) ensures deterministic test resolution in `backend_audit_loop.py` without resolving to unrelated hook integration tests.
 
 ## Remaining
-- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/models/chunking.py`, `backend_v2/models/domain/metrics.py`, `backend_v2/models/domain/security.py`, etc.).
+- Post-Implementation Gates: Continue `/tier2-hardening-backend` across remaining targets (`backend_v2/models/domain/step.py`, `backend_v2/models/domain/validation.py`, `backend_v2/models/dtos/matrix_scorecard.py`, etc.).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/models/chunking.py] @[backend_v2/models/domain/metrics.py] @[backend_v2/models/domain/security.py] @[docs/epic/EPIC_156_tracker.md]
+/tier2-hardening-backend @[backend_v2/models/domain/step.py] @[backend_v2/models/domain/validation.py] @[backend_v2/models/dtos/matrix_scorecard.py] @[docs/epic/EPIC_156_tracker.md]
 ```
 
 
