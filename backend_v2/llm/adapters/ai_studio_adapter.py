@@ -11,9 +11,9 @@ import json
 import logging
 import os
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from arq.connections import RedisSettings, create_pool
+from arq.connections import ArqRedis, RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
@@ -22,10 +22,19 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
+if TYPE_CHECKING:
+    from fakeredis.aioredis import FakeRedis
+
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "GoogleAIStudioCacheAdapter",
+    "get_redis_client",
+    "is_gemini_v3_or_higher",
+]
 
 _AI_STUDIO_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
@@ -34,11 +43,11 @@ _AI_STUDIO_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
 ]
 
-_redis_pool: Any = None
-_redis_loop: Any = None
+_redis_pool: ArqRedis | FakeRedis | None = None
+_redis_loop: asyncio.AbstractEventLoop | None = None
 
 
-async def get_redis_client() -> Any:
+async def get_redis_client() -> ArqRedis | FakeRedis:
     """Return a shared Redis connection pool or in-memory FakeRedis during tests.
 
     Returns:
@@ -169,7 +178,9 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                     ex=get_settings().context_cache_lock_ttl_seconds,
                 )
 
-                api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+                api_key = os.getenv("GEMINI_API_KEY")
+                if not api_key:
+                    api_key = os.getenv("GOOGLE_API_KEY")
                 static_flat = compiled_prompt.to_static_flat()
 
                 try:
@@ -357,7 +368,10 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         }
 
     def prepare_kwargs(
-        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+        self,
+        call_kwargs: dict[str, Any],
+        config: ModelProfile | None = None,
+        settings: Settings | None = None,
     ) -> dict[str, Any]:
         """Prepare AI Studio specific kwargs, handling caching mappings and parameters.
 
@@ -382,11 +396,10 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             thinking_budget = int(config.thinking_budget_tokens)
 
         if settings is not None and settings.environment == "development":
-            thinking_budget = (
-                min(thinking_budget, settings.dev_max_thinking_budget)
-                if thinking_budget is not None
-                else settings.dev_max_thinking_budget
-            )
+            if thinking_budget is not None:
+                thinking_budget = min(thinking_budget, settings.dev_max_thinking_budget)
+            else:
+                thinking_budget = settings.dev_max_thinking_budget
 
         if thinking_budget is not None:
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
