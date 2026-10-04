@@ -24,8 +24,13 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "BaseLLMAdapter",
+    "apply_provider_pacing",
+    "get_redis_client_for_pacing",
+]
+
 _redis_pool: Any | None = None
-_redis_loop: Any | None = None
 
 
 async def get_redis_client_for_pacing() -> Any:
@@ -37,7 +42,7 @@ async def get_redis_client_for_pacing() -> Any:
     Raises:
         AppException: STORAGE_ACCESS_FAILED if Redis connection pool creation fails.
     """
-    global _redis_pool, _redis_loop
+    global _redis_pool
 
     try:
         if "PYTEST_CURRENT_TEST" in os.environ:
@@ -124,7 +129,7 @@ async def apply_provider_pacing(
                 # Lock acquired! Do NOT release it; it protects the entire delay window.
                 break
 
-            logger.info(f"Wait-and-Poll: Pacing lock active for {lock_target}. Waiting...")
+            logger.info("Wait-and-Poll: Pacing lock active for %s. Waiting...", lock_target)
             await asyncio.sleep(poll_interval_s)
     except (TimeoutError, ConnectionError, OSError, RuntimeError) as e:
         logger.error(
