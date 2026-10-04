@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from typing import Any
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -19,6 +18,8 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["configure_llm_context_hook"]
 
 
 @hook_registry.register(name="configure_llm_context")
@@ -41,7 +42,9 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         A HookResult containing the 'llm_config' in the state_delta.
 
     Raises:
-        AppException: If configuration is invalid or missing.
+        AppException: With ErrorCodes.VALIDATION_FAILED if state.step_id is missing, or
+            ErrorCodes.CONFIGURATION_ERROR if configuration or strategy resolution fails.
+        ConfigurationError: If model_registry is missing, corrupt, or strategy is unmapped.
     """
     logger.debug("[LLMHook] Running configure_llm_context_hook...")
 
@@ -51,7 +54,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     # 2. Get Strategy (SSOT)
     if not state.step_id:
         msg = "state.step_id is strictly required for LLM context configuration."
-        logger.error("[LLMHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[LLMHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     step_id = state.step_id
@@ -59,7 +62,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
 
     if not settings.default_model_strategy:
         msg = "settings.default_model_strategy is strictly required but missing."
-        logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     model_strategy = settings.default_model_strategy
@@ -72,12 +75,16 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         # Given it's a hook, let's adapt it safely:
 
         if not settings.model_registry:
-            raise ConfigurationError("System config 'model_registry' is missing.")
+            msg = "System config 'model_registry' is missing."
+            logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+            raise ConfigurationError(msg)
         raw_registry = settings.model_registry
 
         registry = inflate(raw_registry, SystemConfigModelRegistry)
         if not registry or not registry.tier_definitions:
-            raise ConfigurationError("ModelRegistry is corrupt.")
+            msg = "ModelRegistry is corrupt."
+            logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+            raise ConfigurationError(msg)
 
         # V2: Option A Sovereign Model Stack direct mapping tier -> ModelProfile
         try:
@@ -87,42 +94,46 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
                 else CognitiveTier(str(model_strategy).lower())
             )
         except ValueError as e:
+            msg = f"Strategy '{model_strategy}' not found in registry."
+            logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(
-                message=f"Strategy '{model_strategy}' not found in registry.",
+                message=msg,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
         if tier_enum not in registry.tier_definitions:
+            msg = f"Strategy '{model_strategy}' not found in registry."
+            logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(
-                message=f"Strategy '{model_strategy}' not found in registry.",
+                message=msg,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         target_strategy = registry.tier_definitions[tier_enum]
 
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
+            msg = (
+                f"Model Profile for strategy '{model_strategy}' must explicitly define "
+                "tpm_limit and rpm_limit. Use 0 for unlimited."
+            )
+            logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(
-                message=(
-                    f"Model Profile for strategy '{model_strategy}' must explicitly define "
-                    "tpm_limit and rpm_limit. Use 0 for unlimited."
-                ),
+                message=msg,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        config_data: dict[str, Any] = {
-            "id": f"llm_{uuid.uuid4().hex[:8]}",
-            "provider": target_strategy.provider,
-            "model_name": target_strategy.model_name,
-            "api_key": target_strategy.api_key,
-            "tpm_limit": target_strategy.tpm_limit,
-            "rpm_limit": target_strategy.rpm_limit,
-            "default_max_tokens": target_strategy.max_tokens,
-            "supports_grounding": target_strategy.supports_grounding,
-        }
-
+        llm_config = LLMProviderConfig(
+            id=f"llm_{uuid.uuid4().hex[:8]}",
+            provider=target_strategy.provider,
+            model_name=target_strategy.model_name,
+            api_key=target_strategy.api_key,
+            tpm_limit=target_strategy.tpm_limit,
+            rpm_limit=target_strategy.rpm_limit,
+            default_max_tokens=target_strategy.max_tokens,
+            supports_grounding=target_strategy.supports_grounding,
+            additional_params=target_strategy.additional_params,
+        )
         if target_strategy.temperature is not None:
-            config_data["temperature"] = target_strategy.temperature
-
-        llm_config = LLMProviderConfig.model_validate(config_data)
+            llm_config = llm_config.model_copy(update={"temperature": target_strategy.temperature})
 
         # 4. Inject
         logger.info(
@@ -137,7 +148,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     except Exception as e:
         # Distinguish strictly raised ConfigErrors vs generic exceptions
         if isinstance(e, AppException):
-            logger.error("[LLMHook] %s: %s", e.error_code, e)
+            logger.error("[LLMHook] %s: %s", e.error_code, e, exc_info=True)
             raise
 
         logger.error("[LLMHook] Failed to resolve LLM config: %s", e, exc_info=True)
