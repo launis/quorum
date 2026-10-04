@@ -23,6 +23,11 @@ from backend_v2.models.enums import LLMProvider
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
+__all__ = [
+    "AnchorSpanDTO",
+    "ChatParserService",
+]
+
 logger = logging.getLogger(__name__)
 
 _SYSTEM_INSTRUCTION = build_system_directive(
@@ -87,7 +92,7 @@ class ChatParserService:
             start_pos: Monotonic start position in text.
 
         Returns:
-            Tuple of (start_idx, end_idx) in text.
+            AnchorSpanDTO: Character offset boundaries (start, end) of phrase in text.
 
         Raises:
             ValueError: If phrase cannot be found after start_pos or contains no valid tokens.
@@ -146,18 +151,21 @@ class ChatParserService:
             ChatHistoryDTO: Strictly typed chat history object.
 
         Raises:
-            AppException (EMPTY_INPUT): If input is empty.
-            AppException (CONFIGURATION_ERROR): If LLM client fails to initialize.
-            AppException (VALIDATION_FAILED): If the LLM output violates schema or does not contain a valid dialogue.
-            AppException (PARSING_FAILED): If anchors cannot be found or are out of order.
-            AppException (INTERNAL_SERVER_ERROR): If generation fails completely.
+            AppException: If input is empty (EMPTY_INPUT), LLM initialization fails (CONFIGURATION_ERROR),
+                output schema violates format (VALIDATION_FAILED), anchors cannot be located (PARSING_FAILED),
+                or LLM execution fails (INTERNAL_SERVER_ERROR).
         """
         logger.debug("[ChatParser] parse_pasted_chat CALLED")
 
         if not raw_paste or not raw_paste.strip():
             # Fail Fast: Cannot parse empty text
             msg = "ChatParser received empty input."
-            logger.error("[ChatParser] %s: %s", ErrorCodes.EMPTY_INPUT.name, msg)
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.EMPTY_INPUT.name,
+                msg,
+                extra={"error_code": ErrorCodes.EMPTY_INPUT.name},
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -184,7 +192,13 @@ class ChatParserService:
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:
             msg = f"Failed to initialize LLMClient for ChatParser: {e.message}"
-            logger.error("[ChatParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -216,7 +230,12 @@ class ChatParserService:
 
             if not parsed_anchors.turns:
                 msg = "Fail-Fast: Raw text did not contain a valid dialogue/conversation."
-                logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error(
+                    "[ChatParser] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,7 +250,12 @@ class ChatParserService:
                     start_span = ChatParserService._find_anchor_span(raw_paste, turn.start_phrase, current_pos)
                 except ValueError:
                     msg = f"Start anchor not found in source text after position {current_pos}: '{turn.start_phrase}'"
-                    logger.error("[ChatParser] %s: %s", ErrorCodes.PARSING_FAILED.name, msg)
+                    logger.error(
+                        "[ChatParser] %s: %s",
+                        ErrorCodes.PARSING_FAILED.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.start_phrase},
+                    )
                     raise AppException(
                         message=msg,
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -242,7 +266,12 @@ class ChatParserService:
                     end_span = ChatParserService._find_anchor_span(raw_paste, turn.end_phrase, start_span.start)
                 except ValueError:
                     msg = f"End anchor not found in source text after position {start_span.start}: '{turn.end_phrase}'"
-                    logger.error("[ChatParser] %s: %s", ErrorCodes.PARSING_FAILED.name, msg)
+                    logger.error(
+                        "[ChatParser] %s: %s",
+                        ErrorCodes.PARSING_FAILED.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.PARSING_FAILED.name, "anchor": turn.end_phrase},
+                    )
                     raise AppException(
                         message=msg,
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -256,7 +285,12 @@ class ChatParserService:
 
             if not turns:
                 msg = "Fail-Fast: Raw text did not contain valid dialogue turns after anchor slicing."
-                logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error(
+                    "[ChatParser] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -268,7 +302,13 @@ class ChatParserService:
 
         except ValidationError as e:
             msg = f"LLM output validation failed to match ChatTurnAnchorsResponseDTO schema: {e}"
-            logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -276,7 +316,13 @@ class ChatParserService:
             ) from e
         except json.JSONDecodeError as e:
             msg = f"LLM returned invalid JSON: {e}"
-            logger.error("[ChatParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -286,7 +332,13 @@ class ChatParserService:
             raise
         except Exception as e:
             msg = f"LLM generation failed: {e}"
-            logger.error("[ChatParser] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+            logger.error(
+                "[ChatParser] %s: %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name},
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_502_BAD_GATEWAY,

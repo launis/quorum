@@ -23,6 +23,12 @@ from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDT
 from backend_v2.models.dtos.inputs import ProcessedChatDTO
 from backend_v2.services.chat_parser import ChatParserService
 
+__all__ = [
+    "AI_ROLE_LABELS",
+    "USER_ROLE_LABELS",
+    "ChatNormalizerService",
+]
+
 logger = logging.getLogger(__name__)
 
 # Closed set of recognized conversational role labels
@@ -498,7 +504,7 @@ class ChatNormalizerService:
             ChatHistoryDTO containing dialogue turns.
 
         Raises:
-            AppException: If raw_text is empty or parsing completely fails.
+            AppException: If raw_text is empty (EMPTY_INPUT) or parsing completely fails (PARSING_FAILED).
         """
         if not raw_text or not raw_text.strip(" \t\r\n"):
             logger.error(
@@ -535,6 +541,7 @@ class ChatNormalizerService:
                         "LLM chat parser failed for %s: %s",
                         key,
                         e,
+                        exc_info=True,
                         extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key},
                     )
                     raise AppException(
@@ -573,7 +580,7 @@ class ChatNormalizerService:
             ProcessedChatDTO containing segregated dialogue streams.
 
         Raises:
-            AppException: If raw_text is empty or parsing completely fails.
+            AppException: If raw_text is empty (EMPTY_INPUT) or parsing completely fails (PARSING_FAILED).
         """
         chat_dto = await ChatNormalizerService.parse_chat_to_dto(raw_text, key, system_repo)
         return ChatNormalizerService.build_processed_chat(chat_dto)
