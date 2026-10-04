@@ -106,7 +106,7 @@
   - [x] @[scripts/backend_audit_loop.py]
   - [x] [NEW] @[scripts/audit_warning_baseline.py]
   - [x] @[scripts/audit_database_atoms.py]
-  - [ ] @[scripts/reconcile_storage.py]
+  - [x] @[scripts/reconcile_storage.py]
   - [ ] @[scripts/audit_rules_staleness.py]
   - [ ] @[scripts/audit_matrix_auto_filler.py]
   - [ ] @[scripts/audit_matrix_manager.py]

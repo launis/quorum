@@ -35,11 +35,25 @@ from backend_v2.models.enums import ExecutionStatus
 
 logger = logging.getLogger("scripts.reconcile_storage")
 
+__all__ = [
+    "ReconciliationReport",
+    "TraceEventContent",
+    "TraceEventHeader",
+    "main",
+    "reconcile_storage",
+]
+
 
 class TraceEventContent(BaseModel):
-    """Header content of a trace event."""
+    """Header content of a trace event.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        language: Language identifier if present.
+        target_locale: Target locale string if present.
+        workflow_id: Workflow identifier if present.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     language: str | None = None
     target_locale: str | None = None
@@ -47,9 +61,15 @@ class TraceEventContent(BaseModel):
 
 
 class TraceEventHeader(BaseModel):
-    """Header structure of a trace event."""
+    """Header structure of a trace event.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        step_name: Name of the executed workflow step.
+        event_type: Category identifier of the event.
+        content: Extracted header content if available.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     step_name: str | None = None
     event_type: str | None = None
@@ -57,9 +77,19 @@ class TraceEventHeader(BaseModel):
 
 
 class ReconciliationReport(BaseModel):
-    """Encapsulates the audit and reconciliation outcome."""
+    """Encapsulates the audit and reconciliation outcome.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        db_path: Path to the TinyDB database file.
+        storage_dir: Path to the physical storage directory.
+        orphaned_db_ids: Execution IDs present in DB but missing from disk.
+        unindexed_disk_ids: Execution IDs present on disk but missing from DB.
+        pruned_db_ids: Execution IDs removed from DB during fix mode.
+        recovered_disk_ids: Execution IDs registered into DB during fix mode.
+        is_synced: True if storage artifacts and database are fully synchronized.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     db_path: str
     storage_dir: str
@@ -89,7 +119,7 @@ def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
             c = events[0].content
             target_locale = c.language or c.target_locale or "en"
             workflow_id = c.workflow_id or "wor_default"
-    except (OSError, json.JSONDecodeError, ValueError):
+    except OSError, json.JSONDecodeError, ValueError:
         pass
     return workflow_id, target_locale
 
@@ -274,7 +304,11 @@ def reconcile_storage(
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Command-line interface entry point for execution storage reconciliation."""
+    """Command-line interface entry point for execution storage reconciliation.
+
+    Args:
+        argv: Optional command-line argument list (defaults to sys.argv[1:]).
+    """
     parser = argparse.ArgumentParser(
         description=(
             "TinyDB Executions Table and Physical Storage Reconciliation Suite.\n\n"

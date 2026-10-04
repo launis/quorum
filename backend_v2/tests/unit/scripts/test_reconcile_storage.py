@@ -264,3 +264,48 @@ def test_reconcile_storage_main_cli_desynced_and_fix(
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 0
+
+
+def test_reconcile_storage_all_exports() -> None:
+    """Verify explicit public interface exports in __all__."""
+    import scripts.reconcile_storage as mod
+
+    assert hasattr(mod, "__all__")
+    assert "ReconciliationReport" in mod.__all__
+    assert "TraceEventContent" in mod.__all__
+    assert "TraceEventHeader" in mod.__all__
+    assert "reconcile_storage" in mod.__all__
+    assert "main" in mod.__all__
+
+
+def test_extract_trace_metadata_corrupted(tmp_path: Path) -> None:
+    """Ensure invalid JSON in trace file falls back safely to default metadata."""
+    from scripts.reconcile_storage import _extract_trace_metadata
+
+    bad_trace = tmp_path / "bad_trace.json"
+    bad_trace.write_text("{not-valid-json", encoding="utf-8")
+
+    wf_id, locale = _extract_trace_metadata(bad_trace)
+    assert wf_id == "wor_default"
+    assert locale == "en"
+
+
+def test_resolve_trace_path_variations(tmp_path: Path) -> None:
+    """Test resolution of direct trace paths and parent-relative paths."""
+    from scripts.reconcile_storage import _resolve_trace_path
+
+    storage_dir = tmp_path / "files" / "executions"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Direct path exists
+    direct_trace = tmp_path / "custom_trace.json"
+    direct_trace.write_text("[]", encoding="utf-8")
+    assert _resolve_trace_path(storage_dir, "exe_123", str(direct_trace)) == direct_trace
+
+    # 2. Relative to parent exists
+    rel_path = "executions/exe_rel/execution_trace.json"
+    full_rel = storage_dir.parent / rel_path
+    full_rel.parent.mkdir(parents=True, exist_ok=True)
+    full_rel.write_text("[]", encoding="utf-8")
+    assert _resolve_trace_path(storage_dir, "exe_rel", rel_path) == full_rel
+
