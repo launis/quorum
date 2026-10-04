@@ -1,14 +1,13 @@
-from __future__ import annotations
-
 """Manual entrypoint for Arq Worker.
 
 This module initializes and runs the Arq worker using global, absolute import paths
 to ensure immediate fail-fast logging configuration on startup.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Any  # noqa: F401
 
 from arq.typing import WorkerSettingsType
 from arq.worker import create_worker
@@ -17,6 +16,11 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.utils.redis_patcher import _patch_arq_logging
 from backend_v2.worker import WorkerSettings
+
+__all__ = [
+    "cli_entrypoint",
+    "main",
+]
 
 # 1. Setup Logging immediately as the script starts (Fail-Fast logging)
 setup_logging()
@@ -34,6 +38,7 @@ async def main() -> None:
     Raises:
         AppException: If the worker fails to instantiate or run, conveying a
             SERVICE_UNAVAILABLE error_code.
+        SystemExit: If the worker process receives a keyboard interrupt.
     """
     try:
         logger.info("Starting Arq Worker (Manual Script)...")
@@ -63,7 +68,12 @@ async def main() -> None:
 
 
 def cli_entrypoint() -> None:
-    """CLI entrypoint wrapping main() execution with clean exit handling."""
+    """CLI entrypoint wrapping main() execution with clean exit handling.
+
+    Raises:
+        AppException: If unhandled worker failure occurs outside main loop.
+        SystemExit: Upon user interrupt or clean shutdown.
+    """
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
