@@ -146,5 +146,8 @@ ignore-missing-imports = ["*"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = ""
+markers = [
+    "order: mark test execution order",
+]
 
 

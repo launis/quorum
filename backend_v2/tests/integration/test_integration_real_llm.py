@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -39,15 +40,32 @@ def clear_logs() -> None:
             f.write("")
 
 
-def is_backend_running() -> bool:
-    """Check if the backend API is alive on port 8000 with resilient retry loop."""
-    for _ in range(30):
-        try:
-            response = requests.get("http://127.0.0.1:8000/docs", timeout=5)
-            if response.status_code == 200:
-                return True
-        except requests.exceptions.RequestException:
-            pass
+def is_redis_running() -> bool:
+    """Check if Redis is alive on port 6379."""
+    try:
+        import redis
+
+        client = redis.Redis(host="127.0.0.1", port=6379, socket_timeout=1)
+        return bool(client.ping())
+    except redis.ConnectionError, redis.TimeoutError, OSError:
+        return False
+
+
+def is_backend_running(timeout: float = 1.0) -> bool:
+    """Check if the backend API is alive on port 8000."""
+    try:
+        response = requests.get("http://127.0.0.1:8000/docs", timeout=timeout)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
+
+
+def wait_for_backend(timeout_seconds: int = 30) -> bool:
+    """Wait for backend API to become ready with retries."""
+    start = time.time()
+    while time.time() - start < timeout_seconds:
+        if is_backend_running():
+            return True
         time.sleep(1)
     return False
 
@@ -80,8 +98,20 @@ async def test_real_llm_pdf_execution() -> None:
 
     clear_logs()
 
+    redis_server = None
+    if not is_redis_running():
+        logger.info("Local Redis not detected on port 6379. Starting TcpFakeServer daemon on port 6379.")
+        from fakeredis import TcpFakeServer
+
+        redis_server = TcpFakeServer(("127.0.0.1", 6379))
+        redis_thread = threading.Thread(target=redis_server.serve_forever, daemon=True)
+        redis_thread.start()
+        time.sleep(0.5)
+        assert is_redis_running(), "Failed to start TcpFakeServer on port 6379."
+
     backend_process = None
     worker_process = None
+    backend_log_fp = None
     if not is_backend_running():
         logger.info("Backend is not running. Starting local FastAPI instance on port 8000.")
         env = os.environ.copy()
@@ -94,38 +124,43 @@ async def test_real_llm_pdf_execution() -> None:
         env["TERM"] = "dumb"
 
         backend_log_fp = open(BACKEND_LOG_FILE, "a", encoding="utf-8")
-        backend_cmd = (
-            "chcp 65001 > nul && uv run python -c "
-            '"import sys; '
-            "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
-            "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
-            "import uvicorn; sys.argv=['uvicorn', 'backend_v2.main:app', '--host', '0.0.0.0', '--port', '8000']; "
-            'uvicorn.main()"'
-        )
+        backend_cmd = [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "uvicorn",
+            "backend_v2.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8000",
+        ]
         backend_process = subprocess.Popen(
-            backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
+            backend_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
         )
 
-        worker_cmd = (
-            "chcp 65001 > nul && uv run python -c "
-            '"import sys; '
-            "sys.stdout.reconfigure(encoding='utf-8') if sys.stdout and hasattr(sys.stdout, 'reconfigure') else None; "
-            "sys.stderr.reconfigure(encoding='utf-8') if sys.stderr and hasattr(sys.stderr, 'reconfigure') else None; "
-            "import runpy; sys.argv=['run_worker.py']; "
-            "runpy.run_module('backend_v2.run_worker', run_name='__main__', alter_sys=True)\""
-        )
+        worker_cmd = [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "backend_v2.run_worker",
+        ]
         worker_process = subprocess.Popen(
-            worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT, shell=True
+            worker_cmd, cwd=WORKSPACE_ROOT, env=env, stdout=backend_log_fp, stderr=subprocess.STDOUT
         )
 
-        # Wait for boot
-        time.sleep(10)
-
-        if not is_backend_running():
+        if not wait_for_backend(timeout_seconds=30):
             if backend_process:
-                backend_process.terminate()
+                subprocess.run(f"taskkill /F /T /PID {backend_process.pid}", shell=True, capture_output=True)
             if worker_process:
-                worker_process.terminate()
+                subprocess.run(f"taskkill /F /T /PID {worker_process.pid}", shell=True, capture_output=True)
+            if backend_log_fp:
+                backend_log_fp.close()
+            if redis_server:
+                redis_server.shutdown()
+                redis_server.server_close()
             pytest.fail("Failed to start FastAPI backend for testing.")
     else:
         logger.info("Backend is already running. Re-using active instance.")
@@ -228,8 +263,11 @@ async def test_real_llm_pdf_execution() -> None:
     finally:
         logger.info("Tearing down E2E orchestrator processes...")
         if backend_process:
-            backend_process.terminate()
-            backend_process.wait(timeout=5)
+            subprocess.run(f"taskkill /F /T /PID {backend_process.pid}", shell=True, capture_output=True)
         if worker_process:
-            worker_process.terminate()
-            worker_process.wait(timeout=5)
+            subprocess.run(f"taskkill /F /T /PID {worker_process.pid}", shell=True, capture_output=True)
+        if backend_log_fp:
+            backend_log_fp.close()
+        if redis_server:
+            redis_server.shutdown()
+            redis_server.server_close()

@@ -15,11 +15,13 @@ from arq.worker import create_worker
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.utils.redis_patcher import _patch_arq_logging
 from backend_v2.worker import WorkerSettings
 
 # 1. Setup Logging immediately as the script starts (Fail-Fast logging)
 setup_logging()
 configure_logfire()
+_patch_arq_logging()
 
 logger = logging.getLogger(__name__)
 
