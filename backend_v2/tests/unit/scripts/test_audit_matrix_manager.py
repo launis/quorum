@@ -19,6 +19,7 @@ from scripts.audit_matrix_manager import (
     AuditRuleEntryDTO,
     AuditRuleStatus,
     EvidenceType,
+    RuleBlockDTO,
     check_anti_laziness,
     check_conflicting_file_references,
     cmd_generate,
@@ -468,3 +469,39 @@ def test_audit_matrix_manager_cli_verification_error_branches(tmp_path: Path) ->
     with pytest.raises(SystemExit) as exc:
         main(["verify", "--file", str(valid_file), "--target", "correct_target.py"])
     assert exc.value.code == 1
+
+
+def test_extract_rule_blocks(tmp_path: Path) -> None:
+    """Test extract_rule_blocks parses rule_block XML into RuleBlockDTOs."""
+    sample_rules = tmp_path / "rules.md"
+    sample_rules.write_text(
+        """
+<rule_block id="rule_test_1">
+    <banned_pattern>banned pattern 1</banned_pattern>
+    <mandatory_pattern>mandatory pattern 1</mandatory_pattern>
+</rule_block>
+<rule_block id="rule_test_2">
+    content without tags
+</rule_block>
+""",
+        encoding="utf-8",
+    )
+
+    blocks = extract_rule_blocks(sample_rules)
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], RuleBlockDTO)
+    assert blocks[0].rule_id == "rule_test_1"
+    assert blocks[0].banned_pattern == "banned pattern 1"
+    assert blocks[0].mandatory_pattern == "mandatory pattern 1"
+
+    assert blocks[1].rule_id == "rule_test_2"
+    assert blocks[1].banned_pattern == "N/A"
+    assert blocks[1].mandatory_pattern == "N/A"
+
+
+def test_extract_rule_blocks_missing_file(tmp_path: Path) -> None:
+    """Test extract_rule_blocks exits on missing file."""
+    with pytest.raises(SystemExit) as exc:
+        extract_rule_blocks(tmp_path / "non_existent.md")
+    assert exc.value.code == 1
+

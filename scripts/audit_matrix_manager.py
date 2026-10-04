@@ -56,6 +56,21 @@ PLACEHOLDER_JUSTIFICATIONS: set[str] = {
     "",
 }
 
+__all__ = [
+    "AuditMatrixDTO",
+    "AuditRuleEntryDTO",
+    "AuditRuleStatus",
+    "EvidenceType",
+    "RuleBlockDTO",
+    "check_anti_laziness",
+    "check_conflicting_file_references",
+    "cmd_generate",
+    "cmd_verify",
+    "extract_rule_blocks",
+    "get_repo_root",
+    "main",
+]
+
 
 class EvidenceType(StrEnum):
     """Evidence classification for matrix rule evaluations."""
@@ -72,6 +87,16 @@ class AuditRuleStatus(StrEnum):
     FAIL = "FAIL"
     NA = "NA"
     PENDING = "PENDING"
+
+
+class RuleBlockDTO(BaseModel):
+    """Pydantic V2 DTO representing an extracted raw rule block from markdown rules."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rule_id: Annotated[str, Field(description="Unique rule identifier e.g. the_duct_tape_ban")]
+    banned_pattern: Annotated[str, Field(description="Banned architectural pattern")]
+    mandatory_pattern: Annotated[str, Field(description="Mandatory architectural pattern")]
 
 
 class AuditRuleEntryDTO(BaseModel):
@@ -101,18 +126,22 @@ class AuditMatrixDTO(BaseModel):
 
 
 def get_repo_root() -> Path:
-    """Return the absolute path to the repository root."""
+    """Return the absolute path to the repository root.
+
+    Returns:
+        Path to the repository root directory.
+    """
     return Path(__file__).resolve().parent.parent
 
 
-def extract_rule_blocks(file_path: Path) -> list[dict[str, str]]:
+def extract_rule_blocks(file_path: Path) -> list[RuleBlockDTO]:
     """Parse a Markdown file and extract rule blocks dynamically.
 
     Args:
         file_path: Path to the Markdown rules file.
 
     Returns:
-        List of dictionaries containing rule logic.
+        List of RuleBlockDTO instances containing rule logic.
     """
     if not file_path.exists():
         print(f"Error: Rules file {file_path} not found.")
@@ -122,7 +151,7 @@ def extract_rule_blocks(file_path: Path) -> list[dict[str, str]]:
     pattern = r'<rule_block\s+id=["\']([^"\']+)["\']>(.*?)</rule_block>'
     matches = re.finditer(pattern, content, re.DOTALL)
 
-    rules: list[dict[str, str]] = []
+    rules: list[RuleBlockDTO] = []
     for match in matches:
         rule_id = match.group(1)
         block_content = match.group(2)
@@ -133,7 +162,13 @@ def extract_rule_blocks(file_path: Path) -> list[dict[str, str]]:
         banned = banned_match.group(1).strip() if banned_match else "N/A"
         mandatory = mandatory_match.group(1).strip() if mandatory_match else "N/A"
 
-        rules.append({"rule_id": rule_id, "banned_pattern": banned, "mandatory_pattern": mandatory})
+        rules.append(
+            RuleBlockDTO(
+                rule_id=rule_id,
+                banned_pattern=banned,
+                mandatory_pattern=mandatory,
+            )
+        )
 
     return rules
 
@@ -162,10 +197,10 @@ def cmd_generate(args: argparse.Namespace, exit_on_completion: bool = True) -> A
     all_rules = extract_rule_blocks(core_rules) + extract_rule_blocks(domain_rules)
 
     seen: set[str] = set()
-    unique_rules: list[dict[str, str]] = []
+    unique_rules: list[RuleBlockDTO] = []
     for r in all_rules:
-        if r["rule_id"] not in seen:
-            seen.add(r["rule_id"])
+        if r.rule_id not in seen:
+            seen.add(r.rule_id)
             unique_rules.append(r)
 
     raw_target = str(args.target).strip() if args.target else ""
@@ -183,7 +218,7 @@ def cmd_generate(args: argparse.Namespace, exit_on_completion: bool = True) -> A
 
     rule_entries: list[AuditRuleEntryDTO] = []
     for rule in unique_rules:
-        rule_id = rule["rule_id"]
+        rule_id = rule.rule_id
         matching_qgr_codes = RULE_ID_AST_MAP[rule_id] if rule_id in RULE_ID_AST_MAP else set()
 
         rule_ast_violations = [v for v in target_violations if v.rule_code in matching_qgr_codes]
@@ -192,8 +227,8 @@ def cmd_generate(args: argparse.Namespace, exit_on_completion: bool = True) -> A
         rule_entries.append(
             AuditRuleEntryDTO(
                 rule_id=rule_id,
-                banned_pattern=rule["banned_pattern"],
-                mandatory_pattern=rule["mandatory_pattern"],
+                banned_pattern=rule.banned_pattern,
+                mandatory_pattern=rule.mandatory_pattern,
                 status=AuditRuleStatus.PENDING,
                 evidence_type=evidence_type,
                 ast_violations=rule_ast_violations,
@@ -399,7 +434,11 @@ def cmd_verify(args: argparse.Namespace, exit_on_completion: bool = True) -> lis
 
 
 def main(args_list: list[str] | None = None) -> None:
-    """Main CLI entrypoint for audit matrix manager."""
+    """Main CLI entrypoint for audit matrix manager.
+
+    Args:
+        args_list: Optional list of CLI argument strings to parse.
+    """
     parser = argparse.ArgumentParser(
         description="""Neuro-Symbolic Audit Matrix Manager.
 
