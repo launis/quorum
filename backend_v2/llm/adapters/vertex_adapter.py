@@ -9,9 +9,9 @@ import json
 import logging
 import os
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from arq.connections import RedisSettings, create_pool
+from arq.connections import ArqRedis, RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
@@ -22,8 +22,11 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
+
+if TYPE_CHECKING:
+    from fakeredis.aioredis import FakeRedis
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +44,8 @@ _VERTEX_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
 ]
 
-_redis_pool: Any = None
-_redis_loop: Any = None
+_redis_pool: ArqRedis | FakeRedis | None = None
+_redis_loop: asyncio.AbstractEventLoop | None = None
 
 
 def _is_system_turn(m: LLMMessageDTO | dict[str, Any]) -> bool:
@@ -61,7 +64,7 @@ def _is_system_turn(m: LLMMessageDTO | dict[str, Any]) -> bool:
     return False
 
 
-async def get_redis_client() -> Any:
+async def get_redis_client() -> ArqRedis | FakeRedis:
     """Return a shared Redis connection pool or in-memory FakeRedis during tests.
 
     Adheres strictly to the testing firewalls.
@@ -155,6 +158,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
         if not location and settings.vertex_location:
             location = settings.vertex_location
         if not location:
+            logger.error(
+                "Vertex AI requires a configured location in the active Model Registry.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise ConfigurationError(
                 message="Vertex AI requires a configured location in the active Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -467,7 +474,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
         return sanitized
 
     def prepare_kwargs(
-        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+        self,
+        call_kwargs: dict[str, Any],
+        config: LLMProviderConfig | ModelProfile | None = None,
+        settings: Settings | None = None,
     ) -> dict[str, Any]:
         """Prepare Vertex specific kwargs, handling caching mappings and location resolution.
 
@@ -550,6 +560,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
             if loc_match:
                 active_location = loc_match.group(1)
         if not active_location:
+            logger.error(
+                "Vertex AI requires a configured location in the active Model Registry.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            )
             raise ConfigurationError(
                 message="Vertex AI requires a configured location in the active Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
