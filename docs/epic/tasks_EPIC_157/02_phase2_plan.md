@@ -33,16 +33,37 @@
 - `[MODIFY]` @[backend_v2/llm/mock_data.py]
 - `[MODIFY]` @[backend_v2/tests/unit/test_mock_data.py]
 - `[MODIFY]` @[backend_v2/tests/unit/test_mock.py]
+- `[MODIFY]` @[backend_v2/tests/unit/llm/test_caching_service.py]
+
+### Pre-Implementation Cleanups (Discovered Technical Debt)
+1. **35 AST Dict Eradication Violations**:
+   - `backend_v2/core/rate_limit.py#L34`: 1 naked dict `dict[str, Any]` in rate limit handler.
+   - `backend_v2/core/registry.py#L578,L627,L678,L812`: 4 naked dicts `dict[str, Any]` on dynamic Pydantic `create_model` field mappings.
+   - `backend_v2/exceptions.py#L355,L382,L439,L613,L638...`: 14 naked dicts `dict[str, Any]` across `AppException.details` and subclass constructors.
+   - `backend_v2/hooks/linguistics.py#L86`: 1 naked dict `dict[str, Any]` in `payload_data`.
+   - `backend_v2/hooks/scoring/matrix_hook.py#L281,L283,L285`: 3 Primitive Obsession nested maps (`dict[str, dict[float, LevelStatsDTO]]`, `dict[str, dict[str, ExecutionStatus]]`, `dict[str, dict[str, list[str]]]`).
+   - `backend_v2/hooks/scoring/passivity_hook.py#L116`: 1 naked dict `judge_model: dict[str, Any]`.
+   - `backend_v2/hooks/source_verification_hook.py#L93`: 1 naked dict `payload_data: dict[str, object]`.
+   - `backend_v2/llm/caching_service.py#L36`: 2 violations (anonymous tuple return with naked dict and primitive obsession `tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]`).
+   - `backend_v2/llm/client.py#L535`: 1 naked dict annotation.
+   - `backend_v2/llm/ingress_pipeline.py#L123,L365`: 2 naked dicts in `_infer_and_heal_discriminator` and `parse_llm_output`.
+   - `backend_v2/llm/mock_data.py#L335,L380`: 2 naked dicts in `MOCK_REGISTRY` and `get_fallback_data`.
+   - `backend_v2/llm/schema_builder.py#L53,L79`: 3 violations (nested dict and naked dicts in `_generate_hash` and `_get_or_create_model`).
+2. **Duck-Typing & Tuple Hell in Client Layers**:
+   - `backend_v2/llm/client.py#L488-L494`: Dynamic dictionary inspection `not isinstance(m, ...) and "content" in m` due to unvalidated adapter returns.
+   - `backend_v2/tests/unit/llm/test_caching_service.py#L17-L20`: Outdated unit test asserting 2-tuple return for caching adapter.
+3. **ValidationError.errors() Unsanitized Injection**:
+   - `backend_v2/hooks/input_processing.py#L128`: Passing raw `e.errors()` (which contains non-JSON objects) directly to `AppException.details`.
 
 ## 5-Column Architectural Directives Table
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
 | `@[backend_v2/exceptions.py]`, `@[backend_v2/main.py#L314-L342]`, `@[backend_v2/main.py#L441-L470]`, `@[backend_v2/core/rate_limit.py#L21-L50]`, `@[backend_v2/tests/unit/test_exceptions.py]` | Banned permissive typing `dict[str, Any]` in RFC 7807 problem details. Banned raw dictionary returns from `to_problem_detail()`. Banned passing unvalidated dicts to Starlette `JSONResponse`. | `AppException.details: dict[str, JsonValue] \| None`. Define [NEW] `ProblemDetailDTO` with explicit fields `type`, `title`, `status`, `detail`, `instance`, `extensions`. At network boundary in `main.py` and `core/rate_limit.py`, call `.model_dump(mode="json", exclude_none=True)`. | Pruned speculative custom error serializer hierarchies; use standard Pydantic V2 JSON mode dumping. | `uv run mypy backend_v2/exceptions.py backend_v2/main.py backend_v2/core/rate_limit.py` = 0 errors. `backend_v2/tests/unit/test_exceptions.py` asserts roundtrip serialization. |
-| `@[backend_v2/database/repositories/components/prompt_block.py]`, `@[backend_v2/services/ingress/smart_ingress_resolver.py]`, `@[backend_v2/hooks/validation.py]`, `@[backend_v2/hooks/input_processing.py]` | Banned passing non-JSON objects or unvalidated nested structures to `details` keyword argument of `AppException` subclasses. | Resolve 5 caller sites by passing typed `dict[str, JsonValue]` structures (`list[str]`, `dict[str, Sequence[str]]`, `list[ErrorDetails]`). | Pruned custom dict wrapper models; use typed JSON value mappings. | `uv run mypy backend_v2` reports 0 errors across all 5 exception caller files. |
-| `@[backend_v2/hooks/scoring/matrix_hook.py#L83-L564]`, `@[backend_v2/hooks/scoring/passivity_hook.py]`, `@[backend_v2/hooks/linguistics.py]`, `@[backend_v2/hooks/source_verification_hook.py]` | Banned 3 parallel nested maps keyed by matrix ID (`dict[str, dict[float, LevelStatsDTO]]`, `dict[str, dict[str, ExecutionStatus]]`, `dict[str, dict[str, list[str]]]`). Banned loose dict annotations in linguistics and verification hooks. | Define [NEW] `MatrixAggregationStateDTO` encapsulating score levels, status map, and reasons. Define [NEW] `LinguisticAnalysisDTO` in `hooks/linguistics.py`. | Pruned separate DTOs for parallel maps; unify into one cohesive aggregation state model. | `uv run python scripts/audit_dict_eradication.py backend_v2/hooks --strict` reports 0 violations. |
-| `@[backend_v2/llm/caching_service.py#L35-L61]`, `@[backend_v2/llm/client.py#L357-L725]`, `@[backend_v2/llm/client.py#L727-L905]`, `@[backend_v2/llm/adapters/base_adapter.py#L151-L166]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py#L96-L290]`, `@[backend_v2/llm/adapters/anthropic_adapter.py#L20-L96]`, `@[backend_v2/llm/adapters/mock_adapter.py#L25-L39]`, `@[backend_v2/llm/adapters/openai_adapter.py#L25-L43]`, `@[backend_v2/llm/adapters/vertex_adapter.py#L115-L347]` | Banned anonymous tuple return `tuple[list[LLMMessageDTO] \| list[dict[str, Any]], dict[str, Any]]` from `prepare_caching_payload`. Banned provider dict materialization outside adapter boundary. | Define [NEW] `CachingPayloadResultDTO` owned by `BaseLLMAdapter.prepare_caching_payload` contract. Confine provider-native dictionary creation strictly to exempt adapter files and `provider.py`. | Pruned redundant caching serialization bridges. | `Select-String -Path backend_v2/llm/adapters/*.py, backend_v2/llm/caching_service.py -Pattern "tuple\[list\[LLMMessageDTO\]"` returns 0 matches. |
-| `@[backend_v2/core/registry.py#L477-L908]`, `@[backend_v2/llm/ingress_pipeline.py]`, `@[backend_v2/llm/schema_builder.py]`, `@[backend_v2/llm/mock_data.py]`, `@[backend_v2/tests/unit/test_mock_data.py]`, `@[backend_v2/tests/unit/test_mock.py]` | Banned naked `dict[type[Any], Any]` in `MOCK_REGISTRY`. Banned untyped dynamic model field definitions in `core/registry.py`. Banned `dict[str, Any]` in `get_fallback_data`. | Retype `MOCK_REGISTRY` to `dict[type[BaseModel], BaseModel]`. Strongly type dynamic model field mappings in `core/registry.py`. Retype `get_fallback_data` to return typed `BaseModel` mock instances. | Pruned untyped registry lookups; enforce strict Pydantic model inheritance. | `uv run python scripts/audit_dict_eradication.py backend_v2/core/registry.py backend_v2/llm/mock_data.py backend_v2/llm/schema_builder.py --strict` = 0. `uv run pytest backend_v2/tests/unit/test_mock_data.py backend_v2/tests/unit/test_mock.py`. |
+| `@[backend_v2/database/repositories/components/prompt_block.py]`, `@[backend_v2/services/ingress/smart_ingress_resolver.py]`, `@[backend_v2/hooks/validation.py]`, `@[backend_v2/hooks/input_processing.py]` | Banned passing non-JSON objects or unvalidated nested structures to `details` keyword argument of `AppException` subclasses. Banned raw `e.errors()` with unvalidated context objects. | Resolve 5 caller sites by passing typed `dict[str, JsonValue]` structures (`list[str]`, `dict[str, Sequence[str]]`, sanitized error mappings). Sanitize `ValidationError.errors()` in `input_processing.py` to JSON-safe structures. | Pruned custom dict wrapper models; use typed JSON value mappings. | `uv run mypy backend_v2` reports 0 errors across all 5 exception caller files. |
+| `@[backend_v2/hooks/scoring/matrix_hook.py#L83-L564]`, `@[backend_v2/hooks/scoring/passivity_hook.py]`, `@[backend_v2/hooks/linguistics.py]`, `@[backend_v2/hooks/source_verification_hook.py]` | Banned 3 parallel nested maps keyed by matrix ID (`dict[str, dict[float, LevelStatsDTO]]`, `dict[str, dict[str, ExecutionStatus]]`, `dict[str, dict[str, list[str]]]`). Banned loose dict annotations in linguistics and verification hooks. Banned `judge_model: dict[str, Any]`. | Define [NEW] `MatrixAggregationStateDTO` encapsulating score levels, status map, extensions, missing atoms, and quotes. Instantiate `LinguisticsPayloadDTO` directly. Type source verification payloads strictly. | Pruned separate DTOs for parallel maps; unify into one cohesive aggregation state model. | `uv run python scripts/audit_dict_eradication.py backend_v2/hooks --strict` reports 0 violations. |
+| `@[backend_v2/llm/caching_service.py#L35-L61]`, `@[backend_v2/llm/client.py#L357-L725]`, `@[backend_v2/llm/client.py#L727-L905]`, `@[backend_v2/llm/adapters/base_adapter.py#L151-L166]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py#L96-L290]`, `@[backend_v2/llm/adapters/anthropic_adapter.py#L20-L96]`, `@[backend_v2/llm/adapters/mock_adapter.py#L25-L39]`, `@[backend_v2/llm/adapters/openai_adapter.py#L25-L43]`, `@[backend_v2/llm/adapters/vertex_adapter.py#L115-L347]`, `@[backend_v2/tests/unit/llm/test_caching_service.py]` | Banned anonymous tuple return `tuple[list[LLMMessageDTO] \| list[dict[str, Any]], dict[str, Any]]` from `prepare_caching_payload`. Banned provider dict materialization outside adapter boundary. Banned duck-typing message content inspections in `client.py`. | Define [NEW] `CachingPayloadResultDTO` owned by `BaseLLMAdapter.prepare_caching_payload` contract. Strictly return `list[LLMMessageDTO]` with typed content. Update `test_caching_service.py` to assert `CachingPayloadResultDTO`. | Pruned redundant caching serialization bridges. | `Select-String -Path backend_v2/llm/adapters/*.py, backend_v2/llm/caching_service.py -Pattern "tuple\[list\[LLMMessageDTO\]"` returns 0 matches. |
+| `@[backend_v2/core/registry.py#L477-L908]`, `@[backend_v2/llm/ingress_pipeline.py]`, `@[backend_v2/llm/schema_builder.py]`, `@[backend_v2/llm/mock_data.py]`, `@[backend_v2/tests/unit/test_mock_data.py]`, `@[backend_v2/tests/unit/test_mock.py]` | Banned naked `dict[type[Any], Any]` in `MOCK_REGISTRY`. Banned untyped dynamic model field definitions in `core/registry.py` and `schema_builder.py`. Banned `dict[str, Any]` in `get_fallback_data`. | Retype `MOCK_REGISTRY` to `dict[type[BaseModel], BaseModel]` (22/22 verified). Define `type DynamicFieldDefinition = tuple[type, Any]` for `registry.py` and `schema_builder.py`. Retype `get_fallback_data` to return typed `BaseModel` mock instances. | Pruned untyped registry lookups; enforce strict Pydantic model inheritance. | `uv run python scripts/audit_dict_eradication.py backend_v2/core/registry.py backend_v2/llm/mock_data.py backend_v2/llm/schema_builder.py --strict` = 0. `uv run pytest backend_v2/tests/unit/test_mock_data.py backend_v2/tests/unit/test_mock.py`. |
 
 ```xml
 <execution_protocol>
@@ -119,17 +140,18 @@
     <backend>@[backend_v2/llm/ingress_pipeline.py]</backend>
     <backend>@[backend_v2/llm/schema_builder.py]</backend>
     <backend>@[backend_v2/llm/mock_data.py]</backend>
+    <backend>@[backend_v2/tests/unit/llm/test_caching_service.py]</backend>
   </touched_artifacts>
 
   <contract_freeze>
     <contract name="ProblemDetailDTO">
-      Define [NEW] ProblemDetailDTO with fields: type: str, title: str, status: int, detail: str, instance: str | None, extensions: dict[str, JsonValue]. ConfigDict(strict=True, extra="forbid", frozen=True).
+      Define [NEW] ProblemDetailDTO with fields: type: str, title: str, status: int, detail: str, instance: str | None = None, extensions: dict[str, JsonValue] = Field(default_factory=dict). ConfigDict(strict=True, extra="forbid", frozen=True).
     </contract>
     <contract name="CachingPayloadResultDTO">
-      Define [NEW] CachingPayloadResultDTO owned by BaseLLMAdapter.prepare_caching_payload. ConfigDict(strict=True, extra="forbid", frozen=True).
+      Define [NEW] CachingPayloadResultDTO owned by BaseLLMAdapter.prepare_caching_payload with fields: messages: list[LLMMessageDTO], kwargs: dict[str, JsonValue] = Field(default_factory=dict). ConfigDict(strict=True, extra="forbid", frozen=True).
     </contract>
     <contract name="MatrixAggregationStateDTO">
-      Define [NEW] MatrixAggregationStateDTO with fields: score_levels: dict[float, LevelStatsDTO], status_map: dict[str, ExecutionStatus], reasons: dict[str, list[str]]. ConfigDict(strict=True, extra="forbid", frozen=True).
+      Define [NEW] MatrixAggregationStateDTO with fields: scale_stats: dict[float, LevelStatsDTO] = Field(default_factory=dict), evaluated_atoms: dict[str, ExecutionStatus] = Field(default_factory=dict), extensions: dict[str, list[str]] = Field(default_factory=dict), missing_atoms: list[str] = Field(default_factory=list), atom_quotes: list[QuoteEvidenceDTO] = Field(default_factory=list). ConfigDict(strict=True, extra="forbid", frozen=True).
     </contract>
     <contract name="LinguisticAnalysisDTO">
       Define [NEW] LinguisticAnalysisDTO in hooks/linguistics.py. ConfigDict(strict=True, extra="forbid", frozen=True).
@@ -148,7 +170,7 @@
     <action>In `@[backend_v2/database/repositories/components/prompt_block.py]`, pass typed list[str] to details argument of AppException subclass.</action>
     <action>In `@[backend_v2/services/ingress/smart_ingress_resolver.py]`, pass typed dict[str, Sequence[str]] and list[str] to details argument of AppException subclasses.</action>
     <action>In `@[backend_v2/hooks/validation.py]`, pass typed warning structures conforming to dict[str, JsonValue] to details argument.</action>
-    <action>In `@[backend_v2/hooks/input_processing.py]`, pass typed error details conforming to dict[str, JsonValue] to details argument.</action>
+    <action>In `@[backend_v2/hooks/input_processing.py]`, pass sanitized error details conforming to dict[str, JsonValue] from ValidationError.errors() to details argument.</action>
     <constraint invariant="universal_fail_fast">Exception details must satisfy the dict[str, JsonValue] | None contract without type suppressions.</constraint>
   </step>
 
@@ -157,16 +179,17 @@
     <action>In `@[backend_v2/llm/client.py#L357-L725]` and `@[backend_v2/llm/client.py#L727-L905]`, update run_structured_task and run_chat callers of prepare_caching_payload to consume CachingPayloadResultDTO.</action>
     <action>In `@[backend_v2/llm/adapters/base_adapter.py#L151-L166]`, declare abstract method prepare_caching_payload returning CachingPayloadResultDTO.</action>
     <action>In `@[backend_v2/llm/adapters/ai_studio_adapter.py#L96-L290]`, implement prepare_caching_payload returning CachingPayloadResultDTO.</action>
-    <action>In `@[backend_v2/llm/adapters/anthropic_adapter.py#L20-L96]`, implement prepare_caching_payload returning CachingPayloadResultDTO.</action>
+    <action>In `@[backend_v2/llm/adapters/anthropic_adapter.py#L20-L96]`, implement prepare_caching_payload returning CachingPayloadResultDTO with typed message content.</action>
     <action>In `@[backend_v2/llm/adapters/mock_adapter.py#L25-L39]`, implement prepare_caching_payload returning CachingPayloadResultDTO.</action>
     <action>In `@[backend_v2/llm/adapters/openai_adapter.py#L25-L43]`, implement prepare_caching_payload returning CachingPayloadResultDTO.</action>
     <action>In `@[backend_v2/llm/adapters/vertex_adapter.py#L115-L347]`, implement prepare_caching_payload returning CachingPayloadResultDTO.</action>
+    <action>In `@[backend_v2/tests/unit/llm/test_caching_service.py]`, update mock adapter assertions to expect CachingPayloadResultDTO instead of anonymous 2-tuple.</action>
     <constraint invariant="ban_anonymous_state_tuples">Anonymous tuple returns across caching services and adapters are strictly prohibited.</constraint>
   </step>
 
   <step id="4" name="Matrix Hook &amp; Scoring Aggregation State DTOs">
     <action>In `@[backend_v2/hooks/scoring/matrix_hook.py#L83-L564]`, define [NEW] MatrixAggregationStateDTO and replace the 3 parallel nested maps with a single typed aggregation state mapping.</action>
-    <action>In `@[backend_v2/hooks/scoring/passivity_hook.py]`, update passivity penalty state extraction to consume MatrixAggregationStateDTO.</action>
+    <action>In `@[backend_v2/hooks/scoring/passivity_hook.py]`, update passivity penalty state extraction to consume MatrixAggregationStateDTO and eliminate judge_model: dict[str, Any].</action>
     <constraint invariant="the_zero_compromise_pledge">Primitive obsession nested maps must be replaced with frozen Pydantic V2 DTOs.</constraint>
   </step>
 
@@ -216,8 +239,8 @@
   <validation_gate>
     <action>Execute Type Checker: `uv run mypy backend_v2` reports 0 errors.</action>
     <action>Execute Caching Payload Scan: `Select-String -Path backend_v2/llm/adapters/*.py, backend_v2/llm/caching_service.py -Pattern "tuple\[list\[LLMMessageDTO\]"` returns 0 matches.</action>
-    <action>Execute Dict Audit: `uv run python scripts/audit_dict_eradication.py backend_v2 --strict` reports 0 residual violations outside in_memory_repositories.py.</action>
-    <action>Execute Unit Tests: `uv run pytest backend_v2/tests/unit/test_exceptions.py backend_v2/tests/unit/test_mock_data.py backend_v2/tests/unit/test_mock.py` passes cleanly.</action>
+    <action>Execute Dict Audit: `uv run python scripts/audit_dict_eradication.py backend_v2/exceptions.py backend_v2/core/rate_limit.py backend_v2/core/registry.py backend_v2/hooks backend_v2/llm --strict` reports 0 residual violations outside in_memory_repositories.py.</action>
+    <action>Execute Unit Tests: `uv run pytest backend_v2/tests/unit/test_exceptions.py backend_v2/tests/unit/test_mock_data.py backend_v2/tests/unit/test_mock.py backend_v2/tests/unit/llm/test_caching_service.py` passes cleanly.</action>
     <action>Execute Global Backend Audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` passes cleanly.</action>
   </validation_gate>
 </execution_protocol>
