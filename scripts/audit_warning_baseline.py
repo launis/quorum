@@ -24,13 +24,13 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
+import re
+import tokenize
+
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from scripts._ast_guardrails import GuardrailSeverity, scan_files_for_guardrails
-
-import re
-import tokenize
 
 CURRENT_WARNING_CEILING = 0
 

@@ -41,7 +41,7 @@
   - [x] Step 1.6: Unconditional Skip & Xfail Test Eradication (QGR026)
   - [x] Step 1.7: Open-JSON Whitelist SSOT (QGR027 FATAL AST Guardrail & Metric 11 Dict Eradication Audit)
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 1 test contracts, unit tests (212 passed in scripts, 44 passed in models/services, 88 passed in hooks/scoring), SDUI semantic parity, and 10/10 backend audit stages.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/01_phase1_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/01_phase1_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 2: System Exceptions, Hooks, LLM Caching Contract & Core Lockdown
 **Plan:** @[docs/epic/tasks_EPIC_157/02_phase2_plan.md]
@@ -300,7 +300,7 @@
 - Retyped `MetricsPayloadDTO.root` to `dict[str, IngressInputValue | None]` and aligned `test_security.py`.
 - Formulated `type NestedValidationInputs = dict[str, IngressInputValue]` PEP 695 type alias for `ValidationHookPayloadDTO` and guarded empty raw inputs unpacking in `backend_v2/hooks/validation.py`.
 - Fixed logging format string placeholder parity in `backend_v2/services/auth.py`.
-- Verified 100% clean Universal Quality Gate across all 10 stages (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`), passing 5,067 tests with 97.74% coverage and 0 AST violations.
+- Completed Tier 8 System 2 Post-Implementation Red Team Audit (`red_team_audit_01_phase1_plan.md`): Verified 100% adherence to model retyping, boundary SSOT, and destructive cleanups; confirmed 10/10 Universal Quality Gate stages clean with 5,067 passing tests, 97.74% coverage, 0 AST violations, and 0 skipped/xfailed tests. Phase 1 is formally signed off.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
@@ -317,8 +317,7 @@
 - Guarding against falsy `{}` in validation hook payload extraction (`state.inputs.raw_inputs is not None`) prevents unintended fallback to dumping unflattened model attributes.
 
 ## Remaining
-- Re-audit Phase 1: `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/01_phase1_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - Execute Phase 2: `/tier2-execute @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/01_phase1_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto
