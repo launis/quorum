@@ -4,7 +4,7 @@ import functools
 import hashlib
 import json
 from enum import Enum
-from typing import Any
+from typing import Annotated, Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -24,7 +24,27 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_THEORY_LINK,
 )
 
-__all__ = ["DynamicFieldSpecDTO", "SchemaCompilerService"]
+__all__ = ["BlockSchemaConfigDTO", "DynamicFieldDefinition", "DynamicFieldSpecDTO", "SchemaCompilerService"]
+
+type DynamicFieldDefinition = tuple[Any, Any]
+
+
+class BlockSchemaConfigDTO(BaseModel):
+    """Configuration signature of a prompt block for schema compilation.
+
+    Attributes:
+        id: Prompt block identifier.
+        type: Block data type string representation.
+        output_extensions: List of supported output extension keys.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[str, Field(description="Prompt block identifier.")]
+    type: Annotated[str, Field(description="Block data type string representation.")]
+    output_extensions: Annotated[
+        list[str], Field(default_factory=list, description="List of supported output extension keys.")
+    ]
 
 
 class DynamicFieldSpecDTO(V2CoreBase):
@@ -37,7 +57,7 @@ class DynamicFieldSpecDTO(V2CoreBase):
     description: str
     alias: str
 
-    def to_field_definition(self) -> tuple[Any, Any]:
+    def to_field_definition(self) -> DynamicFieldDefinition:
         """Convert specification into a Pydantic create_model field definition tuple.
 
         Returns:
@@ -50,17 +70,18 @@ class SchemaCompilerService:
     """Compiles PromptBlocks into dynamic Pydantic Models for LLM structured outputs."""
 
     @staticmethod
-    def _generate_hash(blocks_config: list[dict[str, Any]]) -> str:
+    def _generate_hash(blocks_config: list[BlockSchemaConfigDTO]) -> str:
         """Generates a stable SHA-256 hash for a given schema configuration.
 
         Args:
-            blocks_config: List of block configuration dictionaries.
+            blocks_config: List of block configuration DTOs.
 
         Returns:
             SHA-256 hash string.
         """
         # Ensure we sort the config so identical schemas get the same hash
-        config_str = json.dumps(blocks_config, sort_keys=True)
+        config_list = [b.model_dump(mode="json") for b in blocks_config]
+        config_str = json.dumps(config_list, sort_keys=True)
         return hashlib.sha256(config_str.encode()).hexdigest()
 
     @staticmethod
@@ -76,12 +97,13 @@ class SchemaCompilerService:
         Returns:
             The dynamically generated Pydantic model class.
         """
-        fields: dict[str, Any] = {spec.name: spec.to_field_definition() for spec in fields_tuple}
-        return create_model(
+        fields: dict[str, DynamicFieldDefinition] = {spec.name: spec.to_field_definition() for spec in fields_tuple}
+        model = create_model(
             f"DynamicSchema_{schema_hash[:8]}",
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
-            **fields,
+            **cast(dict[str, Any], fields),
         )
+        return cast(type[BaseModel], model)
 
     @classmethod
     def compile(cls, prompt_blocks: list[PromptBlock]) -> type[BaseModel]:
@@ -94,26 +116,26 @@ class SchemaCompilerService:
             Compiled Pydantic Model.
         """
         # 1. Create a hashable representation of the schema requirements
-        blocks_config = []
+        blocks_config: list[BlockSchemaConfigDTO] = []
         for block in prompt_blocks:
             blocks_config.append(
-                {
-                    "id": block.id,
-                    "type": block.type.value if isinstance(block.type, Enum) else str(block.type),
-                    "output_extensions": block.output_extensions,
-                }
+                BlockSchemaConfigDTO(
+                    id=block.id,
+                    type=block.type.value if isinstance(block.type, Enum) else str(block.type),
+                    output_extensions=block.output_extensions,
+                )
             )
 
         # Sort blocks_config by id to ensure deterministic hashing regardless of input order
-        blocks_config.sort(key=lambda x: x["id"])
+        blocks_config.sort(key=lambda x: x.id)
         schema_hash = cls._generate_hash(blocks_config)
 
         # 2. Build the fields tuple for Pydantic (must be hashable for lru_cache)
         fields_list: list[DynamicFieldSpecDTO] = []
         for index, cfg in enumerate(blocks_config):
-            block_id = str(cfg["id"])
+            block_id = cfg.id
             alias_name = f"eval_{index + 1}"
-            b_type = cfg["type"]
+            b_type = cfg.type
 
             type_hint: Any
             # Map BlockDataType to strict Python primitives
@@ -137,7 +159,7 @@ class SchemaCompilerService:
             )
 
             # Dynamically inject requested XAI output extensions into Pydantic schema
-            extensions = cfg["output_extensions"]
+            extensions = cfg.output_extensions
             if XaiExtensionType.JUSTIFICATION.value in extensions:
                 fields_list.append(
                     DynamicFieldSpecDTO(

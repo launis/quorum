@@ -14,11 +14,13 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.hooks.scoring.matrix_hook import MatrixAggregationStateDTO
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import (
+    LightweightMatrixOutput,
+    MatrixAggregationStateDTO,
+)
 from backend_v2.models.dtos.step_output import StepOutputDTO
 
 logger = logging.getLogger(__name__)
@@ -115,14 +117,15 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
     for k in matrix_blocks_min:
         if k in inputs_map:
-            raw_val = inputs_map[k]
-            if isinstance(raw_val, StepOutputDTO):
-                raw_val = raw_val.payload
+            input_node = inputs_map[k]
+            payload = input_node.payload if isinstance(input_node, StepOutputDTO) else input_node
 
-            if isinstance(raw_val, MatrixAggregationStateDTO):
+            if isinstance(payload, MatrixAggregationStateDTO):
                 math_min = matrix_blocks_min[k]
-                min_stat = raw_val.scale_stats[math_min] if math_min in raw_val.scale_stats else None
-                other_hits = sum(stat.hits for s, stat in raw_val.scale_stats.items() if s > math_min)
+                min_stat = None
+                if math_min in payload.scale_stats:
+                    min_stat = payload.scale_stats[math_min]
+                other_hits = sum(stat.hits for s, stat in payload.scale_stats.items() if s > math_min)
                 if min_stat and min_stat.hits > 0 and other_hits == 0:
                     passivity_detected = True
                     logger.warning(
@@ -133,7 +136,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
                 continue
 
             try:
-                matrix_dto = LightweightMatrixOutput.model_validate(raw_val)
+                matrix_dto = LightweightMatrixOutput.model_validate(payload)
             except ValidationError as e:
                 msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

@@ -18,7 +18,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
-from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 

@@ -50,12 +50,8 @@ class LinguisticAnalysisDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    token_count: Annotated[
-        int, Field(ge=0, default=0, description="Total number of tokens or words analyzed.")
-    ] = 0
-    sentence_count: Annotated[
-        int, Field(ge=0, default=0, description="Total number of sentences identified.")
-    ] = 0
+    token_count: Annotated[int, Field(ge=0, default=0, description="Total number of tokens or words analyzed.")] = 0
+    sentence_count: Annotated[int, Field(ge=0, default=0, description="Total number of sentences identified.")] = 0
     lexical_density: Annotated[
         float,
         Field(ge=0.0, le=1.0, default=0.0, description="Measure of lexical richness (0.0 to 1.0)."),
@@ -111,7 +107,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
             candidate_lang = raw_inputs["language"]
             if isinstance(candidate_lang, str):
                 lang_in_raw = candidate_lang
-        payload = LinguisticsPayloadDTO(dynamic_inputs=dict(raw_inputs), language=lang_in_raw)
+        payload = LinguisticsPayloadDTO(dynamic_inputs=raw_inputs, language=lang_in_raw)
     except (ValidationError, TypeError, ValueError) as e:
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
         logger.error("[LinguisticsHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)

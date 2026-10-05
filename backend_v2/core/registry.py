@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "CoercedBool",
+    "DynamicFieldDefinition",
     "EvidenceType",
     "GlobalMatricesBase",
     "GridSchemaStrategy",
@@ -51,6 +52,8 @@ __all__ = [
     "get_schema_strategy",
     "register_sdui_schema",
 ]
+
+type DynamicFieldDefinition = tuple[Any, Any]
 
 
 class TaskMetadataDTO(BaseModel):
@@ -575,7 +578,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
 
-        fields: dict[str, Any] = {}
+        fields: dict[str, DynamicFieldDefinition] = {}
 
         if has_shuffled_atoms:
 
@@ -624,7 +627,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
 
         matrix_blocks = [c for c in criteria if isinstance(c, MatrixPromptBlock)]
         if matrix_blocks:
-            global_matrices_fields: dict[str, Any] = {}
+            global_matrices_fields: dict[str, DynamicFieldDefinition] = {}
             for matrix in matrix_blocks:
                 matrix_id = matrix.id
                 if not matrix_id:
@@ -675,7 +678,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 matrix_base_class = StrippedBaseMatrixXAI
                 final_type: Any = matrix_base_class
                 if matrix.output_extensions:
-                    matrix_dynamic_fields: dict[str, Any] = {}
+                    matrix_dynamic_fields: dict[str, DynamicFieldDefinition] = {}
                     core_aliases = {"justification", "citation", "missing_context", "contextual_override", "source_id"}
                     numeric_extensions = {"confidence"}
                     boolean_extensions = {"risk_flag"}
@@ -722,7 +725,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                             f"MatrixExtraction_{matrix_id}",
                             __base__=matrix_base_class,
                             __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
-                            **matrix_dynamic_fields,
+                            **cast(dict[str, Any], matrix_dynamic_fields),
                         )
 
                 global_matrices_fields[matrix_id] = (final_type, Field(..., description=desc_val))
@@ -732,7 +735,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                     "GlobalMatrices",
                     __base__=GlobalMatricesBase,
                     __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
-                    **global_matrices_fields,
+                    **cast(dict[str, Any], global_matrices_fields),
                 )
                 fields["global_matrices"] = (
                     GlobalMatricesModel,
@@ -809,7 +812,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             desc_val = f"Evaluation field for {cat_val} block '{crit_id}' ({label_str})."
 
             if crit.output_extensions:
-                dynamic_fields: dict[str, Any] = {}
+                dynamic_fields: dict[str, DynamicFieldDefinition] = {}
                 core_aliases = {"justification", "citation", "missing_context", "contextual_override", "source_id"}
                 numeric_extensions = {"confidence"}
                 boolean_extensions = {"risk_flag"}
@@ -851,7 +854,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                         f"BlockExtraction_{crit_id}",
                         __base__=base_class,
                         __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
-                        **dynamic_fields,
+                        **cast(dict[str, Any], dynamic_fields),
                     )
                     fields[crit_id] = (DynamicBlock, Field(..., description=desc_val, alias=alias_name))
                 else:
@@ -884,7 +887,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             DynamicModel = create_model(
                 schema_name,
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
-                **fields,
+                **cast(dict[str, Any], fields),
             )
             return cast(type[BaseModel], DynamicModel)
         except Exception as e:

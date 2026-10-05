@@ -25,11 +25,14 @@ __all__ = [
     "AdHocTestRequest",
     "AdHocTestResponse",
     "CachingPayloadResultDTO",
+    "LLMMessageContent",
     "LLMMessageDTO",
     "LLMProviderConfig",
     "LLMResponse",
     "ProviderMetadataDTO",
 ]
+
+type LLMMessageContent = str | list[dict[str, JsonValue]]
 
 
 class CachingPayloadResultDTO(BaseDTO):

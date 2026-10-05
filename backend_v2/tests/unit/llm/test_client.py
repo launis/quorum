@@ -9,11 +9,14 @@ from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
     LLMSchemaValidationError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
 )
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, ExecutionProfile
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
+from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
@@ -639,3 +642,83 @@ async def test_safety_filter_triggered(mock_create_provider: MagicMock) -> None:
             messages=[{"role": "user", "content": "Hi"}],
             response_model=DummyStrictModel,
         )
+
+
+@pytest.mark.asyncio
+async def test_from_tier_no_registries_raises_resource_not_found() -> None:
+    """Verify from_tier raises ResourceNotFoundError when no model registries exist."""
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_all_model_registries.return_value = []
+    with pytest.raises(ResourceNotFoundError):
+        await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
+
+
+@pytest.mark.asyncio
+async def test_from_tier_empty_tier_definitions_raises_configuration_error() -> None:
+    """Verify from_tier raises ConfigurationError when tier_definitions is empty."""
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_all_model_registries.return_value = [{"id": "dummy"}]
+    with patch(
+        "backend_v2.llm.client.inflate",
+        return_value=SystemConfigModelRegistry.model_construct(tier_definitions={}),
+    ):
+        with pytest.raises(ConfigurationError, match="severely corrupted or empty"):
+            await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_caching_multimodal_blocks(mock_create_provider: MagicMock) -> None:
+    """Verify dynamic payload length calculation handles multimodal content blocks."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = "Chat reply"
+    mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+    mock_response.provider_metadata = None
+    mock_response.tool_calls = None
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig(caching_strategy="ephemeral")
+    client = LLMClient(config=c.model_dump())
+
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="System static")],
+        dynamic_messages=[
+            LLMMessageDTO(
+                role="user",
+                content=[{"type": "text", "text": "Part 1"}, {"type": "text", "text": "Part 2"}],
+            )
+        ],
+    )
+    with patch(
+        "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload",
+        return_value=CachingPayloadResultDTO(
+            messages=[
+                LLMMessageDTO(
+                    role="user",
+                    content=[{"type": "text", "text": "Part 1"}, {"type": "text", "text": "Part 2"}],
+                )
+            ],
+            kwargs={"cached_content": "cache_123"},
+        ),
+    ):
+        res = await client.run_chat(messages=prompt)
+        assert res == "Chat reply"
+
+
+@pytest.mark.asyncio
+async def test_client_caching_empty_dynamic_payload_raises_app_exception() -> None:
+    """Verify empty dynamic payload with context cache active raises AppException."""
+    c = DummyConfig(caching_strategy="ephemeral")
+    client = LLMClient(config=c.model_dump())
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="System static")],
+        dynamic_messages=[],
+    )
+    with patch(
+        "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload",
+        return_value=CachingPayloadResultDTO(messages=[], kwargs={"cached_content": "cache_123"}),
+    ):
+        with pytest.raises(AppException, match="Context Caching FATAL ERROR"):
+            await client.run_structured_task(messages=prompt, response_model=DummyStrictModel)

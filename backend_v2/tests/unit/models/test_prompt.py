@@ -117,3 +117,32 @@ def test_compiled_prompt_merge_flat_roles() -> None:
     assert len(merged) == 1
     assert merged[0].role == "user"
     assert merged[0].content == "First part\n\nSecond part"
+
+
+def test_compiled_prompt_merge_flat_multimodal_content() -> None:
+    """Verifies that CompiledPrompt._merge_flat handles multimodal list content merging."""
+    messages = [
+        LLMMessageDTO(role="user", content=[{"type": "text", "text": "Part 1"}]),
+        LLMMessageDTO(role="user", content=[{"type": "text", "text": "Part 2"}]),
+        LLMMessageDTO(role="user", content="Part 3"),
+    ]
+    merged = CompiledPrompt._merge_flat(messages)
+    assert len(merged) == 1
+    assert merged[0].role == "user"
+    assert merged[0].content == [
+        {"type": "text", "text": "Part 1"},
+        {"type": "text", "text": "Part 2"},
+        {"type": "text", "text": "Part 3"},
+    ]
+
+    str_then_list = [
+        LLMMessageDTO(role="assistant", content="Assistant preamble"),
+        LLMMessageDTO(role="assistant", content=[{"type": "text", "text": "Assistant part 2"}]),
+    ]
+    merged_mixed = CompiledPrompt._merge_flat(str_then_list)
+    assert len(merged_mixed) == 1
+    assert merged_mixed[0].role == "assistant"
+    assert merged_mixed[0].content == [
+        {"type": "text", "text": "Assistant preamble"},
+        {"type": "text", "text": "Assistant part 2"},
+    ]

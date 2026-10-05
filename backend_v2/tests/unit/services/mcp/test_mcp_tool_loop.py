@@ -734,3 +734,45 @@ async def test_phase2_app_exception_passthrough() -> None:
                 source_context="source document with valid claim here",
             )
     assert exc_info.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
+    """Verify tool loop handles LLMMessageDTO inputs with string/block contents and float strictness."""
+    from backend_v2.models.llm import LLMMessageDTO
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["valid claim"])
+
+    messages = [
+        LLMMessageDTO(role="system", content="System instruction"),
+        LLMMessageDTO(role="user", content="String user claim: valid claim"),
+        LLMMessageDTO(role="user", content=[{"type": "text", "text": "Block user claim: valid claim"}]),
+    ]
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        import datetime
+
+        from backend_v2.models.domain.system_config import MCPAuditTrace
+
+        mock_search.return_value = MCPAuditTrace(
+            tool_id="mcp_tavily_search",
+            step_name="test_step",
+            query="valid claim",
+            response_summary="Found evidence online.",
+            source_urls=["https://example.com"],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=50,
+        )
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=messages,
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="test_step",
+            source_context="source document with valid claim here",
+            validation_context={"strictness_level": 70.0},
+        )
+        assert result.result_data["score"] == 4.5

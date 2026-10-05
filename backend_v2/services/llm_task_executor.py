@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -57,7 +58,10 @@ def _validate_non_empty_payload(
     for m in raw_list:
         if isinstance(m, (ChatMessageDTO, LLMMessageDTO)):
             if m.role == "user":
-                user_texts.append(m.content)
+                if isinstance(m.content, str):
+                    user_texts.append(m.content)
+                else:
+                    user_texts.append(json.dumps(m.content))
         else:
             typed_m = ChatMessageDTO.model_validate(m)
             if typed_m.role == "user":
@@ -311,9 +315,13 @@ class LLMTaskExecutor:
                 ]
                 if typed_dynamic:
                     last_msg = typed_dynamic[-1]
+                    if isinstance(last_msg.content, str):
+                        merged_content = last_msg.content + healing_content
+                    else:
+                        merged_content = json.dumps(last_msg.content) + healing_content
                     typed_dynamic[-1] = LLMMessageDTO(
                         role=last_msg.role,
-                        content=last_msg.content + healing_content,
+                        content=merged_content,
                     )
                 else:
                     typed_dynamic.append(LLMMessageDTO(role="user", content=healing_content.strip()))
@@ -412,9 +420,13 @@ class LLMTaskExecutor:
                 ]
                 if typed_dynamic_logical:
                     last_msg = typed_dynamic_logical[-1]
+                    if isinstance(last_msg.content, str):
+                        merged_logical = last_msg.content + healing_content
+                    else:
+                        merged_logical = json.dumps(last_msg.content) + healing_content
                     typed_dynamic_logical[-1] = LLMMessageDTO(
                         role=last_msg.role,
-                        content=last_msg.content + healing_content,
+                        content=merged_logical,
                     )
                 else:
                     typed_dynamic_logical.append(LLMMessageDTO(role="user", content=healing_content.strip()))

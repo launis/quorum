@@ -165,11 +165,12 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                     if isinstance(cache_id, bytes):
                         cache_id = cache_id.decode("utf-8")
                     if cache_id == PromptCacheStatus.FAILED.value:
-                        return compiled_prompt.to_flat_messages(), {}
+                        return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
                     if cache_id != PromptCacheStatus.CREATING.value:
-                        return compiled_prompt.to_dynamic_flat(), {
-                            "cached_content": cache_id,
-                        }
+                        return CachingPayloadResultDTO(
+                            messages=compiled_prompt.to_dynamic_flat(),
+                            kwargs={"cached_content": cache_id},
+                        )
 
                 await redis_client.set(
                     redis_key,
@@ -202,13 +203,19 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                         content = msg.content
 
                         if role == "system":
-                            system_text += content + "\n"
+                            if isinstance(content, str):
+                                system_text += content + "\n"
+                            else:
+                                system_text += json.dumps(content) + "\n"
                             continue
 
                         if role == "assistant":
                             role = "model"
 
-                        ai_studio_contents.append({"role": role, "parts": [{"text": content}]})
+                        if isinstance(content, str):
+                            ai_studio_contents.append({"role": role, "parts": [{"text": content}]})
+                        else:
+                            ai_studio_contents.append({"role": role, "parts": list(content)})
 
                     ttl_seconds = int(get_settings().context_cache_passive_ttl_seconds)
                     config = types.CreateCachedContentConfig(

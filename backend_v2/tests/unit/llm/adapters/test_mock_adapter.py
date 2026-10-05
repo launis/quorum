@@ -65,3 +65,23 @@ def test_mock_adapter_cost_calculation() -> None:
     assert result_usage.reasoning_tokens == base_usage.reasoning_tokens
     assert result_usage.cost_usd == base_usage.cost_usd
     assert result_usage.estimated_savings_usd == 0.05
+
+
+def test_mock_adapter_prepare_provider_kwargs() -> None:
+    """Verify MockCacheAdapter returns empty dictionary for prepare_provider_kwargs."""
+    adapter = MockCacheAdapter()
+    assert adapter.prepare_provider_kwargs("mock-model") == {}
+
+
+def test_mock_adapter_prepare_structured_output() -> None:
+    """Verify MockCacheAdapter prepares valid json_schema output structure."""
+    from pydantic import BaseModel, Field
+
+    class SampleMockModel(BaseModel):
+        field_a: str = Field(description="Sample field")
+
+    adapter = MockCacheAdapter()
+    result = adapter.prepare_structured_output(SampleMockModel)
+    assert type(result) is dict
+    assert result["type"] == "json_schema"
+    assert result["json_schema"]["name"] == "SampleMockModel"

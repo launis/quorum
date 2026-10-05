@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)

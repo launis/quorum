@@ -6,25 +6,26 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
-
-from backend_v2.models.domain.metadata import StepMetadataDTO
 
 if TYPE_CHECKING:
     from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 
 type DynamicScalar = str | int | float | bool | None
-type DynamicInputNode = DynamicScalar | list[DynamicScalar] | dict[str, DynamicScalar | list[DynamicScalar]]
+type DynamicInputNode = DynamicScalar | Sequence[DynamicScalar] | Mapping[str, DynamicScalar | Sequence[DynamicScalar]]
 type DynamicInputValue = (
-    StepMetadataDTO
+    BaseModel
     | DynamicScalar
-    | list[DynamicScalar]
-    | list[DynamicInputNode]
-    | dict[str, DynamicScalar]
-    | dict[str, list[DynamicScalar]]
-    | dict[str, DynamicInputNode]
+    | Sequence[DynamicScalar]
+    | Sequence[DynamicInputNode]
+    | Mapping[str, DynamicScalar]
+    | Mapping[str, Sequence[DynamicScalar]]
+    | Mapping[str, DynamicInputNode]
+    | Sequence[BaseModel]
+    | Mapping[str, BaseModel]
 )
 
 __all__ = [
@@ -100,7 +101,7 @@ class LinguisticsPayloadDTO(BaseModel):
 
     language: Annotated[str | None, Field(description="Optional explicit language code")] = None
     dynamic_inputs: Annotated[
-        dict[str, DynamicInputValue],
+        Mapping[str, DynamicInputValue],
         Field(default_factory=dict, description="Dictionary of texts to scan"),
     ]
 

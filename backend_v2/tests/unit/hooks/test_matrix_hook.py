@@ -794,7 +794,4 @@ def test_matrix_aggregation_state_dto_validation() -> None:
 def test_matrix_aggregation_state_dto_rejects_unknown_attribute() -> None:
     """Test that MatrixAggregationStateDTO rejects undeclared attributes under extra='forbid'."""
     with pytest.raises(ValidationError):
-        MatrixAggregationStateDTO.model_validate(
-            {"scale_stats": {}, "evaluated_atoms": {}, "extra_key": 123}
-        )
-
+        MatrixAggregationStateDTO.model_validate({"scale_stats": {}, "evaluated_atoms": {}, "extra_key": 123})

@@ -280,3 +280,45 @@ def test_anthropic_adapter_prepare_structured_output() -> None:
     assert result["json_schema"]["name"] == "SampleOutputModel"
     assert result["json_schema"]["strict"] is True
     assert "properties" in result["json_schema"]["schema"]
+
+
+@pytest.mark.asyncio
+async def test_anthropic_adapter_consecutive_messages_and_kwargs_branches() -> None:
+    """Verify consecutive messages of same role are merged and kwargs branches are covered."""
+    adapter = AnthropicCacheAdapter()
+
+    long_system = "System directive. " * 300
+    prompt = CompiledPrompt(
+        static_messages=[
+            LLMMessageDTO(role="system", content=long_system),
+            LLMMessageDTO(role="user", content="User static 1"),
+            LLMMessageDTO(role="user", content="User static 2"),
+        ],
+        dynamic_messages=[
+            LLMMessageDTO(role="assistant", content="Assistant dynamic 1"),
+            LLMMessageDTO(role="assistant", content="Assistant dynamic 2"),
+        ],
+    )
+    res = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
+    assert any(
+        isinstance(m.content, list)
+        and any(
+            "User static 1\n\nUser static 2" in str(block["text"])
+            for block in m.content
+            if "text" in block
+        )
+        for m in res.messages
+    )
+    assert any(m.role == "assistant" and m.content == "Assistant dynamic 1\n\nAssistant dynamic 2" for m in res.messages)
+
+    from backend_v2.settings import Settings
+
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    config = ModelProfile(
+        provider="anthropic",
+        model_name="claude-3-7-sonnet-20250219",
+        temperature=0.3,
+    )
+    call_kwargs = {"thinking": {"type": "enabled"}}
+    res_kwargs = adapter.prepare_kwargs(call_kwargs, config=config, settings=dev_settings)
+    assert "thinking" not in res_kwargs

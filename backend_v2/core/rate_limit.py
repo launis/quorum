@@ -5,6 +5,7 @@ between main.py and router modules.
 """
 
 import logging
+
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
@@ -27,17 +28,21 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Res
         JSONResponse: RFC 7807 Problem Details.
     """
     msg = f"Rate limit exceeded: {exc.detail}"
-    logger.warning("[RateLimit] %s: %s", ErrorCodes.RATE_LIMIT_EXCEEDED.name, msg)
-
-    retry_info: dict[str, str] = {"retry_after": str(exc.detail).split(" ")[0]} if exc.detail else {}
-    error = AppException(
-        message=msg,
-        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        details={
-            "error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value,
-            **retry_info,
-        },
-    )
+    if exc.detail:
+        error = AppException(
+            message=msg,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details={
+                "error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value,
+                "retry_after": str(exc.detail).split(" ")[0],
+            },
+        )
+    else:
+        error = AppException(
+            message=msg,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+        )
 
     return JSONResponse(
         status_code=error.status_code,

@@ -18,9 +18,11 @@ from backend_v2.core.hook_registry import (
     HookState,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.hooks.scoring.matrix_hook import MatrixAggregationStateDTO
 from backend_v2.hooks.scoring.passivity_hook import enforce_passivity_penalty_hook
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
@@ -503,3 +505,100 @@ async def test_passivity_hook_prompt_block_validation_error_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.name
+
+
+@pytest.mark.asyncio
+async def test_passivity_hook_matrix_aggregation_state_dto_passive_detected() -> None:
+    """Test passivity detection when MatrixAggregationStateDTO only has minimum scale hits."""
+    step_id = "stp_1111222233334444"
+    pb_id = "blk_1111222233334444"
+
+    mock_workflow = AsyncMock()
+    mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
+
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
+    mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
+
+    deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
+
+    aggregation_state = MatrixAggregationStateDTO(
+        scale_stats={
+            1.0: LevelStatsDTO(hits=2, total=2),
+            5.0: LevelStatsDTO(hits=0, total=2),
+        }
+    )
+
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wf_1111222233334444",
+        step_id=step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={pb_id: aggregation_state}),
+    )
+
+    result = await enforce_passivity_penalty_hook(state, deps)
+    assert result.success is True
+    assert result.state_delta is not None
+    assert result.state_delta.delta == PassivityDetectionResultDTO(passivity_detected=True)
+
+
+@pytest.mark.asyncio
+async def test_passivity_hook_matrix_aggregation_state_dto_not_passive() -> None:
+    """Test that passivity is not detected when higher scale levels have hits."""
+    step_id = "stp_1111222233334444"
+    pb_id = "blk_1111222233334444"
+
+    mock_workflow = AsyncMock()
+    mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
+
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
+    mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
+
+    deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
+
+    aggregation_state = MatrixAggregationStateDTO(
+        scale_stats={
+            1.0: LevelStatsDTO(hits=1, total=2),
+            5.0: LevelStatsDTO(hits=1, total=2),
+        }
+    )
+
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wf_1111222233334444",
+        step_id=step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(dynamic_inputs={pb_id: aggregation_state}),
+    )
+
+    result = await enforce_passivity_penalty_hook(state, deps)
+    assert result.success is True
+    assert result.state_delta is not None
+    assert result.state_delta.delta is None
+
+
+@pytest.mark.asyncio
+async def test_passivity_hook_empty_scales_raises_configuration_error() -> None:
+    """Test that enforce_passivity_penalty_hook raises CONFIGURATION_ERROR if matrix block has empty scales."""
+    step_id = "stp_1111222233334444"
+    pb_id = "blk_1111222233334444"
+
+    mock_workflow = AsyncMock()
+    mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
+
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
+    mock_pb_repo.get_prompt_block_by_id.return_value = MatrixPromptBlock.model_construct(
+        id=pb_id, slug="leadership_matrix", scales=[]
+    )
+
+    deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
+
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wf_1111222233334444",
+        step_id=step_id,
+        metadata=ExecutionMetadata(),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await enforce_passivity_penalty_hook(state, deps)
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.name

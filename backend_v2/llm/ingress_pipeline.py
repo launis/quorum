@@ -13,7 +13,7 @@ import types
 from typing import Annotated, Any, Union, cast, get_args, get_origin
 
 from json_repair import repair_json
-from pydantic import BaseModel, Discriminator
+from pydantic import BaseModel, Discriminator, JsonValue
 from pydantic.fields import FieldInfo
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -120,7 +120,7 @@ class UniversalIngress:
     @classmethod
     def _infer_and_heal_discriminator(
         cls,
-        item: dict[str, Any],
+        item: dict[str, JsonValue],
         discriminator_field: str,
         candidate_models: list[type[BaseModel]],
     ) -> type[BaseModel] | None:
@@ -362,7 +362,7 @@ class UniversalIngress:
         return cleaned
 
     @classmethod
-    def parse_llm_output(cls, raw_text: str) -> dict[str, Any]:
+    def parse_llm_output(cls, raw_text: str) -> dict[str, JsonValue]:
         """Parses the raw LLM output into a dictionary.
 
         Expects the LLM API (via Native Structured Outputs) to have generated
@@ -391,14 +391,14 @@ class UniversalIngress:
         raw_stripped = raw_stripped.strip()
 
         try:
-            parsed_data = cast(dict[str, Any], json.loads(raw_stripped))
+            parsed_data = cast(dict[str, JsonValue], json.loads(raw_stripped))
         except json.JSONDecodeError as e:
             original_error = str(e)
             try:
                 repaired_obj = repair_json(raw_stripped, return_objects=True)
                 if type(repaired_obj) not in (dict, list):
                     raise ValueError(f"json_repair returned unexpected type: {type(repaired_obj)}")
-                parsed_data = cast(dict[str, Any], repaired_obj)
+                parsed_data = cast(dict[str, JsonValue], repaired_obj)
                 logger.warning(f"[UniversalIngress] Self-healing successful for JSONDecodeError: {original_error}")
             except Exception as repair_e:
                 logger.error(

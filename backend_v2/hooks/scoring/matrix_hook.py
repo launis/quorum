@@ -27,7 +27,11 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluationFactsDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import (
+    LevelStatsDTO,
+    LightweightMatrixOutput,
+    MatrixAggregationStateDTO,
+)
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
@@ -83,41 +87,6 @@ class AtomScoringRuleDTO(BaseModel):
     aggregation_mode: Annotated[str, Field(description="Logic aggregation mode.")]
     is_inverse_assertion: Annotated[bool, Field(description="Whether the assertion represents inverse evidence.")]
     allow_contextual_override: Annotated[bool, Field(description="Whether contextual override is permitted.")]
-
-
-class MatrixAggregationStateDTO(BaseModel):
-    """Encapsulates aggregated evaluation state and metrics for a single matrix block.
-
-    Attributes:
-        scale_stats: Map of scale threshold to LevelStatsDTO.
-        evaluated_atoms: Map of atom ID to ExecutionStatus.
-        extensions: Map of extension key to list of extension strings.
-        missing_atoms: List of descriptions for unscored or failed atoms.
-        atom_quotes: List of QuoteEvidenceDTO instances.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    scale_stats: Annotated[
-        dict[float, LevelStatsDTO],
-        Field(default_factory=dict, description="Map of scale threshold to LevelStatsDTO."),
-    ]
-    evaluated_atoms: Annotated[
-        dict[str, ExecutionStatus],
-        Field(default_factory=dict, description="Map of atom ID to ExecutionStatus."),
-    ]
-    extensions: Annotated[
-        dict[str, list[str]],
-        Field(default_factory=dict, description="Map of extension key to list of extension strings."),
-    ]
-    missing_atoms: Annotated[
-        list[str],
-        Field(default_factory=list, description="List of descriptions for unscored or failed atoms."),
-    ]
-    atom_quotes: Annotated[
-        list[QuoteEvidenceDTO],
-        Field(default_factory=list, description="List of QuoteEvidenceDTO instances."),
-    ]
 
 
 @hook_registry.register(name="matrix_scoring_hook")
@@ -500,9 +469,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 )
                             else:
                                 block_evaluated_atoms[aid] = ExecutionStatus.FAILED
-                                block_scale_stats[s_val] = cur_stat.model_copy(
-                                    update={"total": cur_stat.total + 1}
-                                )
+                                block_scale_stats[s_val] = cur_stat.model_copy(update={"total": cur_stat.total + 1})
                                 block_missing_atoms.append(text)
 
             aggregation_states[pb_id] = MatrixAggregationStateDTO(

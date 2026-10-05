@@ -4,7 +4,9 @@ import json
 import logging
 import random
 import re
-from typing import Any
+from typing import Any, cast
+
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.mock_data import AGENT_CLASS_TO_MOCK_KEY, MOCK_REGISTRY, get_fallback_data
@@ -12,7 +14,16 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["MockLLMService"]
+__all__ = ["MockJudgeScoreDTO", "MockLLMService"]
+
+
+class MockJudgeScoreDTO(BaseModel):
+    """Schema for mocked dynamic judge evaluation."""
+
+    arvosana: int
+    perustelu: str
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
 class MockLLMService:
@@ -146,13 +157,16 @@ class MockLLMService:
 
                 if keys_found:
                     logger.info("[MockLLM] Dynamic Judge Keys Found: %s", keys_found)
-                    dynamic_scores = {}
-                    for k in keys_found:
-                        dynamic_scores[k] = {
-                            "arvosana": random.randint(2, 4),
-                            "perustelu": f"[MOCK] Dynamic evaluation for '{k}'.",
-                        }
-                    data["pisteet"] = dynamic_scores
+                    dynamic_scores: dict[str, MockJudgeScoreDTO] = {
+                        k: MockJudgeScoreDTO(
+                            arvosana=random.randint(2, 4),
+                            perustelu=f"[MOCK] Dynamic evaluation for '{k}'.",
+                        )
+                        for k in keys_found
+                    }
+                    data["pisteet"] = cast(
+                        JsonValue, {k: score.model_dump(mode="json") for k, score in dynamic_scores.items()}
+                    )
             except Exception as e:
                 logger.error(
                     "[MockLLM] Failed hydration: %s",

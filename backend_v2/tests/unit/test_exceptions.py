@@ -300,14 +300,17 @@ def test_problem_detail_dto_serialization_omits_none() -> None:
 
 def test_problem_detail_dto_rejects_non_json_value() -> None:
     """Test that ProblemDetailDTO extensions rejects non-JSON objects."""
+
     class CustomObject:
         pass
 
     with pytest.raises(ValidationError):
-        ProblemDetailDTO(
-            type="https://api.quorum.fi/errors/test",
-            title="Test",
-            status=400,
-            detail="Detail",
-            extensions={"obj": CustomObject()},  # type: ignore[dict-item]
+        ProblemDetailDTO.model_validate(
+            {
+                "type": "https://api.quorum.fi/errors/test",
+                "title": "Test",
+                "status": 400,
+                "detail": "Detail",
+                "extensions": {"obj": CustomObject()},
+            }
         )

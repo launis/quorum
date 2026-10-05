@@ -10,11 +10,13 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxExecutionStatus, LaxXaiExtensionType
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LaxXaiExtensionType
 
 __all__ = [
     "LevelStatsDTO",
     "LightweightMatrixOutput",
+    "MatrixAggregationStateDTO",
     "MergedFactsDTO",
     "OutputProfileConfig",
     "ScoringResultDTO",
@@ -71,6 +73,41 @@ class LevelStatsDTO(V2CoreBase):
     hits: Annotated[int | float, Field(description="Number of passing criteria at this level")]
     total: Annotated[int | float, Field(description="Total number of criteria at this level")]
     dlqs: Annotated[int, Field(default=0, description="Number of items that hit the dead letter queue")] = 0
+
+
+class MatrixAggregationStateDTO(V2CoreBase):
+    """Encapsulates aggregated evaluation state and metrics for a single matrix block.
+
+    Attributes:
+        scale_stats: Map of scale threshold to LevelStatsDTO.
+        evaluated_atoms: Map of atom ID to ExecutionStatus.
+        extensions: Map of extension key to list of extension strings.
+        missing_atoms: List of descriptions for unscored or failed atoms.
+        atom_quotes: List of QuoteEvidenceDTO instances.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    scale_stats: Annotated[
+        dict[float, LevelStatsDTO],
+        Field(default_factory=dict, description="Map of scale threshold to LevelStatsDTO."),
+    ]
+    evaluated_atoms: Annotated[
+        dict[str, ExecutionStatus],
+        Field(default_factory=dict, description="Map of atom ID to ExecutionStatus."),
+    ]
+    extensions: Annotated[
+        dict[str, list[str]],
+        Field(default_factory=dict, description="Map of extension key to list of extension strings."),
+    ]
+    missing_atoms: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of descriptions for unscored or failed atoms."),
+    ]
+    atom_quotes: Annotated[
+        list[QuoteEvidenceDTO],
+        Field(default_factory=list, description="List of QuoteEvidenceDTO instances."),
+    ]
 
 
 class LightweightMatrixOutput(V2CoreBase):

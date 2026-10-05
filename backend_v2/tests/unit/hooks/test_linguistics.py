@@ -407,4 +407,3 @@ def test_linguistic_analysis_dto_validation() -> None:
     assert dto.sentence_count == 8
     assert dto.lexical_density == 0.65
     assert dto.performative_ratio == 0.12
-

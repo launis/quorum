@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -238,7 +239,11 @@ class PromptCompilerAdapter:
             if isinstance(m, ChatMessageDTO):
                 typed_messages.append(m)
             elif isinstance(m, LLMMessageDTO):
-                typed_messages.append(ChatMessageDTO(role=m.role, content=m.content))
+                if isinstance(m.content, str):
+                    c_str = m.content
+                else:
+                    c_str = json.dumps(m.content)
+                typed_messages.append(ChatMessageDTO(role=m.role, content=c_str))
             else:
                 typed_messages.append(ChatMessageDTO.model_validate(m))
 

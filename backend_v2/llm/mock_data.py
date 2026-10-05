@@ -2,7 +2,9 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import cast
+
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.models.domain import (
     AnalystOutput,
@@ -332,7 +334,7 @@ MOCK_INPUT_PROCESSING_OUTPUT = InputProcessingOutputDTO(
 )
 
 
-MOCK_REGISTRY: dict[type[Any], Any] = {
+MOCK_REGISTRY: dict[type[BaseModel], BaseModel] = {
     AnalystOutput: MOCK_ANALYST_OUTPUT,
     InputProcessingOutputDTO: MOCK_INPUT_PROCESSING_OUTPUT,
     InteractionAnalysis: MOCK_INTERACTION_OUTPUT,
@@ -377,44 +379,44 @@ AGENT_CLASS_TO_MOCK_KEY = {
 }
 
 
-def get_fallback_data(key: str) -> dict[str, Any]:
+def get_fallback_data(key: str) -> dict[str, JsonValue]:
     """Retrieves predefined mock data based on the provided key.
 
     Args:
         key: The mock key identifying the agent/type.
 
     Returns:
-        A dictionary containing the mock data.
+        A dictionary containing the JSON-safe mock data.
 
     Raises:
         ValueError: If mock data is not found for the given key.
     """
     if key == "guard_agent":
-        return MOCK_INPUT_PROCESSING_OUTPUT.model_dump()
+        return MOCK_INPUT_PROCESSING_OUTPUT.model_dump(mode="json")
     elif key == "analyst_agent":
-        return MOCK_ANALYST_OUTPUT.model_dump()
+        return MOCK_ANALYST_OUTPUT.model_dump(mode="json")
     elif key == "interaction_agent":
-        return MOCK_INTERACTION_OUTPUT.model_dump()
+        return MOCK_INTERACTION_OUTPUT.model_dump(mode="json")
     elif key == "logician_agent":
-        return MOCK_LOGICIAN_OUTPUT.model_dump()
+        return MOCK_LOGICIAN_OUTPUT.model_dump(mode="json")
     elif key == "falsifier_agent":
-        return MOCK_FALSIFIER_OUTPUT.model_dump()
+        return MOCK_FALSIFIER_OUTPUT.model_dump(mode="json")
     elif key == "causal_agent":
-        return MOCK_CAUSAL_OUTPUT.model_dump()
+        return MOCK_CAUSAL_OUTPUT.model_dump(mode="json")
     elif key == "performativity_agent":
-        return MOCK_PERFORMATIVITY_OUTPUT.model_dump()
+        return MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json")
     elif key == "fact_checker_agent":
-        return MOCK_OVERSEER_OUTPUT.model_dump()
+        return MOCK_OVERSEER_OUTPUT.model_dump(mode="json")
     elif key == "profiler_agent":
-        return MOCK_PROFILER_OUTPUT.model_dump()
+        return MOCK_PROFILER_OUTPUT.model_dump(mode="json")
     elif key == "archivist_agent":
-        return MOCK_ARCHIVIST_OUTPUT.model_dump()
+        return MOCK_ARCHIVIST_OUTPUT.model_dump(mode="json")
     elif key == "judge_agent":
-        return MOCK_JUDGE_OUTPUT.model_dump()
+        return MOCK_JUDGE_OUTPUT.model_dump(mode="json")
     elif key == "xai_agent":
-        return MOCK_XAI_OUTPUT.model_dump()
+        return MOCK_XAI_OUTPUT.model_dump(mode="json")
     elif key == "text_consolidation_hook":
-        return MOCK_SYNTHESIS_OUTPUT.model_dump()
+        return MOCK_SYNTHESIS_OUTPUT.model_dump(mode="json")
     elif key == "atomize_mock":
         assertions = [
             {
@@ -428,30 +430,33 @@ def get_fallback_data(key: str) -> dict[str, Any]:
             }
             for i in range(1, 16)
         ]
-        return {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"}
+        return cast(dict[str, JsonValue], {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"})
 
     if key == "row_explainer":
-        return {
-            "explanations": [
-                {
-                    "matrix_id": "m0",
-                    "row_explanation": "Mock row explanation for testing.",
-                    "curated_quotes": ["Evidence quote"],
-                }
-            ]
-        }
+        return cast(
+            dict[str, JsonValue],
+            {
+                "explanations": [
+                    {
+                        "matrix_id": "m0",
+                        "row_explanation": "Mock row explanation for testing.",
+                        "curated_quotes": ["Evidence quote"],
+                    }
+                ]
+            },
+        )
 
     if key == "variance_explainer":
-        return {"explanation": "Mock explanation for variance."}
+        return cast(dict[str, JsonValue], {"explanation": "Mock explanation for variance."})
 
     if key == "ExecutiveSummaryTask":
-        return MOCK_EXECUTIVE_SUMMARY_OUTPUT.model_dump()
+        return MOCK_EXECUTIVE_SUMMARY_OUTPUT.model_dump(mode="json")
 
     if key.startswith("MatrixSectionTask"):
-        return MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT.model_dump()
+        return MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT.model_dump(mode="json")
 
     if key == "XaiHighlightsTask":
-        return MOCK_XAI_HIGHLIGHTS_OUTPUT.model_dump()
+        return MOCK_XAI_HIGHLIGHTS_OUTPUT.model_dump(mode="json")
 
     # STRICT FAIL-FAST: No silent dictionary fallbacks
     raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")

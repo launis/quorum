@@ -19,11 +19,9 @@ async def test_vertex_adapter_caching_import_bug() -> None:
     # Act: This should crash BEFORE hitting the try/except block because
     # generative_models.cached_contents doesn't exist.
     # We expect an AttributeError or similar import error.
-    res = await adapter.prepare_caching_payload(
-        compiled_prompt=prompt, model_name="vertex_ai/gemini-2.5-pro"
-    )
+    res = await adapter.prepare_caching_payload(compiled_prompt=prompt, model_name="vertex_ai/gemini-2.5-pro")
 
     print(f"KWARGS: {res.kwargs}")
     # After the fix, it gracefully handles the caching attempt via Wait-and-Poll,
     # and when that fails (or times out), it returns empty kwargs rather than crashing.
-    assert isinstance(res.kwargs, dict), "Caching failed gracefully and returned a dict."
+    assert res.kwargs == {}, "Caching failed gracefully and returned empty kwargs."

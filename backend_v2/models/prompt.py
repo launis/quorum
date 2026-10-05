@@ -1,12 +1,12 @@
 import logging
-from typing import Annotated, Self
+from typing import Annotated, Self, cast
 
 from fastapi import status
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, JsonValue, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.base import BaseDTO
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import LLMMessageContent, LLMMessageDTO
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +95,29 @@ class CompiledPrompt(BaseDTO):
         flat: list[LLMMessageDTO] = []
         for msg in messages:
             role = msg.role
-            content_str = msg.content
+            content_val = msg.content
 
             if flat and flat[-1].role == role:
-                existing_str = flat[-1].content
-                merged_content = (existing_str + "\n\n" + content_str).strip()
+                existing_val = flat[-1].content
+                merged_content: LLMMessageContent
+                if isinstance(existing_val, str) and isinstance(content_val, str):
+                    merged_content = (existing_val + "\n\n" + content_val).strip()
+                elif isinstance(existing_val, list) and isinstance(content_val, list):
+                    merged_content = existing_val + content_val
+                elif isinstance(existing_val, list) and isinstance(content_val, str):
+                    suffix = cast(dict[str, JsonValue], {"type": "text", "text": content_val})
+                    merged_content = existing_val + [suffix]
+                elif isinstance(existing_val, str) and isinstance(content_val, list):
+                    prefix = cast(dict[str, JsonValue], {"type": "text", "text": existing_val})
+                    merged_content = [prefix] + content_val
+                else:
+                    merged_content = content_val
                 flat[-1] = flat[-1].model_copy(update={"content": merged_content})
             else:
-                flat.append(msg.model_copy(update={"content": content_str.strip()}))
+                if isinstance(content_val, str):
+                    flat.append(msg.model_copy(update={"content": content_val.strip()}))
+                else:
+                    flat.append(msg)
         return flat
 
     def to_static_flat(self) -> list[LLMMessageDTO]:

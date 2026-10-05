@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.system_config import ModelProfile
@@ -60,7 +60,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
             if flat_static and flat_static[-1].role == role:
                 prev = flat_static[-1]
-                prev_text = prev.content if isinstance(prev.content, str) else ""
+                prev_text = str(prev.content)
                 merged_text = (prev_text + "\n\n" + content_str).strip()
                 flat_static[-1] = LLMMessageDTO(role=role, content=merged_text)
             else:
@@ -68,7 +68,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         if flat_static:
             last_static_msg = flat_static[-1]
-            last_text = last_static_msg.content if isinstance(last_static_msg.content, str) else ""
+            last_text = str(last_static_msg.content)
             flat_static[-1] = LLMMessageDTO(
                 role=last_static_msg.role,
                 content=[{"type": "text", "text": last_text, "cache_control": {"type": "ephemeral"}}],
@@ -81,7 +81,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
             if flat_dynamic and flat_dynamic[-1].role == role:
                 prev = flat_dynamic[-1]
-                prev_text = prev.content if isinstance(prev.content, str) else ""
+                prev_text = str(prev.content)
                 merged_text = (prev_text + "\n\n" + content_str).strip()
                 flat_dynamic[-1] = LLMMessageDTO(role=role, content=merged_text)
             else:
@@ -89,12 +89,14 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         if flat_static and flat_dynamic and flat_static[-1].role == flat_dynamic[0].role:
             static_content = flat_static[-1].content
-            static_blocks: list[dict[str, JsonValue]] = (
-                list(static_content) if isinstance(static_content, list) else [{"type": "text", "text": static_content}]
-            )
-            dynamic_text = flat_dynamic[0].content if isinstance(flat_dynamic[0].content, str) else ""
+            static_blocks = []
+            if isinstance(static_content, list):
+                static_blocks.extend(static_content)
+            else:
+                static_blocks.append({"type": "text", "text": str(static_content)})
+            dynamic_text = str(flat_dynamic[0].content)
 
-            merged_blocks: list[dict[str, JsonValue]] = list(static_blocks) + [{"type": "text", "text": dynamic_text}]
+            merged_blocks = list(static_blocks) + [{"type": "text", "text": dynamic_text}]
             flat_static[-1] = LLMMessageDTO(role=flat_static[-1].role, content=merged_blocks)
             final_messages.extend(flat_static)
             final_messages.extend(flat_dynamic[1:])

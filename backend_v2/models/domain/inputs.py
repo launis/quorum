@@ -30,7 +30,11 @@ from backend_v2.models.dtos.inputs import (
     GuidedReflectionInputDTO,
     IngressInputValue,
 )
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
+from backend_v2.models.dtos.lightweight_matrix import (
+    LightweightMatrixOutput,
+    MatrixAggregationStateDTO,
+    ScoringResultDTO,
+)
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.trace import (
@@ -83,6 +87,7 @@ type DomainInputValue = Annotated[
     | HydratedAtomDTO
     | dict[str, HydratedAtomDTO]
     | LightweightMatrixOutput
+    | MatrixAggregationStateDTO
     | ScoringResultDTO
     | TraceScoringPayloadDTO
     | TraceMatrixPayloadDTO

@@ -256,13 +256,19 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         content = msg.content
 
                         if role == "system":
-                            system_text += content + "\n"
+                            if isinstance(content, str):
+                                system_text += content + "\n"
+                            else:
+                                system_text += json.dumps(content) + "\n"
                             continue
 
                         if role == "assistant":
                             role = "model"
 
-                        vertex_contents.append({"role": role, "parts": [{"text": content}]})
+                        if isinstance(content, str):
+                            vertex_contents.append({"role": role, "parts": [{"text": content}]})
+                        else:
+                            vertex_contents.append({"role": role, "parts": list(content)})
 
                     create_kwargs = {
                         "model_name": clean_model_name,

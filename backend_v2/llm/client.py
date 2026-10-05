@@ -531,7 +531,9 @@ class LLMClient:
                     validation_context=validation_context,
                 )
 
-            val_ctx_dict = dict(validation_context) if validation_context is not None else None
+            val_ctx_dict: dict[str, JsonValue] | None = None
+            if validation_context is not None:
+                val_ctx_dict = dict(validation_context)
 
             try:
                 try:
@@ -838,7 +840,7 @@ class LLMClient:
                     tools=tools,
                     tool_choice=tool_choice,
                     timeout=strict_timeout,
-                    **extra_kwargs,
+                    **cast(dict[str, Any], extra_kwargs),
                 )
             except Exception as gen_err:
                 err_str = str(gen_err).lower()
@@ -846,13 +848,17 @@ class LLMClient:
                     logger.warning("Cache Miss Fallback Triggered. Resending full payload natively.", exc_info=True)
                     if "cached_content" in extra_kwargs:
                         del extra_kwargs["cached_content"]
-                    if "extra_headers" in extra_kwargs and "cached_content" in extra_kwargs["extra_headers"]:
-                        del extra_kwargs["extra_headers"]["cached_content"]
+                    if "extra_headers" in extra_kwargs:
+                        extra_headers = extra_kwargs["extra_headers"]
+                        if type(extra_headers) is dict and "cached_content" in extra_headers:
+                            del extra_headers["cached_content"]
                     if "extra_body" in extra_kwargs:
-                        if "cachedContent" in extra_kwargs["extra_body"]:
-                            del extra_kwargs["extra_body"]["cachedContent"]
-                        if "cached_content" in extra_kwargs["extra_body"]:
-                            del extra_kwargs["extra_body"]["cached_content"]
+                        extra_body = extra_kwargs["extra_body"]
+                        if type(extra_body) is dict:
+                            if "cachedContent" in extra_body:
+                                del extra_body["cachedContent"]
+                            if "cached_content" in extra_body:
+                                del extra_body["cached_content"]
 
                     fallback_messages: list[LLMMessageDTO]
                     if compiled_prompt is not None:
@@ -871,7 +877,7 @@ class LLMClient:
                         tools=tools,
                         tool_choice=tool_choice,
                         timeout=strict_timeout,
-                        **extra_kwargs,
+                        **cast(dict[str, Any], extra_kwargs),
                     )
                 else:
                     raise gen_err

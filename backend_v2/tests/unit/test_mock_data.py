@@ -1,6 +1,16 @@
 import pytest
+from pydantic import BaseModel
 
-from backend_v2.llm.mock_data import get_fallback_data
+from backend_v2.llm.mock_data import MOCK_REGISTRY, get_fallback_data
+
+
+def test_mock_registry_typed_contracts() -> None:
+    """Test that MOCK_REGISTRY enforces type[BaseModel] keys and BaseModel values."""
+    assert len(MOCK_REGISTRY) == 22
+    for model_cls, model_instance in MOCK_REGISTRY.items():
+        assert issubclass(model_cls, BaseModel)
+        assert isinstance(model_instance, BaseModel)
+        assert isinstance(model_instance, model_cls)
 
 
 @pytest.mark.parametrize(
@@ -38,7 +48,9 @@ def test_get_fallback_data_atomize_mock() -> None:
     data = get_fallback_data("atomize_mock")
     assert type(data) is dict
     assert "tda_assertions" in data
-    assert len(data["tda_assertions"]) == 15
+    tda_list = data["tda_assertions"]
+    assert isinstance(tda_list, list)
+    assert len(tda_list) == 15
 
 
 def test_get_fallback_data_fail_fast() -> None:

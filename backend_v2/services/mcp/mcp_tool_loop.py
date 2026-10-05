@@ -9,6 +9,7 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
 import asyncio
+import json
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -233,7 +234,11 @@ async def execute_tool_loop[T: BaseModel](
         for msg in messages:
             if isinstance(msg, LLMMessageDTO):
                 if msg.role == "user":
-                    extraction_messages.append({"role": "user", "content": msg.content})
+                    if isinstance(msg.content, str):
+                        content_val = msg.content
+                    else:
+                        content_val = json.dumps(msg.content)
+                    extraction_messages.append({"role": "user", "content": content_val})
             elif not isinstance(msg, (str, int, float, bool, list)) and msg is not None:
                 if "role" in msg and msg["role"] == "user":
                     role_val = str(msg["role"])
