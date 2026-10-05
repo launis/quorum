@@ -39,7 +39,12 @@ from backend_v2.utils.scoring import get_scoring_engine
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["AtomScoringRuleDTO", "BlockMetaDTO", "matrix_scoring_hook"]
+__all__ = [
+    "AtomScoringRuleDTO",
+    "BlockMetaDTO",
+    "MatrixAggregationStateDTO",
+    "matrix_scoring_hook",
+]
 
 
 class BlockMetaDTO(BaseModel):
@@ -78,6 +83,41 @@ class AtomScoringRuleDTO(BaseModel):
     aggregation_mode: Annotated[str, Field(description="Logic aggregation mode.")]
     is_inverse_assertion: Annotated[bool, Field(description="Whether the assertion represents inverse evidence.")]
     allow_contextual_override: Annotated[bool, Field(description="Whether contextual override is permitted.")]
+
+
+class MatrixAggregationStateDTO(BaseModel):
+    """Encapsulates aggregated evaluation state and metrics for a single matrix block.
+
+    Attributes:
+        scale_stats: Map of scale threshold to LevelStatsDTO.
+        evaluated_atoms: Map of atom ID to ExecutionStatus.
+        extensions: Map of extension key to list of extension strings.
+        missing_atoms: List of descriptions for unscored or failed atoms.
+        atom_quotes: List of QuoteEvidenceDTO instances.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    scale_stats: Annotated[
+        dict[float, LevelStatsDTO],
+        Field(default_factory=dict, description="Map of scale threshold to LevelStatsDTO."),
+    ]
+    evaluated_atoms: Annotated[
+        dict[str, ExecutionStatus],
+        Field(default_factory=dict, description="Map of atom ID to ExecutionStatus."),
+    ]
+    extensions: Annotated[
+        dict[str, list[str]],
+        Field(default_factory=dict, description="Map of extension key to list of extension strings."),
+    ]
+    missing_atoms: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of descriptions for unscored or failed atoms."),
+    ]
+    atom_quotes: Annotated[
+        list[QuoteEvidenceDTO],
+        Field(default_factory=list, description="List of QuoteEvidenceDTO instances."),
+    ]
 
 
 @hook_registry.register(name="matrix_scoring_hook")
@@ -278,11 +318,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 math_max=max(scales_list),
             )
 
-        block_scale_stats: dict[str, dict[float, LevelStatsDTO]] = {}
-        missing_atoms_by_block: dict[str, list[str]] = {}
-        evaluated_atoms_by_block: dict[str, dict[str, ExecutionStatus]] = {}
-        atom_quotes_by_block: dict[str, list[QuoteEvidenceDTO]] = {}
-        matrix_extensions_by_block: dict[str, dict[str, list[str]]] = {}
+        aggregation_states: dict[str, MatrixAggregationStateDTO] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
         dlq_evals = 0
@@ -339,15 +375,15 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         for pb_id, pb_model in matrix_blocks:
             scales = pb_model.scales
-            block_scale_stats[pb_id] = {}
-            missing_atoms_by_block[pb_id] = []
-            evaluated_atoms_by_block[pb_id] = {}
-            atom_quotes_by_block[pb_id] = []
-            matrix_extensions_by_block[pb_id] = {}
+            block_scale_stats: dict[float, LevelStatsDTO] = {}
+            block_missing_atoms: list[str] = []
+            block_evaluated_atoms: dict[str, ExecutionStatus] = {}
+            block_atom_quotes: list[QuoteEvidenceDTO] = []
+            block_matrix_extensions: dict[str, list[str]] = {}
 
             for scale in scales:
                 s_val = float(scale.score)
-                block_scale_stats[pb_id][s_val] = LevelStatsDTO(hits=0, total=0, dlqs=0)
+                block_scale_stats[s_val] = LevelStatsDTO(hits=0, total=0, dlqs=0)
 
                 claims = scale.claims
                 for claim in claims:
@@ -409,7 +445,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 quote=ev_dto.source_quote,
                                                 verified_source_ids=[],
                                             )
-                                            atom_quotes_by_block[pb_id].append(eq_dto)
+                                            block_atom_quotes.append(eq_dto)
                                         elif (ev_dto.contextual_override and effective_override) or (
                                             is_inverse
                                             and (status_str == "PASSED" or ev_dto.status == ExecutionStatus.PASSED)
@@ -421,7 +457,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 and ev_dto.evaluation_reasoning.strip()
                                             ):
                                                 rsn = ev_dto.evaluation_reasoning
-                                            atom_quotes_by_block[pb_id].append(
+                                            block_atom_quotes.append(
                                                 QuoteEvidenceDTO(
                                                     quote=f"[OVERRIDE] {loc}: {rsn}",
                                                     verified_source_ids=[],
@@ -437,37 +473,45 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                             for ext_k, ext_v in extensions_dict.items():
                                                 ext_key_str = ext_k.value if isinstance(ext_k, Enum) else str(ext_k)
                                                 if ext_key_str in visible_ext_set and ext_v:
-                                                    atom_quotes_by_block[pb_id].append(
+                                                    block_atom_quotes.append(
                                                         QuoteEvidenceDTO(
                                                             quote=f"[{ext_key_str.upper()}]: {ext_v}",
                                                             verified_source_ids=[],
                                                         )
                                                     )
-                                                    if ext_key_str not in matrix_extensions_by_block[pb_id]:
-                                                        matrix_extensions_by_block[pb_id][ext_key_str] = []
-                                                    matrix_extensions_by_block[pb_id][ext_key_str].append(str(ext_v))
+                                                    if ext_key_str not in block_matrix_extensions:
+                                                        block_matrix_extensions[ext_key_str] = []
+                                                    block_matrix_extensions[ext_key_str].append(str(ext_v))
 
                                         break
 
                             # Record the logic outcomes
-                            cur_stat = block_scale_stats[pb_id][s_val]
+                            cur_stat = block_scale_stats[s_val]
                             if final_state == "DLQ":
-                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.SYSTEM_ERROR
-                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
+                                block_scale_stats[s_val] = cur_stat.model_copy(
                                     update={"total": cur_stat.total + 1, "dlqs": cur_stat.dlqs + 1}
                                 )
-                                missing_atoms_by_block[pb_id].append(f"{text} (DLQ - Unscorable)")
+                                block_missing_atoms.append(f"{text} (DLQ - Unscorable)")
                             elif final_state == "TRUE":
-                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
-                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                block_evaluated_atoms[aid] = ExecutionStatus.PASSED
+                                block_scale_stats[s_val] = cur_stat.model_copy(
                                     update={"total": cur_stat.total + 1, "hits": cur_stat.hits + 1}
                                 )
                             else:
-                                evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.FAILED
-                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                block_evaluated_atoms[aid] = ExecutionStatus.FAILED
+                                block_scale_stats[s_val] = cur_stat.model_copy(
                                     update={"total": cur_stat.total + 1}
                                 )
-                                missing_atoms_by_block[pb_id].append(text)
+                                block_missing_atoms.append(text)
+
+            aggregation_states[pb_id] = MatrixAggregationStateDTO(
+                scale_stats=block_scale_stats,
+                evaluated_atoms=block_evaluated_atoms,
+                extensions=block_matrix_extensions,
+                missing_atoms=block_missing_atoms,
+                atom_quotes=block_atom_quotes,
+            )
 
         # 3. Calculation via UnifiedScoringEngine
         matrix_outputs: dict[str, LightweightMatrixOutput] = {}
@@ -475,7 +519,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         atom_quotes: dict[str, list[QuoteEvidenceDTO]] = {}
 
         for pb_id, pb_model in matrix_blocks:
-            raw_stats = block_scale_stats[pb_id]
+            block_state = aggregation_states[pb_id]
+            raw_stats = block_state.scale_stats
             scale_values = [float(s.score) for s in pb_model.scales]
             math_min = min(scale_values)
             math_max = max(scale_values)
@@ -522,7 +567,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             final_exts: dict[XaiExtensionType, JsonValue] = {
                 XaiExtensionType(k): "\n\n".join(v)
-                for k, v in matrix_extensions_by_block[pb_id].items()
+                for k, v in block_state.extensions.items()
                 if k in {e.value for e in XaiExtensionType}
             }
 
@@ -532,17 +577,17 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 level_breakdown=formatted_breakdown,
                 justification=justification,
                 xai_log=xai_log,
-                evaluated_atoms=evaluated_atoms_by_block[pb_id],
+                evaluated_atoms=block_state.evaluated_atoms,
                 extensions=final_exts,
                 allowed_extensions=block_allowed_extensions,
             )
             matrix_outputs[pb_id] = matrix_output
 
-            if missing_atoms_by_block[pb_id]:
-                missing_contexts[pb_id] = "\n".join(missing_atoms_by_block[pb_id])
+            if block_state.missing_atoms:
+                missing_contexts[pb_id] = "\n".join(block_state.missing_atoms)
 
-            if atom_quotes_by_block[pb_id]:
-                atom_quotes[pb_id] = atom_quotes_by_block[pb_id]
+            if block_state.atom_quotes:
+                atom_quotes[pb_id] = block_state.atom_quotes
 
         matrix_hook_result = MatrixHookResultDTO(
             matrix_outputs=matrix_outputs,

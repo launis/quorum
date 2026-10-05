@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -15,6 +14,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.hooks.scoring.matrix_hook import MatrixAggregationStateDTO
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
@@ -103,61 +103,49 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
     passivity_detected = False
 
-    judges_to_check: list[tuple[str, Any]] = []
-    if state.inputs.dynamic_inputs:
-        raw_inputs = state.inputs.dynamic_inputs
-    elif state.inputs.raw_inputs:
-        raw_inputs = state.inputs.raw_inputs
-    else:
-        raw_inputs = {}
-    judges_to_check.append((blueprint_id, raw_inputs))
+    inputs_map = state.inputs.dynamic_inputs or state.inputs.raw_inputs
 
-    for judge_key, judge_model_raw in judges_to_check:
-        judge_model: dict[str, Any]
-        if isinstance(judge_model_raw, BaseModel):
-            judge_model = judge_model_raw.model_dump()
-        elif not isinstance(judge_model_raw, (str, int, float, bool, list)) and judge_model_raw is not None:
-            judge_model = {str(k): v for k, v in judge_model_raw.items()}
-        else:
-            continue
+    if "score_card" in inputs_map:
+        msg = (
+            f"Strict Fail-Fast Enforced: Legacy 'score_card' found in '{blueprint_id}'. "
+            "V1 monolithic judges are explicitly deprecated and banned."
+        )
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        if not judge_model:
-            continue
+    for k in matrix_blocks_min:
+        if k in inputs_map:
+            raw_val = inputs_map[k]
+            if isinstance(raw_val, StepOutputDTO):
+                raw_val = raw_val.payload
 
-        # Zero-Compromise Pledge: Strategy 1 (Legacy score_card) is eradicated.
-        if "score_card" in judge_model:
-            msg = (
-                f"Strict Fail-Fast Enforced: Legacy 'score_card' found in '{judge_key}'. "
-                "V1 monolithic judges are explicitly deprecated and banned."
-            )
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            if isinstance(raw_val, MatrixAggregationStateDTO):
+                math_min = matrix_blocks_min[k]
+                min_stat = raw_val.scale_stats[math_min] if math_min in raw_val.scale_stats else None
+                other_hits = sum(stat.hits for s, stat in raw_val.scale_stats.items() if s > math_min)
+                if min_stat and min_stat.hits > 0 and other_hits == 0:
+                    passivity_detected = True
+                    logger.warning(
+                        "[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s' via MatrixAggregationStateDTO",
+                        k,
+                    )
+                    break
+                continue
 
-        matrix_keys: list[tuple[str, LightweightMatrixOutput]] = []
-        for k in matrix_blocks_min:
-            if k in judge_model:
-                raw_val = judge_model[k]
-                if isinstance(raw_val, StepOutputDTO):
-                    raw_val = raw_val.payload
-                try:
-                    matrix_dto = LightweightMatrixOutput.model_validate(raw_val)
-                    matrix_keys.append((k, matrix_dto))
-                except ValidationError as e:
-                    msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"
-                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                    ) from e
+            try:
+                matrix_dto = LightweightMatrixOutput.model_validate(raw_val)
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
 
-        for k, matrix_dto in matrix_keys:
             math_min = matrix_blocks_min[k]
             if matrix_dto.raw_score is not None and matrix_dto.raw_score <= math_min:
                 passivity_detected = True
                 logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)
                 break
-
-        if passivity_detected:
-            break
 
     if passivity_detected:
         logger.info("[ScoringHook] Passivity detected in step '%s'; emitting semantic flag.", blueprint_id)

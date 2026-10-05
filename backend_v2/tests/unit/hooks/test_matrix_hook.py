@@ -9,6 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -18,7 +19,10 @@ from backend_v2.core.hook_registry import (
     HookState,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.hooks.scoring.matrix_hook import matrix_scoring_hook
+from backend_v2.hooks.scoring.matrix_hook import (
+    MatrixAggregationStateDTO,
+    matrix_scoring_hook,
+)
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
@@ -775,3 +779,22 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_matrix_aggregation_state_dto_validation() -> None:
+    """Test positive instantiation and default factories of MatrixAggregationStateDTO."""
+    dto = MatrixAggregationStateDTO()
+    assert dto.scale_stats == {}
+    assert dto.evaluated_atoms == {}
+    assert dto.extensions == {}
+    assert dto.missing_atoms == []
+    assert dto.atom_quotes == []
+
+
+def test_matrix_aggregation_state_dto_rejects_unknown_attribute() -> None:
+    """Test that MatrixAggregationStateDTO rejects undeclared attributes under extra='forbid'."""
+    with pytest.raises(ValidationError):
+        MatrixAggregationStateDTO.model_validate(
+            {"scale_stats": {}, "evaluated_atoms": {}, "extra_key": 123}
+        )
+
