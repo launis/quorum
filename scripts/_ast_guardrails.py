@@ -119,6 +119,7 @@ def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> b
 
 
 OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset({
+    "backend_v2/exceptions.py",
     "backend_v2/models/domain/mcp.py",
     "backend_v2/models/dtos/mcp.py",
     "backend_v2/models/domain/system_config.py",

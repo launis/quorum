@@ -337,7 +337,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         logger.warning("[FastAPI] %s (Status: %s)", exc.message, exc.status_code, extra={"error_code": err_name})
     return JSONResponse(
         status_code=exc.status_code,
-        content=exc.to_problem_detail(instance=str(request.url.path)),
+        content=exc.to_problem_detail(instance=str(request.url.path)).model_dump(mode="json", exclude_none=True),
         media_type="application/problem+json",
     )
 
@@ -465,7 +465,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     return JSONResponse(
         status_code=500,
-        content=error.to_problem_detail(instance=str(request.url.path)),
+        content=error.to_problem_detail(instance=str(request.url.path)).model_dump(mode="json", exclude_none=True),
         media_type="application/problem+json",
     )
 

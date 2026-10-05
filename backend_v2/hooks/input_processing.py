@@ -125,7 +125,18 @@ def _process_questionnaire(
         raise AppException(
             message=f"Workflow Input Validation Error: Invalid questionnaire format for '{key}'.",
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "errors": e.errors()},
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.name,
+                "input_key": key,
+                "errors": [
+                    {
+                        "loc": [str(loc_item) for loc_item in err["loc"]],
+                        "msg": str(err["msg"]),
+                        "type": str(err["type"]),
+                    }
+                    for err in e.errors()
+                ],
+            },
         ) from e
 
 

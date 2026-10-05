@@ -91,7 +91,7 @@ from enum import StrEnum
 from typing import Any
 
 from fastapi import status
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,7 @@ __all__ = [
     "MissingRoutingModeError",
     "MissingXaiExtensionError",
     "PermissionDeniedError",
+    "ProblemDetailDTO",
     "PydanticSyntaxError",
     "ResourceNotFoundError",
     "SecurityViolationError",
@@ -313,6 +314,19 @@ class ErrorCodes(StrEnum):
     SYSTEM_PROTECTED_RESOURCE = "SYSTEM_PROTECTED_RESOURCE"
 
 
+class ProblemDetailDTO(BaseModel):
+    """RFC 7807 Problem Details DTO specification."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    type: str
+    title: str
+    status: int
+    detail: str
+    instance: str | None = None
+    extensions: dict[str, JsonValue] = Field(default_factory=dict)
+
+
 class AppException(Exception):
     """Base class for application exceptions (RFC 7807 compatible).
 
@@ -335,7 +349,7 @@ class AppException(Exception):
             details={"error_code": "EXECUTION_NOT_FOUND"}
         )
         response = exc.to_problem_detail(instance="/executions/abc")
-        # Returns:
+        # Returns ProblemDetailDTO:
         # {
         #   "type": "https://api.quorum.fi/errors/execution-not-found",
         #   "title": "Execution Not Found",
@@ -352,7 +366,7 @@ class AppException(Exception):
         self,
         message: str,
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-        details: dict[str, Any] | None = None,
+        details: dict[str, JsonValue] | None = None,
     ):
         """Initialize the exception.
 
@@ -364,7 +378,7 @@ class AppException(Exception):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
-        self.details = {}
+        self.details: dict[str, JsonValue] = {}
         if details is not None:
             self.details = details
 
@@ -379,7 +393,7 @@ class AppException(Exception):
             return str(self.details["error_code"])
         return "INTERNAL_SERVER_ERROR"
 
-    def to_problem_detail(self, instance: str | None = None) -> dict[str, Any]:
+    def to_problem_detail(self, instance: str | None = None) -> ProblemDetailDTO:
         """Convert to RFC 7807 Problem Details format.
 
         Args:
@@ -387,21 +401,7 @@ class AppException(Exception):
                       (typically the request path, e.g. "/executions/abc-123").
 
         Returns:
-            Dict conforming to RFC 7807 Problem Details specification:
-            - type: URI identifying the error type (links to documentation)
-            - title: Human-readable error title (from error_code)
-            - status: HTTP status code
-            - detail: Specific error message for this occurrence
-            - instance: Optional URI for this specific error
-
-        Example:
-            {
-                "type": "https://api.quorum.fi/errors/execution-not-found",
-                "title": "Execution Not Found",
-                "status": 404,
-                "detail": "Execution 'abc-123' not found.",
-                "instance": "/executions/abc-123"
-            }
+            ProblemDetailDTO: Conforming to RFC 7807 Problem Details specification.
         """
         # Convert EXECUTION_NOT_FOUND -> execution-not-found
         slug = self.error_code.lower().replace("_", "-")
@@ -409,34 +409,28 @@ class AppException(Exception):
         # Convert EXECUTION_NOT_FOUND -> "Execution Not Found"
         title = self.error_code.replace("_", " ").title()
 
-        problem = {
-            "type": f"{self.PROBLEM_BASE_URI}/{slug}",
-            "title": title,
-            "status": self.status_code,
-            "detail": self.message,
-        }
-
-        if instance:
-            problem["instance"] = instance
-
         # Include any extra details, ensuring error_code is always present for L10n
-        extra = {}
+        extra: dict[str, JsonValue] = {}
         if self.details:
             extra = self.details.copy()
 
         # Ensure error_code is in extensions even if redundant with type URI
         extra.setdefault("error_code", self.error_code)
 
-        if extra:
-            problem["extensions"] = extra
-
-        return problem
+        return ProblemDetailDTO(
+            type=f"{self.PROBLEM_BASE_URI}/{slug}",
+            title=title,
+            status=self.status_code,
+            detail=self.message,
+            instance=instance,
+            extensions=extra,
+        )
 
 
 class ResourceNotFoundError(AppException):
     """Raised when a requested resource (Workflow, Step, Execution) is not found."""
 
-    def __init__(self, resource_type: str, resource_id: str = "", details: dict[str, Any] | None = None):
+    def __init__(self, resource_type: str, resource_id: str = "", details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
@@ -444,7 +438,7 @@ class ResourceNotFoundError(AppException):
             resource_id: Identifier of the resource.
             details: Additional error tracking dictionaries.
         """
-        error_details = {
+        error_details: dict[str, JsonValue] = {
             "resource_type": resource_type,
             "resource_id": resource_id,
             "error_code": ErrorCodes.RESOURCE_NOT_FOUND,
@@ -523,7 +517,7 @@ class AgentExecutionError(AppException):
             formatted_cause = format_validation_error(original_error)
             msg += f" - Cause: {formatted_cause}"
 
-        error_details = {"error_code": detail}
+        error_details: dict[str, JsonValue] = {"error_code": detail}
         if original_error:
             error_details["original_error"] = str(original_error)
         if agent_name:
@@ -610,7 +604,7 @@ class FatalInterruption(AppException):
     This is favored over silent failures or partial execution.
     """
 
-    def __init__(self, step_name: str, reason: str, details: dict[str, Any] | None = None):
+    def __init__(self, step_name: str, reason: str, details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
@@ -618,15 +612,15 @@ class FatalInterruption(AppException):
             reason: String detailing why the execution was terminated.
             details: Dictionary containing further tracking context.
         """
-        if details is None:
-            details = {}
-        # Ensure minimal structure
-        details.update({"step": step_name, "reason": reason})
+        merged_details: dict[str, JsonValue] = {}
+        if details is not None:
+            merged_details.update(details)
+        merged_details.update({"step": step_name, "reason": reason})
 
         super().__init__(
             message=f"Fatal Interruption at {step_name}: {reason}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details=details,
+            details=merged_details,
         )
         self.step_name = step_name
         self.reason = reason
@@ -635,14 +629,14 @@ class FatalInterruption(AppException):
 class ConfigurationError(AppException):
     """Raised when there is a misconfiguration (e.g. missing API key)."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, message: str, details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        d = {"error_code": ErrorCodes.CONFIGURATION_ERROR}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.CONFIGURATION_ERROR}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=d)
@@ -651,14 +645,14 @@ class ConfigurationError(AppException):
 class ConflictError(AppException):
     """Raised when a request conflicts with the current state of the server (409)."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, message: str, details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        d = {"error_code": ErrorCodes.CONFLICT_ERROR}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.CONFLICT_ERROR}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=d)
@@ -667,7 +661,7 @@ class ConflictError(AppException):
 class ExecutionNotReadyError(AppException):
     """Raised when an operation requires an execution to be completed/passed, but it is not ready (409)."""
 
-    def __init__(self, execution_id: str, current_status: str, details: dict[str, Any] | None = None) -> None:
+    def __init__(self, execution_id: str, current_status: str, details: dict[str, JsonValue] | None = None) -> None:
         """Initialize the exception.
 
         Args:
@@ -675,7 +669,7 @@ class ExecutionNotReadyError(AppException):
             current_status: Current execution status string.
             details: Additional tracking context.
         """
-        d = {
+        d: dict[str, JsonValue] = {
             "error_code": ErrorCodes.EXECUTION_NOT_READY,
             "execution_id": execution_id,
             "current_status": current_status,
@@ -692,14 +686,14 @@ class ExecutionNotReadyError(AppException):
 class PermissionDeniedError(AppException):
     """Raised when the user does not have permission to access the resource (403)."""
 
-    def __init__(self, message: str = "Permission denied", details: dict[str, Any] | None = None):
+    def __init__(self, message: str = "Permission denied", details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        d = {"error_code": ErrorCodes.PERMISSION_DENIED}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.PERMISSION_DENIED}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_403_FORBIDDEN, details=d)
@@ -708,14 +702,14 @@ class PermissionDeniedError(AppException):
 class ServiceUnavailableError(AppException):
     """Raised when a service is temporarily unavailable (503)."""
 
-    def __init__(self, message: str = "Service unavailable", details: dict[str, Any] | None = None):
+    def __init__(self, message: str = "Service unavailable", details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        d = {"error_code": ErrorCodes.SERVICE_UNAVAILABLE}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.SERVICE_UNAVAILABLE}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE, details=d)
@@ -724,14 +718,14 @@ class ServiceUnavailableError(AppException):
 class AuthenticationError(AppException):
     """Raised when authentication fails (401)."""
 
-    def __init__(self, message: str = "Authentication failed", details: dict[str, Any] | None = None):
+    def __init__(self, message: str = "Authentication failed", details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        d = {"error_code": ErrorCodes.AUTHENTICATION_FAILED}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.AUTHENTICATION_FAILED}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED, details=d)
@@ -740,7 +734,7 @@ class AuthenticationError(AppException):
 class SecurityViolationError(AppException):
     """Raised when a security policy (e.g. banned phrases) is violated (400 or 403)."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, message: str, details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
@@ -748,7 +742,7 @@ class SecurityViolationError(AppException):
             details: Additional JSON serializable variables.
         """
         # 400 Bad Request matches "Client sent invalid content"
-        d = {"error_code": ErrorCodes.SECURITY_VIOLATION}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.SECURITY_VIOLATION}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST, details=d)
@@ -762,7 +756,7 @@ class WorkflowExecutionError(AppException):
         step_id: str,
         task_key: str,
         original_error: Exception,
-        details: dict[str, Any] | None = None,
+        details: dict[str, JsonValue] | None = None,
     ):
         """Initialize the exception.
 
@@ -774,9 +768,9 @@ class WorkflowExecutionError(AppException):
         """
         msg = f"Step '{step_id}' (Task: '{task_key}') failed: {str(original_error)}"
 
-        error_details = {}
+        error_details: dict[str, JsonValue] = {}
         if details is not None:
-            error_details = dict(details)
+            error_details.update(details)
         error_details.update({"step_id": step_id, "task_key": task_key, "cause": str(original_error)})
         error_details.setdefault("error_code", ErrorCodes.WORKFLOW_EXECUTION_FAILED)
 
@@ -798,7 +792,7 @@ class WorkflowCompilationError(AppException):
             step_id: The ID of the specific workflow step causing the failure, if applicable.
             message: Human-readable technical error explanation.
         """
-        details = {"error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR, "step_id": step_id}
+        details: dict[str, JsonValue] = {"error_code": ErrorCodes.WORKFLOW_COMPILATION_ERROR, "step_id": step_id}
         super().__init__(
             message=message,
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -810,14 +804,14 @@ class WorkflowCompilationError(AppException):
 class TokenLimitExceededError(AppException):
     """Raised when token length of the LLM context exceeds the safe threshold."""
 
-    def __init__(self, message: str = "Token limit exceeded", details: dict[str, Any] | None = None):
+    def __init__(self, message: str = "Token limit exceeded", details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Explanation for quota fault.
             details: Tracking keys linking context size.
         """
-        d = {"error_code": ErrorCodes.TOKEN_LIMIT_EXCEEDED}
+        d: dict[str, JsonValue] = {"error_code": ErrorCodes.TOKEN_LIMIT_EXCEEDED}
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_413_CONTENT_TOO_LARGE, details=d)
@@ -835,7 +829,7 @@ class MissingInputMappingError(AppException):
             reason: Specific technical reason (e.g., KeyError, AttributeError).
         """
         msg = f"Failed to resolve path '{path}' in {state_type}: {reason}"
-        details = {
+        details: dict[str, JsonValue] = {
             "error_code": ErrorCodes.INPUT_RESOLUTION_FAILED.value,
             "path": path,
             "state_type": state_type,
@@ -854,7 +848,7 @@ class MissingXaiExtensionError(AppException):
             extension_name: The name mapping absent in the target trace.
             step_id: Associated parent context.
         """
-        details = {"error_code": ErrorCodes.MISSING_XAI_EXTENSION, "extension": extension_name}
+        details: dict[str, JsonValue] = {"error_code": ErrorCodes.MISSING_XAI_EXTENSION, "extension": extension_name}
         if step_id:
             details["step_id"] = step_id
         super().__init__(
@@ -873,7 +867,7 @@ class MissingRoutingModeError(AppException):
         Args:
             mapping_path: Navigation dictionary key context.
         """
-        details = {"error_code": ErrorCodes.MISSING_ROUTING_MODE, "mapping_path": mapping_path}
+        details: dict[str, JsonValue] = {"error_code": ErrorCodes.MISSING_ROUTING_MODE, "mapping_path": mapping_path}
         super().__init__(
             message=f"Routing mode is missing for mapping '{mapping_path}'.",
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -903,7 +897,7 @@ class LLMSchemaValidationError(AppException):
             is_eof: Determines parsing boundary issues.
             token_usage: Extracted telemetry keys.
         """
-        details = {
+        details: dict[str, JsonValue] = {
             "error_code": ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
             "raw_llm_payload": raw_llm_payload,
             "validation_error_msg": validation_error_msg,
@@ -933,7 +927,7 @@ class LogicalValidationError(AppException):
         Args:
             validation_error_msg: Computed text explaining constraint breach.
         """
-        details = {
+        details: dict[str, JsonValue] = {
             "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
             "validation_error_msg": validation_error_msg,
         }
@@ -954,14 +948,14 @@ class PydanticSyntaxError(LLMSchemaValidationError):
 class SemanticEvidenceError(AppException):
     """Raised when an atom fails semantic O(1) anchoring. Directly routes to DLQ without AI reasoning."""
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, message: str, details: dict[str, JsonValue] | None = None):
         """Initialize the exception.
 
         Args:
             message: Core error log information.
             details: Additional JSON serializable variables.
         """
-        err_details = {"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED}
+        err_details: dict[str, JsonValue] = {"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED}
         if details is not None:
             err_details = details
         super().__init__(

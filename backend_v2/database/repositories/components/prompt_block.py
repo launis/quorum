@@ -125,7 +125,7 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
                 message=f"Missing required prompt blocks: {', '.join(missing_ids)}",
                 details={
                     "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
-                    "missing_ids": missing_ids,
+                    "missing_ids": [str(x) for x in missing_ids],
                 },
                 status_code=404,
             )

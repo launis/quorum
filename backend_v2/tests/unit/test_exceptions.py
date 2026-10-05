@@ -24,6 +24,7 @@ from backend_v2.exceptions import (
     MissingRoutingModeError,
     MissingXaiExtensionError,
     PermissionDeniedError,
+    ProblemDetailDTO,
     PydanticSyntaxError,
     ResourceNotFoundError,
     SecurityViolationError,
@@ -84,12 +85,16 @@ def test_app_exception_rfc7807_to_problem_detail() -> None:
         details={"error_code": ErrorCodes.EXECUTION_NOT_FOUND.value, "execution_id": "exc_123"},
     )
     detail = exc.to_problem_detail(instance="/executions/exc_123")
-    assert detail["status"] == 404
-    assert detail["title"] == "Execution Not Found"
-    assert detail["detail"] == "Execution not found"
-    assert detail["instance"] == "/executions/exc_123"
-    assert detail["type"] == "https://api.quorum.fi/errors/execution-not-found"
-    assert detail["extensions"] == {"error_code": "EXECUTION_NOT_FOUND", "execution_id": "exc_123"}
+    assert isinstance(detail, ProblemDetailDTO)
+    assert detail.status == 404
+    assert detail.title == "Execution Not Found"
+    assert detail.detail == "Execution not found"
+    assert detail.instance == "/executions/exc_123"
+    assert detail.type == "https://api.quorum.fi/errors/execution-not-found"
+    assert detail.extensions == {"error_code": "EXECUTION_NOT_FOUND", "execution_id": "exc_123"}
+    dumped = detail.model_dump(mode="json", exclude_none=True)
+    assert dumped["status"] == 404
+    assert dumped["title"] == "Execution Not Found"
     assert exc.error_code == "EXECUTION_NOT_FOUND"
     assert exc.status_code == 404
     assert str(exc) == "Execution not found"
@@ -261,3 +266,48 @@ def test_llm_validation_exceptions() -> None:
     evidence_custom = SemanticEvidenceError("Quote mismatch", details={"error_code": "CUSTOM_EVIDENCE_ERROR"})
     assert evidence_custom.status_code == 400
     assert evidence_custom.error_code == "CUSTOM_EVIDENCE_ERROR"
+
+
+def test_problem_detail_dto_roundtrip() -> None:
+    """Test ProblemDetailDTO roundtrip construction and attribute fidelity."""
+    exc = AppException(
+        message="Bad Request",
+        status_code=400,
+        details={"code": "VALIDATION_FAILED"},
+    )
+    detail = exc.to_problem_detail(instance="/api/v2/test")
+    assert isinstance(detail, ProblemDetailDTO)
+    assert detail.status == 400
+    assert detail.detail == "Bad Request"
+    assert detail.instance == "/api/v2/test"
+    assert detail.extensions == {"code": "VALIDATION_FAILED", "error_code": "INTERNAL_SERVER_ERROR"}
+
+
+def test_problem_detail_dto_serialization_omits_none() -> None:
+    """Test that ProblemDetailDTO excludes None fields on serialization."""
+    dto = ProblemDetailDTO(
+        type="https://api.quorum.fi/errors/test",
+        title="Test Error",
+        status=400,
+        detail="Test detail",
+        instance=None,
+    )
+    dumped = dto.model_dump(mode="json", exclude_none=True)
+    assert "instance" not in dumped
+    assert dumped["status"] == 400
+    assert dumped["detail"] == "Test detail"
+
+
+def test_problem_detail_dto_rejects_non_json_value() -> None:
+    """Test that ProblemDetailDTO extensions rejects non-JSON objects."""
+    class CustomObject:
+        pass
+
+    with pytest.raises(ValidationError):
+        ProblemDetailDTO(
+            type="https://api.quorum.fi/errors/test",
+            title="Test",
+            status=400,
+            detail="Detail",
+            extensions={"obj": CustomObject()},  # type: ignore[dict-item]
+        )

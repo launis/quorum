@@ -112,28 +112,33 @@ class SmartIngressResolver:
                         f"Input mismatch for slot '{key}': Attached file '{source_name}' "
                         f"matches expected input slot(s) {sorted_slots}, contradicting target slot '{key}'."
                     )
-                    ambiguous_match_details = {
-                        "key": key,
-                        "slots": sorted_slots,
-                        "filename": source_name,
-                    }
+                    raise AppException(
+                        message=error_message,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "ambiguous_match": {
+                                "key": key,
+                                "slots": [str(s) for s in sorted_slots],
+                                "filename": source_name,
+                            },
+                        },
+                    )
                 else:
                     error_message = (
                         f"Ambiguous match for input '{key}': Matches multiple expected input slots: {sorted_slots}"
                     )
-                    ambiguous_match_details = {
-                        "key": key,
-                        "slots": sorted_slots,
-                    }
-
-                raise AppException(
-                    message=error_message,
-                    status_code=400,
-                    details={
-                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                        "ambiguous_match": ambiguous_match_details,
-                    },
-                )
+                    raise AppException(
+                        message=error_message,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "ambiguous_match": {
+                                "key": key,
+                                "slots": [str(s) for s in sorted_slots],
+                            },
+                        },
+                    )
 
             if len(matched_slots) == 1:
                 target_slot = next(iter(matched_slots))
@@ -193,7 +198,7 @@ class SmartIngressResolver:
                 status_code=400,
                 details={
                     "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                    "missing_fields": missing_fields,
+                    "missing_fields": [str(f) for f in missing_fields],
                 },
             )
 

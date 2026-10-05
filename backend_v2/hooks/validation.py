@@ -170,15 +170,17 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
     if not result_dto.is_valid:
         # Preserve the structural dumps cleanly utilizing model_dump to prevent bypass errors
-        serialized_warnings = [w.model_dump() for w in warnings]
-        msg = f"Structural Validation Failed: {serialized_warnings}"
+        msg = f"Structural Validation Failed: {[w.model_dump(mode='json') for w in warnings]}"
         logger.error("[ValidationHook] %s", msg)
 
         # FAIL FAST: Pre-validation failure is a client error (Bad Request)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "warnings": serialized_warnings},
+            details={
+                "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                "warnings": [w.model_dump(mode="json") for w in warnings],
+            },
         )
     else:
         logger.debug("[ValidationHook] Checks passed.")
