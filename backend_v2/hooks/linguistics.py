@@ -2,10 +2,10 @@
 
 import logging
 import uuid
-from typing import Any
+from typing import Annotated
 
 from fastapi import status
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from rapidfuzz import fuzz
 
 from backend_v2.core.hook_registry import (
@@ -33,9 +33,37 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 
-__all__ = ["detect_performative_patterns"]
+__all__ = ["LinguisticAnalysisDTO", "detect_performative_patterns"]
 
 logger = logging.getLogger(__name__)
+
+
+class LinguisticAnalysisDTO(BaseModel):
+    """Encapsulates detailed linguistic analysis metrics for scanned text.
+
+    Attributes:
+        token_count: Total number of tokens or words analyzed.
+        sentence_count: Total number of sentences identified.
+        lexical_density: Measure of lexical richness (0.0 to 1.0).
+        performative_ratio: Proportion of performative filler patterns.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    token_count: Annotated[
+        int, Field(ge=0, default=0, description="Total number of tokens or words analyzed.")
+    ] = 0
+    sentence_count: Annotated[
+        int, Field(ge=0, default=0, description="Total number of sentences identified.")
+    ] = 0
+    lexical_density: Annotated[
+        float,
+        Field(ge=0.0, le=1.0, default=0.0, description="Measure of lexical richness (0.0 to 1.0)."),
+    ] = 0.0
+    performative_ratio: Annotated[
+        float,
+        Field(ge=0.0, le=1.0, default=0.0, description="Proportion of performative filler patterns."),
+    ] = 0.0
 
 
 def _handle_extraction_dlq_failure(error: Exception) -> None:
@@ -83,8 +111,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
             candidate_lang = raw_inputs["language"]
             if isinstance(candidate_lang, str):
                 lang_in_raw = candidate_lang
-        payload_data: dict[str, Any] = {"dynamic_inputs": raw_inputs, "language": lang_in_raw}
-        payload = LinguisticsPayloadDTO.model_validate(payload_data)
+        payload = LinguisticsPayloadDTO(dynamic_inputs=dict(raw_inputs), language=lang_in_raw)
     except (ValidationError, TypeError, ValueError) as e:
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
         logger.error("[LinguisticsHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)

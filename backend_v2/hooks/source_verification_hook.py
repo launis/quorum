@@ -5,6 +5,7 @@ the Tavily AI search client to verify them against live web data.
 """
 
 import logging
+from collections.abc import Mapping
 
 from pydantic import BaseModel, ValidationError
 
@@ -18,6 +19,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import (
@@ -41,17 +43,56 @@ type CandidateInputs = (
     | SourceVerificationPayloadDTO
     | BaseModel
     | str
-    | list[object]
-    | dict[str, object]
+    | list[str]
+    | Mapping[str, DomainInputValue]
     | None
 )
+
+
+def _extract_text_from_mapping(inputs: Mapping[str, DomainInputValue]) -> str:
+    """Extract consolidated text from an input mapping using SourceVerificationPayloadDTO."""
+    known_keys = {"document_text", "prior_analysis", "text", "document"}
+    payload_dict: dict[str, DomainInputValue] = {}
+    extra_data: dict[str, str] = {}
+
+    for k, v in inputs.items():
+        if v is None:
+            continue
+        if k in known_keys:
+            payload_dict[k] = v
+        else:
+            if not isinstance(v, str):
+                msg = f"Non-string input '{k}' for source verification extra sections: {type(v)}"
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            v_str = v.strip()
+            if v_str:
+                extra_data[str(k)] = v_str
+
+    if extra_data:
+        payload_dict["extra_sections"] = extra_data
+
+    try:
+        payload = SourceVerificationPayloadDTO.model_validate(payload_dict)
+        return payload.extract_text()
+    except (ValidationError, TypeError, ValueError) as e:
+        msg = f"Invalid inputs for source verification hook: {e}"
+        logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 
 
 def _extract_text_polymorphically(inputs: CandidateInputs) -> str:
     """Extract candidate text from heterogeneous input state partitions.
 
     Args:
-        inputs: Heterogeneous inputs (str, dict, list, BaseModel, ExecutionInputsDTO).
+        inputs: Heterogeneous inputs (str, list, BaseModel, ExecutionInputsDTO, Mapping).
 
     Returns:
         Consolidated input text.
@@ -66,52 +107,37 @@ def _extract_text_polymorphically(inputs: CandidateInputs) -> str:
         return inputs.strip()
 
     if isinstance(inputs, ExecutionInputsDTO):
-        text = _extract_text_polymorphically(dict(inputs.raw_inputs))
+        text = _extract_text_from_mapping(inputs.raw_inputs)
         if not text:
-            text = _extract_text_polymorphically(dict(inputs.dynamic_inputs))
+            text = _extract_text_from_mapping(inputs.dynamic_inputs)
         return text
 
-    if isinstance(inputs, BaseModel):
-        if isinstance(inputs, SourceVerificationInputsDTO):
-            for candidate in (inputs.document_text, inputs.prior_analysis, inputs.text, inputs.document):
-                if candidate is not None and candidate.strip():
-                    return candidate.strip()
-            return ""
-        if isinstance(inputs, SourceVerificationPayloadDTO):
-            return inputs.extract_text()
-        return _extract_text_polymorphically(inputs.model_dump(mode="python"))
+    if isinstance(inputs, SourceVerificationInputsDTO):
+        for candidate in (inputs.document_text, inputs.prior_analysis, inputs.text, inputs.document):
+            if candidate is not None and candidate.strip():
+                return candidate.strip()
+        return ""
 
-    # Attempt to handle list payload
+    if isinstance(inputs, SourceVerificationPayloadDTO):
+        return inputs.extract_text()
+
+    if isinstance(inputs, BaseModel):
+        return _extract_text_from_mapping(inputs.model_dump(mode="python"))
+
     if isinstance(inputs, list):
         text_parts = [str(item).strip() for item in inputs if item is not None and str(item).strip()]
         return "\n\n".join(text_parts).strip()
 
-    # Attempt to handle dict payload via SourceVerificationPayloadDTO
-    if type(inputs) is dict:
-        try:
-            known_keys = {"document_text", "prior_analysis", "text", "document"}
-            payload_data: dict[str, object] = {k: v for k, v in inputs.items() if k in known_keys}
-            extra_data = {str(k): str(v) for k, v in inputs.items() if k not in known_keys and v is not None}
-            if extra_data:
-                payload_data["extra_sections"] = extra_data
-            payload = SourceVerificationPayloadDTO.model_validate(payload_data)
-            return payload.extract_text()
-        except ValidationError as e:
-            msg = f"Invalid inputs for source verification hook: {e}"
-            logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
-
-    msg = "Invalid inputs format for source verification hook"
-    logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-    raise AppException(
-        message=msg,
-        status_code=400,
-        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-    )
+    try:
+        return _extract_text_from_mapping(inputs)
+    except (ValidationError, TypeError, ValueError, AttributeError) as e:
+        msg = f"Invalid inputs for source verification hook: {e}"
+        logger.error("[SourceVerificationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
 
 
 @hook_registry.register("source_verification_hook")

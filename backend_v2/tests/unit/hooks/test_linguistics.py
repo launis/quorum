@@ -13,7 +13,10 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
-from backend_v2.hooks.linguistics import detect_performative_patterns
+from backend_v2.hooks.linguistics import (
+    LinguisticAnalysisDTO,
+    detect_performative_patterns,
+)
 from backend_v2.models.domain.linguistics import (
     DynamicLinguisticsExtractorDTO,
     LinguisticsPayloadDTO,
@@ -390,3 +393,18 @@ async def test_detect_performative_patterns_prioritizes_any_user_only_suffix(moc
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
     assert result.state_delta.delta.total_word_count == 3
+
+
+def test_linguistic_analysis_dto_validation() -> None:
+    """Test instantiation and immutability of LinguisticAnalysisDTO."""
+    dto = LinguisticAnalysisDTO(
+        token_count=100,
+        sentence_count=8,
+        lexical_density=0.65,
+        performative_ratio=0.12,
+    )
+    assert dto.token_count == 100
+    assert dto.sentence_count == 8
+    assert dto.lexical_density == 0.65
+    assert dto.performative_ratio == 0.12
+
