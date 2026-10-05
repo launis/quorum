@@ -27,9 +27,9 @@ async def test_deepseek_adapter_preparer() -> None:
         ],
     )
 
-    ds_messages, ds_kwargs = await deepseek_adapter.prepare_caching_payload(prompt, "deepseek-chat")
-    assert ds_messages == prompt.to_flat_messages()
-    assert ds_kwargs == {}
+    res = await deepseek_adapter.prepare_caching_payload(prompt, "deepseek-chat")
+    assert res.messages == prompt.to_flat_messages()
+    assert res.kwargs == {}
 
 
 @pytest.mark.asyncio

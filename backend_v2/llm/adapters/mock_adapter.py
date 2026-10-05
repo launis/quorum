@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class MockCacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Return the flat compiled prompt messages as-is and set mock active flag.
 
         Args:
@@ -32,11 +32,10 @@ class MockCacheAdapter(BaseLLMAdapter):
             model_name: The target model name.
 
         Returns:
-            A tuple of flat messages and extra kwargs with 'mock_cache_active' enabled.
+            A CachingPayloadResultDTO with flat messages and 'mock_cache_active' enabled.
         """
         flat_messages = compiled_prompt.to_flat_messages()
-        extra_kwargs = {"mock_cache_active": True}
-        return flat_messages, extra_kwargs
+        return CachingPayloadResultDTO(messages=flat_messages, kwargs={"mock_cache_active": True})
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
         """Perform a No-Op teardown.

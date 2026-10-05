@@ -18,7 +18,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
-from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 
@@ -151,7 +151,7 @@ class BaseLLMAdapter(ABC):
     @abstractmethod
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Prepare the payload for the API request by configuring caching structures.
 
         Args:
@@ -159,9 +159,7 @@ class BaseLLMAdapter(ABC):
             model_name: The physical target deployment model.
 
         Returns:
-            A tuple containing:
-                - The list of formatted messages (potentially with provider-specific cache blocks).
-                - A dictionary of extra keyword arguments (kwargs) to merge into the request body.
+            A CachingPayloadResultDTO containing structured messages and extra kwargs.
         """
         pass
 

@@ -2,13 +2,12 @@
 
 import logging
 import re
-from typing import Any
 
 import opentelemetry.trace as trace
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,7 @@ class LLMCachingService:
         provider_name: str,
         compiled_prompt: CompiledPrompt,
         model_name: str,
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Prepare the cache payload by delegating to the appropriate adapter.
 
         Args:
@@ -47,9 +46,7 @@ class LLMCachingService:
             model_name: The actual target model identifier.
 
         Returns:
-            A tuple containing:
-                - The list of prepared messages.
-                - A dictionary of extra keyword arguments to pass to the provider.
+            A CachingPayloadResultDTO containing prepared messages and extra kwargs.
 
         Raises:
             AppException: If there is an internal failure during compilation

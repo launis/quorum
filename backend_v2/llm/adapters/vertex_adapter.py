@@ -20,7 +20,7 @@ from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
-from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import Settings, get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
@@ -114,7 +114,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Prepare the Vertex AI specific prompt payload by setting up cached content.
 
         Args:
@@ -122,9 +122,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
             model_name: The target model name.
 
         Returns:
-            A pair containing:
-                - The list of flattened messages.
-                - A dictionary of extra keyword arguments containing the cache reference name.
+            A CachingPayloadResultDTO containing messages and extra kwargs.
 
         Raises:
             ConfigurationError: If Vertex AI requires a configured location that is missing.
@@ -149,7 +147,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 static_content_token_count,
                 min_threshold,
             )
-            return compiled_prompt.to_flat_messages(), {}
+            return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
         settings = get_settings()
         location = os.getenv("VERTEX_LOCATION")
@@ -186,16 +184,17 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 logger.warning(
                     "Vertex cached content previously marked as FAILED. Falling back to standard completion."
                 )
-                return compiled_prompt.to_flat_messages(), {}
+                return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
             if cache_id != PromptCacheStatus.CREATING.value:
                 logger.info(
                     "Vertex AI Cache Hit in shared ledger: %s",
                     cache_id,
                 )
-                return compiled_prompt.to_dynamic_flat(), {
-                    "cached_content": cache_id,
-                }
+                return CachingPayloadResultDTO(
+                    messages=compiled_prompt.to_dynamic_flat(),
+                    kwargs={"cached_content": cache_id},
+                )
 
         lock_ttl_ms = int(get_settings().context_cache_lock_ttl_seconds * 1000)
         lock_acquired = await client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
@@ -207,11 +206,12 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     if isinstance(cache_id, bytes):
                         cache_id = cache_id.decode("utf-8")
                     if cache_id == PromptCacheStatus.FAILED.value:
-                        return compiled_prompt.to_flat_messages(), {}
+                        return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
                     if cache_id != PromptCacheStatus.CREATING.value:
-                        return compiled_prompt.to_dynamic_flat(), {
-                            "cached_content": cache_id,
-                        }
+                        return CachingPayloadResultDTO(
+                            messages=compiled_prompt.to_dynamic_flat(),
+                            kwargs={"cached_content": cache_id},
+                        )
 
                 await client.set(
                     redis_key,
@@ -291,9 +291,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         cache_resource_id,
                     )
                     # V3 Cache Fix: Return dynamic-only messages alongside cache reference
-                    return compiled_prompt.to_dynamic_flat(), {
-                        "cached_content": cache_resource_id,
-                    }
+                    return CachingPayloadResultDTO(
+                        messages=compiled_prompt.to_dynamic_flat(),
+                        kwargs={"cached_content": cache_resource_id},
+                    )
 
                 except Exception as exc:
                     if isinstance(exc, (KeyboardInterrupt, SystemExit)):
@@ -308,7 +309,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         PromptCacheStatus.FAILED.value,
                         ex=get_settings().context_cache_failed_ttl_seconds,
                     )
-                    return compiled_prompt.to_flat_messages(), {}
+                    return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
             finally:
                 await client.delete(lock_key)
@@ -329,22 +330,23 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                     if cache_id == PromptCacheStatus.FAILED.value:
                         logger.warning("Wait-and-Poll: Active creation failed on first worker. Falling back instantly.")
-                        return compiled_prompt.to_flat_messages(), {}
+                        return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
                     if cache_id != PromptCacheStatus.CREATING.value:
                         logger.info(
                             "Wait-and-Poll: Cache creation completed by first worker: %s",
                             cache_id,
                         )
-                        return compiled_prompt.to_dynamic_flat(), {
-                            "cached_content": cache_id,
-                        }
+                        return CachingPayloadResultDTO(
+                            messages=compiled_prompt.to_dynamic_flat(),
+                            kwargs={"cached_content": cache_id},
+                        )
 
             logger.warning(
                 "Wait-and-Poll timeout reached after %s seconds. Falling back to uncached completion.",
                 max_wait_s,
             )
-            return compiled_prompt.to_flat_messages(), {}
+            return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
         """No-Op teardown for Vertex AI (Option B - Pure Passive TTL Caching).

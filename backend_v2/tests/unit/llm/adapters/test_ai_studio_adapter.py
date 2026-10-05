@@ -96,9 +96,9 @@ async def test_ai_studio_adapter_preparer_bypass() -> None:
         ],
     )
 
-    op_messages, op_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert op_messages == prompt.to_flat_messages()
-    assert op_kwargs == {}
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.messages == prompt.to_flat_messages()
+    assert res.kwargs == {}
 
 
 @pytest.mark.asyncio
@@ -118,9 +118,9 @@ async def test_ai_studio_adapter_bypasses_cache_when_contents_empty_or_system_on
         ],
     )
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 2
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.kwargs == {}
+    assert len(res.messages) == 2
     assert mock_genai_client.caches.create.call_count == 0
 
 
@@ -280,8 +280,8 @@ async def test_ai_studio_thundering_herd_protection() -> None:
     assert mock_genai_client.caches.create.call_count == 1
 
     expected_cache = "cachedContents/ai-studio-shared-cache-99"
-    for _, extra_kwargs in results:
-        assert extra_kwargs == {"cached_content": expected_cache}
+    for res in results:
+        assert res.kwargs == {"cached_content": expected_cache}
 
 
 @pytest.mark.asyncio
@@ -315,9 +315,9 @@ async def test_ai_studio_fail_soft_error(caplog: pytest.LogCaptureFixture) -> No
     await redis_client.delete(redis_key, lock_key)
 
     with caplog.at_level(logging.WARNING):
-        flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+        res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
 
-    assert extra_kwargs == {}
+    assert res.kwargs == {}
     assert mock_genai_client.caches.create.call_count == 1
     assert "Fail-Soft: Google AI Studio Context Cache creation bypassed/failed" in caplog.text
 
@@ -350,9 +350,9 @@ async def test_ai_studio_cache_immediate_hit_in_shared_ledger() -> None:
     existing_cache_id = "cachedContents/hit-12345"
     await redis_client.set(redis_key, existing_cache_id, ex=300)
 
-    dynamic_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert extra_kwargs == {"cached_content": existing_cache_id}
-    assert len(dynamic_msgs) == 1
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.kwargs == {"cached_content": existing_cache_id}
+    assert len(res.messages) == 1
 
 
 @pytest.mark.asyncio
@@ -382,8 +382,8 @@ async def test_ai_studio_instant_exit_on_failed() -> None:
 
     await redis_client.set(redis_key, "FAILED", ex=300)
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert extra_kwargs == {}
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.kwargs == {}
     assert mock_genai_client.caches.create.call_count == 0
 
 
@@ -415,9 +415,9 @@ async def test_ai_studio_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyP
     await redis_client.set(lock_key, "worker_0", ex=10)
     await redis_client.set(redis_key, "CREATING", ex=10)
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 1
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.kwargs == {}
+    assert len(res.messages) == 1
 
 
 @pytest.mark.asyncio
@@ -442,8 +442,8 @@ async def test_ai_studio_adapter_static_chars_with_content_blocks() -> None:
         dynamic_messages=[],
     )
 
-    returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
-    assert extra_kwargs == {"cached_content": "cachedContents/blocks-cache-123"}
+    res = await adapter.prepare_caching_payload(prompt, "gemini-3.7-flash")
+    assert res.kwargs == {"cached_content": "cachedContents/blocks-cache-123"}
     assert mock_genai_client.caches.create.call_count == 1
 
 

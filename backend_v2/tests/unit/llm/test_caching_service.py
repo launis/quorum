@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -14,9 +14,9 @@ from backend_v2.models.prompt import CompiledPrompt
 async def test_prepare_caching_payload() -> None:
     """Verify that prepare_caching_payload delegates to the correct adapter."""
     mock_adapter = AsyncMock()
-    mock_adapter.prepare_caching_payload.return_value = (
-        [{"role": "user", "content": "mock_messages"}],
-        {"mock": "kwargs"},
+    mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(
+        messages=[LLMMessageDTO(role="user", content="mock_messages")],
+        kwargs={"mock": "kwargs"},
     )
 
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
@@ -24,7 +24,7 @@ async def test_prepare_caching_payload() -> None:
     with patch(
         "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter
     ) as mock_get:
-        messages, kwargs = await LLMCachingService.prepare_caching_payload(
+        result = await LLMCachingService.prepare_caching_payload(
             provider_name="vertex_ai",
             compiled_prompt=compiled_prompt,
             model_name="gemini-1.5-pro",
@@ -32,8 +32,8 @@ async def test_prepare_caching_payload() -> None:
 
         mock_get.assert_called_once_with("vertex_ai", model_name="gemini-1.5-pro")
         mock_adapter.prepare_caching_payload.assert_called_once_with(compiled_prompt, "gemini-1.5-pro")
-        assert messages == [{"role": "user", "content": "mock_messages"}]
-        assert kwargs == {"mock": "kwargs"}
+        assert result.messages == [LLMMessageDTO(role="user", content="mock_messages")]
+        assert result.kwargs == {"mock": "kwargs"}
 
 
 @pytest.mark.asyncio
@@ -71,7 +71,7 @@ async def test_teardown_workflow_caches_exception() -> None:
 async def test_pre_cache_document() -> None:
     """Verify pre_cache_document forwards to prepare_caching_payload."""
     mock_adapter = AsyncMock()
-    mock_adapter.prepare_caching_payload.return_value = ([], {})
+    mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(messages=[], kwargs={})
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
 
     with patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter):
@@ -87,7 +87,7 @@ async def test_pre_cache_document() -> None:
 async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixture) -> None:
     """Verify purity scanner logs warning on dynamic traces in system instructions."""
     mock_adapter = AsyncMock()
-    mock_adapter.prepare_caching_payload.return_value = ([], {})
+    mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(messages=[], kwargs={})
 
     # UUID in system message
     uuid_prompt = CompiledPrompt(
@@ -140,3 +140,13 @@ def test_record_cache_hit_with_recording_span() -> None:
         mock_span.is_recording.return_value = False
         LLMCachingService.record_cache_hit(False)
         mock_span.set_attribute.assert_not_called()
+
+
+def test_caching_payload_result_dto_validation() -> None:
+    """Verify CachingPayloadResultDTO validates successfully under ConfigDict(strict=True, extra='forbid')."""
+    dto = CachingPayloadResultDTO(
+        messages=[LLMMessageDTO(role="system", content="Hello")],
+        kwargs={"cached_content": "cache_123"},
+    )
+    assert len(dto.messages) == 1
+    assert dto.kwargs["cached_content"] == "cache_123"

@@ -471,26 +471,25 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            caching_messages, caching_kwargs = await LLMCachingService.prepare_caching_payload(
+            caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
             )
-            final_messages = [
-                m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in caching_messages
-            ]
-            extra_kwargs.update(caching_kwargs)
+            final_messages = caching_payload.messages
+            extra_kwargs.update(caching_payload.kwargs)
 
             # V3 Cache Fix: Observability telemetry for caching diagnostics
             if "cached_content" in extra_kwargs:
                 num_msgs = len(final_messages)
                 dynamic_chars = 0
                 for m in final_messages:
-                    if isinstance(m, LLMMessageDTO):
+                    if isinstance(m.content, str):
                         dynamic_chars += len(m.content)
-                    elif not isinstance(m, (str, int, float, bool, list)) and m is not None:
-                        if "content" in m:
-                            dynamic_chars += len(str(m["content"]))
+                    else:
+                        for block in m.content:
+                            for val in block.values():
+                                dynamic_chars += len(str(val))
 
                 logger.info(
                     "[LLMClient] Context Cache ACTIVE: %s | Dynamic payload: %d messages, ~%d chars",
@@ -532,9 +531,7 @@ class LLMClient:
                     validation_context=validation_context,
                 )
 
-            val_ctx_dict: dict[str, Any] | None = None
-            if validation_context is not None:
-                val_ctx_dict = dict(validation_context)
+            val_ctx_dict = dict(validation_context) if validation_context is not None else None
 
             try:
                 try:
@@ -809,15 +806,13 @@ class LLMClient:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            caching_messages, caching_kwargs = await LLMCachingService.prepare_caching_payload(
+            caching_payload = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
             )
-            final_messages = [
-                m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in caching_messages
-            ]
-            extra_kwargs.update(caching_kwargs)
+            final_messages = caching_payload.messages
+            extra_kwargs.update(caching_payload.kwargs)
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
         provider = LLMFactory.create_provider(

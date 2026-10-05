@@ -13,7 +13,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.enums import CognitiveTier, ExecutionProfile
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
@@ -163,7 +163,9 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
     }
     mock_provider.generate.return_value = mock_cache_response
 
-    mock_prepare.return_value = ([{"role": "system", "content": "mocked"}], {"caching_injected": True})
+    mock_prepare.return_value = CachingPayloadResultDTO(
+        messages=[LLMMessageDTO(role="system", content="mocked")], kwargs={"caching_injected": True}
+    )
 
     c = DummyConfig()
     c.caching_strategy = "ephemeral"
@@ -304,7 +306,9 @@ async def test_client_run_chat_cache_miss_fallback(mock_create_provider: MagicMo
     with patch(
         "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
     ) as mock_prepare:
-        mock_prepare.return_value = ([{"role": "user", "content": "Test"}], {"cached_content": "cache_id"})
+        mock_prepare.return_value = CachingPayloadResultDTO(
+            messages=[LLMMessageDTO(role="user", content="Test")], kwargs={"cached_content": "cache_id"}
+        )
         res = await client.run_chat(messages=messages, model="test-model")
         assert res == "Fallback success"
         assert mock_provider.generate.call_count == 2
@@ -359,7 +363,9 @@ async def test_client_run_structured_task_cache_miss_fallback(mock_create_provid
     with patch(
         "backend_v2.llm.caching_service.LLMCachingService.prepare_caching_payload", new_callable=AsyncMock
     ) as mock_prepare:
-        mock_prepare.return_value = ([{"role": "user", "content": "Test"}], {"cached_content": "cache_id"})
+        mock_prepare.return_value = CachingPayloadResultDTO(
+            messages=[LLMMessageDTO(role="user", content="Test")], kwargs={"cached_content": "cache_id"}
+        )
         res, _ = await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
         assert res.step_4_final_score == 1
         assert mock_provider.generate.call_count == 2

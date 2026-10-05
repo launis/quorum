@@ -31,11 +31,11 @@ async def test_anthropic_adapter_threshold_under() -> None:
         ],
     )
 
-    flat_messages, extra_kwargs = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
+    res = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
 
     expected_flat = prompt.to_flat_messages()
-    assert flat_messages == expected_flat
-    assert extra_kwargs == {}
+    assert res.messages == expected_flat
+    assert res.kwargs == {}
 
 
 @pytest.mark.asyncio
@@ -59,33 +59,34 @@ async def test_anthropic_adapter_tagging_flow() -> None:
         ],
     )
 
-    flat_messages, extra_kwargs = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
+    res = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
 
-    assert extra_kwargs == {}
+    assert res.kwargs == {}
 
+    flat_messages = res.messages
     # Verify the structure of the resulting messages list
     # Msg 1: combined system message with cache_control
-    assert flat_messages[0]["role"] == "system"
-    assert isinstance(flat_messages[0]["content"], list)
-    assert len(flat_messages[0]["content"]) == 1
-    assert flat_messages[0]["content"][0]["type"] == "text"
-    assert "Another system instruction." in flat_messages[0]["content"][0]["text"]
-    assert flat_messages[0]["content"][0]["cache_control"] == {"type": "ephemeral"}
+    assert flat_messages[0].role == "system"
+    assert isinstance(flat_messages[0].content, list)
+    assert len(flat_messages[0].content) == 1
+    assert flat_messages[0].content[0]["type"] == "text"
+    assert "Another system instruction." in str(flat_messages[0].content[0]["text"])
+    assert flat_messages[0].content[0]["cache_control"] == {"type": "ephemeral"}
 
     # Msg 2: static user message with cache_control
-    assert flat_messages[1]["role"] == "user"
-    assert isinstance(flat_messages[1]["content"], list)
-    assert len(flat_messages[1]["content"]) == 1
-    assert flat_messages[1]["content"][0]["type"] == "text"
-    assert "Static user data." in flat_messages[1]["content"][0]["text"]
-    assert flat_messages[1]["content"][0]["cache_control"] == {"type": "ephemeral"}
+    assert flat_messages[1].role == "user"
+    assert isinstance(flat_messages[1].content, list)
+    assert len(flat_messages[1].content) == 1
+    assert flat_messages[1].content[0]["type"] == "text"
+    assert "Static user data." in str(flat_messages[1].content[0]["text"])
+    assert flat_messages[1].content[0]["cache_control"] == {"type": "ephemeral"}
 
     # Msg 3 & 4: dynamic assistant & user messages should NOT be tagged and stay as strings
-    assert flat_messages[2]["role"] == "assistant"
-    assert flat_messages[2]["content"] == "Dynamic assistant message."
+    assert flat_messages[2].role == "assistant"
+    assert flat_messages[2].content == "Dynamic assistant message."
 
-    assert flat_messages[3]["role"] == "user"
-    assert flat_messages[3]["content"] == "Dynamic user query."
+    assert flat_messages[3].role == "user"
+    assert flat_messages[3].content == "Dynamic user query."
 
 
 @pytest.mark.asyncio
@@ -107,34 +108,35 @@ async def test_anthropic_adapter_boundary_merging() -> None:
         ],
     )
 
-    flat_messages, extra_kwargs = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
+    res = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
 
+    flat_messages = res.messages
     # Since both last static and first dynamic are "user", they must be merged in a single message
     # Let's count total messages: system (1), merged user (2), assistant (3)
     assert len(flat_messages) == 3
 
     # Msg 1: System
-    assert flat_messages[0]["role"] == "system"
+    assert flat_messages[0].role == "system"
 
     # Msg 2: Merged User Message
     user_msg = flat_messages[1]
-    assert user_msg["role"] == "user"
-    assert isinstance(user_msg["content"], list)
-    assert len(user_msg["content"]) == 2
+    assert user_msg.role == "user"
+    assert isinstance(user_msg.content, list)
+    assert len(user_msg.content) == 2
 
     # Block 1: Static user part (caching active)
-    assert user_msg["content"][0]["type"] == "text"
-    assert "Static user message." in user_msg["content"][0]["text"]
-    assert user_msg["content"][0]["cache_control"] == {"type": "ephemeral"}
+    assert user_msg.content[0]["type"] == "text"
+    assert "Static user message." in str(user_msg.content[0]["text"])
+    assert user_msg.content[0]["cache_control"] == {"type": "ephemeral"}
 
     # Block 2: Dynamic user part (caching inactive)
-    assert user_msg["content"][1]["type"] == "text"
-    assert user_msg["content"][1]["text"] == "Dynamic user query."
-    assert "cache_control" not in user_msg["content"][1]
+    assert user_msg.content[1]["type"] == "text"
+    assert user_msg.content[1]["text"] == "Dynamic user query."
+    assert "cache_control" not in user_msg.content[1]
 
     # Msg 3: Dynamic Assistant
-    assert flat_messages[2]["role"] == "assistant"
-    assert flat_messages[2]["content"] == "Dynamic assistant response."
+    assert flat_messages[2].role == "assistant"
+    assert flat_messages[2].content == "Dynamic assistant response."
 
 
 @pytest.mark.asyncio

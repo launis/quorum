@@ -91,9 +91,9 @@ async def test_vertex_adapter_preparer_bypass() -> None:
         ],
     )
 
-    op_messages, op_kwargs = await adapter.prepare_caching_payload(prompt, "vertex_ai/gemini-1.5-pro")
-    assert op_messages == prompt.to_flat_messages()
-    assert op_kwargs == {}
+    res = await adapter.prepare_caching_payload(prompt, "vertex_ai/gemini-1.5-pro")
+    assert res.messages == prompt.to_flat_messages()
+    assert res.kwargs == {}
 
 
 @pytest.mark.asyncio
@@ -176,8 +176,8 @@ async def test_vertex_thundering_herd_protection() -> None:
 
     # Verify that all workers successfully obtained the exact same cache resource ID
     expected_cache = "projects/mock-proj/locations/europe-north1/cachedContents/shared-cache-123"
-    for _, extra_kwargs in results:
-        assert extra_kwargs == {"cached_content": expected_cache}
+    for res in results:
+        assert res.kwargs == {"cached_content": expected_cache}
 
 
 @pytest.mark.asyncio
@@ -211,8 +211,8 @@ async def test_vertex_instant_exit_on_failed() -> None:
     await redis_client.set(redis_key, "FAILED", ex=300)
 
     # Execute, should instantly bypass caching and return empty kwargs
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
-    assert extra_kwargs == {}
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    assert res.kwargs == {}
     assert mock_cached_contents.CachedContent.create.call_count == 0
 
 
@@ -248,9 +248,9 @@ async def test_vertex_fail_soft_gcp_error(caplog: pytest.LogCaptureFixture) -> N
 
     with caplog.at_level(logging.WARNING):
         # Call adapter, it should swallow the exception and return standard completion payload gracefully
-        flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+        res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
-    assert extra_kwargs == {}
+    assert res.kwargs == {}
     assert mock_cached_contents.CachedContent.create.call_count == 1
     assert "Fail-Soft: Vertex AI Context Cache creation bypassed/failed" in caplog.text
 
@@ -294,20 +294,20 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
     expected_cache = "projects/mock-proj/locations/europe-north1/cachedContents/formatted-cache-99"
-    assert extra_kwargs == {"cached_content": expected_cache}
+    assert res.kwargs == {"cached_content": expected_cache}
     assert mock_cached_contents.CachedContent.create.call_count == 1
 
     # V3: Returned messages are dynamic-only (rubrics, atoms, params)
-    assert returned_msgs == prompt.to_dynamic_flat()
+    assert res.messages == prompt.to_dynamic_flat()
     assert any(
         "<evaluation_criteria>"
         in str(
             m.content if isinstance(m, LLMMessageDTO) else (m["content"] if type(m) is dict and "content" in m else "")
         )
-        for m in returned_msgs
+        for m in res.messages
     )
     # V3: Static source_data must NOT be in returned messages
     assert not any(
@@ -315,7 +315,7 @@ async def test_vertex_adapter_caching_payload_formatting() -> None:
         in str(
             m.content if isinstance(m, LLMMessageDTO) else (m["content"] if type(m) is dict and "content" in m else "")
         )
-        for m in returned_msgs
+        for m in res.messages
     )
 
     # Retrieve arguments passed to GCP CachedContent.create
@@ -520,9 +520,9 @@ async def test_vertex_adapter_bypasses_cache_when_static_messages_below_1024() -
         metadata=PromptMetadataDTO(token_proxy_score=50000.0),
     )
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 2
+    res = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+    assert res.kwargs == {}
+    assert len(res.messages) == 2
 
 
 @pytest.mark.asyncio
@@ -537,9 +537,9 @@ async def test_vertex_adapter_static_chars_with_content_blocks() -> None:
         dynamic_messages=[],
     )
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 1
+    res = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+    assert res.kwargs == {}
+    assert len(res.messages) == 1
 
 
 @pytest.mark.asyncio
@@ -580,9 +580,9 @@ async def test_vertex_cache_immediate_hit_in_shared_ledger() -> None:
     existing_cache_id = "projects/mock-proj/locations/europe-north1/cachedContents/hit-12345"
     await redis_client.set(redis_key, existing_cache_id, ex=300)
 
-    dynamic_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
-    assert extra_kwargs == {"cached_content": existing_cache_id}
-    assert len(dynamic_msgs) == 1
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    assert res.kwargs == {"cached_content": existing_cache_id}
+    assert len(res.messages) == 1
 
 
 @pytest.mark.asyncio
@@ -615,10 +615,10 @@ async def test_vertex_cache_assistant_role_and_unqualified_name() -> None:
     lock_key = f"lock:vertex_cache:europe-north1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    _, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
-    assert "cached_content" in extra_kwargs
-    assert extra_kwargs["cached_content"].endswith("/cachedContents/unqualified_cache_id_555")
+    assert "cached_content" in res.kwargs
+    assert str(res.kwargs["cached_content"]).endswith("/cachedContents/unqualified_cache_id_555")
 
     # Verify assistant role was mapped to model in GAPIC contents
     _, kwargs = mock_cached_contents.CachedContent.create.call_args
@@ -655,10 +655,10 @@ async def test_vertex_cache_wait_and_poll_timeout(monkeypatch: pytest.MonkeyPatc
     await redis_client.set(lock_key, "worker_0", ex=10)
     await redis_client.set(redis_key, "CREATING", ex=10)
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 1
+    assert res.kwargs == {}
+    assert len(res.messages) == 1
 
 
 @pytest.mark.asyncio
@@ -683,11 +683,11 @@ async def test_vertex_adapter_bypasses_cache_when_contents_empty_or_system_only(
         ],
     )
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
 
     # When vertex_contents is empty, caching MUST be bypassed to avoid GCP 1-token InvalidArgument error
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 2
+    assert res.kwargs == {}
+    assert len(res.messages) == 2
 
 
 @pytest.mark.asyncio
@@ -725,11 +725,11 @@ async def test_vertex_adapter_dynamic_location_caching(monkeypatch: pytest.Monke
     lock_key = f"lock:vertex_cache:us-central1:gemini-1.5-pro:{static_hash}"
     await redis_client.delete(redis_key, lock_key)
 
-    returned_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
 
-    assert extra_kwargs == {"cached_content": "projects/mock-proj/locations/us-central1/cachedContents/us-cache-777"}
+    assert res.kwargs == {"cached_content": "projects/mock-proj/locations/us-central1/cachedContents/us-cache-777"}
     assert mock_cached_contents.CachedContent.create.call_count == 1
-    assert returned_msgs == prompt.to_dynamic_flat()
+    assert res.messages == prompt.to_dynamic_flat()
 
 
 @pytest.mark.asyncio
@@ -755,10 +755,10 @@ async def test_vertex_adapter_caching_consecutive_system_messages_empty_contents
         ],
     )
 
-    flat_msgs, extra_kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-pro")
+    res = await adapter.prepare_caching_payload(prompt, "gemini-2.5-pro")
 
-    assert extra_kwargs == {}
-    assert len(flat_msgs) == 2
+    assert res.kwargs == {}
+    assert len(res.messages) == 2
 
 
 @pytest.mark.asyncio

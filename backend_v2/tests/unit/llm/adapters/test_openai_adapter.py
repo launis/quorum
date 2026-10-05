@@ -31,9 +31,9 @@ async def test_openai_adapter_preparer() -> None:
         ],
     )
 
-    op_messages, op_kwargs = await openai_adapter.prepare_caching_payload(prompt, "gpt-4o")
-    assert op_messages == prompt.to_flat_messages()
-    assert op_kwargs == {}
+    res = await openai_adapter.prepare_caching_payload(prompt, "gpt-4o")
+    assert res.messages == prompt.to_flat_messages()
+    assert res.kwargs == {}
 
 
 @pytest.mark.asyncio

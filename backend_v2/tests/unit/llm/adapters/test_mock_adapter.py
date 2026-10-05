@@ -27,11 +27,11 @@ async def test_mock_adapter_prepare_caching_payload() -> None:
         ],
     )
 
-    flat_messages, extra_kwargs = await adapter.prepare_caching_payload(prompt, "mock-model")
+    res = await adapter.prepare_caching_payload(prompt, "mock-model")
 
     expected_flat = prompt.to_flat_messages()
-    assert flat_messages == expected_flat
-    assert extra_kwargs == {"mock_cache_active": True}
+    assert res.messages == expected_flat
+    assert res.kwargs == {"mock_cache_active": True}
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import Settings
 
@@ -24,7 +24,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Prepare the OpenAI-specific prompt payload.
 
         OpenAI recognizes caching automatically by prefix matching. We simply flatten
@@ -35,12 +35,10 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             model_name: The target model name.
 
         Returns:
-            A tuple containing:
-                - The flattened list of messages.
-                - An empty extra kwargs dictionary.
+            A CachingPayloadResultDTO containing flat messages and empty kwargs.
         """
         flat_messages = compiled_prompt.to_flat_messages()
-        return flat_messages, {}
+        return CachingPayloadResultDTO(messages=flat_messages, kwargs={})
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
         """No-Op teardown for OpenAI.

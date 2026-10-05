@@ -3,12 +3,12 @@
 import logging
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
+    ) -> CachingPayloadResultDTO:
         """Prepare the Anthropic-specific prompt payload with block-level cache tags.
 
         Args:
@@ -27,15 +27,13 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
             model_name: The target model name.
 
         Returns:
-            A tuple containing:
-                - The list of formatted messages (potentially with Anthropic cache blocks).
-                - A dictionary of extra keyword arguments (empty for Anthropic).
+            A CachingPayloadResultDTO containing formatted messages and empty kwargs.
         """
         estimated_tokens, _ = self.estimate_static_tokens(compiled_prompt, exclude_system=False)
 
         # Minimum threshold for Anthropic cache block creation (approx 1000 tokens / 4000 chars)
         if estimated_tokens < 1000:
-            return compiled_prompt.to_flat_messages(), {}
+            return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
         system_msgs = [m for m in compiled_prompt.static_messages if m.role == "system"]
         other_static_msgs = [m for m in compiled_prompt.static_messages if m.role != "system"]
@@ -44,56 +42,67 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         other_dynamic_msgs = [m for m in compiled_prompt.dynamic_messages if m.role != "system"]
 
         system_content_parts = [m.content for m in system_msgs + dynamic_system_msgs if m.content]
-        combined_system_text = "\n\n".join(system_content_parts).strip()
-        final_messages: list[dict[str, Any]] = []
+        combined_system_text = "\n\n".join(str(part) for part in system_content_parts).strip()
+        final_messages: list[LLMMessageDTO] = []
 
         if combined_system_text:
             final_messages.append(
-                {
-                    "role": "system",
-                    "content": [{"type": "text", "text": combined_system_text, "cache_control": {"type": "ephemeral"}}],
-                }
+                LLMMessageDTO(
+                    role="system",
+                    content=[{"type": "text", "text": combined_system_text, "cache_control": {"type": "ephemeral"}}],
+                )
             )
 
-        flat_static: list[dict[str, Any]] = []
+        flat_static: list[LLMMessageDTO] = []
         for msg in other_static_msgs:
             role = msg.role
             content_str = str(msg.content)
 
-            if flat_static and flat_static[-1]["role"] == role:
-                flat_static[-1]["content"] = (flat_static[-1]["content"] + "\n\n" + content_str).strip()
+            if flat_static and flat_static[-1].role == role:
+                prev = flat_static[-1]
+                prev_text = prev.content if isinstance(prev.content, str) else ""
+                merged_text = (prev_text + "\n\n" + content_str).strip()
+                flat_static[-1] = LLMMessageDTO(role=role, content=merged_text)
             else:
-                flat_static.append({"role": role, "content": content_str.strip()})
+                flat_static.append(LLMMessageDTO(role=role, content=content_str.strip()))
 
         if flat_static:
             last_static_msg = flat_static[-1]
-            last_static_msg["content"] = [
-                {"type": "text", "text": last_static_msg["content"], "cache_control": {"type": "ephemeral"}}
-            ]
+            last_text = last_static_msg.content if isinstance(last_static_msg.content, str) else ""
+            flat_static[-1] = LLMMessageDTO(
+                role=last_static_msg.role,
+                content=[{"type": "text", "text": last_text, "cache_control": {"type": "ephemeral"}}],
+            )
 
-        flat_dynamic: list[dict[str, Any]] = []
+        flat_dynamic: list[LLMMessageDTO] = []
         for msg in other_dynamic_msgs:
             role = msg.role
             content_str = str(msg.content)
 
-            if flat_dynamic and flat_dynamic[-1]["role"] == role:
-                flat_dynamic[-1]["content"] = (flat_dynamic[-1]["content"] + "\n\n" + content_str).strip()
+            if flat_dynamic and flat_dynamic[-1].role == role:
+                prev = flat_dynamic[-1]
+                prev_text = prev.content if isinstance(prev.content, str) else ""
+                merged_text = (prev_text + "\n\n" + content_str).strip()
+                flat_dynamic[-1] = LLMMessageDTO(role=role, content=merged_text)
             else:
-                flat_dynamic.append({"role": role, "content": content_str.strip()})
+                flat_dynamic.append(LLMMessageDTO(role=role, content=content_str.strip()))
 
-        if flat_static and flat_dynamic and flat_static[-1]["role"] == flat_dynamic[0]["role"]:
-            static_blocks = flat_static[-1]["content"]
-            dynamic_text = flat_dynamic[0]["content"]
+        if flat_static and flat_dynamic and flat_static[-1].role == flat_dynamic[0].role:
+            static_content = flat_static[-1].content
+            static_blocks: list[dict[str, JsonValue]] = (
+                list(static_content) if isinstance(static_content, list) else [{"type": "text", "text": static_content}]
+            )
+            dynamic_text = flat_dynamic[0].content if isinstance(flat_dynamic[0].content, str) else ""
 
-            merged_content = list(static_blocks) + [{"type": "text", "text": dynamic_text}]
-            flat_static[-1]["content"] = merged_content
+            merged_blocks: list[dict[str, JsonValue]] = list(static_blocks) + [{"type": "text", "text": dynamic_text}]
+            flat_static[-1] = LLMMessageDTO(role=flat_static[-1].role, content=merged_blocks)
             final_messages.extend(flat_static)
             final_messages.extend(flat_dynamic[1:])
         else:
             final_messages.extend(flat_static)
             final_messages.extend(flat_dynamic)
 
-        return final_messages, {}
+        return CachingPayloadResultDTO(messages=final_messages, kwargs={})
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
         """No-Op teardown for Anthropic Claude.

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "AdHocTestRequest",
     "AdHocTestResponse",
+    "CachingPayloadResultDTO",
     "LLMMessageDTO",
     "LLMProviderConfig",
     "LLMResponse",
@@ -31,12 +32,26 @@ __all__ = [
 ]
 
 
+class CachingPayloadResultDTO(BaseDTO):
+    """Result payload from LLM caching preparation.
+
+    Attributes:
+        messages: List of structured LLM messages.
+        kwargs: Optional provider-specific extra arguments (e.g., cached_content).
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    messages: list[LLMMessageDTO]
+    kwargs: dict[str, JsonValue] = Field(default_factory=dict)
+
+
 class LLMMessageDTO(BaseDTO):
     """Strictly typed LLM Message Data Transfer Object.
 
     Attributes:
         role: Message role ('system', 'user', 'assistant', 'tool').
-        content: Message text payload.
+        content: Message text payload or structured content blocks.
         tool_calls: Optional tool calls invoked.
         tool_call_id: Optional tool call ID for tool outputs.
         name: Optional name identifier for tool messages.
@@ -45,7 +60,10 @@ class LLMMessageDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     role: Annotated[str, Field(min_length=1, description="Message role ('system', 'user', 'assistant', 'tool').")]
-    content: Annotated[str, Field(description="Message text payload.")]
+    content: Annotated[
+        str | list[dict[str, JsonValue]],
+        Field(description="Message text payload or structured content blocks."),
+    ]
     tool_calls: Annotated[
         list[OpenAIToolCallDTO] | None,
         Field(default=None, description="Optional tool calls invoked."),
