@@ -35,14 +35,15 @@ def test_model_registry_delete_response_strictness() -> None:
 
 
 def test_prompt_block_responses_strictness() -> None:
-    dto1 = PromptBlockSimulationResponse(trace={"key": "val"})
-    assert dto1.trace == {"key": "val"}
+    dto1 = PromptBlockSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=5.0, estimated_tokens=10))
+    assert dto1.trace.execution_time_ms == 5.0
+    assert dto1.trace.estimated_tokens == 10
 
     dto2 = PromptBlockDeleteResponse(status="ok", deleted_id="blk_1")
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        PromptBlockSimulationResponse(trace={"key": "val"}, extra="fail")  # type: ignore
+        PromptBlockSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
 
 
 def test_step_responses_strictness() -> None:
@@ -58,14 +59,15 @@ def test_step_responses_strictness() -> None:
 
 
 def test_workflow_responses_strictness() -> None:
-    dto1 = WorkflowSimulationResponse(trace={"wf": "done"})
-    assert dto1.trace == {"wf": "done"}
+    dto1 = WorkflowSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=10.0, estimated_tokens=50))
+    assert dto1.trace.execution_time_ms == 10.0
+    assert dto1.trace.estimated_tokens == 50
 
     dto2 = WorkflowDeleteResponse(status="ok", deleted_id="wf_1")
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        WorkflowSimulationResponse(trace={"wf": "done"}, extra="fail")  # type: ignore
+        WorkflowSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
 
 
 def test_core_response_dto_strictness() -> None:
@@ -344,3 +346,24 @@ def test_step_simulation_response_trace_type() -> None:
     assert isinstance(res.trace, StepSimulationTraceDTO)
     assert res.trace.execution_time_ms == 5.0
     assert res.trace.estimated_tokens == 12
+
+
+def test_simulation_responses_trace_strict_types() -> None:
+    """Test PromptBlockSimulationResponse and WorkflowSimulationResponse trace strict typing."""
+    # Negative partition: Raw dict for trace should fail strict validation
+    with pytest.raises(ValidationError):
+        PromptBlockSimulationResponse.model_validate({"trace": {"block": "done"}})
+
+    with pytest.raises(ValidationError):
+        WorkflowSimulationResponse.model_validate({"trace": {"wf": "done"}})
+
+    # Positive partition: StepSimulationTraceDTO
+    pb_res = PromptBlockSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=2.0, estimated_tokens=15))
+    assert isinstance(pb_res.trace, StepSimulationTraceDTO)
+    assert pb_res.trace.execution_time_ms == 2.0
+    assert pb_res.trace.estimated_tokens == 15
+
+    wf_res = WorkflowSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=8.0, estimated_tokens=80))
+    assert isinstance(wf_res.trace, StepSimulationTraceDTO)
+    assert wf_res.trace.execution_time_ms == 8.0
+    assert wf_res.trace.estimated_tokens == 80

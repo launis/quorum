@@ -1,8 +1,8 @@
 """Execution prompt context definition."""
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import LLMMessageDTO
@@ -28,6 +28,6 @@ class PromptContextDTO(BaseDTO):
         ),
     ]
     metadata: Annotated[
-        dict[str, Any],
+        dict[str, JsonValue],
         Field(description="Arbitrary execution metadata (e.g., token proxy scores).", default_factory=dict),
     ]

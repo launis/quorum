@@ -16,6 +16,7 @@ from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+from backend_v2.models.domain.system_config import SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
 from backend_v2.models.enums import ComponentType, HistoricalContextMode, PromptBlockCategory, StepType
@@ -223,7 +224,7 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
     assert steps[0].label == "Analytical Step"
     assert "blk_2123456789abcdef" in ui_hints
     assert ui_hints["blk_2123456789abcdef"].component_type == ComponentType.SLIDER
-    assert ui_hints["blk_2123456789abcdef"].validation_rules == {"max": 5.0}
+    assert ui_hints["blk_2123456789abcdef"].validation_rules == SystemValidationRulesDTO(max=5.0)
     assert ui_hints["blk_0123456789abcdef"].component_type == ComponentType.HIDDEN
 
 

@@ -73,7 +73,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
     try:
         # Zero-Compromise: Enforce strict dictionary structure via DTO validation
-        payload_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+        payload_source = state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
         payload = ValidationHookPayloadDTO.model_validate(payload_source)
     except ValidationError as e:
         msg = "Missing or invalid 'inputs' in state. Expected dict."
@@ -235,7 +235,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
     try:
-        inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+        inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
         payload = ValidationHookPayloadDTO.model_validate(inputs_source)
         target_locale = _resolve_target_locale(state, payload)
         if not target_locale:
@@ -341,7 +341,7 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs else state.inputs.model_dump()
+    inputs_source = state.inputs.raw_inputs if state.inputs.raw_inputs is not None else state.inputs.model_dump()
     if not inputs_source:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 

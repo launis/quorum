@@ -19,7 +19,7 @@ def test_partition_1_polymorphic_sdui_block_with_step_metadata() -> None:
         "block_type": "hero_insight",
         "text": "Key executive finding.",
         "_audit_signature": "sig_abc456",
-        "_step_metadata": {
+        "step_metadata": {
             "step_id": "stp_evaluate",
             "model_strategy": "fast",
             "chunk_size": 2,
@@ -47,10 +47,10 @@ def test_partition_2_missing_step_metadata() -> None:
 
 
 def test_partition_3_malformed_step_metadata_fails() -> None:
-    """Validate that malformed _step_metadata triggers Pydantic ValidationError."""
+    """Validate that malformed step_metadata triggers Pydantic ValidationError."""
     payload: dict[str, Any] = {
         "id": "blk_invalid",
-        "_step_metadata": "not_a_valid_dictionary_or_model",
+        "step_metadata": "not_a_valid_dictionary_or_model",
     }
 
     with pytest.raises(ValidationError):
@@ -61,7 +61,7 @@ def test_partition_4_token_usage_telemetry_extraction() -> None:
     """Validate detailed TokenUsage extraction within StepTraceMetadataDTO."""
     payload: dict[str, Any] = {
         "block_id": "blk_scorecard_01",
-        "_step_metadata": {
+        "step_metadata": {
             "step_id": "stp_matrix_audit",
             "model_strategy": "reasoning",
             "physical_model": "vertex_ai/gemini-2.5-flash",

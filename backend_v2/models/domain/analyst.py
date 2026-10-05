@@ -3,8 +3,10 @@
 This module contains the schemas for the Analyst Agent, including hypotheses and search results.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Annotated, Any, Self
+from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -12,6 +14,7 @@ from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.integrity import CitationAudit
+from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,8 @@ class AnalystInput(V2CoreBase):
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     dynamic_inputs: Annotated[
-        dict[str, Any], Field(default_factory=dict, description="Structured dictionary for dynamic inputs.")
+        dict[str, IngressInputValue],
+        Field(default_factory=dict, description="Structured dictionary for dynamic inputs."),
     ]
 
 

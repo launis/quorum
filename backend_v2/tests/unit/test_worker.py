@@ -1322,7 +1322,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
 
     offloaded_blob = (
         b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
-        b'{"_step_metadata": {"model_strategy": "fast", "physical_model": "test_model", '
+        b'{"step_metadata": {"model_strategy": "fast", "physical_model": "test_model", '
         b'"system_fingerprint": "fp_1", "chunk_size": 1, "token_usage": {"prompt_tokens": 500, '
         b'"completion_tokens": 100, "cached_tokens": 20, "reasoning_tokens": 10, "total_tokens": 600, '
         b'"cost_usd": 0.05}}}}]'
@@ -1420,7 +1420,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
 
     offloaded_blob = (
         b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
-        b'{"_step_metadata": {"model_strategy": "fast", "token_usage": {"prompt_tokens": 800, '
+        b'{"step_metadata": {"model_strategy": "fast", "token_usage": {"prompt_tokens": 800, '
         b'"completion_tokens": 200, "cached_tokens": 50, "reasoning_tokens": 20, "total_tokens": 1070, '
         b'"cost_usd": 0.15}}}}, '
         b'{"v": 1, "step_name": "unrelated", "event_type": "output", "content": {"unrelated": 1}}]'

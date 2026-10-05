@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR025).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR027).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -27,13 +27,19 @@ __all__ = [
     "CommentSuppressor",
     "GuardrailSeverity",
     "GuardrailViolation",
+    "OPEN_JSON_EXEMPTION_FILES",
     "QuorumGuardrailVisitor",
+    "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "format_violations_table",
+    "is_boundary_exempt",
+    "is_open_json_exempt",
     "main",
     "scan_file_for_guardrails",
     "scan_files_for_guardrails",
     "scan_source_code_for_guardrails",
 ]
+
+REPO_ROOT: Path = Path(__file__).resolve().parent.parent
 
 # Force UTF-8 encoding for stdout to support emojis on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):
@@ -81,14 +87,121 @@ BANNED_REASON_PLACEHOLDERS: set[str] = {
 }
 
 
-BOUNDARY_EXEMPTION_FILES: set[str] = {
-    "tinydb_driver.py",
-    "firestore_driver.py",
-    "provider.py",
-    "logging_config.py",
-    "telemetry.py",
-    "base_adapter.py",
-}
+BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset({
+    "backend_v2/database/tinydb_driver.py",
+    "backend_v2/database/firestore_driver.py",
+    "backend_v2/database/driver.py",
+    "backend_v2/database/wrapper.py",
+    "backend_v2/llm/provider.py",
+    "backend_v2/llm/handler.py",
+    "backend_v2/logging_config.py",
+    "backend_v2/core/telemetry.py",
+    "backend_v2/llm/adapters/base_adapter.py",
+    "backend_v2/llm/adapters/vertex_adapter.py",
+    "backend_v2/llm/adapters/ai_studio_adapter.py",
+    "backend_v2/llm/adapters/openai_adapter.py",
+    "backend_v2/llm/adapters/anthropic_adapter.py",
+    "backend_v2/llm/adapters/deepseek_adapter.py",
+    "backend_v2/llm/adapters/mock_adapter.py",
+})
+
+
+def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
+    """Checks if a filepath corresponds to one of the 15 locked boundary exemption files."""
+    root = repo_root or REPO_ROOT
+    p = Path(filepath)
+    try:
+        rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
+        return rel_posix in BOUNDARY_EXEMPTION_FILES
+    except (ValueError, RuntimeError):
+        posix_str = p.as_posix()
+        return any(posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES)
+
+
+OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset({
+    "backend_v2/models/domain/mcp.py",
+    "backend_v2/models/dtos/mcp.py",
+    "backend_v2/models/domain/system_config.py",
+    "backend_v2/models/domain/validation.py",
+    "backend_v2/models/domain/base.py",
+    "backend_v2/models/llm.py",
+    "backend_v2/scripts/generate_openapi.py",
+})
+
+RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset({
+    # Phase 2 (Hooks, LLM, Ingress)
+    "backend_v2/hooks/scoring/matrix_hook.py",
+    "backend_v2/llm/client.py",
+    "backend_v2/services/llm_task_executor.py",
+    # Phase 4 (Services & Tools)
+    "backend_v2/services/mcp/mcp_tool_loop.py",
+    # Phase 5 (Orchestrator & DAG)
+    "backend_v2/services/orchestrator/context_router.py",
+    "backend_v2/services/orchestrator/dag_executor.py",
+    "backend_v2/services/orchestrator/matrix_reducer.py",
+    "backend_v2/services/orchestrator/result_projector.py",
+    "backend_v2/services/orchestrator/strategies/logic.py",
+    "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
+    # Residual Models (Phases 2, 4, 11)
+    "backend_v2/models/domain/synthesis.py",
+    "backend_v2/models/dtos/atom_evaluation.py",
+    "backend_v2/models/dtos/hook_delta.py",
+    "backend_v2/models/dtos/lightweight_matrix.py",
+    "backend_v2/models/dtos/node_execution.py",
+    "backend_v2/models/dtos/prompt.py",
+    "backend_v2/models/dtos/prompt_context.py",
+    "backend_v2/models/dtos/schema_manifest.py",
+    "backend_v2/models/dtos/state.py",
+    "backend_v2/models/dtos/system.py",
+    "backend_v2/models/dtos/trace.py",
+    "backend_v2/models/state.py",
+})
+
+
+
+def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
+    """Checks if a filepath is approved for Open-JSON (dict[..., JsonValue]) annotations."""
+    if is_boundary_exempt(filepath, repo_root):
+        return True
+    root = repo_root or REPO_ROOT
+    p = Path(filepath)
+    try:
+        rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
+        return rel_posix in OPEN_JSON_EXEMPTION_FILES or rel_posix in RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
+    except (ValueError, RuntimeError):
+        posix_str = p.as_posix()
+        all_allowed = OPEN_JSON_EXEMPTION_FILES | RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
+        return any(posix_str == target or posix_str.endswith("/" + target) for target in all_allowed)
+
+
+def _find_jsonvalue_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:
+    """Finds any dict[..., JsonValue] or container subscript in the AST node."""
+    if node is None:
+        return None
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Subscript):
+            continue
+        is_dict = False
+        match sub.value:
+            case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                is_dict = True
+            case _:
+                is_dict = False
+        if is_dict:
+            match sub.slice:
+                case ast.Tuple(elts=elements) if len(elements) == 2:
+                    val_type = elements[1]
+                    for inner in ast.walk(val_type):
+                        match inner:
+                            case ast.Name(id="JsonValue") | ast.Attribute(attr="JsonValue"):
+                                return sub
+                            case _:
+                                pass
+                case ast.Name(id="JsonValue") | ast.Attribute(attr="JsonValue"):
+                    return sub
+                case _:
+                    pass
+    return None
 
 
 def _is_dict_type_node(node: ast.AST) -> bool:
@@ -219,7 +332,7 @@ class CommentSuppressor:
         self._is_domain_code = not (
             "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
         )
-        self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
+        self._is_boundary_exempt = is_boundary_exempt(filepath)
         self._parse_comments(source_bytes)
 
     def _parse_comments(self, source_bytes: bytes) -> None:
@@ -340,13 +453,42 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._is_domain_code = not (
             "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
         )
-        self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
+        self._is_boundary_exempt = is_boundary_exempt(filepath)
+        self._is_open_json_exempt = is_open_json_exempt(filepath)
         self._pydantic_base_classes_in_file: set[str] = set()
         self._bool_condition_nodes: set[ast.AST] = set()
         self._current_class_name: str | None = None
         self._function_depth: int = 0
         self._in_finally: bool = False
         self._in_update_lock: bool = False
+
+    def _is_pytest_skip_or_xfail(self, expr: ast.AST) -> bool:
+        """Helper checking if an AST node is a pytest.mark.skip or pytest.mark.xfail."""
+        if isinstance(expr, ast.Attribute) and expr.attr in ("skip", "xfail"):
+            if isinstance(expr.value, ast.Attribute) and expr.value.attr == "mark":
+                if isinstance(expr.value.value, ast.Name) and expr.value.value.id == "pytest":
+                    return True
+        elif (
+            isinstance(expr, ast.Call)
+            and isinstance(expr.func, ast.Attribute)
+            and expr.func.attr in ("skip", "xfail")
+        ):
+            if isinstance(expr.func.value, ast.Attribute) and expr.func.value.attr == "mark":
+                if isinstance(expr.func.value.value, ast.Name) and expr.func.value.value.id == "pytest":
+                    return True
+        return False
+
+    def _check_qgr026_decorators(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> None:
+        """QGR026: Prohibits unconditional @pytest.mark.skip and @pytest.mark.xfail."""
+        for dec in node.decorator_list:
+            if self._is_pytest_skip_or_xfail(dec):
+                self._add_violation(
+                    dec,
+                    "QGR026",
+                    f"Banned unconditional `{ast.unparse(dec)}` marker detected on `{node.name}`.",
+                    "Remove unconditional @pytest.mark.skip / @pytest.mark.xfail. Use conditional @pytest.mark.skipif with environment guard or fix/delete the test per QGR026.",
+                    severity=GuardrailSeverity.FATAL,
+                )
 
     def _add_violation(
         self,
@@ -415,6 +557,21 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+        # QGR026: Banned pytest.xfail() call
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "xfail"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "pytest"
+        ):
+            self._add_violation(
+                node,
+                "QGR026",
+                f"Banned call to `pytest.xfail()` detected: `{ast.unparse(node)}`.",
+                "Remove pytest.xfail() calls. Tests must assert deterministic behavior without synthetic expected-failures per QGR026.",
+                severity=GuardrailSeverity.FATAL,
+            )
+
         # QGR001: getattr / hasattr / setattr reflection duck-typing, vars, attrgetter, and frozen mutations
         match node.func:
             case ast.Name(id="getattr" | "hasattr" | "setattr"):
@@ -940,6 +1097,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        self._check_qgr026_decorators(node)
         prev_class = self._current_class_name
         self._current_class_name = node.name
 
@@ -1267,12 +1425,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         )
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
         self.generic_visit(node)
         self._function_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
         self.generic_visit(node)
@@ -1291,6 +1451,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use Python 3.14 PEP 649/749 deferred annotations without quotes per `deferred_annotations_and_typing`.",
                         severity=GuardrailSeverity.FATAL,
                     )
+            # QGR027: Banned Unauthorized Open-JSON / JsonValue Dictionaries in Domain & DTO Models
+            jsonvalue_sub = _find_jsonvalue_dict_subscript(node.annotation)
+            if jsonvalue_sub is not None and not self._is_open_json_exempt:
+                self._add_violation(
+                    node,
+                    "QGR027",
+                    f"Banned unauthorized Open-JSON `dict[..., JsonValue]` annotation `{ast.unparse(jsonvalue_sub)}` detected in non-open-schema model.",
+                    "Open-JSON is permitted exclusively on approved external specifications (MCP, OpenAPI, JSON Schema, RFC 7807). "
+                    "Encapsulate internal domain entities and simulation traces in a dedicated Pydantic V2 DTO per EPIC 157 Section 2.4.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR020: Duplicate Field() assignment on Annotated field
             if _has_annotated_field(node.annotation) and _is_field_call(node.value):
                 self._add_violation(
@@ -1317,6 +1488,20 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        # QGR026: Module-level pytestmark skip/xfail marker ban
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "pytestmark":
+                elements = list(node.value.elts) if isinstance(node.value, (ast.List, ast.Tuple)) else [node.value]
+                for elt in elements:
+                    if self._is_pytest_skip_or_xfail(elt):
+                        self._add_violation(
+                            elt,
+                            "QGR026",
+                            f"Banned module-level `pytestmark = {ast.unparse(elt)}` skip/xfail marker detected.",
+                            "Remove module-level skip/xfail markers. Either fix tests or delete obsolete files per QGR026.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
         # QGR014: mock repository variable assignment in test files
         if self._is_test_file:
             for target in node.targets:
@@ -1863,6 +2048,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR023: Anonymous Multi-Value State Tuples Ban (FATAL)
   QGR024: String-Quoted Forward-Reference Annotation Ban (FATAL)
   QGR025: Untyped Dynamic Dict in model_copy(update=...) Ban (FATAL)
+  QGR026: Unconditional Skip and Xfail Test Ban (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):

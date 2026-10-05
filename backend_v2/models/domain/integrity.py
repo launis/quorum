@@ -7,12 +7,13 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,8 @@ class IntegrityGlobalInputsDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     raw_inputs: Annotated[
-        dict[str, Any] | None, Field(description="Unstructured input envelope at database boundaries.")
+        dict[str, IngressInputValue | None] | None,
+        Field(description="Unstructured input envelope at database boundaries."),
     ] = None
 
     def extract_source_texts(self) -> list[str]:

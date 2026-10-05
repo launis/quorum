@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from pathlib import Path
-from typing import Any, cast
 
 from fastapi.concurrency import run_in_threadpool
 
@@ -50,13 +48,11 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             if Path(file_path).is_file():
                 try:
 
-                    def _read_file() -> dict[str, Any]:
-                        with open(file_path, encoding="utf-8") as f:
-                            return cast(dict[str, Any], json.load(f))
+                    def _read_file() -> Workflow:
+                        with open(file_path, "rb") as f:
+                            return Workflow.model_validate_json(f.read())
 
-                    data = await run_in_threadpool(_read_file)
-                    if "description" not in data:
-                        data["description"] = "Loaded from file"
+                    return await run_in_threadpool(_read_file)
                 except Exception as e:
                     logger.error("Failed to load workflow from disk: %s", e, exc_info=True)
                     raise AppException(

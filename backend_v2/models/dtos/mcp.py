@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -51,7 +51,7 @@ class MCPFunctionDefinitionDTO(V2CoreBase):
 
     name: Annotated[str, Field(description="Tool function identifier name")]
     description: Annotated[str, Field(description="Detailed tool description for LLM")]
-    parameters: Annotated[dict[str, Any], Field(description="JSON schema parameter definitions")]
+    parameters: Annotated[dict[str, JsonValue], Field(description="JSON schema parameter definitions")]
     strict: Annotated[bool, Field(default=True, description="Whether schema enforces strict adherence")] = True
 
 

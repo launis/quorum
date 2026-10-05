@@ -329,27 +329,31 @@ class HookStateImmutabilityVisitor(ast.NodeVisitor):
 
     def _check_targets(self, targets: list[ast.expr]) -> None:
         for target in targets:
-            if isinstance(target, ast.Subscript):
-                val = target.value
-                if isinstance(val, ast.Attribute):
-                    target_obj_name = getattr(val.value, "id", "")  # noqa: QGR001 [REASON: AST node attribute inspection]
-                    if target_obj_name in ("state", "hook_state"):
-                        if val.attr == "metadata":
-                            self.has_inplace_metadata_mutation = True
-                        elif val.attr == "inputs":
-                            self.has_inplace_inputs_mutation = True
+            match target:
+                case ast.Subscript(
+                    value=ast.Attribute(
+                        value=ast.Name(id="state" | "hook_state"),
+                        attr="metadata" | "inputs" as attr,
+                    )
+                ):
+                    if attr == "metadata":
+                        self.has_inplace_metadata_mutation = True
+                    elif attr == "inputs":
+                        self.has_inplace_inputs_mutation = True
 
     def visit_Call(self, node: ast.Call) -> None:
-        if isinstance(node.func, ast.Attribute):
-            if node.func.attr in ("update", "setdefault", "pop", "clear"):
-                val = node.func.value
-                if isinstance(val, ast.Attribute):
-                    target_obj_name = getattr(val.value, "id", "")  # noqa: QGR001 [REASON: AST node attribute inspection]
-                    if target_obj_name in ("state", "hook_state"):
-                        if val.attr == "metadata":
-                            self.has_inplace_metadata_mutation = True
-                        elif val.attr == "inputs":
-                            self.has_inplace_inputs_mutation = True
+        match node.func:
+            case ast.Attribute(
+                value=ast.Attribute(
+                    value=ast.Name(id="state" | "hook_state"),
+                    attr="metadata" | "inputs" as attr,
+                ),
+                attr="update" | "setdefault" | "pop" | "clear",
+            ):
+                if attr == "metadata":
+                    self.has_inplace_metadata_mutation = True
+                elif attr == "inputs":
+                    self.has_inplace_inputs_mutation = True
         self.generic_visit(node)
 
 

@@ -6,7 +6,7 @@ standards for type hint safety and runtime validation.
 
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, TypeAdapter
+from pydantic import ConfigDict, Field, JsonValue, TypeAdapter
 
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
@@ -76,7 +76,7 @@ class ClientErrorPayload(BaseDTO):
     stack_trace: Annotated[str | None, Field(description="The Dart stack trace lines")] = None
     severity: Annotated[str, Field(description="Severity level, usually 'error' or 'fatal'")] = "error"
     context_data: Annotated[
-        dict[str, object],
+        dict[str, JsonValue],
         Field(default_factory=dict, description="Additional context or state dump"),
     ]
 

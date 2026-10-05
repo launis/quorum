@@ -395,7 +395,7 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     event = TraceEvent(
         step_name="step1",
         event_type="output",
-        content={"_step_metadata": 12345},  # Invalid envelope
+        content={"step_metadata": 12345},  # Invalid envelope
     )
     mock_executed_record = base_record.model_copy(update={"execution_trace": [event]})
 

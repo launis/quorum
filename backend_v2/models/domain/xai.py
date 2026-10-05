@@ -7,7 +7,7 @@ including the final report output and context for report generation.
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, field_validator
 
@@ -23,6 +23,7 @@ from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import XaiExtensionType
 
 logger = logging.getLogger(__name__)
@@ -439,12 +440,8 @@ class XAIOutputDTO(ReasoningTraceDTO):
 class XAIOutput(XAIOutputDTO, ReasoningTrace):
     """Output schema for the XAI Reporter Agent.
 
-    WARNING (Rule 84): flat_report acts as a polymorphic boundary with extra='allow' configured
-    implicitly at parent classes. Keep structure dynamic for raw client processing.
-
     Attributes:
         score_cards: Aggregated scorecard items from all judges.
-        flat_report: Flattened machine-readable dict report summary.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -457,12 +454,6 @@ class XAIOutput(XAIOutputDTO, ReasoningTrace):
             json_schema_extra={"x-ui-label": "Scorecards"},
         ),
     ]
-    flat_report: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Flattened, machine-readable report summary.", json_schema_extra={"x-ui-label": "Flat Report"}
-        ),
-    ] = None
 
 
 class ReportResult(V2CoreBase):
@@ -485,6 +476,7 @@ class ReportResult(V2CoreBase):
     format: Annotated[
         str, Field(min_length=1, description="Report format.", json_schema_extra={"x-ui-label": "Format"})
     ] = "markdown"
-    data: Annotated[dict[str, Any] | None, Field(description="Structured data used to generate the report (SSOT).")] = (
-        None
-    )
+    data: Annotated[
+        ReportDataDTO | None,
+        Field(default=None, description="Structured data used to generate the report (SSOT)."),
+    ] = None

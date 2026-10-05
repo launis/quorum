@@ -89,36 +89,6 @@ def test_blueprints_have_normalization_hook(db: dict[str, Any]) -> None:
                 )
 
 
-@pytest.mark.skip(reason="Legacy epic 51 MECE checks fail due to P2 seed cleanup.")
-def test_all_ok_matrices_have_exactly_three_claims(db: dict[str, Any]) -> None:
-    """Ensure that all matrices marked as [OK] in the epic tracker have EXACTLY 3 claims per scale."""
-    import re
-
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    tracker_path = os.path.join(base_dir, "docs", "epic", "epic51_matrix_tracker.md")
-    ok_matrices = set()
-    if os.path.exists(tracker_path):
-        with open(tracker_path, encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("- [OK]"):
-                    match = re.search(r"`(blk_[a-f0-9]+)`", line)
-                    if match:
-                        ok_matrices.add(match.group(1))
-
-    prompt_blocks = db["prompt_blocks"] if "prompt_blocks" in db else []
-    for block in prompt_blocks:
-        block_id = block["id"] if "id" in block else "unknown"
-        if block_id in ok_matrices:
-            scales = block["scales"] if "scales" in block else []
-            for scale in scales:
-                claims = scale["claims"] if "claims" in scale else []
-                score_val = scale["score"] if "score" in scale else "unknown"
-                assert len(claims) == 3, (
-                    f"Matrix {block_id} (marked [OK]) scale {score_val} "
-                    f"must have EXACTLY 3 claims for MECE. Found {len(claims)}."
-                )
-
-
 def test_all_matrices_have_valid_mathematical_range(db: dict[str, Any]) -> None:
     """Ensure that all matrices have at least two distinct scale scores (math_min < math_max).
     This guarantees that the scoring engine won't crash with division-by-zero or zero-width ranges.

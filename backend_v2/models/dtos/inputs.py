@@ -89,3 +89,25 @@ class ProcessedChatDTO(V2CoreBase):
     combined: Annotated[str, Field(description="Combined dialogue turns with XML encapsulation")]
     user_only: Annotated[str, Field(description="User-only dialogue turns concatenated")]
     ai_only: Annotated[str, Field(description="AI-only dialogue turns concatenated")]
+
+
+class Base64Attachment(V2CoreBase):
+    """Strict DTO for handling binary base64 file uploads.
+
+    Attributes:
+        filename: The name of the uploaded file.
+        content_base64: The base64 encoded binary content.
+        content_type: Optional MIME type.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    filename: Annotated[str, Field(description="The name of the uploaded file")]
+    content_base64: Annotated[str, Field(description="The base64 encoded binary content")]
+    content_type: Annotated[str | None, Field(default=None, description="Optional MIME type")] = None
+
+
+type IngressInputValue = Annotated[
+    Base64Attachment | GuidedReflectionInputDTO | str | int | float | bool | list[str],
+    Field(description="Strict closed union of allowed ingress workflow input values"),
+]

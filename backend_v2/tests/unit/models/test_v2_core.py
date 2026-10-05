@@ -67,9 +67,9 @@ def test_step_trace_metadata_type_strictness() -> None:
 
 
 def test_trace_event_metadata_envelope_hydration() -> None:
-    """Test TraceEventMetadataEnvelope hydrates StepTraceMetadataDTO from _step_metadata alias."""
+    """Test TraceEventMetadataEnvelope hydrates StepTraceMetadataDTO from step_metadata."""
     raw_event_content = {
-        "_step_metadata": {
+        "step_metadata": {
             "task_blueprint": "step_extract",
             "model_strategy": "fast",
             "chunk_size": 2,

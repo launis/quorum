@@ -196,13 +196,11 @@ def test_trace_event_metadata_dto_validation_and_strictness() -> None:
 
 
 def test_trace_event_metadata_envelope_hydration() -> None:
-    """Test TraceEventMetadataEnvelope model_validate across alias branches and non-dict objects."""
-    # 1. Branch: dict with _step_metadata alias
+    """Test TraceEventMetadataEnvelope model_validate with canonical key and ignored legacy alias."""
+    # 1. Branch: dict with ignored legacy alias yields None
     payload_underscore = {"_step_metadata": {"model_strategy": "fast", "chunk_size": 2}}
     env_underscore = TraceEventMetadataEnvelope.model_validate(payload_underscore)
-    assert env_underscore.step_metadata is not None
-    assert env_underscore.step_metadata.model_strategy == "fast"
-    assert env_underscore.step_metadata.chunk_size == 2
+    assert env_underscore.step_metadata is None
 
     # 2. Branch: dict with step_metadata
     payload_clean = {"step_metadata": {"model_strategy": "deep", "chunk_size": 4}}

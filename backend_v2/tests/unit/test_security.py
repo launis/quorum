@@ -123,7 +123,7 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
         inputs=ExecutionInputsDTO(
             raw_inputs={
                 "string_field": "This is a safe string.",
-                "dict_field": {"some": "data"},
+                "int_field": 12345,
                 "list_field": ["some", "data"],
             }
         ),

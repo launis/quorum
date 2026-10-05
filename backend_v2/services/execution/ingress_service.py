@@ -29,7 +29,7 @@ from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngres
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
-from backend_v2.models.domain.system_config import DataDictionaryField
+from backend_v2.models.domain.system_config import DataDictionaryField, SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionCreateDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
@@ -237,7 +237,7 @@ async def _generate_sdui_hints(
                     field_id=pb_id,
                     component_type=ComponentType.SLIDER,
                     options=None,
-                    validation_rules={"max": max_val},
+                    validation_rules=SystemValidationRulesDTO(max=max_val),
                 )
             else:
                 ui_hints[pb_id] = DataDictionaryField(

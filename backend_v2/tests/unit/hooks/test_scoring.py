@@ -27,6 +27,7 @@ from backend_v2.hooks.scoring import (
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_delta import (
     MatrixHookResultDTO,
@@ -2898,7 +2899,6 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         assert extensions["coaching"] == "This is a coaching tip."
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_scoring_matrix_namespace_isolation() -> None:
     """Test that Matrix B evaluations leaking into Matrix A's loop are ignored."""
@@ -2963,7 +2963,6 @@ async def test_scoring_matrix_namespace_isolation() -> None:
     assert matrix_output.raw_score == 1.0
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     """Test that Regular TDA evaluations (matrix_id=None) bypass the namespace check."""
@@ -3028,21 +3027,20 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     assert matrix_output.evaluated_atoms[atom_hash] == ExecutionStatus.PASSED
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_failed_atom_with_override_does_not_inflate_score() -> None:
-    """Test that a FAILED atom with contextual_override=True does NOT inflate the matrix score."""
+    """Test that a FAILED atom with contextual_override=False does NOT inflate the matrix score."""
     mandate = "FAIL_FAST_NO_EVIDENCE"
     atom_hash = generate_atom_hash("atom_3", mandate)
 
-    ev_dict = {
-        "tda_id": atom_hash,
-        "matrix_id": "pb_1234567890123456",
-        "status": ExecutionStatus.FAILED,
-        "evaluation_reasoning": "Failed reason",
-        "source_quote": None,
-        "contextual_override": True,
-    }
+    ev_dto = AtomResultDTO(
+        tda_id=atom_hash,
+        matrix_id="pb_1234567890123456",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Failed reason",
+        source_quote=None,
+        contextual_override=False,
+    )
 
     state = HookState(
         execution_id="ex_1111111111111111",
@@ -3050,7 +3048,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         step_id="step1",
         task_blueprint="step1",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dict], "extracted_facts": {}}),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": [ev_dto], "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -3102,32 +3100,33 @@ class MockRepoWaterfallStrict(MockRepoWaterfall):
         return pb
 
 
-@pytest.mark.xfail(reason="Phase 2 pending: MatrixDomainParser evaluates Enum as truthy")
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
     """Test that illegal contextual_override maps to FALSE when allow_contextual_override is False."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-    evaluations = []
+    evaluations: list[AtomResultDTO] = []
 
     # Total 5 atoms, 1 illegal override, 4 PASS
     for i in range(1, 5):
         evaluations.append(
-            {
-                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                "status": ExecutionStatus.PASSED,
-                "evaluation_reasoning": "Hyväksytty",
-                "source_quote": "mock quote",
-                "contextual_override": False,
-            }
+            AtomResultDTO(
+                tda_id=generate_atom_hash(f"atom_{i}", mandate),
+                matrix_id="pb_1234567890123456",
+                status=ExecutionStatus.PASSED,
+                evaluation_reasoning="Hyväksytty",
+                source_quote="mock quote",
+                contextual_override=False,
+            )
         )
     evaluations.append(
-        {
-            "tda_id": generate_atom_hash("atom_5", mandate),
-            "status": ExecutionStatus.PASSED,
-            "evaluation_reasoning": "Contested",
-            "source_quote": "mock quote",
-            "contextual_override": True,
-        }
+        AtomResultDTO(
+            tda_id=generate_atom_hash("atom_5", mandate),
+            matrix_id="pb_1234567890123456",
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Contested",
+            source_quote=None,
+            contextual_override=True,
+        )
     )
 
     state = HookState(
@@ -3155,8 +3154,9 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
-    raw_score = delta.matrix_outputs["pb_1234567890123456"].raw_score
-    assert abs(raw_score - 4.0) < 0.01
+    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    assert matrix_output.evaluated_atoms[evaluations[4].tda_id] == ExecutionStatus.FAILED
+    assert abs(matrix_output.raw_score - 3.0077) < 0.01
 
 
 @pytest.mark.asyncio

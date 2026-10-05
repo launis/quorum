@@ -9,21 +9,26 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "GuttmanAtomItemDTO",
     "HardeningRetryDirectiveDTO",
+    "NestedValidationInputs",
     "SystemWarningsStateDTO",
     "ValidationHookPayloadDTO",
     "ValidationResultDTO",
     "ValidationWarningDTO",
 ]
+
+
+type NestedValidationInputs = dict[str, IngressInputValue]
 
 
 class ValidationHookPayloadDTO(V2CoreBase):
@@ -35,7 +40,10 @@ class ValidationHookPayloadDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    root: Annotated[dict[str, Any], Field(default_factory=dict)]
+    root: Annotated[
+        dict[str, IngressInputValue | NestedValidationInputs],
+        Field(default_factory=dict),
+    ]
 
     @classmethod
     def model_validate(
@@ -95,7 +103,7 @@ class ValidationWarningDTO(V2CoreBase):
     title: Annotated[str, Field(min_length=1, description="Short human-readable summary.")]
     error_code: Annotated[str, Field(min_length=1, description="Application-specific error identifier.")]
     detail: Annotated[str, Field(min_length=1, description="Human-readable explanation specific to this occurrence.")]
-    meta: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional contextual metadata.")]
+    meta: Annotated[dict[str, JsonValue], Field(default_factory=dict, description="Additional contextual metadata.")]
     entropy: Annotated[float | None, Field(description="Shannon entropy telemetry score.")] = None
     telemetry_code: Annotated[str | None, Field(description="Telemetry status or routing code.")] = None
 

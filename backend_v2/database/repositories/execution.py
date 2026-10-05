@@ -3,9 +3,8 @@
 import json
 import logging
 import uuid
-from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, JsonValue, TypeAdapter, ValidationError
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
@@ -21,11 +20,15 @@ from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
 
+type HydrationPayloadValue = (
+    JsonValue | BaseModel | list[ErrorTraceEvent | TombstoneEvent | TraceEvent] | list[MCPAuditTrace]
+)
+
 
 class ExecutionRepositoryImpl(BaseRepository):
     """Repository implementation for Execution traces and statuses."""
 
-    async def _offload_payloads(self, doc_id: str, data: dict[str, Any]) -> None:
+    async def _offload_payloads(self, doc_id: str, data: dict[str, JsonValue]) -> None:
         """Repository method implementation.
 
         Args:
@@ -91,7 +94,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
 
-    async def _hydrate_payloads(self, data: dict[str, Any] | None) -> None:
+    async def _hydrate_payloads(self, data: dict[str, HydrationPayloadValue] | None) -> None:
         """Hydrate storage blob payloads and subcollection audit trails.
 
         Args:
@@ -108,45 +111,47 @@ class ExecutionRepositoryImpl(BaseRepository):
         for field in ["execution_trace", "frozen_context", "context_variables"]:
             path_key = f"{field}_storage_path"
             if path_key in data and data[path_key]:
-                try:
-                    blob_data = await driver.read(data[path_key])
-                    if not blob_data or not blob_data.strip():
-                        status_val = None
-                        if "status" in data:
-                            status_val = data["status"]
-                        if field == "execution_trace" and status_val in [
-                            "PENDING",
-                            "RUNNING",
-                            "pending",
-                            "running",
-                        ]:
-                            data[field] = []
-                            continue
-                        raise ValueError(f"Hydration payload is empty for {field} at {data[path_key]}")
+                path_val = data[path_key]
+                if isinstance(path_val, str) and path_val.strip():
+                    try:
+                        blob_data = await driver.read(path_val)
+                        if not blob_data or not blob_data.strip():
+                            status_val = None
+                            if "status" in data:
+                                status_val = data["status"]
+                            if field == "execution_trace" and status_val in [
+                                "PENDING",
+                                "RUNNING",
+                                "pending",
+                                "running",
+                            ]:
+                                data[field] = []
+                                continue
+                            raise ValueError(f"Hydration payload is empty for {field} at {path_val}")
 
-                    if field == "execution_trace":
-                        data[field] = TypeAdapter(list[ErrorTraceEvent | TombstoneEvent | TraceEvent]).validate_json(
-                            blob_data
+                        if field == "execution_trace":
+                            data[field] = TypeAdapter(
+                                list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
+                            ).validate_json(blob_data)
+                        elif field == "frozen_context":
+                            data[field] = FrozenContext.model_validate_json(blob_data)
+                        elif field == "context_variables":
+                            data[field] = ContextVariablesDTO.model_validate_json(blob_data)
+                        else:
+                            data[field] = TypeAdapter(JsonValue).validate_json(blob_data)
+                    except Exception as e:
+                        logger.warning(
+                            "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s",
+                            field,
+                            path_val,
+                            e,
+                            exc_info=True,
                         )
-                    elif field == "frozen_context":
-                        data[field] = FrozenContext.model_validate_json(blob_data)
-                    elif field == "context_variables":
-                        data[field] = ContextVariablesDTO.model_validate_json(blob_data)
-                    else:
-                        data[field] = TypeAdapter(Any).validate_json(blob_data)
-                except Exception as e:
-                    logger.warning(
-                        "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s",
-                        field,
-                        data[path_key],
-                        e,
-                        exc_info=True,
-                    )
-                    raise AppException(
-                        message=f"Missing blob trace data for {field}.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": data[path_key]},
-                    ) from e
+                        raise AppException(
+                            message=f"Missing blob trace data for {field}.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.DATA_CORRUPTION.value, "path": path_val},
+                        ) from e
 
         doc_id = None
         if "id" in data:
@@ -157,7 +162,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 trails = await self.driver.query(coll_path)
                 if trails:
 
-                    def _get_timestamp(item: dict[str, Any]) -> str:
+                    def _get_timestamp(item: dict[str, JsonValue]) -> str:
                         if "timestamp" in item:
                             return str(item["timestamp"])
                         return ""

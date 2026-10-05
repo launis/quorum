@@ -11,7 +11,7 @@ import logging
 from typing import Annotated, Any, Literal
 
 from fastapi import status
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
@@ -71,9 +71,9 @@ class ProviderMetadataDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     finish_reason: Annotated[str | None, Field(default=None, description="Provider termination reason.")] = None
-    raw_extra: Annotated[dict[str, Any] | None, Field(default=None, description="Provider-specific raw metadata.")] = (
-        None
-    )
+    raw_extra: Annotated[
+        dict[str, JsonValue] | None, Field(default=None, description="Provider-specific raw metadata.")
+    ] = None
 
 
 class LLMResponse(BaseDTO):
@@ -431,7 +431,6 @@ class AdHocTestRequest(BaseDTO):
         api_key: Optional API key for testing.
         system_instruction: System prompt.
         user_prompt: User prompt.
-        model_params: Model parameters override.
         frequency_penalty: Optional frequency penalty.
         presence_penalty: Optional presence penalty.
     """
@@ -440,7 +439,6 @@ class AdHocTestRequest(BaseDTO):
     api_key: Annotated[str | None, Field(default=None, description="Optional API key for testing.")] = None
     system_instruction: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="System prompt.")]
     user_prompt: Annotated[str, Field(..., min_length=1, pattern=r"\S", description="User prompt.")]
-    model_params: Annotated[dict[str, Any], Field(default_factory=dict, description="Model parameters override.")]
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty override.")] = None
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty override.")] = None
 

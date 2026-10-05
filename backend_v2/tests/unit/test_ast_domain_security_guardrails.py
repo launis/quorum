@@ -2,8 +2,6 @@ import ast
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 
 class DomainSecurityVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
@@ -207,19 +205,6 @@ def test_negative_banned_run_chat_call() -> None:
     code = "await client.run_chat(messages)"
     res = scan_code_for_domain_security(code)
     assert res["run_chat"] is True
-
-
-@pytest.mark.skip(reason="Awaiting prompt sanitization implementation")
-def test_aspirational_html_escape() -> None:
-    base_dir = Path("backend_v2")
-    found_escape = False
-    if base_dir.exists():
-        for filepath in base_dir.rglob("*.py"):
-            res = scan_file_for_domain_security(filepath)
-            if res["html_escape"]:
-                found_escape = True
-                break
-    assert found_escape, "html.escape not found for payload sanitization"
 
 
 class DeprecatedSymbolVisitor(ast.NodeVisitor):

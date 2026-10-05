@@ -10,10 +10,12 @@ import pytest
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
 from scripts.audit_warning_baseline import (
     BaselineLedgerReportDTO,
+    ResidualDebtCeilingsDTO,
     RuleWarningStatDTO,
     format_report_table,
     generate_baseline_report,
     main,
+    verify_residual_debt_ceilings,
 )
 
 
@@ -248,3 +250,142 @@ def test_main_cli_failure_on_exceeding_ceiling() -> None:
         with pytest.raises(SystemExit) as exc_info:
             main(["--target", "backend_v2", "--ceiling", "0"])
         assert exc_info.value.code == 1
+
+
+# ==============================================================================
+# Residual Debt Ceilings (EPIC 157)
+# ==============================================================================
+
+
+def test_residual_debt_ceilings_dto_asserts_exact_equality() -> None:
+    """Contract: test_residual_debt_ceilings_dto_asserts_exact_equality.
+
+    Positive: ResidualDebtCeilingsDTO validates successfully with extra='forbid' and frozen=True.
+    """
+    from pydantic import ValidationError
+
+    dto = ResidualDebtCeilingsDTO(
+        d=821,
+        f=51,
+        k=25,
+        x=806,
+        n=78,
+        t=411,
+        p=407,
+        m=10,
+        r=191,
+        s=11,
+    )
+    assert dto.d == 821
+    assert dto.f == 51
+    assert dto.k == 25
+    assert dto.x == 806
+    assert dto.n == 78
+    assert dto.t == 411
+    assert dto.p == 407
+    assert dto.m == 10
+    assert dto.r == 191
+    assert dto.s == 11
+
+    # Verify frozen
+    with pytest.raises(ValidationError):
+        dto.__setattr__("d", 999)
+
+    # Verify extra='forbid'
+    with pytest.raises(ValidationError):
+        ResidualDebtCeilingsDTO.model_validate(
+            {
+                "d": 821,
+                "f": 51,
+                "k": 25,
+                "x": 806,
+                "n": 78,
+                "t": 411,
+                "p": 407,
+                "m": 10,
+                "r": 191,
+                "s": 11,
+                "unknown_category": 99,
+            }
+        )
+
+
+def test_verify_residual_debt_ceilings_exact_match() -> None:
+    """Positive: verify_residual_debt_ceilings succeeds when live matches ceiling."""
+    dto = ResidualDebtCeilingsDTO(
+        d=821,
+        f=51,
+        k=25,
+        x=806,
+        n=78,
+        t=411,
+        p=407,
+        m=10,
+        r=191,
+        s=11,
+    )
+    is_valid, msgs = verify_residual_debt_ceilings(dto, dto)
+    assert is_valid is True
+    assert any("PASSED" in m for m in msgs)
+
+
+def test_verify_residual_debt_ceilings_detects_exceeded() -> None:
+    """Negative: verify_residual_debt_ceilings flags error when live count exceeds ceiling."""
+    ceil = ResidualDebtCeilingsDTO(
+        d=10,
+        f=10,
+        k=10,
+        x=10,
+        n=10,
+        t=10,
+        p=10,
+        m=10,
+        r=10,
+        s=10,
+    )
+    live = ResidualDebtCeilingsDTO(
+        d=11,  # Exceeded
+        f=10,
+        k=10,
+        x=10,
+        n=10,
+        t=10,
+        p=10,
+        m=10,
+        r=10,
+        s=10,
+    )
+    is_valid, msgs = verify_residual_debt_ceilings(live, ceil)
+    assert is_valid is False
+    assert any("EXCEEDED" in m for m in msgs)
+
+
+def test_verify_residual_debt_ceilings_detects_lowered() -> None:
+    """Boundary: verify_residual_debt_ceilings flags ratchet needed when live count is below ceiling."""
+    ceil = ResidualDebtCeilingsDTO(
+        d=10,
+        f=10,
+        k=10,
+        x=10,
+        n=10,
+        t=10,
+        p=10,
+        m=10,
+        r=10,
+        s=10,
+    )
+    live = ResidualDebtCeilingsDTO(
+        d=9,  # Lowered - requires ratcheting down
+        f=10,
+        k=10,
+        x=10,
+        n=10,
+        t=10,
+        p=10,
+        m=10,
+        r=10,
+        s=10,
+    )
+    is_valid, msgs = verify_residual_debt_ceilings(live, ceil)
+    assert is_valid is False
+    assert any("RATCHET NEEDED" in m for m in msgs)

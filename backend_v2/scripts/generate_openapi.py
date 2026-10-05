@@ -9,7 +9,8 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+
+from pydantic import JsonValue
 
 # Ensure the root quorum directory is in sys.path BEFORE any backend_v2 imports
 root_dir = Path(__file__).resolve().parent.parent.parent
@@ -47,7 +48,7 @@ def generate_openapi_schema(output_path: Path | None = None) -> Path:
     # heavyweight loading of LLM dependencies
     from backend_v2.main import app
 
-    openapi_schema: dict[str, Any] = app.openapi()
+    openapi_schema: dict[str, JsonValue] = app.openapi()
 
     target_path = output_path or (root_dir / "docs" / "swagger" / "openapi.json")
     target_path.parent.mkdir(parents=True, exist_ok=True)

@@ -9,12 +9,13 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO
+from backend_v2.models.llm import ProviderMetadataDTO
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class AuditLogEntry(V2CoreBase):
     timestamp: Annotated[datetime, Field(description="Timestamp of the log entry.")]
     level: Annotated[str, Field(min_length=1, description="Log level (INFO, WARN, ERROR).")]
     message: Annotated[str, Field(min_length=1, description="Log message.")]
-    context: Annotated[dict[str, Any] | None, Field(description="Additional context.")] = None
+    context: Annotated[dict[str, JsonValue] | None, Field(description="Additional context.")] = None
 
 
 class Metadata(V2CoreBase):
@@ -105,7 +106,7 @@ class Metadata(V2CoreBase):
         ),
     ] = None
     provider_metadata: Annotated[
-        dict[str, Any] | None,
+        ProviderMetadataDTO | None,
         Field(
             description="Raw provider specific metadata (e.g. rate limits, safety ratings, citations).",
             json_schema_extra={"x-ui-label": "Provider Metadata"},

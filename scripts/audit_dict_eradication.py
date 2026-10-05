@@ -11,6 +11,7 @@ Statically analyzes backend Python files to mathematically verify:
 8. Exactly 0 Primitive Obsession nested dictionary annotations (dict[..., dict[...]]).
 9. Exactly 0 duplicate Field() assignments on Annotated fields (pydantic_annotated_fields_mandate).
 10. Exactly 0 class-level mutable defaults (list, dict, set) in domain and DTO models.
+11. Exactly 0 unauthorized/unwhitelisted dict[..., JsonValue] annotations in domain and DTO models.
 """
 
 from __future__ import annotations
@@ -25,26 +26,28 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+from scripts._ast_guardrails import (
+    BOUNDARY_EXEMPTION_FILES,
+    _find_jsonvalue_dict_subscript,
+    is_boundary_exempt,
+    is_open_json_exempt,
+)
+
 __all__ = [
     "AuditViolation",
+    "BOUNDARY_EXEMPTION_FILES",
     "DictEradicationReport",
     "DictEradicationVisitor",
     "audit_dict_eradication",
     "audit_file_comments",
+    "is_boundary_exempt",
     "main",
 ]
-
-# Locked physical SDK and storage driver boundaries
-LOCKED_PHYSICAL_DRIVERS: set[str] = {
-    "tinydb_driver.py",
-    "firestore_driver.py",
-    "provider.py",
-    "logging_config.py",
-    "vertex_adapter.py",
-    "ai_studio_adapter.py",
-    "handler.py",
-    "wrapper.py",
-}
 
 BANNED_REASON_PLACEHOLDERS: set[str] = {
     "n/a",
@@ -94,6 +97,7 @@ class DictEradicationReport:
         primitive_obsession_nested_dicts: Count of primitive obsession nested dicts.
         pydantic_annotated_violations: Count of duplicate Field() on Annotated fields.
         mutable_class_defaults: Count of mutable class-level defaults (list, dict, set).
+        unauthorized_open_json_annotations: Count of unwhitelisted dict[..., JsonValue] annotations.
         violations: List of discovered audit violations.
     """
 
@@ -107,6 +111,7 @@ class DictEradicationReport:
     primitive_obsession_nested_dicts: int = 0
     pydantic_annotated_violations: int = 0
     mutable_class_defaults: int = 0
+    unauthorized_open_json_annotations: int = 0
     violations: list[AuditViolation] = field(default_factory=list)
 
     @property
@@ -123,6 +128,7 @@ class DictEradicationReport:
             + self.primitive_obsession_nested_dicts
             + self.pydantic_annotated_violations
             + self.mutable_class_defaults
+            + self.unauthorized_open_json_annotations
         )
 
 
@@ -141,7 +147,8 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.source_bytes = source_bytes
         self.filename = Path(filepath).name
         self.strict = strict
-        self.is_exempt = self.filename in LOCKED_PHYSICAL_DRIVERS
+        self.is_exempt = is_boundary_exempt(filepath)
+        self.is_open_json_exempt = is_open_json_exempt(filepath)
         path_parts = set(Path(filepath).parts)
         self.is_test = "tests" in path_parts or Path(filepath).name.startswith("test_")
         self.is_domain_or_service = not self.is_test and not ("scripts" in path_parts or "migrations" in path_parts)
@@ -345,6 +352,21 @@ class DictEradicationVisitor(ast.NodeVisitor):
                         message=(
                             f"Primitive Obsession nested dict annotation found: `{ast.unparse(node.annotation)}`. "
                             "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                        ),
+                    )
+                )
+            # Unauthorized Open-JSON / JsonValue dictionary check
+            jsonvalue_sub = _find_jsonvalue_dict_subscript(node.annotation)
+            if jsonvalue_sub is not None and not self.is_open_json_exempt:
+                self.violations.append(
+                    AuditViolation(
+                        filepath=self.filepath,
+                        line=node.lineno,
+                        metric="unauthorized_open_json_annotations",
+                        message=(
+                            f"Unauthorized Open-JSON `dict[..., JsonValue]` annotation found: `{ast.unparse(jsonvalue_sub)}`. "
+                            "Open-JSON is permitted exclusively on approved external specifications (MCP, OpenAPI, JSON Schema, RFC 7807). "
+                            "Encapsulate internal domain entities and simulation traces in a dedicated Pydantic V2 DTO per EPIC 157 Section 2.4."
                         ),
                     )
                 )
@@ -708,8 +730,7 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
         List of discovered comment audit violations.
     """
     violations: list[AuditViolation] = []
-    filename = Path(filepath).name
-    if filename in LOCKED_PHYSICAL_DRIVERS:
+    if is_boundary_exempt(filepath):
         return violations
 
     try:
@@ -824,6 +845,8 @@ def audit_dict_eradication(
                 report.pydantic_annotated_violations += 1
             elif v.metric == "mutable_class_defaults":
                 report.mutable_class_defaults += 1
+            elif v.metric == "unauthorized_open_json_annotations":
+                report.unauthorized_open_json_annotations += 1
             elif v.metric == "syntax_parse_error":
                 report.syntax_parse_errors += 1
             report.violations.append(v)
@@ -915,6 +938,7 @@ Statically analyzes backend Python files to mathematically verify:
     print(f"8. Dynamic Reflection Calls:                    {report.reflection_calls}")
     print(f"9. Duplicate Field() on Annotated Fields:         {report.pydantic_annotated_violations}")
     print(f"10. Class-Level Mutable Defaults (list/dict/set): {report.mutable_class_defaults}")
+    print(f"11. Unauthorized Open-JSON (dict[..., JsonValue]):{report.unauthorized_open_json_annotations}")
     print("-" * 80)
     print(f"TOTAL VIOLATIONS:                               {report.total_violations}")
     print("=" * 80)

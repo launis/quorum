@@ -282,23 +282,24 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
 def main(argv: list[str] | None = None) -> None:
     """Main CLI entrypoint executing the sequential backend quality gate pipeline.
 
-    Parses command line arguments and runs the eight-stage validation sequence:
+    Parses command line arguments and runs the validation sequence:
     Ruff lint, Ruff format, MyPy strict type checking, AST guardrail validation,
     Jinja template validation, Seed dry-run verification, Clean imports verification,
-    and DTO parity verification.
+    DTO parity verification, and Warning & Residual Debt baseline verification.
     """
     parser = argparse.ArgumentParser(
         description="""Sequential backend quality gate pipeline.
 
-Executes an eight-stage validation sequence to guarantee architectural invariants:
-  1/8: Code hygiene and auto-formatting (ruff check --fix --extend-ignore=E501)
-  2/8: Code style formatting (ruff format)
-  3/8: Strict type checking (mypy --strict)
-  4/8: AST codebase guardrails (scripts/_ast_guardrails.py)
-  5/8: Jinja Dumb Painter template validation (backend_v2/templates/)
-  6/8: Seed data dry-run and database atom integrity audit
-  7/8: Clean import verification (scripts/audit_clean_imports.py)
-  8/8: DTO parity verification (scripts/audit_dto_parity.py)
+Executes a validation sequence to guarantee architectural invariants:
+  1/10: Code hygiene and auto-formatting (ruff check --fix --extend-ignore=E501)
+  2/10: Code style formatting (ruff format)
+  3/10: Strict type checking (mypy --strict)
+  4/10: AST codebase guardrails (scripts/_ast_guardrails.py)
+  5/10: Jinja Dumb Painter template validation (backend_v2/templates/)
+  6/10: Seed data dry-run and database atom integrity audit
+  7/10: Clean import verification (scripts/audit_clean_imports.py)
+  8/10: DTO parity verification (scripts/audit_dto_parity.py)
+  9/10: Warning and Residual Debt Baseline Ledger (scripts/audit_warning_baseline.py)
 
 Optional steps:
   --openapi: Generates updated OpenAPI documentation (backend_v2/scripts/generate_openapi.py)
@@ -374,28 +375,28 @@ Optional steps:
     print(f"\n🚀 Executing quality-loop for targets: {targets_str}")
     print("--------------------------------------------------")
 
-    print("\n⏳ 1/8: Checking and fixing files (ruff check --fix)...")
+    print("\n⏳ 1/10: Checking and fixing files (ruff check --fix)...")
     res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix", "--extend-ignore=E501"])
     if res.returncode != 0:
         print("❌ Ruff linter found unfixable errors!")
         sys.exit(res.returncode)
     print("✅ Linting and auto-fix complete.")
 
-    print("\n⏳ 2/8: Formatting code (ruff format)...")
+    print("\n⏳ 2/10: Formatting code (ruff format)...")
     res = subprocess.run(["uv", "run", "ruff", "format", *targets])
     if res.returncode != 0:
         print("❌ Ruff formatting failed!")
         sys.exit(res.returncode)
     print("✅ Formatting complete.")
 
-    print("\n⏳ 3/8: Type checking code (mypy --strict)...")
+    print("\n⏳ 3/10: Type checking code (mypy --strict)...")
     res = subprocess.run(["uv", "run", "mypy", *targets, "--strict"])
     if res.returncode != 0:
         print("\n❌ MyPy found type errors! Resolve Universal Quality Gate violations.\n")
         sys.exit(res.returncode)
     print("✅ Type check passed.")
 
-    print("\n⏳ 4/8: Checking AST Codebase Guardrails (scripts/_ast_guardrails.py)...")
+    print("\n⏳ 4/10: Checking AST Codebase Guardrails (scripts/_ast_guardrails.py)...")
     violations, is_success = scan_files_for_guardrails(targets, strict=ast_strict)
     unsuppressed = [v for v in violations if not v.is_suppressed]
     fatal_violations = [v for v in unsuppressed if v.severity == GuardrailSeverity.FATAL]
@@ -414,7 +415,7 @@ Optional steps:
     else:
         print("✅ AST Guardrails passed cleanly.")
 
-    print("\n⏳ 5/8: Validating UI templates (Jinja Dumb Painter Enforcement)...")
+    print("\n⏳ 5/10: Validating UI templates (Jinja Dumb Painter Enforcement)...")
     jinja_dir = Path("backend_v2/templates")
     dumb_painter_pattern = re.compile(r"\|\s*(default|d)\s*\(|\.get\s*\(|\bor\s+(''|\"\"|\[\]|\{\})")
     if jinja_dir.exists():
@@ -431,7 +432,7 @@ Optional steps:
                 sys.exit(1)
     print("✅ UI templates validated.")
 
-    print("\n⏳ 6/8: Validating Seed Data (Dry-Run & Strict Atom Audit)...")
+    print("\n⏳ 6/10: Validating Seed Data (Dry-Run & Strict Atom Audit)...")
     res = subprocess.run(["uv", "run", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"])
     if res.returncode != 0:
         print("\n❌ Seed Data Dry-Run failed! Pydantic model changes broke the SSOT JSON seed file.\n")
@@ -443,14 +444,14 @@ Optional steps:
         sys.exit(res_audit.returncode)
     print("✅ Seed Data and Database Atoms integrated and validated.")
 
-    print("\n⏳ 7/8: Verifying Clean Imports (scripts/audit_clean_imports.py)...")
+    print("\n⏳ 7/10: Verifying Clean Imports (scripts/audit_clean_imports.py)...")
     res_imports = subprocess.run(["uv", "run", "python", "scripts/audit_clean_imports.py"])
     if res_imports.returncode != 0:
         print("\n❌ Clean import audit failed! Circular dependencies or import errors detected.\n")
         sys.exit(res_imports.returncode)
     print("✅ Clean imports verified.")
 
-    print("\n⏳ 8/8: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
+    print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
     res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py"])
     if res_dto.returncode != 0:
         print(
@@ -458,6 +459,13 @@ Optional steps:
         )
         sys.exit(res_dto.returncode)
     print("✅ DTO Parity verified.")
+
+    print("\n⏳ 9/10: Verifying Warning & Residual Debt Baseline Ledger (scripts/audit_warning_baseline.py)...")
+    res_baseline = subprocess.run(["uv", "run", "python", "scripts/audit_warning_baseline.py", "--verify-zero"])
+    if res_baseline.returncode != 0:
+        print("\n❌ Warning baseline or residual debt ceiling exceeded! See ledger report above.\n")
+        sys.exit(res_baseline.returncode)
+    print("✅ Residual debt ceilings and warning baseline verified.")
 
     if run_openapi:
         print("\n⏳ Option: Generating OpenAPI documentation (--openapi)...")

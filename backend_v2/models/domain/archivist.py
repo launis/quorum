@@ -5,12 +5,13 @@ including precedent analysis and compliance checks.
 """
 
 import logging
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,8 @@ class ArchivistInput(V2CoreBase):
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     dynamic_inputs: Annotated[
-        dict[str, Any], Field(default_factory=dict, description="Structured dictionary for dynamic inputs.")
+        dict[str, IngressInputValue],
+        Field(default_factory=dict, description="Structured dictionary for dynamic inputs."),
     ]
 
 

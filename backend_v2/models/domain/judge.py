@@ -4,6 +4,8 @@ This module contains the schemas for the Judge Agent,
 including scorecards and dimension results.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated
 
@@ -11,7 +13,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain import analyst as _analyst
 from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.domain.causal import CausalOutput
@@ -59,7 +61,7 @@ class JudgeInput(V2CoreBase):
 
     # Preceding Agents (Critics) - Strictly Typed via Forward Refs
     step_analyst: Annotated[
-        AnalystOutput | LogicianOutput | None, Field(description="Analyst or Logician outputs.")
+        _analyst.AnalystOutput | LogicianOutput | None, Field(description="Analyst or Logician outputs.")
     ] = None
     step_profiler: Annotated[ProfilerOutput | None, Field(description="Profiler Output.")] = None
     step_archivist: Annotated[ArchivistOutput | None, Field(description="Archivist Output.")] = None

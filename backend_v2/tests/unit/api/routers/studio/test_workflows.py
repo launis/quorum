@@ -16,6 +16,7 @@ from backend_v2.models.auth import TokenData
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
+    StepSimulationTraceDTO,
     WorkflowResponseDTO,
     WorkflowSimulationResponse,
 )
@@ -113,7 +114,7 @@ async def test_simulate_workflow(mock_studio_services, sample_workflow: Workflow
         errors=[],
         step_status={},
         execution_order=[],
-        trace={},
+        trace=StepSimulationTraceDTO(),
     )
     mock_simulation.simulate_workflow.return_value = sim_response
 

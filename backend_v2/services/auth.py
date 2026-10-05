@@ -775,9 +775,10 @@ class AuthService:
             ConflictError: If the organization is not empty and force is False.
         """
         logger.info(
-            "[AuthService] delete_organization called. Initiator: %s, ",
+            "[AuthService] delete_organization called. Initiator: %s, Target: %s, Force: %s",
             initiator.id,
-            f"Target: {target_org_id}, Force: {force}",
+            target_org_id,
+            force,
         )
 
         if initiator.role != UserRole.ROOT:

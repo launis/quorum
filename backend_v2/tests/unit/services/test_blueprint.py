@@ -3720,7 +3720,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
             TraceEvent(
                 step_name="meta_step",
                 event_type="output",
-                content={"_step_metadata": {"token_usage": "not_valid"}},
+                content={"step_metadata": {"token_usage": "not_valid"}},
             )
         ],
         metadata=ExecutionMetadata(),

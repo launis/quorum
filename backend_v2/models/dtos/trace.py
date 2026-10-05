@@ -152,7 +152,7 @@ class TraceEventMetadataEnvelope(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)] = None
+    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(default=None)] = None
 
     @classmethod
     def model_validate(
@@ -181,10 +181,8 @@ class TraceEventMetadataEnvelope(BaseDTO):
             ValidationError: If model validation fails.
         """
         if type(obj) is dict:
-            extracted: dict[str, Any] = {}
-            if "_step_metadata" in obj:
-                extracted["_step_metadata"] = obj["_step_metadata"]
-            elif "step_metadata" in obj:
+            extracted: dict[str, JsonValue] = {}
+            if "step_metadata" in obj:
                 extracted["step_metadata"] = obj["step_metadata"]
             return super().model_validate(
                 extracted, *args, strict=strict, from_attributes=from_attributes, context=context, **kwargs

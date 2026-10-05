@@ -14,6 +14,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTraceDTO
+from backend_v2.models.dtos.inputs import IngressInputValue
 from backend_v2.models.enums import LaxRiskLevel, LaxSimulationType
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class SecurityPayloadDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     root: Annotated[
-        dict[str, Any],
+        dict[str, IngressInputValue],
         Field(default_factory=dict, description="Raw state inputs mapping."),
     ]
 

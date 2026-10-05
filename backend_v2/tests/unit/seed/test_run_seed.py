@@ -470,7 +470,7 @@ async def test_seeder_aborts_on_invalid_workflow_dag() -> None:
 
 
 def test_seeder_preflight_validates_all_standard_collections() -> None:
-    """Contract 3: Positive test - validate_all_seed_collections validates and serializes collections."""
+    """Contract 3: Positive test - validate_all_seed_collections validates collections into ValidatedSeedBufferDTO."""
     valid_payload = {
         "organizations": [VALID_ORGANIZATION],
         "workflows": [VALID_WORKFLOW],
@@ -485,12 +485,24 @@ def test_seeder_preflight_validates_all_standard_collections() -> None:
     with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
         buffers = run_seed.validate_all_seed_collections(valid_payload)
 
+    assert isinstance(buffers, run_seed.ValidatedSeedBufferDTO)
     assert "organizations" in buffers
-    assert len(buffers["organizations"]) == 1
-    assert buffers["organizations"][0]["id"] == VALID_ORGANIZATION["id"]
+    assert len(buffers.organizations) == 1
+    assert buffers.organizations[0].id == VALID_ORGANIZATION["id"]
     assert "workflows" in buffers
-    assert len(buffers["workflows"]) == 1
-    assert buffers["workflows"][0]["id"] == VALID_WORKFLOW["id"]
+    assert len(buffers.workflows) == 1
+    assert buffers.workflows[0].id == VALID_WORKFLOW["id"]
     for col in ["users", "system_config", "prompt_blocks", "steps", "output_profiles", "executions"]:
         assert col in buffers
-        assert buffers[col] == []
+        assert buffers.get_collection(col) == []
+
+
+def test_validated_seed_buffer_dto_rejects_unknown_collection() -> None:
+    """Test contract: ValidatedSeedBufferDTO rejects unknown collection key under extra='forbid'."""
+    from pydantic import ValidationError
+
+    invalid_payload = {
+        "unknown_collection": [{"id": "foo"}],
+    }
+    with pytest.raises(ValidationError):
+        run_seed.ValidatedSeedBufferDTO.model_validate(invalid_payload)

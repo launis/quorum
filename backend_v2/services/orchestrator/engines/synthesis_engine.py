@@ -11,13 +11,13 @@ import logging
 from enum import Enum
 
 import opentelemetry.trace as trace
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
-from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, RawXAIExtensionDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -165,7 +165,13 @@ class SynthesisEngine:
                 try:
                     if isinstance(matrix_reducer_output, LightweightMatrixDTO):
                         if matrix_reducer_output.raw_extensions:
-                            extensions_json = json.dumps(matrix_reducer_output.raw_extensions, indent=2)
+                            raw_list = [
+                                ext.model_dump(mode="json", exclude_none=True)
+                                if isinstance(ext, (RawXAIExtensionDTO, BaseModel))
+                                else ext
+                                for ext in matrix_reducer_output.raw_extensions
+                            ]
+                            extensions_json = json.dumps(raw_list, indent=2)
                             raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
                     elif isinstance(matrix_reducer_output, LightweightMatrixOutput):
                         if matrix_reducer_output.extensions:

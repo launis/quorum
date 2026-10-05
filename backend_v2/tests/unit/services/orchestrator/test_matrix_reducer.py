@@ -268,7 +268,7 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
 
     reduced = MatrixReducer.reduce_matrix(record)
     assert reduced.global_metrics["total_atoms"] == 2
-    assert any(m["matrix_id"] == "mat_governance" for m in reduced.evaluated_matrices)
+    assert any(m.matrix_id == "mat_governance" for m in reduced.evaluated_matrices)
     assert len(reduced.reduced_atoms) == 2
 
 

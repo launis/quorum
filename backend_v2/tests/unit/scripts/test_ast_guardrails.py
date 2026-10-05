@@ -1014,29 +1014,40 @@ def test_qgr015_typeguard_import_and_usage_fatal() -> None:
 
 
 def test_purged_boundary_exemption_files() -> None:
-    """Verify non-driver files are purged from BOUNDARY_EXEMPTION_FILES."""
+    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains exactly the 15 SSOT paths."""
     from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
 
     purged = [
-        "interfaces.py",
-        "wrapper.py",
-        "driver.py",
-        "exceptions.py",
-        "alias_engine.py",
-        "state_reducer.py",
-        "finops_trace_analyzer.py",
+        "backend_v2/models/dtos/telemetry.py",
+        "backend_v2/api/routers/system/telemetry.py",
+        "backend_v2/services/sdui/adapters/base_adapter.py",
+        "backend_v2/core/interfaces.py",
+        "backend_v2/exceptions.py",
+        "backend_v2/services/alias_engine.py",
+        "backend_v2/services/state_reducer.py",
     ]
     for filename in purged:
         assert filename not in BOUNDARY_EXEMPTION_FILES
 
-    assert BOUNDARY_EXEMPTION_FILES == {
-        "tinydb_driver.py",
-        "firestore_driver.py",
-        "provider.py",
-        "logging_config.py",
-        "base_adapter.py",
-        "telemetry.py",
-    }
+    assert BOUNDARY_EXEMPTION_FILES == frozenset(
+        {
+            "backend_v2/database/tinydb_driver.py",
+            "backend_v2/database/firestore_driver.py",
+            "backend_v2/database/driver.py",
+            "backend_v2/database/wrapper.py",
+            "backend_v2/llm/provider.py",
+            "backend_v2/llm/handler.py",
+            "backend_v2/logging_config.py",
+            "backend_v2/core/telemetry.py",
+            "backend_v2/llm/adapters/base_adapter.py",
+            "backend_v2/llm/adapters/vertex_adapter.py",
+            "backend_v2/llm/adapters/ai_studio_adapter.py",
+            "backend_v2/llm/adapters/openai_adapter.py",
+            "backend_v2/llm/adapters/anthropic_adapter.py",
+            "backend_v2/llm/adapters/deepseek_adapter.py",
+            "backend_v2/llm/adapters/mock_adapter.py",
+        }
+    )
 
 
 # ==============================================================================
@@ -1102,7 +1113,7 @@ def test_qgr016_boundary_exempt_file_fatal() -> None:
 def test_qgr016_comment_suppression_works() -> None:
     """QGR016: Inline comment suppression # noqa: QGR016 suppresses the violation."""
     code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/drivers/tinydb_driver.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].is_suppressed is True
@@ -1499,3 +1510,189 @@ async def sync_progress():
     violations = _scan_snippet(code, filepath="backend_v2/services/orchestrator/dag_executor.py")
     qgr025 = [v for v in violations if v.rule_code == "QGR025"]
     assert len(qgr025) == 0
+
+
+# ==============================================================================
+# Partition 27: BOUNDARY_EXEMPTION_FILES SSOT & Admission Ratchet
+# ==============================================================================
+
+
+def test_boundary_exemption_files_contains_only_relative_paths() -> None:
+    """Verifies that all 15 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
+    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES, REPO_ROOT
+
+    assert len(BOUNDARY_EXEMPTION_FILES) == 15
+    for file_path_str in BOUNDARY_EXEMPTION_FILES:
+        path = Path(file_path_str)
+        assert not path.is_absolute(), f"Exemption path must be relative: {file_path_str}"
+        assert "\\" not in file_path_str, f"Exemption path must use POSIX separators: {file_path_str}"
+        physical_file = REPO_ROOT / path
+        assert physical_file.is_file(), f"Exemption file must exist on disk: {physical_file}"
+
+
+def test_boundary_exemption_files_rejects_models_services_hooks_api() -> None:
+    """Negative test verifying zero exemption members belong to core domain directories (models, services, hooks, api)."""
+    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
+
+    banned_prefixes = (
+        "backend_v2/models",
+        "backend_v2/services",
+        "backend_v2/hooks",
+        "backend_v2/api",
+    )
+    for file_path_str in BOUNDARY_EXEMPTION_FILES:
+        for prefix in banned_prefixes:
+            assert not file_path_str.startswith(prefix), (
+                f"Core domain path {file_path_str} is strictly banned from boundary exemptions"
+            )
+
+
+def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
+    """Admission ratchet: 9 newly admitted boundary files scanned with empty exemption set return 0 AST violations."""
+    from scripts._ast_guardrails import REPO_ROOT, scan_file_for_guardrails
+
+    nine_new_members = [
+        "backend_v2/database/driver.py",
+        "backend_v2/database/wrapper.py",
+        "backend_v2/llm/handler.py",
+        "backend_v2/llm/adapters/vertex_adapter.py",
+        "backend_v2/llm/adapters/ai_studio_adapter.py",
+        "backend_v2/llm/adapters/openai_adapter.py",
+        "backend_v2/llm/adapters/anthropic_adapter.py",
+        "backend_v2/llm/adapters/deepseek_adapter.py",
+        "backend_v2/llm/adapters/mock_adapter.py",
+    ]
+    with patch("scripts._ast_guardrails.BOUNDARY_EXEMPTION_FILES", frozenset()):
+        for rel_path in nine_new_members:
+            abs_path = REPO_ROOT / rel_path
+            violations = scan_file_for_guardrails(abs_path)
+            unsuppressed = [v for v in violations if not v.is_suppressed]
+            assert len(unsuppressed) == 0, f"Expected 0 violations for {rel_path}, got: {unsuppressed}"
+
+
+# ==============================================================================
+# Partition 28: QGR026 Unconditional Skip and Xfail Test Ban
+# ==============================================================================
+
+
+def test_qgr026_unconditional_skip_marker_raises_fatal() -> None:
+    """QGR026: Function decorated with unconditional skip marker triggers FATAL violation."""
+    marker = "skip"
+    code = f"""
+import pytest
+
+@pytest.mark.{marker}(reason="temporarily broken")
+def test_foo():
+    assert True
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr026 = [v for v in violations if v.rule_code == "QGR026"]
+    assert len(qgr026) == 1
+    assert qgr026[0].severity == GuardrailSeverity.FATAL
+    assert "pytest.mark.skip" in qgr026[0].message
+
+
+def test_qgr026_unconditional_xfail_marker_raises_fatal() -> None:
+    """QGR026: Function decorated with unconditional xfail marker triggers FATAL violation."""
+    marker = "xfail"
+    code = f"""
+import pytest
+
+@pytest.mark.{marker}(reason="known bug")
+def test_bar():
+    assert False
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr026 = [v for v in violations if v.rule_code == "QGR026"]
+    assert len(qgr026) == 1
+    assert qgr026[0].severity == GuardrailSeverity.FATAL
+    assert "pytest.mark.xfail" in qgr026[0].message
+
+
+def test_qgr026_environment_skipif_permitted() -> None:
+    """QGR026: Function decorated with conditional @pytest.mark.skipif emits zero violations."""
+    code = """
+import os
+import pytest
+
+@pytest.mark.skipif(not os.getenv("RUN_INTEGRATION"), reason="requires live api")
+def test_integration():
+    assert True
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr026 = [v for v in violations if v.rule_code == "QGR026"]
+    assert len(qgr026) == 0
+
+
+def test_qgr026_module_level_pytestmark_skip_raises_fatal() -> None:
+    """QGR026: Module-level pytestmark = pytest.mark.skip triggers FATAL violation."""
+    code = """
+import pytest
+
+pytestmark = pytest.mark.skip(reason="legacy file")
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr026 = [v for v in violations if v.rule_code == "QGR026"]
+    assert len(qgr026) == 1
+    assert qgr026[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr026_pytest_xfail_call_raises_fatal() -> None:
+    """QGR026: Direct call to pytest.xfail() triggers FATAL violation."""
+    code = """
+import pytest
+
+def test_baz():
+    pytest.xfail("cannot run here")
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr026 = [v for v in violations if v.rule_code == "QGR026"]
+    assert len(qgr026) == 1
+    assert qgr026[0].severity == GuardrailSeverity.FATAL
+
+
+# ==============================================================================
+# Partition 27: QGR027 Unauthorized Open-JSON / JsonValue in Domain & DTO Models
+# ==============================================================================
+
+
+def test_qgr027_unauthorized_open_json_fatal() -> None:
+    """QGR027: dict[str, JsonValue] on non-exempt models triggers FATAL violation."""
+    code = """
+from pydantic import BaseModel, JsonValue
+
+class SimulationResponse(BaseModel):
+    trace: dict[str, JsonValue]
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/studio.py")
+    qgr027 = [v for v in violations if v.rule_code == "QGR027"]
+    assert len(qgr027) == 1
+    assert qgr027[0].severity == GuardrailSeverity.FATAL
+    assert "Open-JSON" in qgr027[0].message
+    assert "StepSimulationTraceDTO" in qgr027[0].remediation or "EPIC 157" in qgr027[0].remediation
+
+
+def test_qgr027_open_json_exemption_permitted() -> None:
+    """QGR027: Approved Open-JSON specifications (e.g. validation.py, mcp.py) emit zero violations."""
+    code = """
+from pydantic import BaseModel, JsonValue
+
+class McpToolCall(BaseModel):
+    arguments: dict[str, JsonValue]
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/models/domain/validation.py")
+    qgr027 = [v for v in violations if v.rule_code == "QGR027"]
+    assert len(qgr027) == 0
+
+
+def test_qgr027_boundary_exempt_file_permitted() -> None:
+    """QGR027: Boundary exempt files (e.g. llm/provider.py) emit zero violations."""
+    code = """
+from pydantic import BaseModel, JsonValue
+
+class ProviderPayload(BaseModel):
+    raw_payload: dict[str, JsonValue]
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/llm/provider.py")
+    qgr027 = [v for v in violations if v.rule_code == "QGR027"]
+    assert len(qgr027) == 0

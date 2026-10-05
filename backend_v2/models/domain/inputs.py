@@ -8,7 +8,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
+from backend_v2.models.domain import analyst as _analyst
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
 from backend_v2.models.domain.coach import CoachingPlan
 from backend_v2.models.domain.evaluation import EvaluationResult
@@ -25,7 +25,11 @@ from backend_v2.models.domain.security import InputProcessingOutputDTO, Sanitiza
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
-from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
+from backend_v2.models.dtos.inputs import (
+    Base64Attachment,
+    GuidedReflectionInputDTO,
+    IngressInputValue,
+)
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
@@ -49,22 +53,6 @@ __all__ = [
 ]
 
 
-class Base64Attachment(V2CoreBase):
-    """Strict DTO for handling binary base64 file uploads.
-
-    Attributes:
-        filename: The name of the uploaded file.
-        content_base64: The base64 encoded binary content.
-        content_type: Optional MIME type.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    filename: Annotated[str, Field(description="The name of the uploaded file")]
-    content_base64: Annotated[str, Field(description="The base64 encoded binary content")]
-    content_type: Annotated[str | None, Field(default=None, description="Optional MIME type")] = None
-
-
 class DLQAtomSchema(V2CoreBase):
     """Strict schema for DLQ validation.
 
@@ -80,11 +68,6 @@ class DLQAtomSchema(V2CoreBase):
     tda_id: Annotated[str | None, Field(default=None)] = None
     status: Annotated[str | None, Field(default=None)] = None
 
-
-type IngressInputValue = Annotated[
-    Base64Attachment | GuidedReflectionInputDTO | str | int | float | bool | list[str],
-    Field(description="Strict closed union of allowed ingress workflow input values"),
-]
 
 type DomainInputValue = Annotated[
     StepOutputDTO
@@ -109,9 +92,9 @@ type DomainInputValue = Annotated[
     | GuttmanAtomItemDTO
     | list[GuttmanAtomItemDTO]
     | ValidationResultDTO
-    | Hypothesis
-    | list[Hypothesis]
-    | AnalystOutput
+    | _analyst.Hypothesis
+    | list[_analyst.Hypothesis]
+    | _analyst.AnalystOutput
     | JudgeOutput
     | CoachingPlan
     | EvaluationResult

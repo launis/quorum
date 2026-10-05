@@ -851,6 +851,7 @@ async def test_studio_simulation_returns_strict_dtos(
         test_token, PromptBlockSimulationRequest(block=block, mock_inputs={})
     )
     assert isinstance(pb_res, PromptBlockSimulationResponse)
+    assert isinstance(pb_res.trace, StepSimulationTraceDTO)
 
     step_res = await simulation_service.simulate_step(test_token, step, ExecutionInputsDTO())
     assert isinstance(step_res, StepSimulationResponse)
@@ -858,3 +859,4 @@ async def test_studio_simulation_returns_strict_dtos(
 
     wf_res = await simulation_service.simulate_workflow(test_token, workflow)
     assert isinstance(wf_res, WorkflowSimulationResponse)
+    assert isinstance(wf_res.trace, StepSimulationTraceDTO)

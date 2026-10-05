@@ -34,11 +34,12 @@ import json
 import logging
 import shutil
 import sys
+from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Protocol
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from tinydb import Query, TinyDB
 
 FIREBASE_AVAILABLE = importlib.util.find_spec("firebase_admin") is not None
@@ -58,7 +59,13 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.seed.seed_registry import STANDARD_REGISTRY
+from backend_v2.models.auth import Organization, User
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.seed.seed_registry import STANDARD_REGISTRY, SystemConfigUnion
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.settings import get_settings
 
@@ -77,10 +84,79 @@ __all__ = [
     "LOCAL_DB_PATH",
     "PROJECT_ROOT",
     "SEED_PATH",
+    "ValidatedSeedBufferDTO",
     "main",
     "seed_database",
     "validate_all_seed_collections",
 ]
+
+
+class _FirestoreDocumentReference(Protocol):
+    def delete(self) -> None: ...
+
+
+class _FirestoreDocument(Protocol):
+    @property
+    def reference(self) -> _FirestoreDocumentReference: ...
+
+
+class _FirestoreCollection(Protocol):
+    def limit(self, count: int) -> _FirestoreCollection: ...
+    def stream(self) -> Iterable[_FirestoreDocument]: ...
+
+
+class ValidatedSeedBufferDTO(BaseModel):
+    """Strongly typed container for validated in-memory seed collections."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    system_config: list[SystemConfigUnion] = Field(default_factory=list)
+    workflows: list[Workflow] = Field(default_factory=list)
+    prompt_blocks: list[AnyPromptBlock] = Field(default_factory=list)
+    steps: list[Step] = Field(default_factory=list)
+    output_profiles: list[OutputProfile] = Field(default_factory=list)
+    executions: list[ExecutionRecord] = Field(default_factory=list)
+    organizations: list[Organization] = Field(default_factory=list)
+    users: list[User] = Field(default_factory=list)
+
+    def get_collection(self, col_key: str) -> Sequence[BaseModel]:
+        """Returns the typed collection list by collection name."""
+        match col_key:
+            case "system_config":
+                return self.system_config
+            case "workflows":
+                return self.workflows
+            case "prompt_blocks":
+                return self.prompt_blocks
+            case "steps":
+                return self.steps
+            case "output_profiles":
+                return self.output_profiles
+            case "executions":
+                return self.executions
+            case "organizations":
+                return self.organizations
+            case "users":
+                return self.users
+            case _:
+                raise KeyError(f"Unknown seed collection: '{col_key}'")
+
+    def __getitem__(self, col_key: str) -> Sequence[BaseModel]:
+        """Retrieve seed collection by registry key name."""
+        return self.get_collection(col_key)
+
+    def __contains__(self, col_key: object) -> bool:
+        """Verify whether a collection key name belongs to standard seed collections."""
+        return col_key in {
+            "system_config",
+            "workflows",
+            "prompt_blocks",
+            "steps",
+            "output_profiles",
+            "executions",
+            "organizations",
+            "users",
+        }
 
 
 def _fail_fast(msg: str, error: Exception) -> AppException:
@@ -108,7 +184,7 @@ def _fail_fast(msg: str, error: Exception) -> AppException:
     )
 
 
-def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
     """Validates 100% of seed items in-memory across STANDARD_REGISTRY before any database operations.
 
     Phase 1 of Two-Phase Seeding: validates schemas and DAG workflows in memory.
@@ -118,52 +194,31 @@ def validate_all_seed_collections(seed_data: dict[str, Any]) -> dict[str, list[d
         seed_data: Raw JSON payload loaded from the seed file.
 
     Returns:
-        A dictionary mapping collection keys to their validated and serialized JSON dictionaries.
+        ValidatedSeedBufferDTO containing validated domain models per collection.
 
     Raises:
-        SystemExit: If any validation or processing error occurs.
+        AppException: If any validation or processing error occurs.
     """
-    validated_buffers: dict[str, list[dict[str, Any]]] = {}
+    try:
+        validated_buffer = ValidatedSeedBufferDTO.model_validate(seed_data)
+    except ValidationError as ve:
+        raise _fail_fast("Seed buffer validation failed", ve) from ve
+    except Exception as e:
+        raise _fail_fast("Processing error during seed validation", e) from e
 
-    for col_key, config in STANDARD_REGISTRY.items():
-        id_field = str(config["id_field"])
-        pyd_adapter: Any = config["model"]
-        dumped_buffer: list[dict[str, Any]] = []
+    # Additional DAG compilation validation on workflows
+    for wf in validated_buffer.workflows:
+        try:
+            DAGCompilerService.validate_workflow(wf)
+        except Exception as e:
+            raise _fail_fast(f"Workflow DAG validation failed for '{wf.id}'", e) from e
 
-        items_to_process: list[Any] = []
-        if col_key in seed_data:
-            items_to_process = seed_data[col_key]
-        for item in items_to_process:
-            try:
-                # Let Pydantic resolve strictness natively using model_config=ConfigDict(strict=True)
-                validated = pyd_adapter.validate_python(item)
-
-                if col_key == "workflows":
-                    DAGCompilerService.validate_workflow(validated)
-
-                if isinstance(validated, BaseModel):
-                    dumped = validated.model_dump(mode="json")
-                else:
-                    dumped = pyd_adapter.dump_python(validated, mode="json")
-
-                dumped_buffer.append(dumped)
-
-            except ValidationError as ve:
-                item_id = "unknown"
-                if id_field in item:
-                    item_id = item[id_field]
-                raise _fail_fast(f"Validation Error for {col_key} item {item_id}", ve) from ve
-            except (KeyError, ValueError, TypeError) as e:
-                raise _fail_fast(f"Processing Error for {col_key} item", e) from e
-
-        validated_buffers[col_key] = dumped_buffer
-
-    return validated_buffers
+    return validated_buffer
 
 
 async def _seed_tinydb(
     db_path: Path,
-    seed_data: dict[str, Any],
+    seed_data: object,
     target_env: str,
     dry_run: bool = False,
 ) -> None:
@@ -243,14 +298,13 @@ async def _seed_tinydb(
         if not dry_run and db is not None:
             target_table = db.table(table_name)
         id_field = str(config["id_field"])
-        dumped_buffer: list[Any] = []
-        if col_key in validated_buffers:
-            dumped_buffer = validated_buffers[col_key]
+        items = validated_buffers.get_collection(col_key)
         count = 0
 
         # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
-        for dumped in dumped_buffer:
+        for model in items:
             try:
+                dumped = model.model_dump(mode="json")
                 if id_field in dumped:
                     if not dry_run and target_table is not None:
                         target_table.upsert(dumped, Query().id == dumped[id_field])
@@ -265,7 +319,7 @@ async def _seed_tinydb(
         # ---------------------------------------------------------------------
         if not dry_run and target_table is not None:
             actual_db_count = len(target_table)
-            expected_count = len(dumped_buffer)
+            expected_count = len(items)
             if actual_db_count != expected_count:
                 raise _fail_fast(
                     f"Data Loss Detected in '{col_key}' table!",
@@ -283,7 +337,7 @@ async def _seed_tinydb(
         print("[Seeder V2] DRY-RUN ACTIVE: Completed successfully without saving to disk.")
 
 
-async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
+async def _seed_firestore(seed_data: object, target_env: str) -> None:
     """Seeds the Cloud Firestore database with parsed V2 registry data.
 
     Enforces Two-Phase Pre-Flight In-Memory Validation:
@@ -322,14 +376,15 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
     for col in collections_to_clear:
         _delete_collection(db.collection(col))
 
-    def batch_upsert(collection_name: str, items: list[dict[str, Any]], id_field: str = "id") -> None:
+    def batch_upsert(collection_name: str, items: list[BaseModel], id_field: str = "id") -> None:
         batch = db.batch()
         count = 0
         total = 0
-        for item in items:
+        for model in items:
+            item = model.model_dump(mode="json")
             doc_id = None
             if id_field in item:
-                doc_id = item[id_field]
+                doc_id = str(item[id_field])
             if not doc_id:
                 print(f"[Seeder V2] Error: Item in {collection_name} missing {id_field}. Skipping.")
                 continue
@@ -348,13 +403,11 @@ async def _seed_firestore(seed_data: dict[str, Any], target_env: str) -> None:
 
     for col_key, config in STANDARD_REGISTRY.items():
         id_field = str(config["id_field"])
-        valid_items: list[Any] = []
-        if col_key in validated_buffers:
-            valid_items = validated_buffers[col_key]
-        batch_upsert(col_key, valid_items, id_field=id_field)
+        items = validated_buffers.get_collection(col_key)
+        batch_upsert(col_key, list(items), id_field=id_field)
 
 
-def _delete_collection(coll_ref: Any, batch_size: int = 50) -> None:
+def _delete_collection(coll_ref: _FirestoreCollection, batch_size: int = 50) -> None:
     """Recursively deletes all documents in a Firestore collection.
 
     Args:

@@ -138,9 +138,19 @@ def test_audit_dict_eradication_detects_banned_get_lookup(tmp_path: Path) -> Non
     assert report.total_violations >= 1
 
 
+def test_boundary_exemption_files_is_shared_ssot() -> None:
+    """Verifies that audit_dict_eradication imports BOUNDARY_EXEMPTION_FILES by identity from _ast_guardrails."""
+    import scripts._ast_guardrails as guardrails
+    from scripts.audit_dict_eradication import BOUNDARY_EXEMPTION_FILES
+
+    assert BOUNDARY_EXEMPTION_FILES is guardrails.BOUNDARY_EXEMPTION_FILES
+
+
 def test_audit_dict_eradication_exempts_boundary_drivers_and_legit_get(tmp_path: Path) -> None:
-    """Verifies that locked physical boundary files and legitimate get calls are exempt."""
-    exempt_file = tmp_path / "tinydb_driver.py"
+    """Verifies that locked physical boundary files and legitimate get calls are exempt, while domain files sharing basename are not."""
+    driver_dir = tmp_path / "backend_v2" / "database"
+    driver_dir.mkdir(parents=True, exist_ok=True)
+    exempt_file = driver_dir / "tinydb_driver.py"
     exempt_file.write_text(
         "def serialize(data: object) -> None:\n    hasattr(data, 'model_dump')\n",
         encoding="utf-8",
@@ -149,6 +159,18 @@ def test_audit_dict_eradication_exempts_boundary_drivers_and_legit_get(tmp_path:
     report = audit_dict_eradication(exempt_file)
     assert report.reflection_calls == 0
     assert report.total_violations == 0
+
+    # Negative verification: a file with identical basename under models/ is NOT exempt
+    models_dir = tmp_path / "backend_v2" / "models" / "dtos"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    non_exempt_file = models_dir / "telemetry.py"
+    non_exempt_file.write_text(
+        "def inspect_obj(obj: object) -> None:\n    hasattr(obj, 'key')\n",
+        encoding="utf-8",
+    )
+    report_non_exempt = audit_dict_eradication(non_exempt_file)
+    assert report_non_exempt.reflection_calls == 1
+    assert report_non_exempt.total_violations == 1
 
     # Test legitimate get calls
     service_dir = tmp_path / "services"
@@ -305,6 +327,26 @@ def test_audit_dict_eradication_detects_mutable_class_default(tmp_path: Path) ->
     report = audit_dict_eradication(target_file)
     assert report.mutable_class_defaults == 2
     assert any(v.metric == "mutable_class_defaults" for v in report.violations)
+
+    exit_code = main([str(target_file)])
+    assert exit_code == 1
+
+
+def test_audit_dict_eradication_detects_unauthorized_open_json(tmp_path: Path) -> None:
+    """Verifies detection of unauthorized dict[..., JsonValue] outside the Open-JSON whitelist."""
+    models_dir = tmp_path / "models" / "dtos"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target_file = models_dir / "unauthorized_model.py"
+    target_file.write_text(
+        "from pydantic import BaseModel, JsonValue\n\n"
+        "class SimulationModel(BaseModel):\n"
+        "    trace: dict[str, JsonValue]\n",
+        encoding="utf-8",
+    )
+
+    report = audit_dict_eradication(target_file)
+    assert report.unauthorized_open_json_annotations == 1
+    assert any(v.metric == "unauthorized_open_json_annotations" for v in report.violations)
 
     exit_code = main([str(target_file)])
     assert exit_code == 1

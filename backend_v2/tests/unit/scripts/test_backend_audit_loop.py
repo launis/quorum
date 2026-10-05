@@ -580,11 +580,29 @@ def test_subprocess_dto_parity_failure(mock_exit: MagicMock, mock_scan: MagicMoc
 
 
 @patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
-@patch("subprocess.run", return_value=_mock_completed_process(0))
-def test_backend_audit_loop_runs_all_8_stages(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
-    """Contract: test_backend_audit_loop_runs_all_8_stages.
+@patch("sys.exit")
+def test_subprocess_warning_baseline_failure(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
+    """Verifies that a failure in Stage 9 (audit_warning_baseline.py) triggers Fail-Fast exit(1)."""
+    mock_exit.side_effect = SystemExit(1)
 
-    Verify that Stages 1 through 8 execute sequentially without error.
+    def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if any("audit_warning_baseline.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=sub_side_effect):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_backend_audit_loop_runs_all_stages(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Contract: test_backend_audit_loop_runs_all_stages.
+
+    Verify that Stages 1 through 9 execute sequentially without error.
     """
     with patch.object(sys, "argv", ["backend_audit_loop.py", "scripts/_ast_guardrails.py"]):
         main()
@@ -597,3 +615,4 @@ def test_backend_audit_loop_runs_all_8_stages(mock_sub: MagicMock, mock_scan: Ma
         assert any("audit_database_atoms.py" in cmd for cmd in invoked_cmds)
         assert any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
         assert any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
+        assert any("audit_warning_baseline.py" in cmd for cmd in invoked_cmds)

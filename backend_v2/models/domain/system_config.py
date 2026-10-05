@@ -8,9 +8,9 @@ SystemConfigMCPGateways.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.enums import (
@@ -31,6 +31,8 @@ __all__ = [
     "ProviderExtraParamsDTO",
     "SystemConfigMCPGateways",
     "SystemConfigModelRegistry",
+    "SystemConfigOptionDTO",
+    "SystemValidationRulesDTO",
 ]
 
 
@@ -60,6 +62,26 @@ class ChatHistoryDTO(V2CoreBase):
     conversation: list[ChatMessageDTO] = Field(description="List of messages in chronological order.")
 
 
+class SystemConfigOptionDTO(V2CoreBase):
+    """Selectable option for dropdown/multiselect UI components."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    value: str
+    label: str | I18nText | None = None
+
+
+class SystemValidationRulesDTO(V2CoreBase):
+    """Validation rules for SDUI dynamic data dictionary fields."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    min: float | int | None = None
+    max: float | int | None = None
+    required: bool | None = None
+    pattern: str | None = None
+
+
 class DataDictionaryField(V2CoreBase):
     """UI Hints mapping for dynamic form generation (SDUI)."""
 
@@ -67,8 +89,8 @@ class DataDictionaryField(V2CoreBase):
 
     field_id: str
     component_type: LaxComponentType = Field(description="E.g., 'slider', 'text_input', 'dropdown'")
-    options: list[dict[str, Any]] | None = None
-    validation_rules: dict[str, Any] | None = None
+    options: list[SystemConfigOptionDTO] | None = None
+    validation_rules: SystemValidationRulesDTO | None = None
 
 
 class ProviderExtraParamsDTO(BaseModel):
@@ -155,7 +177,7 @@ class AllowedMCPTool(V2CoreBase):
     tool_id: str = Field(description="Unique slug (e.g. 'mcp_tavily_search').")
     name: I18nText = Field(description="Localized display name.")
     description: str = Field(description="English-only LLM description for function calling schema.")
-    input_schema: dict[str, Any] = Field(
+    input_schema: dict[str, JsonValue] = Field(
         default_factory=dict, description="JSON Schema defining the tool's input parameters."
     )
 

@@ -6,7 +6,7 @@ with Model Context Protocol (MCP) tool loops.
 
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -24,7 +24,7 @@ class OpenAIFunctionCallDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     name: str
-    arguments: str | dict[str, Any]
+    arguments: str | dict[str, JsonValue]
 
 
 class OpenAIToolCallDTO(V2CoreBase):
@@ -43,7 +43,7 @@ class OpenAIToolCallDTO(V2CoreBase):
     id: str
     type: str = "function"
     function: OpenAIFunctionCallDTO
-    provider_specific_fields: dict[str, Any] | None = None
+    provider_specific_fields: dict[str, JsonValue] | None = None
 
 
 class OpenAIProbeResponseDTO(V2CoreBase):
@@ -83,7 +83,7 @@ class MCPToolLoopResult(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    result_data: Annotated[dict[str, Any], Field(description="Final structured output dict.")]
+    result_data: Annotated[dict[str, JsonValue], Field(description="Final structured output dict.")]
     audit_traces: Annotated[
         list[MCPAuditTrace], Field(default_factory=list, description="Audit log of all tool invocations.")
     ]

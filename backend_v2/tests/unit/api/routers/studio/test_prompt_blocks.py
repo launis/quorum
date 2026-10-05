@@ -16,7 +16,7 @@ from backend_v2.api.routers.studio.prompt_blocks import router
 from backend_v2.models.auth import TokenData
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
-from backend_v2.models.dtos.studio import PromptBlockSimulationResponse
+from backend_v2.models.dtos.studio import PromptBlockSimulationResponse, StepSimulationTraceDTO
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
 app = FastAPI()
@@ -130,7 +130,7 @@ async def test_simulate_prompt_block(mock_studio_services, sample_block: PromptB
         valid=True,
         errors=[],
         rendered_prompt="Rendered",
-        trace={},
+        trace=StepSimulationTraceDTO(),
         prompt_context=None,
     )
     mock_simulation.simulate_prompt_block.return_value = sim_response
@@ -156,7 +156,7 @@ async def test_simulate_prompt_block_with_null_context_text_and_locale(
         valid=True,
         errors=[],
         rendered_prompt="Rendered",
-        trace={},
+        trace=StepSimulationTraceDTO(),
         prompt_context=None,
     )
     mock_simulation.simulate_prompt_block.return_value = sim_response

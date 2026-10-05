@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.matrix import TDAAssertion
-from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.dtos.atom_evaluation import (
+    EvaluatedMatrixRefDTO,
+    LightweightMatrixDTO,
+    RawXAIExtensionDTO,
+    ReducedAtomDTO,
+)
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StepOutputDTO
@@ -20,6 +25,25 @@ logger = logging.getLogger(__name__)
 type State = Literal["PASSED", "FAILED", "DLQ"]
 
 __all__ = ["MatrixReducer", "State"]
+
+
+def _parse_raw_extension(raw: Any) -> RawXAIExtensionDTO:
+    """Safely parse arbitrary extension data into RawXAIExtensionDTO."""
+    if isinstance(raw, RawXAIExtensionDTO):
+        return raw
+    if type(raw) is dict:
+        known_keys = set(RawXAIExtensionDTO.model_fields.keys())
+        known_data: dict[str, JsonValue] = {}
+        extra_data: dict[str, JsonValue] = {}
+        for k, v in raw.items():
+            if k in known_keys:
+                known_data[k] = v
+            else:
+                extra_data[k] = v
+        if extra_data:
+            known_data["raw_payload"] = extra_data
+        return RawXAIExtensionDTO.model_validate(known_data)
+    return RawXAIExtensionDTO(raw_payload={"raw": str(raw)})
 
 
 class MatrixReducer:
@@ -113,7 +137,7 @@ class MatrixReducer:
         total_atoms = 0
         evaluated_matrix_ids: set[str] = set()
         seen_tda_ids: set[str] = set()
-        raw_extensions: list[dict[str, JsonValue]] = []
+        raw_extensions: list[RawXAIExtensionDTO] = []
 
         # 1. Primary: Extract evaluated atoms and extensions from execution_trace (real DAG runtime)
         for evt in record.execution_trace:
@@ -134,14 +158,14 @@ class MatrixReducer:
                 # Extract step-level extensions
                 for val in evt.content.values():
                     if type(val) is dict and "extensions" in val and isinstance(val["extensions"], list):
-                        raw_extensions.extend(val["extensions"])
+                        raw_extensions.extend(_parse_raw_extension(ext) for ext in val["extensions"])
             elif isinstance(evt.content, BaseModel):
                 dumped = evt.content.model_dump()
                 if "results" in dumped and isinstance(dumped["results"], list):
                     results_list = dumped["results"]
                 for val in dumped.values():
                     if type(val) is dict and "extensions" in val and isinstance(val["extensions"], list):
-                        raw_extensions.extend(val["extensions"])
+                        raw_extensions.extend(_parse_raw_extension(ext) for ext in val["extensions"])
 
             if results_list is not None:
                 for raw in results_list:
@@ -169,7 +193,7 @@ class MatrixReducer:
                         evaluated_matrix_ids.add(evt.step_name.strip())
 
                     if atom.extensions:
-                        raw_extensions.append(cast(dict[str, JsonValue], atom.extensions))
+                        raw_extensions.append(_parse_raw_extension(atom.extensions))
 
                     # Token-compression cascade: Drop unstarted/pending atoms and boolean PASSED atoms
                     # to save context window, unless they have extracted quantitative data
@@ -199,7 +223,7 @@ class MatrixReducer:
 
         logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", total_atoms, len(reduced_atoms))
 
-        evaluated_matrices = [{"matrix_id": cast(JsonValue, mid)} for mid in sorted(list(evaluated_matrix_ids))]
+        evaluated_matrices = [EvaluatedMatrixRefDTO(matrix_id=mid) for mid in sorted(list(evaluated_matrix_ids))]
         global_metrics: dict[str, JsonValue] = {
             "total_atoms": total_atoms,
             "evaluated": total_atoms,

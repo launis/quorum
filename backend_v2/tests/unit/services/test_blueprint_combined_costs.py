@@ -163,7 +163,7 @@ async def test_blueprint_trace_fail_safe_when_dag_cost_zero(mock_blueprint_repos
             "id": "blk_0123456789abcdef0123456789abcdef",
             "block_type": "text_block",
             "text": "Evidence extraction findings",
-            "_step_metadata": meta_dto.model_dump(mode="python"),
+            "step_metadata": meta_dto.model_dump(mode="python"),
         },
     )
 

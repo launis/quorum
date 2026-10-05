@@ -164,7 +164,7 @@ class StudioSimulationService:
             errors=errors,
             step_status=step_status,
             execution_order=dag_order,
-            trace={},
+            trace=StepSimulationTraceDTO(),
         )
 
     async def simulate_prompt_block(
@@ -306,7 +306,7 @@ class StudioSimulationService:
                 valid=True,
                 errors=[],
                 rendered_prompt=rendered_prompt,
-                trace={},
+                trace=StepSimulationTraceDTO(),
                 prompt_context=prompt_context,
             )
 
@@ -346,7 +346,7 @@ class StudioSimulationService:
             valid=len(errors) == 0,
             errors=errors,
             rendered_prompt=rendered.strip(),
-            trace={},
+            trace=StepSimulationTraceDTO(),
             prompt_context=prompt_context,
         )
 

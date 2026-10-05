@@ -9,6 +9,7 @@ from typing import Annotated, Any, Literal
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
@@ -330,6 +331,20 @@ class ModelRegistryDeleteResponse(BaseResponseDTO):
     deleted_id: str
 
 
+class StepSimulationTraceDTO(BaseDTO):
+    """Execution and telemetry metadata for a simulated step.
+
+    Attributes:
+        execution_time_ms: Execution time in milliseconds.
+        estimated_tokens: Estimated total token count.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    execution_time_ms: Annotated[float, Field(default=0.0, ge=0.0, description="Execution time in milliseconds.")] = 0.0
+    estimated_tokens: Annotated[int, Field(default=0, ge=0, description="Estimated total token count.")] = 0
+
+
 class PromptBlockSimulationResponse(BaseResponseDTO):
     """Resulting simulation projection for a dry-run prompt rendering.
 
@@ -347,7 +362,9 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
     ] = True
     errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
     rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered prompt template.")] = ""
-    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    trace: Annotated[
+        StepSimulationTraceDTO, Field(default_factory=StepSimulationTraceDTO, description="Execution trace metadata.")
+    ]
     prompt_context: Annotated[
         PromptContextDTO | None, Field(default=None, description="XAI compiled prompt structure.")
     ] = None
@@ -381,7 +398,7 @@ class PromptBlockSimulationRequest(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     block: PromptBlock
-    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
+    mock_inputs: Annotated[dict[str, DomainInputValue], Field(default_factory=dict)]
     target_scale_score: Annotated[
         int | None, Field(default=None, description="Optional specific scale score to simulate.")
     ] = None
@@ -411,20 +428,6 @@ class PromptBlockSimulationRequest(BaseDTO):
         if v is None or (isinstance(v, str) and not v.strip()):
             return "[SIMULATED CONTEXT DOCUMENT]"
         return str(v)
-
-
-class StepSimulationTraceDTO(BaseDTO):
-    """Execution and telemetry metadata for a simulated step.
-
-    Attributes:
-        execution_time_ms: Execution time in milliseconds.
-        estimated_tokens: Estimated total token count.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    execution_time_ms: Annotated[float, Field(default=0.0, ge=0.0, description="Execution time in milliseconds.")] = 0.0
-    estimated_tokens: Annotated[int, Field(default=0, ge=0, description="Estimated total token count.")] = 0
 
 
 class StepSimulationResponse(BaseResponseDTO):
@@ -479,7 +482,7 @@ class StepSimulationRequest(BaseDTO):
 
     step: Step
     # External boundary: key schema defined dynamically by step.expected_inputs
-    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
+    mock_inputs: Annotated[dict[str, DomainInputValue], Field(default_factory=dict)]
     target_locale: Annotated[
         str,
         Field(default="en", min_length=2, description="Target locale for prompt compilation."),
@@ -530,7 +533,9 @@ class WorkflowSimulationResponse(BaseResponseDTO):
     execution_order: Annotated[
         list[str], Field(default_factory=list, description="Topologically sorted execution order.")
     ]
-    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    trace: Annotated[
+        StepSimulationTraceDTO, Field(default_factory=StepSimulationTraceDTO, description="Execution trace metadata.")
+    ]
 
 
 class WorkflowDeleteResponse(BaseResponseDTO):

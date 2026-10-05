@@ -13,6 +13,7 @@ from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class MetricsPayloadDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     root: Annotated[
-        dict[str, Any],
+        dict[str, IngressInputValue | None],
         Field(default_factory=dict, description="The root dictionary payload."),
     ]
 
