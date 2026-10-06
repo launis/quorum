@@ -293,7 +293,10 @@ async def test_run_post_hooks_with_matrix_hook_result(
 async def test_run_pre_and_post_hooks_with_dto_and_explicit_inputs(
     dummy_strategy: DummyStrategy, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Verify run_pre_hooks and run_post_hooks handle GlobalContextVarsDTO instance and explicit inputs/dynamic_inputs."""
+    """Verify run_pre_hooks and run_post_hooks handle GlobalContextVarsDTO instance.
+
+    Also verifies explicit inputs and dynamic_inputs handling.
+    """
     from backend_v2.core.hook_registry import (
         ExecutionInputsDTO,
         GlobalContextVarsDTO,
