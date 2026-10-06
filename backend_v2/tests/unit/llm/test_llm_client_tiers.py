@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMProvider
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
@@ -28,19 +29,24 @@ def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, Any]:
     for cfg in data["system_config"]:
         if "type" in cfg and cfg["type"] == "model_registry":
             if registry_id is None or ("id" in cfg and cfg["id"] == registry_id):
-                return cast(dict[str, Any], cfg)
+                return cfg
     raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
 
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 @pytest.fixture
-def fake_repository() -> InMemoryBlueprintTransformerRepository:
-    """Repository returning the authoritative model_registry from seed_data.json."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_model_registry.side_effect = lambda reg_id=None: _get_seed_model_registry(reg_id)
-    repo.get_all_model_registries.side_effect = lambda: [_get_seed_model_registry()]
+def fake_repository() -> InMemorySystemRepository:
+    """Repository returning the authoritative model_registries from seed_data.json."""
+    repo = InMemorySystemRepository()
+    repo._model_registries.clear()
+    with open(SEED_DATA_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    for cfg in data["system_config"]:
+        if "type" in cfg and cfg["type"] == "model_registry":
+            seed_model = SystemConfigModelRegistry.model_validate(cfg)
+            repo._model_registries[seed_model.id] = seed_model
     return repo
 
 
@@ -61,7 +67,7 @@ class TestLLMClientCognitiveTiers:
     async def test_resolve_ai_studio_tiers(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
         tier: CognitiveTier,
         expected_temp: float,
     ) -> None:
@@ -85,7 +91,7 @@ class TestLLMClientCognitiveTiers:
     async def test_resolve_vertex_tiers(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """Verify cognitive tier resolves correctly for sovereign Vertex AI provider."""
         mock_create_provider.return_value = AsyncMock()
@@ -115,7 +121,7 @@ class TestLLMClientCognitiveTiers:
     async def test_resolve_openai_tiers(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
         tier: CognitiveTier,
         expected_reasoning_effort: str | None,
         expected_temp: float,
@@ -143,7 +149,7 @@ class TestLLMClientCognitiveTiers:
     async def test_resolve_default_provider_when_unspecified(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """Verify LLMClient.from_tier defaults to registry.default_provider (ai_studio)."""
         mock_create_provider.return_value = AsyncMock()
@@ -161,7 +167,7 @@ class TestLLMClientCognitiveTiers:
     async def test_resolve_with_explicit_registry_id(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """Verify from_tier resolves exact model stack when registry_id is passed."""
         mock_create_provider.return_value = AsyncMock()
@@ -189,7 +195,7 @@ class TestLLMClientCognitiveTiers:
     async def test_from_strategy_compatibility_bridge(
         self,
         mock_create_provider: MagicMock,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """Verify legacy from_strategy parses tier string and delegates to from_tier."""
         mock_create_provider.return_value = AsyncMock()
@@ -204,7 +210,7 @@ class TestLLMClientCognitiveTiers:
     @pytest.mark.asyncio
     async def test_from_strategy_invalid_tier_raises_configuration_error(
         self,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """Verify legacy from_strategy with invalid tier string raises ConfigurationError."""
         with pytest.raises(ConfigurationError, match="Unknown strategy or tier 'invalid_unknown'"):
@@ -226,7 +232,7 @@ class TestLLMClientTiersFailFast:
     @pytest.mark.asyncio
     async def test_unconfigured_provider_raises_configuration_error(
         self,
-        fake_repository: InMemoryBlueprintTransformerRepository,
+        fake_repository: InMemorySystemRepository,
     ) -> None:
         """ISTQB Negative Test: requesting unconfigured provider (anthropic) raises ConfigurationError."""
         with pytest.raises(ConfigurationError, match="Provider 'anthropic' not found"):
@@ -239,9 +245,9 @@ class TestLLMClientTiersFailFast:
     @pytest.mark.asyncio
     async def test_corrupted_model_registry_raises_configuration_error(self) -> None:
         """ISTQB Negative Test: repository returning invalid registry triggers ConfigurationError."""
-        bad_repo = InMemoryBlueprintTransformerRepository()
-        bad_repo.get_model_registry.return_value = {"type": "model_registry"}
-        bad_repo.get_all_model_registries.return_value = [{"type": "model_registry"}]
+        bad_repo = InMemorySystemRepository()
+        bad_repo._model_registries.clear()
+        bad_repo._model_registries["bad"] = {"type": "model_registry"}
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(tier=CognitiveTier.FAST, repository=bad_repo)
@@ -254,9 +260,9 @@ class TestLLMClientTiersFailFast:
         corrupted_registry = json.loads(json.dumps(seed_registry))
         del corrupted_registry["tier_definitions"]["reasoning"]
 
-        corrupted_repo = InMemoryBlueprintTransformerRepository()
-        corrupted_repo.get_model_registry.return_value = corrupted_registry
-        corrupted_repo.get_all_model_registries.return_value = [corrupted_registry]
+        corrupted_repo = InMemorySystemRepository()
+        corrupted_repo._model_registries.clear()
+        corrupted_repo._model_registries[corrupted_registry["id"]] = corrupted_registry
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(
@@ -285,9 +291,9 @@ class TestLLMClientTiersFailFast:
         corrupted_registry = json.loads(json.dumps(seed_registry))
         corrupted_registry["tier_definitions"]["fast"][missing_param] = None
 
-        corrupted_repo = InMemoryBlueprintTransformerRepository()
-        corrupted_repo.get_model_registry.return_value = corrupted_registry
-        corrupted_repo.get_all_model_registries.return_value = [corrupted_registry]
+        corrupted_repo = InMemorySystemRepository()
+        corrupted_repo._model_registries.clear()
+        corrupted_repo._model_registries[corrupted_registry["id"]] = corrupted_registry
 
         with pytest.raises(ConfigurationError, match=expected_match):
             await LLMClient.from_tier(

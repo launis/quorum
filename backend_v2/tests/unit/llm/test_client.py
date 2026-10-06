@@ -17,7 +17,7 @@ from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, ExecutionProfile
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 class DummyConfig(BaseModel):
@@ -447,7 +447,7 @@ async def test_client_run_chat_compiled_prompt(mock_create_provider: MagicMock) 
 @pytest.mark.asyncio
 @patch("backend_v2.llm.provider.LLMFactory.create_provider")
 async def test_from_tier_one_shot_execution_profile(
-    mock_create_provider: MagicMock, fake_repository: InMemoryBlueprintTransformerRepository
+    mock_create_provider: MagicMock, fake_repository: InMemorySystemRepository
 ) -> None:
     """Verify from_tier disables caching when ExecutionProfile.ONE_SHOT is requested."""
     mock_create_provider.return_value = AsyncMock()
@@ -596,9 +596,9 @@ def test_client_properties_unconfigured() -> None:
 @pytest.mark.asyncio
 async def test_from_tier_query_failure_raises_configuration_error() -> None:
     """Verify repository query error bubbles up as ConfigurationError."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_model_registry.side_effect = ConnectionError("Database offline")
-    mock_repo.get_all_model_registries.side_effect = ConnectionError("Database offline")
+    mock_repo = InMemorySystemRepository()
+    mock_repo.inject_fault("get_model_registry", ConnectionError("Database offline"))
+    mock_repo.inject_fault("get_all_model_registries", ConnectionError("Database offline"))
     with pytest.raises(ConfigurationError, match="missing or query failed"):
         await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
 
@@ -647,8 +647,8 @@ async def test_safety_filter_triggered(mock_create_provider: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_from_tier_no_registries_raises_resource_not_found() -> None:
     """Verify from_tier raises ResourceNotFoundError when no model registries exist."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_all_model_registries.return_value = []
+    mock_repo = InMemorySystemRepository()
+    mock_repo._model_registries.clear()
     with pytest.raises(ResourceNotFoundError):
         await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
 
@@ -656,8 +656,7 @@ async def test_from_tier_no_registries_raises_resource_not_found() -> None:
 @pytest.mark.asyncio
 async def test_from_tier_empty_tier_definitions_raises_configuration_error() -> None:
     """Verify from_tier raises ConfigurationError when tier_definitions is empty."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_all_model_registries.return_value = [{"id": "dummy"}]
+    mock_repo = InMemorySystemRepository()
     with patch(
         "backend_v2.llm.client.inflate",
         return_value=SystemConfigModelRegistry.model_construct(tier_definitions={}),

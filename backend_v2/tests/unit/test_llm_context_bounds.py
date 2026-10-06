@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import litellm.exceptions
@@ -7,15 +8,19 @@ import pytest
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus, HistoricalContextMode, LLMProvider
 from backend_v2.models.state import ErrorTraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture(autouse=True)
@@ -36,32 +41,34 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
-
-
 @pytest.fixture
-def mock_repo() -> InMemoryBlueprintTransformerRepository:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = {
-        "id": "stp_1234567890abcdef",
-        "type": "llm",
-        "cognitive_tier": "fast",
-        "slug": "mock",
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "name": {"translations": {"en": "mock"}},
-        "description": {"translations": {"en": "mock"}},
-    }
-    repo.get_step.return_value = repo.get_step_by_id.return_value
-    repo.get_execution.return_value = {
-        "id": "exe_1111222233334444",
-        "workflow_id": "wf_0000000000000000",
-        "output_profile_id": "prof_0000000000000000",
-        "status": ExecutionStatus.PENDING,
-        "target_locale": "en",
-        "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {},
-    }
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
+    step = Step(
+        id="stp_1234567890abcdef",
+        type="llm",
+        cognitive_tier=CognitiveTier.FAST,
+        slug="mock",
+        criteria_block_ids=["blk_1234567890abcdef"],
+        extraction_protocol_block_id="blk_1234567890abcdef",
+        name=I18nText(translations={"en": "mock"}),
+        description=I18nText(translations={"en": "mock"}),
+    )
+    repo._workflows._steps["stp_1234567890abcdef"] = step
+
+    record = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_0000000000000000",
+        output_profile_id="prof_0000000000000000",
+        status=ExecutionStatus.PENDING,
+        target_locale="en",
+        raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    repo._executions._save_isolated(record.id, record)
+
     raw_prompt_block = {
         "id": "blk_1234567890abcdef",
         "slug": "zero_trust_extraction_protocol",
@@ -74,9 +81,9 @@ def mock_repo() -> InMemoryBlueprintTransformerRepository:
         "output_extensions": [],
     }
     typed_block = PromptBlockAdapter.validate_python(raw_prompt_block)
-    repo.get_all_prompt_blocks.return_value = [raw_prompt_block]
-    repo.get_prompt_blocks_by_ids.return_value = [typed_block]
-    repo.get_output_profile_by_id.return_value = {
+    repo._prompt_blocks._save_isolated(typed_block.id, typed_block)
+
+    profile = OutputProfile.model_validate({
         "id": "prof_0000000000000000",
         "slug": "test_profile",
         "workflow_id": "wf_0000000000000000",
@@ -90,27 +97,32 @@ def mock_repo() -> InMemoryBlueprintTransformerRepository:
                 "target_blocks": ["*"],
             }
         ],
-    }
-    repo.get_workflow.return_value = _create_workflow().model_dump(mode="json")
-    repo.get_workflow_by_id.return_value = repo.get_workflow.return_value
-    model_reg = {
-        "id": "sys_e26807f3bfa3454d",
-        "type": "model_registry",
-        "slug": "default",
-        "tier_definitions": {
-            tier: {
-                "provider": "openai",
-                "model_name": "gpt-4o-mini",
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-                "max_tokens": 4096,
-                "temperature": 0.0,
-            }
-            for tier in ("fast", "balanced", "deep", "reasoning")
+    })
+    repo._output_profiles._save_isolated(profile.id, profile)
+
+    wf = _create_workflow()
+    repo._workflows._save_isolated(wf.id, wf)
+
+    model_reg = SystemConfigModelRegistry(
+        id="sys_e26807f3bfa3454d",
+        type="model_registry",
+        name="Default Model Registry",
+        slug="default",
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            tier: ModelProfile(
+                provider="openai",
+                model_name="gpt-4o-mini",
+                tpm_limit=100000,
+                rpm_limit=1000,
+                max_tokens=4096,
+                temperature=0.0,
+            )
+            for tier in (CognitiveTier.FAST, CognitiveTier.BALANCED, CognitiveTier.DEEP, CognitiveTier.REASONING)
         },
-    }
-    repo.get_model_registry.return_value = model_reg
-    repo.get_all_model_registries.return_value = [model_reg]
+    )
+    repo._system._model_registries.clear()
+    repo._system._model_registries[model_reg.id] = model_reg
     return repo
 
 
@@ -138,13 +150,13 @@ def _create_workflow() -> Workflow:
         default_profile_id="prof_0000000000000000",
         name=I18nText(translations={"en": "Bounds"}),
         description=I18nText(translations={"en": "Bounds"}),
-        steps=[StepRule(id="step_0000000000000000", task_blueprint="bp_fuzz")],
+        steps=[StepRule(id="step_0000000000000000", task_blueprint="stp_1234567890abcdef")],
     )
 
 
 @pytest.mark.asyncio
 async def test_context_window_exceeded_error_maps_critical(
-    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove ContextWindowExceededError maps to AGENT_EXECUTION_CRITICAL with Fail-Fast."""
     mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3})
@@ -190,11 +202,9 @@ async def test_context_window_exceeded_error_maps_critical(
             # WORKFLOW_EXECUTION_FAILED error code, but let's check the trace event to be strictly sure.
             assert "Workflow completed with failed steps" in str(exc_info.value)
 
-            calls = mock_repo.update_execution.call_args_list
-            final_call_args = calls[-1][0]
-            payload = final_call_args[1]
-
-            trace_list = payload.execution_trace
+            updated_record = await mock_repo.get_execution("exe_1111222233334444")
+            assert updated_record is not None
+            trace_list = updated_record.execution_trace
             error_trace = next(
                 (evt for evt in trace_list if isinstance(evt, ErrorTraceEvent)),
                 None,
@@ -208,7 +218,7 @@ async def test_context_window_exceeded_error_maps_critical(
 
 @pytest.mark.asyncio
 async def test_non_context_400_error_maps_malformed(
-    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove Non-Context 400 Error maps to AGENT_RESPONSE_MALFORMED."""
     mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3, "llm_max_schema_retries": 1})
@@ -249,11 +259,9 @@ async def test_non_context_400_error_maps_malformed(
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            calls = mock_repo.update_execution.call_args_list
-            final_call_args = calls[-1][0]
-            payload = final_call_args[1]
-
-            trace_list = payload.execution_trace
+            updated_record = await mock_repo.get_execution("exe_1111222233334444")
+            assert updated_record is not None
+            trace_list = updated_record.execution_trace
             error_trace = next(
                 (evt for evt in trace_list if isinstance(evt, ErrorTraceEvent)),
                 None,
@@ -267,7 +275,7 @@ async def test_non_context_400_error_maps_malformed(
 
 @pytest.mark.asyncio
 async def test_transient_503_error_triggers_resilience_loop(
-    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove Transient 503 Error Path asserts mock call_count > 1 (Tenacity resilience loop triggered)."""
     mock_settings = get_settings().model_copy(
