@@ -32,59 +32,62 @@ def test_progress_state_strict_types() -> None:
         ProgressState(status=123, timestamp="2026-08-31T00:00:00Z")  # type: ignore[arg-type]
 
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.mark.asyncio
 async def test_database_progress_tracker() -> None:
     """Tests DatabaseProgressTracker lifecycle and repository updates."""
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    tracker = DatabaseProgressTracker(repository=fake_repo, execution_id="exe_123")
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    mock_record = ExecutionRecord(
+        id="exe_1234567890123456",
+        workflow_id="wf_1234567890123456",
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+    )
+    await fake_repo.save_execution(mock_record)
+    tracker = DatabaseProgressTracker(repository=fake_repo, execution_id="exe_1234567890123456")
     assert isinstance(tracker, ProgressTrackerProtocol)
 
     # Test start
     await tracker.start()
-    fake_repo.update_execution.assert_called_once()
-    call_args = fake_repo.update_execution.call_args[0]
-    assert call_args[0] == "exe_123"
-    payload = call_args[1]
-    assert payload.status == STATUS_STARTED
-    assert payload.created_at is not None
+    record = await fake_repo.get_execution("exe_1234567890123456")
+    assert record is not None
+    assert record.status == STATUS_STARTED
+    assert record.created_at is not None
 
     # Test update
-    fake_repo.update_execution.reset_mock()
     await tracker.update(current_step="processing", progress=50)
-    fake_repo.update_execution.assert_called_once()
-    payload = fake_repo.update_execution.call_args[0][1]
-    assert payload.status == STATUS_RUNNING
-    assert payload.progress == 50
-    assert payload.current_step == "processing"
-    assert payload.current_step_name == "processing"
+    record = await fake_repo.get_execution("exe_1234567890123456")
+    assert record is not None
+    assert record.status == STATUS_RUNNING
+    assert record.progress == 50
+    assert record.status_message == "processing"
 
     # Test complete
-    fake_repo.update_execution.reset_mock()
     await tracker.complete()
-    fake_repo.update_execution.assert_called_once()
-    payload = fake_repo.update_execution.call_args[0][1]
-    assert payload.status == STATUS_COMPLETED
-    assert payload.completed_at is not None
+    record = await fake_repo.get_execution("exe_1234567890123456")
+    assert record is not None
+    assert record.status == STATUS_COMPLETED
+    assert record.completed_at is not None
 
     # Test fail
-    fake_repo.update_execution.reset_mock()
     await tracker.fail(error="fatal error")
-    fake_repo.update_execution.assert_called_once()
-    payload = fake_repo.update_execution.call_args[0][1]
-    assert payload.status == STATUS_FAILED
-    assert payload.error == "fatal error"
-    assert payload.completed_at is not None
+    record = await fake_repo.get_execution("exe_1234567890123456")
+    assert record is not None
+    assert record.status == STATUS_FAILED
+    assert record.error == "fatal error"
+    assert record.completed_at is not None
 
 
 @pytest.mark.asyncio
 async def test_database_progress_tracker_exceptions() -> None:
     """Tests DatabaseProgressTracker error handling on repository failure."""
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    fake_repo.update_execution.side_effect = Exception("DB Connection Lost")
-    tracker = DatabaseProgressTracker(repository=fake_repo, execution_id="exe_123")
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    fake_repo.inject_fault("update_execution", Exception("DB Connection Lost"), trigger_count=4)
+    tracker = DatabaseProgressTracker(repository=fake_repo, execution_id="exe_1234567890123456")
 
     with pytest.raises(AppException) as exc_start:
         await tracker.start()

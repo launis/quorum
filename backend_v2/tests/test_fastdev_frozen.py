@@ -5,15 +5,16 @@ import os
 import pytest
 
 from backend_v2.llm.client import LLMClient
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 @pytest.mark.asyncio
 async def test_fastdev_frozen_instance_override() -> None:
     """Verify that development environment overrides frozen ModelProfile instances safely."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo = InMemorySystemRepository()
     registry_data = {
-        "id": "cfg_12345678901234567890",
+        "id": "sys_1234567890123456",
         "slug": "model-registry-mock",
         "type": "model_registry",
         "name": "model-registry-mock",
@@ -32,8 +33,8 @@ async def test_fastdev_frozen_instance_override() -> None:
             for tier in ("fast", "balanced", "deep", "reasoning")
         },
     }
-    mock_repo.get_model_registry.return_value = registry_data
-    mock_repo.get_all_model_registries.return_value = [registry_data]
+    mock_repo.set_model_registry(None)
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(registry_data))
 
     # Simulate development environment
     os.environ["ENVIRONMENT"] = "development"

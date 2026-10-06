@@ -1,7 +1,6 @@
 """Unit tests for FinOps telemetry, caching purity, and token tracking."""
 
 import logging
-import typing
 import uuid
 from unittest.mock import AsyncMock
 
@@ -13,14 +12,17 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.usage_service import UsageService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryAuditRepository,
+    InMemoryIdentityRepository,
+)
 
 
 @pytest.fixture
 def usage_service() -> UsageService:
     """Fixture providing a UsageService instance with in-memory repositories."""
-    identity_repo = InMemoryBlueprintTransformerRepository()
-    audit_repo = InMemoryBlueprintTransformerRepository()
+    identity_repo = InMemoryIdentityRepository()
+    audit_repo = InMemoryAuditRepository()
     return UsageService(identity_repo=identity_repo, audit_repo=audit_repo)
 
 
@@ -193,8 +195,8 @@ async def test_prompt_caching_drift_alert(usage_service: UsageService, caplog: p
             )
         )
 
-    mock_audit_repo = typing.cast(AsyncMock, usage_service.audit_repo)
-    mock_audit_repo.get_usage_records.return_value = prior_records
+    for r in prior_records:
+        await usage_service.audit_repo.log_usage(r)
 
     pricing_config = PricingConfig(
         input_token_price=0.00001,

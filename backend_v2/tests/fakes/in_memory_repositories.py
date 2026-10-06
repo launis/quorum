@@ -200,7 +200,14 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
             return False
         dumped = existing.model_dump(mode="python")
         update_dict = updates.model_dump(mode="python", exclude_unset=True)
-        dumped.update(update_dict)
+        if "status_message" not in update_dict:
+            if "current_step" in update_dict and update_dict["current_step"]:
+                dumped["status_message"] = update_dict["current_step"]
+            elif "current_step_name" in update_dict and update_dict["current_step_name"]:
+                dumped["status_message"] = update_dict["current_step_name"]
+        for k, v in update_dict.items():
+            if k in ExecutionRecord.model_fields:
+                dumped[k] = v
         updated_record = ExecutionRecord.model_validate(dumped)
         self._save_isolated(execution_id, updated_record)
         return True
