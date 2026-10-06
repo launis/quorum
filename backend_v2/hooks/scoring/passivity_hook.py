@@ -29,7 +29,7 @@ __all__ = ["enforce_passivity_penalty_hook"]
 
 
 @hook_registry.register(name="enforce_passivity_penalty")
-async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencies) -> HookResult:
+async def enforce_passivity_penalty_hook(state: HookState | None, deps: HookDependencies) -> HookResult:
     """Refined Truth Protocol: Enforces passivity penalty if detected in Judge Output.
 
     Checks if any dimension in the Judge Output has the minimum possible score.

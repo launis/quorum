@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="inject_step_metadata")
-def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult:
+def inject_step_metadata(state: HookState | None, deps: HookDependencies) -> HookResult:
     """Computes execution metadata including timestamps and initiator information.
 
     This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user'

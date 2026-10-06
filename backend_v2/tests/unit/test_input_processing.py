@@ -1,7 +1,3 @@
-from collections.abc import Awaitable
-from typing import Any, cast
-from unittest.mock import AsyncMock
-
 import pytest
 from pydantic import ValidationError
 
@@ -14,48 +10,10 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import process_inputs
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, QuestionAnswerPair
 from backend_v2.models.execution_core import ExecutionMetadata
-
-
-class MockRepository:
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        if workflow_id == "not_found":
-            return None
-        return {
-            "id": "wor_1234567890abcdef12",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "slug": "test-wf",
-            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
-            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof_123",
-            "expected_inputs": [
-                {
-                    "input_key": "QUESTIONNAIRE",
-                    "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
-                    "description": {"translations": {"en": "Form input", "fi": "Form input"}},
-                    "input_modes": ["text"],
-                    "required": True,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this form.",
-                },
-                {
-                    "input_key": "DOCUMENT_TEXT",
-                    "label": {"translations": {"en": "Doc", "fi": "Dokkari"}},
-                    "description": {"translations": {"en": "Doc input", "fi": "Doc input"}},
-                    "input_modes": ["text"],
-                    "required": False,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this text.",
-                },
-            ],
-        }
-
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        return {}
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def test_guided_reflection_dto_valid_dict() -> None:
@@ -113,9 +71,10 @@ def test_guided_reflection_dto_to_markdown() -> None:
 @pytest.mark.asyncio
 async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the input hook correctly validates and parses a questionnaire dictionary."""
+    wf_id = "wor_1234567890abcdef12"
     state = HookState(
         execution_id="test_exec",
-        workflow_id="wf_123",
+        workflow_id=wf_id,
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
@@ -134,15 +93,50 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         global_context_vars=GlobalContextVarsDTO(language="en"),
     )
 
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(
+        Workflow.model_validate({
+            "id": wf_id,
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "slug": "test-wf",
+            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "expected_inputs": [
+                {
+                    "input_key": "QUESTIONNAIRE",
+                    "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
+                    "description": {"translations": {"en": "Form input", "fi": "Form input"}},
+                    "input_modes": ["text"],
+                    "required": True,
+                    "is_chat_history": False,
+                    "ai_description": "Analyze this form.",
+                },
+                {
+                    "input_key": "DOCUMENT_TEXT",
+                    "label": {"translations": {"en": "Doc", "fi": "Dokkari"}},
+                    "description": {"translations": {"en": "Doc input", "fi": "Doc input"}},
+                    "input_modes": ["text"],
+                    "required": False,
+                    "is_chat_history": False,
+                    "ai_description": "Analyze this text.",
+                },
+            ],
+        })
+    )
+
     deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     # Mock storage to avoid writing actual files during tests
@@ -154,7 +148,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
-    result = await cast(Awaitable[HookResult], process_inputs(state, deps))
+    result = await process_inputs(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None
@@ -182,9 +176,10 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 @pytest.mark.asyncio
 async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the input hook correctly raises Fail-Fast validation error on bad dictionary."""
+    wf_id = "wor_1234567890abcdef12"
     state = HookState(
         execution_id="test_exec",
-        workflow_id="wf_123",
+        workflow_id=wf_id,
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
@@ -194,19 +189,45 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         global_context_vars=GlobalContextVarsDTO(language="en"),
     )
 
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(
+        Workflow.model_validate({
+            "id": wf_id,
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "slug": "test-wf",
+            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "expected_inputs": [
+                {
+                    "input_key": "QUESTIONNAIRE",
+                    "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
+                    "description": {"translations": {"en": "Form input", "fi": "Form input"}},
+                    "input_modes": ["text"],
+                    "required": True,
+                    "is_chat_history": False,
+                    "ai_description": "Analyze this form.",
+                },
+            ],
+        })
+    )
+
     deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     with pytest.raises(AppException) as exc:
-        await cast(Awaitable[HookResult], process_inputs(state, deps))
+        await process_inputs(state, deps)
 
     assert exc.value.status_code == 400
     assert "Invalid questionnaire format for 'QUESTIONNAIRE'" in exc.value.message
@@ -215,37 +236,10 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
 @pytest.mark.asyncio
 async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that SpaCy smoothing and Presidio masking are invoked via background threads when enabled."""
-
-    class FeatureFlagMockRepository:
-        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-            return {
-                "id": "wor_1234567890abcdef12",
-                "historical_context_mode": "DISABLED",
-                "model_registry_id": "cfg_model_registry_01",
-                "slug": "test-wf-features",
-                "name": {"translations": {"en": "WF", "fi": "WF"}},
-                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-                "status": "draft",
-                "version": 1,
-                "default_profile_id": "prof_123",
-                "enable_semantic_smoothing": True,
-                "enable_eager_anonymization": True,
-                "expected_inputs": [
-                    {
-                        "input_key": "DOCUMENT_TEXT",
-                        "label": {"translations": {"en": "Doc", "fi": "Doc"}},
-                        "description": {"translations": {"en": "Doc", "fi": "Doc"}},
-                        "input_modes": ["text"],
-                        "required": True,
-                        "is_chat_history": False,
-                        "ai_description": "Analyze this text.",
-                    }
-                ],
-            }
-
+    wf_id = "wor_abcdef123456789012"
     state = HookState(
         execution_id="test_exec",
-        workflow_id="wf_features",
+        workflow_id=wf_id,
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
@@ -253,15 +247,43 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
 
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(
+        Workflow.model_validate({
+            "id": wf_id,
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "slug": "test-wf-features",
+            "name": {"translations": {"en": "WF", "fi": "WF"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "enable_semantic_smoothing": True,
+            "enable_eager_anonymization": True,
+            "expected_inputs": [
+                {
+                    "input_key": "DOCUMENT_TEXT",
+                    "label": {"translations": {"en": "Doc", "fi": "Doc"}},
+                    "description": {"translations": {"en": "Doc", "fi": "Doc"}},
+                    "input_modes": ["text"],
+                    "required": True,
+                    "is_chat_history": False,
+                    "ai_description": "Analyze this text.",
+                }
+            ],
+        })
+    )
+
     deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=cast(Any, FeatureFlagMockRepository()),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     class MockStorage:
@@ -273,18 +295,21 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
     # Mock asyncio.to_thread
-    async def mock_to_thread(func: Any, *args: Any, **kwargs: Any) -> Any:
-        if func.__name__ == "smooth_text":
+    async def mock_to_thread(func: object, *args: object, **kwargs: object) -> object:
+        func_name = getattr(func, "__name__", "")  # noqa: QGR001 [REASON: Inspection of dynamic mocked thread function]
+        if func_name == "smooth_text":
             return "Smoothed text."
-        if func.__name__ == "mask_pii":
+        if func_name == "mask_pii":
             return "Masked text."
-        return func(*args, **kwargs)
+        if callable(func):
+            return func(*args, **kwargs)
+        return None
 
     import asyncio
 
     monkeypatch.setattr(asyncio, "to_thread", mock_to_thread)
 
-    result = await cast(Awaitable[HookResult], process_inputs(state, deps))
+    result = await process_inputs(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None

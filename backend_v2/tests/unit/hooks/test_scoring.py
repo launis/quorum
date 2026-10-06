@@ -2,9 +2,8 @@
 
 import hashlib
 import json
-from collections.abc import Awaitable
-from typing import Any, cast
-from unittest.mock import AsyncMock
+from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -14,7 +13,6 @@ from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
@@ -24,9 +22,14 @@ from backend_v2.hooks.scoring import (
     matrix_scoring_hook,
     normalize_matrix_scores_hook,
 )
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_delta import (
@@ -45,7 +48,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def generate_atom_hash(text: str, mandate: Any = None) -> str:
@@ -143,46 +146,222 @@ def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") 
     }
 
 
-class MockRepository:
-    """Mock repository providing default test step and block data."""
+async def _create_test_scoring_repo(
+    *,
+    pb_id: str = "pb_1234567890123456",
+    scales: list[dict[str, Any]] | None = None,
+    corrupt_scale: bool = False,
+    corrupt_step: bool = False,
+    corrupt_pb: bool = False,
+    no_scales: bool = False,
+    pb_category: str = "matrix",
+    inverse_evidence: bool = False,
+    mandate: Any = None,
+    enable_overrides: bool = True,
+    strictness_level: int | None = 85,
+    allow_contextual_override: bool = True,
+    extra_pbs: list[dict[str, Any]] | None = None,
+    step_blocks: list[str] | None = None,
+    profile_id: str = "prof_1111111111111111",
+    display_scale: str = "original",
+    variance_target_block: str | None = None,
+    variance_scale_levels: list[int] | None = None,
+    visible_block_extensions: list[str] | None = None,
+    workflow_id: str = "wflow_1234567890123456",
+    step_id: str = "st_1234567890123456",
+    execution_id: str = "ex_1234567890abcdef",
+    security_penalty: float = 0.0,
+    post_hoc_penalty: float = 0.0,
+    passivity_penalty: float = 0.0,
+    omit_step: bool = False,
+    omit_pb: bool = False,
+    omit_workflow: bool = False,
+    omit_profile: bool = False,
+    omit_execution: bool = False,
+) -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
 
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        """Returns valid step dict."""
-        return _build_valid_step_dict(["pb_1234567890123456"])
+    # 1. Prompt Block
+    if not omit_pb:
+        if corrupt_scale:
+            pb_dict = _build_valid_pb_dict(pb_id, [_build_valid_scale("not_a_number")])
+            repo._prompt_blocks._storage[pb_id] = pb_dict
+        elif corrupt_pb:
+            repo._prompt_blocks._storage[pb_id] = {"id": pb_id, "corrupt": "data"}
+        elif no_scales:
+            pb_dict = _build_valid_pb_dict(pb_id, [])
+            pb_dict["scales"] = []
+            repo._prompt_blocks._storage[pb_id] = pb_dict
+        else:
+            if scales is None:
+                if inverse_evidence:
+                    scales = [
+                        {
+                            "score": i,
+                            "ai_label": f"Level {i}",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
+                                    "tda_assertions": [
+                                        {
+                                            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                                            "concept_description": f"Inverse assertion {i}",
+                                            "inverse_evidence": True,
+                                            "aggregation_mode": "EXISTS",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                        for i in range(1, 6)
+                    ]
+                else:
+                    scales = [
+                        _build_valid_scale(1, ["atom_1"]),
+                        _build_valid_scale(2, ["atom_2"]),
+                        _build_valid_scale(3, ["atom_3"]),
+                        _build_valid_scale(4, ["atom_4"]),
+                        _build_valid_scale(5, ["atom_5"]),
+                    ]
+            if pb_category != "matrix":
+                cat_id = pb_category
+                pb_type = "string" if pb_category in ("execution_persona", "agent_role") else "instruction"
+                pb_dict = _build_valid_pb_dict(pb_id, [], pb_type=pb_type, category_id=cat_id)
+            else:
+                cat_id = PromptBlockCategory.MATRIX.value
+                pb_dict = _build_valid_pb_dict(pb_id, scales, category_id=cat_id)
+                if not allow_contextual_override:
+                    pb_dict["allow_contextual_override"] = False
+            pb_model = PromptBlockAdapter.validate_python(pb_dict, strict=False)
+            await repo.create_prompt_block(pb_model)
+            repo._prompt_blocks._storage[pb_id] = pb_model
 
-    async def get_prompt_block_by_id(self, slug: str) -> dict[str, Any]:
-        """Returns valid prompt block dict with invalid non-numeric scale."""
-        return _build_valid_pb_dict("pb_1234567890123456", [_build_valid_scale("not_a_number")])
+    if extra_pbs:
+        for extra in extra_pbs:
+            if isinstance(extra, BaseModel):
+                await repo.create_prompt_block(extra)
+                repo._prompt_blocks._storage[extra.id] = extra
+            else:
+                extra_model = PromptBlockAdapter.validate_python(extra, strict=False)
+                await repo.create_prompt_block(extra_model)
+                repo._prompt_blocks._storage[extra_model.id] = extra_model
 
-    async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        """Returns valid execution dict."""
-        return _build_valid_execution_dict(execution_id)
+    # 2. Step
+    if not omit_step:
+        if corrupt_step:
+            repo._workflows._steps[step_id] = {"id": step_id, "corrupt": "data"}
+            repo._workflows._steps["st_bad"] = {"id": "st_bad", "corrupt": "data"}
+        else:
+            all_blocks = step_blocks if step_blocks is not None else [pb_id]
+            step_dict = _build_valid_step_dict(all_blocks)
+            step_dict["id"] = step_id
+            step_model = Step.model_validate(step_dict)
+            await repo.save_step(step_model)
+            for s_alias in [
+                "s1",
+                "sp_1",
+                "sp_empty_evals",
+                "st_1",
+                "st_1234567890123456",
+                "st_falsifier",
+                "st_matrix",
+                "st_panel",
+                "st_primitive",
+                "st_sanit",
+                "st_sec",
+                "step1",
+                "step_final",
+                "stp_1234567890123456",
+                "test_blueprint",
+                "test_step",
+            ]:
+                repo._workflows._steps[s_alias] = step_model
 
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Returns valid workflow dict."""
-        return {
-            "id": "wflow_1234567890123456",
+    # 3. Execution
+    if not omit_execution:
+        exec_dict = _build_valid_execution_dict(execution_id)
+        exec_dict["created_at"] = datetime.now(timezone.utc)
+        exec_dict["updated_at"] = datetime.now(timezone.utc)
+        exec_model = ExecutionRecord.model_validate(exec_dict)
+        await repo.save_execution(exec_model)
+        for ex_alias in [
+            "ex_1",
+            "ex_1111111111111111",
+            "ex_1111222233334444",
+            "ex_1234567890abcdef",
+            "ex_2222222222222222",
+            "ex_2222333344445555",
+            "ex_3333333333333333",
+            "ex_3333444455556666",
+            "ex_5555666677778888",
+            "ex_9999999999999999",
+            "exe_1111111111111111",
+            "exe_1111222233334444",
+            "exe_1234567890123456",
+            "exec_0000000000000001",
+            "exec_0000000000000002",
+            "exec_0000000000000003",
+            "exec_0000000000000004",
+            "exec_0000000000000005",
+            "exec_0000000000000006",
+            "exec_0000000000000007",
+            "exec_0000000000000008",
+            "exec_0000000000000009",
+            "exec_0000000000000010",
+            "exec_0000000000000011",
+            "exec_0000000000000012",
+            "exec_0000000000000013",
+            "exec_0000000000000014",
+            "exec_0000000000000015",
+            "exec_0000000000000016",
+            "exec_0000000000000017",
+            "exec_0123456789abcdef",
+        ]:
+            repo._executions._storage[ex_alias] = exec_model
+
+    # 4. Workflow
+    if not omit_workflow:
+        wf_dict = {
+            "id": workflow_id,
             "slug": "test_workflow",
             "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
             "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
             "status": "active",
             "version": 1,
-            "default_profile_id": "prof_1111111111111111",
-            "default_strictness_level": 85,
+            "default_profile_id": profile_id,
+            "default_strictness_level": strictness_level,
             "historical_context_mode": "DISABLED",
             "model_registry_id": "cfg_model_registry_01",
-            "enable_contextual_overrides": True,
-            "security_penalty": 0.0,
-            "post_hoc_penalty": 0.0,
-            "passivity_penalty": 0.0,
+            "enable_contextual_overrides": enable_overrides,
+            "security_penalty": security_penalty,
+            "post_hoc_penalty": post_hoc_penalty,
+            "passivity_penalty": passivity_penalty,
         }
+        wf_aliases = [
+            "test_wf",
+            "wf1",
+            "wf_1",
+            "wf_123",
+            "wflow_1234567890123456",
+            "wor_1111222233334444",
+            "wor_1234567890123456",
+        ]
+        if strictness_level is None:
+            repo._workflows._storage[workflow_id] = wf_dict
+            for wf_alias in wf_aliases:
+                repo._workflows._storage[wf_alias] = wf_dict
+        else:
+            wf_model = Workflow.model_validate(wf_dict)
+            await repo.save_workflow(wf_model)
+            for wf_alias in wf_aliases:
+                repo._workflows._storage[wf_alias] = wf_model
 
-    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
-        """Returns valid output profile dict."""
-        return {
+    # 5. Output Profile
+    if not omit_profile:
+        prof_dict: dict[str, Any] = {
             "id": profile_id,
             "slug": "test_slug",
-            "workflow_id": "wf_123",
+            "workflow_id": workflow_id,
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "matrix_synthesis_groups": [
                 {
@@ -191,8 +370,35 @@ class MockRepository:
                     "target_blocks": ["*"],
                 }
             ],
-            "display_scale": "original",
+            "display_scale": display_scale,
         }
+        if variance_target_block:
+            prof_dict["variance_target_block"] = variance_target_block
+        if variance_scale_levels:
+            prof_dict["variance_scale_levels"] = variance_scale_levels
+        if visible_block_extensions is not None:
+            prof_dict["visible_block_extensions"] = visible_block_extensions
+        prof_model = OutputProfile.model_validate(prof_dict)
+        await repo.create_output_profile(prof_model)
+        for prf_alias in ["prof_1111111111111111", "prof_123", "prf_1111222233334444", "prf_123"]:
+            repo._output_profiles._storage[prf_alias] = prof_model
+
+    return repo
+
+
+def _build_test_scoring_deps(repo: InMemoryUnifiedWorkflowRepository, **overrides: Any) -> HookDependencies:
+    kwargs = {
+        "exec_repo": repo,
+        "workflow_repo": repo,
+        "comp_repo": repo,
+        "prompt_block_repo": repo,
+        "output_profile_repo": repo,
+        "identity_repo": repo,
+        "audit_repo": repo,
+        "system_repo": repo,
+    }
+    kwargs.update(overrides)
+    return HookDependencies(**kwargs)
 
 
 # ==============================================================================
@@ -203,6 +409,7 @@ class MockRepository:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
     """Test that setting a corrupted non-float scale in PromptBlocks causes a fail fast AppException."""
+    repo = await _create_test_scoring_repo(corrupt_scale=True)
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -222,19 +429,10 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
-        await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
+        await normalize_matrix_scores_hook(state, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
     assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message
@@ -243,54 +441,6 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     """Test that Tapa 2 string PromptBlocks preserve XAI variables in the new LightweightMatrixOutput."""
-
-    class MockRepoTapa2:
-        async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-            return _build_valid_step_dict(["tb_1234567890123456"])
-
-        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            return _build_valid_pb_dict(
-                "tb_1234567890123456",
-                [
-                    _build_valid_scale(1, ["tapa_atom_1"]),
-                    _build_valid_scale(5, ["tapa_atom_5"]),
-                ],
-            )
-
-        async def get_execution(self, execution_id: str) -> dict[str, Any]:
-            return _build_valid_execution_dict(execution_id)
-
-        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-            return {
-                "id": "wflow_1234567890123456",
-                "slug": "test_workflow",
-                "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-                "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-                "status": "active",
-                "version": 1,
-                "default_profile_id": "prof_1111111111111111",
-                "default_strictness_level": 85,
-                "historical_context_mode": "DISABLED",
-                "model_registry_id": "cfg_model_registry_01",
-                "enable_contextual_overrides": True,
-            }
-
-        async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
-            return {
-                "id": profile_id,
-                "slug": "test_slug",
-                "workflow_id": "wf_123",
-                "name": {"translations": {"en": "Test", "fi": "Test"}},
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0000000000000001",
-                        "title": {"translations": {"en": "Default", "fi": "Default"}},
-                        "target_blocks": ["*"],
-                    }
-                ],
-                "display_scale": "original",
-            }
-
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -313,18 +463,16 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoTapa2()),
-        workflow_repo=cast(Any, MockRepoTapa2()),
-        comp_repo=cast(Any, MockRepoTapa2()),
-        prompt_block_repo=cast(Any, MockRepoTapa2()),
-        output_profile_repo=cast(Any, MockRepoTapa2()),
-        identity_repo=cast(Any, MockRepoTapa2()),
-        audit_repo=cast(Any, MockRepoTapa2()),
-        system_repo=cast(Any, MockRepoTapa2()),
+    repo = await _create_test_scoring_repo(
+        pb_id="tb_1234567890123456",
+        scales=[
+            _build_valid_scale(1, ["tapa_atom_1"]),
+            _build_valid_scale(5, ["tapa_atom_5"]),
+        ],
     )
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], normalize_matrix_scores_hook(state, deps))
+    result = await normalize_matrix_scores_hook(state, deps)
 
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
@@ -360,16 +508,8 @@ async def test_normalize_matrix_scores_missing_workflow_repo_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, None),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo, workflow_repo=None)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -380,8 +520,7 @@ async def test_normalize_matrix_scores_missing_workflow_repo_raises() -> None:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_step_not_found_raises() -> None:
     """Test that normalize_matrix_scores_hook raises RESOURCE_NOT_FOUND when step is not in database."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = None
+    repo = await _create_test_scoring_repo(omit_step=True)
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -391,16 +530,7 @@ async def test_normalize_matrix_scores_step_not_found_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -411,9 +541,7 @@ async def test_normalize_matrix_scores_step_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_missing_prompt_block_raises() -> None:
     """Test that normalize_matrix_scores_hook raises RESOURCE_NOT_FOUND when prompt block is missing."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = None
+    repo = await _create_test_scoring_repo(omit_pb=True)
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -432,16 +560,7 @@ async def test_normalize_matrix_scores_missing_prompt_block_raises() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -452,11 +571,8 @@ async def test_normalize_matrix_scores_missing_prompt_block_raises() -> None:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_invalid_input_payload_raises() -> None:
     """Test that normalize_matrix_scores_hook raises VALIDATION_FAILED on invalid matrix input dictionary."""
-    mock_workflow = AsyncMock()
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    repo = await _create_test_scoring_repo(scales=scales)
 
     state = HookState(
         execution_id="ex_1234567890abcdef",
@@ -471,16 +587,7 @@ async def test_normalize_matrix_scores_invalid_input_payload_raises() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -501,16 +608,8 @@ async def test_normalize_matrix_scores_empty_blueprint_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -521,9 +620,7 @@ async def test_normalize_matrix_scores_empty_blueprint_raises() -> None:
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_no_matrix_updates_returns_empty_delta() -> None:
     """Test that normalize_matrix_scores_hook returns empty state_delta when no prompt blocks match."""
-    mock_workflow = AsyncMock()
-    # Step has criteria block pb_1234567890123456, but raw_inputs does not contain it
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -533,16 +630,7 @@ async def test_normalize_matrix_scores_no_matrix_updates_returns_empty_delta() -
         inputs=ExecutionInputsDTO(raw_inputs={"other_block": 123}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await normalize_matrix_scores_hook(state, deps)
     assert result.success is True
@@ -553,18 +641,7 @@ async def test_normalize_matrix_scores_no_matrix_updates_returns_empty_delta() -
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None:
     """Test that normalize_matrix_scores_hook skips non-matrix prompt blocks."""
-    mock_workflow = AsyncMock()
-    # PersonaPromptBlock instead of MatrixPromptBlock
-    persona_pb = {
-        "id": "pb_1234567890123456",
-        "slug": "persona_slug",
-        "label": {"translations": {"en": "Persona", "fi": "Persona"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "category_id": PromptBlockCategory.EXECUTION_PERSONA.value,
-        "type": "string",
-    }
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = persona_pb
+    repo = await _create_test_scoring_repo(pb_category="execution_persona")
 
     state = HookState(
         execution_id="ex_1234567890abcdef",
@@ -579,16 +656,7 @@ async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await normalize_matrix_scores_hook(state, deps)
     assert result.success is True
@@ -599,8 +667,8 @@ async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
     """Test that normalize_matrix_scores_hook raises VALIDATION_FAILED when Step model validation fails."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = {"invalid": "schema"}
+    repo = await _create_test_scoring_repo(corrupt_step=True)
+    repo._workflows._steps["st_invalid"] = {"invalid": "schema"}
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="test_wf",
@@ -610,16 +678,7 @@ async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
@@ -645,46 +704,10 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
         }
     )
 
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
+    repo = await _create_test_scoring_repo(scales=scales)
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await recalculate(payload, "prof_1111111111111111", deps)
@@ -725,49 +748,10 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         }
     )
 
-    mock_repo = MockRepoWaterfall()
-    mock_repo.pb_id = "pb_1234567890123456"
-    # Ensure prompt block repo returns pb_dict
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
+    repo = await _create_test_scoring_repo(scales=scales)
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     recalculated = await recalculate(payload, "prof_1111111111111111", deps)
     assert "true_atoms_count" in recalculated
@@ -800,46 +784,10 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
         }
     )
 
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
+    repo = await _create_test_scoring_repo(scales=scales)
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await recalculate(payload, "prof_1111111111111111", deps)
@@ -853,17 +801,8 @@ async def test_recalculate_none_profile_returns_early() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     payload = ContextVariablesDTO(variables={"pb_1": 123})
-    mock_workflow = AsyncMock()
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await recalculate(payload, None, deps)
     assert result == payload
@@ -875,18 +814,8 @@ async def test_recalculate_profile_not_found_raises() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     payload = ContextVariablesDTO(variables={"pb_1": 123})
-    mock_workflow = AsyncMock()
-    mock_workflow.get_output_profile_by_id.return_value = None
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo(omit_profile=True)
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
         await recalculate(payload, "prof_missing", deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
@@ -898,32 +827,8 @@ async def test_recalculate_workflow_not_found_raises() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     payload = ContextVariablesDTO(variables={"pb_1": 123})
-    mock_workflow = AsyncMock()
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
-    mock_workflow.get_workflow_by_id.return_value = None
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo(omit_workflow=True)
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
         await recalculate(payload, "prof_1111111111111111", deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
@@ -934,7 +839,6 @@ async def test_normalize_matrix_scores_missing_scales_raises() -> None:
     """Test normalize_matrix_scores raises CONFIGURATION_ERROR when prompt block has empty scales."""
     from backend_v2.hooks.scoring.normalization_hook import normalize_matrix_scores_hook
 
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=[])
     matrix_dto = LightweightMatrixOutput(
         raw_score=3.0,
         normalized_score=None,
@@ -942,9 +846,7 @@ async def test_normalize_matrix_scores_missing_scales_raises() -> None:
         evaluated_atoms={},
         extensions={},
     )
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
+    repo = await _create_test_scoring_repo(no_scales=True)
     state = HookState(
         execution_id="ex_1111222233334444",
         workflow_id="wf_123",
@@ -958,16 +860,7 @@ async def test_normalize_matrix_scores_missing_scales_raises() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
         await normalize_matrix_scores_hook(state, deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
@@ -997,45 +890,9 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
             "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo(scales=scales)
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
+    deps = _build_test_scoring_deps(repo)
     recalculated = await recalculate(payload, "prof_1111111111111111", deps)
     pb_output = recalculated["pb_1234567890123456"]
     assert isinstance(pb_output, LightweightMatrixOutput)
@@ -1047,7 +904,6 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
     """Test recalculate gracefully skips prompt blocks that are not MatrixPromptBlock."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    pb_instruction = _build_valid_pb_dict("pi_1234567890123456", [], pb_type="instruction", category_id="system_rule")
     matrix_dto = LightweightMatrixOutput(
         raw_score=1.0,
         normalized_score=0.0,
@@ -1060,45 +916,8 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
             "pi_1234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_instruction
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wflow_1234567890123456",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo(pb_id="pi_1234567890123456", pb_category="system_rule")
+    deps = _build_test_scoring_deps(repo)
     recalculated = await recalculate(payload, "prof_1111111111111111", deps)
     assert recalculated["true_atoms_count"] == 0
 
@@ -1108,134 +927,11 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
 # ==============================================================================
 
 
-class MockRepoWaterfall:
-    """Mock repository for waterfall scoring tests."""
-
-    def __init__(self, pb_id: str = "pb_1234567890123456") -> None:
-        self.pb_id = pb_id
-
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        """Returns step with matrix prompt block."""
-        return _build_valid_step_dict([self.pb_id])
-
-    async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        """Returns 5-level matrix prompt block."""
-        return _build_valid_pb_dict(
-            self.pb_id,
-            [
-                _build_valid_scale(1, ["atom_1"]),
-                _build_valid_scale(2, ["atom_2"]),
-                _build_valid_scale(3, ["atom_3"]),
-                _build_valid_scale(4, ["atom_4"]),
-                _build_valid_scale(5, ["atom_5"]),
-            ],
-        )
-
-    async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        """Returns valid execution dict."""
-        return _build_valid_execution_dict(execution_id)
-
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Returns valid workflow dict."""
-        return {
-            "id": "wflow_1234567890123456",
-            "slug": "test_workflow",
-            "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-            "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-            "status": "active",
-            "version": 1,
-            "default_profile_id": "prof_1111111111111111",
-            "default_strictness_level": 85,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "enable_contextual_overrides": True,
-        }
-
-    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
-        """Returns valid output profile."""
-        return {
-            "id": profile_id,
-            "slug": "test_slug",
-            "workflow_id": "wf_123",
-            "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0000000000000001",
-                    "title": {"translations": {"en": "Default", "fi": "Default"}},
-                    "target_blocks": ["*"],
-                }
-            ],
-            "display_scale": "original",
-        }
-
-
-class MockRepoWaterfallMixed:
-    """Mock repository with mixed matrix and instruction blocks."""
-
-    def __init__(self) -> None:
-        self.pb_matrix = "pm_1234567890123456"
-        self.pb_instruction = "pi_1234567890123456"
-
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        """Returns step with mixed prompt blocks."""
-        return _build_valid_step_dict([self.pb_matrix, self.pb_instruction])
-
-    async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        """Returns prompt block based on ID."""
-        if pb_id == self.pb_matrix:
-            return _build_valid_pb_dict(
-                self.pb_matrix,
-                [
-                    _build_valid_scale(1, ["atom_1"]),
-                    _build_valid_scale(5, ["atom_5"]),
-                ],
-            )
-        else:
-            return _build_valid_pb_dict(self.pb_instruction, [], pb_type="instruction", category_id="system_rule")
-
-    async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        """Returns execution dict."""
-        return _build_valid_execution_dict(execution_id)
-
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Returns workflow dict."""
-        return {
-            "id": "wflow_1234567890123456",
-            "slug": "test_workflow",
-            "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-            "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-            "status": "active",
-            "version": 1,
-            "default_profile_id": "prof_1111111111111111",
-            "default_strictness_level": 85,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "enable_contextual_overrides": True,
-        }
-
-    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
-        """Returns output profile dict."""
-        return {
-            "id": profile_id,
-            "slug": "test_slug",
-            "workflow_id": "wf_123",
-            "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0000000000000001",
-                    "title": {"translations": {"en": "Default", "fi": "Default"}},
-                    "target_blocks": ["*"],
-                }
-            ],
-            "display_scale": "original",
-        }
-
-
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when step fails Pydantic validation."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = {"invalid": "step"}
+    repo = await _create_test_scoring_repo(corrupt_step=True)
+    repo._workflows._steps["st_invalid"] = {"invalid": "schema"}
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
@@ -1245,16 +941,7 @@ async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1265,9 +952,7 @@ async def test_matrix_scoring_hook_step_validation_failure_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_prompt_block_validation_failure_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when prompt block fails Pydantic validation."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = {"invalid": "prompt_block"}
+    repo = await _create_test_scoring_repo(corrupt_pb=True)
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
@@ -1277,16 +962,7 @@ async def test_matrix_scoring_hook_prompt_block_validation_failure_raises() -> N
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1297,7 +973,7 @@ async def test_matrix_scoring_hook_prompt_block_validation_failure_raises() -> N
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_execution_id_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when execution_id is empty."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="",
         workflow_id="wf1",
@@ -1307,16 +983,7 @@ async def test_matrix_scoring_hook_missing_execution_id_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1336,16 +1003,8 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, None),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo, workflow_repo=None)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1365,16 +1024,8 @@ async def test_matrix_scoring_hook_empty_blueprint_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1385,8 +1036,7 @@ async def test_matrix_scoring_hook_empty_blueprint_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_not_found_raises() -> None:
     """Test that matrix_scoring_hook raises RESOURCE_NOT_FOUND when step is not in database."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = None
+    repo = await _create_test_scoring_repo(omit_step=True)
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
@@ -1396,16 +1046,7 @@ async def test_matrix_scoring_hook_step_not_found_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1416,18 +1057,7 @@ async def test_matrix_scoring_hook_step_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
     """Test that matrix_scoring_hook returns empty HookResult if step has no matrix blocks."""
-    mock_workflow = AsyncMock()
-    persona_pb = {
-        "id": "pb_1234567890123456",
-        "slug": "persona_slug",
-        "label": {"translations": {"en": "Persona", "fi": "Persona"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "category_id": PromptBlockCategory.EXECUTION_PERSONA.value,
-        "type": "string",
-    }
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = persona_pb
-
+    repo = await _create_test_scoring_repo(pb_category="execution_persona")
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
@@ -1437,16 +1067,7 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -1457,14 +1078,8 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_workflow_raises() -> None:
     """Test that matrix_scoring_hook raises RESOURCE_NOT_FOUND when workflow is missing."""
-    mock_workflow = AsyncMock()
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_execution.return_value = _build_valid_execution_dict("ex_1234567890abcdef")
-    mock_workflow.get_workflow_by_id.return_value = None
-
+    repo = await _create_test_scoring_repo(scales=scales, omit_workflow=True)
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -1474,16 +1089,7 @@ async def test_matrix_scoring_hook_missing_workflow_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1494,26 +1100,8 @@ async def test_matrix_scoring_hook_missing_workflow_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
     """Test that matrix_scoring_hook raises CONFIGURATION_ERROR when output profile is missing scoring configuration."""
-    mock_workflow = AsyncMock()
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_execution.return_value = _build_valid_execution_dict("ex_1234567890abcdef")
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = None
-
+    repo = await _create_test_scoring_repo(scales=scales, omit_profile=True)
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -1523,16 +1111,7 @@ async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1543,12 +1122,8 @@ async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_execution_raises() -> None:
     """Test that matrix_scoring_hook raises RESOURCE_NOT_FOUND when execution record is missing."""
-    mock_workflow = AsyncMock()
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_execution.return_value = None
+    repo = await _create_test_scoring_repo(scales=scales)
 
     state = HookState(
         execution_id="ex_missing",
@@ -1559,16 +1134,7 @@ async def test_matrix_scoring_hook_missing_execution_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1579,7 +1145,7 @@ async def test_matrix_scoring_hook_missing_execution_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_results_array_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when 'results' is missing in state.inputs."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -1589,16 +1155,7 @@ async def test_matrix_scoring_hook_missing_results_array_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"missing_results": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1610,7 +1167,7 @@ async def test_matrix_scoring_hook_missing_results_array_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_invalid_extracted_facts_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when extracted_facts is not a dictionary."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -1625,16 +1182,7 @@ async def test_matrix_scoring_hook_invalid_extracted_facts_raises() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1646,7 +1194,7 @@ async def test_matrix_scoring_hook_invalid_extracted_facts_raises() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_evaluations_not_list_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when results is not a list."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -1660,16 +1208,7 @@ async def test_matrix_scoring_hook_evaluations_not_list_raises() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
@@ -1706,18 +1245,10 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfallMixed()),
-        workflow_repo=cast(Any, MockRepoWaterfallMixed()),
-        comp_repo=cast(Any, MockRepoWaterfallMixed()),
-        prompt_block_repo=cast(Any, MockRepoWaterfallMixed()),
-        output_profile_repo=cast(Any, MockRepoWaterfallMixed()),
-        identity_repo=cast(Any, MockRepoWaterfallMixed()),
-        audit_repo=cast(Any, MockRepoWaterfallMixed()),
-        system_repo=cast(Any, MockRepoWaterfallMixed()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
 
 
@@ -1747,18 +1278,10 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -1771,30 +1294,6 @@ async def test_matrix_scoring_hook_pass_all() -> None:
 async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> None:
     """Verifies that inverse_evidence=True with status=PASSED correctly satisfies the level (no double-inversion)."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-
-    class MockRepoWaterfallInverse(MockRepoWaterfall):
-        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            scales = [
-                {
-                    "score": i,
-                    "ai_label": f"Level {i}",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                                    "concept_description": f"Inverse assertion {i}",
-                                    "inverse_evidence": True,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                }
-                for i in range(1, 6)
-            ]
-            return _build_valid_pb_dict(self.pb_id, scales)
 
     evaluations = [
         {
@@ -1816,19 +1315,10 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    repo = MockRepoWaterfallInverse()
-    deps = HookDependencies(
-        exec_repo=cast(Any, repo),
-        workflow_repo=cast(Any, repo),
-        comp_repo=cast(Any, repo),
-        prompt_block_repo=cast(Any, repo),
-        output_profile_repo=cast(Any, repo),
-        identity_repo=cast(Any, repo),
-        audit_repo=cast(Any, repo),
-        system_repo=cast(Any, repo),
-    )
+    repo = await _create_test_scoring_repo(inverse_evidence=True, mandate=mandate)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -1841,31 +1331,6 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
     """Verifies that inverse_evidence=True with status=FAILED correctly blocks the level."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
-    class MockRepoWaterfallInverse(MockRepoWaterfall):
-        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            scales = [
-                {
-                    "score": i,
-                    "ai_label": f"Level {i}",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                                    "concept_description": f"Inverse assertion {i}",
-                                    "inverse_evidence": True,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                }
-                for i in range(1, 6)
-            ]
-            return _build_valid_pb_dict(self.pb_id, scales)
-
-    # Level 1 fails because sensor returned FAILED (penalty detected)
     evaluations = [
         {
             "tda_id": generate_atom_hash("atom_1", mandate),
@@ -1894,19 +1359,10 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    repo = MockRepoWaterfallInverse()
-    deps = HookDependencies(
-        exec_repo=cast(Any, repo),
-        workflow_repo=cast(Any, repo),
-        comp_repo=cast(Any, repo),
-        prompt_block_repo=cast(Any, repo),
-        output_profile_repo=cast(Any, repo),
-        identity_repo=cast(Any, repo),
-        audit_repo=cast(Any, repo),
-        system_repo=cast(Any, repo),
-    )
+    repo = await _create_test_scoring_repo(inverse_evidence=True, mandate=mandate)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -1918,36 +1374,6 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
 async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survives_disabled_overrides() -> None:
     """Verifies that inverse_evidence=True with status=PASSED and source_quote=None satisfies levels even with enable_contextual_overrides=False."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-
-    class MockRepoWaterfallInverseNoOverrides(MockRepoWaterfall):
-        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            scales = [
-                {
-                    "score": i,
-                    "ai_label": f"Level {i}",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                                    "concept_description": f"Inverse assertion {i}",
-                                    "inverse_evidence": True,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                }
-                for i in range(1, 6)
-            ]
-            return _build_valid_pb_dict(self.pb_id, scales)
-
-        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-            wf = await super().get_workflow_by_id(workflow_id)
-            if wf:
-                wf["enable_contextual_overrides"] = False
-            return wf
 
     evaluations = [
         {
@@ -1970,19 +1396,10 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    repo = MockRepoWaterfallInverseNoOverrides()
-    deps = HookDependencies(
-        exec_repo=cast(Any, repo),
-        workflow_repo=cast(Any, repo),
-        comp_repo=cast(Any, repo),
-        prompt_block_repo=cast(Any, repo),
-        output_profile_repo=cast(Any, repo),
-        identity_repo=cast(Any, repo),
-        audit_repo=cast(Any, repo),
-        system_repo=cast(Any, repo),
-    )
+    repo = await _create_test_scoring_repo(inverse_evidence=True, mandate=mandate, enable_overrides=False)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -1994,13 +1411,6 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
 async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_disabled() -> None:
     """Verifies that a non-inverse atom with contextual_override=True is demoted to FALSE when enable_contextual_overrides=False."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-
-    class MockRepoWaterfallNoOverrides(MockRepoWaterfall):
-        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-            wf = await super().get_workflow_by_id(workflow_id)
-            if wf:
-                wf["enable_contextual_overrides"] = False
-            return wf
 
     evaluations = [
         {
@@ -2032,19 +1442,10 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    repo = MockRepoWaterfallNoOverrides()
-    deps = HookDependencies(
-        exec_repo=cast(Any, repo),
-        workflow_repo=cast(Any, repo),
-        comp_repo=cast(Any, repo),
-        prompt_block_repo=cast(Any, repo),
-        output_profile_repo=cast(Any, repo),
-        identity_repo=cast(Any, repo),
-        audit_repo=cast(Any, repo),
-        system_repo=cast(Any, repo),
-    )
+    repo = await _create_test_scoring_repo(enable_overrides=False)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -2056,30 +1457,6 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
 async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None:
     """Verifies that an inverse assertion with status=FAILED resolves to FALSE even with enable_contextual_overrides=True."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
-
-    class MockRepoWaterfallInverse(MockRepoWaterfall):
-        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-            scales = [
-                {
-                    "score": i,
-                    "ai_label": f"Level {i}",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
-                            "tda_assertions": [
-                                {
-                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                                    "concept_description": f"Inverse assertion {i}",
-                                    "inverse_evidence": True,
-                                    "aggregation_mode": "EXISTS",
-                                }
-                            ],
-                        }
-                    ],
-                }
-                for i in range(1, 6)
-            ]
-            return _build_valid_pb_dict(self.pb_id, scales)
 
     evaluations = [
         {
@@ -2111,19 +1488,10 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    repo = MockRepoWaterfallInverse()
-    deps = HookDependencies(
-        exec_repo=cast(Any, repo),
-        workflow_repo=cast(Any, repo),
-        comp_repo=cast(Any, repo),
-        prompt_block_repo=cast(Any, repo),
-        output_profile_repo=cast(Any, repo),
-        identity_repo=cast(Any, repo),
-        audit_repo=cast(Any, repo),
-        system_repo=cast(Any, repo),
-    )
+    repo = await _create_test_scoring_repo(inverse_evidence=True, mandate=mandate)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -2159,17 +1527,9 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -2197,16 +1557,8 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
             }
         )
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises((AppException, ValidationError)):
         state = HookState(
@@ -2218,74 +1570,20 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
             inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
             global_context_vars=GlobalContextVarsDTO(),
         )
-        await cast(Awaitable[Any], matrix_scoring_hook(state, deps))
-
-
-class MockRepoWaterfallSimulation:
-    """Mock repository for full simulation test."""
-
-    def __init__(self, pb_id: str = "pb_1234567890123456") -> None:
-        self.pb_id = pb_id
-
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        """Returns valid step dict."""
-        return _build_valid_step_dict([self.pb_id])
-
-    async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        """Returns 5-level matrix block with multiple atoms per level."""
-        return _build_valid_pb_dict(
-            self.pb_id,
-            [
-                _build_valid_scale(1, ["L1_A1", "L1_A2"]),
-                _build_valid_scale(2, ["L2_A1", "L2_A2"]),
-                _build_valid_scale(3, ["L3_A1", "L3_A2"]),
-                _build_valid_scale(4, ["L4_A1"]),
-                _build_valid_scale(5, ["L5_A1"]),
-            ],
-        )
-
-    async def get_execution(self, execution_id: str) -> dict[str, Any]:
-        """Returns valid execution dict."""
-        return _build_valid_execution_dict(execution_id, strategy="AVERAGE")
-
-    async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
-        """Returns valid workflow dict."""
-        return {
-            "id": "wflow_1234567890123456",
-            "slug": "test_workflow",
-            "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-            "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-            "status": "active",
-            "version": 1,
-            "default_profile_id": "prof_1111111111111111",
-            "default_strictness_level": 85,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "enable_contextual_overrides": True,
-        }
-
-    async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
-        """Returns valid output profile dict with AVERAGE strategy."""
-        return {
-            "id": profile_id,
-            "slug": "test_slug",
-            "workflow_id": "wf_123",
-            "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "matrix_synthesis_groups": [
-                {
-                    "id": "grp_0000000000000001",
-                    "title": {"translations": {"en": "Default", "fi": "Default"}},
-                    "target_blocks": ["*"],
-                }
-            ],
-            "display_scale": "original",
-        }
+        await matrix_scoring_hook(state, deps)
 
 
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_full_simulation() -> None:
     """Simulates a complex real-world evaluation trace to ensure mathematical perfection."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+    scales = [
+        _build_valid_scale(1, ["L1_A1", "L1_A2"]),
+        _build_valid_scale(2, ["L2_A1", "L2_A2"]),
+        _build_valid_scale(3, ["L3_A1", "L3_A2"]),
+        _build_valid_scale(4, ["L4_A1"]),
+        _build_valid_scale(5, ["L5_A1"]),
+    ]
     evaluations = [
         {
             "tda_id": generate_atom_hash("L1_A1", mandate),
@@ -2352,18 +1650,10 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfallSimulation()),
-        workflow_repo=cast(Any, MockRepoWaterfallSimulation()),
-        comp_repo=cast(Any, MockRepoWaterfallSimulation()),
-        prompt_block_repo=cast(Any, MockRepoWaterfallSimulation()),
-        output_profile_repo=cast(Any, MockRepoWaterfallSimulation()),
-        identity_repo=cast(Any, MockRepoWaterfallSimulation()),
-        audit_repo=cast(Any, MockRepoWaterfallSimulation()),
-        system_repo=cast(Any, MockRepoWaterfallSimulation()),
-    )
+    repo = await _create_test_scoring_repo(scales=scales)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
 
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
@@ -2388,16 +1678,8 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
         },
     ]
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises((AppException, ValidationError)):
         state = HookState(
@@ -2409,7 +1691,7 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
             inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
             global_context_vars=GlobalContextVarsDTO(),
         )
-        await cast(Awaitable[Any], matrix_scoring_hook(state, deps))
+        await matrix_scoring_hook(state, deps)
 
 
 @pytest.mark.asyncio
@@ -2448,18 +1730,10 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -2493,18 +1767,10 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
 
 
@@ -2521,17 +1787,9 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
+    result = await matrix_scoring_hook(state, deps)
     assert result is not None
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
@@ -2542,7 +1800,7 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
     """Test matrix_scoring_hook handles cognitive DLQ status appropriately."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     atom_hash = generate_atom_hash("atom_1", EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value)
 
     state = HookState(
@@ -2568,16 +1826,7 @@ async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -2586,41 +1835,9 @@ async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
     """Test matrix_scoring_hook rejects contextual_override when workflow has enable_contextual_overrides=False."""
-    mock_workflow = AsyncMock()
-    pb_id = "pb_1234567890123456"
     atom_hash = generate_atom_hash("atom_1", EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value)
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict(pb_id, scales=scales)
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict([pb_id])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_execution.return_value = _build_valid_execution_dict("ex_1111222233334444")
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": False,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wf_123",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
+    repo = await _create_test_scoring_repo(scales=scales, allow_contextual_override=False, enable_overrides=False)
 
     state = HookState(
         execution_id="ex_1111222233334444",
@@ -2644,16 +1861,7 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -2662,7 +1870,7 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
     """Test matrix_scoring_hook filters out evaluations belonging to another matrix_id."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     atom_hash = generate_atom_hash("atom_1", EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value)
 
     state = HookState(
@@ -2688,16 +1896,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -2706,7 +1905,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
     """Test matrix_scoring_hook evaluates EXTRACTIVE_SENSOR assertions and records DLQ outcomes."""
-    mock_workflow = AsyncMock()
+    repo = await _create_test_scoring_repo()
     pb_id = "pb_1234567890123456"
     tda_sensor_id = f"tda_{hashlib.md5(b'sensor_atom_1').hexdigest()[:32]}"
     tda_dlq_id = f"tda_{hashlib.md5(b'cognitive_dlq_1').hexdigest()[:32]}"
@@ -2755,37 +1954,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
             }
         ],
     }
-    pb_dict = _build_valid_pb_dict(pb_id, scales=[scale_1, scale_5])
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict([pb_id])
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_execution.return_value = _build_valid_execution_dict("ex_1111222233334444")
-    mock_workflow.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-    }
-    mock_workflow.get_output_profile_by_id.return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "test_profile",
-        "workflow_id": "wf_123",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default", "fi": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "display_scale": "original",
-    }
+    repo = await _create_test_scoring_repo(scales=[scale_1, scale_5])
 
     state = HookState(
         execution_id="ex_1111222233334444",
@@ -2809,16 +1978,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -2853,36 +2013,10 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
-        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
-            return {
-                "id": "prof_1111111111111111",
-                "slug": "test_slug",
-                "workflow_id": "wf_123",
-                "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "visible_block_extensions": ["coaching", "falsification", "remediation_steps"],
-                "visible_workflow_extensions": [],
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0000000000000001",
-                        "title": {"translations": {"en": "Default", "fi": "Default"}},
-                        "target_blocks": ["*"],
-                    }
-                ],
-            }
+    repo = await _create_test_scoring_repo(visible_block_extensions=["coaching", "falsification", "remediation_steps"])
+    deps = _build_test_scoring_deps(repo)
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
 
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
@@ -2924,36 +2058,10 @@ async def test_scoring_matrix_namespace_isolation() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
-        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
-            return {
-                "id": "prof_1111111111111111",
-                "slug": "test_slug",
-                "workflow_id": "wf_123",
-                "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0000000000000001",
-                        "title": {"translations": {"en": "Default", "fi": "Default"}},
-                        "target_blocks": ["*"],
-                    }
-                ],
-            }
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -2988,36 +2096,10 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
-        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
-            return {
-                "id": "prof_1111111111111111",
-                "slug": "test_slug",
-                "workflow_id": "wf_123",
-                "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0000000000000001",
-                        "title": {"translations": {"en": "Default", "fi": "Default"}},
-                        "target_blocks": ["*"],
-                    }
-                ],
-            }
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3052,52 +2134,16 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    class MockOutputProfileRepoWaterfallPropagates(MockRepoWaterfall):
-        async def get_output_profile_by_id(self, _id: str) -> dict[str, Any]:
-            return {
-                "id": "prof_1111111111111111",
-                "slug": "test_slug",
-                "workflow_id": "wf_123",
-                "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_0000000000000001",
-                        "title": {"translations": {"en": "Default", "fi": "Default"}},
-                        "target_blocks": ["*"],
-                    }
-                ],
-            }
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockOutputProfileRepoWaterfallPropagates()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
-
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     assert "pb_1234567890123456" in delta.matrix_outputs
     matrix_output = delta.matrix_outputs["pb_1234567890123456"]
     assert matrix_output.evaluated_atoms[atom_hash] == ExecutionStatus.FAILED
-
-
-class MockRepoWaterfallStrict(MockRepoWaterfall):
-    """Mock repository with contextual override disabled on prompt block."""
-
-    async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
-        """Returns prompt block with allow_contextual_override=False."""
-        pb = await super().get_prompt_block_by_id(pb_id)
-        pb["allow_contextual_override"] = False
-        return pb
 
 
 @pytest.mark.asyncio
@@ -3138,18 +2184,10 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfallStrict()),
-        workflow_repo=cast(Any, MockRepoWaterfallStrict()),
-        comp_repo=cast(Any, MockRepoWaterfallStrict()),
-        prompt_block_repo=cast(Any, MockRepoWaterfallStrict()),
-        output_profile_repo=cast(Any, MockRepoWaterfallStrict()),
-        identity_repo=cast(Any, MockRepoWaterfallStrict()),
-        audit_repo=cast(Any, MockRepoWaterfallStrict()),
-        system_repo=cast(Any, MockRepoWaterfallStrict()),
-    )
+    repo = await _create_test_scoring_repo(allow_contextual_override=False)
+    deps = _build_test_scoring_deps(repo)
 
-    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3195,16 +2233,8 @@ async def test_apply_scoring_logic_hook_success() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": eval_matrices}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3235,16 +2265,8 @@ async def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [step_output.model_dump(mode="json")]}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3326,16 +2348,8 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
         inputs=ExecutionInputsDTO.model_construct(raw_inputs=inputs),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3366,16 +2380,8 @@ async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
         inputs=ExecutionInputsDTO(raw_inputs=inputs),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3403,16 +2409,8 @@ async def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3436,16 +2434,8 @@ async def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> 
         inputs=ExecutionInputsDTO(raw_inputs={"steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3457,19 +2447,11 @@ async def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> 
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_missing_state_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when state is None."""
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
-        await apply_scoring_logic_hook(cast(Any, None), deps)
+        await apply_scoring_logic_hook(None, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
@@ -3486,16 +2468,8 @@ async def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> No
         inputs=ExecutionInputsDTO(raw_inputs={"missing_steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3520,23 +2494,15 @@ async def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
                         step_id="st_1",
                         block_id="blk_1",
                         data_type="text",
-                        payload=cast(Any, {"step_falsifier": "invalid_not_a_model"}),
+                        payload={"step_falsifier": "invalid_not_a_model"},
                     )
                 ]
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3607,16 +2573,8 @@ async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> Non
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3634,15 +2592,8 @@ async def test_apply_scoring_logic_hook_missing_workflow_repo_raises() -> None:
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": 80.0}}),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, None),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo, workflow_repo=None)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3653,23 +2604,14 @@ async def test_apply_scoring_logic_hook_missing_workflow_repo_raises() -> None:
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
     """Test that apply_scoring_logic_hook raises RESOURCE_NOT_FOUND when workflow is not found."""
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_workflow_by_id.return_value = None
+    repo = await _create_test_scoring_repo(omit_workflow=True)
     state = HookState(
         execution_id="exec_0000000000000001",
         workflow_id="wf_nonexistent",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": 80.0}}),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, mock_workflow_repo),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3680,23 +2622,7 @@ async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> None:
     """Test that non-zero workflow penalties deduct from score and format tokens with percentage."""
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "penalized_workflow",
-        "name": {"translations": {"en": "Penalized", "fi": "Penalized"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-        "security_penalty": 0.15,
-        "post_hoc_penalty": 0.10,
-        "passivity_penalty": 0.05,
-    }
+    repo = await _create_test_scoring_repo(security_penalty=0.15, post_hoc_penalty=0.10, passivity_penalty=0.05)
     sec_dto = InputProcessingOutputDTO(
         thought_process="Analyzing input",
         conclusion="Threat detected",
@@ -3731,15 +2657,7 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
             }
         ),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, mock_workflow_repo),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3756,23 +2674,7 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> None:
     """Test that cumulative penalties exceeding MAX_TOTAL_PENALTY_RATIO (0.40) are clamped."""
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_workflow_by_id.return_value = {
-        "id": "wflow_1234567890123456",
-        "slug": "heavy_penalty_workflow",
-        "name": {"translations": {"en": "Heavy", "fi": "Heavy"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "default_strictness_level": 85,
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "enable_contextual_overrides": True,
-        "security_penalty": 0.30,
-        "post_hoc_penalty": 0.20,
-        "passivity_penalty": 0.15,
-    }
+    repo = await _create_test_scoring_repo(security_penalty=0.30, post_hoc_penalty=0.20, passivity_penalty=0.15)
     sec_dto = InputProcessingOutputDTO(
         thought_process="Analyzing input",
         conclusion="Threat detected",
@@ -3836,15 +2738,7 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
             }
         ),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, mock_workflow_repo),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
@@ -3870,21 +2764,14 @@ async def test_apply_scoring_logic_hook_invalid_state_input_wrapper_raises() -> 
                         step_id="st_1",
                         block_id="step_input_processing",
                         data_type="text",
-                        payload=cast(Any, {"step_input_processing": {"invalid_shape": 123}}),
+                        payload={"step_input_processing": {"invalid_shape": 123}},
                     )
                 ],
             }
         ),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await apply_scoring_logic_hook(state, deps)
@@ -3917,16 +2804,8 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
@@ -3956,16 +2835,8 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
         inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
@@ -3985,16 +2856,8 @@ async def test_enforce_passivity_penalty_hook_legacy_score_card_raises() -> None
         inputs=ExecutionInputsDTO(raw_inputs={"score_card": {"dimension_1": 1.0}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
@@ -4015,16 +2878,8 @@ async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> 
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, None),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo, workflow_repo=None)
 
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
@@ -4035,18 +2890,10 @@ async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> 
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_missing_state_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if state is None."""
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
-        await enforce_passivity_penalty_hook(cast(Any, None), deps)
+        await enforce_passivity_penalty_hook(None, deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
 
@@ -4062,16 +2909,8 @@ async def test_enforce_passivity_penalty_hook_missing_blueprint_id_raises() -> N
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepoWaterfall()),
-        workflow_repo=cast(Any, MockRepoWaterfall()),
-        comp_repo=cast(Any, MockRepoWaterfall()),
-        prompt_block_repo=cast(Any, MockRepoWaterfall()),
-        output_profile_repo=cast(Any, MockRepoWaterfall()),
-        identity_repo=cast(Any, MockRepoWaterfall()),
-        audit_repo=cast(Any, MockRepoWaterfall()),
-        system_repo=cast(Any, MockRepoWaterfall()),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
@@ -4080,16 +2919,7 @@ async def test_enforce_passivity_penalty_hook_missing_blueprint_id_raises() -> N
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() -> None:
     """Test that enforce_passivity_penalty_hook skips non-matrix prompt blocks."""
-    mock_workflow = MockRepoWaterfall()
-    mock_pb_repo = InMemoryBlueprintTransformerRepository()
-    mock_pb_repo.get_prompt_block_by_id.return_value = {
-        "id": "pb_1234567890123456",
-        "slug": "instruction",
-        "category_id": "system_rule",
-        "label": {"translations": {"en": "Instruction"}},
-        "description": {"translations": {"en": "Instruction desc"}},
-        "instruction_text": "Test instruction",
-    }
+    repo = await _create_test_scoring_repo(pb_category="system_rule")
     state = HookState(
         execution_id="exec_0000000000000014",
         workflow_id="wf_1",
@@ -4099,16 +2929,7 @@ async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() 
         inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": {"raw_score": 1.0}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_pb_repo),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     assert result.state_delta.delta is None or result.state_delta.delta == {}
@@ -4117,8 +2938,7 @@ async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() 
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_step_not_found_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises RESOURCE_NOT_FOUND if step is not in database."""
-    mock_workflow = AsyncMock()
-    mock_workflow.get_step_by_id.return_value = None
+    repo = await _create_test_scoring_repo(omit_step=True)
     state = HookState(
         execution_id="exec_0000000000000014",
         workflow_id="wf_1",
@@ -4128,16 +2948,7 @@ async def test_enforce_passivity_penalty_hook_step_not_found_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
@@ -4148,10 +2959,7 @@ async def test_enforce_passivity_penalty_hook_step_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_matrix_has_no_scales_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if MatrixPromptBlock has empty scales."""
-    mock_workflow = AsyncMock()
-    no_scales_matrix = _build_valid_pb_dict("pb_1234567890123456", scales=[])
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
-    mock_workflow.get_prompt_block_by_id.return_value = no_scales_matrix
+    repo = await _create_test_scoring_repo(no_scales=True)
 
     state = HookState(
         execution_id="exec_0000000000000015",
@@ -4162,16 +2970,7 @@ async def test_enforce_passivity_penalty_hook_matrix_has_no_scales_raises() -> N
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
@@ -4182,7 +2981,7 @@ async def test_enforce_passivity_penalty_hook_matrix_has_no_scales_raises() -> N
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED when matrix format is corrupted."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     state = HookState(
         execution_id="exec_0000000000000016",
         workflow_id="wf_1",
@@ -4195,22 +2994,13 @@ async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> 
                     step_id="st_1234567890123456",
                     block_id="pb_1234567890123456",
                     data_type="matrix",
-                    payload=cast(Any, {"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"}),
+                    payload={"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"},
                 )
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)
@@ -4222,7 +3012,7 @@ async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> 
 @pytest.mark.asyncio
 async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None:
     """Test passivity penalty calculation with _evaluative_matrices dictionary update."""
-    mock_workflow = MockRepoWaterfall()
+    repo = await _create_test_scoring_repo()
     matrix_raw = {
         "raw_score": 1.0,
         "normalized_score": 20.0,
@@ -4244,16 +3034,7 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     res = await enforce_passivity_penalty_hook(state, deps)
     assert res.success is True
@@ -4264,38 +3045,6 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None:
     """SSOT Invariant: matrix_scoring_hook directly accesses non-nullable output_profile_id."""
-    mock_workflow = MockRepository()
-    mock_workflow.get_prompt_block_by_id = AsyncMock(  # type: ignore[method-assign]
-        return_value=_build_valid_pb_dict("pb_1234567890123456", [_build_valid_scale(1.0), _build_valid_scale(5.0)])
-    )
-    mock_workflow.get_execution = AsyncMock(  # type: ignore[method-assign]
-        return_value={
-            "id": "exe_1234567890123456",
-            "workflow_id": "wf_123",
-            "organization_id": "org_123",
-            "created_by": "usr_123",
-            "active_profile_id": "prof_1111111111111111",
-            "output_profile_id": "prof_1111111111111111",
-            "status": "RUNNING",
-            "target_locale": "fi",
-            "metadata": {},
-            "raw_inputs": {},
-            "execution_trace": [],
-            "step_states": {},
-            "frozen_context": {},
-        }
-    )
-    mock_workflow.get_output_profile_by_id = AsyncMock(  # type: ignore[method-assign]
-        return_value={
-            "id": "prof_1111111111111111",
-            "slug": "prof_1111111111111111",
-            "name": {"translations": {"en": "Prof", "fi": "Prof"}},
-            "workflow_id": "wf_123",
-            "target_block_order": [],
-            "visible_block_extensions": [],
-        }
-    )
-
     state = HookState(
         execution_id="exe_1234567890123456",
         workflow_id="wf_123",
@@ -4309,16 +3058,8 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    repo = await _create_test_scoring_repo()
+    deps = _build_test_scoring_deps(repo)
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
@@ -4344,9 +3085,16 @@ async def test_normalize_matrix_scores_evaluative_matrices_and_branches() -> Non
         evaluated_atoms={},
         extensions={},
     )
-    mock_workflow = AsyncMock()
-    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
-    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["blk_1234567890123456"])
+    repo = await _create_test_scoring_repo(
+        pb_id="blk_1234567890123456",
+        scales=[
+            _build_valid_scale(1, ["atom_1"]),
+            _build_valid_scale(5, ["atom_5"]),
+        ],
+        step_id="stp_1234567890123456",
+        workflow_id="wor_1234567890123456",
+        execution_id="exe_1111222233334444",
+    )
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1234567890123456",
@@ -4361,16 +3109,7 @@ async def test_normalize_matrix_scores_evaluative_matrices_and_branches() -> Non
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, mock_workflow),
-        workflow_repo=cast(Any, mock_workflow),
-        comp_repo=cast(Any, mock_workflow),
-        prompt_block_repo=cast(Any, mock_workflow),
-        output_profile_repo=cast(Any, mock_workflow),
-        identity_repo=cast(Any, mock_workflow),
-        audit_repo=cast(Any, mock_workflow),
-        system_repo=cast(Any, mock_workflow),
-    )
+    deps = _build_test_scoring_deps(repo)
     result = await normalize_matrix_scores_hook(state, deps)
     assert result.success is True
 
@@ -4380,39 +3119,8 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
     """Test recalculate missing default_strictness_level and branch skips."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    mock_profile_repo = InMemoryBlueprintTransformerRepository()
-    mock_profile_repo.get_output_profile_by_id.return_value = {
-        "id": "prf_1111222233334444",
-        "slug": "prof_test",
-        "name": {"translations": {"en": "Prof", "fi": "Prof"}},
-        "workflow_id": "wor_1111222233334444",
-        "target_block_order": [],
-        "visible_block_extensions": [],
-    }
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_workflow_by_id.return_value = {
-        "id": "wor_1111222233334444",
-        "slug": "wf_test",
-        "name": {"translations": {"en": "Workflow", "fi": "Workflow"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "status": "active",
-        "version": 1,
-        "model_registry_id": "cfg_model_registry_01",
-        "historical_context_mode": "DISABLED",
-        "default_profile_id": "prf_1111222233334444",
-        "default_strictness_level": None,
-        "steps": [],
-    }
-    deps = HookDependencies(
-        exec_repo=cast(Any, AsyncMock()),
-        workflow_repo=cast(Any, mock_workflow_repo),
-        comp_repo=cast(Any, AsyncMock()),
-        prompt_block_repo=cast(Any, AsyncMock()),
-        output_profile_repo=cast(Any, mock_profile_repo),
-        identity_repo=cast(Any, AsyncMock()),
-        audit_repo=cast(Any, AsyncMock()),
-        system_repo=cast(Any, AsyncMock()),
-    )
+    repo = await _create_test_scoring_repo(strictness_level=None)
+    deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc:
         await recalculate(ContextVariablesDTO(variables={"blk_1111222233334444": {}}), "prf_1111222233334444", deps)
@@ -4486,16 +3194,8 @@ async def test_recalculate_fails_fast_on_raw_dict() -> None:
     """Test that passing a raw dict to recalculate fails fast with VALIDATION_FAILED."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    deps = HookDependencies(
-        exec_repo=cast(Any, AsyncMock()),
-        workflow_repo=cast(Any, AsyncMock()),
-        comp_repo=cast(Any, AsyncMock()),
-        prompt_block_repo=cast(Any, AsyncMock()),
-        output_profile_repo=cast(Any, AsyncMock()),
-        identity_repo=cast(Any, AsyncMock()),
-        audit_repo=cast(Any, AsyncMock()),
-        system_repo=cast(Any, AsyncMock()),
-    )
+    repo = InMemoryUnifiedWorkflowRepository()
+    deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc:
         await recalculate({"raw": "dict"}, "prf_123", deps)  # type: ignore[arg-type]
     assert exc.value.error_code == "VALIDATION_FAILED"
@@ -4522,8 +3222,8 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
         default_strictness_level=70,
         steps=[],
     )
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_workflow_by_id.return_value = workflow_model
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow_model)
 
     state = HookState(
         execution_id="exec_0000000000000009",
@@ -4539,16 +3239,7 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
         ),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, AsyncMock()),
-        workflow_repo=cast(Any, mock_workflow_repo),
-        comp_repo=cast(Any, AsyncMock()),
-        prompt_block_repo=cast(Any, AsyncMock()),
-        output_profile_repo=cast(Any, AsyncMock()),
-        identity_repo=cast(Any, AsyncMock()),
-        audit_repo=cast(Any, AsyncMock()),
-        system_repo=cast(Any, AsyncMock()),
-    )
+    deps = _build_test_scoring_deps(repo)
 
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True

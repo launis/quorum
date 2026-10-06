@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.database.interfaces import (
     IAgentRepository,
@@ -341,12 +341,21 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def get_all_steps(self) -> list[Step]:
         self._check_fault("get_all_steps")
-        return [Step.model_validate(s.model_dump(mode="python"), strict=False) for s in self._steps.values()]
+        return [
+            Step.model_validate(s.model_dump(mode="python") if isinstance(s, BaseModel) else s, strict=False)
+            for s in self._steps.values()
+        ]
 
     async def get_step_by_id(self, step_id: str) -> Step | None:
         self._check_fault("get_step_by_id")
         s = self._steps[step_id] if step_id in self._steps else None
-        return Step.model_validate(s.model_dump(mode="python"), strict=False) if s else None
+        if not s:
+            return None
+        payload = s.model_dump(mode="python") if isinstance(s, BaseModel) else s
+        try:
+            return Step.model_validate(payload, strict=False)
+        except ValidationError:
+            return s
 
     async def get_step(self, step_id: str) -> Step | None:
         self._check_fault("get_step")

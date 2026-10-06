@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 @hook_registry.register(name="sanitize_text")
-def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
+def sanitize_text_hook(state: HookState | None, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for sanitize_text.
 
     Sanitizes all text inputs and stores results in context_variables as SanitizationResult.

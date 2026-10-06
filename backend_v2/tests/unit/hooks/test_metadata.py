@@ -1,6 +1,6 @@
 """Unit tests for metadata hook module."""
 
-from typing import Any, cast
+from __future__ import annotations
 
 import pytest
 
@@ -14,29 +14,32 @@ from backend_v2.exceptions import AppException
 from backend_v2.hooks.metadata import inject_step_metadata
 from backend_v2.models.domain.metadata import MetadataHookResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
-class MockRepository:
-    """Mock repository."""
-
-
-def test_inject_step_metadata_empty_state() -> None:
-    """Test that empty state returns empty result."""
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
+@pytest.fixture
+def mock_deps() -> HookDependencies:
+    """Fixture providing typed HookDependencies with unified in-memory repository."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
-    result = inject_step_metadata(cast(Any, None), deps)
+
+
+def test_inject_step_metadata_empty_state(mock_deps: HookDependencies) -> None:
+    """Test that empty state returns empty result."""
+    result = inject_step_metadata(None, mock_deps)
     assert result.success is True
 
 
-def test_inject_step_metadata_success() -> None:
+def test_inject_step_metadata_success(mock_deps: HookDependencies) -> None:
     """Test successful metadata injection."""
     state = HookState(
         execution_id="exec_123",
@@ -47,17 +50,7 @@ def test_inject_step_metadata_success() -> None:
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(initiator_id="user_admin"),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
-    result = inject_step_metadata(state, deps)
+    result = inject_step_metadata(state, mock_deps)
     assert result.success is True
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, MetadataHookResultDTO)
@@ -68,7 +61,7 @@ def test_inject_step_metadata_success() -> None:
     assert result.state_delta.delta.audit_signature.startswith("step_789:exec_123:")
 
 
-def test_inject_step_metadata_missing_execution_id_raises() -> None:
+def test_inject_step_metadata_missing_execution_id_raises(mock_deps: HookDependencies) -> None:
     """Test that missing execution_id raises VALIDATION_FAILED."""
     state = HookState(
         execution_id="",
@@ -78,17 +71,7 @@ def test_inject_step_metadata_missing_execution_id_raises() -> None:
         inputs=ExecutionInputsDTO(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
     with pytest.raises(AppException) as exc_info:
-        inject_step_metadata(state, deps)
+        inject_step_metadata(state, mock_deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"

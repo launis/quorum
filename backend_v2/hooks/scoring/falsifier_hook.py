@@ -317,7 +317,7 @@ def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> boo
 
 
 @hook_registry.register(name="apply_scoring_logic")
-async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookResult:
+async def apply_scoring_logic_hook(state: HookState | None, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for apply_scoring_logic.
 
     Aggregates scores from Judge/Evaluation steps, applies penalties based on

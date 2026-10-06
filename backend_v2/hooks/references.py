@@ -78,7 +78,7 @@ def generate_bibliography(
 
 
 @hook_registry.register(name="generate_bibliography")
-async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -> HookResult:
+async def generate_bibliography_hook(state: HookState | None, deps: HookDependencies) -> HookResult:
     """Wrap generate_bibliography and inject its results.
 
     Args:

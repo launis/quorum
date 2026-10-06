@@ -10,24 +10,21 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.dlq_guard import dlq_strict_mode_guard_hook
 from backend_v2.models.execution_core import ExecutionMetadata
-
-
-class DummyRepository:
-    pass
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def dummy_deps() -> HookDependencies:
-    repo = DummyRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     return HookDependencies(
-        exec_repo=repo,  # type: ignore
-        workflow_repo=repo,  # type: ignore
-        comp_repo=repo,  # type: ignore
-        prompt_block_repo=repo,  # type: ignore
-        output_profile_repo=repo,  # type: ignore
-        identity_repo=repo,  # type: ignore
-        audit_repo=repo,  # type: ignore
-        system_repo=repo,  # type: ignore
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
 

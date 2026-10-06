@@ -1,6 +1,6 @@
 """Unit tests for references hook module."""
 
-from typing import Any, cast
+from __future__ import annotations
 
 import pytest
 
@@ -14,10 +14,23 @@ from backend_v2.exceptions import AppException
 from backend_v2.hooks.references import generate_bibliography, generate_bibliography_hook
 from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
-class MockRepository:
-    """Mock repository."""
+@pytest.fixture
+def mock_deps() -> HookDependencies:
+    """Fixture providing typed HookDependencies backed by in-memory repository."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
 
 
 def test_generate_bibliography_success() -> None:
@@ -28,24 +41,14 @@ def test_generate_bibliography_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_bibliography_hook_empty_state() -> None:
+async def test_generate_bibliography_hook_empty_state(mock_deps: HookDependencies) -> None:
     """Test empty state returns empty result."""
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
-    result = await generate_bibliography_hook(cast(Any, None), deps)
+    result = await generate_bibliography_hook(None, mock_deps)
     assert result.success is True
 
 
 @pytest.mark.asyncio
-async def test_generate_bibliography_hook_success() -> None:
+async def test_generate_bibliography_hook_success(mock_deps: HookDependencies) -> None:
     """Test generate_bibliography_hook with valid inputs and context."""
     state = HookState(
         execution_id="exec_1",
@@ -55,17 +58,7 @@ async def test_generate_bibliography_hook_success() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis content"}),
         global_context_vars=GlobalContextVarsDTO(knowledge_base={"k1": "v1"}),
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
-    result = await generate_bibliography_hook(state, deps)
+    result = await generate_bibliography_hook(state, mock_deps)
     assert result.success is True
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, BibliographyResultDTO)
@@ -73,7 +66,7 @@ async def test_generate_bibliography_hook_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_bibliography_hook_missing_context_vars_raises() -> None:
+async def test_generate_bibliography_hook_missing_context_vars_raises(mock_deps: HookDependencies) -> None:
     """Test that missing global_context_vars raises VALIDATION_FAILED."""
     state = HookState.model_construct(
         execution_id="exec_1",
@@ -83,17 +76,7 @@ async def test_generate_bibliography_hook_missing_context_vars_raises() -> None:
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis"}),
         global_context_vars=None,
     )
-    deps = HookDependencies(
-        exec_repo=cast(Any, MockRepository()),
-        workflow_repo=cast(Any, MockRepository()),
-        comp_repo=cast(Any, MockRepository()),
-        prompt_block_repo=cast(Any, MockRepository()),
-        output_profile_repo=cast(Any, MockRepository()),
-        identity_repo=cast(Any, MockRepository()),
-        audit_repo=cast(Any, MockRepository()),
-        system_repo=cast(Any, MockRepository()),
-    )
     with pytest.raises(AppException) as exc_info:
-        await generate_bibliography_hook(state, deps)
+        await generate_bibliography_hook(state, mock_deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
