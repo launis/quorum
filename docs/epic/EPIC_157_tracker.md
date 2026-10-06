@@ -130,14 +130,21 @@
   - [x] Step 7.6: Comprehensive Negative & Positive Test Fixtures in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`
   - [x] Step 7.7: Universal Two-Stage Verification Gate & Residual Ledger Audit
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 7 test persistence contracts across all 7 target files, strict >=90% TDD unit test coverage (global 97.70%, 5,080 passed), zero AST violations, Census A=0, D=0, I=0, K=0, F=51, N=74 (ratcheted from 75), and 10/10 backend audit stages passing with exit code 0.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 8: Universal Quality Gate Stage 10 Integration & Full-Duplex Client Parity
 **Plan:** @[docs/epic/tasks_EPIC_157/08_phase8_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=8`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=8`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [x] Step 8.0: Strategic Alignment Check & Baseline Pre-Condition Audit
+  - [x] Step 8.1: Residual Dict Eradication & AST Compliance Cleanups
+  - [x] Step 8.2: Full-Duplex Flutter Studio Simulation & MCP Gateway Model Retyping
+  - [x] Step 8.3: DTO Parity Verification Alignment
+  - [x] Step 8.4: Universal Quality Gate Stage 10/10 Integration
+  - [x] Step 8.5: Hermetic Unit Tests for Stage 10/10 Gating
+  - [x] Step 8.6: Universal Two-Stage Verification Gate & Final Pipeline Validation
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 8 test persistence contracts across all 11 target files, strict >=90% TDD unit test coverage (global 97.70%, 5,081 passed), zero AST violations, zero dict violations (Census A=0, D=0, I=0, K=0, F=51, N=73 ratcheted from 74, R=186 ratcheted from 191), 46 verified shared DTO models, and 10/10 backend audit stages passing with exit code 0.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 9: Suppression & Cast Eradication (# noqa, cast(Any, ...))
@@ -203,7 +210,7 @@
   - [ ] @[backend_v2/models/dtos/system.py]
   - [ ] @[backend_v2/models/dtos/telemetry.py]
   - [ ] @[backend_v2/models/dtos/trace.py]
-  - [ ] @[backend_v2/models/llm.py]
+  - [x] @[backend_v2/models/llm.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/core/test_settings.py]
   - [ ] @[backend_v2/exceptions.py]
@@ -239,17 +246,20 @@
   - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
   - [ ] @[backend_v2/scripts/generate_openapi.py]
   - [ ] @[backend_v2/seed/run_seed.py]
-  - [ ] @[scripts/_ast_guardrails.py]
+  - [x] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/_dart_guardrails.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/flutter_audit_loop.py]
   - [ ] @[scripts/audit_dict_eradication.py]
-  - [ ] @[scripts/audit_warning_baseline.py]
+  - [x] @[scripts/audit_warning_baseline.py]
   - [ ] @[scripts/audit_dto_parity.py]
   - [x] @[backend_v2/tests/fakes/in_memory_repositories.py]
   - [x] @[backend_v2/tests/fakes/__init__.py]
   - [x] @[backend_v2/tests/unit/fakes/test_in_memory_repositories.py]
   - [x] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
+  - [ ] @[backend_v2/models/dtos/node_execution.py]
+  - [ ] @[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]
+  - [ ] @[backend_v2/tests/unit/test_input_processing.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files.
   - [ ] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
@@ -332,6 +342,19 @@
 | Orchestrator & Strategy Persistence Emulation-Fake Migration | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_audit.py, test_dag_executor_preflight.py, strategies/test_llm.py, strategies/test_llm_cost_tracking.py, strategies/test_logic.py, test_synthesis_distiller.py | Phase 5, Step 4 | Census A=0, Census I=0 across target files | [OK] |
 | Concurrency, Fuzzer & Logic Suites Persistence Migration | test_dag_executor_prompt_blocks.py, test_dag_taskgroup.py, test_concurrency_fuzzer.py, test_logic.py | Phase 5, Step 5 | Census A=0, Census I=0 across target files | [OK] |
 | Phase 5 Quality Gates, Baseline Ratchet & SDUI Parity | 20 target files across orchestrator, strategy, and concurrency suites | Phase 5, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 21 | [OK] |
+| Keyword-Injected Repository Mocks Eradication (Census D) | test_tavily_e2e_full_pipeline.py, test_tavily_live.py | Phase 6, Step 1 | Census D=0 repo-wide | [OK] |
+| FinOps, Progress & FastDev Persistence Migration (Census A & I) | test_finops_telemetry.py, test_progress.py, test_fastdev_frozen.py | Phase 6, Step 2 | Census A=0, I=0, untyped cast eradicated | [OK] |
+| Execution Worker & Pipeline Boundary Persistence Migration (Census A & I) | test_execution_worker.py, test_rest_only_pipeline_boundary.py, test_worker_models_used.py, test_epic_chain_e2e.py | Phase 6, Step 3 | State roundtrip mutations verified | [OK] |
+| Synthesis Workers & Reducers Persistence Migration (Census A, F & I) | test_report_worker.py, test_synthesis_reducers.py, test_synthesis_worker.py | Phase 6, Step 4 | All repo patches bound to typed fakes | [OK] |
+| Main Worker & Worker Synthesis Suites Persistence Migration (Census A, F & I) | test_worker.py, test_worker_synthesis.py, test_worker_synthesis_accumulation.py | Phase 6, Step 5 | All 39 repo patches bound to InMemoryUnifiedWorkflowRepository | [OK] |
+| Phase 6 Quality Gates, Baseline Ratchet & SDUI Parity | 15 worker, API, and integration test files | Phase 6, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 0 | [OK] |
+| `inject_fault` Reflection Eradication | backend_v2/tests/fakes/in_memory_repositories.py | Phase 7, Step 1 | inspect.getattr_static inspection, # noqa: QGR001 eradicated | [OK] |
+| Mock-Emulation Layer Sunset (`DynamicRepoMethod` & `InMemoryBlueprintTransformerRepository`) | backend_v2/tests/fakes/in_memory_repositories.py, backend_v2/tests/fakes/__init__.py, backend_v2/tests/unit/fakes/test_in_memory_repositories.py | Phase 7, Step 2 | 0 matches across backend_v2, dead test deleted | [OK] |
+| Synthesis Worker Test Decorator Patch Migration | backend_v2/tests/unit/test_worker_synthesis.py, backend_v2/tests/unit/test_worker_synthesis_accumulation.py | Phase 7, Step 3 | All 17 worker synthesis tests migrated to scoped with patch(..., return_value=mock_repo) | [OK] |
+| Shared Repository Predicate & Positive Registry Resolution | scripts/_ast_guardrails.py | Phase 7, Step 4 | _is_repository_identifier, POSITIVE_REPOSITORY_CLASSES, INTERFACE_REPOSITORY_METHODS | [OK] |
+| Hardened QGR014 Visitor Implementations (Detections A-G) | scripts/_ast_guardrails.py | Phase 7, Step 5 | Hardened at unconditional FATAL severity across detections (a)-(g) | [OK] |
+| Comprehensive Negative & Positive Test Fixtures for QGR014 | backend_v2/tests/unit/scripts/test_ast_guardrails.py | Phase 7, Step 6 | 7 negative and 4 positive immunity test fixtures, 16/16 QGR014 tests pass | [OK] |
+| Phase 7 Quality Gates, Baseline Ratchet & Audit Loop | All 7 target files across backend_v2 and scripts/ | Phase 7, Step 7 | Global backend audit loop passes (5,080 tests, 97.70% coverage), N ratcheted to 74 | [OK] |
 
 ---
 
@@ -339,9 +362,9 @@
 
 ## Achieved
 - Formally drafted `EPIC 157: Zero Permissive Typing & Test Persistence Modernization` at `@[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md]`.
-- Created detailed, fully verified implementation plans for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`), Phase 4 (`@[docs/epic/tasks_EPIC_157/04_phase4_plan.md]`), and Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`).
-- Successfully created `implementation_plan.md` and `task.md` system artifacts for Phase 3, Phase 4, and Phase 5.
-- Successfully implemented and verified Phase 1, Phase 2, and Phase 3 (all with PASSED Tier 8 Red Team audits).
+- Created detailed, fully verified implementation plans for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`), Phase 4 (`@[docs/epic/tasks_EPIC_157/04_phase4_plan.md]`), Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`), Phase 6 (`@[docs/epic/tasks_EPIC_157/06_phase6_plan.md]`), and Phase 7 (`@[docs/epic/tasks_EPIC_157/07_phase7_plan.md]`).
+- Successfully created `implementation_plan.md` and `task.md` system artifacts for Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7.
+- Successfully implemented and verified Phases 1 through 6 (all with PASSED Tier 8 Red Team audits) and Phase 7 (with 100% pass across two-stage testing and global completion gate).
 - Successfully implemented and verified Phase 4:
   - Step 4.0: Baseline persistence census probe completed (A=419, B=45, C=7, I=9 files, D=269, Fixtures=6 returning AsyncMock, Driver Mocks=1 file, Increment Version Mocks=3 files, dict_to_obj=8 occurrences).
   - Step 4.1: Modernized 6 repository fixtures returning `AsyncMock` to typed fakes (`InMemoryUnifiedWorkflowRepository`, `InMemoryWorkflowRepository`, `InMemoryOutputProfileRepository`, `InMemoryPromptBlockRepository`). Completely deleted duck-typing helper `dict_to_obj` (0 matches repo-wide via recursive regex probe). Replaced legacy fake import in `test_dependencies.py`.
@@ -377,14 +400,23 @@
   - Step 7.2: Permanently deleted mock-emulation layer (`DynamicRepoMethod` and `InMemoryBlueprintTransformerRepository`) from `in_memory_repositories.py` and eradicated dead test function and imports from `test_in_memory_repositories.py`.
   - Step 7.3: Migrated all 17 synthesis worker test functions in `test_worker_synthesis.py` (16 functions) and `test_worker_synthesis_accumulation.py` (1 function) to scoped `with patch("...UnifiedWorkflowRepository", return_value=mock_repo):` context managers, eradicating parameter mocks and `mock_repo_class.return_value = ...` assignments.
   - Step 7.4: Implemented shared predicate `_is_repository_identifier(name: str)` and positive registry resolutions (`_resolve_positive_repository_classes()`, `_resolve_interface_repository_methods()`) in `scripts/_ast_guardrails.py`.
-  - Step 7.5: Hardened AST guardrail `QGR014` at unconditional `GuardrailSeverity.FATAL` severity across detections (a)-(g) in `scripts/_ast_guardrails.py`.
+  - Step 7.5: Hardened AST guardrail `QGR014` at unconditional FATAL severity across detections (a)-(g) in `scripts/_ast_guardrails.py`.
   - Step 7.6: Added 7 negative test fixtures (a)-(g) and 4 positive immunity test fixtures to `backend_v2/tests/unit/scripts/test_ast_guardrails.py`, passing all 16 QGR014 tests and 145/145 suite tests.
   - Step 7.7: Ratcheted Census N from 75 to 74 in `scripts/audit_warning_baseline.py`, aligned Census D test script exemption with Census F, and passed 10/10 stages in `scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` with 5,080 passing tests, 97.70% total test coverage, zero AST violations, and clean MyPy strict validation.
+- Completed Tier 0 Red-Teaming and Five-Axis Deep Deconstruction of Phase 8 Plan (`@[docs/epic/tasks_EPIC_157/08_phase8_plan.md]`): validated 10 target files, verified baseline census and dict eradication findings (4 residual violations), discovered client test fixture key divergence (`duration_ms` vs `execution_time_ms`), identified missing `LaxExecutionStatus` import, resolved PEP 695 alias reuse in `llm.py`, verified MBD008 bidirectional parity and MBD004 AST bound integrity with `scripts/audit_markdown_boundaries.py` passing cleanly.
+- Successfully executed Phase 8 in Continuous Full-Auto Mode (`@[docs/epic/tasks_EPIC_157/08_phase8_plan.md]`):
+  - Step 8.0: Verified strategic alignment and baseline pre-conditions: Census A=0, D=0, I=0, K=0, zero fatal/warnings in baseline ledger, and exactly 4 residual dict violations in `backend_v2`.
+  - Step 8.1: Eradicated 4 residual dict violations and AST issues across `backend_v2/models/dtos/node_execution.py` (instantiated `ExecutionUpdateDTO` directly without `kwargs: dict[str, Any]`), `backend_v2/models/llm.py` (annotated `content: Annotated[LLMMessageContent, Field(...)]`), `backend_v2/services/orchestrator/matrix_explanation_service.py` (imported `LaxExecutionStatus` and typed `evaluated_atoms_val: dict[str, LaxExecutionStatus] = {}`), and `backend_v2/tests/unit/test_input_processing.py` (eliminated reflection and `# noqa: QGR001` via `func.__name__ if isinstance(func, types.MethodType | types.FunctionType) else ""`). Verified 0 violations across all 11 metrics with `audit_dict_eradication.py`.
+  - Step 8.2: Retyped Flutter Studio Simulation and MCP Gateway models in `client_app_v2/lib/features/studio/models/` (`prompt_block_simulation.dart`, `step_simulation.dart`, `mcp_gateway.dart`), replacing loose dynamic Maps with `Map<String, Object?>` and strongly typed `StepSimulationTraceDto`. Updated test fixture in `prompt_block_simulation_test.dart` to `execution_time_ms: 12.5` and verified 50/50 tests passing with 0 analyze issues.
+  - Step 8.3: Registered `"systemconfigmcpgateways": "mcpgateway"` alias in `scripts/audit_dto_parity.py` and verified 46 shared models checked with 0 mismatched fields. Monotonically ratcheted `scripts/audit_warning_baseline.py` Census N from 74 to 73 and Census R from 191 to 186 with `--verify-zero` passing cleanly.
+  - Step 8.4: Integrated `scripts/audit_dict_eradication.py backend_v2 --strict` as Stage 10/10 into `scripts/backend_audit_loop.py` and updated module docstring.
+  - Step 8.5: Implemented hermetic unit tests in `backend_v2/tests/unit/scripts/test_backend_audit_loop.py` (`test_subprocess_dict_eradication_failure` and Stage 10 assertion in `test_backend_audit_loop_runs_all_stages`), achieving 93% line coverage on the audit runner.
+  - Step 8.6: Hardened `backend_v2/tests/unit/database/test_wrapper.py` `time.time` mocks with `itertools.chain/repeat` to eliminate non-deterministic `StopIteration` exhaustion. Verified all quality gates and the full 10-stage universal backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,081 passed tests, 97.70% total test coverage, and exit code 0.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
 - In `BaseInMemoryRepository`, `self._clone(item)` provides Rust-accelerated validation/dumping for Pydantic models while safely handling `dict` instances via deep copy for negative configuration error test fixtures.
-- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 442 cumulative from 442 to 0, Census N ratcheted to 74).
+- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 442 cumulative from 442 to 0, Census N ratcheted to 74, now 73; Census R ratcheted to 186).
 - In `BaseInMemoryRepository.inject_fault`, `self._check_fault(method_name)` executes at the start of each repository method before database or in-memory collection lookups, guaranteeing deterministic error injection even when entities are not pre-seeded.
 - In `scripts/audit_markdown_boundaries.py`, MBD004 computes `node_start` as `min(d.lineno for d in node.decorator_list)` when decorators exist; line spans must encompass `@pytest.mark.asyncio` through the function end line.
 - `InMemoryUnifiedWorkflowRepository` delegates all step methods (`get_step_by_id`, `get_step`, `save_step`, `create_step`, `seed_raw_step`) to `self._workflows` and all execution methods (`get_execution`, `update_execution`, `create_execution`) to `self._executions`, enabling single-instance injection for all 8 `StrategyDependencies` and `DAGExecutor` dependencies.
@@ -398,12 +430,20 @@
 - In `BaseInMemoryRepository.inject_fault`, inspecting `base.__dict__` triggers FATAL `QGR001` (`.__dict__` access ban); method existence must be validated cleanly via `inspect.getattr_static(type(self), method_name, None)` combined with `_BASE_EXCLUDED_METHODS`.
 - In worker synthesis tests, `@patch("...UnifiedWorkflowRepository")` on function decorators with subsequent `mock_repo_class.return_value = ...` inside the test body triggers both hardened QGR014 (b) (`.return_value` on repo identifier) and (f) (`patch` without in-memory fake binding); migrating these to `with patch("...UnifiedWorkflowRepository", return_value=mock_repo):` around the task invocation guarantees zero AST violations when QGR014 is hardened.
 - `_resolve_positive_repository_classes()` must scan `backend_v2/database/repository.py` in addition to `interfaces.py` and `repositories/` to ensure `UnifiedWorkflowRepository` is positively registered.
+- Wiring `scripts/audit_dict_eradication.py backend_v2 --strict` as Stage 10/10 requires addressing 4 residual violations (`node_execution.py:64` kwargs, `llm.py:66` unaliased nested list of dicts, `matrix_explanation_service.py:170` implicit naked dict accumulator, `test_input_processing.py:304` getattr reflection) to guarantee clean CI pass.
+- Flutter `PromptBlockSimulationResponse.trace` typing aligns to `StepSimulationTraceDto`, enabling strongly typed `response.trace.executionTimeMs` access and eliminating loose dynamic map indexing.
+- `PromptBlockSimulationResponse.trace` fixture in `client_app_v2/test/features/studio/models/prompt_block_simulation_test.dart#L65` used `'trace': {'duration_ms': 12.5}`, which diverged from `StepSimulationTraceDto`'s serialized key `execution_time_ms`. Under `@JsonSerializable(disallowUnrecognizedKeys: true)`, this fixture would crash deserialization unless updated to `'execution_time_ms': 12.5`.
+- In `backend_v2/services/orchestrator/matrix_explanation_service.py`, `LaxExecutionStatus` was unimported at module scope; adding it to `from backend_v2.models.enums import ...` is required before annotating `evaluated_atoms_val: dict[str, LaxExecutionStatus] = {}` to satisfy Clean Imports (Stage 7).
+- In `scripts/audit_markdown_boundaries.py`, rule MBD004 strictly requires that any `#Lstart-end` fragment on `.py` files match the exact `(lineno, end_lineno)` of an AST node (`ClassDef` or `FunctionDef`); file-level path references (specifically: `backend_v2/models/llm.py`) without `#L` fragments are required when referencing specific interior line ranges in markdown prose.
+- Adding `"systemconfigmcpgateways": "mcpgateway"` to `EXPLICIT_MODEL_ALIASES` in `scripts/audit_dto_parity.py` expands verified cross-domain coverage from 45 to 46 models without field divergence.
+- In `backend_v2/tests/unit/database/test_wrapper.py`, patching `time.time` globally intercepts Logfire and internal process timing calls; replacing finite list mocks with `backend_v2.database.wrapper.time.time` and `itertools.chain([0.0, 0.0], itertools.repeat(16.0))` prevents `StopIteration` generator exhaustion under full concurrent test suite runs.
+- Wiring `scripts/audit_dict_eradication.py` into `scripts/backend_audit_loop.py` as Stage 10/10 permanently locks in the complete eradication of loose dicts across all backend domain transit layers.
 
 ## Remaining
-- Audit Phase 7 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
-- Research, Execute, and Audit Phases 8 through 13.
+- Audit Phase 8 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
+- Research, Execute, and Audit Phases 9 through 13.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]
 
 

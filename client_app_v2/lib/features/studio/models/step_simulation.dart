@@ -48,7 +48,7 @@ abstract class PromptContextDto with _$PromptContextDto {
     @Default([])
     @JsonKey(name: 'dynamic_messages')
     List<LlmMessageDto> dynamicMessages,
-    @Default({}) Map<String, dynamic> metadata,
+    @Default({}) Map<String, Object?> metadata,
   }) = _PromptContextDto;
 
   factory PromptContextDto.fromJson(Map<String, dynamic> json) =>
@@ -62,7 +62,7 @@ abstract class StepSimulationRequest with _$StepSimulationRequest {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory StepSimulationRequest({
     required NodeStrategy step,
-    @Default({}) @JsonKey(name: 'mock_inputs') Map<String, dynamic> mockInputs,
+    @Default({}) @JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,
     @Default('en') @JsonKey(name: 'target_locale') String targetLocale,
     @Default('[SIMULATED CONTEXT DOCUMENT]')
     @JsonKey(name: 'context_text')

@@ -64,7 +64,7 @@ class LLMMessageDTO(BaseDTO):
 
     role: Annotated[str, Field(min_length=1, description="Message role ('system', 'user', 'assistant', 'tool').")]
     content: Annotated[
-        str | list[dict[str, JsonValue]],
+        LLMMessageContent,
         Field(description="Message text payload or structured content blocks."),
     ]
     tool_calls: Annotated[

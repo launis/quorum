@@ -93,7 +93,9 @@ _PromptBlockSimulationResponse _$PromptBlockSimulationResponseFromJson(
       ),
       trace: $checkedConvert(
         'trace',
-        (v) => v as Map<String, dynamic>? ?? const {},
+        (v) => v == null
+            ? const StepSimulationTraceDto()
+            : StepSimulationTraceDto.fromJson(v as Map<String, dynamic>),
       ),
       promptContext: $checkedConvert(
         'prompt_context',
@@ -116,6 +118,6 @@ Map<String, dynamic> _$PromptBlockSimulationResponseToJson(
   'valid': instance.valid,
   'errors': instance.errors,
   'rendered_prompt': instance.renderedPrompt,
-  'trace': instance.trace,
+  'trace': instance.trace.toJson(),
   'prompt_context': instance.promptContext?.toJson(),
 };

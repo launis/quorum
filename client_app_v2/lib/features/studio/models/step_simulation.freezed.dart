@@ -528,7 +528,7 @@ as String?,
 /// @nodoc
 mixin _$PromptContextDto {
 
-@JsonKey(name: 'static_messages') List<LlmMessageDto> get staticMessages;@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> get dynamicMessages; Map<String, dynamic> get metadata;
+@JsonKey(name: 'static_messages') List<LlmMessageDto> get staticMessages;@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> get dynamicMessages; Map<String, Object?> get metadata;
 /// Create a copy of PromptContextDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -554,7 +554,7 @@ abstract mixin class $PromptContextDtoCopyWith<$Res>  {
   factory $PromptContextDtoCopyWith(PromptContextDto value, $Res Function(PromptContextDto) _then) = _$PromptContextDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, dynamic> metadata
+@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, Object?> metadata
 });
 
 
@@ -576,7 +576,7 @@ class _$PromptContextDtoCopyWithImpl<$Res>
 staticMessages: null == staticMessages ? _self.staticMessages : staticMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,dynamicMessages: null == dynamicMessages ? _self.dynamicMessages : dynamicMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,metadata: null == metadata ? _self.metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 
@@ -661,7 +661,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, dynamic> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PromptContextDto() when $default != null:
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -682,7 +682,7 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, dynamic> metadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)  $default,) {final _that = this;
 switch (_that) {
 case _PromptContextDto():
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -702,7 +702,7 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, dynamic> metadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'static_messages')  List<LlmMessageDto> staticMessages, @JsonKey(name: 'dynamic_messages')  List<LlmMessageDto> dynamicMessages,  Map<String, Object?> metadata)?  $default,) {final _that = this;
 switch (_that) {
 case _PromptContextDto() when $default != null:
 return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case _:
@@ -717,7 +717,7 @@ return $default(_that.staticMessages,_that.dynamicMessages,_that.metadata);case 
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _PromptContextDto extends PromptContextDto {
-  const _PromptContextDto({@JsonKey(name: 'static_messages') final  List<LlmMessageDto> staticMessages = const [], @JsonKey(name: 'dynamic_messages') final  List<LlmMessageDto> dynamicMessages = const [], final  Map<String, dynamic> metadata = const {}}): _staticMessages = staticMessages,_dynamicMessages = dynamicMessages,_metadata = metadata,super._();
+  const _PromptContextDto({@JsonKey(name: 'static_messages') final  List<LlmMessageDto> staticMessages = const [], @JsonKey(name: 'dynamic_messages') final  List<LlmMessageDto> dynamicMessages = const [], final  Map<String, Object?> metadata = const {}}): _staticMessages = staticMessages,_dynamicMessages = dynamicMessages,_metadata = metadata,super._();
   factory _PromptContextDto.fromJson(Map<String, dynamic> json) => _$PromptContextDtoFromJson(json);
 
  final  List<LlmMessageDto> _staticMessages;
@@ -734,8 +734,8 @@ class _PromptContextDto extends PromptContextDto {
   return EqualUnmodifiableListView(_dynamicMessages);
 }
 
- final  Map<String, dynamic> _metadata;
-@override@JsonKey() Map<String, dynamic> get metadata {
+ final  Map<String, Object?> _metadata;
+@override@JsonKey() Map<String, Object?> get metadata {
   if (_metadata is EqualUnmodifiableMapView) return _metadata;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_metadata);
@@ -768,7 +768,7 @@ abstract mixin class _$PromptContextDtoCopyWith<$Res> implements $PromptContextD
   factory _$PromptContextDtoCopyWith(_PromptContextDto value, $Res Function(_PromptContextDto) _then) = __$PromptContextDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, dynamic> metadata
+@JsonKey(name: 'static_messages') List<LlmMessageDto> staticMessages,@JsonKey(name: 'dynamic_messages') List<LlmMessageDto> dynamicMessages, Map<String, Object?> metadata
 });
 
 
@@ -790,7 +790,7 @@ class __$PromptContextDtoCopyWithImpl<$Res>
 staticMessages: null == staticMessages ? _self._staticMessages : staticMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,dynamicMessages: null == dynamicMessages ? _self._dynamicMessages : dynamicMessages // ignore: cast_nullable_to_non_nullable
 as List<LlmMessageDto>,metadata: null == metadata ? _self._metadata : metadata // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 
@@ -801,7 +801,7 @@ as Map<String, dynamic>,
 /// @nodoc
 mixin _$StepSimulationRequest {
 
- NodeStrategy get step;@JsonKey(name: 'mock_inputs') Map<String, dynamic> get mockInputs;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
+ NodeStrategy get step;@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs;@JsonKey(name: 'target_locale') String get targetLocale;@JsonKey(name: 'context_text') String get contextText;
 /// Create a copy of StepSimulationRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -827,7 +827,7 @@ abstract mixin class $StepSimulationRequestCopyWith<$Res>  {
   factory $StepSimulationRequestCopyWith(StepSimulationRequest value, $Res Function(StepSimulationRequest) _then) = _$StepSimulationRequestCopyWithImpl;
 @useResult
 $Res call({
- NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, dynamic> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -848,7 +848,7 @@ class _$StepSimulationRequestCopyWithImpl<$Res>
   return _then(_self.copyWith(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as NodeStrategy,mockInputs: null == mockInputs ? _self.mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -944,7 +944,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, dynamic> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest() when $default != null:
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -965,7 +965,7 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, dynamic> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)  $default,) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest():
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -985,7 +985,7 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, dynamic> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( NodeStrategy step, @JsonKey(name: 'mock_inputs')  Map<String, Object?> mockInputs, @JsonKey(name: 'target_locale')  String targetLocale, @JsonKey(name: 'context_text')  String contextText)?  $default,) {final _that = this;
 switch (_that) {
 case _StepSimulationRequest() when $default != null:
 return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText);case _:
@@ -1000,12 +1000,12 @@ return $default(_that.step,_that.mockInputs,_that.targetLocale,_that.contextText
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _StepSimulationRequest extends StepSimulationRequest {
-  const _StepSimulationRequest({required this.step, @JsonKey(name: 'mock_inputs') final  Map<String, dynamic> mockInputs = const {}, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs,super._();
+  const _StepSimulationRequest({required this.step, @JsonKey(name: 'mock_inputs') final  Map<String, Object?> mockInputs = const {}, @JsonKey(name: 'target_locale') this.targetLocale = 'en', @JsonKey(name: 'context_text') this.contextText = '[SIMULATED CONTEXT DOCUMENT]'}): _mockInputs = mockInputs,super._();
   factory _StepSimulationRequest.fromJson(Map<String, dynamic> json) => _$StepSimulationRequestFromJson(json);
 
 @override final  NodeStrategy step;
- final  Map<String, dynamic> _mockInputs;
-@override@JsonKey(name: 'mock_inputs') Map<String, dynamic> get mockInputs {
+ final  Map<String, Object?> _mockInputs;
+@override@JsonKey(name: 'mock_inputs') Map<String, Object?> get mockInputs {
   if (_mockInputs is EqualUnmodifiableMapView) return _mockInputs;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_mockInputs);
@@ -1040,7 +1040,7 @@ abstract mixin class _$StepSimulationRequestCopyWith<$Res> implements $StepSimul
   factory _$StepSimulationRequestCopyWith(_StepSimulationRequest value, $Res Function(_StepSimulationRequest) _then) = __$StepSimulationRequestCopyWithImpl;
 @override @useResult
 $Res call({
- NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, dynamic> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
+ NodeStrategy step,@JsonKey(name: 'mock_inputs') Map<String, Object?> mockInputs,@JsonKey(name: 'target_locale') String targetLocale,@JsonKey(name: 'context_text') String contextText
 });
 
 
@@ -1061,7 +1061,7 @@ class __$StepSimulationRequestCopyWithImpl<$Res>
   return _then(_StepSimulationRequest(
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as NodeStrategy,mockInputs: null == mockInputs ? _self._mockInputs : mockInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,targetLocale: null == targetLocale ? _self.targetLocale : targetLocale // ignore: cast_nullable_to_non_nullable
 as String,contextText: null == contextText ? _self.contextText : contextText // ignore: cast_nullable_to_non_nullable
 as String,
   ));

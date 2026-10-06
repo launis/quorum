@@ -17,7 +17,7 @@ abstract class AllowedMcpTool with _$AllowedMcpTool {
     required String description,
     @JsonKey(name: 'input_schema')
     @Default({})
-    Map<String, dynamic> inputSchema,
+    Map<String, Object?> inputSchema,
   }) = _AllowedMcpTool;
 
   factory AllowedMcpTool.fromJson(Map<String, dynamic> json) =>

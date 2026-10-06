@@ -62,7 +62,7 @@ void main() {
         'valid': true,
         'errors': <String>[],
         'rendered_prompt': 'Rendered prompt output text',
-        'trace': {'duration_ms': 12.5},
+        'trace': {'execution_time_ms': 12.5},
         'prompt_context': null,
       };
 
@@ -73,7 +73,7 @@ void main() {
       expect(response.valid, isTrue);
       expect(response.errors, isEmpty);
       expect(response.renderedPrompt, 'Rendered prompt output text');
-      expect(response.trace['duration_ms'], 12.5);
+      expect(response.trace.executionTimeMs, 12.5);
       expect(response.promptContext, isNull);
     });
 

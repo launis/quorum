@@ -299,9 +299,11 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
 
+    import types
+
     # Mock asyncio.to_thread
     async def mock_to_thread(func: object, *args: object, **kwargs: object) -> object:
-        func_name = getattr(func, "__name__", "")  # noqa: QGR001 [REASON: Inspection of dynamic mocked thread function]
+        func_name = func.__name__ if isinstance(func, types.MethodType | types.FunctionType) else ""
         if func_name == "smooth_text":
             return "Smoothed text."
         if func_name == "mask_pii":

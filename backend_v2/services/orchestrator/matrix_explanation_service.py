@@ -19,7 +19,7 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -167,7 +167,7 @@ class MatrixExplanationService:
                 justification_val = ""
                 if payload.justification is not None:
                     justification_val = payload.justification
-                evaluated_atoms_val: dict[str, Any] = {}
+                evaluated_atoms_val: dict[str, LaxExecutionStatus] = {}
                 if payload.evaluated_atoms is not None:
                     evaluated_atoms_val = payload.evaluated_atoms
                 lw_matrix = LightweightMatrixOutput(

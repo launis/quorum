@@ -305,6 +305,7 @@ Executes a validation sequence to guarantee architectural invariants:
   7/10: Clean import verification (scripts/audit_clean_imports.py)
   8/10: DTO parity verification (scripts/audit_dto_parity.py)
   9/10: Warning and Residual Debt Baseline Ledger (scripts/audit_warning_baseline.py)
+  10/10: Dict eradication and typed domain transit verification (scripts/audit_dict_eradication.py)
 
 Optional steps:
   --openapi: Generates updated OpenAPI documentation (backend_v2/scripts/generate_openapi.py)
@@ -471,6 +472,13 @@ Optional steps:
         print("\n❌ Warning baseline or residual debt ceiling exceeded! See ledger report above.\n")
         sys.exit(res_baseline.returncode)
     print("✅ Residual debt ceilings and warning baseline verified.")
+
+    print("\n⏳ 10/10: Verifying Dict Eradication and Typed Domain Transit (scripts/audit_dict_eradication.py)...")
+    res_dict = subprocess.run(["uv", "run", "python", "scripts/audit_dict_eradication.py", "backend_v2", "--strict"])
+    if res_dict.returncode != 0:
+        print("\n❌ Dict eradication audit failed! Eliminate naked dicts/casts.\n")
+        sys.exit(res_dict.returncode)
+    print("✅ Dict eradication and typed domain transit verified.")
 
     if run_openapi:
         print("\n⏳ Option: Generating OpenAPI documentation (--openapi)...")

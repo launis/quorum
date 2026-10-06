@@ -14,7 +14,7 @@ abstract class PromptBlockSimulationRequest
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory PromptBlockSimulationRequest({
     required PromptBlock block,
-    @JsonKey(name: 'mock_inputs') @Default({}) Map<String, dynamic> mockInputs,
+    @JsonKey(name: 'mock_inputs') @Default({}) Map<String, Object?> mockInputs,
     @JsonKey(name: 'target_scale_score') int? targetScaleScore,
     @JsonKey(name: 'target_locale') @Default('en') String targetLocale,
     @JsonKey(name: 'context_text')
@@ -37,7 +37,7 @@ abstract class PromptBlockSimulationResponse
     @Default(true) bool valid,
     @Default([]) List<String> errors,
     @JsonKey(name: 'rendered_prompt') @Default('') String renderedPrompt,
-    @Default({}) Map<String, dynamic> trace,
+    @Default(StepSimulationTraceDto()) StepSimulationTraceDto trace,
     @JsonKey(name: 'prompt_context') PromptContextDto? promptContext,
   }) = _PromptBlockSimulationResponse;
 

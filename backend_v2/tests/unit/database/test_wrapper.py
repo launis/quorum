@@ -1,5 +1,6 @@
 """Unit tests for backend_v2.database.wrapper."""
 
+import itertools
 import os
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -86,7 +87,7 @@ def test_atomic_json_storage_os_error_during_write_cleans_up(tmp_path: Any) -> N
 
     with patch("os.fsync", side_effect=OSError("Disk failure")):
         with pytest.raises(OSError):
-            storage.write({"data": "bad"})
+            storage.write({"data": {"val": "bad"}})
 
     tmp_files = [f for f in os.listdir(tmp_path) if f.endswith(".tmp")]
     assert len(tmp_files) == 0
@@ -103,7 +104,7 @@ def test_atomic_json_storage_temp_cleanup_os_error(tmp_path: Any) -> None:
         patch("os.remove", side_effect=OSError("Cannot remove")),
     ):
         with pytest.raises(PermissionError):
-            storage.write({"data": "test"})
+            storage.write({"data": {"val": "test"}})
 
     storage.close()
 
@@ -126,7 +127,7 @@ def test_db_lock_msvcrt_timeout(tmp_path: Any) -> None:
     with (
         patch("backend_v2.database.wrapper.HAS_MSVCRT", True),
         patch("backend_v2.database.wrapper.msvcrt", mock_msvcrt),
-        patch("time.time", side_effect=[0.0, 0.0, 16.0, 16.0]),
+        patch("backend_v2.database.wrapper.time.time", side_effect=itertools.chain([0.0, 0.0], itertools.repeat(16.0))),
     ):
         with pytest.raises(TimeoutError):
             with db_lock(db_file):
@@ -170,7 +171,7 @@ def test_db_lock_fcntl_timeout(tmp_path: Any) -> None:
         patch("backend_v2.database.wrapper.HAS_MSVCRT", False),
         patch("backend_v2.database.wrapper.HAS_FCNTL", True),
         patch("backend_v2.database.wrapper.fcntl", mock_fcntl, create=True),
-        patch("time.time", side_effect=[0.0, 0.0, 16.0, 16.0]),
+        patch("backend_v2.database.wrapper.time.time", side_effect=itertools.chain([0.0, 0.0], itertools.repeat(16.0))),
     ):
         with pytest.raises(TimeoutError):
             with db_lock(db_file):
@@ -196,7 +197,9 @@ def test_db_lock_directory_stale_lock_cleanup(tmp_path: Any) -> None:
         patch("backend_v2.database.wrapper.HAS_MSVCRT", False),
         patch("backend_v2.database.wrapper.HAS_FCNTL", False),
         patch("os.path.getmtime", return_value=0.0),
-        patch("time.time", side_effect=[15.0, 15.0, 15.1, 15.2, 15.3]),
+        patch(
+            "backend_v2.database.wrapper.time.time", side_effect=itertools.chain([15.0, 15.0], itertools.repeat(15.1))
+        ),
     ):
         with db_lock(db_file):
             assert os.path.exists(lock_dir)
