@@ -39,17 +39,16 @@ from backend_v2.services.auth import (
     OrganizationRepository,
     UserRepository,
 )
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    return repo
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.mark.asyncio
-async def test_organization_repository(mock_repo: Any) -> None:
+async def test_organization_repository(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     org_repo = OrganizationRepository(mock_repo)
 
     test_org = Organization(
@@ -65,7 +64,7 @@ async def test_organization_repository(mock_repo: Any) -> None:
     )
 
     # Test get_by_id
-    mock_repo.get_organization.return_value = test_org
+    await mock_repo.create_organization(test_org)
     org = await org_repo.get_by_id("org_1234abcd")
     assert org is not None
     assert org.id == "org_1234abcd"
@@ -83,16 +82,16 @@ async def test_organization_repository(mock_repo: Any) -> None:
         rpm_limit=500,
     )
     await org_repo.create(org_obj)
-    mock_repo.create_organization.assert_called_once()
+    persisted = await mock_repo.get_organization("org_2345bcde")
+    assert persisted is not None
 
     # Test list_all
-    mock_repo.list_organizations.return_value = [test_org]
     orgs = await org_repo.list_all()
-    assert len(orgs) == 1
+    assert len(orgs) == 2
 
 
 @pytest.mark.asyncio
-async def test_user_repository(mock_repo: Any) -> None:
+async def test_user_repository(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     user_repo = UserRepository(mock_repo)
 
     test_user = User(
@@ -107,14 +106,14 @@ async def test_user_repository(mock_repo: Any) -> None:
     )
 
     # Test get_by_id
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
     user = await user_repo.get_by_id("usr_1234abcd")
     assert user is not None
     assert user.id == "usr_1234abcd"
 
 
 @pytest.mark.asyncio
-async def test_user_repository_create_update_delete(mock_repo: Any) -> None:
+async def test_user_repository_create_update_delete(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     user_repo = UserRepository(mock_repo)
 
     # create
@@ -128,44 +127,31 @@ async def test_user_repository_create_update_delete(mock_repo: Any) -> None:
         theme_mode="system",
         organization_id="org_2345bcde",
     )
-    mock_repo.get_user.side_effect = [None]  # For the exist check
     await user_repo.create(new_user)
-    mock_repo.create_user.assert_called_once()
+    persisted = await mock_repo.get_user("usr_2345bcde")
+    assert persisted is not None
 
     # update
-    updated_user = User(
-        id="usr_2345bcde",
-        email="new@test.com",
-        role=UserRole.MEMBER,
-        is_active=True,
-        created_at="2026-01-01T00:00:00Z",
-        language="en",
-        theme_mode="system",
-        organization_id="org_2345bcde",
-        name="Updated Name",
-    )
-    mock_repo.get_user.side_effect = [new_user, updated_user]
     updated = await user_repo.update("usr_2345bcde", UserUpdate(name="Updated Name"))
-    mock_repo.update_user.assert_called_once()
+    assert updated is not None
     assert updated.name == "Updated Name"
 
     # delete
-    mock_repo.delete_user.return_value = True
     result = await user_repo.delete("usr_2345bcde")
     assert result is True
+    assert await mock_repo.get_user("usr_2345bcde") is None
 
 
 @pytest.mark.asyncio
-async def test_auth_service_init(mock_repo: Any) -> None:
+async def test_auth_service_init(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
     assert service.use_firebase is False
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_mock(mock_repo: Any) -> None:
+async def test_auth_service_verify_token_mock(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 
-    # Test mock token
     test_user = User(
         id="usr_1234abcd",
         email="test@test.com",
@@ -176,7 +162,7 @@ async def test_auth_service_verify_token_mock(mock_repo: Any) -> None:
         theme_mode="system",
         organization_id="org_1234abcd",
     )
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
     token_data = await service.verify_token("mock-token:usr_1234abcd")
 
     assert token_data.id == "usr_1234abcd"
@@ -184,7 +170,7 @@ async def test_auth_service_verify_token_mock(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_mock_forbidden_in_production(mock_repo: Any, monkeypatch: Any) -> None:
+async def test_auth_service_verify_token_mock_forbidden_in_production(mock_repo: InMemoryUnifiedWorkflowRepository, monkeypatch: Any) -> None:
     from backend_v2.exceptions import AuthenticationError
     from backend_v2.settings import Settings
 
@@ -203,7 +189,7 @@ async def test_auth_service_verify_token_mock_forbidden_in_production(mock_repo:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_create_impersonation_token(mock_repo: Any) -> None:
+async def test_auth_service_create_impersonation_token(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 
     token = service.create_impersonation_token("target_usr_123")
@@ -212,7 +198,7 @@ async def test_auth_service_create_impersonation_token(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_list_users(mock_repo: Any) -> None:
+async def test_auth_service_list_users(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 
     u1 = User(
@@ -236,7 +222,8 @@ async def test_auth_service_list_users(mock_repo: Any) -> None:
         theme_mode="system",
     )
 
-    mock_repo.list_users.return_value = [u1, u2]
+    await mock_repo.create_user(u1)
+    await mock_repo.create_user(u2)
 
     initiator = TokenData(id="admin_1234abcd", role=UserRole.ROOT, email="root@test.com")
     users = await service.list_users(initiator)
@@ -244,7 +231,7 @@ async def test_auth_service_list_users(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_get_user(mock_repo: Any) -> None:
+async def test_auth_service_get_user(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
@@ -257,7 +244,7 @@ async def test_auth_service_get_user(mock_repo: Any) -> None:
         language="en",
         theme_mode="system",
     )
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
 
     initiator = TokenData(id="root_1234abcd", role=UserRole.ROOT, email="root@test.com")
     user = await service.get_user(initiator, "usr_1234abcd")
@@ -265,7 +252,7 @@ async def test_auth_service_get_user(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_tenant_isolation(mock_repo: Any) -> None:
+async def test_auth_service_tenant_isolation(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
@@ -278,7 +265,7 @@ async def test_auth_service_tenant_isolation(mock_repo: Any) -> None:
         language="en",
         theme_mode="system",
     )
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
 
     initiator_admin = TokenData(
         id="usr_admin123", role=UserRole.ADMIN, organization_id="org_target12", email="admin@test.com"
@@ -305,8 +292,8 @@ async def test_auth_router_list_roles() -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_router_get_my_profile() -> None:
-    mock_service = AsyncMock()
+async def test_auth_router_get_my_profile(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    service = AuthService(mock_repo, use_firebase=False)
     mock_user = User(
         id="usr_12345678",
         email="me@test.com",
@@ -316,9 +303,9 @@ async def test_auth_router_get_my_profile() -> None:
         theme_mode="system",
         created_at="2026-01-01T00:00:00Z",
     )
-    mock_service.repo.get_by_id.return_value = mock_user
+    await mock_repo.create_user(mock_user)
     user = await get_my_profile(
-        current_user=TokenData(id="usr_12345678", role=UserRole.MEMBER), auth_service=mock_service
+        current_user=TokenData(id="usr_12345678", role=UserRole.MEMBER), auth_service=service
     )
     assert user == mock_user
 
@@ -478,16 +465,15 @@ def test_auth_models_validation_coverage() -> None:
 
 
 @pytest.mark.asyncio
-async def test_organization_repository_not_found(mock_repo: Any) -> None:
+async def test_organization_repository_not_found(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Test get_by_id returns None when organization is not found."""
     org_repo = OrganizationRepository(mock_repo)
-    mock_repo.get_organization.return_value = None
     res = await org_repo.get_by_id("org_missing")
     assert res is None
 
 
 @pytest.mark.asyncio
-async def test_user_repository_additional_coverage(mock_repo: Any) -> None:
+async def test_user_repository_additional_coverage(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Test UserRepository get_by_email, create duplicate conflict, update not found, and get_by_organization."""
     user_repo = UserRepository(mock_repo)
     test_user = User(
@@ -502,31 +488,28 @@ async def test_user_repository_additional_coverage(mock_repo: Any) -> None:
     )
 
     # get_by_email
-    mock_repo.get_user_by_email.return_value = test_user
+    await mock_repo.create_user(test_user)
     found = await user_repo.get_by_email("existing@test.com")
     assert found is not None
     assert found.id == "usr_existing1234"
 
     # create duplicate raises conflict
-    mock_repo.get_user.return_value = test_user
     with pytest.raises(AppException) as excinfo:
         await user_repo.create(test_user)
     assert excinfo.value.status_code == 409
 
     # update when user not found returns None
-    mock_repo.get_user.return_value = None
     res = await user_repo.update("usr_unknown", UserUpdate(name="New Name"))
     assert res is None
 
     # get_by_organization
-    mock_repo.list_users.return_value = [test_user]
     users = await user_repo.get_by_organization("org_1234abcd")
     assert len(users) == 1
     assert users[0].id == test_user.id
 
 
 @pytest.mark.asyncio
-async def test_auth_service_init_firebase_fallback(mock_repo: Any) -> None:
+async def test_auth_service_init_firebase_fallback(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Test AuthService fallback to mock when firebase is not installed."""
     with patch("backend_v2.services.auth.firebase_auth_module", None):
         auth = AuthService(mock_repo, use_firebase=True)
@@ -534,7 +517,9 @@ async def test_auth_service_init_firebase_fallback(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_impersonation_branches(mock_repo: Any) -> None:
+async def test_auth_service_verify_token_impersonation_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test verify_token internal impersonation branches and errors."""
     auth = AuthService(mock_repo, use_firebase=False)
     test_user = User(
@@ -550,7 +535,7 @@ async def test_auth_service_verify_token_impersonation_branches(mock_repo: Any) 
 
     # Valid impersonation token
     token = auth.create_impersonation_token("usr_impersonated1")
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
     token_data = await auth.verify_token(token)
     assert token_data.id == "usr_impersonated1"
     assert token_data.role == UserRole.ADMIN
@@ -561,7 +546,7 @@ async def test_auth_service_verify_token_impersonation_branches(mock_repo: Any) 
         await auth.verify_token(bad_token)
 
     # Impersonated user not found in DB
-    mock_repo.get_user.return_value = None
+    await mock_repo.delete_user("usr_impersonated1")
     with pytest.raises(AuthenticationError) as exc_missing:
         await auth.verify_token(token)
     assert exc_missing.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
@@ -581,17 +566,20 @@ async def test_auth_service_verify_token_impersonation_branches(mock_repo: Any) 
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_mock_missing_user(mock_repo: Any) -> None:
+async def test_auth_service_verify_token_mock_missing_user(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test verify_token in mock mode when user does not exist in DB."""
     auth = AuthService(mock_repo, use_firebase=False)
-    mock_repo.get_user.return_value = None
     with pytest.raises(AuthenticationError) as excinfo:
         await auth.verify_token("mock-token:usr_nonexistent")
     assert excinfo.value.error_code == ErrorCodes.PERMISSION_DENIED
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_firebase_branches(mock_repo: Any) -> None:
+async def test_auth_service_verify_token_firebase_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test verify_token in Firebase mode."""
     auth = AuthService(mock_repo, use_firebase=False)
     auth.use_firebase = True
@@ -611,18 +599,19 @@ async def test_auth_service_verify_token_firebase_branches(mock_repo: Any) -> No
 
     # Case 1: User already in DB
     mock_fb.verify_id_token.return_value = {"uid": "usr_fbuser000123", "email": "fb@test.com"}
-    mock_repo.get_user.return_value = test_user
+    await mock_repo.create_user(test_user)
     res = await auth.verify_token("valid_fb_token")
     assert res.id == "usr_fbuser000123"
 
     # Case 2: User not in DB -> Auto-registration
-    mock_repo.get_user.return_value = None
+    await mock_repo.delete_user(test_user.id)
     res2 = await auth.verify_token("valid_fb_token")
     assert res2.id == "usr_fbuser000123"
     assert res2.role == UserRole.MEMBER
-    mock_repo.create_user.assert_called()
+    assert (await mock_repo.get_user("usr_fbuser000123")) is not None
 
     # Case 3: User not in DB and missing email claim -> raises AuthenticationError
+    await mock_repo.delete_user(test_user.id)
     mock_fb.verify_id_token.return_value = {"uid": "usr_fbuser000123"}
     with pytest.raises(AuthenticationError) as exc_no_email:
         await auth.verify_token("valid_fb_token_no_email")
@@ -636,7 +625,9 @@ async def test_auth_service_verify_token_firebase_branches(mock_repo: Any) -> No
 
 
 @pytest.mark.asyncio
-async def test_auth_service_create_organization_branches(mock_repo: Any) -> None:
+async def test_auth_service_create_organization_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test create_organization permissions and success flow."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -667,16 +658,18 @@ async def test_auth_service_create_organization_branches(mock_repo: Any) -> None
         theme_mode="system",
         organization_id=SystemOrganizations.ROOT_SYSTEM,
     )
-    mock_repo.get_user.side_effect = lambda uid: root_user if uid == "usr_root00000001" else None
+    await mock_repo.create_user(root_user)
 
     created_org = await auth.create_organization(root_token, payload)
     assert created_org.name == "New Acme"
-    mock_repo.create_organization.assert_called()
+    assert (await mock_repo.get_organization(created_org.id)) is not None
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any) -> None:
+async def test_auth_service_create_user_hierarchy_and_validations(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test create_user permissions, hierarchy constraints, and organization validations."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -704,7 +697,6 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
     )
 
     # 1. Creator not found
-    mock_repo.get_user.return_value = None
     with pytest.raises(AppException) as exc_nf:
         await auth.create_user(
             "usr_missing00001",
@@ -718,8 +710,10 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
         )
     assert exc_nf.value.status_code == 404
 
+    # Seed creator_admin for subsequent steps (mock_org not seeded yet)
+    await mock_repo.create_user(creator_admin)
+
     # 2. Non-root creating user in foreign organization
-    mock_repo.get_user.return_value = creator_admin
     with pytest.raises(PermissionDeniedError):
         await auth.create_user(
             "usr_creatoradmin01",
@@ -747,7 +741,6 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
         )
 
     # 4. Target organization does not exist
-    mock_repo.get_organization.return_value = None
     with pytest.raises(AppException) as exc_org_missing:
         await auth.create_user(
             "usr_creatoradmin01",
@@ -762,8 +755,10 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
         )
     assert exc_org_missing.value.error_code == ErrorCodes.VALIDATION_FAILED
 
+    # Seed mock_org now so organization exists for remaining steps
+    await mock_repo.create_organization(mock_org)
+
     # 5. Role Hierarchy enforcement: ADMIN cannot create ROOT
-    mock_repo.get_organization.return_value = mock_org
     with pytest.raises(PermissionDeniedError):
         auth._enforce_hierarchy(creator_admin, UserRole.ROOT)
 
@@ -778,7 +773,6 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
         auth._enforce_hierarchy(creator_member, UserRole.MEMBER)
 
     # 8. Valid creation succeeds with audit logging
-    mock_repo.get_user.side_effect = lambda uid: creator_admin if uid == "usr_creatoradmin01" else None
     new_user = await auth.create_user(
         "usr_creatoradmin01",
         UserCreate(
@@ -792,11 +786,14 @@ async def test_auth_service_create_user_hierarchy_and_validations(mock_repo: Any
         ),
     )
     assert new_user.email == "member@test.com"
+    assert (await mock_repo.get_user(new_user.id)) is not None
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_create_user_firebase_flow(mock_repo: Any) -> None:
+async def test_auth_service_create_user_firebase_flow(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test create_user with Firebase enabled and fallback."""
     auth = AuthService(mock_repo, use_firebase=False)
     auth.use_firebase = True
@@ -813,17 +810,19 @@ async def test_auth_service_create_user_firebase_flow(mock_repo: Any) -> None:
         theme_mode="system",
         organization_id=SystemOrganizations.ROOT_SYSTEM,
     )
-    mock_repo.get_user.side_effect = lambda uid: creator_root if uid == "usr_rootcreator01" else None
-    mock_repo.get_organization.return_value = Organization(
-        id=SystemOrganizations.ROOT_SYSTEM,
-        name="Root Org",
-        is_active=True,
-        created_at=datetime.now(timezone.utc),
-        tier="enterprise",
-        subscription_status=SubscriptionStatus.ACTIVE,
-        quota_limit=500.0,
-        tpm_limit=50000,
-        rpm_limit=500,
+    await mock_repo.create_user(creator_root)
+    await mock_repo.create_organization(
+        Organization(
+            id=SystemOrganizations.ROOT_SYSTEM,
+            name="Root Org",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+        )
     )
 
     # Firebase user created successfully
@@ -883,7 +882,9 @@ async def test_auth_service_create_user_firebase_flow(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_delete_user_branches(mock_repo: Any) -> None:
+async def test_auth_service_delete_user_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test delete_user access control, protections, and cascading deletion."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -910,53 +911,75 @@ async def test_auth_service_delete_user_branches(mock_repo: Any) -> None:
     )
 
     # 1. Initiator or target not found
-    mock_repo.get_user.side_effect = [None, target_member]
     with pytest.raises(AppException) as exc_nf:
         await auth.delete_user("usr_admin000001", "usr_member000001")
     assert exc_nf.value.status_code == 404
 
+    # Seed initiator_admin and target_member
+    await mock_repo.create_user(initiator_admin)
+    await mock_repo.create_user(target_member)
+
     # 2. Admin cannot delete users from other organizations
-    target_foreign = target_member.model_copy(update={"organization_id": "org_foreign00001"})
-    mock_repo.get_user.side_effect = [initiator_admin, target_foreign]
+    target_foreign = target_member.model_copy(update={"id": "usr_foreign0001", "organization_id": "org_foreign00001"})
+    await mock_repo.create_user(target_foreign)
     with pytest.raises(PermissionDeniedError):
-        await auth.delete_user("usr_admin000001", "usr_member000001")
+        await auth.delete_user("usr_admin000001", "usr_foreign0001")
 
     # 3. Member cannot delete users
-    initiator_member = target_member
-    mock_repo.get_user.side_effect = [initiator_member, target_member]
     with pytest.raises(PermissionDeniedError):
         await auth.delete_user("usr_member000001", "usr_member000001")
 
     # 4. Root accounts cannot be deleted
-    mock_repo.get_user.side_effect = [initiator_admin, target_member]
+    root_acc1 = User(
+        id=SYSTEM_ROOT_USER_ID,
+        email="root@test.com",
+        role=UserRole.ROOT,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+        organization_id=initiator_admin.organization_id,
+    )
+    root_acc2 = User.model_construct(
+        id=LEGACY_ROOT_MASTER_ID,
+        email="legacy_root@test.com",
+        role=UserRole.ROOT,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+        organization_id=initiator_admin.organization_id,
+    )
+    await mock_repo.create_user(root_acc1)
+    await mock_repo.create_user(root_acc2)
     with pytest.raises(PermissionDeniedError):
         await auth.delete_user("usr_admin000001", SYSTEM_ROOT_USER_ID)
-
     with pytest.raises(PermissionDeniedError):
-        mock_repo.get_user.side_effect = [initiator_admin, target_member]
         await auth.delete_user("usr_admin000001", LEGACY_ROOT_MASTER_ID)
 
     # 5. Last Admin Protection: cannot delete last admin of org
     target_admin = initiator_admin.model_copy(update={"id": "usr_targetadmin01"})
-    mock_repo.get_user.side_effect = [initiator_admin, target_admin]
-    mock_repo.list_users.return_value = [initiator_admin]  # only 1 admin
+    await mock_repo.create_user(target_admin)
+    # Remove initiator_admin so target_admin is the ONLY admin in org_test00000001
+    await mock_repo.delete_user("usr_admin000001")
+    # Call with root user as initiator
     with pytest.raises(ConflictError) as exc_last_admin:
-        await auth.delete_user("usr_admin000001", "usr_targetadmin01")
+        await auth.delete_user(SYSTEM_ROOT_USER_ID, "usr_targetadmin01")
     assert exc_last_admin.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 6. Successful delete with multiple admins and audit
-    second_admin = initiator_admin.model_copy(update={"id": "usr_admin000002"})
-    mock_repo.get_user.side_effect = [initiator_admin, target_member]
-    mock_repo.list_users.return_value = [initiator_admin, second_admin, target_member]
-    mock_repo.delete.return_value = True
-
+    await mock_repo.create_user(initiator_admin)
+    # Now there are 2 admins in org_test00000001 (initiator_admin and target_admin)
     deleted = await auth.delete_user("usr_admin000001", "usr_member000001")
     assert deleted is True
+    assert (await mock_repo.get_user("usr_member000001")) is None
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_delete_organization_branches(mock_repo: Any) -> None:
+async def test_auth_service_delete_organization_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test delete_organization permissions, protection, empty vs non-empty force delete."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -985,20 +1008,36 @@ async def test_auth_service_delete_organization_branches(mock_repo: Any) -> None
         theme_mode="system",
         organization_id="org_target000001",
     )
-    mock_repo.list_users.return_value = [member]
+    await mock_repo.create_organization(
+        Organization(
+            id="org_target000001",
+            name="Target Org",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+        )
+    )
+    await mock_repo.create_user(member)
+
     with pytest.raises(ConflictError) as exc_not_empty:
         await auth.delete_organization(root_token, "org_target000001", force=False)
     assert exc_not_empty.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 4. Non-empty organization with force=True cascades user deletion and deletes org
     await auth.delete_organization(root_token, "org_target000001", force=True)
-    mock_repo.delete_user.assert_called_with("usr_member000001")
-    mock_repo.delete_organization.assert_called_with("org_target000001")
+    assert (await mock_repo.get_user("usr_member000001")) is None
+    assert (await mock_repo.get_organization("org_target000001")) is None
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_update_user_branches(mock_repo: Any) -> None:
+async def test_auth_service_update_user_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test update_user self-update, permissions, org transfer, last admin protection."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -1025,57 +1064,59 @@ async def test_auth_service_update_user_branches(mock_repo: Any) -> None:
     )
 
     # 1. Initiator or target not found
-    mock_repo.get_user.side_effect = [None, member_user]
     with pytest.raises(AppException) as exc_nf:
         await auth.update_user("usr_missing00001", "usr_member000001", UserUpdate(name="Name"))
     assert exc_nf.value.status_code == 404
 
+    # Seed admin_user and member_user
+    await mock_repo.create_user(admin_user)
+    await mock_repo.create_user(member_user)
+
     # 2. Self-update: cannot change own role
-    mock_repo.get_user.side_effect = [member_user, member_user]
     with pytest.raises(PermissionDeniedError):
         await auth.update_user("usr_member000001", "usr_member000001", UserUpdate(role=UserRole.ADMIN))
 
     # 3. Cross-org admin update denied
-    foreign_member = member_user.model_copy(update={"organization_id": "org_foreign00001"})
-    mock_repo.get_user.side_effect = [admin_user, foreign_member]
+    foreign_member = member_user.model_copy(update={"id": "usr_foreign0001", "organization_id": "org_foreign00001"})
+    await mock_repo.create_user(foreign_member)
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user("usr_admin000001", "usr_member000001", UserUpdate(name="New"))
+        await auth.update_user("usr_admin000001", "usr_foreign0001", UserUpdate(name="New"))
 
     # 4. Member updating other user denied
-    mock_repo.get_user.side_effect = [member_user, admin_user]
     with pytest.raises(PermissionDeniedError):
         await auth.update_user("usr_member000001", "usr_admin000001", UserUpdate(name="New"))
 
     # 5. Non-root transferring user between orgs denied
-    mock_repo.get_user.side_effect = [admin_user, member_user]
     with pytest.raises(PermissionDeniedError):
         await auth.update_user("usr_admin000001", "usr_member000001", UserUpdate(organization_id="org_other0000001"))
 
     # 6. Demoting last admin of an organization denied
-    mock_repo.get_user.side_effect = [admin_user, admin_user]
-    mock_repo.list_users.return_value = [admin_user]  # only 1 admin
-    root_user = admin_user.model_copy(update={"role": UserRole.ROOT})
-    mock_repo.get_user.side_effect = [root_user, admin_user]
+    # admin_user is currently the only admin in org_test00000001
+    root_user = admin_user.model_copy(update={"id": "usr_root00000001", "role": UserRole.ROOT})
+    await mock_repo.create_user(root_user)
     with pytest.raises(ConflictError) as exc_demote:
         await auth.update_user("usr_root00000001", "usr_admin000001", UserUpdate(role=UserRole.MEMBER))
     assert exc_demote.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 7. Update fails on repository level raises 500
-    mock_repo.get_user.side_effect = [admin_user, member_user, member_user, None]
+    mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
     with pytest.raises(AppException) as exc_up_fail:
         await auth.update_user("usr_admin000001", "usr_member000001", UserUpdate(name="Failing"))
     assert exc_up_fail.value.status_code == 500
 
     # 8. Successful update with audit logging
-    updated_member = member_user.model_copy(update={"name": "Updated Name"})
-    mock_repo.get_user.side_effect = [admin_user, member_user, member_user, updated_member]
     res = await auth.update_user("usr_admin000001", "usr_member000001", UserUpdate(name="Updated Name"))
     assert res.name == "Updated Name"
+    updated_in_store = await mock_repo.get_user("usr_member000001")
+    assert updated_in_store is not None
+    assert updated_in_store.name == "Updated Name"
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_update_user_role_branches(mock_repo: Any) -> None:
+async def test_auth_service_update_user_role_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test update_user_role access control, promotion limits, and last admin protection."""
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
@@ -1112,50 +1153,53 @@ async def test_auth_service_update_user_role_branches(mock_repo: Any) -> None:
     )
 
     # 1. Initiator or target not found
-    mock_repo.get_user.side_effect = [None, member_user]
     with pytest.raises(AppException) as exc_nf:
         await auth.update_user_role("usr_missing00001", "usr_member000001", UserRole.MANAGER)
     assert exc_nf.value.status_code == 404
 
+    # Seed users
+    await mock_repo.create_user(admin_user)
+    await mock_repo.create_user(manager_user)
+    await mock_repo.create_user(member_user)
+
     # 2. Lower role cannot modify higher privilege
-    mock_repo.get_user.side_effect = [member_user, admin_user]
     with pytest.raises(PermissionDeniedError):
         await auth.update_user_role("usr_member000001", "usr_admin000001", UserRole.MEMBER)
 
     # 3. Cannot promote to role higher than own
-    mock_repo.get_user.side_effect = [manager_user, member_user]
     with pytest.raises(PermissionDeniedError):
         await auth.update_user_role("usr_manager00001", "usr_member000001", UserRole.ADMIN)
 
     # 4. Admin managing user in other organization denied
-    foreign_member = member_user.model_copy(update={"organization_id": "org_foreign00001"})
-    mock_repo.get_user.side_effect = [admin_user, foreign_member]
+    foreign_member = member_user.model_copy(update={"id": "usr_foreign0002", "organization_id": "org_foreign00001"})
+    await mock_repo.create_user(foreign_member)
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user_role("usr_admin000001", "usr_member000001", UserRole.MANAGER)
+        await auth.update_user_role("usr_admin000001", "usr_foreign0002", UserRole.MANAGER)
 
     # 5. Last admin demotion denied
-    mock_repo.get_user.side_effect = [admin_user, admin_user]
-    mock_repo.list_users.return_value = [admin_user]  # only 1 admin
     with pytest.raises(ConflictError) as exc_last_admin:
         await auth.update_user_role("usr_admin000001", "usr_admin000001", UserRole.MEMBER)
     assert exc_last_admin.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 6. Update failure raises 500
-    mock_repo.get_user.side_effect = [admin_user, member_user, member_user, None]
+    mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
     with pytest.raises(AppException) as exc_fail:
         await auth.update_user_role("usr_admin000001", "usr_member000001", UserRole.MANAGER)
     assert exc_fail.value.status_code == 500
 
     # 7. Successful update
-    updated_member = member_user.model_copy(update={"role": UserRole.MANAGER})
-    mock_repo.get_user.side_effect = [admin_user, member_user, member_user, updated_member]
     res = await auth.update_user_role("usr_admin000001", "usr_member000001", UserRole.MANAGER)
     assert res.role == UserRole.MANAGER
+    updated_in_store = await mock_repo.get_user("usr_member000001")
+    assert updated_in_store is not None
+    assert updated_in_store.role == UserRole.MANAGER
     mock_audit.log_event.assert_called()
 
 
 @pytest.mark.asyncio
-async def test_auth_service_organization_read_and_update(mock_repo: Any) -> None:
+async def test_auth_service_organization_read_and_update(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test list_organizations, get_organization, update_organization, and get_users_by_organization."""
     auth = AuthService(mock_repo, use_firebase=False)
     test_org = Organization(
@@ -1169,6 +1213,7 @@ async def test_auth_service_organization_read_and_update(mock_repo: Any) -> None
         tpm_limit=50000,
         rpm_limit=500,
     )
+    await mock_repo.create_organization(test_org)
 
     # 1. list_organizations
     root_token = TokenData(id="usr_root00000001", role=UserRole.ROOT, email="root@test.com")
@@ -1179,21 +1224,18 @@ async def test_auth_service_organization_read_and_update(mock_repo: Any) -> None
         id="usr_orphan000001", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
     )
 
-    mock_repo.get_organization.return_value = test_org
-    mock_repo.list_organizations.return_value = [test_org]
-
     assert len(await auth.list_organizations(root_token)) == 1
     assert len(await auth.list_organizations(member_with_org)) == 1
     assert len(await auth.list_organizations(member_no_org)) == 0
 
     # 2. get_organization
     # Not found
-    mock_repo.get_organization.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await auth.get_organization(root_token, "org_missing00001")
 
     # Member accessing foreign organization
-    mock_repo.get_organization.return_value = test_org
+    foreign_org = test_org.model_copy(update={"id": "org_foreign00001", "name": "Foreign Org"})
+    await mock_repo.create_organization(foreign_org)
     with pytest.raises(PermissionDeniedError):
         await auth.get_organization(member_with_org, "org_foreign00001")
 
@@ -1222,13 +1264,14 @@ async def test_auth_service_organization_read_and_update(mock_repo: Any) -> None
     assert updated2.id == "org_test00000001"
 
     # 4. get_users_by_organization
-    mock_repo.list_users.return_value = []
-    users = await auth.get_users_by_organization("org_test00000001")
+    users = await auth.get_users_by_organization("org_empty0000001")
     assert users == []
 
 
 @pytest.mark.asyncio
-async def test_auth_service_ensure_root_user_branches(mock_repo: Any) -> None:
+async def test_auth_service_ensure_root_user_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
     """Test ensure_root_user bootstrap, missing root error, and drift repair."""
     auth = AuthService(mock_repo, use_firebase=False)
     system_org = Organization(
@@ -1254,30 +1297,30 @@ async def test_auth_service_ensure_root_user_branches(mock_repo: Any) -> None:
     )
 
     # Case 1: Root user missing from DB raises ConfigurationError
-    mock_repo.get_organization.return_value = system_org
-    mock_repo.get_user.return_value = None
+    await mock_repo.create_organization(system_org)
     with pytest.raises(AppException) as exc_missing:
         await auth.ensure_root_user()
     assert exc_missing.value.error_code == ErrorCodes.CONFIGURATION_ERROR
 
     # Case 2: System org missing -> bootstraps system org, succeeds
-    mock_repo.get_organization.side_effect = [None, system_org]
-    mock_repo.get_user.return_value = root_user
+    await mock_repo.delete_organization(SystemOrganizations.ROOT_SYSTEM)
+    await mock_repo.create_user(root_user)
     res = await auth.ensure_root_user()
     assert res.id == SYSTEM_ROOT_USER_ID
-    mock_repo.create_organization.assert_called()
+    assert (await mock_repo.get_organization(SystemOrganizations.ROOT_SYSTEM)) is not None
 
     # Case 3: Root user has drifted organization -> updates organization to ROOT_SYSTEM
     drifted_root = root_user.model_copy(update={"organization_id": "org_drifted00001"})
-    mock_repo.get_organization.side_effect = None
-    mock_repo.get_organization.return_value = system_org
-    mock_repo.get_user.side_effect = [drifted_root, root_user, root_user, root_user]
+    await mock_repo.create_user(drifted_root)
     res_fixed = await auth.ensure_root_user()
     assert res_fixed.organization_id == SystemOrganizations.ROOT_SYSTEM
-    mock_repo.update_user.assert_called()
+    refreshed = await mock_repo.get_user(SYSTEM_ROOT_USER_ID)
+    assert refreshed is not None
+    assert refreshed.organization_id == SystemOrganizations.ROOT_SYSTEM
 
     # Case 4: Root user refresh fails -> raises 500
-    mock_repo.get_user.side_effect = [drifted_root, root_user, root_user, None]
+    mock_repo.inject_fault("update_user", AppException("Update failure", status_code=500), trigger_count=1)
+    await mock_repo.create_user(drifted_root)
     with pytest.raises(AppException) as exc_refresh_fail:
         await auth.ensure_root_user()
     assert exc_refresh_fail.value.status_code == 500

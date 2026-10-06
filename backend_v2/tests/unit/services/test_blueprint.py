@@ -13,7 +13,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import BlockDataType, LaxHistoricalContextMode, PresetView, PromptBlockCategory
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
 
@@ -142,152 +142,55 @@ _DEFAULT_TARGET_BLOCK_ORDER = [
 
 @pytest.fixture
 def mock_repo_transformer() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = Workflow(
-        id="wf_1234abcd1234abcd",
-        slug="wf_1",
-        name=I18nText(translations={"en": "Mock Workflow", "fi": "Testi Työnkulku"}),
-        description=I18nText(translations={"en": "desc", "fi": "desc"}),
-        status="published",
-        version=1,
-        default_profile_id="prf_dddd1111dddd1111",
-        historical_context_mode=LaxHistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_strictness_level=85,
-        steps=[],
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.set_workflow(
+        Workflow(
+            id="wf_1234abcd1234abcd",
+            slug="wf_1",
+            name=I18nText(translations={"en": "Mock Workflow", "fi": "Testi Työnkulku"}),
+            description=I18nText(translations={"en": "desc", "fi": "desc"}),
+            status="published",
+            version=1,
+            default_profile_id="prf_dddd1111dddd1111",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_strictness_level=85,
+            steps=[],
+        )
     )
-    repo.get_all_output_profiles.return_value = fix_mock_dict(
-        [
-            {
-                "id": "prf_dddd1111dddd1111",
-                "slug": "default",
-                "name": {"translations": {"en": "Default", "fi": "Default"}},
-                "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [
-                    {
-                        "preset_view": "text_only",
-                        "text_delivery_mode": "full",
-                        "title": {"translations": {"en": "Title", "fi": "Title"}},
-                        "target_blocks": ["*"],
-                        "description": None,
-                    }
-                ],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
-                    },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
-                    },
-                },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
-            }
-        ]
-    )
-    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
-        [
-            {
-                "id": "blk_1234abcd1234abcd",
-                "slug": "matrix_logic1234",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
-                "label": {"translations": {"fi": "Logiikka", "en": "Logic"}},
-                "scales": [
-                    {
-                        "score": 0,
-                        "name": {"translations": {"fi": "Ei mitään", "en": "Zero"}},
-                        "ai_label": "zero",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                                "tda_assertions": [
-                                    {
-                                        "tda_id": "tda_00000000000000000000000000000000",
-                                        "concept_description": "concept 0",
-                                        "inverse_evidence": False,
-                                        "aggregation_mode": "EXISTS",
-                                    }
-                                ],
-                            }
-                        ],
-                    },
-                    {
-                        "score": 100,
-                        "name": {"translations": {"fi": "Täysi", "en": "Full"}},
-                        "ai_label": "full",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                                "tda_assertions": [
-                                    {
-                                        "tda_id": "tda_11111111111111111111111111111111",
-                                        "concept_description": "concept 1",
-                                        "inverse_evidence": False,
-                                        "aggregation_mode": "EXISTS",
-                                    }
-                                ],
-                            }
-                        ],
-                    },
-                ],
-                "computed_min": 0,
-                "computed_max": 100,
-            }
-        ]
-    )
-
-    repo.get_all_output_profiles.return_value = fix_mock_dict(
-        [
-            OutputProfile(
-                id="prf_dddd1111dddd1111",
-                slug="default",
-                workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(translations={"en": "Default", "fi": "Default"}),
-                display_scale=DisplayScale.ORIGINAL,
-                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                matrix_synthesis_groups=[
-                    MatrixSynthesisGroup(
-                        id="grp_0000000000000001",
-                        title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
-                        target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
-                        view_type=PresetView.COMPARE_2D,
-                    )
-                ],
-                visible_block_extensions=[
-                    XaiExtensionType.REMEDIATION_STEPS,
-                    XaiExtensionType.COACHING,
-                    XaiExtensionType.RISK_FLAG,
-                ],
-                visible_workflow_extensions=[
-                    XaiExtensionType.REMEDIATION_STEPS,
-                    XaiExtensionType.COACHING,
-                    XaiExtensionType.RISK_FLAG,
-                ],
-                max_extension_items=2,
-                matrix_visible_columns=["label", "score", "distribution", "quotes"],
-            )
-        ]
+    repo.set_output_profiles(
+        fix_mock_dict(
+            [
+                OutputProfile(
+                    id="prf_dddd1111dddd1111",
+                    slug="default",
+                    workflow_id="wf_1234abcd1234abcd",
+                    name=I18nText(translations={"en": "Default", "fi": "Default"}),
+                    display_scale=DisplayScale.ORIGINAL,
+                    target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                    matrix_synthesis_groups=[
+                        MatrixSynthesisGroup(
+                            id="grp_0000000000000001",
+                            title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
+                            target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
+                            view_type=PresetView.COMPARE_2D,
+                        )
+                    ],
+                    visible_block_extensions=[
+                        XaiExtensionType.REMEDIATION_STEPS,
+                        XaiExtensionType.COACHING,
+                        XaiExtensionType.RISK_FLAG,
+                    ],
+                    visible_workflow_extensions=[
+                        XaiExtensionType.REMEDIATION_STEPS,
+                        XaiExtensionType.COACHING,
+                        XaiExtensionType.RISK_FLAG,
+                    ],
+                    max_extension_items=2,
+                    matrix_visible_columns=["label", "score", "distribution", "quotes"],
+                )
+            ]
+        )
     )
 
     pb_dict = {
@@ -322,32 +225,37 @@ def mock_repo_transformer() -> Any:
         "computed_min": 0,
         "computed_max": 100,
     }
-    repo.get_all_prompt_blocks.return_value = fix_mock_dict([pb_dict])
+    repo.set_prompt_blocks(fix_mock_dict([pb_dict]))
     from datetime import datetime, timezone
 
-    repo.get_user.return_value = User(
-        id="usr_0123456789abcdef",
-        email="admin@example.com",
-        name="Test User",
-        role=UserRole.ADMIN,
-        is_active=True,
-        language="fi",
-        theme_mode="system",
-        created_at=datetime.now(timezone.utc),
+    repo.set_user(
+        User(
+            id="usr_0123456789abcdef",
+            email="admin@example.com",
+            name="Test User",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="fi",
+            theme_mode="system",
+            created_at=datetime.now(timezone.utc),
+        )
     )
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
-    repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
-        id="sys_0000000000000001",
-        type="mcp_gateways",
-        tools=[],
+    repo.set_mcp_gateways(
+        SystemConfigMCPGateways(
+            id="sys_0000000000000001",
+            type="mcp_gateways",
+            tools=[],
+        )
     )
     return repo
 
 
 @pytest.mark.asyncio
 async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -> None:
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000002",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -355,7 +263,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         output_profile_id="prf_dddd1111dddd1111",
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
@@ -377,21 +285,23 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
 
 @pytest.fixture
 def mock_repo_microcot() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = Workflow(
-        id="wf_1234567890abcdef",
-        slug="mock_workflow",
-        description=I18nText(translations={"en": "desc", "fi": "desc"}),
-        status="published",
-        version=1,
-        name=I18nText(translations={"en": "Mock Workflow", "fi": "Mock Workflow"}),
-        default_profile_id="prf_1234567890abcdef",
-        historical_context_mode=LaxHistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_strictness_level=85,
-        steps=[],
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.set_workflow(
+        Workflow(
+            id="wf_1234567890abcdef",
+            slug="mock_workflow",
+            description=I18nText(translations={"en": "desc", "fi": "desc"}),
+            status="published",
+            version=1,
+            name=I18nText(translations={"en": "Mock Workflow", "fi": "Mock Workflow"}),
+            default_profile_id="prf_1234567890abcdef",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_strictness_level=85,
+            steps=[],
+        )
     )
-    repo.get_all_output_profiles.return_value = fix_mock_dict(
+    repo.set_output_profiles( fix_mock_dict(
         [
             {
                 "id": "prf_1234567890abcdef",
@@ -437,8 +347,8 @@ def mock_repo_microcot() -> Any:
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
             }
         ]
-    )
-    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
+    ))
+    repo.set_prompt_blocks( fix_mock_dict(
         [
             {
                 "id": "blk_1111222233334444",
@@ -511,27 +421,29 @@ def mock_repo_microcot() -> Any:
                 "computed_max": 5,
             },
         ]
-    )
+    ))
     return repo
 
 
 @pytest.fixture
 def mock_repo_sdui() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = Workflow(
-        id="wf_1234abcd1234abcd",
-        slug="wf_test",
-        name=I18nText(translations={"en": "Mock", "fi": "Mock"}),
-        description=I18nText(translations={"en": "desc", "fi": "desc"}),
-        status="published",
-        version=1,
-        default_profile_id="prf_1234abcd1234abcd",
-        historical_context_mode=LaxHistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_strictness_level=85,
-        steps=[],
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.set_workflow(
+        Workflow(
+            id="wf_1234abcd1234abcd",
+            slug="wf_test",
+            name=I18nText(translations={"en": "Mock", "fi": "Mock"}),
+            description=I18nText(translations={"en": "desc", "fi": "desc"}),
+            status="published",
+            version=1,
+            default_profile_id="prf_1234abcd1234abcd",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_strictness_level=85,
+            steps=[],
+        )
     )
-    repo.get_all_output_profiles.return_value = fix_mock_dict(
+    repo.set_output_profiles( fix_mock_dict(
         [
             {
                 "id": "prf_1234abcd1234abcd",
@@ -576,8 +488,8 @@ def mock_repo_sdui() -> Any:
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
             }
         ]
-    )
-    repo.get_all_prompt_blocks.return_value = fix_mock_dict(
+    ))
+    repo.set_prompt_blocks(fix_mock_dict(
         [
             {
                 "id": "blk_1234abcd1234abcd",
@@ -615,7 +527,7 @@ def mock_repo_sdui() -> Any:
                 ],
             }
         ]
-    )
+    ))
     return repo
 
 
@@ -645,7 +557,8 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
             MCPAuditTrace(tool_id="mcp_tavily_search", step_name="step_2", query="Bias detection"),
         ]
     )
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000004",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -654,7 +567,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         frozen_context=frozen,
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
@@ -742,7 +655,7 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )
-    mock_repo_sdui.get_execution.return_value = mock_execution
+    mock_repo_sdui.set_execution(mock_execution)
 
     dto = await transformer.build_report_dto("exe_3333333344444444", accept_language="en")
 
@@ -756,7 +669,8 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
 @pytest.mark.asyncio
 async def test_blueprint_variance_validation_success(mock_repo_transformer: Any) -> None:
     """Test that build_report_dto computes variance validation using context variables."""
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -796,9 +710,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         context_variables={},
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
 
-    mock_repo_transformer.get_workflow.return_value = Workflow(
+    mock_repo_transformer.set_workflow(
+        Workflow(
         id="wf_1234abcd1234abcd",
         slug="wf_1",
         name=I18nText(translations={"en": "Workflow Name"}),
@@ -815,9 +730,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 task_blueprint="sp_7f9649114d2344dc",
             )
         ],
-    )
+    ))
 
-    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+    mock_repo_transformer.set_prompt_blocks(
+        fix_mock_dict(
         [
             {
                 "id": "blk_fb15f8dcf23f4865",
@@ -851,9 +767,10 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 ],
             }
         ]
-    )
+    ))
 
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -900,7 +817,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -952,7 +869,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
 @pytest.mark.asyncio
 async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transformer: Any) -> None:
     """Test that build_report_dto crashes when variance_validation is requested but context_variables is empty."""
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000010",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -965,8 +883,9 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
         },
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    ))
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -1006,7 +925,7 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1031,7 +950,8 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
 @pytest.mark.asyncio
 async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_transformer: Any) -> None:
     """Test that build_report_dto falls back to execution_trace when context_variables is empty."""
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000011",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1083,10 +1003,11 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         context_variables={},  # Empty to force fallback lookup
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
 
     # Configure workflow steps
-    mock_repo_transformer.get_workflow.return_value = Workflow(
+    mock_repo_transformer.set_workflow(
+        Workflow(
         id="wf_1234abcd1234abcd",
         slug="wf_1",
         name=I18nText(translations={"en": "Workflow Name"}),
@@ -1103,10 +1024,11 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 task_blueprint="sp_7f9649114d2344dc",
             )
         ],
-    )
+    ))
 
     # Configure prompt blocks with scale definitions for blk_fb15f8dcf23f4865
-    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+    mock_repo_transformer.set_prompt_blocks(
+        fix_mock_dict(
         [
             {
                 "id": "blk_fb15f8dcf23f4865",
@@ -1140,9 +1062,10 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 ],
             }
         ]
-    )
+    ))
 
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
         [
             {
                 "id": "prf_dddd1111dddd1111",
@@ -1189,7 +1112,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1263,10 +1186,10 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
         matrix_visible_columns=["label", "distribution", "quotes", "score"],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
-    mock_repo_transformer.get_by_id.return_value = profile_mock
+    mock_repo_transformer.set_output_profiles(fix_mock_dict([profile_mock]))
 
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000015",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1298,7 +1221,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             )
         },
         target_locale="fi",
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1356,10 +1279,10 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
         visible_block_extensions=[XaiExtensionType.COACHING],
         matrix_visible_columns=["label", "distribution", "quotes", "score"],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict([profile_mock])
-    mock_repo_transformer.get_by_id.return_value = profile_mock
+    mock_repo_transformer.set_output_profiles(fix_mock_dict([profile_mock]))
 
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000016",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1387,7 +1310,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             )
         },
         target_locale="fi",
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1421,7 +1344,8 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
     blueprint.py line 533 blindly accesses ev_data["chart_display_label"], causing a KeyError.
     This test reproduces the crash.
     """
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000009",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1454,7 +1378,7 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
         output_profile_id="prf_dddd1111dddd1111",
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1481,7 +1405,8 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.workflow import Workflow
 
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000097",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1508,9 +1433,10 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         context_variables={},
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
 
-    mock_repo_transformer.get_workflow.return_value = Workflow.model_construct(
+    mock_repo_transformer.set_workflow(
+        Workflow.model_construct(
         id="wf_1234abcd1234abcd",
         slug="test-wf",
         name="Test WF",
@@ -1523,9 +1449,10 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         model_registry_id="cfg_model_registry_01",
         default_profile_id="prf_dddd1111dddd1111",
         steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
-    )
+    ))
 
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
         [
             OutputProfile(
                 id="prf_dddd1111dddd1111",
@@ -1547,7 +1474,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 max_extension_items=2,
             )
         ]
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1590,7 +1517,8 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
 @pytest.mark.asyncio
 async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_transformer: MagicMock) -> None:
     """Verify that ConfigurationError is raised when custom scale lacks bounds."""
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
         id="exe_0000000000000099",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -1608,9 +1536,10 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
         ],
         metadata=ExecutionMetadata(),
         target_locale="fi",
-    )
+    ))
 
-    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+    mock_repo_transformer.set_prompt_blocks(
+        fix_mock_dict(
         [
             {
                 "id": "blk_0000000000000002",
@@ -1647,9 +1576,10 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 ],
             }
         ]
-    )
+    ))
 
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
         [
             OutputProfile.model_construct(
                 id="prf_dddd1111dddd1111",
@@ -1672,7 +1602,7 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 max_extension_items=2,
             )
         ]
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2046,21 +1976,25 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     """Verifies penalty parsing and ensures AI output slop never affects global score."""
     from backend_v2.models.domain.step import ExpectedInput
 
-    mock_repo_transformer.get_workflow.return_value = mock_repo_transformer.get_workflow.return_value.model_copy(
-        update={
-            "expected_inputs": [
-                ExpectedInput(
-                    input_key="input_text",
-                    label=I18nText(translations={"en": "Input"}),
-                    description=I18nText(translations={"en": "Input description"}),
-                    required=True,
-                    input_modes=["paste"],
-                )
-            ]
-        }
+    current_wf = await mock_repo_transformer.get_workflow("wf_1234abcd1234abcd")
+    assert current_wf is not None
+    mock_repo_transformer.set_workflow(
+        current_wf.model_copy(
+            update={
+                "expected_inputs": [
+                    ExpectedInput(
+                        input_key="input_text",
+                        label=I18nText(translations={"en": "Input"}),
+                        description=I18nText(translations={"en": "Input description"}),
+                        required=True,
+                        input_modes=["paste"],
+                    )
+                ]
+            }
+        )
     )
 
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    exec_rec = ExecutionRecord(
         id="exe_0000000000000101",
         workflow_id="wf_1234abcd1234abcd",
         status=ExecutionStatus.PASSED,
@@ -2087,8 +2021,9 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
         metadata=ExecutionMetadata(),
         target_locale="fi",
     )
+    mock_repo_transformer.set_execution(exec_rec)
 
-    mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
+    mock_repo_transformer.set_prompt_blocks(fix_mock_dict(
         [
             {
                 "id": "blk_1234abcd1234abcd",
@@ -2114,12 +2049,12 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 ],
             }
         ]
-    )
+    ))
 
     from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
-    mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
+    mock_repo_transformer.set_output_profiles(fix_mock_dict(
         [
             OutputProfile.model_construct(
                 id="prf_dddd1111dddd1111",
@@ -2140,7 +2075,7 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 max_extension_items=2,
             )
         ]
-    )
+    ))
 
     from backend_v2.services.blueprint import BlueprintTransformer
 
@@ -2160,19 +2095,24 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     assert "Legacy or unsupported penalty string" in str(exc.value)
 
     # Remove invalid penalty and verify direct projection of scoring_result.total_score
-    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
-        "penalties_applied"
-    ] = ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15"]
-    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"]["total_score"] = 75.0
+    exec_rec.execution_trace[0].content["scoring_result"]["penalties_applied"] = [
+        "PENALTY_SECURITY:10",
+        "PENALTY_POST_HOC:15",
+    ]
+    exec_rec.execution_trace[0].content["scoring_result"]["total_score"] = 75.0
+    mock_repo_transformer.set_execution(exec_rec)
 
     dto = await transformer.build_report_dto("exe_0000000000000101")
     assert dto.global_score == 75.0
 
     # Verify updated scoring_result score (e.g. 70.0) is projected directly as a dumb painter
-    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
-        "penalties_applied"
-    ] = ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15", "PENALTY_PASSIVITY:5"]
-    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"]["total_score"] = 70.0
+    exec_rec.execution_trace[0].content["scoring_result"]["penalties_applied"] = [
+        "PENALTY_SECURITY:10",
+        "PENALTY_POST_HOC:15",
+        "PENALTY_PASSIVITY:5",
+    ]
+    exec_rec.execution_trace[0].content["scoring_result"]["total_score"] = 70.0
+    mock_repo_transformer.set_execution(exec_rec)
 
     dto2 = await transformer.build_report_dto("exe_0000000000000101")
     assert dto2.global_score == 70.0
@@ -2212,7 +2152,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         ],
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [custom_profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([custom_profile])
 
     mock_exec = ExecutionRecord(
         id="exe_1111222233334444",
@@ -2239,8 +2179,9 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         },
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_user.return_value = User(
+    mock_repo_transformer.set_execution(mock_exec)
+    mock_repo_transformer.set_user(
+        User(
         id="usr_0123456789abcdef",
         email="admin@example.com",
         name="Test User",
@@ -2249,7 +2190,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         language="fi",
         theme_mode="system",
         created_at=datetime.now(timezone.utc),
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2292,7 +2233,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
 
     mock_exec = ExecutionRecord(
         id="exe_1111222233334444",
@@ -2305,8 +2246,9 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         profile_syntheses={},
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_user.return_value = User(
+    mock_repo_transformer.set_execution(mock_exec)
+    mock_repo_transformer.set_user(
+        User(
         id="usr_0123456789abcdef",
         email="admin@example.com",
         name="Test User",
@@ -2315,7 +2257,7 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
         language="fi",
         theme_mode="system",
         created_at=datetime.now(timezone.utc),
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2358,7 +2300,7 @@ async def test_blueprint_transformer_fail_fast_branches(
     )
 
     # 1. Missing execution -> 404
-    mock_repo_transformer.get_execution.return_value = None
+    mock_repo_transformer.set_execution(None)
     with pytest.raises(AppException) as exc1:
         await transformer.build_report_dto("exe_nonexistent", accept_language="en")
     assert exc1.value.status_code == 404
@@ -2374,8 +2316,8 @@ async def test_blueprint_transformer_fail_fast_branches(
         execution_trace=[],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_workflow.return_value = None
+    mock_repo_transformer.set_execution(mock_exec)
+    mock_repo_transformer.set_workflow(None)
     with pytest.raises(AppException) as exc2:
         await transformer.build_report_dto("exe_1111222233334444", accept_language="en")
     assert exc2.value.status_code == 500
@@ -2389,7 +2331,7 @@ async def test_blueprint_transformer_fail_fast_branches(
         expected_inputs=[],
         steps=[],
     )
-    mock_repo_transformer.get_workflow.return_value = mock_wf
+    mock_repo_transformer.set_workflow(mock_wf)
     mock_exec_no_locale = ExecutionRecord(
         id="exe_1111222233334444",
         workflow_id="wf_1234abcd1234abcd",
@@ -2399,15 +2341,24 @@ async def test_blueprint_transformer_fail_fast_branches(
         metadata=ExecutionMetadata(),
         execution_trace=[],
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_no_locale
+    mock_repo_transformer.set_execution(mock_exec_no_locale)
     with pytest.raises(AppException) as exc3:
         await transformer.build_report_dto("exe_1111222233334444", accept_language=None)
     assert exc3.value.status_code == 400
     assert exc3.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     # 4. Missing profile in repo -> 404
-    mock_repo_transformer.get_execution.return_value = mock_exec
-    mock_repo_transformer.get_all_output_profiles.return_value = []
+    mock_exec_valid_wf = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        output_profile_id="prf_dddd1111dddd1111",
+        created_at=datetime.now(timezone.utc),
+        metadata=ExecutionMetadata(),
+        execution_trace=[],
+        target_locale="fi",
+    )
+    mock_repo_transformer.set_execution(mock_exec_valid_wf)
+    mock_repo_transformer.set_output_profiles([])
     with pytest.raises(AppException) as exc4:
         await transformer.build_report_dto("exe_1111222233334444", profile_id="prf_nonexistent", accept_language="en")
     assert exc4.value.status_code == 404
@@ -2437,7 +2388,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         content_blocks=[],
         target_block_order=[],  # Empty target_block_order to test fallback radar block
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
 
     # 1. Organization resolution error -> 404
     mock_exec_org_err = ExecutionRecord(
@@ -2450,8 +2401,8 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         execution_trace=[],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_org_err
-    mock_repo_transformer.get_organization_model.side_effect = Exception("Org lookup failed")
+    mock_repo_transformer.set_execution(mock_exec_org_err)
+    mock_repo_transformer.inject_fault("get_organization_model", Exception("Org lookup failed"))
 
     with pytest.raises(AppException) as exc_org:
         await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
@@ -2459,7 +2410,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
     assert exc_org.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
     # Reset side effect
-    mock_repo_transformer.get_organization_model.side_effect = None
+    mock_repo_transformer.clear_faults("get_organization_model")
 
     # 2. User resolution error -> 404
     mock_exec_user_err = ExecutionRecord(
@@ -2472,8 +2423,8 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         execution_trace=[],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_user_err
-    mock_repo_transformer.get_user.side_effect = Exception("User lookup failed")
+    mock_repo_transformer.set_execution(mock_exec_user_err)
+    mock_repo_transformer.inject_fault("get_user", Exception("User lookup failed"))
 
     with pytest.raises(AppException) as exc_u:
         await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
@@ -2481,8 +2432,8 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
     assert exc_u.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
     # Reset side effect
-    mock_repo_transformer.get_user.side_effect = None
-    mock_repo_transformer.get_user.return_value = {"name": "Test User"}
+    mock_repo_transformer.clear_faults("get_user")
+    mock_repo_transformer.set_user({"name": "Test User"})
 
     # 3. Empty target block order fallback test (lines 709-710)
     mock_exec_valid = ExecutionRecord(
@@ -2494,7 +2445,7 @@ async def test_blueprint_transformer_identity_errors_and_penalties(
         execution_trace=[],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_valid
+    mock_repo_transformer.set_execution(mock_exec_valid)
     report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
     assert report is not None
     assert len(report.inner_sdui_blocks) == 1
@@ -2523,7 +2474,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
 
     # 1. Unsupported penalty format fail-fast (lines 652-656)
     mock_exec_penalty = ExecutionRecord(
@@ -2543,7 +2494,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         ],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_penalty
+    mock_repo_transformer.set_execution(mock_exec_penalty)
 
     with pytest.raises(AppException) as exc_pen:
         await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
@@ -2562,7 +2513,7 @@ async def test_blueprint_transformer_unsupported_penalty_format_and_cache_none(
         profile_syntheses={profile.id: mock_cache},
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec_cache
+    mock_repo_transformer.set_execution(mock_exec_cache)
 
     with pytest.raises(AppException) as exc_cache:
         await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
@@ -2597,7 +2548,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
 
     audit_trace = MCPAuditTrace(
         id="mcp_00000000000000000000000000000001",
@@ -2648,7 +2599,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         scorecard_atoms={valid_tda_id: existing_atom},
     )
 
-    mock_repo_transformer.get_prompt_block.return_value = MatrixPromptBlock(
+    pb = MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="matrix_test",
         category_id=PromptBlockCategory.MATRIX,
@@ -2695,9 +2646,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
             ),
         ],
     )
-    mock_repo_transformer.get_all_prompt_blocks.return_value = [
-        mock_repo_transformer.get_prompt_block.return_value.model_dump()
-    ]
+    mock_repo_transformer.set_prompt_blocks([pb])
 
     mock_exec = ExecutionRecord(
         id="exe_1111222233334444",
@@ -2726,7 +2675,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
         ],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.set_execution(mock_exec)
 
     report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
     assert report is not None
@@ -2764,7 +2713,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         content_blocks=[],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
 
     audit_trace = MCPAuditTrace(
         id="mcp_00000000000000000000000000000001",
@@ -2849,7 +2798,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
         ],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.set_execution(mock_exec)
 
     report = await transformer.build_report_dto("exe_1111222233334444", profile_id=profile.id, accept_language="fi")
     assert report is not None
@@ -2899,8 +2848,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
             )
         ],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.set_output_profiles([profile])
 
     mock_wf = SimpleNamespace(
         id="wf_1234abcd1234abcd1234abcd1234abcd",
@@ -2910,7 +2858,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         expected_inputs=[],
         steps=[],
     )
-    mock_repo_transformer.get_workflow.return_value = mock_wf
+    mock_repo_transformer.set_workflow(mock_wf)
 
     mock_exec = ExecutionRecord(
         id="exe_99998888777766665555444433332222",
@@ -2926,7 +2874,7 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
         execution_trace=[],
         target_locale="fi",
     )
-    mock_repo_transformer.get_execution.return_value = mock_exec
+    mock_repo_transformer.set_execution(mock_exec)
 
     report = await transformer.build_report_dto(mock_exec.id, profile_id=profile.id, accept_language="fi")
     assert report is not None
@@ -2995,12 +2943,10 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         metadata=ExecutionMetadata(),
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
-    mock_repo_transformer.get_output_profile_by_id.return_value = profile.model_dump()
-    mock_repo_transformer.get_workflow.return_value = wf
-    mock_repo_transformer.get_execution.return_value = exec_record
-    mock_repo_transformer.get_mcp_gateways.return_value = {
+    mock_repo_transformer.set_output_profiles([profile])
+    mock_repo_transformer.set_workflow(wf)
+    mock_repo_transformer.set_execution(exec_record)
+    mock_repo_transformer.set_mcp_gateways({
         "id": "sys_8172bda70c8641c5",
         "type": "mcp_gateways",
         "tools": [
@@ -3011,7 +2957,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
                 "input_schema": {},
             }
         ],
-    }
+    })
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3025,7 +2971,7 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
 
     report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
     assert report is not None
-    mock_repo_transformer.get_mcp_gateways.assert_called_once_with(id="sys_8172bda70c8641c5")
+    assert mock_repo_transformer.get_call_count("get_mcp_gateways") == 1
 
 
 @pytest.mark.asyncio
@@ -3174,12 +3120,10 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         target_locale="fi",
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
-    mock_repo_transformer.get_output_profile_by_id.return_value = profile.model_dump()
-    mock_repo_transformer.get_workflow.return_value = wf
-    mock_repo_transformer.get_execution.return_value = exec_record
-    mock_repo_transformer.get_prompt_block.return_value = pb
+    mock_repo_transformer.set_output_profiles([profile])
+    mock_repo_transformer.set_workflow(wf)
+    mock_repo_transformer.set_execution(exec_record)
+    mock_repo_transformer.set_prompt_blocks([pb])
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3382,11 +3326,10 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
         target_locale="fi",
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
-    mock_repo_transformer.get_workflow.return_value = wf
-    mock_repo_transformer.get_execution.return_value = exec_record
-    mock_repo_transformer.get_all_prompt_blocks.return_value = [pb.model_dump()]
+    mock_repo_transformer.set_output_profiles([profile])
+    mock_repo_transformer.set_workflow(wf)
+    mock_repo_transformer.set_execution(exec_record)
+    mock_repo_transformer.set_prompt_blocks([pb])
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3402,7 +3345,7 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     assert report is not None
 
     # Pure Dumb Painter Invariance: Zero DB updates / mutations permitted
-    mock_repo_transformer.update_execution.assert_not_called()
+    assert mock_repo_transformer.get_call_count("update_execution") == 0
     assert callable(mock_repo_transformer.update_execution)
 
 
@@ -3476,11 +3419,10 @@ async def test_blueprint_variance_target_block_adherence(
         profile_syntheses={profile.id: cache},
     )
 
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
-    mock_repo_transformer.get_workflow.return_value = wf
-    mock_repo_transformer.get_execution.return_value = exec_record
-    mock_repo_transformer.get_all_prompt_blocks.return_value = []
+    mock_repo_transformer.set_output_profiles([profile])
+    mock_repo_transformer.set_workflow(wf)
+    mock_repo_transformer.set_execution(exec_record)
+    mock_repo_transformer.set_prompt_blocks([])
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3525,9 +3467,8 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         mcp_gateway_id="sys_0000000000000001",
         steps=[],
     )
-    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
-    mock_repo_transformer.get_output_profile.return_value = profile
-    mock_repo_transformer.get_workflow.return_value = wf
+    mock_repo_transformer.set_output_profiles([profile])
+    mock_repo_transformer.set_workflow(wf)
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3540,8 +3481,8 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
 
     # 1. MCP Gateway invalid config error branch
-    mock_repo_transformer.get_mcp_gateways.return_value = {"invalid_key": "not_a_valid_gateway"}
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_mcp_gateways({"invalid_key": "not_a_valid_gateway"})
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000001",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3549,7 +3490,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         execution_trace=[],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000001")
     assert "Failed to parse MCP gateway config" in str(exc_info.value)
@@ -3557,12 +3498,12 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     # Reset valid gateway
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
-    mock_repo_transformer.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+    mock_repo_transformer.set_mcp_gateways(SystemConfigMCPGateways(
         id="sys_0000000000000001", type="mcp_gateways", tools=[]
-    )
+    ))
 
     # 2. Corrupt scoring payload in results
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000002",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3576,13 +3517,13 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         ],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000002")
     assert "Failed to parse TraceScoringPayloadDTO" in str(exc_info.value)
 
     # 3. Corrupt evidence override in execution trace
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000003",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3596,13 +3537,13 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         ],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000003")
     assert "Failed to parse EvidenceOverrideDTO" in str(exc_info.value)
 
     # 4. Corrupt AtomResultDTO in results
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000004",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3616,7 +3557,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         ],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000004")
     assert "Failed to parse AtomResultDTO list" in str(exc_info.value) or "Invalid step output payload" in str(
@@ -3624,7 +3565,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
 
     # 5. Corrupt hydrated_references in results
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000005",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3638,7 +3579,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         ],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000005")
     assert "Failed to parse HydratedAtomDTO" in str(exc_info.value) or "Invalid step output payload" in str(
@@ -3646,7 +3587,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
 
     # 6. Corrupt TraceEventMetadataEnvelope in trace
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000006",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3664,7 +3605,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         ],
         metadata=ExecutionMetadata(),
         target_locale="en",
-    )
+    ))
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000006")
     assert "Corrupted TraceEventMetadataEnvelope" in str(exc_info.value)
@@ -3679,7 +3620,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         resolved_claim="Claim text",
         source_quote="Quote text",
     )
-    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+    mock_repo_transformer.set_execution(ExecutionRecord(
         id="exe_0000000000000007",
         workflow_id=wf.id,
         output_profile_id=profile.id,
@@ -3700,7 +3641,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         metadata=ExecutionMetadata(),
         target_locale="en",
         profile_syntheses={profile.id: cache},
-    )
+    ))
     report = await transformer.build_report_dto(
         "exe_0000000000000007",
         custom_preface_md="# Custom Preface",
@@ -3728,10 +3669,10 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     from backend_v2.models.state import TraceEvent
     from backend_v2.services.blueprint import BlueprintTransformer
     from backend_v2.tests.fakes.in_memory_repositories import (
-        InMemoryBlueprintTransformerRepository,
+        InMemoryUnifiedWorkflowRepository,
     )
 
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     profile = OutputProfile(
         id="prf_0000000000000001",
         slug="test-p-fb",
@@ -3752,14 +3693,13 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         mcp_gateway_id="sys_0000000000000001",
         steps=[],
     )
-    repo.get_all_output_profiles.return_value = [profile]
-    repo.get_output_profile.return_value = profile
-    repo.get_workflow.return_value = wf
-    repo.get_all_prompt_blocks.return_value = []
-    repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+    repo.set_output_profiles([profile])
+    repo.set_workflow(wf)
+    repo.set_prompt_blocks([])
+    repo.set_mcp_gateways(SystemConfigMCPGateways(
         id="sys_0000000000000001", type="mcp_gateways", tools=[]
-    )
-    repo.get_organization_model.return_value = Organization(
+    ))
+    repo.set_organization(Organization(
         id="org_0000000000000001",
         slug="test-org",
         name="Test Org Inc",
@@ -3769,7 +3709,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         quota_limit=1000.0,
         tpm_limit=10000,
         rpm_limit=100,
-    )
+    ))
 
     transformer = BlueprintTransformer(
         exec_repo=repo,
@@ -3844,7 +3784,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
         metadata=ExecutionMetadata(),
         target_locale="en",
     )
-    repo.get_execution.return_value = exec_record
+    repo.set_execution(exec_record)
 
     report = await transformer.build_report_dto("exe_0000000000000001")
     assert report is not None

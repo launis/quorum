@@ -27,7 +27,7 @@ from backend_v2.models.dtos.report_artifact import (
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType, ReportStatus, VisualIntent
 from backend_v2.services.report_service import ReportService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def _create_dummy_execution(
@@ -131,10 +131,9 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
 
 @pytest.mark.asyncio
 async def test_create_report_artifact_entry_success() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
-    repo.get_output_profile_by_id.return_value = _create_dummy_profile().model_dump(mode="json")
-    repo.create_report_artifact.side_effect = lambda rep: rep
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_execution(_create_dummy_execution())
+    await repo.save_output_profile(_create_dummy_profile())
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     payload = ReportArtifactCreateDTO(
@@ -148,13 +147,15 @@ async def test_create_report_artifact_entry_success() -> None:
     assert result.execution_id == "exe_1234567890abcdef"
     assert result.status == ReportStatus.PENDING
     assert result.title == "Johdon raportti"
-    repo.create_report_artifact.assert_called_once()
+
+    persisted = await repo.get_report_artifact(result.id)
+    assert persisted is not None
+    assert persisted.id == result.id
 
 
 @pytest.mark.asyncio
 async def test_create_report_artifact_entry_execution_not_found() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     payload = ReportArtifactCreateDTO(execution_id="exe_missing", profile_id="prf_1")
@@ -164,8 +165,8 @@ async def test_create_report_artifact_entry_execution_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_create_report_artifact_entry_execution_not_passed() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = _create_dummy_execution(status=ExecutionStatus.RUNNING).model_dump(mode="json")
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_execution(_create_dummy_execution(status=ExecutionStatus.RUNNING))
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     payload = ReportArtifactCreateDTO(execution_id="exe_1234567890abcdef", profile_id="prf_1")
@@ -176,9 +177,8 @@ async def test_create_report_artifact_entry_execution_not_passed() -> None:
 
 @pytest.mark.asyncio
 async def test_create_report_artifact_entry_profile_not_found() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
-    repo.get_output_profile_by_id.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_execution(_create_dummy_execution())
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     payload = ReportArtifactCreateDTO(execution_id="exe_1234567890abcdef", profile_id="prf_missing")
@@ -188,7 +188,7 @@ async def test_create_report_artifact_entry_profile_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_compile_and_persist_artifact() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
     arq_pool = AsyncMock()
@@ -198,14 +198,16 @@ async def test_compile_and_persist_artifact() -> None:
 
     job_key = f"compile_report_{report.id}"
     arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
-    repo.update_report_artifact.assert_called_once()
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.GENERATING
     arq_pool.enqueue_job.assert_called_once_with("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
 
 
 @pytest.mark.asyncio
 async def test_compile_and_persist_artifact_deduplicated_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     """Verify that when Arq deduplicates an in-flight job, a structured warning is logged."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
     arq_pool = AsyncMock()
@@ -222,10 +224,10 @@ async def test_compile_and_persist_artifact_deduplicated_logs_warning(caplog: py
 
 @pytest.mark.asyncio
 async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
+    await repo.save_execution(_create_dummy_execution())
 
     storage = AsyncMock()
     storage.save.side_effect = lambda path, data: path
@@ -251,34 +253,33 @@ async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPa
     await service.process_artifact_compilation(report.id)
 
     assert storage.save.call_count == 4
-    # Status updated to GENERATING then READY
-    assert repo.update_report_artifact.call_count == 2
-    final_call_args = repo.update_report_artifact.call_args_list[-1]
-    assert final_call_args[0][1].status == ReportStatus.READY
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.READY
 
 
 @pytest.mark.asyncio
 async def test_process_artifact_compilation_failure_isolation() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
-    # Simulate execution fetch failure
-    repo.get_execution.return_value = None
+    # Execution is missing from repo, triggering failure isolation
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     await service.process_artifact_compilation(report.id)
 
     # Invariant: Failure must set ReportArtifact to FAILED without crashing or mutating ExecutionRecord
-    final_update = repo.update_report_artifact.call_args_list[-1][0][1]
-    assert final_update.status == ReportStatus.FAILED
-    assert final_update.error_message is not None
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.FAILED
+    assert updated_rep.error_message is not None
 
 
 @pytest.mark.asyncio
 async def test_get_report_sdui_and_streams() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report(status=ReportStatus.READY)
-    repo.get_report_artifact.return_value = report
+    await repo.create_report_artifact(report)
 
     storage = AsyncMock()
     dummy_dto = ReportDataDTO(
@@ -313,10 +314,10 @@ async def test_get_report_sdui_and_streams() -> None:
 
 @pytest.mark.asyncio
 async def test_get_report_rows() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report(status=ReportStatus.READY)
-    repo.get_report_artifact.return_value = report
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
     storage = AsyncMock()
     storage.read.return_value = _create_dummy_report_data_dto().model_dump_json().encode("utf-8")
 
@@ -330,25 +331,25 @@ async def test_get_report_rows() -> None:
 
 @pytest.mark.asyncio
 async def test_delete_report_artifact() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
-    repo.get_report_artifact.return_value = report
+    await repo.create_report_artifact(report)
     storage = AsyncMock()
 
     service = ReportService(repo=repo, storage_driver=storage)
     await service.delete_report_artifact(report.id)
 
     assert storage.delete.call_count == 4
-    repo.delete_report_artifact.assert_called_once_with(report.id)
+    deleted_rep = await repo.get_report_artifact(report.id)
+    assert deleted_rep is None
 
 
 @pytest.mark.asyncio
 async def test_list_and_public_reports() -> None:
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report(status=ReportStatus.READY)
-    repo.get_report_artifact.return_value = report
-    repo.list_report_artifacts_by_execution.return_value = [report]
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
     storage = AsyncMock()
     storage.read.return_value = _create_dummy_report_data_dto().model_dump_json().encode("utf-8")
 
@@ -366,9 +367,9 @@ async def test_list_and_public_reports() -> None:
 @pytest.mark.asyncio
 async def test_delete_report_artifact_oserror_raises() -> None:
     """Verify delete_report_artifact raises AppException on storage failure."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
-    repo.get_report_artifact.return_value = report
+    await repo.create_report_artifact(report)
     storage = AsyncMock()
     storage.delete.side_effect = OSError("Disk write protected")
 
@@ -381,7 +382,7 @@ async def test_delete_report_artifact_oserror_raises() -> None:
 @pytest.mark.asyncio
 async def test_regenerate_report_artifact() -> None:
     """Verify regenerate_report_artifact enqueues compilation job."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
     arq = AsyncMock()
@@ -402,7 +403,7 @@ async def test_regenerate_report_artifact_clears_stale_arq_result() -> None:
     Without deleting this stale result key, the compilation job is never enqueued,
     leaving the report permanently trapped in GENERATING status.
     """
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
     arq = AsyncMock()
@@ -418,10 +419,10 @@ async def test_regenerate_report_artifact_clears_stale_arq_result() -> None:
 @pytest.mark.asyncio
 async def test_create_report_artifact_workflow_id_mismatch() -> None:
     """Verify create_report_artifact fails fast when profile does not belong to execution workflow."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_execution(_create_dummy_execution())
     mismatched_profile = _create_dummy_profile().model_copy(update={"workflow_id": "wor_other_workflow_123"})
-    repo.get_output_profile_by_id.return_value = mismatched_profile.model_dump(mode="json")
+    await repo.save_output_profile(mismatched_profile)
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     payload = ReportArtifactCreateDTO(
@@ -441,11 +442,11 @@ async def test_create_report_artifact_workflow_id_mismatch() -> None:
 @pytest.mark.asyncio
 async def test_get_or_create_default_artifact_returns_existing() -> None:
     """Verify get_or_create_default_artifact returns existing report artifact if already present."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     execution = _create_dummy_execution()
-    repo.get_execution.return_value = execution.model_dump(mode="json")
+    await repo.save_execution(execution)
     existing_report = _create_dummy_report()
-    repo.list_report_artifacts_by_execution.return_value = [existing_report]
+    await repo.create_report_artifact(existing_report)
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     result = await service.get_or_create_default_artifact(
@@ -455,19 +456,15 @@ async def test_get_or_create_default_artifact_returns_existing() -> None:
     )
 
     assert result.id == existing_report.id
-    repo.create_report_artifact.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_get_or_create_default_artifact_creates_when_none() -> None:
     """Verify get_or_create_default_artifact creates a new report artifact using execution default profile."""
-    repo = InMemoryBlueprintTransformerRepository()
-    execution = _create_dummy_execution()
-    execution = execution.model_copy(update={"output_profile_id": "prf_1234567890abcdef"})
-    repo.get_execution.return_value = execution.model_dump(mode="json")
-    repo.list_report_artifacts_by_execution.return_value = []
-    repo.get_output_profile_by_id.return_value = _create_dummy_profile().model_dump(mode="json")
-    repo.create_report_artifact.side_effect = lambda rep: rep
+    repo = InMemoryUnifiedWorkflowRepository()
+    execution = _create_dummy_execution().model_copy(update={"output_profile_id": "prf_1234567890abcdef"})
+    await repo.save_execution(execution)
+    await repo.save_output_profile(_create_dummy_profile())
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     result = await service.get_or_create_default_artifact(
@@ -477,17 +474,18 @@ async def test_get_or_create_default_artifact_creates_when_none() -> None:
     assert result.execution_id == execution.id
     assert result.profile_id == "prf_1234567890abcdef"
     assert result.locale == "fi"
-    repo.create_report_artifact.assert_called_once()
+    persisted = await repo.get_report_artifact(result.id)
+    assert persisted is not None
 
 
 @pytest.mark.asyncio
 async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify compilation updates ExecutionRecord.pdf_report_path and sys_render step state."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report()
     await repo.create_report_artifact(report)
     execution = _create_dummy_execution()
-    repo.get_execution.return_value = execution.model_dump(mode="json")
+    await repo.save_execution(execution)
 
     storage = AsyncMock()
     storage.save.side_effect = lambda path, data: path
@@ -511,20 +509,19 @@ async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: 
     service = ReportService(repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service)
     await service.process_artifact_compilation(report.id)
 
-    repo.update_execution.assert_called_once()
-    update_dto = repo.update_execution.call_args[0][1]
-    assert update_dto.pdf_report_path == f"artifacts/reports/{report.id}/report.pdf"
-    assert update_dto.step_states is not None
-    assert f"sys_render_{report.profile_id}" in update_dto.step_states
-    assert update_dto.step_states[f"sys_render_{report.profile_id}"].status == ExecutionStatus.PASSED
-    assert update_dto.step_states[f"sys_render_{report.profile_id}"].progress == 100
+    updated_exec = await repo.get_execution(execution.id)
+    assert updated_exec is not None
+    assert updated_exec.pdf_report_path == f"artifacts/reports/{report.id}/report.pdf"
+    assert updated_exec.step_states is not None
+    assert f"sys_render_{report.profile_id}" in updated_exec.step_states
+    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].status == ExecutionStatus.PASSED
+    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].progress == 100
 
 
 @pytest.mark.asyncio
 async def test_get_or_create_default_artifact_execution_not_found() -> None:
     """Verify get_or_create_default_artifact raises ResourceNotFoundError if execution does not exist."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     with pytest.raises(ResourceNotFoundError):
@@ -534,10 +531,9 @@ async def test_get_or_create_default_artifact_execution_not_found() -> None:
 @pytest.mark.asyncio
 async def test_get_or_create_default_artifact_workflow_default_and_fallback() -> None:
     """Verify get_or_create_default_artifact resolves workflow default_profile_id and fallback profiles."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     execution = _create_dummy_execution()
-    repo.get_execution.return_value = execution.model_dump(mode="json")
-    repo.list_report_artifacts_by_execution.return_value = []
+    await repo.save_execution(execution)
 
     # Case 1: Workflow has default_profile_id
     workflow = Workflow(
@@ -551,36 +547,40 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
         model_registry_id="cfg_model_registry_01",
         historical_context_mode="DISABLED",
     )
-    repo.get_workflow.return_value = workflow.model_dump(mode="json")
+    await repo.save_workflow(workflow)
     default_profile = _create_dummy_profile(profile_id="prf_0000000000000001")
-    repo.get_output_profile_by_id.return_value = default_profile.model_dump(mode="json")
-    repo.create_report_artifact.side_effect = lambda rep: rep
+    await repo.save_output_profile(default_profile)
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     res1 = await service.get_or_create_default_artifact(execution.id)
     assert res1.profile_id == "prf_0000000000000001"
 
     # Case 2: Workflow default_profile_id is None, falls back to first matching profile
+    repo2 = InMemoryUnifiedWorkflowRepository()
+    await repo2.save_execution(execution)
     workflow_no_default = workflow.model_copy(update={"default_profile_id": None})
-    repo.get_workflow.return_value = workflow_no_default.model_dump(mode="json")
+    await repo2.save_workflow(workflow_no_default)
     fallback_profile = _create_dummy_profile(profile_id="prf_0000000000000002")
-    repo.get_all_output_profiles.return_value = [fallback_profile]
-    repo.get_output_profile_by_id.return_value = fallback_profile.model_dump(mode="json")
+    await repo2.save_output_profile(fallback_profile)
 
-    res2 = await service.get_or_create_default_artifact(execution.id)
+    service2 = ReportService(repo=repo2, storage_driver=AsyncMock())
+    res2 = await service2.get_or_create_default_artifact(execution.id)
     assert res2.profile_id == "prf_0000000000000002"
 
     # Case 3: No matching profiles raises ResourceNotFoundError
-    repo.get_all_output_profiles.return_value = []
+    repo3 = InMemoryUnifiedWorkflowRepository()
+    await repo3.save_execution(execution)
+    await repo3.save_workflow(workflow_no_default)
+
+    service3 = ReportService(repo=repo3, storage_driver=AsyncMock())
     with pytest.raises(ResourceNotFoundError):
-        await service.get_or_create_default_artifact(execution.id)
+        await service3.get_or_create_default_artifact(execution.id)
 
 
 @pytest.mark.asyncio
 async def test_process_artifact_compilation_missing_report_raises() -> None:
     """Verify process_artifact_compilation raises ResourceNotFoundError if report does not exist."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_report_artifact.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     with pytest.raises(ResourceNotFoundError):
@@ -590,7 +590,7 @@ async def test_process_artifact_compilation_missing_report_raises() -> None:
 @pytest.mark.asyncio
 async def test_read_artifact_failures() -> None:
     """Verify _read_artifact raises AppException when not ready or storage read fails."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     pending_report = _create_dummy_report(status=ReportStatus.PENDING)
     ready_report = _create_dummy_report(status=ReportStatus.READY)
 
@@ -611,10 +611,9 @@ async def test_read_artifact_failures() -> None:
 @pytest.mark.asyncio
 async def test_get_public_report_execution_missing_raises() -> None:
     """Verify get_public_report raises ResourceNotFoundError if underlying execution is missing."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     report = _create_dummy_report(status=ReportStatus.READY)
-    repo.get_report_artifact.return_value = report
-    repo.get_execution.return_value = None
+    await repo.create_report_artifact(report)
 
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     with pytest.raises(ResourceNotFoundError):
@@ -624,18 +623,19 @@ async def test_get_public_report_execution_missing_raises() -> None:
 @pytest.mark.asyncio
 async def test_process_artifact_compilation_idempotent_when_ready() -> None:
     """Verify process_artifact_compilation short-circuits when status is READY and PDF exists."""
-    repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
     storage = AsyncMock()
     storage.exists.return_value = True
 
     paths = ReportStoragePathsDTO(pdf_path="artifacts/reports/rep_123/report.pdf")
     report = _create_dummy_report(status=ReportStatus.READY)
     report = report.model_copy(update={"storage_paths": paths})
-    repo.get_report_artifact.return_value = report
+    await repo.create_report_artifact(report)
 
     service = ReportService(repo=repo, storage_driver=storage)
     await service.process_artifact_compilation(report.id)
 
-    # Idempotency: repo.update_report_artifact is NEVER called when already ready and file exists
-    repo.update_report_artifact.assert_not_called()
+    persisted = await repo.get_report_artifact(report.id)
+    assert persisted is not None
+    assert persisted.status == ReportStatus.READY
     storage.exists.assert_awaited_once_with("artifacts/reports/rep_123/report.pdf")

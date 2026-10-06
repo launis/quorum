@@ -1,23 +1,73 @@
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.execution import ExecutionService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _create_workflow(
+    workflow_id: str = "wor_1234567890abcdef",
+    version: int = 1,
+    steps: list[StepRule] | None = None,
+) -> Workflow:
+    return Workflow(
+        id=workflow_id,
+        slug="test-workflow",
+        name=I18nText(translations={"en": "Test Workflow"}),
+        description=I18nText(translations={"en": "Test Description"}),
+        status="active",
+        version=version,
+        organization_id="org_1",
+        default_strictness_level=50,
+        model_registry_id="sys_e26807f3bfa3454d",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=steps or [],
+    )
+
+
+def _create_record(
+    execution_id: str = "exe_1234567890abcdef",
+    workflow_id: str = "wor_1234567890abcdef",
+    status: ExecutionStatus = ExecutionStatus.FAILED,
+    workflow_version: int = 1,
+    step_states: dict[str, ExecutionStepState] | None = None,
+    execution_trace: list[TraceEvent] | None = None,
+    organization_id: str = "org_1",
+    created_by: str = "usr_1",
+) -> ExecutionRecord:
+    return ExecutionRecord(
+        id=execution_id,
+        workflow_id=workflow_id,
+        status=status,
+        target_locale="fi",
+        organization_id=organization_id,
+        created_by=created_by,
+        workflow_version=workflow_version,
+        output_profile_id="prf_0123456789abcdef",
+        active_profile_id="prf_0123456789abcdef",
+        step_states=step_states or {},
+        execution_trace=execution_trace or [],
+        profile_syntheses={"prf_0123456789abcdef": RenderedSynthesisCache()},
+        context_variables=ContextVariablesDTO(),
+    )
 
 
 def _create_test_service(
     usage_service: Any = None,
-) -> tuple[ExecutionService, InMemoryBlueprintTransformerRepository]:
-    repo = InMemoryBlueprintTransformerRepository()
+) -> tuple[ExecutionService, InMemoryUnifiedWorkflowRepository]:
+    repo = InMemoryUnifiedWorkflowRepository()
     service = ExecutionService(
         exec_repo=repo,
         workflow_repo=repo,
@@ -36,15 +86,12 @@ def _create_test_service(
 async def test_check_resumability_failed_only() -> None:
     service, _ = _create_test_service()
 
-    # Execution status PENDING or COMPLETED should fail check_resumability
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.PENDING
-
-    # Milestone 3, Rule 1: Resumable only in FAILED status
+    # Execution status PENDING or PASSED should fail check_resumability
+    record = _create_record(status=ExecutionStatus.PENDING)
     is_res = await service.check_resumability(record)
     assert is_res is False
 
-    record.status = ExecutionStatus.PASSED
+    record = _create_record(status=ExecutionStatus.PASSED)
     is_res = await service.check_resumability(record)
     assert is_res is False
 
@@ -52,152 +99,104 @@ async def test_check_resumability_failed_only() -> None:
 @pytest.mark.asyncio
 async def test_check_resumability_allows_zero_outputs() -> None:
     usage_mock = AsyncMock()
-    service, repo_mock = _create_test_service(usage_service=usage_mock)
-
+    service, repo = _create_test_service(usage_service=usage_mock)
     usage_mock.check_quota.return_value = True
 
-    # Execution trace lacking event_type == "output" SHOULD be resumable (e.g. crashed on very first node)
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.organization_id = "org_1"
-    record.metadata = {"workflow_version": 1}
-    record.workflow_version = 1
-    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
-    record.execution_trace = [TraceEvent(step_name="inputs", event_type="input", content={})]
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 1
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
+    record = _create_record(
+        step_states={step_id: step_state},
+        execution_trace=[TraceEvent(step_name="inputs", event_type="input", content={})],
+    )
 
-    # Resumption is allowed even if no step has completed (zero output events)
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    is_res = await service.check_resumability(record)
     assert is_res is True
 
 
 @pytest.mark.asyncio
 async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
     usage_mock = AsyncMock()
-    service, repo_mock = _create_test_service(usage_service=usage_mock)
-
+    service, repo = _create_test_service(usage_service=usage_mock)
     usage_mock.check_quota.return_value = True
 
-    # Execution has a virtual 'sys_render_' step injected by the PDF generator
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.organization_id = "org_1"
-    record.metadata = {"workflow_version": 1}
-    record.workflow_version = 1
-    record.step_states = {
-        "step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock(),
-        "sys_render_prof_1": Mock(),
-    }
-    record.execution_trace = []
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    # But the active blueprint only has the original DAG step
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 1
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
+    virtual_state = ExecutionStepState(id="sys_render_prof_1", label="Render", status=ExecutionStatus.PASSED)
+    record = _create_record(
+        step_states={step_id: step_state, "sys_render_prof_1": virtual_state},
+    )
 
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
-    # Must be resumable even with the virtual step present
+    is_res = await service.check_resumability(record)
     assert is_res is True
 
 
 @pytest.mark.asyncio
 async def test_check_resumability_structural_mismatch() -> None:
-    service, repo_mock = _create_test_service()
+    service, repo = _create_test_service()
 
-    # Execution with active workflow having restructured/different Step IDs
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.metadata = {}
-    record.workflow_version = 1
-    record.execution_trace = [
-        TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
-    ]
+    step_id1 = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    step_id2 = "step_7bf3ddc4ad2043918f087e2d67019602"
+    wf = _create_workflow(
+        steps=[
+            StepRule(id=step_id1, task_blueprint="b1"),
+            StepRule(id=step_id2, task_blueprint="b2"),
+        ]
+    )
+    await repo.save_workflow(wf)
 
-    # Exec states keys: step_0dfb0101e4714c58bb0d4b430b4b81e3
-    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
+    step_state1 = ExecutionStepState(id=step_id1, label="Step 1", status=ExecutionStatus.FAILED)
+    record = _create_record(
+        step_states={step_id1: step_state1},
+        execution_trace=[TraceEvent(step_name=step_id1, event_type="output", content={})],
+    )
 
-    # Workflow in DB has step_0dfb0101e4714c58bb0d4b430b4b81e3 and step_7bf3ddc4ad2043918f087e2d67019602
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.steps = [
-        StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1"),
-        StepRule(id="step_7bf3ddc4ad2043918f087e2d67019602", task_blueprint="b2"),
-    ]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
-
-    # Milestone 3, Rule 3: Step ID mismatch fails resumability check
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    is_res = await service.check_resumability(record)
     assert is_res is False
 
 
 @pytest.mark.asyncio
 async def test_check_resumability_workflow_version_drift() -> None:
-    service, repo_mock = _create_test_service()
+    service, repo = _create_test_service()
 
-    # Execution started under version 1, but workflow in DB is now version 2
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.metadata = {"workflow_version": 1}
-    record.workflow_version = 1
-    record.execution_trace = [
-        TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
-    ]
-    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(version=2, steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 2
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
+    record = _create_record(
+        workflow_version=1,
+        step_states={step_id: step_state},
+        execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
+    )
 
-    # Milestone 3, Rule 3: Workflow version drift fails resumability check
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    is_res = await service.check_resumability(record)
     assert is_res is False
 
 
 @pytest.mark.asyncio
 async def test_check_resumability_quota_exceeded() -> None:
     usage_mock = AsyncMock()
-    service, repo_mock = _create_test_service(usage_service=usage_mock)
-
-    # Quota check returns False
+    service, repo = _create_test_service(usage_service=usage_mock)
     usage_mock.check_quota.return_value = False
 
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.organization_id = "org_1"
-    record.metadata = {"workflow_version": 1}
-    record.workflow_version = 1
-    record.execution_trace = [
-        TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
-    ]
-    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 1
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
+    record = _create_record(
+        organization_id="org_1",
+        step_states={step_id: step_state},
+        execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
+    )
 
-    # Milestone 3, Rule 4: Quota exceeded blocks resumption
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    is_res = await service.check_resumability(record)
     assert is_res is False
     usage_mock.check_quota.assert_called_once_with("org_1")
 
@@ -205,54 +204,41 @@ async def test_check_resumability_quota_exceeded() -> None:
 @pytest.mark.asyncio
 async def test_check_resumability_successful_resumption() -> None:
     usage_mock = AsyncMock()
-    service, repo_mock = _create_test_service(usage_service=usage_mock)
-
-    # Quota check returns True
+    service, repo = _create_test_service(usage_service=usage_mock)
     usage_mock.check_quota.return_value = True
 
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.organization_id = "org_1"
-    record.metadata = {"workflow_version": 1}
-    record.workflow_version = 1
-    record.execution_trace = [
-        TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
-    ]
-    record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 1
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    step_state = ExecutionStepState(id=step_id, label="Step 1", status=ExecutionStatus.FAILED)
+    record = _create_record(
+        organization_id="org_1",
+        step_states={step_id: step_state},
+        execution_trace=[TraceEvent(step_name=step_id, event_type="output", content={})],
+    )
 
-    # Perfect scenario, everything matches and succeeds
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    is_res = await service.check_resumability(record)
     assert is_res is True
 
 
 @pytest.mark.asyncio
 async def test_resume_execution_firewall_denied() -> None:
-    service, repo_mock = _create_test_service()
+    service, repo = _create_test_service()
 
-    # Unresumable record (e.g. status COMPLETED)
-    record = Mock(spec=ExecutionRecord)
-    record.id = "exe_1"
-    record.status = ExecutionStatus.PASSED
-    record.execution_trace = []  # Empty trace
-    record.organization_id = "org_1"
-    record.created_by = "u2"
-
-    repo_mock.get_execution.return_value = record
+    record = _create_record(
+        execution_id="exe_1111111111111111",
+        status=ExecutionStatus.PASSED,
+        organization_id="org_1",
+        created_by="u2",
+    )
+    await repo.save_execution(record)
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
     arq_pool = AsyncMock()
 
-    # Resumption fails at safety boundary with UNRESUMABLE_STATE_ERROR
     with pytest.raises(AppException) as exc_info:
-        await service.resume_execution(initiator=initiator, execution_id="exe_1", arq_pool=arq_pool)
+        await service.resume_execution(initiator=initiator, execution_id="exe_1111111111111111", arq_pool=arq_pool)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == "UNRESUMABLE_STATE_ERROR"
@@ -262,22 +248,13 @@ async def test_resume_execution_firewall_denied() -> None:
 @pytest.mark.asyncio
 async def test_check_resumability_missing_step_in_step_states_returns_false() -> None:
     """ISTQB Negative: Missing workflow step from step_states returns False."""
-    service, repo_mock = _create_test_service()
+    service, repo = _create_test_service()
 
-    record = Mock(spec=ExecutionRecord)
-    record.status = ExecutionStatus.FAILED
-    record.workflow_id = "wf_1"
-    record.metadata = {}
-    record.workflow_version = 1
-    # step_states is empty, so workflow_step_ids is not a subset
-    record.step_states = {}
+    step_id = "step_0dfb0101e4714c58bb0d4b430b4b81e3"
+    wf = _create_workflow(steps=[StepRule(id=step_id, task_blueprint="b1")])
+    await repo.save_workflow(wf)
 
-    mock_wf = Mock(spec=Workflow)
-    mock_wf.version = 1
-    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
-
-    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
-        is_res = await service.check_resumability(record)
-
+    record = _create_record(step_states={})
+    is_res = await service.check_resumability(record)
     assert is_res is False
+

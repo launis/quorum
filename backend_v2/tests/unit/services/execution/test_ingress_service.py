@@ -26,7 +26,10 @@ from backend_v2.services.execution.ingress_service import (
     _generate_sdui_hints,
     create_execution_record,
 )
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemorySystemRepository,
+    InMemoryUnifiedWorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -133,11 +136,11 @@ def test_create_execution_record_validation_failure() -> None:
 async def test_get_workflow_ui_schema() -> None:
     """Verify get_workflow_ui_schema returns expected inputs or raises 404."""
     workflow = _create_test_workflow()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    workflow_repo = InMemoryUnifiedWorkflowRepository()
+    await workflow_repo.save_workflow(workflow)
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
+        exec_repo=InMemoryUnifiedWorkflowRepository(),
         workflow_repo=workflow_repo,
     )
 
@@ -145,9 +148,13 @@ async def test_get_workflow_ui_schema() -> None:
     assert len(schema.expected_inputs) == 1
     assert schema.expected_inputs[0].input_key == "chat_log"
 
-    workflow_repo.get_workflow_by_id.return_value = None
+    empty_repo = InMemoryUnifiedWorkflowRepository()
+    service_empty = ExecutionIngressService(
+        exec_repo=InMemoryUnifiedWorkflowRepository(),
+        workflow_repo=empty_repo,
+    )
     with pytest.raises(ResourceNotFoundError):
-        await service.get_workflow_ui_schema("wor_0123456789abcdef")
+        await service_empty.get_workflow_ui_schema("wor_0123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -192,26 +199,17 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
         ],
     )
 
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
-
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-
-    async def mock_get_pb(pb_id: str) -> dict[str, Any] | None:
-        if pb_id == "blk_0123456789abcdef":
-            return role_block.model_dump()
-        if pb_id == "blk_1123456789abcdef":
-            return protocol_block.model_dump()
-        if pb_id == "blk_2123456789abcdef":
-            return matrix_block.model_dump()
-        return None
-
-    prompt_block_repo.get_prompt_block_by_id.side_effect = mock_get_pb
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
+    await repo.create_prompt_block(role_block)
+    await repo.create_prompt_block(protocol_block)
+    await repo.create_prompt_block(matrix_block)
 
     hints_dto = await _generate_sdui_hints(
         workflow=workflow,
-        prompt_block_repo=prompt_block_repo,
-        workflow_repo=workflow_repo,
+        prompt_block_repo=repo,
+        workflow_repo=repo,
         target_locale="en",
     )
     ui_hints = hints_dto.ui_hints
@@ -232,14 +230,14 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
 async def test_generate_sdui_hints_missing_step_raises() -> None:
     """Verify _generate_sdui_hints raises ConfigurationError when step blueprint is missing."""
     workflow = _create_test_workflow()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_step_by_id.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
 
     with pytest.raises(ConfigurationError):
         await _generate_sdui_hints(
             workflow=workflow,
-            prompt_block_repo=InMemoryBlueprintTransformerRepository(),
-            workflow_repo=workflow_repo,
+            prompt_block_repo=repo,
+            workflow_repo=repo,
             target_locale="en",
         )
 
@@ -267,18 +265,12 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
         visible_workflow_extensions=[],
     )
 
-    exec_repo = InMemoryBlueprintTransformerRepository()
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
+    await repo.save_output_profile(profile_obj)
 
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
-
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo.get_output_profile_by_id.return_value = profile_obj.model_dump()
-
-    system_repo = InMemoryBlueprintTransformerRepository()
-    system_repo.get_model_registry.return_value = {"id": "sys_e26807f3bfa3454d"}
+    system_repo = InMemorySystemRepository()
 
     usage_service = AsyncMock()
     usage_service.check_quota = AsyncMock(return_value=True)
@@ -286,10 +278,10 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     arq_pool = AsyncMock()
 
     service = ExecutionIngressService(
-        exec_repo=exec_repo,
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
         system_repo=system_repo,
         usage_service=usage_service,
     )
@@ -314,11 +306,12 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     assert record.metadata.telemetry is not None
     assert record.metadata.telemetry.traceparent.startswith("00-")
 
-    # Verify repository call persisted the record with telemetry
-    assert exec_repo.create_execution.called
-    saved_dto = exec_repo.create_execution.call_args[0][0]
-    assert saved_dto.metadata is not None
-    assert saved_dto.metadata.telemetry is not None
+    # Verify repository persisted the record with telemetry (stateful roundtrip)
+    saved_record = await repo.get_execution(record.id)
+    assert saved_record is not None
+    assert saved_record.metadata is not None
+    assert saved_record.metadata.telemetry is not None
+    assert saved_record.metadata.telemetry.traceparent.startswith("00-")
 
     # Verify arq background worker received execution_id
     assert arq_pool.enqueue_job.called
@@ -334,12 +327,12 @@ async def test_start_execution_permission_denied(initiator: TokenData) -> None:
         update={"organization_id": "org_other_organization", "is_public": False}
     )
 
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
     )
 
     payload = ExecutionCreate(
@@ -361,15 +354,15 @@ async def test_start_execution_permission_denied(initiator: TokenData) -> None:
 async def test_start_execution_quota_exceeded(initiator: TokenData) -> None:
     """Verify start_execution raises 402 RATE_LIMIT_EXCEEDED when quota is exhausted."""
     workflow = _create_test_workflow()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
 
     usage_service = AsyncMock()
     usage_service.check_quota = AsyncMock(return_value=False)
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
         usage_service=usage_service,
     )
 
@@ -392,12 +385,11 @@ async def test_start_execution_quota_exceeded(initiator: TokenData) -> None:
 @pytest.mark.asyncio
 async def test_start_execution_workflow_not_found(initiator: TokenData) -> None:
     """Verify start_execution raises ResourceNotFoundError when workflow does not exist."""
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
     )
 
     payload = ExecutionCreate(
@@ -419,13 +411,13 @@ async def test_start_execution_workflow_not_found(initiator: TokenData) -> None:
 async def test_start_execution_missing_dependencies_and_entities(initiator: TokenData) -> None:
     """Verify start_execution Fail-Fast on missing repositories or non-existent configuration entities."""
     workflow = _create_test_workflow()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
 
     # Case 1: Missing prompt_block_repo
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
         prompt_block_repo=None,
     )
     payload = ExecutionCreate(
@@ -439,7 +431,6 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 2: Missing output_profile_repo when profile requested
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
     step_obj = Step(
         id="stp_0123456789abcdef",
         slug="step-slug",
@@ -447,12 +438,12 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         type=StepType.LOGIC,
         hook="my_hook",
     )
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
+    await repo.save_step(step_obj)
 
     service_no_profile_repo = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
         output_profile_repo=None,
     )
     with pytest.raises(AppException) as exc_info:
@@ -460,13 +451,11 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 3: Output profile not found
-    output_profile_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo.get_output_profile_by_id.return_value = None
     service_profile_missing = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
     )
     with pytest.raises(AppException) as exc_info:
         await service_profile_missing.start_execution(initiator, payload, AsyncMock())
@@ -482,19 +471,22 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         visible_block_extensions=[],
         visible_workflow_extensions=[],
     )
-    output_profile_repo.get_output_profile_by_id.return_value = mismatched_profile.model_dump()
+    mismatched_repo = InMemoryUnifiedWorkflowRepository()
+    await mismatched_repo.save_workflow(workflow)
+    await mismatched_repo.save_step(step_obj)
+    await mismatched_repo.save_output_profile(mismatched_profile)
+
     service_mismatch = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=mismatched_repo,
+        workflow_repo=mismatched_repo,
+        prompt_block_repo=mismatched_repo,
+        output_profile_repo=mismatched_repo,
     )
     with pytest.raises(AppException) as exc_info:
         await service_mismatch.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 400
 
     # Case 5: Missing system_repo
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
     matching_profile = OutputProfile(
         id="prf_0123456789abcdef",
         slug="matching",
@@ -504,12 +496,12 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         visible_block_extensions=[],
         visible_workflow_extensions=[],
     )
-    output_profile_repo.get_output_profile_by_id.return_value = matching_profile.model_dump()
+    await repo.save_output_profile(matching_profile)
     service_no_sys = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
         system_repo=None,
     )
     with pytest.raises(AppException) as exc_info:
@@ -517,13 +509,13 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
     assert exc_info.value.status_code == 500
 
     # Case 7: Model registry not found
-    system_repo = InMemoryBlueprintTransformerRepository()
-    system_repo.get_model_registry.return_value = None
+    system_repo = InMemorySystemRepository()
+    system_repo._model_registries.clear()
     service_reg_missing = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
         system_repo=system_repo,
     )
     with pytest.raises(AppException) as exc_info:
@@ -535,14 +527,15 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 async def test_generate_sdui_hints_invalid_step_format_raises() -> None:
     """Verify _generate_sdui_hints raises AppException when step blueprint fails Pydantic validation."""
     workflow = _create_test_workflow()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_step_by_id.return_value = {"id": "invalid_id_not_matching_step_schema"}
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    repo.seed_raw_step("stp_0123456789abcdef", {"id": "invalid_id_not_matching_step_schema"})
 
     with pytest.raises(AppException) as exc_info:
         await _generate_sdui_hints(
             workflow=workflow,
-            prompt_block_repo=InMemoryBlueprintTransformerRepository(),
-            workflow_repo=workflow_repo,
+            prompt_block_repo=repo,
+            workflow_repo=repo,
             target_locale="en",
         )
     assert exc_info.value.status_code == 400
@@ -560,27 +553,26 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
         hook="my_hook",
         role_block_id="blk_0123456789abcdef",
     )
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    prompt_block_repo.get_prompt_block_by_id.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
 
     # Missing PB raises ConfigurationError
     with pytest.raises(ConfigurationError):
         await _generate_sdui_hints(
             workflow=workflow,
-            prompt_block_repo=prompt_block_repo,
-            workflow_repo=workflow_repo,
+            prompt_block_repo=repo,
+            workflow_repo=repo,
             target_locale="en",
         )
 
     # Malformed PB raises AppException(status_code=500)
-    prompt_block_repo.get_prompt_block_by_id.return_value = {"id": "invalid_not_prompt_block"}
+    repo.seed_raw_prompt_block("blk_0123456789abcdef", {"id": "invalid_not_prompt_block"})
     with pytest.raises(AppException) as exc_info:
         await _generate_sdui_hints(
             workflow=workflow,
-            prompt_block_repo=prompt_block_repo,
-            workflow_repo=workflow_repo,
+            prompt_block_repo=repo,
+            workflow_repo=repo,
             target_locale="en",
         )
     assert exc_info.value.status_code == 500
@@ -597,13 +589,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         type=StepType.LOGIC,
         hook="my_hook",
     )
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
-
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo.get_output_profile_by_id.return_value = OutputProfile(
+    profile_obj = OutputProfile(
         id="prf_0123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -611,16 +597,20 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
-    ).model_dump()
+    )
 
-    system_repo = InMemoryBlueprintTransformerRepository()
-    system_repo.get_model_registry.return_value = {"id": "sys_e26807f3bfa3454d"}
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
+    await repo.save_output_profile(profile_obj)
+
+    system_repo = InMemorySystemRepository()
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
         system_repo=system_repo,
     )
 
@@ -655,13 +645,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         type=StepType.LOGIC,
         hook="my_hook",
     )
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo.get_workflow_by_id.return_value = workflow.model_dump()
-    workflow_repo.get_step_by_id.return_value = step_obj.model_dump()
-
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo.get_output_profile_by_id.return_value = OutputProfile(
+    profile_obj = OutputProfile(
         id="prf_0123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -669,14 +653,21 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
-    ).model_dump()
+    )
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(workflow)
+    await repo.save_step(step_obj)
+    await repo.save_output_profile(profile_obj)
+
+    system_repo = InMemorySystemRepository()
 
     service = ExecutionIngressService(
-        exec_repo=InMemoryBlueprintTransformerRepository(),
-        workflow_repo=workflow_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
-        system_repo=InMemoryBlueprintTransformerRepository(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        system_repo=system_repo,
     )
 
     payload = ExecutionCreate(

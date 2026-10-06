@@ -94,12 +94,9 @@ class BaseInMemoryRepository[T: BaseModel]:
         self._call_counts: dict[str, int] = {}
 
     def _clone(self, item: T) -> T:
-        """Deep-clone a Pydantic model using Rust-native validation/dumping."""
+        """Deep-clone a Pydantic model preserving exact polymorphism."""
         if isinstance(item, BaseModel):
-            try:
-                return type(item).model_validate(item.model_dump(mode="python"), strict=False)
-            except ValidationError:
-                return item.model_copy(deep=True)
+            return item.model_copy(deep=True)
         return copy.deepcopy(item)
 
     def _save_isolated(self, key: str, item: T) -> None:
@@ -272,26 +269,38 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         super().__init__()
         self._steps: dict[str, Step] = {}
 
+    def seed_raw_workflow(self, workflow_id: str, raw_workflow: Any) -> None:
+        """Seed a raw dictionary or domain model into workflow storage for testing."""
+        self._storage[workflow_id] = copy.deepcopy(raw_workflow)
+
     async def get_workflow_definition(self, workflow_id: str) -> Workflow | None:
         self._check_fault("get_workflow_definition")
-        return self._get_isolated(workflow_id)
+        return await self.get_workflow_by_id(workflow_id)
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
         self._check_fault("get_workflow")
-        return self._get_isolated(workflow_id)
+        return await self.get_workflow_by_id(workflow_id)
 
     async def get_all_workflows(self, organization_id: str | None = None, role: str | None = None) -> list[Workflow]:
         self._check_fault("get_all_workflows")
         items = self._list_isolated()
         if role != "ROOT" and organization_id is not None:
-            items = [w for w in items if w.organization_id in (organization_id, "root_system", None)]
+            items = [w for w in items if getattr(w, "organization_id", None) in (organization_id, "root_system", None)]
         elif organization_id is not None:
-            items = [w for w in items if w.organization_id == organization_id]
+            items = [w for w in items if getattr(w, "organization_id", None) == organization_id]
         return items
 
     async def get_workflow_by_id(self, workflow_id: str) -> Workflow | None:
         self._check_fault("get_workflow_by_id")
-        return self._get_isolated(workflow_id)
+        wf = self._get_isolated(workflow_id)
+        if wf is None:
+            return None
+        if isinstance(wf, Workflow):
+            return self._clone(wf)
+        try:
+            return Workflow.model_validate(wf, strict=False)
+        except ValidationError:
+            return wf
 
     async def create_workflow(self, workflow_data: WorkflowCreateDTO) -> str:
         self._check_fault("create_workflow")
@@ -348,6 +357,10 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             Step.model_validate(s.model_dump(mode="python") if isinstance(s, BaseModel) else s, strict=False)
             for s in self._steps.values()
         ]
+
+    def seed_raw_step(self, step_id: str, raw_step: Any) -> None:
+        """Seed a raw dictionary or domain model into steps storage for testing."""
+        self._steps[step_id] = copy.deepcopy(raw_step)
 
     async def get_step_by_id(self, step_id: str) -> Step | None:
         self._check_fault("get_step_by_id")
@@ -472,28 +485,30 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
     async def list_users(self, org_id: str | None = None) -> list[User]:
         self._check_fault("list_users")
-        items = [User.model_validate(u.model_dump(mode="python"), strict=False) for u in self._users.values()]
+        items = [self._clone(u) for u in self._users.values()]
         if org_id is not None:
             items = [u for u in items if u.organization_id == org_id]
         return items
 
     async def get_user(self, user_id: str) -> User | None:
         self._check_fault("get_user")
-        u = self._users[user_id] if user_id in self._users else None
-        return User.model_validate(u.model_dump(mode="python"), strict=False) if u else None
+        if user_id in self._users:
+            u = self._users[user_id]
+            return self._clone(u) if u else None
+        return None
 
     async def get_user_by_email(self, email: str) -> User | None:
         self._check_fault("get_user_by_email")
         for u in self._users.values():
             if u.email == email:
-                return User.model_validate(u.model_dump(mode="python"), strict=False)
+                return self._clone(u)
         return None
 
     async def create_user(self, user_data: UserCreate | User) -> str:
         self._check_fault("create_user")
         if isinstance(user_data, User):
             u_id = user_data.id
-            self._users[u_id] = User.model_validate(user_data.model_dump(mode="python"), strict=False)
+            self._users[u_id] = self._clone(user_data)
             return u_id
         u_id = f"usr_{uuid.uuid4().hex[:16]}"
         data_dict = user_data.model_dump(mode="python")
@@ -502,7 +517,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             del data_dict["password"]
         data_dict["created_at"] = datetime.now(timezone.utc)
         user = User.model_validate(data_dict)
-        self._users[u_id] = User.model_validate(user.model_dump(mode="python"), strict=False)
+        self._users[u_id] = self._clone(user)
         return u_id
 
     async def update_user(self, user_id: str, updates: UserUpdate) -> bool:
@@ -512,8 +527,11 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             return False
         dumped = existing.model_dump(mode="python")
         dumped.update(updates.model_dump(mode="python", exclude_unset=True))
-        updated = User.model_validate(dumped)
-        self._users[user_id] = User.model_validate(updated.model_dump(mode="python"), strict=False)
+        try:
+            updated = User.model_validate(dumped)
+        except ValidationError:
+            updated = existing.model_copy(update=updates.model_dump(mode="python", exclude_unset=True))
+        self._users[user_id] = self._clone(updated)
         return True
 
     async def delete_user(self, user_id: str) -> bool:
@@ -534,6 +552,10 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
         if org_id in self._usage_totals:
             return self._usage_totals[org_id]
         return 0.0
+
+    def set_org_usage_total(self, org_id: str, total: float) -> None:
+        """Helper to seed usage total for test scenarios."""
+        self._usage_totals[org_id] = total
 
 
 # ==============================================================================
@@ -616,6 +638,10 @@ class InMemoryComponentRepository(BaseInMemoryRepository[PromptBlock], IComponen
 
 class InMemoryPromptBlockRepository(BaseInMemoryRepository[PromptBlock], IPromptBlockRepository):
     """In-memory fake implementation of IPromptBlockRepository."""
+
+    def seed_raw_prompt_block(self, block_id: str, raw_block: Any) -> None:
+        """Seed a raw dictionary or domain model into prompt block storage for testing."""
+        self._storage[block_id] = copy.deepcopy(raw_block)
 
     async def get_prompt_block_by_id(self, block_id: str) -> PromptBlock | None:
         self._check_fault("get_prompt_block_by_id")
@@ -760,10 +786,20 @@ class InMemoryOutputProfileRepository(BaseInMemoryRepository[OutputProfile], IOu
         self._check_fault("get_output_profile_by_id")
         return self._get_isolated(profile_id)
 
+    async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
+        return await self.get_output_profile_by_id(profile_id)
+
+    async def get_by_id(self, profile_id: str) -> OutputProfile | None:
+        return await self.get_output_profile_by_id(profile_id)
+
     async def create_output_profile(self, profile_data: OutputProfile) -> str:
         self._check_fault("create_output_profile")
         self._save_isolated(profile_data.id, profile_data)
         return profile_data.id
+
+    async def save_output_profile(self, profile_data: OutputProfile) -> str:
+        """Alias for create_output_profile to support save conventions in tests."""
+        return await self.create_output_profile(profile_data)
 
     async def update_output_profile(self, profile_id: str, updates: OutputProfile) -> bool:
         self._check_fault("update_output_profile")
@@ -898,12 +934,15 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         """Seed a raw dictionary or domain model into system storage for testing."""
         self._raw_system_configs[key] = copy.deepcopy(item)
 
-    def remove_system_config(self, config_id: str) -> None:
-        """Removes a system config from storage without mutating via dict.pop."""
-        if config_id in self._raw_system_configs:
-            del self._raw_system_configs[config_id]
-        if config_id in self._storage:
-            del self._storage[config_id]
+    def set_model_registry(self, registry: SystemConfigModelRegistry | None, registry_id: str | None = None) -> None:
+        """Helper to seed model registry for tests."""
+        if registry is None:
+            self._model_registries.clear()
+        else:
+            r_id = registry_id or registry.id
+            self._model_registries[r_id] = registry
+            if registry.id not in self._model_registries:
+                self._model_registries[registry.id] = registry
 
     async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         self._check_fault("get_model_registry")
@@ -940,6 +979,8 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
+        if isinstance(self._mcp_gateways, dict):
+            return self._mcp_gateways  # type: ignore[return-value]
         return SystemConfigMCPGateways.model_validate(self._mcp_gateways.model_dump(mode="python"), strict=False)
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
@@ -1056,6 +1097,11 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
         key = f"{scope}:{entity_id}:{period}"
         agg = self._usage_aggregates[key] if key in self._usage_aggregates else None
         return UsageAggregateDTO.model_validate(agg.model_dump(mode="python"), strict=False) if agg else None
+
+    def set_usage_aggregate(self, scope: str, entity_id: str | None, period: str, agg: UsageAggregateDTO) -> None:
+        """Helper to seed usage aggregate for test scenarios."""
+        key = f"{scope}:{entity_id}:{period}"
+        self._usage_aggregates[key] = agg
 
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
@@ -1349,6 +1395,45 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self._execution_personas = execution_personas or InMemoryExecutionPersonaRepository()
         self._extraction_protocols = extraction_protocols or InMemoryExtractionProtocolRepository()
 
+    def _all_sub_repos(self) -> tuple[BaseInMemoryRepository[Any], ...]:
+        return (
+            self._workflows,
+            self._executions,
+            self._report_artifacts,
+            self._identities,
+            self._components,
+            self._prompt_blocks,
+            self._agents,
+            self._task_blueprints,
+            self._output_profiles,
+            self._knowledge,
+            self._system,
+            self._audit,
+            self._matrices,
+            self._roles,
+            self._execution_personas,
+            self._extraction_protocols,
+        )
+
+    def get_call_count(self, method_name: str) -> int:
+        """Get the total call count for a method across all underlying repositories."""
+        return sum(r.get_call_count(method_name) for r in self._all_sub_repos())
+
+    def inject_fault(self, method_name: str, exception: Exception, trigger_count: int | None = 1) -> None:
+        """Inject a fault into underlying repositories that support the method."""
+        injected = False
+        for r in self._all_sub_repos():
+            if hasattr(r, method_name) and callable(getattr(r, method_name)):
+                r.inject_fault(method_name, exception, trigger_count)
+                injected = True
+        if not injected:
+            raise ValueError(f"Method '{method_name}' does not exist on any sub-repository of InMemoryUnifiedWorkflowRepository")
+
+    def clear_faults(self, method_name: str | None = None) -> None:
+        """Clear faults across all underlying repositories."""
+        for r in self._all_sub_repos():
+            r.clear_faults(method_name)
+
     # 1. Workflow
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
         return await self._workflows.get_workflow(workflow_id)
@@ -1496,6 +1581,10 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
         return await self._identities.get_org_usage_total(org_id, since)
 
+    def set_org_usage_total(self, org_id: str, total: float) -> None:
+        """Helper to seed usage total for test scenarios."""
+        self._identities.set_org_usage_total(org_id, total)
+
     # 4. Component
     async def get_all_components(
         self, type: str | None = None, exclude_types: list[str] | None = None
@@ -1593,8 +1682,20 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def get_output_profile_by_id(self, profile_id: str) -> OutputProfile | None:
         return await self._output_profiles.get_output_profile_by_id(profile_id)
 
+    async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
+        return await self._output_profiles.get_output_profile_by_id(profile_id)
+
+    async def get_by_id(self, entity_id: str) -> Any | None:
+        p = await self._output_profiles.get_output_profile_by_id(entity_id)
+        if p is not None:
+            return p
+        return await self._prompt_blocks.get_prompt_block_by_id(entity_id)
+
     async def create_output_profile(self, profile_data: OutputProfile) -> str:
         return await self._output_profiles.create_output_profile(profile_data)
+
+    async def save_output_profile(self, profile_data: OutputProfile) -> str:
+        return await self.create_output_profile(profile_data)
 
     async def update_output_profile(self, profile_id: str, updates: OutputProfile) -> bool:
         return await self._output_profiles.update_output_profile(profile_id, updates)
@@ -1664,6 +1765,85 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def get_system_config(self, config_id: str) -> Any:
         return await self._system.get_system_config(config_id)
 
+    def seed_raw_step(self, step_id: str, raw_step: Any) -> None:
+        """Seeds a raw step record into the underlying workflow repository."""
+        self._workflows.seed_raw_step(step_id, raw_step)
+
+    def seed_raw_prompt_block(self, block_id: str, raw_block: Any) -> None:
+        """Seeds a raw prompt block record into the underlying prompt block repository."""
+        self._prompt_blocks.seed_raw_prompt_block(block_id, raw_block)
+
+    def set_output_profiles(self, profiles: list[Any]) -> None:
+        """Helper to seed output profiles for tests."""
+        self._output_profiles._storage.clear()
+        for p in profiles:
+            p_model = p if isinstance(p, OutputProfile) else OutputProfile.model_validate(p)
+            self._output_profiles._save_isolated(p_model.id, p_model)
+
+    def set_prompt_blocks(self, blocks: list[Any]) -> None:
+        """Helper to seed prompt blocks for tests."""
+        self._prompt_blocks._storage.clear()
+        for b in blocks:
+            b_id = b.id if hasattr(b, "id") else b["id"]
+            self._prompt_blocks.seed_raw_prompt_block(b_id, b)
+
+    def seed_raw_workflow(self, workflow_id: str, raw_workflow: Any) -> None:
+        """Seed a raw dictionary or domain model into workflow storage for testing."""
+        self._workflows.seed_raw_workflow(workflow_id, raw_workflow)
+
+    def set_workflow(self, workflow: Workflow | dict[str, Any] | Any | None) -> None:
+        """Helper to seed a workflow for tests."""
+        if workflow is None:
+            self._workflows._storage.clear()
+        elif isinstance(workflow, Workflow):
+            self._workflows._save_isolated(workflow.id, workflow)
+        elif isinstance(workflow, dict):
+            wf_id = workflow.get("id", "wor_0123456789abcdef")
+            self._workflows.seed_raw_workflow(wf_id, workflow)
+        elif hasattr(workflow, "id"):
+            self._workflows._storage[workflow.id] = workflow
+
+    def set_execution(self, record: ExecutionRecord | Any | None) -> None:
+        """Helper to seed an execution record for tests."""
+        if record is None:
+            self._executions._storage.clear()
+        elif isinstance(record, ExecutionRecord):
+            self._executions._save_isolated(record.id, record)
+        elif hasattr(record, "id"):
+            self._executions._storage[record.id] = record
+        elif isinstance(record, dict) and "id" in record:
+            self._executions._storage[record["id"]] = record
+
+    def set_model_registry(self, registry: SystemConfigModelRegistry | None, registry_id: str | None = None) -> None:
+        """Helper to seed model registry for tests."""
+        self._system.set_model_registry(registry, registry_id)
+
+    def set_user(self, user: User | dict[str, Any] | None) -> None:
+        """Helper to seed a user for tests."""
+        if user is None:
+            self._identities._users.clear()
+        elif isinstance(user, dict):
+            u_id = user.get("id", "usr_0123456789abcdef")
+            self._identities._users[u_id] = copy.deepcopy(user)  # type: ignore[assignment]
+        else:
+            self._identities._users[user.id] = self._identities._clone(user)
+
+    def set_organization(self, org: Organization | None) -> None:
+        """Helper to seed an organization for tests."""
+        if org is None:
+            self._identities._storage.clear()
+        else:
+            self._identities._save_isolated(org.id, org)
+
+    def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | dict[str, Any]) -> None:
+        """Helper to seed mcp gateways for tests."""
+        if isinstance(gateways, dict):
+            self._system._mcp_gateways = copy.deepcopy(gateways)  # type: ignore[assignment]
+        else:
+            self._system._mcp_gateways = SystemConfigMCPGateways.model_validate(
+                gateways.model_dump(mode="python"), strict=False
+            )
+
     def seed_system_config(self, key: str, item: JsonValue) -> None:
         """Seeds a system config record into the underlying system repository."""
         self._system.seed_raw_system_config(key, item)
@@ -1698,6 +1878,10 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
         return await self._audit.get_usage_aggregate(scope, entity_id, period)
+
+    def set_usage_aggregate(self, scope: str, entity_id: str | None, period: str, agg: UsageAggregateDTO) -> None:
+        """Helper to seed usage aggregate for test scenarios."""
+        self._audit.set_usage_aggregate(scope, entity_id, period, agg)
 
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
