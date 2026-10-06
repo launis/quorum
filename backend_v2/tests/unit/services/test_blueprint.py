@@ -6,10 +6,13 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.models.auth import User, UserRole
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
-from backend_v2.models.enums import BlockDataType, PresetView, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, LaxHistoricalContextMode, PresetView, PromptBlockCategory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
@@ -112,7 +115,6 @@ def fix_mock_dict(d: Any) -> Any:
 from datetime import datetime, timezone
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
@@ -138,62 +140,21 @@ _DEFAULT_TARGET_BLOCK_ORDER = [
 ]
 
 
-def dict_to_obj(d: Any) -> Any:
-    if type(d) is dict:
-        if "translations" in d and "default_locale" in d:
-            return I18nText(**d)
-
-        # Ensure mock claims have tda_assertions to prevent Phase 2 Blueprint crash
-        if "label" in d and "tda_assertions" not in d:
-            d["tda_assertions"] = []
-
-        # Ensure mock workflows have expected_inputs and mcp_gateway_id
-        if "steps" in d:
-            d.setdefault("expected_inputs", [])
-            d.setdefault("mcp_gateway_id", None)
-
-        # Ensure mock steps have input_mappings as a dict
-        if "id" in d and "workflow_id" not in d and "steps" not in d and "translations" not in d:
-            d.setdefault("input_mappings", {})
-
-        return SimpleNamespace(
-            **{k: (dict(v) if k == "input_mappings" and type(v) is dict else dict_to_obj(v)) for k, v in d.items()}
-        )
-    elif isinstance(d, list):
-        return [dict_to_obj(v) for v in d]
-    return d
-
-
 @pytest.fixture
 def mock_repo_transformer() -> Any:
     repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234abcd1234abcd",
-            "slug": "wf_1",
-            "name": {"translations": {"en": "Mock Workflow", "fi": "Testi Työnkulku"}},
-            "description": {"translations": {"en": "desc", "fi": "desc"}},
-            "status": "published",
-            "version": 1,
-            "default_profile_id": "prf_dddd1111dddd1111",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "default_strictness_level": 85,
-            "steps": [],
-            "output_profiles": {
-                "prf_dddd1111dddd1111": {
-                    "name": {"translations": {"en": "Default", "fi": "Default"}},
-                    "layouts": [
-                        {
-                            "preset_view": "text_only",
-                            "text_delivery_mode": "full",
-                            "title": {"translations": {"en": "Title", "fi": "Title"}},
-                            "target_blocks": ["*"],
-                        }
-                    ],
-                }
-            },
-        }
+    repo.get_workflow.return_value = Workflow(
+        id="wf_1234abcd1234abcd",
+        slug="wf_1",
+        name=I18nText(translations={"en": "Mock Workflow", "fi": "Testi Työnkulku"}),
+        description=I18nText(translations={"en": "desc", "fi": "desc"}),
+        status="published",
+        version=1,
+        default_profile_id="prf_dddd1111dddd1111",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
+        default_strictness_level=85,
+        steps=[],
     )
     repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -417,38 +378,18 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
 @pytest.fixture
 def mock_repo_microcot() -> Any:
     repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234567890abcdef",
-            "slug": "mock_workflow",
-            "description": {"translations": {"en": "desc", "fi": "desc"}},
-            "status": "published",
-            "version": 1,
-            "name": {"translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
-            "default_profile_id": "prf_1234567890abcdef",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "default_strictness_level": 85,
-            "steps": [],
-            "output_profiles": {
-                "prf_1234567890abcdef": {
-                    "name": {
-                        "translations": {"en": "Default Profile", "fi": "Default Profile"},
-                    },
-                    "layouts": [
-                        {
-                            "preset_view": "2d_compare",
-                            "text_delivery_mode": "full",
-                            "title": {
-                                "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
-                            },
-                            "target_blocks": ["*"],
-                            "description": None,
-                        }
-                    ],
-                }
-            },
-        }
+    repo.get_workflow.return_value = Workflow(
+        id="wf_1234567890abcdef",
+        slug="mock_workflow",
+        description=I18nText(translations={"en": "desc", "fi": "desc"}),
+        status="published",
+        version=1,
+        name=I18nText(translations={"en": "Mock Workflow", "fi": "Mock Workflow"}),
+        default_profile_id="prf_1234567890abcdef",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
+        default_strictness_level=85,
+        steps=[],
     )
     repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -577,20 +518,18 @@ def mock_repo_microcot() -> Any:
 @pytest.fixture
 def mock_repo_sdui() -> Any:
     repo = InMemoryBlueprintTransformerRepository()
-    repo.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234abcd1234abcd",
-            "slug": "wf_test",
-            "name": {"translations": {"en": "Mock", "fi": "Mock"}},
-            "description": {"translations": {"en": "desc", "fi": "desc"}},
-            "status": "published",
-            "version": 1,
-            "default_profile_id": "prf_1234abcd1234abcd",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "default_strictness_level": 85,
-            "steps": [],
-        }
+    repo.get_workflow.return_value = Workflow(
+        id="wf_1234abcd1234abcd",
+        slug="wf_test",
+        name=I18nText(translations={"en": "Mock", "fi": "Mock"}),
+        description=I18nText(translations={"en": "desc", "fi": "desc"}),
+        status="published",
+        version=1,
+        default_profile_id="prf_1234abcd1234abcd",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
+        default_strictness_level=85,
+        steps=[],
     )
     repo.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -859,25 +798,23 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         target_locale="fi",
     )
 
-    mock_repo_transformer.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234abcd1234abcd",
-            "slug": "wf_1",
-            "name": {"translations": {"en": "Workflow Name"}},
-            "description": {"translations": {"en": "Workflow Desc"}},
-            "status": "published",
-            "version": 1,
-            "default_profile_id": "prf_dddd1111dddd1111",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "default_strictness_level": 85,
-            "steps": [
-                {
-                    "id": "sr_1234",
-                    "task_blueprint": "sp_7f9649114d2344dc",
-                }
-            ],
-        }
+    mock_repo_transformer.get_workflow.return_value = Workflow(
+        id="wf_1234abcd1234abcd",
+        slug="wf_1",
+        name=I18nText(translations={"en": "Workflow Name"}),
+        description=I18nText(translations={"en": "Workflow Desc"}),
+        status="published",
+        version=1,
+        default_profile_id="prf_dddd1111dddd1111",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
+        default_strictness_level=85,
+        steps=[
+            StepRule(
+                id="sr_1234567890abcdef",
+                task_blueprint="sp_7f9649114d2344dc",
+            )
+        ],
     )
 
     mock_repo_transformer.get_all_prompt_blocks.return_value = fix_mock_dict(
@@ -1149,25 +1086,23 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     )
 
     # Configure workflow steps
-    mock_repo_transformer.get_workflow.return_value = dict_to_obj(
-        {
-            "id": "wf_1234abcd1234abcd",
-            "slug": "wf_1",
-            "name": {"translations": {"en": "Workflow Name"}},
-            "description": {"translations": {"en": "Workflow Desc"}},
-            "status": "published",
-            "version": 1,
-            "default_profile_id": "prf_dddd1111dddd1111",
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "default_strictness_level": 85,
-            "steps": [
-                {
-                    "id": "sr_1d7e6d26b02b457b",
-                    "task_blueprint": "sp_7f9649114d2344dc",
-                }
-            ],
-        }
+    mock_repo_transformer.get_workflow.return_value = Workflow(
+        id="wf_1234abcd1234abcd",
+        slug="wf_1",
+        name=I18nText(translations={"en": "Workflow Name"}),
+        description=I18nText(translations={"en": "Workflow Desc"}),
+        status="published",
+        version=1,
+        default_profile_id="prf_dddd1111dddd1111",
+        historical_context_mode=LaxHistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
+        default_strictness_level=85,
+        steps=[
+            StepRule(
+                id="sr_1d7e6d26b02b457b",
+                task_blueprint="sp_7f9649114d2344dc",
+            )
+        ],
     )
 
     # Configure prompt blocks with scale definitions for blk_fb15f8dcf23f4865
@@ -2111,15 +2046,19 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     """Verifies penalty parsing and ensures AI output slop never affects global score."""
     from backend_v2.models.domain.step import ExpectedInput
 
-    mock_repo_transformer.get_workflow.return_value.expected_inputs = [
-        ExpectedInput(
-            input_key="input_text",
-            label=I18nText(translations={"en": "Input"}),
-            description=I18nText(translations={"en": "Input description"}),
-            required=True,
-            input_modes=["paste"],
-        )
-    ]
+    mock_repo_transformer.get_workflow.return_value = mock_repo_transformer.get_workflow.return_value.model_copy(
+        update={
+            "expected_inputs": [
+                ExpectedInput(
+                    input_key="input_text",
+                    label=I18nText(translations={"en": "Input"}),
+                    description=I18nText(translations={"en": "Input description"}),
+                    required=True,
+                    input_modes=["paste"],
+                )
+            ]
+        }
+    )
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000101",

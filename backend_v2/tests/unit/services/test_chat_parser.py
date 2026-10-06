@@ -15,16 +15,17 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
 from backend_v2.services.chat_parser import ChatParserService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repository() -> AsyncMock:
-    """Provide an isolated AsyncMock for the database repository."""
-    return AsyncMock()
+def mock_repository() -> InMemoryUnifiedWorkflowRepository:
+    """Provide an isolated in-memory repository fake."""
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.mark.asyncio
-async def test_chat_parser_empty_input_fails_fast(mock_repository: AsyncMock) -> None:
+async def test_chat_parser_empty_input_fails_fast(mock_repository: InMemoryUnifiedWorkflowRepository) -> None:
     """FAIL-FAST: Ensure empty input raises immediate AppException."""
     with pytest.raises(AppException) as excinfo:
         await ChatParserService.parse_pasted_chat("", mock_repository)
@@ -35,7 +36,7 @@ async def test_chat_parser_empty_input_fails_fast(mock_repository: AsyncMock) ->
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_role_segregation_and_success(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Ensure ChatParser segregates roles and slices exact verbatim turns via anchors."""
     mock_client = AsyncMock()
@@ -87,7 +88,9 @@ async def test_chat_parser_role_segregation_and_success(
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
-async def test_chat_parser_configuration_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+async def test_chat_parser_configuration_error(
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Ensure ConfigurationError during LLMClient initialization triggers 500 AppException."""
     mock_from_strategy.side_effect = ConfigurationError("Model fast not found")
     with pytest.raises(AppException) as excinfo:
@@ -100,7 +103,7 @@ async def test_chat_parser_configuration_error(mock_from_strategy: AsyncMock, mo
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_empty_conversation_fails_fast(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Ensure empty conversation list returned by LLM raises 400 VALIDATION_FAILED AppException."""
     mock_client = AsyncMock()
@@ -121,7 +124,7 @@ async def test_chat_parser_empty_conversation_fails_fast(
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_start_anchor_not_found_fails_fast(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Ensure start anchor missing from source text triggers 400 PARSING_FAILED AppException."""
     mock_client = AsyncMock()
@@ -150,7 +153,7 @@ async def test_chat_parser_start_anchor_not_found_fails_fast(
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_end_anchor_not_found_fails_fast(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Ensure end anchor missing from source text after start triggers 400 PARSING_FAILED AppException."""
     mock_client = AsyncMock()
@@ -174,7 +177,9 @@ async def test_chat_parser_end_anchor_not_found_fails_fast(
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
-async def test_chat_parser_validation_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+async def test_chat_parser_validation_error(
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Ensure pydantic ValidationError raises 400 VALIDATION_FAILED AppException."""
     mock_client = AsyncMock()
     mock_client.run_structured_task.side_effect = ValidationError.from_exception_data(
@@ -191,7 +196,9 @@ async def test_chat_parser_validation_error(mock_from_strategy: AsyncMock, mock_
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
-async def test_chat_parser_json_decode_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+async def test_chat_parser_json_decode_error(
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Ensure json.JSONDecodeError raises 400 VALIDATION_FAILED AppException."""
     mock_client = AsyncMock()
     mock_client.run_structured_task.side_effect = json.JSONDecodeError("Unterminated string", "doc", 0)
@@ -206,7 +213,9 @@ async def test_chat_parser_json_decode_error(mock_from_strategy: AsyncMock, mock
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
-async def test_chat_parser_unexpected_exception(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+async def test_chat_parser_unexpected_exception(
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Ensure generic runtime exceptions raise 502 BAD_GATEWAY AppException."""
     mock_client = AsyncMock()
     mock_client.run_structured_task.side_effect = RuntimeError("Network connection reset")
@@ -222,7 +231,7 @@ async def test_chat_parser_unexpected_exception(mock_from_strategy: AsyncMock, m
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_unicode_whitespace_resilience(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     r"""Ensure anchors match source text containing Unicode whitespace variants (e.g. \u2002, \u00a0)."""
     mock_client = AsyncMock()
@@ -293,7 +302,7 @@ def test_find_anchor_span_markdown_table_pipe_resilience() -> None:
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_markdown_table_anchor_resilience(
-    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+    mock_from_strategy: AsyncMock, mock_repository: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Ensure chat parser succeeds when turn boundaries fall on markdown table rows with stripped pipes."""
     mock_client = AsyncMock()

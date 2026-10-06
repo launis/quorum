@@ -7,7 +7,6 @@ all branches, system core protection, tenant isolation, cloning, and error state
 from __future__ import annotations
 
 import re
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -40,18 +39,18 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def mock_workflow_repo() -> AsyncMock:
-    return AsyncMock()
+def mock_workflow_repo() -> InMemoryWorkflowRepository:
+    return InMemoryWorkflowRepository()
 
 
 @pytest.fixture
-def mock_output_profile_repo() -> AsyncMock:
-    return AsyncMock()
+def mock_output_profile_repo() -> InMemoryOutputProfileRepository:
+    return InMemoryOutputProfileRepository()
 
 
 @pytest.fixture
-def mock_prompt_block_repo() -> AsyncMock:
-    return AsyncMock()
+def mock_prompt_block_repo() -> InMemoryPromptBlockRepository:
+    return InMemoryPromptBlockRepository()
 
 
 @pytest.fixture
@@ -61,10 +60,10 @@ def mock_system_repo() -> InMemorySystemRepository:
 
 @pytest.fixture
 def workflow_service(
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
-    mock_prompt_block_repo: AsyncMock,
-    mock_system_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
+    mock_prompt_block_repo: InMemoryPromptBlockRepository,
+    mock_system_repo: InMemorySystemRepository,
 ) -> StudioWorkflowService:
     return StudioWorkflowService(
         workflow_repo=mock_workflow_repo,
@@ -155,11 +154,9 @@ def _valid_matrix_block(block_id: str = "blk_0123456789abcdef") -> MatrixPromptB
 async def test_list_workflows_empty(
     workflow_service: StudioWorkflowService,
     root_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    mock_workflow_repo.get_all_workflows.return_value = []
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
     res = await workflow_service.list_workflows(root_token)
     assert res == []
 
@@ -167,13 +164,13 @@ async def test_list_workflows_empty(
 async def test_list_workflows_tenant_filtering(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf1 = _valid_workflow("wor_0123456789abcdef", org_id="org_123")
     wf2 = _valid_workflow("wor_0123456789fedcba", org_id="org_999")
-    mock_workflow_repo.get_all_workflows.return_value = [wf1, wf2]
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
+    await mock_workflow_repo.save_workflow(wf1)
+    await mock_workflow_repo.save_workflow(wf2)
     res = await workflow_service.list_workflows(admin_token)
     assert len(res) == 1
     assert res[0].id == "wor_0123456789abcdef"
@@ -182,32 +179,34 @@ async def test_list_workflows_tenant_filtering(
 async def test_list_workflows_public_and_system_allowed(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf_public = _valid_workflow("wor_0000000000000001", org_id="org_999")
     wf_public = wf_public.model_copy(update={"is_public": True})
     wf_system = _valid_workflow("wor_0000000000000002", org_id="SYSTEM")
     wf_none = _valid_workflow("wor_0000000000000003", org_id=None)  # type: ignore[arg-type]
-    mock_workflow_repo.get_all_workflows.return_value = [wf_public, wf_system, wf_none]
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
+    await mock_workflow_repo.save_workflow(wf_public)
+    await mock_workflow_repo.save_workflow(wf_system)
+    await mock_workflow_repo.save_workflow(wf_none)
     res = await workflow_service.list_workflows(admin_token)
     assert len(res) == 3
 
 
 async def test_get_workflow_not_found(
-    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.get_workflow(root_token, "wor_missing111111")
 
 
 async def test_get_workflow_tenant_isolation_fails(
-    workflow_service: StudioWorkflowService, other_admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService,
+    other_admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
+    await mock_workflow_repo.save_workflow(wf)
     with pytest.raises(PermissionDeniedError):
         await workflow_service.get_workflow(other_admin_token, wf.id)
 
@@ -215,12 +214,11 @@ async def test_get_workflow_tenant_isolation_fails(
 async def test_get_workflow_success(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
+    await mock_workflow_repo.save_workflow(wf)
     res = await workflow_service.get_workflow(admin_token, wf.id)
     assert res.id == wf.id
 
@@ -228,9 +226,9 @@ async def test_get_workflow_success(
 async def test_get_workflow_available_extensions(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_prompt_block_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_prompt_block_repo: InMemoryPromptBlockRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
     step = _valid_step("sp_0123456789abcdef", org_id="org_123")
@@ -244,20 +242,22 @@ async def test_get_workflow_available_extensions(
             ]
         }
     )
-    mock_workflow_repo.get_workflow_by_id.return_value = wf_with_steps
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
-    mock_workflow_repo.get_all_steps.return_value = [step]
-    mock_prompt_block_repo.get_prompt_block_by_id.return_value = _valid_matrix_block("blk_0123456789abcdef")
+    await mock_workflow_repo.save_workflow(wf_with_steps)
+    await mock_workflow_repo.save_step(step)
+    await mock_prompt_block_repo.create_prompt_block(_valid_matrix_block("blk_0123456789abcdef"))
 
     exts = await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
     assert exts == ["detailed_gap_analysis", "executive_summary"]
 
 
 async def test_save_workflow_missing_after_save_raises(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = None
+    mock_workflow_repo.inject_fault(
+        "get_workflow_by_id",
+        ResourceNotFoundError(resource_type="workflow", resource_id=wf.id),
+    )
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.save_workflow(admin_token, wf.id, wf)
 
@@ -265,32 +265,32 @@ async def test_save_workflow_missing_after_save_raises(
 async def test_save_workflow_success(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
     res = await workflow_service.save_workflow(admin_token, wf.id, wf)
     assert res.id == wf.id
-    mock_workflow_repo.save_workflow.assert_called_once_with(wf)
+    persisted = await mock_workflow_repo.get_workflow_by_id(wf.id)
+    assert persisted is not None
+    assert persisted.id == wf.id
 
 
 async def test_delete_workflow_not_found(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.delete_workflow(admin_token, "wor_missing111111")
 
 
 async def test_delete_workflow_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
+    await mock_workflow_repo.save_workflow(wf)
     await workflow_service.delete_workflow(admin_token, wf.id)
-    mock_workflow_repo.delete_workflow.assert_called_once_with(wf.id)
+    persisted = await mock_workflow_repo.get_workflow_by_id(wf.id)
+    assert persisted is None
 
 
 async def test_create_workflow_draft_root(root_token: TokenData) -> None:
@@ -353,9 +353,8 @@ async def test_create_workflow_draft_admin(admin_token: TokenData) -> None:
 
 
 async def test_clone_workflow_not_found(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.clone_workflow(admin_token, "wor_missing111111")
 
@@ -398,6 +397,7 @@ async def test_clone_workflow_success(admin_token: TokenData) -> None:
     assert res.name.translations["en"] == "Test Workflow (Copy)"
 
     # Profile clone assertions
+    assert res.default_profile_id is not None
     assert res.default_profile_id != orig_profile.id
     assert res.default_profile_id.startswith(f"{EntityPrefix.OUTPUT_PROFILE}_")
     cloned_op = await op_repo.get_output_profile_by_id(res.default_profile_id)
@@ -414,74 +414,79 @@ async def test_clone_workflow_success(admin_token: TokenData) -> None:
 
 
 async def test_list_steps_empty(
-    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_all_steps.return_value = []
     res = await workflow_service.list_steps(root_token)
     assert res == []
 
 
 async def test_list_steps_tenant_filtering(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     s1 = _valid_step("sp_0123456789abcdef", org_id="org_123")
     s2 = _valid_step("sp_0123456789fedcba", org_id="org_999")
-    mock_workflow_repo.get_all_steps.return_value = [s1, s2]
+    await mock_workflow_repo.save_step(s1)
+    await mock_workflow_repo.save_step(s2)
     res = await workflow_service.list_steps(admin_token)
     assert len(res) == 1
     assert res[0].id == "sp_0123456789abcdef"
 
 
 async def test_get_step_not_found(
-    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_step_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.get_step(root_token, "sp_missing111111")
 
 
 async def test_get_step_tenant_isolation_fails(
-    workflow_service: StudioWorkflowService, other_admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService,
+    other_admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     s = _valid_step(org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = s
+    await mock_workflow_repo.save_step(s)
     with pytest.raises(PermissionDeniedError):
         await workflow_service.get_step(other_admin_token, s.id)
 
 
 async def test_get_step_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     s = _valid_step(org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = s
+    await mock_workflow_repo.save_step(s)
     res = await workflow_service.get_step(admin_token, s.id)
     assert res.id == s.id
 
 
 async def test_save_step_missing_after_save_raises(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     step = _valid_step(org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = None
+    mock_workflow_repo.inject_fault(
+        "get_step_by_id",
+        ResourceNotFoundError(resource_type="step", resource_id=step.id),
+    )
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.save_step(admin_token, step.id, step)
 
 
 async def test_save_step_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     step = _valid_step(org_id="org_123")
-    mock_workflow_repo.get_step_by_id.side_effect = [None, step]
     res = await workflow_service.save_step(admin_token, step.id, step)
     assert res.id == step.id
-    mock_workflow_repo.save_step.assert_called_once_with(step)
+    persisted = await mock_workflow_repo.get_step_by_id(step.id)
+    assert persisted is not None
+    assert persisted.id == step.id
 
 
 async def test_save_step_protected_system_core_slug_mutation_fails_fast(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     existing = _valid_step("sp_0123456789abcdef", slug="orig_slug", is_system_core=True, org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = existing
+    await mock_workflow_repo.save_step(existing)
 
     modified = existing.model_copy(update={"slug": "mutated_slug"})
     with pytest.raises(AppException) as exc_info:
@@ -492,39 +497,44 @@ async def test_save_step_protected_system_core_slug_mutation_fails_fast(
 
 
 async def test_delete_step_not_found(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_step_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.delete_step(admin_token, "sp_missing111111")
 
 
 async def test_delete_step_protected_system_core_fails_fast(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     step_data = _valid_step("sp_0123456789abcdef", is_system_core=True, org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = step_data
+    await mock_workflow_repo.save_step(step_data)
     with pytest.raises(AppException) as exc_info:
         await workflow_service.delete_step(admin_token, step_data.id)
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.details["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
-    mock_workflow_repo.delete_step.assert_not_called()
+    persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
+    assert persisted is not None
 
 
 async def test_delete_step_success(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     step_data = _valid_step("sp_0123456789abcdef", is_system_core=False, org_id="org_123")
-    mock_workflow_repo.get_step_by_id.return_value = step_data
+    await mock_workflow_repo.save_step(step_data)
     await workflow_service.delete_step(admin_token, step_data.id)
-    mock_workflow_repo.delete_step.assert_called_once_with(step_data.id, force_delete=False)
+    persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
+    assert persisted is None
 
 
 async def test_create_step_draft_no_protocol_block_raises(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_prompt_block_repo: AsyncMock
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_prompt_block_repo: InMemoryPromptBlockRepository,
 ) -> None:
-    mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.create_step_draft(admin_token)
+    assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
     with pytest.raises(AppException) as exc_info:
         await workflow_service.create_step_draft(admin_token)
     assert exc_info.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
@@ -567,9 +577,8 @@ async def test_create_step_draft_success(admin_token: TokenData) -> None:
 
 
 async def test_clone_step_not_found(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    mock_workflow_repo.get_step_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await workflow_service.clone_step(admin_token, "sp_missing111111")
 
@@ -606,45 +615,40 @@ async def test_clone_step_success(admin_token: TokenData) -> None:
 async def test_save_workflow_aligns_mismatched_id(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     target_id = "wor_0123456789abcdef"
     wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
-    aligned_wf = wf.model_copy(update={"id": target_id})
-    mock_workflow_repo.get_workflow_by_id.return_value = aligned_wf
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
 
     res = await workflow_service.save_workflow(admin_token, target_id, wf)
     assert res.id == target_id
-    mock_workflow_repo.save_workflow.assert_called_once()
-    saved_arg = mock_workflow_repo.save_workflow.call_args[0][0]
-    assert saved_arg.id == target_id
+    persisted = await mock_workflow_repo.get_workflow_by_id(target_id)
+    assert persisted is not None
+    assert persisted.id == target_id
 
 
 async def test_save_step_aligns_mismatched_id(
-    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: AsyncMock
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
     target_id = "sp_0123456789abcdef"
     step = _valid_step(step_id="sp_aabbccddeeff0011", org_id="org_123")
-    aligned_step = step.model_copy(update={"id": target_id})
-    mock_workflow_repo.get_step_by_id.side_effect = [None, aligned_step]
 
     res = await workflow_service.save_step(admin_token, target_id, step)
     assert res.id == target_id
-    mock_workflow_repo.save_step.assert_called_once()
-    saved_arg = mock_workflow_repo.save_step.call_args[0][0]
-    assert saved_arg.id == target_id
+    persisted = await mock_workflow_repo.get_step_by_id(target_id)
+    assert persisted is not None
+    assert persisted.id == target_id
 
 
 async def test_stitch_profiles_attaches_matching_workflow_profiles(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(wf_id="wor_0123456789abcdef", org_id="org_123")
-    mock_workflow_repo.get_all_workflows.return_value = [wf]
+    await mock_workflow_repo.save_workflow(wf)
     matching_profile = OutputProfile(
         id="prf_0123456789abcdef",
         workflow_id=wf.id,
@@ -655,11 +659,12 @@ async def test_stitch_profiles_attaches_matching_workflow_profiles(
         target_block_order=[],
         matrix_synthesis_groups=[],
     )
-    mock_output_profile_repo.get_all_output_profiles.return_value = [matching_profile]
+    await mock_output_profile_repo.create_output_profile(matching_profile)
 
     res = await workflow_service.list_workflows(admin_token)
     assert len(res) == 1
     assert wf.id in res[0].id
+    assert matching_profile.id in res[0].output_profiles
     assert matching_profile.id in res[0].output_profiles
 
 
@@ -730,9 +735,11 @@ async def test_clone_workflow_with_steps_and_profiles(admin_token: TokenData) ->
     assert cloned_s1.input_mappings["static_key"] == "raw_val"
 
     # Profile clone assertions
+    assert res.default_profile_id is not None
     assert res.default_profile_id != matching_profile.id
     assert res.default_profile_id.startswith(f"{EntityPrefix.OUTPUT_PROFILE}_")
-    persisted_prof = await op_repo.get_output_profile_by_id(res.default_profile_id)
+    cloned_prof_id = res.default_profile_id
+    persisted_prof = await op_repo.get_output_profile_by_id(cloned_prof_id)
     assert persisted_prof is not None
     assert persisted_prof.workflow_id == res.id
 
@@ -747,9 +754,9 @@ async def test_clone_workflow_with_steps_and_profiles(admin_token: TokenData) ->
 async def test_get_workflow_available_extensions_handles_exception(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_prompt_block_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_prompt_block_repo: InMemoryPromptBlockRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     step = _valid_step(step_id="sp_0123456789abcdef", org_id="org_123")
     step_rule = StepRule(
@@ -761,10 +768,12 @@ async def test_get_workflow_available_extensions_handles_exception(
     wf = _valid_workflow(org_id="org_123")
     wf = wf.model_copy(update={"steps": [step_rule]})
 
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
-    mock_output_profile_repo.get_all_output_profiles.return_value = []
-    mock_workflow_repo.get_all_steps.return_value = [step]
-    mock_prompt_block_repo.get_prompt_block_by_id.side_effect = AppException(message="Block corrupted", status_code=500)
+    await mock_workflow_repo.save_workflow(wf)
+    await mock_workflow_repo.save_step(step)
+    mock_prompt_block_repo.inject_fault(
+        "get_prompt_block_by_id",
+        AppException(message="Block corrupted", status_code=500),
+    )
 
     with pytest.raises(AppException) as exc_info:
         await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
@@ -775,9 +784,16 @@ async def test_get_workflow_available_extensions_handles_exception(
 async def test_list_workflows_corrupted_record_raises_app_exception(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
-    mock_workflow_repo.get_all_workflows.return_value = [{"invalid": "data"}]
+    mock_workflow_repo.inject_fault(
+        "get_all_workflows",
+        AppException(
+            message="Database integrity error: Workflow corrupted failed strict validation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
+        ),
+    )
     with pytest.raises(AppException) as exc_info:
         await workflow_service.list_workflows(admin_token)
     assert exc_info.value.status_code == 500
@@ -787,12 +803,19 @@ async def test_list_workflows_corrupted_record_raises_app_exception(
 async def test_stitch_profiles_corrupted_profile_raises_app_exception(
     workflow_service: StudioWorkflowService,
     admin_token: TokenData,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    mock_workflow_repo.get_all_workflows.return_value = [wf]
-    mock_output_profile_repo.get_all_output_profiles.return_value = [{"invalid": "profile"}]
+    await mock_workflow_repo.save_workflow(wf)
+    mock_output_profile_repo.inject_fault(
+        "get_all_output_profiles",
+        AppException(
+            message="Database integrity error: OutputProfile corrupted failed strict validation.",
+            status_code=500,
+            details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
+        ),
+    )
     with pytest.raises(AppException) as exc_info:
         await workflow_service.list_workflows(admin_token)
     assert exc_info.value.status_code == 500
@@ -939,16 +962,22 @@ async def test_create_workflow_draft_no_registries_raises_not_found(
 
 async def test_clone_workflow_corrupted_profile_raises_validation_failed(
     workflow_service: StudioWorkflowService,
-    mock_workflow_repo: AsyncMock,
-    mock_output_profile_repo: AsyncMock,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
     admin_token: TokenData,
 ) -> None:
     """Tests that cloning a workflow with a corrupted output profile raises 500 AppException with VALIDATION_FAILED."""
     wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
-    mock_workflow_repo.get_workflow_by_id.return_value = wf
+    await mock_workflow_repo.save_workflow(wf)
 
-    # Corrupted dictionary missing mandatory OutputProfile fields
-    mock_output_profile_repo.get_all_output_profiles.return_value = [{"id": "prf_corrupted", "workflow_id": wf.id}]
+    mock_output_profile_repo.inject_fault(
+        "get_all_output_profiles",
+        AppException(
+            message="Corrupted output profile encountered during workflow clone",
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ),
+    )
 
     with pytest.raises(AppException) as exc_info:
         await workflow_service.clone_workflow(admin_token, wf.id)

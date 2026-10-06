@@ -13,12 +13,12 @@ from backend_v2.api.dependencies import (
 from backend_v2.exceptions import AuthenticationError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.settings import Settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def fake_repo() -> InMemoryBlueprintTransformerRepository:
-    return InMemoryBlueprintTransformerRepository()
+def fake_repo() -> InMemoryUnifiedWorkflowRepository:
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def mock_settings() -> Any:
     return Settings(use_firebase_auth=False)
 
 
-def test_get_auth_service(fake_repo: InMemoryBlueprintTransformerRepository, mock_settings: Any) -> None:
+def test_get_auth_service(fake_repo: InMemoryUnifiedWorkflowRepository, mock_settings: Any) -> None:
     auth_service = get_auth_service(repo=fake_repo, settings=mock_settings)
     assert auth_service is not None
 
@@ -168,7 +168,7 @@ async def test_service_factory_dependencies() -> None:
     )
 
     mock_driver = MagicMock()
-    fake_repo = InMemoryBlueprintTransformerRepository()
+    fake_repo = InMemoryUnifiedWorkflowRepository()
 
     usage_svc = get_usage_service(identity_repo=fake_repo, audit_repo=fake_repo)
     assert usage_svc is not None

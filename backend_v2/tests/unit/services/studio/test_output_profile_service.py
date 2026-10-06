@@ -13,11 +13,12 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryOutputProfileRepository
 
 
 @pytest.fixture
-def mock_output_profile_repo() -> AsyncMock:
-    return AsyncMock()
+def mock_output_profile_repo() -> InMemoryOutputProfileRepository:
+    return InMemoryOutputProfileRepository()
 
 
 @pytest.fixture
@@ -26,7 +27,9 @@ def mock_workflow_service() -> AsyncMock:
 
 
 @pytest.fixture
-def service(mock_output_profile_repo: AsyncMock, mock_workflow_service: AsyncMock) -> StudioOutputProfileService:
+def service(
+    mock_output_profile_repo: InMemoryOutputProfileRepository, mock_workflow_service: AsyncMock
+) -> StudioOutputProfileService:
     return StudioOutputProfileService(
         output_profile_repo=mock_output_profile_repo,
         workflow_service=mock_workflow_service,
@@ -60,10 +63,12 @@ async def test_save_output_profile_allows_target_block_types(
     mock_workflow_service.list_steps.return_value = []
 
     profile = _make_valid_profile("prf_1234567890abcdef", "opt_123", "wf_123", "root", "Test")
-    service.output_profile_repo.get_output_profile_by_id.return_value = profile
+    await service.output_profile_repo.create_output_profile(profile)
 
     await service.save_output_profile(initiator, profile.id, profile)
-    assert service.output_profile_repo.create_output_profile.called
+    saved = await service.output_profile_repo.get_output_profile_by_id(profile.id)
+    assert saved is not None
+    assert saved.id == profile.id
 
 
 @pytest.mark.asyncio
@@ -71,7 +76,8 @@ async def test_list_output_profiles_root_and_tenant(service: StudioOutputProfile
     """Test list_output_profiles filters correctly by role/tenant."""
     p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
     p2 = _make_valid_profile("prf_2222222222222222", "opt_2", "wf_1", "org_2", "P2")
-    service.output_profile_repo.get_all_output_profiles.return_value = [p1, p2]
+    await service.output_profile_repo.create_output_profile(p1)
+    await service.output_profile_repo.create_output_profile(p2)
 
     root_user = TokenData(id="root_user", role=UserRole.ROOT, organization_id="root")
     res_root = await service.list_output_profiles(root_user)
@@ -88,11 +94,10 @@ async def test_get_output_profile_success_and_not_found(service: StudioOutputPro
     """Test get_output_profile returns model or raises ResourceNotFoundError."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
     p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
-    service.output_profile_repo.get_output_profile_by_id.return_value = p1
+    await service.output_profile_repo.create_output_profile(p1)
     res = await service.get_output_profile(initiator, "prf_1111111111111111")
     assert res.id == "prf_1111111111111111"
 
-    service.output_profile_repo.get_output_profile_by_id.return_value = None
     with pytest.raises(AppException) as exc_info:
         await service.get_output_profile(initiator, "prf_missing111111")
     assert exc_info.value.status_code == 404
@@ -103,9 +108,9 @@ async def test_delete_output_profile(service: StudioOutputProfileService) -> Non
     """Test delete_output_profile deletes existing resource."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
     p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
-    service.output_profile_repo.get_output_profile_by_id.return_value = p1
+    await service.output_profile_repo.create_output_profile(p1)
     await service.delete_output_profile(initiator, "prf_1111111111111111")
-    assert service.output_profile_repo.delete_output_profile.called
+    assert await service.output_profile_repo.get_output_profile_by_id("prf_1111111111111111") is None
 
 
 @pytest.mark.asyncio
@@ -126,22 +131,8 @@ async def test_create_and_clone_output_profile(
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
 
-    saved_profiles: dict[str, OutputProfile] = {}
-
-    async def mock_create(profile: OutputProfile) -> None:
-        saved_profiles[profile.id] = profile
-
-    service.output_profile_repo.create_output_profile.side_effect = mock_create
-
     p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Original")
-    saved_profiles[p1.id] = p1
-
-    async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        if pid in saved_profiles:
-            return saved_profiles[pid]
-        return None
-
-    service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
+    await service.output_profile_repo.create_output_profile(p1)
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.id.startswith("prf_")
@@ -163,13 +154,14 @@ async def test_create_and_clone_output_profile(
 
     cloned = await service.clone_output_profile(initiator, "prf_1111111111111111")
     assert cloned.id.startswith("prf_")
+    saved_cloned = await service.output_profile_repo.get_output_profile_by_id(cloned.id)
+    assert saved_cloned is not None
 
 
 @pytest.mark.asyncio
 async def test_output_profile_service_not_found_branches(service: StudioOutputProfileService) -> None:
     """Test ResourceNotFoundError triggers for missing resources on delete and clone."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
-    service.output_profile_repo.get_output_profile_by_id.return_value = None
 
     with pytest.raises(AppException) as exc_info:
         await service.delete_output_profile(initiator, "prf_missing111111")
@@ -237,20 +229,6 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
-
-    saved_profiles: dict[str, OutputProfile] = {}
-
-    async def mock_create(profile: OutputProfile) -> None:
-        saved_profiles[profile.id] = profile
-
-    service.output_profile_repo.create_output_profile.side_effect = mock_create
-
-    async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        if pid in saved_profiles:
-            return saved_profiles[pid]
-        return None
-
-    service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.variance_target_block is None

@@ -1,5 +1,5 @@
 from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -8,21 +8,35 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.security import sanitize_text_hook
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repository() -> AsyncMock:
-    return AsyncMock()
+def mock_repository() -> InMemoryUnifiedWorkflowRepository:
+    return InMemoryUnifiedWorkflowRepository()
 
 
-def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncMock) -> None:
+@pytest.fixture
+def deps(mock_repository: InMemoryUnifiedWorkflowRepository) -> HookDependencies:
+    return HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        prompt_block_repo=mock_repository,
+        output_profile_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )
+
+
+def test_sanitize_text_hook_fails_fast_on_invalid_inputs(deps: HookDependencies) -> None:
     """Test that missing or non-dict inputs trigger AppException due to strict Pydantic parsing."""
     state = HookState.model_construct(
         execution_id="exe_123",
@@ -30,16 +44,6 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
         inputs=None,  # type: ignore[arg-type]
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
-    )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -49,7 +53,7 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
     assert "Strict Fail-Fast Enforced" in exc_info.value.message
 
 
-def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock) -> None:
+def test_sanitize_text_hook_fails_fast_on_list_inputs(deps: HookDependencies) -> None:
     """Test that list inputs trigger AppException (extra='forbid' via RootModel[dict])."""
     state = HookState.model_construct(
         execution_id="exe_123",
@@ -57,16 +61,6 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
         inputs=["invalid", "list"],  # type: ignore[arg-type]
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
-    )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -77,7 +71,7 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
-def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_repository: AsyncMock) -> None:
+def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, deps: HookDependencies) -> None:
     """Test that valid string inputs are sanitized correctly."""
     mock_service = MagicMock()
     mock_service.mask_pii.return_value = "This is a safe string."
@@ -90,18 +84,8 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
 
-    result = cast(HookResult, sanitize_text_hook(state, deps))
+    result = sanitize_text_hook(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None
@@ -111,7 +95,7 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
-def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, mock_repository: AsyncMock) -> None:
+def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, deps: HookDependencies) -> None:
     """Test that non-string values like dicts or lists in inputs are ignored."""
     mock_service = MagicMock()
     mock_service.mask_pii.return_value = "This is a safe string."
@@ -130,22 +114,13 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
 
-    result = cast(HookResult, sanitize_text_hook(state, deps))
+    result = sanitize_text_hook(state, deps)
 
     assert result.success is True
     # mask_pii should only be called once, for the string field.
     assert mock_service.mask_pii.call_count == 1
+    assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, SanitizationResultDTO)
     assert "string_field" in result.state_delta.delta.sanitized_inputs
     assert "dict_field" not in result.state_delta.delta.sanitized_inputs
@@ -154,7 +129,7 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
 
 @patch("backend_v2.hooks.security.get_pii_service")
 def test_sanitize_text_hook_resolves_language_from_execution_metadata(
-    mock_get_pii_service: MagicMock, mock_repository: AsyncMock
+    mock_get_pii_service: MagicMock, deps: HookDependencies
 ) -> None:
     """Regression test: sanitize_text_hook resolves language from metadata when global_context_vars is empty."""
     mock_service = MagicMock()
@@ -168,67 +143,38 @@ def test_sanitize_text_hook_resolves_language_from_execution_metadata(
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
 
-    result = cast(HookResult, sanitize_text_hook(state, deps))
+    result = sanitize_text_hook(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, SanitizationResultDTO)
 
 
-def test_sanitize_text_hook_fails_fast_on_missing_state() -> None:
+def test_sanitize_text_hook_fails_fast_on_missing_state(deps: HookDependencies) -> None:
     """Test that None state raises AppException(500)."""
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
     with pytest.raises(AppException) as exc_info:
         sanitize_text_hook(cast(HookState, None), deps)
     assert exc_info.value.status_code == 500
 
 
-def test_sanitize_text_hook_fails_fast_on_invalid_language() -> None:
+def test_sanitize_text_hook_fails_fast_on_invalid_language(deps: HookDependencies) -> None:
     """Test that invalid language payload raises AppException(400)."""
-    state = HookState.model_construct(
+    state = HookState(
         execution_id="exe_123",
         workflow_id="wf_123",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        metadata=None,
+        metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+
     with pytest.raises(AppException) as exc_info:
         sanitize_text_hook(state, deps)
     assert exc_info.value.status_code == 400
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
-def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock) -> None:
+def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock, deps: HookDependencies) -> None:
     """Test that PII redaction adds threats to summary and flags threat_detected."""
     mock_service = MagicMock()
     mock_service.mask_pii.return_value = "[REDACTED]"
@@ -241,18 +187,8 @@ def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock) -> 
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
 
-    result = cast(HookResult, sanitize_text_hook(state, deps))
+    result = sanitize_text_hook(state, deps)
     assert result.success is True
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, SanitizationResultDTO)
@@ -262,7 +198,7 @@ def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock) -> 
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
-def test_sanitize_text_hook_mask_pii_failure(mock_get_pii_service: MagicMock) -> None:
+def test_sanitize_text_hook_mask_pii_failure(mock_get_pii_service: MagicMock, deps: HookDependencies) -> None:
     """Test that failure in mask_pii raises AppException(500, SECURITY_SCAN_FAILED)."""
     mock_service = MagicMock()
     mock_service.mask_pii.side_effect = RuntimeError("PII service crashed")
@@ -275,16 +211,6 @@ def test_sanitize_text_hook_mask_pii_failure(mock_get_pii_service: MagicMock) ->
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
 
     with pytest.raises(AppException) as exc_info:
         sanitize_text_hook(state, deps)
@@ -293,7 +219,9 @@ def test_sanitize_text_hook_mask_pii_failure(mock_get_pii_service: MagicMock) ->
 
 @patch("backend_v2.hooks.security.SanitizationResultDTO")
 @patch("backend_v2.hooks.security.get_pii_service")
-def test_sanitize_text_hook_dto_creation_failure(mock_get_pii_service: MagicMock, mock_dto_cls: MagicMock) -> None:
+def test_sanitize_text_hook_dto_creation_failure(
+    mock_get_pii_service: MagicMock, mock_dto_cls: MagicMock, deps: HookDependencies
+) -> None:
     """Test that failure in SanitizationResultDTO raises AppException(500, SECURITY_CONFIG_ERROR)."""
     mock_service = MagicMock()
     mock_service.mask_pii.return_value = "safe"
@@ -306,16 +234,6 @@ def test_sanitize_text_hook_dto_creation_failure(mock_get_pii_service: MagicMock
         inputs=ExecutionInputsDTO(raw_inputs={"text": "safe"}, target_locale="fi"),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-    )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
     )
 
     with pytest.raises(AppException) as exc_info:
