@@ -285,7 +285,11 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         self._check_fault("get_all_workflows")
         items = self._list_isolated()
         if role != "ROOT" and organization_id is not None:
-            items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) in (organization_id, "root_system", None)]
+            items = [
+                w
+                for w in items
+                if (w.organization_id if isinstance(w, Workflow) else None) in (organization_id, "root_system", None)
+            ]
         elif organization_id is not None:
             items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) == organization_id]
         return items
@@ -959,7 +963,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             reg_id = reg.id if isinstance(reg, SystemConfigModelRegistry) else reg_key
             if reg_id not in seen_ids:
                 seen_ids.add(reg_id)
-                result.append(reg.model_copy(deep=True))
+                result.append(self._clone(reg))
         return result
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
@@ -977,9 +981,21 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             return True
         return False
 
+    def remove_system_config(self, config_id: str) -> None:
+        """Removes a system config record from raw and model registries."""
+        if config_id in self._raw_system_configs:
+            del self._raw_system_configs[config_id]
+        if config_id in self._model_registries:
+            del self._model_registries[config_id]
+        if config_id in self._storage:
+            del self._storage[config_id]
+
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
-        return self._mcp_gateways.model_copy(deep=True)
+        try:
+            return self._mcp_gateways.model_copy(deep=True)
+        except AttributeError:
+            return SystemConfigMCPGateways.model_validate(self._mcp_gateways, strict=False)
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         self._check_fault("update_mcp_gateways")
@@ -1427,7 +1443,9 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             except ValueError:
                 pass
         if not injected:
-            raise ValueError(f"Method '{method_name}' does not exist on any sub-repository of InMemoryUnifiedWorkflowRepository")
+            raise ValueError(
+                f"Method '{method_name}' does not exist on any sub-repository of InMemoryUnifiedWorkflowRepository"
+            )
 
     def clear_faults(self, method_name: str | None = None) -> None:
         """Clear faults across all underlying repositories."""
@@ -1849,12 +1867,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | Any) -> None:
         """Helper to seed mcp gateways for tests."""
-        if isinstance(gateways, SystemConfigMCPGateways):
-            self._system._mcp_gateways = gateways.model_copy(deep=True)
-        else:
-            self._system._mcp_gateways = SystemConfigMCPGateways.model_validate(
-                gateways, strict=False
-            )
+        self._system._mcp_gateways = gateways
 
     def seed_system_config(self, key: str, item: JsonValue) -> None:
         """Seeds a system config record into the underlying system repository."""

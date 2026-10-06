@@ -256,14 +256,15 @@ def mock_repo_transformer() -> Any:
 async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -> None:
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000002",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            id="exe_0000000000000002",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[],
+            output_profile_id="prf_dddd1111dddd1111",
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
@@ -301,127 +302,131 @@ def mock_repo_microcot() -> Any:
             steps=[],
         )
     )
-    repo.set_output_profiles( fix_mock_dict(
-        [
-            {
-                "id": "prf_1234567890abcdef",
-                "slug": "default",
-                "name": {"translations": {"en": "Default Profile", "fi": "Default Profile"}},
-                "workflow_id": "wf_1234567890abcdef",
-                "layouts": [
-                    {
-                        "preset_view": "2d_compare",
-                        "text_delivery_mode": "full",
-                        "title": {
-                            "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
+    repo.set_output_profiles(
+        fix_mock_dict(
+            [
+                {
+                    "id": "prf_1234567890abcdef",
+                    "slug": "default",
+                    "name": {"translations": {"en": "Default Profile", "fi": "Default Profile"}},
+                    "workflow_id": "wf_1234567890abcdef",
+                    "layouts": [
+                        {
+                            "preset_view": "2d_compare",
+                            "text_delivery_mode": "full",
+                            "title": {
+                                "translations": {"en": "Micro-CoT Map", "fi": "Micro-CoT Map"},
+                            },
+                            "target_blocks": ["*"],
+                            "description": None,
+                        }
+                    ],
+                    "display_scale": DisplayScale.ORIGINAL,
+                    "metric_mappings": {
+                        "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                        "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                        "variance_total": {"translations": {"en": "Variance"}},
+                        "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                        "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                        "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                        "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                        "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                        "level_high": {"translations": {"en": "High"}},
+                        "level_medium": {"translations": {"en": "Medium"}},
+                        "level_low": {"translations": {"en": "Low"}},
+                        "authenticity_fallback_explanation": {
+                            "translations": {"en": "Fallback {0}"},
                         },
-                        "target_blocks": ["*"],
-                        "description": None,
-                    }
-                ],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
+                        "variance_fallback_explanation": {
+                            "translations": {"en": "Fallback {0} {1}"},
+                        },
                     },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
-                    },
+                    "visible_block_extensions": [],
+                    "visible_workflow_extensions": [],
+                    "max_extension_items": 2,
+                    "visible_metadata": [],
+                    "custom_preface": None,
+                    "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
+                }
+            ]
+        )
+    )
+    repo.set_prompt_blocks(
+        fix_mock_dict(
+            [
+                {
+                    "id": "blk_1111222233334444",
+                    "slug": "kahneman",
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "description": {"translations": {"en": "Description", "fi": "Description"}},
+                    "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
+                    "scales": [
+                        {
+                            "score": 0,
+                            "name": {"translations": {"en": "Zero", "fi": "Zero"}},
+                            "ai_label": "zero",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 3,
+                            "name": {"translations": {"en": "Full", "fi": "Full"}},
+                            "ai_label": "full",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                    ],
+                    "computed_min": 0,
+                    "computed_max": 3,
                 },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
-            }
-        ]
-    ))
-    repo.set_prompt_blocks( fix_mock_dict(
-        [
-            {
-                "id": "blk_1111222233334444",
-                "slug": "kahneman",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"en": "Description", "fi": "Description"}},
-                "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
-                "scales": [
-                    {
-                        "score": 0,
-                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
-                        "ai_label": "zero",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 3,
-                        "name": {"translations": {"en": "Full", "fi": "Full"}},
-                        "ai_label": "full",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                ],
-                "computed_min": 0,
-                "computed_max": 3,
-            },
-            {
-                "id": "blk_5555666677778888",
-                "slug": "episteeminen",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"en": "Description", "fi": "Description"}},
-                "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
-                "scales": [
-                    {
-                        "score": 0,
-                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
-                        "ai_label": "zero",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 5,
-                        "name": {"translations": {"en": "Full", "fi": "Full"}},
-                        "ai_label": "full",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                ],
-                "computed_min": 0,
-                "computed_max": 5,
-            },
-        ]
-    ))
+                {
+                    "id": "blk_5555666677778888",
+                    "slug": "episteeminen",
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "description": {"translations": {"en": "Description", "fi": "Description"}},
+                    "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
+                    "scales": [
+                        {
+                            "score": 0,
+                            "name": {"translations": {"en": "Zero", "fi": "Zero"}},
+                            "ai_label": "zero",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 5,
+                            "name": {"translations": {"en": "Full", "fi": "Full"}},
+                            "ai_label": "full",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                    ],
+                    "computed_min": 0,
+                    "computed_max": 5,
+                },
+            ]
+        )
+    )
     return repo
 
 
@@ -443,91 +448,95 @@ def mock_repo_sdui() -> Any:
             steps=[],
         )
     )
-    repo.set_output_profiles( fix_mock_dict(
-        [
-            {
-                "id": "prf_1234abcd1234abcd",
-                "slug": "default",
-                "workflow_id": "wf_1234abcd1234abcd",
-                "name": {"translations": {"fi": "Oletus", "en": "Default"}},
-                "layouts": [
-                    {
-                        "preset_view": "text_only",
-                        "text_delivery_mode": "full",
-                        "title": {"translations": {"en": "Metrics", "fi": "Metrics"}},
-                        "steps": [],
-                        "target_blocks": ["*"],
-                        "description": None,
-                    }
-                ],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
+    repo.set_output_profiles(
+        fix_mock_dict(
+            [
+                {
+                    "id": "prf_1234abcd1234abcd",
+                    "slug": "default",
+                    "workflow_id": "wf_1234abcd1234abcd",
+                    "name": {"translations": {"fi": "Oletus", "en": "Default"}},
+                    "layouts": [
+                        {
+                            "preset_view": "text_only",
+                            "text_delivery_mode": "full",
+                            "title": {"translations": {"en": "Metrics", "fi": "Metrics"}},
+                            "steps": [],
+                            "target_blocks": ["*"],
+                            "description": None,
+                        }
+                    ],
+                    "display_scale": DisplayScale.ORIGINAL,
+                    "metric_mappings": {
+                        "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                        "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                        "variance_total": {"translations": {"en": "Variance"}},
+                        "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                        "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                        "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                        "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                        "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                        "level_high": {"translations": {"en": "High"}},
+                        "level_medium": {"translations": {"en": "Medium"}},
+                        "level_low": {"translations": {"en": "Low"}},
+                        "authenticity_fallback_explanation": {
+                            "translations": {"en": "Fallback {0}"},
+                        },
+                        "variance_fallback_explanation": {
+                            "translations": {"en": "Fallback {0} {1}"},
+                        },
                     },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
-                    },
-                },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [],
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
-            }
-        ]
-    ))
-    repo.set_prompt_blocks(fix_mock_dict(
-        [
-            {
-                "id": "blk_1234abcd1234abcd",
-                "slug": "metric",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"en": "Description", "fi": "Description"}},
-                "label": {"translations": {"en": "Metric Category", "fi": "Metric Category"}},
-                "computed_min": 0,
-                "computed_max": 5,
-                "scales": [
-                    {
-                        "score": 0,
-                        "name": {"translations": {"en": "Zero", "fi": "Zero"}},
-                        "ai_label": "zero",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 5,
-                        "name": {"translations": {"en": "Full", "fi": "Full"}},
-                        "ai_label": "full",
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim", "fi": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-    ))
+                    "visible_block_extensions": [],
+                    "visible_workflow_extensions": [],
+                    "max_extension_items": 2,
+                    "visible_metadata": [],
+                    "custom_preface": None,
+                    "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
+                }
+            ]
+        )
+    )
+    repo.set_prompt_blocks(
+        fix_mock_dict(
+            [
+                {
+                    "id": "blk_1234abcd1234abcd",
+                    "slug": "metric",
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "description": {"translations": {"en": "Description", "fi": "Description"}},
+                    "label": {"translations": {"en": "Metric Category", "fi": "Metric Category"}},
+                    "computed_min": 0,
+                    "computed_max": 5,
+                    "scales": [
+                        {
+                            "score": 0,
+                            "name": {"translations": {"en": "Zero", "fi": "Zero"}},
+                            "ai_label": "zero",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 5,
+                            "name": {"translations": {"en": "Full", "fi": "Full"}},
+                            "ai_label": "full",
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim", "fi": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ]
+        )
+    )
     return repo
 
 
@@ -559,15 +568,16 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
     )
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000004",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        output_profile_id="prf_dddd1111dddd1111",
-        frozen_context=frozen,
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            id="exe_0000000000000004",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[],
+            output_profile_id="prf_dddd1111dddd1111",
+            frozen_context=frozen,
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
         workflow_repo=mock_repo_transformer,
@@ -671,153 +681,157 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     """Test that build_report_dto computes variance validation using context variables."""
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000009",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="sr_5f3dd7712a7f4bb3",
-                event_type="output",
-                content={
-                    "blk_fb15f8dcf23f4865": {
-                        "raw_score": 85.00,
-                        "normalized_score": 85.00,
+            id="exe_0000000000000009",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="sr_5f3dd7712a7f4bb3",
+                    event_type="output",
+                    content={
+                        "blk_fb15f8dcf23f4865": {
+                            "raw_score": 85.00,
+                            "normalized_score": 85.00,
+                        },
+                        "_step_metadata": {
+                            "execution_id": "exe_0000000000000009",
+                            "workflow_id": "wf_1234abcd1234abcd",
+                            "step_id": "sr_5f3dd7712a7f4bb3",
+                            "initiator_id": "system",
+                            "timestamp_isot": "2026-08-05T00:00:00Z",
+                            "unix_time": 1700000000,
+                            "v2_engine": True,
+                            "task_blueprint": "sp_7f9649114d2344dc",
+                        },
                     },
-                    "_step_metadata": {
-                        "execution_id": "exe_0000000000000009",
-                        "workflow_id": "wf_1234abcd1234abcd",
-                        "step_id": "sr_5f3dd7712a7f4bb3",
-                        "initiator_id": "system",
-                        "timestamp_isot": "2026-08-05T00:00:00Z",
-                        "unix_time": 1700000000,
-                        "v2_engine": True,
-                        "task_blueprint": "sp_7f9649114d2344dc",
-                    },
-                },
-            )
-        ],
-        output_profile_id="prf_dddd1111dddd1111",
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                extension_metrics=ExtensionMetricsDTO(
-                    authenticity_score=4.0,
-                    performative_phrases_count=1,
-                    variance_score=1.2,
-                    alignment_verdict="MISALIGNED",
                 )
-            )
-        },
-        context_variables={},
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            ],
+            output_profile_id="prf_dddd1111dddd1111",
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    extension_metrics=ExtensionMetricsDTO(
+                        authenticity_score=4.0,
+                        performative_phrases_count=1,
+                        variance_score=1.2,
+                        alignment_verdict="MISALIGNED",
+                    )
+                )
+            },
+            context_variables={},
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
 
     mock_repo_transformer.set_workflow(
         Workflow(
-        id="wf_1234abcd1234abcd",
-        slug="wf_1",
-        name=I18nText(translations={"en": "Workflow Name"}),
-        description=I18nText(translations={"en": "Workflow Desc"}),
-        status="published",
-        version=1,
-        default_profile_id="prf_dddd1111dddd1111",
-        historical_context_mode=LaxHistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_strictness_level=85,
-        steps=[
-            StepRule(
-                id="sr_1234567890abcdef",
-                task_blueprint="sp_7f9649114d2344dc",
-            )
-        ],
-    ))
+            id="wf_1234abcd1234abcd",
+            slug="wf_1",
+            name=I18nText(translations={"en": "Workflow Name"}),
+            description=I18nText(translations={"en": "Workflow Desc"}),
+            status="published",
+            version=1,
+            default_profile_id="prf_dddd1111dddd1111",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_strictness_level=85,
+            steps=[
+                StepRule(
+                    id="sr_1234567890abcdef",
+                    task_blueprint="sp_7f9649114d2344dc",
+                )
+            ],
+        )
+    )
 
     mock_repo_transformer.set_prompt_blocks(
         fix_mock_dict(
-        [
-            {
-                "id": "blk_fb15f8dcf23f4865",
-                "slug": "matrix_archivist",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"en": "Desc"}},
-                "label": {"translations": {"en": "Label"}},
-                "scales": [
-                    {
-                        "score": 1,
-                        "name": {"translations": {"en": "Min"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim"}},
-                                "ai_description": "claim",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 5,
-                        "name": {"translations": {"en": "Max"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim"}},
-                                "ai_description": "claim",
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-    ))
+            [
+                {
+                    "id": "blk_fb15f8dcf23f4865",
+                    "slug": "matrix_archivist",
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "description": {"translations": {"en": "Desc"}},
+                    "label": {"translations": {"en": "Label"}},
+                    "scales": [
+                        {
+                            "score": 1,
+                            "name": {"translations": {"en": "Min"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim"}},
+                                    "ai_description": "claim",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 5,
+                            "name": {"translations": {"en": "Max"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim"}},
+                                    "ai_description": "claim",
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ]
+        )
+    )
 
     mock_repo_transformer.set_output_profiles(
         fix_mock_dict(
-        [
-            {
-                "id": "prf_dddd1111dddd1111",
-                "slug": "default",
-                "name": {"translations": {"en": "Default", "fi": "Default"}},
-                "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [
-                    {
-                        "preset_view": "text_only",
-                        "text_delivery_mode": "full",
-                        "target_blocks": ["*"],
-                        "title": {"translations": {"en": "Title"}},
-                    }
-                ],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
+            [
+                {
+                    "id": "prf_dddd1111dddd1111",
+                    "slug": "default",
+                    "name": {"translations": {"en": "Default", "fi": "Default"}},
+                    "workflow_id": "wf_1234abcd1234abcd",
+                    "layouts": [
+                        {
+                            "preset_view": "text_only",
+                            "text_delivery_mode": "full",
+                            "target_blocks": ["*"],
+                            "title": {"translations": {"en": "Title"}},
+                        }
+                    ],
+                    "display_scale": DisplayScale.ORIGINAL,
+                    "metric_mappings": {
+                        "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                        "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                        "variance_total": {"translations": {"en": "Variance"}},
+                        "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                        "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                        "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                        "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                        "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                        "level_high": {"translations": {"en": "High"}},
+                        "level_medium": {"translations": {"en": "Medium"}},
+                        "level_low": {"translations": {"en": "Low"}},
+                        "authenticity_fallback_explanation": {
+                            "translations": {"en": "Fallback {0}"},
+                        },
+                        "variance_fallback_explanation": {
+                            "translations": {"en": "Fallback {0} {1}"},
+                        },
                     },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
+                    "visible_block_extensions": [],
+                    "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                    "extension_labels": {
+                        XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                     },
-                },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
-                "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
-                },
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
-                "variance_target_block": "blk_fb15f8dcf23f4865",
-            }
-        ]
-    ))
+                    "max_extension_items": 2,
+                    "visible_metadata": [],
+                    "custom_preface": None,
+                    "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                    "variance_target_block": "blk_fb15f8dcf23f4865",
+                }
+            ]
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -871,61 +885,63 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
     """Test that build_report_dto crashes when variance_validation is requested but context_variables is empty."""
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000010",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        output_profile_id="prf_dddd1111dddd1111",
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                extension_metrics=None  # Missing metrics to trigger the crash
-            )
-        },
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            id="exe_0000000000000010",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[],
+            output_profile_id="prf_dddd1111dddd1111",
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    extension_metrics=None  # Missing metrics to trigger the crash
+                )
+            },
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
     mock_repo_transformer.set_output_profiles(
         fix_mock_dict(
-        [
-            {
-                "id": "prf_dddd1111dddd1111",
-                "slug": "default",
-                "name": {"translations": {"en": "Default", "fi": "Default"}},
-                "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
+            [
+                {
+                    "id": "prf_dddd1111dddd1111",
+                    "slug": "default",
+                    "name": {"translations": {"en": "Default", "fi": "Default"}},
+                    "workflow_id": "wf_1234abcd1234abcd",
+                    "layouts": [],
+                    "display_scale": DisplayScale.ORIGINAL,
+                    "metric_mappings": {
+                        "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                        "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                        "variance_total": {"translations": {"en": "Variance"}},
+                        "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                        "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                        "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                        "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                        "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                        "level_high": {"translations": {"en": "High"}},
+                        "level_medium": {"translations": {"en": "Medium"}},
+                        "level_low": {"translations": {"en": "Low"}},
+                        "authenticity_fallback_explanation": {
+                            "translations": {"en": "Fallback {0}"},
+                        },
+                        "variance_fallback_explanation": {
+                            "translations": {"en": "Fallback {0} {1}"},
+                        },
                     },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
+                    "visible_block_extensions": [],
+                    "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                    "extension_labels": {
+                        XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                     },
-                },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
-                "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
-                },
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
-                "variance_target_block": "blk_fb15f8dcf23f4865",
-            }
-        ]
-    ))
+                    "max_extension_items": 2,
+                    "visible_metadata": [],
+                    "custom_preface": None,
+                    "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                    "variance_target_block": "blk_fb15f8dcf23f4865",
+                }
+            ]
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -952,167 +968,171 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     """Test that build_report_dto falls back to execution_trace when context_variables is empty."""
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000011",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="sr_1d7e6d26b02b457b",
-                event_type="output",
-                content={
-                    "blk_fb15f8dcf23f4865": {
-                        "raw_score": 2.51,
-                        "normalized_score": 75.55,
+            id="exe_0000000000000011",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="sr_1d7e6d26b02b457b",
+                    event_type="output",
+                    content={
+                        "blk_fb15f8dcf23f4865": {
+                            "raw_score": 2.51,
+                            "normalized_score": 75.55,
+                        },
+                        "_step_metadata": {
+                            "execution_id": "exe_0000000000000011",
+                            "workflow_id": "wf_1234abcd1234abcd",
+                            "step_id": "sr_1d7e6d26b02b457b",
+                            "initiator_id": "system",
+                            "timestamp_isot": "2026-08-05T00:00:00Z",
+                            "unix_time": 1700000000,
+                            "v2_engine": True,
+                            "task_blueprint": "sp_7f9649114d2344dc",
+                        },
                     },
-                    "_step_metadata": {
-                        "execution_id": "exe_0000000000000011",
-                        "workflow_id": "wf_1234abcd1234abcd",
-                        "step_id": "sr_1d7e6d26b02b457b",
-                        "initiator_id": "system",
-                        "timestamp_isot": "2026-08-05T00:00:00Z",
-                        "unix_time": 1700000000,
-                        "v2_engine": True,
-                        "task_blueprint": "sp_7f9649114d2344dc",
+                ),
+                TraceEvent(
+                    step_name="sr_f0a26d17cc9b48a7",
+                    event_type="decision",
+                    content={
+                        "step_linguistics": {
+                            "performative_patterns": [
+                                {"pattern_id": "p1", "detected_phrase": "phrase1", "category": "performative"},
+                                {"pattern_id": "p2", "detected_phrase": "phrase2", "category": "performative"},
+                            ]
+                        }
                     },
-                },
-            ),
-            TraceEvent(
-                step_name="sr_f0a26d17cc9b48a7",
-                event_type="decision",
-                content={
-                    "step_linguistics": {
-                        "performative_patterns": [
-                            {"pattern_id": "p1", "detected_phrase": "phrase1", "category": "performative"},
-                            {"pattern_id": "p2", "detected_phrase": "phrase2", "category": "performative"},
-                        ]
-                    }
-                },
-            ),
-        ],
-        output_profile_id="prf_dddd1111dddd1111",
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                extension_metrics=ExtensionMetricsDTO(
-                    authenticity_score=2.51,
-                    performative_phrases_count=2,
-                    variance_score=0.09,
-                    alignment_verdict="ALIGNED",
+                ),
+            ],
+            output_profile_id="prf_dddd1111dddd1111",
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    extension_metrics=ExtensionMetricsDTO(
+                        authenticity_score=2.51,
+                        performative_phrases_count=2,
+                        variance_score=0.09,
+                        alignment_verdict="ALIGNED",
+                    )
                 )
-            )
-        },
-        context_variables={},  # Empty to force fallback lookup
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            },
+            context_variables={},  # Empty to force fallback lookup
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
 
     # Configure workflow steps
     mock_repo_transformer.set_workflow(
         Workflow(
-        id="wf_1234abcd1234abcd",
-        slug="wf_1",
-        name=I18nText(translations={"en": "Workflow Name"}),
-        description=I18nText(translations={"en": "Workflow Desc"}),
-        status="published",
-        version=1,
-        default_profile_id="prf_dddd1111dddd1111",
-        historical_context_mode=LaxHistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_strictness_level=85,
-        steps=[
-            StepRule(
-                id="sr_1d7e6d26b02b457b",
-                task_blueprint="sp_7f9649114d2344dc",
-            )
-        ],
-    ))
+            id="wf_1234abcd1234abcd",
+            slug="wf_1",
+            name=I18nText(translations={"en": "Workflow Name"}),
+            description=I18nText(translations={"en": "Workflow Desc"}),
+            status="published",
+            version=1,
+            default_profile_id="prf_dddd1111dddd1111",
+            historical_context_mode=LaxHistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_strictness_level=85,
+            steps=[
+                StepRule(
+                    id="sr_1d7e6d26b02b457b",
+                    task_blueprint="sp_7f9649114d2344dc",
+                )
+            ],
+        )
+    )
 
     # Configure prompt blocks with scale definitions for blk_fb15f8dcf23f4865
     mock_repo_transformer.set_prompt_blocks(
         fix_mock_dict(
-        [
-            {
-                "id": "blk_fb15f8dcf23f4865",
-                "slug": "matrix_archivist",
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "description": {"translations": {"en": "Desc"}},
-                "label": {"translations": {"en": "Label"}},
-                "scales": [
-                    {
-                        "score": 1,
-                        "name": {"translations": {"en": "Min"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim"}},
-                                "ai_description": "claim",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 5,
-                        "name": {"translations": {"en": "Max"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim"}},
-                                "ai_description": "claim",
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-    ))
+            [
+                {
+                    "id": "blk_fb15f8dcf23f4865",
+                    "slug": "matrix_archivist",
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "description": {"translations": {"en": "Desc"}},
+                    "label": {"translations": {"en": "Label"}},
+                    "scales": [
+                        {
+                            "score": 1,
+                            "name": {"translations": {"en": "Min"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim"}},
+                                    "ai_description": "claim",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 5,
+                            "name": {"translations": {"en": "Max"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim"}},
+                                    "ai_description": "claim",
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ]
+        )
+    )
 
     mock_repo_transformer.set_output_profiles(
         fix_mock_dict(
-        [
-            {
-                "id": "prf_dddd1111dddd1111",
-                "slug": "default",
-                "name": {"translations": {"en": "Default"}},
-                "workflow_id": "wf_1234abcd1234abcd",
-                "layouts": [
-                    {
-                        "preset_view": "text_only",
-                        "text_delivery_mode": "full",
-                        "target_blocks": ["*"],
-                        "title": {"translations": {"en": "Title"}},
-                    }
-                ],
-                "display_scale": DisplayScale.ORIGINAL,
-                "metric_mappings": {
-                    "variance_mechanical": {"translations": {"en": "Mechanical"}},
-                    "variance_cognitive": {"translations": {"en": "Cognitive"}},
-                    "variance_total": {"translations": {"en": "Variance"}},
-                    "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
-                    "alignment_aligned": {"translations": {"en": "ALIGNED"}},
-                    "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
-                    "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
-                    "authenticity_level": {"translations": {"en": "Authenticity Level"}},
-                    "level_high": {"translations": {"en": "High"}},
-                    "level_medium": {"translations": {"en": "Medium"}},
-                    "level_low": {"translations": {"en": "Low"}},
-                    "authenticity_fallback_explanation": {
-                        "translations": {"en": "Fallback {0}"},
+            [
+                {
+                    "id": "prf_dddd1111dddd1111",
+                    "slug": "default",
+                    "name": {"translations": {"en": "Default"}},
+                    "workflow_id": "wf_1234abcd1234abcd",
+                    "layouts": [
+                        {
+                            "preset_view": "text_only",
+                            "text_delivery_mode": "full",
+                            "target_blocks": ["*"],
+                            "title": {"translations": {"en": "Title"}},
+                        }
+                    ],
+                    "display_scale": DisplayScale.ORIGINAL,
+                    "metric_mappings": {
+                        "variance_mechanical": {"translations": {"en": "Mechanical"}},
+                        "variance_cognitive": {"translations": {"en": "Cognitive"}},
+                        "variance_total": {"translations": {"en": "Variance"}},
+                        "alignment_verdict": {"translations": {"en": "Alignment Verdict"}},
+                        "alignment_aligned": {"translations": {"en": "ALIGNED"}},
+                        "alignment_misaligned": {"translations": {"en": "MISALIGNED"}},
+                        "jargon_score": {"translations": {"en": "AI-Jargon Score"}},
+                        "authenticity_level": {"translations": {"en": "Authenticity Level"}},
+                        "level_high": {"translations": {"en": "High"}},
+                        "level_medium": {"translations": {"en": "Medium"}},
+                        "level_low": {"translations": {"en": "Low"}},
+                        "authenticity_fallback_explanation": {
+                            "translations": {"en": "Fallback {0}"},
+                        },
+                        "variance_fallback_explanation": {
+                            "translations": {"en": "Fallback {0} {1}"},
+                        },
                     },
-                    "variance_fallback_explanation": {
-                        "translations": {"en": "Fallback {0} {1}"},
+                    "visible_block_extensions": [],
+                    "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                    "extension_labels": {
+                        XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                     },
-                },
-                "visible_block_extensions": [],
-                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
-                "extension_labels": {
-                    XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
-                },
-                "max_extension_items": 2,
-                "visible_metadata": [],
-                "custom_preface": None,
-                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
-                "variance_target_block": "blk_fb15f8dcf23f4865",
-            }
-        ]
-    ))
+                    "max_extension_items": 2,
+                    "visible_metadata": [],
+                    "custom_preface": None,
+                    "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                    "variance_target_block": "blk_fb15f8dcf23f4865",
+                }
+            ]
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1190,38 +1210,39 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
 
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000015",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="step_test",
-                event_type="output",
-                content={
-                    "blk_1234abcd1234abcd": {
-                        "raw_score": 4.0,
-                        "extensions": {
-                            "remediation_steps": "Do this to fix.",
-                            "falsification": "This is false.",
+            id="exe_0000000000000015",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="step_test",
+                    event_type="output",
+                    content={
+                        "blk_1234abcd1234abcd": {
+                            "raw_score": 4.0,
+                            "extensions": {
+                                "remediation_steps": "Do this to fix.",
+                                "falsification": "This is false.",
+                            },
                         },
                     },
-                },
-            )
-        ],
-        output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(),
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                cited_sources=[],
-                section_syntheses={},
-                xai_highlights=[
-                    XaiHighlightItem(extension_type="remediation_steps", content="Do this to fix."),
-                    XaiHighlightItem(extension_type="falsification", content="This is false."),
-                ],
-            )
-        },
-        target_locale="fi",
-    ))
+                )
+            ],
+            output_profile_id="prf_dddd1111dddd1111",
+            metadata=ExecutionMetadata(),
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    cited_sources=[],
+                    section_syntheses={},
+                    xai_highlights=[
+                        XaiHighlightItem(extension_type="remediation_steps", content="Do this to fix."),
+                        XaiHighlightItem(extension_type="falsification", content="This is false."),
+                    ],
+                )
+            },
+            target_locale="fi",
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1283,34 +1304,35 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
 
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000016",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="step_test",
-                event_type="output",
-                content={
-                    "blk_1234abcd1234abcd": {
-                        "raw_score": 4.0,
-                        "extensions": {
-                            "coaching": "Good job.",
+            id="exe_0000000000000016",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="step_test",
+                    event_type="output",
+                    content={
+                        "blk_1234abcd1234abcd": {
+                            "raw_score": 4.0,
+                            "extensions": {
+                                "coaching": "Good job.",
+                            },
                         },
                     },
-                },
-            )
-        ],
-        output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(),  # Unknown language
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                cited_sources=[],
-                section_syntheses={},
-                xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job.")],
-            )
-        },
-        target_locale="fi",
-    ))
+                )
+            ],
+            output_profile_id="prf_dddd1111dddd1111",
+            metadata=ExecutionMetadata(),  # Unknown language
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    cited_sources=[],
+                    section_syntheses={},
+                    xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job.")],
+                )
+            },
+            target_locale="fi",
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1346,39 +1368,40 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
     """
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000009",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        profile_syntheses={"prf_dddd1111dddd1111": RenderedSynthesisCache()},
-        execution_trace=[
-            TraceEvent(
-                step_name="step_test",
-                event_type="output",
-                content={
-                    "blk_1234abcd1234abcd": {
-                        "raw_score": 100.0,
+            id="exe_0000000000000009",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            profile_syntheses={"prf_dddd1111dddd1111": RenderedSynthesisCache()},
+            execution_trace=[
+                TraceEvent(
+                    step_name="step_test",
+                    event_type="output",
+                    content={
+                        "blk_1234abcd1234abcd": {
+                            "raw_score": 100.0,
+                        },
+                        "results": [
+                            {
+                                "tda_id": "tda_11111111111111111111111111111111",
+                                "status": "PASSED",
+                                "evaluation_reasoning": "This is a matrix block evaluation.",
+                                "contextual_override": True,
+                            }
+                        ],
+                        "hydrated_references": {
+                            "tda_11111111111111111111111111111111": {
+                                "sdui_component": "boolean_card",
+                                "resolved_claim": "claim",
+                            }
+                        },
                     },
-                    "results": [
-                        {
-                            "tda_id": "tda_11111111111111111111111111111111",
-                            "status": "PASSED",
-                            "evaluation_reasoning": "This is a matrix block evaluation.",
-                            "contextual_override": True,
-                        }
-                    ],
-                    "hydrated_references": {
-                        "tda_11111111111111111111111111111111": {
-                            "sdui_component": "boolean_card",
-                            "resolved_claim": "claim",
-                        }
-                    },
-                },
-            )
-        ],
-        output_profile_id="prf_dddd1111dddd1111",
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+                )
+            ],
+            output_profile_id="prf_dddd1111dddd1111",
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1407,74 +1430,77 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
 
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000097",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        output_profile_id="prf_dddd1111dddd1111",
-        profile_syntheses={
-            "prf_dddd1111dddd1111": RenderedSynthesisCache(
-                extension_metrics=ExtensionMetricsDTO(
-                    authenticity_score=85.0,
-                    performative_phrases_count=0,
-                    variance_score=0.0,
-                    alignment_verdict="ALIGNED",
+            id="exe_0000000000000097",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            output_profile_id="prf_dddd1111dddd1111",
+            profile_syntheses={
+                "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    extension_metrics=ExtensionMetricsDTO(
+                        authenticity_score=85.0,
+                        performative_phrases_count=0,
+                        variance_score=0.0,
+                        alignment_verdict="ALIGNED",
+                    )
                 )
-            )
-        },
-        execution_trace=[
-            TraceEvent(
-                step_name="stp_1234abcd1234abcd",
-                event_type="decision",
-                content={"blk_mock_id": {"raw_score": 85.0}},
-                timestamp=datetime.now(timezone.utc),
-                v=1,
-            )
-        ],
-        context_variables={},
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            },
+            execution_trace=[
+                TraceEvent(
+                    step_name="stp_1234abcd1234abcd",
+                    event_type="decision",
+                    content={"blk_mock_id": {"raw_score": 85.0}},
+                    timestamp=datetime.now(timezone.utc),
+                    v=1,
+                )
+            ],
+            context_variables={},
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
 
     mock_repo_transformer.set_workflow(
         Workflow.model_construct(
-        id="wf_1234abcd1234abcd",
-        slug="test-wf",
-        name="Test WF",
-        description="Test",
-        status="PUBLISHED",
-        version=1,
-        historical_context_mode=__import__(
-            "backend_v2.models.enums", fromlist=["HistoricalContextMode"]
-        ).HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        default_profile_id="prf_dddd1111dddd1111",
-        steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
-    ))
+            id="wf_1234abcd1234abcd",
+            slug="test-wf",
+            name="Test WF",
+            description="Test",
+            status="PUBLISHED",
+            version=1,
+            historical_context_mode=__import__(
+                "backend_v2.models.enums", fromlist=["HistoricalContextMode"]
+            ).HistoricalContextMode.DISABLED,
+            model_registry_id="cfg_model_registry_01",
+            default_profile_id="prf_dddd1111dddd1111",
+            steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
+        )
+    )
 
     mock_repo_transformer.set_output_profiles(
         fix_mock_dict(
-        [
-            OutputProfile(
-                id="prf_dddd1111dddd1111",
-                slug="default",
-                workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(translations={"en": "Default"}),
-                display_scale=DisplayScale.ORIGINAL,
-                target_block_order=[*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
-                matrix_synthesis_groups=[
-                    MatrixSynthesisGroup(
-                        id="grp_0000000000000001",
-                        title=I18nText(translations={"en": "Default"}),
-                        target_blocks=["*"],
-                    )
-                ],
-                visible_block_extensions=[],
-                visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
-                variance_target_block="blk_fb15f8dcf23f4865",
-                max_extension_items=2,
-            )
-        ]
-    ))
+            [
+                OutputProfile(
+                    id="prf_dddd1111dddd1111",
+                    slug="default",
+                    workflow_id="wf_1234abcd1234abcd",
+                    name=I18nText(translations={"en": "Default"}),
+                    display_scale=DisplayScale.ORIGINAL,
+                    target_block_order=[*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                    matrix_synthesis_groups=[
+                        MatrixSynthesisGroup(
+                            id="grp_0000000000000001",
+                            title=I18nText(translations={"en": "Default"}),
+                            target_blocks=["*"],
+                        )
+                    ],
+                    visible_block_extensions=[],
+                    visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+                    variance_target_block="blk_fb15f8dcf23f4865",
+                    max_extension_items=2,
+                )
+            ]
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -1519,90 +1545,93 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
     """Verify that ConfigurationError is raised when custom scale lacks bounds."""
     mock_repo_transformer.set_execution(
         ExecutionRecord(
-        id="exe_0000000000000099",
-        workflow_id="wf_1234abcd1234abcd",
-        status=ExecutionStatus.PASSED,
-        output_profile_id="prf_dddd1111dddd1111",
-        execution_trace=[
-            TraceEvent(
-                step_name="step_1",
-                event_type="output",
-                content={
-                    "blk_0000000000000002": {
-                        "raw_score": 4.0,
-                    }
-                },
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="fi",
-    ))
+            id="exe_0000000000000099",
+            workflow_id="wf_1234abcd1234abcd",
+            status=ExecutionStatus.PASSED,
+            output_profile_id="prf_dddd1111dddd1111",
+            execution_trace=[
+                TraceEvent(
+                    step_name="step_1",
+                    event_type="output",
+                    content={
+                        "blk_0000000000000002": {
+                            "raw_score": 4.0,
+                        }
+                    },
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="fi",
+        )
+    )
 
     mock_repo_transformer.set_prompt_blocks(
         fix_mock_dict(
-        [
-            {
-                "id": "blk_0000000000000002",
-                "slug": "matrix_test",
-                "description": {"translations": {"en": "Desc"}},
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "label": {"translations": {"en": "Label"}},
-                "computed_min": 0,
-                "computed_max": 5,
-                # Intentionally omitting scale_min and scale_max
-                "scales": [
-                    {
-                        "score": 0,
-                        "name": {"translations": {"en": "Zero"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "Claim"}},
-                                "ai_description": "test",
-                            }
-                        ],
-                    },
-                    {
-                        "score": 5,
-                        "name": {"translations": {"en": "Five"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "Claim"}},
-                                "ai_description": "test",
-                            }
-                        ],
-                    },
-                ],
-            }
-        ]
-    ))
+            [
+                {
+                    "id": "blk_0000000000000002",
+                    "slug": "matrix_test",
+                    "description": {"translations": {"en": "Desc"}},
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "label": {"translations": {"en": "Label"}},
+                    "computed_min": 0,
+                    "computed_max": 5,
+                    # Intentionally omitting scale_min and scale_max
+                    "scales": [
+                        {
+                            "score": 0,
+                            "name": {"translations": {"en": "Zero"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "Claim"}},
+                                    "ai_description": "test",
+                                }
+                            ],
+                        },
+                        {
+                            "score": 5,
+                            "name": {"translations": {"en": "Five"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "Claim"}},
+                                    "ai_description": "test",
+                                }
+                            ],
+                        },
+                    ],
+                }
+            ]
+        )
+    )
 
     mock_repo_transformer.set_output_profiles(
         fix_mock_dict(
-        [
-            OutputProfile.model_construct(
-                id="prf_dddd1111dddd1111",
-                slug="default",
-                workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(translations={"en": "Default"}),
-                display_scale=DisplayScale.CUSTOM,
-                custom_scale_min=None,
-                custom_scale_max=None,
-                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                matrix_synthesis_groups=[
-                    MatrixSynthesisGroup(
-                        id="grp_0000000000000001",
-                        title=I18nText(translations={"en": "Default"}),
-                        target_blocks=["*"],
-                    )
-                ],
-                visible_block_extensions=[],
-                visible_workflow_extensions=[],
-                max_extension_items=2,
-            )
-        ]
-    ))
+            [
+                OutputProfile.model_construct(
+                    id="prf_dddd1111dddd1111",
+                    slug="default",
+                    workflow_id="wf_1234abcd1234abcd",
+                    name=I18nText(translations={"en": "Default"}),
+                    display_scale=DisplayScale.CUSTOM,
+                    custom_scale_min=None,
+                    custom_scale_max=None,
+                    target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                    matrix_synthesis_groups=[
+                        MatrixSynthesisGroup(
+                            id="grp_0000000000000001",
+                            title=I18nText(translations={"en": "Default"}),
+                            target_blocks=["*"],
+                        )
+                    ],
+                    visible_block_extensions=[],
+                    visible_workflow_extensions=[],
+                    max_extension_items=2,
+                )
+            ]
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2023,59 +2052,63 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
     )
     mock_repo_transformer.set_execution(exec_rec)
 
-    mock_repo_transformer.set_prompt_blocks(fix_mock_dict(
-        [
-            {
-                "id": "blk_1234abcd1234abcd",
-                "slug": "matrix_test",
-                "description": {"translations": {"en": "Desc"}},
-                "category_id": "matrix",
-                "type": "float",
-                "is_evaluative": True,
-                "label": {"translations": {"en": "Label"}},
-                "computed_min": 0,
-                "computed_max": 100,
-                "scales": [
-                    {
-                        "score": 100,
-                        "name": {"translations": {"en": "Full"}},
-                        "claims": [
-                            {
-                                "label": {"translations": {"en": "claim"}},
-                                "ai_description": "desc",
-                            }
-                        ],
-                    }
-                ],
-            }
-        ]
-    ))
+    mock_repo_transformer.set_prompt_blocks(
+        fix_mock_dict(
+            [
+                {
+                    "id": "blk_1234abcd1234abcd",
+                    "slug": "matrix_test",
+                    "description": {"translations": {"en": "Desc"}},
+                    "category_id": "matrix",
+                    "type": "float",
+                    "is_evaluative": True,
+                    "label": {"translations": {"en": "Label"}},
+                    "computed_min": 0,
+                    "computed_max": 100,
+                    "scales": [
+                        {
+                            "score": 100,
+                            "name": {"translations": {"en": "Full"}},
+                            "claims": [
+                                {
+                                    "label": {"translations": {"en": "claim"}},
+                                    "ai_description": "desc",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        )
+    )
 
     from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
-    mock_repo_transformer.set_output_profiles(fix_mock_dict(
-        [
-            OutputProfile.model_construct(
-                id="prf_dddd1111dddd1111",
-                slug="default",
-                workflow_id="wf_1234abcd1234abcd",
-                name=I18nText(translations={"en": "Default"}),
-                display_scale=DisplayScale.NORMALIZED_100,
-                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
-                matrix_synthesis_groups=[
-                    MatrixSynthesisGroup(
-                        id="grp_0000000000000001",
-                        title=I18nText(translations={"en": "Default"}),
-                        target_blocks=["*"],
-                    )
-                ],
-                visible_block_extensions=[],
-                visible_workflow_extensions=[],
-                max_extension_items=2,
-            )
-        ]
-    ))
+    mock_repo_transformer.set_output_profiles(
+        fix_mock_dict(
+            [
+                OutputProfile.model_construct(
+                    id="prf_dddd1111dddd1111",
+                    slug="default",
+                    workflow_id="wf_1234abcd1234abcd",
+                    name=I18nText(translations={"en": "Default"}),
+                    display_scale=DisplayScale.NORMALIZED_100,
+                    target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                    matrix_synthesis_groups=[
+                        MatrixSynthesisGroup(
+                            id="grp_0000000000000001",
+                            title=I18nText(translations={"en": "Default"}),
+                            target_blocks=["*"],
+                        )
+                    ],
+                    visible_block_extensions=[],
+                    visible_workflow_extensions=[],
+                    max_extension_items=2,
+                )
+            ]
+        )
+    )
 
     from backend_v2.services.blueprint import BlueprintTransformer
 
@@ -2182,15 +2215,16 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
     mock_repo_transformer.set_execution(mock_exec)
     mock_repo_transformer.set_user(
         User(
-        id="usr_0123456789abcdef",
-        email="admin@example.com",
-        name="Test User",
-        role=UserRole.ADMIN,
-        is_active=True,
-        language="fi",
-        theme_mode="system",
-        created_at=datetime.now(timezone.utc),
-    ))
+            id="usr_0123456789abcdef",
+            email="admin@example.com",
+            name="Test User",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="fi",
+            theme_mode="system",
+            created_at=datetime.now(timezone.utc),
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2249,15 +2283,16 @@ async def test_blueprint_transformer_invalid_target_block_type_raises_app_except
     mock_repo_transformer.set_execution(mock_exec)
     mock_repo_transformer.set_user(
         User(
-        id="usr_0123456789abcdef",
-        email="admin@example.com",
-        name="Test User",
-        role=UserRole.ADMIN,
-        is_active=True,
-        language="fi",
-        theme_mode="system",
-        created_at=datetime.now(timezone.utc),
-    ))
+            id="usr_0123456789abcdef",
+            email="admin@example.com",
+            name="Test User",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="fi",
+            theme_mode="system",
+            created_at=datetime.now(timezone.utc),
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2946,18 +2981,20 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     mock_repo_transformer.set_output_profiles([profile])
     mock_repo_transformer.set_workflow(wf)
     mock_repo_transformer.set_execution(exec_record)
-    mock_repo_transformer.set_mcp_gateways({
-        "id": "sys_8172bda70c8641c5",
-        "type": "mcp_gateways",
-        "tools": [
-            {
-                "tool_id": "mcp_tavily_search",
-                "name": {"translations": {"fi": "Tavily AI -haku", "en": "Tavily AI Search"}},
-                "description": "Web search via Tavily",
-                "input_schema": {},
-            }
-        ],
-    })
+    mock_repo_transformer.set_mcp_gateways(
+        {
+            "id": "sys_8172bda70c8641c5",
+            "type": "mcp_gateways",
+            "tools": [
+                {
+                    "tool_id": "mcp_tavily_search",
+                    "name": {"translations": {"fi": "Tavily AI -haku", "en": "Tavily AI Search"}},
+                    "description": "Web search via Tavily",
+                    "input_schema": {},
+                }
+            ],
+        }
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -3482,15 +3519,17 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
 
     # 1. MCP Gateway invalid config error branch
     mock_repo_transformer.set_mcp_gateways({"invalid_key": "not_a_valid_gateway"})
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000001",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        execution_trace=[],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000001",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            execution_trace=[],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000001")
     assert "Failed to parse MCP gateway config" in str(exc_info.value)
@@ -3498,66 +3537,72 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     # Reset valid gateway
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
-    mock_repo_transformer.set_mcp_gateways(SystemConfigMCPGateways(
-        id="sys_0000000000000001", type="mcp_gateways", tools=[]
-    ))
+    mock_repo_transformer.set_mcp_gateways(
+        SystemConfigMCPGateways(id="sys_0000000000000001", type="mcp_gateways", tools=[])
+    )
 
     # 2. Corrupt scoring payload in results
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000002",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="scoring_step",
-                event_type="output",
-                content={"scoring_result": "invalid_not_a_dict"},
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000002",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="scoring_step",
+                    event_type="output",
+                    content={"scoring_result": "invalid_not_a_dict"},
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000002")
     assert "Failed to parse TraceScoringPayloadDTO" in str(exc_info.value)
 
     # 3. Corrupt evidence override in execution trace
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000003",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="override_step",
-                event_type="evidence_override",
-                content={"invalid_override": "corrupted"},
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000003",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="override_step",
+                    event_type="evidence_override",
+                    content={"invalid_override": "corrupted"},
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000003")
     assert "Failed to parse EvidenceOverrideDTO" in str(exc_info.value)
 
     # 4. Corrupt AtomResultDTO in results
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000004",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="atom_step",
-                event_type="output",
-                content={"results": [{"invalid_atom": "corrupted"}]},
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000004",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="atom_step",
+                    event_type="output",
+                    content={"results": [{"invalid_atom": "corrupted"}]},
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000004")
     assert "Failed to parse AtomResultDTO list" in str(exc_info.value) or "Invalid step output payload" in str(
@@ -3565,21 +3610,23 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
 
     # 5. Corrupt hydrated_references in results
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000005",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        execution_trace=[
-            TraceEvent(
-                step_name="ref_step",
-                event_type="output",
-                content={"hydrated_references": {"ref_1": {"invalid_key": "bad"}}},
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000005",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            execution_trace=[
+                TraceEvent(
+                    step_name="ref_step",
+                    event_type="output",
+                    content={"hydrated_references": {"ref_1": {"invalid_key": "bad"}}},
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000005")
     assert "Failed to parse HydratedAtomDTO" in str(exc_info.value) or "Invalid step output payload" in str(
@@ -3587,25 +3634,27 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
 
     # 6. Corrupt TraceEventMetadataEnvelope in trace
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000006",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        prompt_tokens=0,
-        completion_tokens=0,
-        reasoning_tokens=0,
-        dag_cost_usd=0.0,
-        execution_trace=[
-            TraceEvent(
-                step_name="meta_step",
-                event_type="output",
-                content={"step_metadata": {"token_usage": "not_valid"}},
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000006",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            prompt_tokens=0,
+            completion_tokens=0,
+            reasoning_tokens=0,
+            dag_cost_usd=0.0,
+            execution_trace=[
+                TraceEvent(
+                    step_name="meta_step",
+                    event_type="output",
+                    content={"step_metadata": {"token_usage": "not_valid"}},
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+        )
+    )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000006")
     assert "Corrupted TraceEventMetadataEnvelope" in str(exc_info.value)
@@ -3620,28 +3669,30 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
         resolved_claim="Claim text",
         source_quote="Quote text",
     )
-    mock_repo_transformer.set_execution(ExecutionRecord(
-        id="exe_0000000000000007",
-        workflow_id=wf.id,
-        output_profile_id=profile.id,
-        status=ExecutionStatus.PASSED,
-        prompt_tokens=10,
-        completion_tokens=5,
-        reasoning_tokens=2,
-        dag_cost_usd=0.01,
-        execution_trace=[
-            TraceEvent(
-                step_name="ref_step",
-                event_type="output",
-                content={
-                    "hydrated_references": {"ref_1": hydrated_dto},
-                },
-            )
-        ],
-        metadata=ExecutionMetadata(),
-        target_locale="en",
-        profile_syntheses={profile.id: cache},
-    ))
+    mock_repo_transformer.set_execution(
+        ExecutionRecord(
+            id="exe_0000000000000007",
+            workflow_id=wf.id,
+            output_profile_id=profile.id,
+            status=ExecutionStatus.PASSED,
+            prompt_tokens=10,
+            completion_tokens=5,
+            reasoning_tokens=2,
+            dag_cost_usd=0.01,
+            execution_trace=[
+                TraceEvent(
+                    step_name="ref_step",
+                    event_type="output",
+                    content={
+                        "hydrated_references": {"ref_1": hydrated_dto},
+                    },
+                )
+            ],
+            metadata=ExecutionMetadata(),
+            target_locale="en",
+            profile_syntheses={profile.id: cache},
+        )
+    )
     report = await transformer.build_report_dto(
         "exe_0000000000000007",
         custom_preface_md="# Custom Preface",
@@ -3696,20 +3747,20 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     repo.set_output_profiles([profile])
     repo.set_workflow(wf)
     repo.set_prompt_blocks([])
-    repo.set_mcp_gateways(SystemConfigMCPGateways(
-        id="sys_0000000000000001", type="mcp_gateways", tools=[]
-    ))
-    repo.set_organization(Organization(
-        id="org_0000000000000001",
-        slug="test-org",
-        name="Test Org Inc",
-        is_active=True,
-        tier="pro",
-        subscription_status=SubscriptionStatus.ACTIVE,
-        quota_limit=1000.0,
-        tpm_limit=10000,
-        rpm_limit=100,
-    ))
+    repo.set_mcp_gateways(SystemConfigMCPGateways(id="sys_0000000000000001", type="mcp_gateways", tools=[]))
+    repo.set_organization(
+        Organization(
+            id="org_0000000000000001",
+            slug="test-org",
+            name="Test Org Inc",
+            is_active=True,
+            tier="pro",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=1000.0,
+            tpm_limit=10000,
+            rpm_limit=100,
+        )
+    )
 
     transformer = BlueprintTransformer(
         exec_repo=repo,

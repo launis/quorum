@@ -257,4 +257,3 @@ async def test_check_resumability_missing_step_in_step_states_returns_false() ->
     record = _create_record(step_states={})
     is_res = await service.check_resumability(record)
     assert is_res is False
-

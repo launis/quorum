@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, Mock, call, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -411,9 +411,7 @@ async def test_render_execution_flat() -> None:
     arq_pool = AsyncMock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec = _make_test_record(
-        id="exe_0123456789abcdef", workflow_id="wf_1", organization_id="org_1", created_by="u2"
-    )
+    rec = _make_test_record(id="exe_0123456789abcdef", workflow_id="wf_1", organization_id="org_1", created_by="u2")
     repo.set_execution(rec)
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")

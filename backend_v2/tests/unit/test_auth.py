@@ -170,7 +170,9 @@ async def test_auth_service_verify_token_mock(mock_repo: InMemoryUnifiedWorkflow
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_mock_forbidden_in_production(mock_repo: InMemoryUnifiedWorkflowRepository, monkeypatch: Any) -> None:
+async def test_auth_service_verify_token_mock_forbidden_in_production(
+    mock_repo: InMemoryUnifiedWorkflowRepository, monkeypatch: Any
+) -> None:
     from backend_v2.exceptions import AuthenticationError
     from backend_v2.settings import Settings
 
@@ -304,9 +306,7 @@ async def test_auth_router_get_my_profile(mock_repo: InMemoryUnifiedWorkflowRepo
         created_at="2026-01-01T00:00:00Z",
     )
     await mock_repo.create_user(mock_user)
-    user = await get_my_profile(
-        current_user=TokenData(id="usr_12345678", role=UserRole.MEMBER), auth_service=service
-    )
+    user = await get_my_profile(current_user=TokenData(id="usr_12345678", role=UserRole.MEMBER), auth_service=service)
     assert user == mock_user
 
 

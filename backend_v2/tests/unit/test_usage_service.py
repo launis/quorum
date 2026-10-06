@@ -48,9 +48,7 @@ async def test_check_quota_system_root(
 
 
 @pytest.mark.asyncio
-async def test_check_quota_pass(
-    usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository
-) -> None:
+async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     org = Organization(
         id="org_1234abcd",
         name="Test Org",
@@ -70,9 +68,7 @@ async def test_check_quota_pass(
 
 
 @pytest.mark.asyncio
-async def test_check_quota_exceed(
-    usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository
-) -> None:
+async def test_check_quota_exceed(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     org = Organization(
         id="org_1234abcd",
         name="Test Org",
@@ -132,4 +128,3 @@ async def test_get_usage_report_with_aggregate(
     assert report.usage.total_tokens == 300
     assert report.percentage_used == 5.0  # 0.5 / 10.0 * 100
     assert fake_repo.get_call_count("get_usage_aggregate") > 0
-
