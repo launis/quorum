@@ -5,7 +5,6 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
@@ -95,37 +94,39 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
-        Workflow.model_validate({
-            "id": wf_id,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "slug": "test-wf",
-            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
-            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof_123",
-            "expected_inputs": [
-                {
-                    "input_key": "QUESTIONNAIRE",
-                    "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
-                    "description": {"translations": {"en": "Form input", "fi": "Form input"}},
-                    "input_modes": ["text"],
-                    "required": True,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this form.",
-                },
-                {
-                    "input_key": "DOCUMENT_TEXT",
-                    "label": {"translations": {"en": "Doc", "fi": "Dokkari"}},
-                    "description": {"translations": {"en": "Doc input", "fi": "Doc input"}},
-                    "input_modes": ["text"],
-                    "required": False,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this text.",
-                },
-            ],
-        })
+        Workflow.model_validate(
+            {
+                "id": wf_id,
+                "historical_context_mode": "DISABLED",
+                "model_registry_id": "cfg_model_registry_01",
+                "slug": "test-wf",
+                "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+                "status": "draft",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "expected_inputs": [
+                    {
+                        "input_key": "QUESTIONNAIRE",
+                        "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
+                        "description": {"translations": {"en": "Form input", "fi": "Form input"}},
+                        "input_modes": ["text"],
+                        "required": True,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze this form.",
+                    },
+                    {
+                        "input_key": "DOCUMENT_TEXT",
+                        "label": {"translations": {"en": "Doc", "fi": "Dokkari"}},
+                        "description": {"translations": {"en": "Doc input", "fi": "Doc input"}},
+                        "input_modes": ["text"],
+                        "required": False,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze this text.",
+                    },
+                ],
+            }
+        )
     )
 
     deps = HookDependencies(
@@ -191,28 +192,30 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
 
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
-        Workflow.model_validate({
-            "id": wf_id,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "slug": "test-wf",
-            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
-            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof_123",
-            "expected_inputs": [
-                {
-                    "input_key": "QUESTIONNAIRE",
-                    "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
-                    "description": {"translations": {"en": "Form input", "fi": "Form input"}},
-                    "input_modes": ["text"],
-                    "required": True,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this form.",
-                },
-            ],
-        })
+        Workflow.model_validate(
+            {
+                "id": wf_id,
+                "historical_context_mode": "DISABLED",
+                "model_registry_id": "cfg_model_registry_01",
+                "slug": "test-wf",
+                "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+                "status": "draft",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "expected_inputs": [
+                    {
+                        "input_key": "QUESTIONNAIRE",
+                        "label": {"translations": {"en": "My Form", "fi": "Lomake"}},
+                        "description": {"translations": {"en": "Form input", "fi": "Form input"}},
+                        "input_modes": ["text"],
+                        "required": True,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze this form.",
+                    },
+                ],
+            }
+        )
     )
 
     deps = HookDependencies(
@@ -249,30 +252,32 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
 
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
-        Workflow.model_validate({
-            "id": wf_id,
-            "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
-            "slug": "test-wf-features",
-            "name": {"translations": {"en": "WF", "fi": "WF"}},
-            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "prof_123",
-            "enable_semantic_smoothing": True,
-            "enable_eager_anonymization": True,
-            "expected_inputs": [
-                {
-                    "input_key": "DOCUMENT_TEXT",
-                    "label": {"translations": {"en": "Doc", "fi": "Doc"}},
-                    "description": {"translations": {"en": "Doc", "fi": "Doc"}},
-                    "input_modes": ["text"],
-                    "required": True,
-                    "is_chat_history": False,
-                    "ai_description": "Analyze this text.",
-                }
-            ],
-        })
+        Workflow.model_validate(
+            {
+                "id": wf_id,
+                "historical_context_mode": "DISABLED",
+                "model_registry_id": "cfg_model_registry_01",
+                "slug": "test-wf-features",
+                "name": {"translations": {"en": "WF", "fi": "WF"}},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+                "status": "draft",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "enable_semantic_smoothing": True,
+                "enable_eager_anonymization": True,
+                "expected_inputs": [
+                    {
+                        "input_key": "DOCUMENT_TEXT",
+                        "label": {"translations": {"en": "Doc", "fi": "Doc"}},
+                        "description": {"translations": {"en": "Doc", "fi": "Doc"}},
+                        "input_modes": ["text"],
+                        "required": True,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze this text.",
+                    }
+                ],
+            }
+        )
     )
 
     deps = HookDependencies(

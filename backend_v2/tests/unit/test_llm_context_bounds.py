@@ -83,21 +83,23 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     typed_block = PromptBlockAdapter.validate_python(raw_prompt_block)
     repo._prompt_blocks._save_isolated(typed_block.id, typed_block)
 
-    profile = OutputProfile.model_validate({
-        "id": "prof_0000000000000000",
-        "slug": "test_profile",
-        "workflow_id": "wf_0000000000000000",
-        "name": {"translations": {"en": "Test Profile"}},
-        "visible_block_extensions": [],
-        "visible_workflow_extensions": [],
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-    })
+    profile = OutputProfile.model_validate(
+        {
+            "id": "prof_0000000000000000",
+            "slug": "test_profile",
+            "workflow_id": "wf_0000000000000000",
+            "name": {"translations": {"en": "Test Profile"}},
+            "visible_block_extensions": [],
+            "visible_workflow_extensions": [],
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_0000000000000001",
+                    "title": {"translations": {"en": "Default"}},
+                    "target_blocks": ["*"],
+                }
+            ],
+        }
+    )
     repo._output_profiles._save_isolated(profile.id, profile)
 
     wf = _create_workflow()

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
