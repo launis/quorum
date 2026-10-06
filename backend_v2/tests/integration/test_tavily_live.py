@@ -6,7 +6,9 @@ and full pipeline execution across TavilyClient, MCP Tool Loop, and SourceVerifi
 
 import _socket
 import socket
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
+
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 import pytest
 
@@ -113,14 +115,15 @@ async def test_live_source_verification_hook_pipeline() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
+    fake_repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        comp_repo=fake_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
+        identity_repo=fake_repo,
+        audit_repo=fake_repo,
         system_repo=system_repo,
     )
 
