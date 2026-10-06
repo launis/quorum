@@ -60,15 +60,15 @@
 **Plan:** @[docs/epic/tasks_EPIC_157/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=3`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
   - [x] Step 3.0: Strategic Alignment & Persistence Census Probe
   - [x] Step 3.1: AsyncMock Fixtures & Import-Only Target Modernization
-  - [ ] Step 3.2: Ad-Hoc Repository Classes & Cast(Any) Eradication (Census K & X)
-  - [ ] Step 3.3: Hook Persistence Emulation-Fake Migration (Census A & B)
-  - [ ] Step 3.4: LLM Client & Handler Persistence Migration (Census A)
-  - [ ] Step 3.5: Keyword-Injected Repository Mocks Eradication (Census D)
-  - [ ] Step 3.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 3.2: Ad-Hoc Repository Classes & Cast(Any) Eradication (Census K & X)
+  - [x] Step 3.3: Hook Persistence Emulation-Fake Migration (Census A & B)
+  - [x] Step 3.4: LLM Client & Handler Persistence Migration (Census A)
+  - [x] Step 3.5: Keyword-Injected Repository Mocks Eradication (Census D)
+  - [x] Step 3.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 3 test contracts across 30 Hook and LLM test files, strict >=90% TDD unit test coverage (global 97.75%, 5,091 passed), zero AST violations, Census A=0, B=0, C=0, I=0, D=0, K=0, X=0, and 10/10 backend audit stages with exit code 0.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 4: Test Persistence Migration — Services, Studio, Execution & Database
@@ -281,6 +281,11 @@
 | Core Engine Context Refactoring (No-Dict Invariant) | services/orchestrator/dag_executor.py, services/orchestrator/context_router.py, services/orchestrator/two_pass_atomizer.py | Phase 2, Step 4 | test_context_router.py, test_two_pass_atomizer.py | [OK] |
 | Ingress Service & Strategy Typings | services/execution/ingress_service.py, services/execution/lifecycle_service.py, services/mcp/tavily_search_client.py | Phase 2, Step 5 | test_ingress_service.py, test_tavily_search_client.py | [OK] |
 | Phase 2 Unit & Integration Test Coverage | backend_v2/tests/unit/core/, tests/unit/hooks/, tests/unit/llm/, tests/integration/ | Phase 2, Step 6 | Global backend audit loop passes | [OK] |
+| Hook Persistence Emulation-Fake Migration | backend_v2/tests/unit/hooks/test_archival.py, test_atom_flattening.py, test_atom_sampling_determinism.py, test_integrity.py, test_matrix_hook.py, test_passivity_hook.py | Phase 3, Step 3 | Census A=0, B=0, localized pytest passes | [OK] |
+| LLM Client & Handler Persistence Migration | backend_v2/tests/unit/llm/test_client.py, test_llm_client_tiers.py, test_handler.py, test_llm_context_bounds.py | Phase 3, Step 4 | Census A=0, I=0, localized pytest passes | [OK] |
+| Ad-Hoc Repository Classes & Cast(Any) Eradication | backend_v2/tests/unit/hooks/test_scoring.py, test_input_processing.py, test_dlq_guard.py, test_metadata.py, test_references.py, test_security.py | Phase 3, Step 2 | Census K=0, X=0, localized pytest passes | [OK] |
+| Keyword-Injected Repository Mocks Eradication | backend_v2/tests/unit/hooks/test_validation.py, test_source_verification_hook.py, test_linguistics.py, test_metadata.py, test_metrics.py, test_references.py, test_synthesis_distiller_hook.py, test_hook_registry.py, test_google_providers_separation.py | Phase 3, Step 5 | Census D=0, localized pytest passes | [OK] |
+| Phase 3 Test Persistence Migration Quality Gates | 30 Hook and LLM test files across backend_v2/tests/unit/ | Phase 3, Step 6 | Global backend audit loop & SDUI parity pass | [OK] |
 
 ---
 
@@ -299,36 +304,24 @@
   - Consolidated parallel matrix hook accumulator maps into `MatrixAggregationStateDTO` and eliminated `judge_model: dict[str, Any]` in `passivity_hook.py`.
   - Defined `LinguisticAnalysisDTO` in `hooks/linguistics.py` and retyped source verification payloads.
   - Strongly typed dynamic Pydantic model fields in `core/registry.py` and `schema_builder.py` via `DynamicFieldDefinition`, retyped `MOCK_REGISTRY` to `dict[type[BaseModel], BaseModel]`, and retyped `get_fallback_data` / `parse_llm_output` to `dict[str, JsonValue]`.
-- Completed Tier 8 System 2 Post-Implementation Red Team Audit (`red_team_audit_02_phase2_plan.md`):
-  - Verified 100% contract adherence across all 6 execution steps and 9 DoD checklist items.
-  - Verified 10/10 Universal Quality Gate stages passed cleanly with 5,087 passing tests, 97.75% coverage, 0 AST violations, and 0 MyPy issues across 354 source files.
-  - Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passed cleanly in 44.56s.
-  - Phase 2 is formally signed off.
-- Completed Tier 0 System 2 Research & Red-Teaming for Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`):
-  - Verified baseline census probe counts mathematically across the 30 target files: A=87, B=13, C=0, I=12, D=379, K=25, X=792.
-  - Discovered critical active fake instantiation in `test_structured_retry.py#L35-L37` and `test_cdata_hardening_comprehensive.py#L171`, correcting the plan from "unused import deletion" to typed replacement with `InMemoryUnifiedWorkflowRepository`.
-  - Verified exact line bounds for AsyncMock repository fixtures in `test_epic66_multi_provider.py#L12-L14`, `test_handler.py#L31-L34`, and `hooks/test_interaction_hook.py#L24-L26`.
-  - Confirmed `InMemoryUnifiedWorkflowRepository` implements all 15 database protocols natively and satisfies all 8 slots in `HookDependencies`.
-  - Enriched fault injection protocol for `test_matrix_hook.py` using `BaseInMemoryRepository.inject_fault()` and `async with repo.fault_context():`.
-  - Verified 100% pass on `scripts/audit_markdown_boundaries.py` with zero MBD001-MBD009 violations.
+- Successfully implemented and verified Phase 3:
+  - Step 3.0: Baseline census probe completed (A=87, B=13, C=0, I=12, D=379, K=25, X=792).
+  - Step 3.1: Modernized AsyncMock fixtures and repository fakes across `test_epic66_multi_provider.py`, `test_handler.py`, `hooks/test_interaction_hook.py`, `test_structured_retry.py`, and `test_cdata_hardening_comprehensive.py`.
+  - Step 3.2: Completely eradicated all 25 ad-hoc repository classes (Census K) and all 792 `cast(Any, ...)` bypasses (Census X) across `test_scoring.py`, `hooks/test_input_processing.py`, `test_input_processing.py`, `hooks/test_dlq_guard.py`, `hooks/test_metadata.py`, `hooks/test_references.py`, and `hooks/test_security.py`.
+  - Step 3.3: Migrated hook persistence emulation fakes (Census A & B) across `test_archival.py`, `test_atom_flattening.py`, `test_atom_sampling_determinism.py`, `test_integrity.py`, `test_matrix_hook.py`, and `test_passivity_hook.py`.
+  - Step 3.4: Migrated LLM client and handler persistence (Census A & I) across `test_client.py`, `test_llm_client_tiers.py`, `test_handler.py`, and `test_llm_context_bounds.py`.
+  - Step 3.5: Completely eradicated all 379 keyword-injected repository mocks (Census D) across `test_hook_registry.py`, `test_synthesis_distiller_hook.py`, `test_metadata.py`, `test_validation.py`, `test_google_providers_separation.py`, `test_references.py`, `test_metrics.py`, `test_linguistics.py`, and `test_source_verification_hook.py`.
+  - Step 3.6: Verified zero residual census matches on all 30 target files: A=0, B=0, C=0, I=0, D=0, K=0, X=0 (100% eradicated). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,091 passing tests, 97.75% coverage, zero AST violations, and clean SDUI semantic parity (`test_sdui_semantic_parity.py`). Ratcheted residual debt ceilings down to new repo-wide lows (d=442, k=0, x=14, t=406, p=362).
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
-- Phase 1 and Phase 2 establish the physical boundary SSOT, domain model field typings, system exception contracts, and hook/LLM typing covenants.
-- Retyping `AppException.details` to `dict[str, JsonValue] | None` locks RFC 7807 serialization at the network boundary, preventing arbitrary non-serializable objects from entering Starlette response serialization.
-- In `input_processing.py`, raw `ValidationError.errors()` contains non-JSON context objects; sanitizing them into primitive string dictionaries (`loc`, `msg`, `type`) guarantees JSON safety.
-- Establishing `CachingPayloadResultDTO` as an immutable Pydantic V2 contract owned by `BaseLLMAdapter.prepare_caching_payload` completely eradicates anonymous tuple state transit and positional type blindness across caching workflows.
-- Unifying parallel block-level nested dictionary accumulators into a single `MatrixAggregationStateDTO` eliminates Primitive Obsession while preserving strict `extra="forbid"` integrity.
-- In `backend_v2/models/llm.py`, `LLMMessageDTO.content: str | list[dict[str, JsonValue]]` was introduced for Anthropic structured caching blocks; while `models/llm.py` is exempt for Metric 11 (Open-JSON), Metric 2 flags `list[dict[...]]`. A dedicated `StructuredContentBlockDTO` should be defined in a future phase to achieve zero nested dict annotations.
-- Phase 3 persistence census probe verified exact occurrence counts across the 30 hook and LLM test files: 87 Census A assignments, 13 Census B attribute replacements, 0 Census C object patches, 12 Census I fake imports, 379 Census D keyword-injected mocks, 25 Census K ad-hoc classes, and 792 Census X dynamic casts.
-- Replacing ad-hoc repository classes in `test_scoring.py`, `test_input_processing.py`, `test_dlq_guard.py`, `test_metadata.py`, `test_references.py`, and `test_security.py` with typed `InMemoryUnifiedWorkflowRepository` / `InMemorySystemRepository` fakes naturally eliminates all 792 `cast(Any, ...)` bypasses.
-- Red-team analysis revealed that `test_structured_retry.py` and `test_cdata_hardening_comprehensive.py` actively instantiate `InMemoryBlueprintTransformerRepository` rather than merely importing it; treating them as "unused import removal" would have broken tests with `NameError`. They must be migrated to `InMemoryUnifiedWorkflowRepository`.
-- `BaseInMemoryRepository` natively provides `inject_fault(method_name, exception, trigger_count)` and `async with fault_context(...)`, which provides a 100% typed, deterministic alternative to monkeypatching `.side_effect` or overwriting methods with `AsyncMock`.
+- In `BaseInMemoryRepository`, `self._clone(item)` provides Rust-accelerated validation/dumping for Pydantic models while safely handling `dict` instances via deep copy for negative configuration error test fixtures.
+- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently.
+- Never add `# type: ignore` comments in test files (specifically: `test_source_verification_hook.py`); instead construct valid typed inputs (specifically: `ExecutionInputsDTO(raw_inputs={...}, target_locale="fi")`) to protect the Census T ceiling.
 
 ## Remaining
-- Execute Phase 3: `/tier2-execute @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
 - Audit Phase 3: `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - Plan, Research, Execute & Audit Phases 4 through 13.
 
 ## Resume Command
-/tier2-execute @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]
