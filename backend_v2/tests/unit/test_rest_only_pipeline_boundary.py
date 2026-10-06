@@ -152,11 +152,11 @@ async def test_execution_worker_zero_report_side_effects() -> None:
         steps=[],
     )
 
-    from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    fake_repo.get_workflow.return_value = mock_workflow
-    fake_repo.get_execution.return_value = mock_record
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    await fake_repo.save_workflow(mock_workflow)
+    await fake_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -181,10 +181,10 @@ async def test_execution_worker_zero_report_side_effects() -> None:
     # Invariant: Redis enqueue_job was never called
     if "enqueue_job" in dir(mock_redis):
         assert not mock_redis.enqueue_job.called
-    # Invariant: update_execution was called with status=PASSED
-    update_call = fake_repo.update_execution.call_args
-    assert update_call is not None
-    assert update_call[0][1].status == ExecutionStatus.PASSED
+    # Invariant: execution was updated with status=PASSED
+    saved_exec = await fake_repo.get_execution("exe_0123456789abcdef")
+    assert saved_exec is not None
+    assert saved_exec.status == ExecutionStatus.PASSED
 
 
 # ---------------------------------------------------------------------------

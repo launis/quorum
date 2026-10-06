@@ -1,6 +1,7 @@
 """Unit tests for execution worker enforcing Tripartite Phase 1 Sovereignty and ISTQB boundaries."""
 
 import asyncio
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,7 +14,7 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.execution_worker import execute_workflow_job
 
 
@@ -56,9 +57,9 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record()
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -77,14 +78,12 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
     )
 
     assert result.status == "COMPLETED"
-    assert mock_repo.update_execution.called
-    update_call = mock_repo.update_execution.call_args
-    update_dto = update_call[0][1]
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
+    assert updated_rec.completed_at is not None
 
-    assert update_dto.status == ExecutionStatus.PASSED
-    assert update_dto.completed_at is not None
-
-    step_ids = [s.id for s in update_dto.steps]
+    step_ids = [s.id for s in updated_rec.steps]
     for s_id in step_ids:
         assert not s_id.startswith("sys_render"), f"Found synthetic render step: {s_id}"
 
@@ -95,9 +94,9 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     mock_workflow = _create_mock_workflow(strictness=50)
     mock_record = _create_mock_record()
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -117,6 +116,9 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     )
 
     assert result.status == "COMPLETED"
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
     assert "enqueue_job" not in dir(mock_redis) or not mock_redis.enqueue_job.called
 
 
@@ -124,9 +126,8 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
 async def test_execution_worker_missing_workflow_raises() -> None:
     """Verify missing workflow routes to DLQ and returns failure."""
     mock_record = _create_mock_record()
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = None
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(mock_record)
 
     ctx = {
         "repository": mock_repo,
@@ -140,16 +141,17 @@ async def test_execution_worker_missing_workflow_raises() -> None:
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
 async def test_execution_worker_missing_execution_raises() -> None:
     """Verify missing execution in DB routes to DLQ and returns failure."""
     mock_workflow = _create_mock_workflow()
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = None
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
 
     ctx = {
         "repository": mock_repo,
@@ -163,7 +165,7 @@ async def test_execution_worker_missing_execution_raises() -> None:
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
+    assert (await mock_repo.get_execution("exe_0123456789abcdef")) is None
 
 
 @pytest.mark.asyncio
@@ -172,9 +174,9 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record(target_locale="")
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     ctx = {
         "repository": mock_repo,
@@ -188,7 +190,9 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -249,9 +253,9 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
         }
     )
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -272,14 +276,16 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
     )
 
     assert result.status == "COMPLETED"
-    update_call = mock_repo.update_execution.call_args[0][1]
-    assert update_call.prompt_tokens == 100
-    assert update_call.completion_tokens == 50
-    assert update_call.cached_tokens == 25
-    assert update_call.reasoning_tokens == 10
-    assert update_call.dag_cost_usd == 0.005
-    assert update_call.execution_summary.is_degraded is True
-    assert update_call.execution_summary.is_ensemble_run is True
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.prompt_tokens == 100
+    assert updated_rec.completion_tokens == 50
+    assert updated_rec.cached_tokens == 25
+    assert updated_rec.reasoning_tokens == 10
+    assert updated_rec.dag_cost_usd == 0.005
+    assert updated_rec.execution_summary is not None
+    assert updated_rec.execution_summary.is_degraded is True
+    assert updated_rec.execution_summary.is_ensemble_run is True
 
 
 @pytest.mark.asyncio
@@ -316,9 +322,9 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
         }
     )
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -340,8 +346,9 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
         )
 
     assert result.status == "COMPLETED"
-    update_call = mock_repo.update_execution.call_args[0][1]
-    assert update_call.prompt_tokens == 40
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.prompt_tokens == 40
 
 
 @pytest.mark.asyncio
@@ -357,9 +364,9 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
         }
     )
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -381,9 +388,9 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
         )
 
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.status == ExecutionStatus.FAILED
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -399,9 +406,9 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     )
     mock_executed_record = base_record.model_copy(update={"execution_trace": [event]})
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_executed_record)
@@ -419,9 +426,9 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     )
 
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.status == ExecutionStatus.FAILED
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -430,9 +437,9 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=RuntimeError("Engine failure"))
@@ -451,9 +458,9 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
     )
 
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.status == ExecutionStatus.FAILED
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -462,9 +469,9 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=asyncio.CancelledError())
@@ -483,9 +490,9 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
     )
 
     assert result.status == "FAILED/DLQ"
-    assert mock_repo.update_execution.called
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.status == ExecutionStatus.FAILED
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -494,10 +501,10 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = base_record
-    mock_repo.update_execution.side_effect = OSError("DB write error")
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
+    mock_repo.inject_fault("update_execution", OSError("DB write error"), trigger_count=1)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(side_effect=RuntimeError("Engine crashed"))
@@ -560,9 +567,9 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
         }
     )
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -586,20 +593,22 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
     )
 
     assert result.status == "COMPLETED"
-    assert mock_repo.update_execution.called
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.prompt_tokens == 100
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.prompt_tokens == 100
 
 
 @pytest.mark.asyncio
 async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
     """Verify worker processes WorkflowInputs instance and generates execution_id if omitted."""
     mock_workflow = _create_mock_workflow()
-    mock_record = _create_mock_record()
+    fixed_uuid = "0123456789abcdef0123456789abcdef"
+    generated_id = f"exe_{fixed_uuid}"
+    mock_record = _create_mock_record().model_copy(update={"id": generated_id})
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -616,16 +625,19 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
         dynamic_inputs={},
     )
 
-    result = await execute_workflow_job(
-        ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
-        inputs=inputs,
-        execution_id=None,
-    )
+    with patch("uuid.uuid4", return_value=uuid.UUID(hex=fixed_uuid)):
+        result = await execute_workflow_job(
+            ctx=ctx,
+            workflow_id="wor_0123456789abcdef",
+            inputs=inputs,
+            execution_id=None,
+        )
 
     assert result.status == "COMPLETED"
-    assert result.execution_id is not None
-    assert result.execution_id.startswith("exe_")
+    assert result.execution_id == generated_id
+    updated_rec = await mock_repo.get_execution(generated_id)
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -639,9 +651,9 @@ async def test_execution_worker_w3c_trace_propagation_with_carrier() -> None:
     mock_record = _create_mock_record()
     mock_record = mock_record.model_copy(update={"metadata": ExecutionMetadata(telemetry=carrier)})
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -662,7 +674,9 @@ async def test_execution_worker_w3c_trace_propagation_with_carrier() -> None:
     )
 
     assert result.status == "COMPLETED"
-    assert mock_repo.update_execution.called
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -676,9 +690,9 @@ async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
     assert mock_record.metadata is not None
     assert mock_record.metadata.telemetry is None
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = mock_workflow
-    mock_repo.get_execution.return_value = mock_record
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -697,4 +711,6 @@ async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
     )
 
     assert result.status == "COMPLETED"
-    assert mock_repo.update_execution.called
+    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
