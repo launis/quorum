@@ -252,9 +252,9 @@ async def test_gather_source_texts_with_storage() -> None:
     from backend_v2.hooks.integrity import _gather_source_texts
     from backend_v2.models.domain.execution import ExecutionRecord
     from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
-    deps = MagicMock(spec=HookDependencies)
-    deps.exec_repo = AsyncMock()
+    exec_repo = InMemoryUnifiedWorkflowRepository()
     exec_record = ExecutionRecord(
         id="ex_1234567890abcdef",
         workflow_id="wf1",
@@ -264,14 +264,17 @@ async def test_gather_source_texts_with_storage() -> None:
         metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs={"dyn_b": "val2"}),
     )
-    deps.exec_repo.get_execution.return_value = exec_record
+    await exec_repo.save_execution(exec_record)
+
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = exec_repo
 
     mock_storage = AsyncMock()
     mock_storage.exists.return_value = True
     mock_storage.read.return_value = b"Loaded forensic input data"
 
     with patch("backend_v2.hooks.integrity.get_storage_driver", return_value=mock_storage):
-        texts = await _gather_source_texts("exe1", deps)
+        texts = await _gather_source_texts(exec_record.id, deps)
 
     assert len(texts) >= 1
     assert "Loaded forensic input data" in texts[0]
@@ -280,10 +283,10 @@ async def test_gather_source_texts_with_storage() -> None:
 @pytest.mark.asyncio
 async def test_gather_source_texts_missing_record_raises() -> None:
     from backend_v2.hooks.integrity import _gather_source_texts
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
     deps = MagicMock(spec=HookDependencies)
-    deps.exec_repo = AsyncMock()
-    deps.exec_repo.get_execution.return_value = None
+    deps.exec_repo = InMemoryUnifiedWorkflowRepository()
 
     with pytest.raises(AppException) as exc:
         await _gather_source_texts("exe_nonexistent", deps)

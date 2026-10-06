@@ -17,7 +17,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def _build_test_matrix_block(block_id: str, num_atoms_per_scale: int = 10) -> MatrixPromptBlock:
@@ -70,11 +70,11 @@ def _build_test_step(step_id: str, block_id: str) -> Step:
     )
 
 
-def _build_dependencies(step: Step, block: MatrixPromptBlock) -> HookDependencies:
-    """Creates mocked HookDependencies returning the test step and block."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = step.model_dump(mode="json")
-    repo.get_all_prompt_blocks.return_value = [block.model_dump(mode="json")]
+async def _build_dependencies(step: Step, block: MatrixPromptBlock) -> HookDependencies:
+    """Creates typed HookDependencies returning the test step and block."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_step(step)
+    await repo.create_prompt_block(block)
 
     return HookDependencies(
         exec_repo=repo,
@@ -95,7 +95,7 @@ async def test_sampling_determinism_across_distinct_execution_ids() -> None:
     step_id = "stp_0123456789abcdef0123456789abcdef"
     block = _build_test_matrix_block(block_id, num_atoms_per_scale=10)
     step = _build_test_step(step_id, block_id)
-    deps = _build_dependencies(step, block)
+    deps = await _build_dependencies(step, block)
 
     shared_workflow_id = "wf_01a1d71000000001"
 
@@ -146,7 +146,7 @@ async def test_sampling_divergence_across_distinct_workflow_ids() -> None:
     step_id = "stp_0123456789abcdef0123456789abcdef"
     block = _build_test_matrix_block(block_id, num_atoms_per_scale=20)
     step = _build_test_step(step_id, block_id)
-    deps = _build_dependencies(step, block)
+    deps = await _build_dependencies(step, block)
 
     state_wf1 = HookState(
         step_id=step_id,
@@ -192,7 +192,7 @@ async def test_sampling_boundary_values_bva() -> None:
     step_id = "stp_0123456789abcdef0123456789abcdef"
     block = _build_test_matrix_block(block_id, num_atoms_per_scale=5)
     step = _build_test_step(step_id, block_id)
-    deps = _build_dependencies(step, block)
+    deps = await _build_dependencies(step, block)
 
     # 1. BVA Min Boundary (strategy=0: all 25 atoms retained)
     state_all = HookState(
@@ -247,7 +247,7 @@ async def test_sampling_negative_strategy_fails_fast() -> None:
     step_id = "stp_0123456789abcdef0123456789abcdef"
     block = _build_test_matrix_block(block_id, num_atoms_per_scale=5)
     step = _build_test_step(step_id, block_id)
-    deps = _build_dependencies(step, block)
+    deps = await _build_dependencies(step, block)
 
     state_invalid = HookState(
         step_id=step_id,

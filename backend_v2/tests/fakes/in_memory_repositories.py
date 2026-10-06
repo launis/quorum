@@ -96,7 +96,10 @@ class BaseInMemoryRepository[T: BaseModel]:
     def _clone(self, item: T) -> T:
         """Deep-clone a Pydantic model using Rust-native validation/dumping."""
         if isinstance(item, BaseModel):
-            return type(item).model_validate(item.model_dump(mode="python"), strict=False)
+            try:
+                return type(item).model_validate(item.model_dump(mode="python"), strict=False)
+            except ValidationError:
+                return item.model_copy(deep=True)
         return copy.deepcopy(item)
 
     def _save_isolated(self, key: str, item: T) -> None:

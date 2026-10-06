@@ -6,7 +6,6 @@ DLQ tolerance, contextual overrides without emojis, and comprehensive Fail-Fast 
 
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
@@ -23,14 +22,17 @@ from backend_v2.hooks.scoring.matrix_hook import (
     MatrixAggregationStateDTO,
     matrix_scoring_hook,
 )
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def _build_test_matrix_block(pb_id: str, tda_id: str) -> dict[str, Any]:
@@ -46,7 +48,7 @@ def _build_test_matrix_block(pb_id: str, tda_id: str) -> dict[str, Any]:
         "allow_contextual_override": True,
         "scales": [
             {
-                "score": 1.0,
+                "score": 1,
                 "ai_label": "Foundational",
                 "claims": [
                     {
@@ -63,7 +65,7 @@ def _build_test_matrix_block(pb_id: str, tda_id: str) -> dict[str, Any]:
                 ],
             },
             {
-                "score": 2.0,
+                "score": 2,
                 "ai_label": "Advanced",
                 "claims": [
                     {
@@ -116,7 +118,7 @@ def _build_test_workflow(workflow_id: str, profile_id: str) -> dict[str, Any]:
 
 def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) -> dict[str, Any]:
     """Construct a valid ExecutionRecord dictionary."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
     return {
         "id": execution_id,
         "workflow_id": workflow_id,
@@ -164,12 +166,12 @@ def matrix_setup() -> dict[str, Any]:
     exec_dict = _build_test_execution(execution_id, workflow_id, profile_id)
     profile_dict = _build_test_output_profile(profile_id, workflow_id, pb_id)
 
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = step_dict
-    repo.get_workflow_by_id.return_value = wf_dict
-    repo.get_prompt_block_by_id.return_value = pb_dict
-    repo.get_execution.return_value = exec_dict
-    repo.get_output_profile_by_id.return_value = profile_dict
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo._workflows._steps[step_id] = Step.model_validate(step_dict)
+    repo._workflows._save_isolated(workflow_id, Workflow.model_validate(wf_dict))
+    repo._prompt_blocks._save_isolated(pb_id, MatrixPromptBlock.model_validate(pb_dict))
+    repo._executions._save_isolated(execution_id, ExecutionRecord.model_validate(exec_dict))
+    repo._output_profiles._save_isolated(profile_id, OutputProfile.model_validate(profile_dict))
 
     deps = HookDependencies(
         exec_repo=repo,
@@ -258,11 +260,11 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: di
     deps = HookDependencies(
         exec_repo=matrix_setup["deps"].exec_repo,
         workflow_repo=None,  # type: ignore[arg-type]
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        comp_repo=matrix_setup["deps"].comp_repo,
+        prompt_block_repo=matrix_setup["deps"].prompt_block_repo,
+        output_profile_repo=matrix_setup["deps"].output_profile_repo,
+        identity_repo=matrix_setup["deps"].identity_repo,
+        system_repo=matrix_setup["deps"].system_repo,
     )
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -305,7 +307,6 @@ async def test_matrix_scoring_hook_missing_blueprint_id_raises(matrix_setup: dic
 async def test_matrix_scoring_hook_step_not_found_raises(matrix_setup: dict[str, Any]) -> None:
     """Negative test: step blueprint not found in repository raises AppException(RESOURCE_NOT_FOUND)."""
     deps = matrix_setup["deps"]
-    deps.workflow_repo.get_step_by_id = AsyncMock(return_value=None)
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -457,7 +458,7 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips(matrix_setup: dict[str
     deps = matrix_setup["deps"]
     step_without_blocks = _build_test_step(matrix_setup["step_id"], "blk_other")
     step_without_blocks["criteria_block_ids"] = []
-    deps.workflow_repo.get_step_by_id = AsyncMock(return_value=step_without_blocks)
+    await deps.workflow_repo.save_step(Step.model_validate(step_without_blocks))
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -498,7 +499,6 @@ async def test_matrix_scoring_hook_missing_execution_id_raises(matrix_setup: dic
 async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: dict[str, Any]) -> None:
     """ExecutionRecord missing from DB raises AppException(RESOURCE_NOT_FOUND)."""
     deps = matrix_setup["deps"]
-    deps.exec_repo.get_execution = AsyncMock(return_value=None)
 
     state = HookState(
         execution_id="exe_0000000000000000",
@@ -520,7 +520,7 @@ async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: dict
 async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: dict[str, Any]) -> None:
     """Workflow missing from DB raises AppException(RESOURCE_NOT_FOUND)."""
     deps = matrix_setup["deps"]
-    deps.workflow_repo.get_workflow_by_id = AsyncMock(return_value=None)
+    await deps.workflow_repo.delete_workflow(matrix_setup["workflow_id"])
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -542,7 +542,7 @@ async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: dict[
 async def test_matrix_scoring_hook_output_profile_not_found_raises(matrix_setup: dict[str, Any]) -> None:
     """Output profile referenced in execution not found raises AppException(CONFIGURATION_ERROR)."""
     deps = matrix_setup["deps"]
-    deps.output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=None)
+    await deps.output_profile_repo.delete_output_profile(matrix_setup["profile_id"])
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -567,7 +567,7 @@ async def test_matrix_scoring_hook_missing_strictness_level_raises(matrix_setup:
     wf_no_strictness = _build_test_workflow(matrix_setup["workflow_id"], matrix_setup["profile_id"])
     wf_no_strictness["default_strictness_level"] = None
     wf_obj = Workflow.model_construct(**wf_no_strictness)
-    deps.workflow_repo.get_workflow_by_id = AsyncMock(return_value=wf_obj)
+    await deps.workflow_repo.save_workflow(wf_obj)
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -592,7 +592,7 @@ async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: dict[str
     pb_no_scales = _build_test_matrix_block(matrix_setup["pb_id"], matrix_setup["tda_id"])
     pb_no_scales["scales"] = []
     pb_obj = MatrixPromptBlock.model_construct(**pb_no_scales)
-    deps.prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value=pb_obj)
+    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup["pb_id"]] = pb_obj
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -614,7 +614,7 @@ async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: dict[str
 async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: dict[str, Any]) -> None:
     """Malformed Step blueprint data raises AppException(VALIDATION_FAILED)."""
     deps = matrix_setup["deps"]
-    deps.workflow_repo.get_step_by_id = AsyncMock(return_value={"id": "bad_step"})
+    deps.workflow_repo._workflows._steps[matrix_setup["step_id"]] = {"id": "bad_step"}
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -636,7 +636,7 @@ async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: di
 async def test_matrix_scoring_hook_prompt_block_validation_error_raises(matrix_setup: dict[str, Any]) -> None:
     """Malformed PromptBlock data raises AppException(VALIDATION_FAILED)."""
     deps = matrix_setup["deps"]
-    deps.prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value={"id": "bad_pb"})
+    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup["pb_id"]] = {"id": "bad_pb"}
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -686,7 +686,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_facts_json_string(matri
     pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["evaluation_track"] = "EXTRACTIVE_SENSOR"
     pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["logical_expression"] = "fact_vision_present"
     pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["facts_to_find"] = ["fact_vision_present"]
-    deps.prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value=pb_data)
+    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
 
     state = HookState(
         execution_id=matrix_setup["execution_id"],
@@ -743,12 +743,12 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
 
     # 1. Successful extension extraction
     pb_data = _build_test_matrix_block(pb_id, tda_id)
-    pb_data["output_extensions"] = ["coaching"]
-    deps.prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value=pb_data)
-
     prof_data = _build_test_output_profile(matrix_setup["profile_id"], matrix_setup["workflow_id"], pb_id)
     prof_data["visible_block_extensions"] = ["coaching"]
-    deps.output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=prof_data)
+    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
+    await deps.output_profile_repo.update_output_profile(
+        matrix_setup["profile_id"], OutputProfile.model_validate(prof_data)
+    )
 
     atom_with_ext = AtomResultDTO(
         tda_id=tda_id,
@@ -772,7 +772,7 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
 
     # 2. Unsupported extension triggers Fail-Fast
     pb_data["output_extensions"] = ["UNSUPPORTED_EXTENSION_ABC"]
-    deps.prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value=pb_data)
+    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)
