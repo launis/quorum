@@ -162,7 +162,11 @@ async def test_dag_executor_atom_ceiling(
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(
                     dynamic_inputs={
-                        "doc_1": "This is a sufficiently long text with plenty of detailed analytical statements to pass the fail fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
+                        "doc_1": (
+                            "This is a sufficiently long text with plenty of detailed analytical statements "
+                            "to pass the fail fast check in LLM Task Executor "
+                            "and ensure preflight proceeds to atomization!"
+                        )
                     }
                 ),
             )

@@ -93,7 +93,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
   - [x] Step 5.0: Strategic Alignment & Persistence Census Probe
   - [x] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
-  - [ ] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
+  - [x] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
   - [ ] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
   - [ ] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)
   - [ ] Step 5.5: Concurrency, Fuzzer & Logic Suites Persistence Migration (Census A & I)
@@ -307,8 +307,8 @@
 | Service & Studio Persistence Emulation-Fake Migration | test_blueprint.py, test_execution.py, test_execution_resumability.py, test_report_service.py, test_ingress_service.py, test_output_profile_service.py, test_workflow_service.py, test_auth.py, test_usage_service.py | Phase 4, Step 4 | Census A=0, Census I=0 across target files | [OK] |
 | Keyword-Injected Repository Mocks Eradication | test_execution.py, test_security.py, test_legacy_render_service.py | Phase 4, Step 5 | Census D=0 across target files | [OK] |
 | Phase 4 Quality Gates, Baseline Ratchet & SDUI Parity | 23 target files across services, studio, execution & database suites | Phase 4, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 173 | [OK] |
-| Orchestrator Fixtures Modernization & cast(Any) Eradication | test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_concurrency.py, test_rag_preflight_service.py | Phase 5, Step 1 | Typed fixtures, Census X=0 | [NOK] |
-| Census B Attribute Replacements & Fault Injection | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_preflight.py, strategies/test_llm.py, test_dag_taskgroup.py | Phase 5, Step 2 | Census B=0, localized pytest passes | [NOK] |
+| Orchestrator Fixtures Modernization & cast(Any) Eradication | test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_concurrency.py, test_rag_preflight_service.py | Phase 5, Step 1 | Typed fixtures, Census X=0 | [OK] |
+| Census B Attribute Replacements & Fault Injection | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_preflight.py, strategies/test_llm.py, test_dag_taskgroup.py | Phase 5, Step 2 | Census B=0, localized pytest passes | [OK] |
 | Keyword-Injected Repository Mocks Eradication (Census D) | 14 orchestrator and strategy test files | Phase 5, Step 3 | Census D=0 across target files | [NOK] |
 | Orchestrator & Strategy Persistence Emulation-Fake Migration | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_audit.py, test_dag_executor_preflight.py, strategies/test_llm.py, strategies/test_llm_cost_tracking.py, strategies/test_logic.py, test_synthesis_distiller.py | Phase 5, Step 4 | Census A=0, Census I=0 across target files | [NOK] |
 | Concurrency, Fuzzer & Logic Suites Persistence Migration | test_dag_executor_prompt_blocks.py, test_dag_taskgroup.py, test_concurrency_fuzzer.py, test_logic.py | Phase 5, Step 5 | Census A=0, Census I=0 across target files | [NOK] |

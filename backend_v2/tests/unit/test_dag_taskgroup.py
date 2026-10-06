@@ -425,27 +425,18 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
         ],
     )
 
-    in_progress_cb = False
-
-    async def flaky_update_execution(execution_id: str, update_dto: Any) -> Any:
-        if in_progress_cb:
-            raise AppException(
-                message=f"Failed to commit execution trace for {execution_id}",
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
-                status_code=500,
-            )
-        return {"id": execution_id}
-
-    mock_repo.update_execution = AsyncMock(side_effect=flaky_update_execution)
-
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
-        nonlocal in_progress_cb
         if "progress_callback" in kwargs and kwargs["progress_callback"]:
-            in_progress_cb = True
-            try:
-                await kwargs["progress_callback"](50, 100)
-            finally:
-                in_progress_cb = False
+            mock_repo.inject_fault(
+                "update_execution",
+                AppException(
+                    message="Failed to commit execution trace",
+                    details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                    status_code=500,
+                ),
+                trigger_count=1,
+            )
+            await kwargs["progress_callback"](50, 100)
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
 
     from backend_v2.core.hook_registry import HookDeltaDTO

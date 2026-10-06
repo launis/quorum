@@ -309,17 +309,17 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     )
 
     mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id = AsyncMock(
-        return_value={
-            "id": "stp_1234567890abcdef",
-            "slug": "blp_test",
-            "name": {"translations": {"en": "blp_test"}},
-            "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
-            "type": "llm",
-        }
-    )
+    step_data = {
+        "id": "stp_1234567890abcdef",
+        "slug": "blp_test",
+        "name": {"translations": {"en": "blp_test"}},
+        "cognitive_tier": "fast",
+        "criteria_block_ids": ["blk_1234567890abcdef"],
+        "extraction_protocol_block_id": "blk_1234567890abcdef",
+        "type": "llm",
+    }
+    mock_repo.seed_raw_step("stp_1234567890abcdef", step_data)
+    mock_repo.seed_raw_step("blp_1234567890abcdef", step_data)
 
     exec_record = ExecutionRecord(
         id="exe_1234567890abcdef",
@@ -376,9 +376,9 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         processed_chunks = [call.args[1] for call in calls]
 
         assert len(processed_chunks) == 1
-        assert (
-            processed_chunks[0]
-            == "[B0] This is valid document text that contains more than one hundred characters for complete analytical preflight processing."
+        assert processed_chunks[0] == (
+            "[B0] This is valid document text that contains more than one hundred characters "
+            "for complete analytical preflight processing."
         )
 
 

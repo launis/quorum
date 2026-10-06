@@ -73,8 +73,8 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     mock_repo.get_execution.return_value = None
-    mock_repo.get_user = AsyncMock(
-        return_value=User(
+    await mock_repo.create_user(
+        User(
             id="usr_test1234",
             email="test@example.com",
             role=UserRole.ADMIN,
@@ -826,7 +826,7 @@ async def test_execution_committer_raises_app_exception_on_update_failure(mock_r
     """Test ExecutionCommitter dual-reports and raises AppException(PROGRESS_UPDATE_FAILED) when update fails."""
     from backend_v2.exceptions import ErrorCodes
 
-    mock_repo.update_execution = AsyncMock(side_effect=Exception("Database connection lost"))
+    mock_repo.inject_fault("update_execution", Exception("Database connection lost"), trigger_count=1)
     committer = ExecutionCommitter(mock_repo, "exe_1111222233334444")
 
     with pytest.raises(AppException) as exc_info:
@@ -1112,7 +1112,9 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
 
 
 def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> None:
-    """Tests that invalid MCPAuditTrace payload in decision event triggers Fail-Fast ValidationError at schema boundary."""
+    """Tests that invalid MCPAuditTrace payload in decision event triggers
+    Fail-Fast ValidationError at schema boundary.
+    """
     import pydantic
 
     from backend_v2.models.state import TraceEvent
@@ -1318,28 +1320,19 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
         ],
     )
 
-    in_progress_cb = False
-
-    async def flaky_update_execution(execution_id: str, update_dto: Any) -> Any:
-        if in_progress_cb:
-            raise AppException(
-                message=f"Failed to commit execution trace for {execution_id}",
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
-                status_code=500,
-            )
-        return {"id": execution_id}
-
-    mock_repo.update_execution = AsyncMock(side_effect=flaky_update_execution)
-
     async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
-        nonlocal in_progress_cb
         if "progress_callback" in kwargs and kwargs["progress_callback"]:
-            in_progress_cb = True
-            try:
-                await kwargs["progress_callback"](5, 20)
-                await kwargs["progress_callback"](100, 100)
-            finally:
-                in_progress_cb = False
+            mock_repo.inject_fault(
+                "update_execution",
+                AppException(
+                    message="Failed to commit execution trace",
+                    details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                    status_code=500,
+                ),
+                trigger_count=1,
+            )
+            await kwargs["progress_callback"](5, 20)
+            await kwargs["progress_callback"](100, 100)
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
@@ -1361,16 +1354,18 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     mock_rag_preflight = AsyncMock()
     mock_repo.get_execution.return_value = None
 
-    in_preflight_progress = False
-
     async def mock_rag_execute(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        nonlocal in_preflight_progress
         if "emit_progress" in kwargs and kwargs["emit_progress"]:
-            in_preflight_progress = True
-            try:
-                await kwargs["emit_progress"]("Indexing ontology...", 50)
-            finally:
-                in_preflight_progress = False
+            mock_repo.inject_fault(
+                "update_execution",
+                AppException(
+                    message="Failed to commit execution trace",
+                    details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                    status_code=500,
+                ),
+                trigger_count=1,
+            )
+            await kwargs["emit_progress"]("Indexing ontology...", 50)
         return GlobalAtomBlackboard(atoms_by_input={})
 
     mock_rag_preflight.execute = AsyncMock(side_effect=mock_rag_execute)
@@ -1412,17 +1407,6 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
         "description": {"translations": {"en": "Synth"}},
         "hook": "mock_hook",
     }
-
-    async def flaky_update_execution(execution_id: str, update_dto: Any) -> Any:
-        if in_preflight_progress:
-            raise AppException(
-                message=f"Failed to commit execution trace for {execution_id}",
-                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
-                status_code=500,
-            )
-        return {"id": execution_id}
-
-    mock_repo.update_execution = AsyncMock(side_effect=flaky_update_execution)
 
     from backend_v2.models.state import TraceEvent
 

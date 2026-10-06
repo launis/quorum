@@ -697,8 +697,6 @@ async def test_execute_with_role_and_persona_and_protocol(
     from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
-    mock_repo.get_step = AsyncMock(return_value=mock_repo.get_step_by_id.return_value)
-
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
         workflow_id="wf_0123456789abcdef0123456789abcdef",
@@ -933,7 +931,6 @@ async def test_execute_anomaly_retry_flow(
         },
     )
     mock_repo.get_execution.return_value = mock_exec_record
-    mock_repo.update_execution = AsyncMock()
 
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
@@ -945,8 +942,6 @@ async def test_execute_anomaly_retry_flow(
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
     mock_hook_state.global_context_vars = {}
-
-    from unittest.mock import AsyncMock
 
     call_count = 0
 

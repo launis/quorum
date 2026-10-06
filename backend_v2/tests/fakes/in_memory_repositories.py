@@ -2093,7 +2093,18 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
 
     def __getattribute__(self, name: str) -> Any:
         """Dynamically wraps or synthesizes a DynamicRepoMethod for legacy mock compatibility."""
-        if name.startswith("_"):
+        if name.startswith("_") or name in (
+            "inject_fault",
+            "clear_faults",
+            "fault_context",
+            "get_call_count",
+            "seed_raw_step",
+            "seed_raw_workflow",
+            "seed_raw_prompt_block",
+            "set_output_profiles",
+            "set_prompt_blocks",
+            "set_workflow",
+        ):
             return super().__getattribute__(name)
         dyn_methods = super().__getattribute__("_dynamic_methods")
         if name in dyn_methods:
