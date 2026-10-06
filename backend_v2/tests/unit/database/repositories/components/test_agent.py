@@ -2,27 +2,30 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from pathlib import Path
 
 import pytest
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
+from backend_v2.database.tinydb_driver import TinyDBDriver
+from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
 
 @pytest.fixture
-def mock_driver() -> AsyncMock:
-    """Provides a mocked StorageDriver."""
-    return AsyncMock(spec=StorageDriver)
+def driver(tmp_path: Path) -> StorageDriver:
+    """Provides a real TinyDBDriver."""
+    db_path = str(tmp_path / "test_agent.json")
+    return TinyDBDriver(TinyDBClient(db_path))
 
 
 @pytest.fixture
-def repo(mock_driver: AsyncMock) -> AgentRepositoryImpl:
-    """Provides an AgentRepositoryImpl instance with the mocked driver."""
-    return AgentRepositoryImpl(mock_driver)
+def repo(driver: StorageDriver) -> AgentRepositoryImpl:
+    """Provides an AgentRepositoryImpl instance with the real TinyDB driver."""
+    return AgentRepositoryImpl(driver)
 
 
 @pytest.fixture
@@ -40,36 +43,38 @@ def sample_agent() -> PersonaPromptBlock:
 
 
 @pytest.mark.asyncio
-async def test_agent_crud(repo: AgentRepositoryImpl, mock_driver: AsyncMock, sample_agent: PersonaPromptBlock) -> None:
-    """Test CRUD operations for Agents."""
-    mock_driver.get.return_value = sample_agent.model_dump(mode="json")
-    mock_driver.query.return_value = [sample_agent.model_dump(mode="json")]
-    mock_driver.upsert.return_value = "blk_1234567890abcdef"
-    mock_driver.delete.return_value = True
+async def test_agent_crud(repo: AgentRepositoryImpl, sample_agent: PersonaPromptBlock) -> None:
+    """Test CRUD operations for Agents with real stateful persistence."""
+    created_id = await repo.create_agent(sample_agent)
+    assert created_id == sample_agent.id
 
-    agent = await repo.get_agent_by_id("blk_1234567890abcdef")
+    agent = await repo.get_agent_by_id(sample_agent.id)
     assert agent is not None
-    assert agent.id == "blk_1234567890abcdef"
+    assert agent.id == sample_agent.id
+    assert agent.slug == sample_agent.slug
 
     all_agents = await repo.get_all_agents()
     assert len(all_agents) == 1
-    assert all_agents[0].id == "blk_1234567890abcdef"
+    assert all_agents[0].id == sample_agent.id
 
-    assert await repo.create_agent(sample_agent) == "blk_1234567890abcdef"
-    assert await repo.delete_agent("blk_1234567890abcdef") is True
+    assert await repo.delete_agent(sample_agent.id) is True
+    assert await repo.get_agent_by_id(sample_agent.id) is None
+    assert len(await repo.get_all_agents()) == 0
 
 
 @pytest.mark.asyncio
-async def test_update_agent(
-    repo: AgentRepositoryImpl, mock_driver: AsyncMock, sample_agent: PersonaPromptBlock
-) -> None:
-    """Test versioned update of Agent."""
-    from backend_v2.database.repositories.base import VersionIncrementDTO
+async def test_update_agent(repo: AgentRepositoryImpl, driver: StorageDriver, sample_agent: PersonaPromptBlock) -> None:
+    """Test versioned update of Agent with real version incrementation."""
+    await repo.create_agent(sample_agent)
 
-    mock_driver.get.return_value = sample_agent.model_dump(mode="json")
-    repo._increment_version = MagicMock(  # type: ignore[method-assign]
-        return_value=VersionIncrementDTO(base_id="blk_agent_1", new_id="blk_agent_1_v2", version=2)
-    )
-    res = await repo.update_agent("blk_1234567890abcdef", sample_agent)
+    updated_agent = sample_agent.model_copy(update={"role_enforcement": "Updated strict coach."})
+    res = await repo.update_agent(sample_agent.id, updated_agent)
     assert res is True
-    mock_driver.upsert.assert_called()
+
+    # Real AppendOnlyRepository version incrementation creates a new version record in TinyDB
+    new_version_id = f"{sample_agent.id}_v2"
+    persisted_raw = await driver.get("agents", new_version_id)
+    assert persisted_raw is not None
+    assert persisted_raw["id"] == new_version_id
+    assert persisted_raw["version"] == 2
+    assert persisted_raw["is_latest"] is True
