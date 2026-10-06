@@ -69,7 +69,7 @@
   - [x] Step 3.5: Keyword-Injected Repository Mocks Eradication (Census D)
   - [x] Step 3.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 3 test contracts across 30 Hook and LLM test files, strict >=90% TDD unit test coverage (global 97.75%, 5,091 passed), zero AST violations, Census A=0, B=0, C=0, I=0, D=0, K=0, X=0, and 10/10 backend audit stages with exit code 0.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 4: Test Persistence Migration — Services, Studio, Execution & Database
 **Plan:** @[docs/epic/tasks_EPIC_157/04_phase4_plan.md]
@@ -272,7 +272,7 @@
 | Domain Model Field Typing & Ingress Segregation | backend_v2/models/domain/base.py, analyst.py, archivist.py, integrity.py, mcp.py, metrics.py, security.py, system_config.py, validation.py | Phase 1, Step 3 | audit_dict_eradication.py models/domain | [OK] |
 | DTO Model Typing & Dead Field Pruning | backend_v2/models/domain/xai.py, models/dtos/atom_evaluation.py, mcp.py, prompt_context.py, studio.py, trace.py, models/llm.py | Phase 1, Step 4 | audit_dict_eradication.py models/dtos | [OK] |
 | StepSimulationTraceDTO Promotion & Simulation Service Typing | backend_v2/models/dtos/studio.py, backend_v2/services/studio/simulation_service.py | Phase 1, Step 4 | test_studio.py, test_simulation_service.py | [OK] |
-| Open-JSON Whitelist & Unauthorized JsonValue Ban (QGR027) | scripts/_ast_guardrails.py, scripts/audit_dict_eradication.py, backend_v2/models/ | Phase 1, Step 7 | test_ast_guardrails.py, test_audit_dict_eradication.py, Metric 11 | [OK] |
+| Open-JSON Whitelist & Unauthorized JsonValue Ban (QGR027) | scripts/_ast_guardrails.py, scripts/audit_dict_eradication.py, backend_v2/models/ | Phase 1, Step 1 | test_ast_guardrails.py, test_audit_dict_eradication.py, Metric 11 | [OK] |
 | 1-hop Consumer Migration & Ingress Service Alignment | models/dtos/context_variables.py, synthesis_engine.py, matrix_reducer.py, matrix_explanation_service.py, ingress_service.py | Phase 1, Step 5 | pytest test_synthesis_engine.py test_ingress_service.py | [OK] |
 | Unconditional Skip & Xfail Test Eradication (QGR026) | test_boundaries.py, test_epic_61_hardening.py, test_provider_rate_limit.py, test_fallback_caching.py, test_scoring.py | Phase 1, Step 6 | Census S command returns 0 matches | [OK] |
 | Domain Exception Extraction to AppException Hierarchy | models/domain/base.py, core/exceptions.py, core/error_codes.py, services/orchestrator/dag_executor.py | Phase 2, Step 1 | test_domain_exceptions.py, test_dag_executor.py | [OK] |
@@ -281,9 +281,10 @@
 | Core Engine Context Refactoring (No-Dict Invariant) | services/orchestrator/dag_executor.py, services/orchestrator/context_router.py, services/orchestrator/two_pass_atomizer.py | Phase 2, Step 4 | test_context_router.py, test_two_pass_atomizer.py | [OK] |
 | Ingress Service & Strategy Typings | services/execution/ingress_service.py, services/execution/lifecycle_service.py, services/mcp/tavily_search_client.py | Phase 2, Step 5 | test_ingress_service.py, test_tavily_search_client.py | [OK] |
 | Phase 2 Unit & Integration Test Coverage | backend_v2/tests/unit/core/, tests/unit/hooks/, tests/unit/llm/, tests/integration/ | Phase 2, Step 6 | Global backend audit loop passes | [OK] |
+| Async Mock Fixtures & Repository Fake Replacement | test_epic66_multi_provider.py, test_handler.py, hooks/test_interaction_hook.py, test_structured_retry.py, test_cdata_hardening_comprehensive.py | Phase 3, Step 1 | Localized pytest passes, Census I=0 | [OK] |
+| Ad-Hoc Repository Classes & Cast(Any) Eradication | backend_v2/tests/unit/hooks/test_scoring.py, test_input_processing.py, test_dlq_guard.py, test_metadata.py, test_references.py, test_security.py | Phase 3, Step 2 | Census K=0, X=0, localized pytest passes | [OK] |
 | Hook Persistence Emulation-Fake Migration | backend_v2/tests/unit/hooks/test_archival.py, test_atom_flattening.py, test_atom_sampling_determinism.py, test_integrity.py, test_matrix_hook.py, test_passivity_hook.py | Phase 3, Step 3 | Census A=0, B=0, localized pytest passes | [OK] |
 | LLM Client & Handler Persistence Migration | backend_v2/tests/unit/llm/test_client.py, test_llm_client_tiers.py, test_handler.py, test_llm_context_bounds.py | Phase 3, Step 4 | Census A=0, I=0, localized pytest passes | [OK] |
-| Ad-Hoc Repository Classes & Cast(Any) Eradication | backend_v2/tests/unit/hooks/test_scoring.py, test_input_processing.py, test_dlq_guard.py, test_metadata.py, test_references.py, test_security.py | Phase 3, Step 2 | Census K=0, X=0, localized pytest passes | [OK] |
 | Keyword-Injected Repository Mocks Eradication | backend_v2/tests/unit/hooks/test_validation.py, test_source_verification_hook.py, test_linguistics.py, test_metadata.py, test_metrics.py, test_references.py, test_synthesis_distiller_hook.py, test_hook_registry.py, test_google_providers_separation.py | Phase 3, Step 5 | Census D=0, localized pytest passes | [OK] |
 | Phase 3 Test Persistence Migration Quality Gates | 30 Hook and LLM test files across backend_v2/tests/unit/ | Phase 3, Step 6 | Global backend audit loop & SDUI parity pass | [OK] |
 
@@ -312,6 +313,7 @@
   - Step 3.4: Migrated LLM client and handler persistence (Census A & I) across `test_client.py`, `test_llm_client_tiers.py`, `test_handler.py`, and `test_llm_context_bounds.py`.
   - Step 3.5: Completely eradicated all 379 keyword-injected repository mocks (Census D) across `test_hook_registry.py`, `test_synthesis_distiller_hook.py`, `test_metadata.py`, `test_validation.py`, `test_google_providers_separation.py`, `test_references.py`, `test_metrics.py`, `test_linguistics.py`, and `test_source_verification_hook.py`.
   - Step 3.6: Verified zero residual census matches on all 30 target files: A=0, B=0, C=0, I=0, D=0, K=0, X=0 (100% eradicated). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,091 passing tests, 97.75% coverage, zero AST violations, and clean SDUI semantic parity (`test_sdui_semantic_parity.py`). Ratcheted residual debt ceilings down to new repo-wide lows (d=442, k=0, x=14, t=406, p=362).
+- Successfully completed Tier 8 Red Team Audit for Phase 3 (`@[red_team_audit_03_phase3_plan.md]`) with PASSED verdict.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
@@ -320,8 +322,7 @@
 - Never add `# type: ignore` comments in test files (specifically: `test_source_verification_hook.py`); instead construct valid typed inputs (specifically: `ExecutionInputsDTO(raw_inputs={...}, target_locale="fi")`) to protect the Census T ceiling.
 
 ## Remaining
-- Audit Phase 3: `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - Plan, Research, Execute & Audit Phases 4 through 13.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/04_phase4_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=4
