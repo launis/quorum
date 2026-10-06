@@ -14,7 +14,10 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryBlueprintTransformerRepository,
+    InMemoryUnifiedWorkflowRepository,
+)
 
 
 class DummySynthesisOutputDTO(BaseModel):
@@ -1266,15 +1269,16 @@ def test_configure_llm_context_hook_success() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
+    repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     with patch("backend_v2.hooks.llm.get_settings") as mock_settings:
@@ -1330,17 +1334,18 @@ def test_configure_llm_context_hook_empty_state() -> None:
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.llm import configure_llm_context_hook
 
+    repo = InMemoryUnifiedWorkflowRepository()
     result = configure_llm_context_hook(
         cast(HookState, None),
         HookDependencies(
-            exec_repo=MagicMock(),
-            workflow_repo=MagicMock(),
-            comp_repo=MagicMock(),
-            prompt_block_repo=AsyncMock(),
-            output_profile_repo=AsyncMock(),
-            identity_repo=MagicMock(),
-            audit_repo=MagicMock(),
-            system_repo=MagicMock(),
+            exec_repo=repo,
+            workflow_repo=repo,
+            comp_repo=repo,
+            prompt_block_repo=repo,
+            output_profile_repo=repo,
+            identity_repo=repo,
+            audit_repo=repo,
+            system_repo=repo,
         ),
     )
     assert result.success is True
@@ -1375,18 +1380,19 @@ def test_configure_llm_context_hook_error() -> None:
         mock_settings.return_value.default_model_strategy = "fast"
         mock_settings.return_value.model_registry = None
 
+        repo = InMemoryUnifiedWorkflowRepository()
         with pytest.raises(AppException):
             configure_llm_context_hook(
                 state,
                 HookDependencies(
-                    exec_repo=MagicMock(),
-                    workflow_repo=MagicMock(),
-                    comp_repo=MagicMock(),
-                    prompt_block_repo=AsyncMock(),
-                    output_profile_repo=AsyncMock(),
-                    identity_repo=MagicMock(),
-                    audit_repo=MagicMock(),
-                    system_repo=MagicMock(),
+                    exec_repo=repo,
+                    workflow_repo=repo,
+                    comp_repo=repo,
+                    prompt_block_repo=repo,
+                    output_profile_repo=repo,
+                    identity_repo=repo,
+                    audit_repo=repo,
+                    system_repo=repo,
                 ),
             )
 

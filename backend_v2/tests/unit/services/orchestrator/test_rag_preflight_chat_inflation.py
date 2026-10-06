@@ -19,6 +19,7 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def _make_step_def() -> Step:
@@ -95,9 +96,10 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs=dynamic_inputs),
     )
 
+    repo = InMemoryUnifiedWorkflowRepository()
     service = RAGPreflightService(
-        workflow_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        workflow_repo=repo,
+        system_repo=repo,
         prompt_compiler=MagicMock(),
     )
     emit_mock = AsyncMock()

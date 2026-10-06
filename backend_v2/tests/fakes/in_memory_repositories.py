@@ -2104,6 +2104,8 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
             "set_output_profiles",
             "set_prompt_blocks",
             "set_workflow",
+            "set_execution",
+            "set_model_registry",
         ):
             return super().__getattribute__(name)
         dyn_methods = super().__getattribute__("_dynamic_methods")

@@ -15,21 +15,24 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> InMemoryBlueprintTransformerRepository:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = {
-        "id": "blp_1234567890abcdef",
-        "type": "logic",
-        "cognitive_tier": "fast",
-        "slug": "mock_step",
-        "name": {"translations": {"en": "Mock Step"}},
-        "description": {"translations": {"en": "Mock"}},
-        "hook": "mock_hook",
-    }
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.seed_raw_step(
+        "blp_1234567890abcdef",
+        {
+            "id": "blp_1234567890abcdef",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "slug": "mock_step",
+            "name": {"translations": {"en": "Mock Step"}},
+            "description": {"translations": {"en": "Mock"}},
+            "hook": "mock_hook",
+        },
+    )
     return repo
 
 
@@ -39,14 +42,16 @@ def mock_compiler() -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_dag_executor_preflight_skip(
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
+) -> None:
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -68,8 +73,6 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
         ],
     )
 
-    mock_repo.get_execution.return_value = None
-
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
@@ -88,14 +91,16 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_dag_executor_preflight_execution(
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
+) -> None:
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -122,8 +127,19 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
         ],
     )
 
-    mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.return_value["pre_hooks"] = ["synthesis_distiller_hook"]
+    mock_repo.seed_raw_step(
+        "blp_1234567890abcdef",
+        {
+            "id": "blp_1234567890abcdef",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "slug": "mock_step",
+            "name": {"translations": {"en": "Mock Step"}},
+            "description": {"translations": {"en": "Mock"}},
+            "hook": "mock_hook",
+            "pre_hooks": ["synthesis_distiller_hook"],
+        },
+    )
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -146,15 +162,15 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_triggered_by_model_strategy(
-    mock_repo: MagicMock, mock_compiler: MagicMock
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -181,16 +197,18 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         ],
     )
 
-    mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.return_value = {
-        "id": "blp_1234567890abcdef",
-        "type": "logic",
-        "pre_hooks": ["synthesis_distiller_hook"],
-        "slug": "synthesis_step",
-        "name": {"translations": {"en": "Synth"}},
-        "description": {"translations": {"en": "Mock"}},
-        "hook": "mock_hook",
-    }
+    mock_repo.seed_raw_step(
+        "blp_1234567890abcdef",
+        {
+            "id": "blp_1234567890abcdef",
+            "type": "logic",
+            "pre_hooks": ["synthesis_distiller_hook"],
+            "slug": "synthesis_step",
+            "name": {"translations": {"en": "Synth"}},
+            "description": {"translations": {"en": "Mock"}},
+            "hook": "mock_hook",
+        },
+    )
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -212,14 +230,16 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_dag_executor_virtual_step(
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
+) -> None:
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -246,8 +266,19 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         ],
     )
 
-    mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.return_value["pre_hooks"] = ["synthesis_distiller_hook"]
+    mock_repo.seed_raw_step(
+        "blp_1234567890abcdef",
+        {
+            "id": "blp_1234567890abcdef",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "slug": "mock_step",
+            "name": {"translations": {"en": "Mock Step"}},
+            "description": {"translations": {"en": "Mock"}},
+            "hook": "mock_hook",
+            "pre_hooks": ["synthesis_distiller_hook"],
+        },
+    )
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -270,7 +301,9 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_dag_executor_preflight_ignores_system_keys(
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
+) -> None:
     executor = DAGExecutor(
         rag_preflight=RAGPreflightService(
             system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo
@@ -278,8 +311,8 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -308,7 +341,6 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         ],
     )
 
-    mock_repo.get_execution.return_value = None
     step_data = {
         "id": "stp_1234567890abcdef",
         "slug": "blp_test",
@@ -365,7 +397,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
 
         await executor.rag_preflight.execute(
             target_step=workflow.steps[0],
-            step_def=Step.model_validate(mock_repo.get_step_by_id.return_value),
+            step_def=Step.model_validate(step_data),
             exec_record=exec_record,
             emit_progress=AsyncMock(),
         )
@@ -384,7 +416,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
 
 @pytest.mark.asyncio
 async def test_rag_preflight_service_input_chars_below_threshold_skips_atomization(
-    mock_repo: MagicMock, mock_compiler: MagicMock
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
     """Tests that input with total characters < 50 short-circuits without calling TwoPassAtomizer."""
     from backend_v2.models.domain.execution import ExecutionRecord
@@ -438,7 +470,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
 
 @pytest.mark.asyncio
 async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
-    mock_repo: MagicMock, mock_compiler: MagicMock
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
     """Tests that concise reflection (>= 50 chars) proceeds to LLM atomization."""
     from backend_v2.models.domain.blackboard import DraftAtomList

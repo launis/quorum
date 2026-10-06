@@ -9,7 +9,7 @@ Zero Backwards Compatibility by purging legacy keys.
 import json
 from collections.abc import Awaitable
 from typing import Any, cast
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
@@ -22,6 +22,7 @@ from backend_v2.core.hook_registry import (
     HookState,
 )
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     MatrixExplanationContextDTO,
@@ -31,6 +32,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
@@ -41,59 +43,67 @@ class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
 
 def _build_mock_deps() -> HookDependencies:
     """Helper to create fully mocked HookDependencies with standard returns matching strict Pydantic schemas."""
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.seed_raw_workflow(
+        "wor_0123456789abcdef01",
+        {
+            "id": "wor_0123456789abcdef01",
+            "slug": "test_workflow",
+            "name": {"translations": {"en": "Test Workflow"}},
+            "description": {"translations": {"en": "Test Description"}},
+            "status": "active",
+            "version": 1,
+            "organization_id": "org_0123456789abcdef01",
+            "default_profile_id": "pro_0123456789abcdef01",
+            "steps": [],
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+        },
     )
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
-        "id": "wor_0123456789abcdef01",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Description"}},
-        "status": "active",
-        "version": 1,
-        "organization_id": "org_0123456789abcdef01",
-        "default_profile_id": "pro_0123456789abcdef01",
-        "steps": [],
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-    }
-    cast(AsyncMock, deps.exec_repo.get_execution).return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wor_0123456789abcdef01",
-        "status": "PASSED",
-        "target_locale": "en",
-        "metadata": {},
-        "output_profile_id": "pro_0123456789abcdef01",
-        "raw_inputs": {"dynamic_inputs": {}},
-        "step_states": {},
-    }
-    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "pro_0123456789abcdef01",
-        "slug": "prof_standard",
-        "workflow_id": "wor_0123456789abcdef01",
-        "name": {"translations": {"en": "Standard Profile"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "max_extension_items": 5,
-        "max_quotes_per_matrix": 3,
-        "max_unmet_criteria": 2,
-    }
-    cast(AsyncMock, deps.comp_repo.get_all_components).return_value = []
-    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
-    cast(AsyncMock, deps.exec_repo.get_all_executions).return_value = []
-    return deps
+    repo.set_execution(
+        {
+            "id": "exe_0123456789abcdef01",
+            "workflow_id": "wor_0123456789abcdef01",
+            "status": "PASSED",
+            "target_locale": "en",
+            "metadata": {},
+            "output_profile_id": "pro_0123456789abcdef01",
+            "raw_inputs": {"dynamic_inputs": {}},
+            "step_states": {},
+        }
+    )
+    repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "pro_0123456789abcdef01",
+                    "slug": "prof_standard",
+                    "workflow_id": "wor_0123456789abcdef01",
+                    "name": {"translations": {"en": "Standard Profile"}},
+                    "matrix_synthesis_groups": [
+                        {
+                            "id": "grp_0000000000000001",
+                            "title": {"translations": {"en": "Default"}},
+                            "target_blocks": ["*"],
+                        }
+                    ],
+                    "max_extension_items": 5,
+                    "max_quotes_per_matrix": 3,
+                    "max_unmet_criteria": 2,
+                }
+            )
+        ]
+    )
+    return HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
 
 
 @pytest.mark.asyncio
@@ -330,7 +340,7 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
 async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_config_error() -> None:
     """Contract: Verify missing output_profile_id on execution record raises AppException(CONFIGURATION_ERROR)."""
     deps = _build_mock_deps()
-    cast(AsyncMock, deps.exec_repo.get_execution).return_value = None
+    cast(InMemoryUnifiedWorkflowRepository, deps.exec_repo).set_execution(None)
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
@@ -351,7 +361,6 @@ async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_confi
 async def test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not_found() -> None:
     """Contract: Verify workflow not found in repo raises AppException(RESOURCE_NOT_FOUND)."""
     deps = _build_mock_deps()
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = None
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
@@ -372,7 +381,7 @@ async def test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not
 async def test_synthesis_distiller_wiring_output_profile_not_found_raises_resource_not_found() -> None:
     """Contract: Verify output profile not found in repo raises AppException(RESOURCE_NOT_FOUND)."""
     deps = _build_mock_deps()
-    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = None
+    cast(InMemoryUnifiedWorkflowRepository, deps.output_profile_repo).set_output_profiles([])
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
@@ -511,31 +520,36 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
     deps = _build_mock_deps()
 
     # Configure workflow with 2 steps: 1 excluded (is_synthesis_source=False), 1 included
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
-        "id": "wor_0123456789abcdef01",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Description"}},
-        "status": "active",
-        "version": 1,
-        "organization_id": "org_0123456789abcdef01",
-        "default_profile_id": "pro_0123456789abcdef01",
-        "steps": [
-            {
-                "id": "sr_111111111111111111111111",
-                "task_blueprint": "sp_111111111111111111111111",
-                "is_synthesis_source": False,
-            },
-            {
-                "id": "sr_222222222222222222222222",
-                "task_blueprint": "sp_222222222222222222222222",
-                "is_synthesis_source": True,
-            },
-        ],
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-    }
-    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = [
+    repo = cast(InMemoryUnifiedWorkflowRepository, deps.workflow_repo)
+    repo.seed_raw_workflow(
+        "wor_0123456789abcdef01",
+        {
+            "id": "wor_0123456789abcdef01",
+            "slug": "test_workflow",
+            "name": {"translations": {"en": "Test Workflow"}},
+            "description": {"translations": {"en": "Test Description"}},
+            "status": "active",
+            "version": 1,
+            "organization_id": "org_0123456789abcdef01",
+            "default_profile_id": "pro_0123456789abcdef01",
+            "steps": [
+                {
+                    "id": "sr_111111111111111111111111",
+                    "task_blueprint": "sp_111111111111111111111111",
+                    "is_synthesis_source": False,
+                },
+                {
+                    "id": "sr_222222222222222222222222",
+                    "task_blueprint": "sp_222222222222222222222222",
+                    "is_synthesis_source": True,
+                },
+            ],
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+        },
+    )
+    repo.seed_raw_step(
+        "sp_111111111111111111111111",
         {
             "id": "sp_111111111111111111111111",
             "slug": "input_raw",
@@ -544,6 +558,9 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
             "hook": "input_processing_hook",
             "organization_id": "org_0123456789abcdef01",
         },
+    )
+    repo.seed_raw_step(
+        "sp_222222222222222222222222",
         {
             "id": "sp_222222222222222222222222",
             "slug": "specialist",
@@ -554,7 +571,7 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
             "extraction_protocol_block_id": "blk_222222222222222222222222",
             "organization_id": "org_0123456789abcdef01",
         },
-    ]
+    )
 
     step_excluded = StepOutputDTO(
         step_id="sr_111111111111111111111111",
@@ -595,23 +612,6 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
 async def test_synthesis_distiller_wiring_forwards_output_profile_limits() -> None:
     """Contract: Verify output_profile flattened limits are forwarded to MatrixExplanationService."""
     deps = _build_mock_deps()
-
-    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "pro_0123456789abcdef01",
-        "slug": "prof_standard",
-        "workflow_id": "wor_0123456789abcdef01",
-        "name": {"translations": {"en": "Standard Profile"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-        "max_extension_items": 5,
-        "max_quotes_per_matrix": 3,
-        "max_unmet_criteria": 2,
-    }
 
     step_output = StepOutputDTO(
         step_id="stp_1",

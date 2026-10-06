@@ -1,5 +1,6 @@
 import asyncio
-from unittest.mock import AsyncMock
+from typing import cast
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -10,19 +11,21 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def logic_strategy() -> LogicNodeStrategy:
+    repo = InMemoryUnifiedWorkflowRepository()
     deps = StrategyDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
         prompt_compiler=AsyncMock(),
     )
     return LogicNodeStrategy(deps=deps)
@@ -46,12 +49,10 @@ async def test_execute_no_blueprint(logic_strategy: LogicNodeStrategy) -> None:
 
 @pytest.mark.asyncio
 async def test_execute_blueprint_not_found(logic_strategy: LogicNodeStrategy) -> None:
-    step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
+    step = StepRule.model_construct(id="step_1", task_blueprint="bp_missing_123")
     projector = StateProjector()
     context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
     semaphore = asyncio.Semaphore(1)
-
-    logic_strategy.workflow_repo.get_step_by_id.return_value = None
 
     with pytest.raises(AppException) as exc:
         await logic_strategy.execute(step, projector, context, None, None, semaphore)
@@ -84,10 +85,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
-    from typing import cast
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     from unittest.mock import patch
 
@@ -129,10 +127,7 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
-    from typing import cast
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     from unittest.mock import patch
 
@@ -175,10 +170,7 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
-    from typing import cast
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     from unittest.mock import patch
 
@@ -217,10 +209,7 @@ async def test_execute_missing_hook_raises_app_exception(logic_strategy: LogicNo
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LLM,
     }
-    from typing import cast
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     with pytest.raises(AppException) as exc_info:
         await logic_strategy.execute(step, projector, context, None, None, semaphore)
@@ -252,11 +241,7 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LOGIC,
     }
-    from typing import cast
-    from unittest.mock import patch
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     delta_instance = StepOutputDTO(step_id="stp_1", block_id="blk_1", data_type="text", payload="hello")
 
@@ -330,11 +315,7 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
         "description": {"translations": {"en": "Scoring"}},
         "type": StepType.LOGIC,
     }
-    from typing import cast
-    from unittest.mock import patch
-
-    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
-    mock_repo.get_step_by_id.return_value = step_def
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
         mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=None))

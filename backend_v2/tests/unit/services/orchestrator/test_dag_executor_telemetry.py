@@ -19,21 +19,23 @@ from opentelemetry.trace import StatusCode
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_dag_executor() -> DAGExecutor:
     """Provisions a mock-wired DAGExecutor for unit telemetry inspection."""
+    repo = InMemoryUnifiedWorkflowRepository()
     return DAGExecutor(
         rag_preflight=AsyncMock(),
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
         prompt_compiler=MagicMock(),
     )
 

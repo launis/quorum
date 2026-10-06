@@ -11,6 +11,7 @@ import pytest
 
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
@@ -217,7 +218,6 @@ def test_build_title_map_missing_blueprint_raises() -> None:
 @pytest.mark.asyncio
 async def test_build_historical_context_all_branches() -> None:
     from datetime import datetime, timezone
-    from unittest.mock import AsyncMock
 
     from backend_v2.core.hook_registry import (
         ExecutionInputsDTO,
@@ -231,16 +231,18 @@ async def test_build_historical_context_all_branches() -> None:
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.view.sdui import ParagraphBlock
     from backend_v2.services.orchestrator.synthesis_distiller import _fetch_historical_context
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
+    repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     state = HookState(
@@ -276,6 +278,8 @@ async def test_build_historical_context_all_branches() -> None:
         status_message="Completed",
         completed_at=datetime.now(timezone.utc),
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
@@ -291,6 +295,8 @@ async def test_build_historical_context_all_branches() -> None:
         progress=100,
         status_message="Completed",
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
     )
     past_exec3 = ExecutionRecord(
@@ -301,11 +307,15 @@ async def test_build_historical_context_all_branches() -> None:
         progress=0,
         status_message="Failed",
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
     )
 
-    cast_repo = deps.exec_repo
-    cast_repo.get_all_executions.return_value = [past_exec1, past_exec2, past_exec3]  # type: ignore[attr-defined]
+    repo._executions._storage.clear()
+    repo._executions._storage[past_exec1.id] = past_exec1
+    repo._executions._storage[past_exec2.id] = past_exec2
+    repo._executions._storage[past_exec3.id] = past_exec3
 
     res = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
     assert "<HistoricalContext>" in res
@@ -320,6 +330,8 @@ async def test_build_historical_context_all_branches() -> None:
         progress=100,
         status_message="Completed",
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_2": RenderedSynthesisCache(
@@ -335,6 +347,8 @@ async def test_build_historical_context_all_branches() -> None:
         progress=100,
         status_message="Completed",
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
@@ -350,6 +364,8 @@ async def test_build_historical_context_all_branches() -> None:
         progress=100,
         status_message="Completed",
         target_locale="en",
+        organization_id="org1",
+        created_by="u1",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
@@ -357,11 +373,10 @@ async def test_build_historical_context_all_branches() -> None:
             )
         },
     )
-    cast_repo.get_all_executions.return_value = [
-        past_exec_wrong_profile,
-        past_exec_empty_sections,
-        past_exec_empty_blocks,
-    ]
+    repo._executions._storage.clear()
+    repo._executions._storage[past_exec_wrong_profile.id] = past_exec_wrong_profile
+    repo._executions._storage[past_exec_empty_sections.id] = past_exec_empty_sections
+    repo._executions._storage[past_exec_empty_blocks.id] = past_exec_empty_blocks
     res_empty = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
     assert res_empty == ""
 
@@ -369,7 +384,6 @@ async def test_build_historical_context_all_branches() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
     from typing import cast
-    from unittest.mock import AsyncMock
 
     from backend_v2.core.hook_registry import (
         ExecutionInputsDTO,
@@ -403,31 +417,36 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
         type=StepType.LOGIC,
         hook="text_consolidation_hook",
     )
-    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = [bp1, bp2]
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
-        "id": "wor_0123456789abcdef01",
-        "slug": "test_workflow",
-        "name": {"translations": {"en": "Test Workflow"}},
-        "description": {"translations": {"en": "Test Description"}},
-        "status": "active",
-        "version": 1,
-        "organization_id": "org_0123456789abcdef01",
-        "default_profile_id": "pro_0123456789abcdef01",
-        "steps": [
-            {
-                "id": "stp_0123456789abcdef01",
-                "task_blueprint": "bp_0123456789abcdef01",
-                "is_synthesis_source": True,
-            },
-            {
-                "id": "stp_0123456789abcdef02",
-                "task_blueprint": "bp_0123456789abcdef02",
-                "is_synthesis_source": False,
-            },
-        ],
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-    }
+    repo = cast(InMemoryUnifiedWorkflowRepository, deps.workflow_repo)
+    repo.seed_raw_step(bp1.id, bp1)
+    repo.seed_raw_step(bp2.id, bp2)
+    repo.seed_raw_workflow(
+        "wor_0123456789abcdef01",
+        {
+            "id": "wor_0123456789abcdef01",
+            "slug": "test_workflow",
+            "name": {"translations": {"en": "Test Workflow"}},
+            "description": {"translations": {"en": "Test Description"}},
+            "status": "active",
+            "version": 1,
+            "organization_id": "org_0123456789abcdef01",
+            "default_profile_id": "pro_0123456789abcdef01",
+            "steps": [
+                {
+                    "id": "stp_0123456789abcdef01",
+                    "task_blueprint": "bp_0123456789abcdef01",
+                    "is_synthesis_source": True,
+                },
+                {
+                    "id": "stp_0123456789abcdef02",
+                    "task_blueprint": "bp_0123456789abcdef02",
+                    "is_synthesis_source": False,
+                },
+            ],
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+        },
+    )
 
     # Case 1: single StepOutputDTO in steps_data (line 233)
     single_step = StepOutputDTO(

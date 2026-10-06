@@ -8,6 +8,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 class DummyStrategy(NodeStrategy):
@@ -17,15 +18,16 @@ class DummyStrategy(NodeStrategy):
 
 @pytest.fixture
 def dummy_strategy() -> DummyStrategy:
+    repo = InMemoryUnifiedWorkflowRepository()
     deps = StrategyDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
         prompt_compiler=AsyncMock(),
         arq_pool=MagicMock(),
     )

@@ -15,22 +15,24 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "logic",
-        "type": "logic",
-        "cognitive_tier": "fast",
-        "hook": "mock_hook",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    repo.get_execution.return_value = None
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "logic",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "hook": "mock_hook",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
     return repo
 
 
@@ -66,8 +68,8 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -122,8 +124,8 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -212,8 +214,8 @@ async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,

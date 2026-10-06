@@ -14,20 +14,22 @@ from backend_v2.services.orchestrator.strategies.registry import (
     NODE_STRATEGY_REGISTRY,
     NodeStrategyFactory,
 )
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_deps() -> StrategyDependencies:
     """Provides a mocked StrategyDependencies container."""
+    repo = InMemoryUnifiedWorkflowRepository()
     return StrategyDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=MagicMock(),
-        output_profile_repo=MagicMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
         prompt_compiler=MagicMock(),
     )
 
