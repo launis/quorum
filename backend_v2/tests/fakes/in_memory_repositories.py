@@ -285,9 +285,9 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         self._check_fault("get_all_workflows")
         items = self._list_isolated()
         if role != "ROOT" and organization_id is not None:
-            items = [w for w in items if getattr(w, "organization_id", None) in (organization_id, "root_system", None)]
+            items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) in (organization_id, "root_system", None)]
         elif organization_id is not None:
-            items = [w for w in items if getattr(w, "organization_id", None) == organization_id]
+            items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) == organization_id]
         return items
 
     async def get_workflow_by_id(self, workflow_id: str) -> Workflow | None:
@@ -979,9 +979,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
-        if isinstance(self._mcp_gateways, dict):
-            return self._mcp_gateways  # type: ignore[return-value]
-        return SystemConfigMCPGateways.model_validate(self._mcp_gateways.model_dump(mode="python"), strict=False)
+        return self._mcp_gateways.model_copy(deep=True)
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         self._check_fault("update_mcp_gateways")
@@ -1423,9 +1421,11 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         """Inject a fault into underlying repositories that support the method."""
         injected = False
         for r in self._all_sub_repos():
-            if hasattr(r, method_name) and callable(getattr(r, method_name)):
+            try:
                 r.inject_fault(method_name, exception, trigger_count)
                 injected = True
+            except ValueError:
+                pass
         if not injected:
             raise ValueError(f"Method '{method_name}' does not exist on any sub-repository of InMemoryUnifiedWorkflowRepository")
 
@@ -1784,49 +1784,61 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         """Helper to seed prompt blocks for tests."""
         self._prompt_blocks._storage.clear()
         for b in blocks:
-            b_id = b.id if hasattr(b, "id") else b["id"]
+            try:
+                b_id = b.id
+            except AttributeError:
+                b_id = b["id"]
             self._prompt_blocks.seed_raw_prompt_block(b_id, b)
 
     def seed_raw_workflow(self, workflow_id: str, raw_workflow: Any) -> None:
         """Seed a raw dictionary or domain model into workflow storage for testing."""
         self._workflows.seed_raw_workflow(workflow_id, raw_workflow)
 
-    def set_workflow(self, workflow: Workflow | dict[str, Any] | Any | None) -> None:
+    def set_workflow(self, workflow: Workflow | Any | None) -> None:
         """Helper to seed a workflow for tests."""
         if workflow is None:
             self._workflows._storage.clear()
-        elif isinstance(workflow, Workflow):
+            return
+        if isinstance(workflow, Workflow):
             self._workflows._save_isolated(workflow.id, workflow)
-        elif isinstance(workflow, dict):
-            wf_id = workflow.get("id", "wor_0123456789abcdef")
-            self._workflows.seed_raw_workflow(wf_id, workflow)
-        elif hasattr(workflow, "id"):
+            return
+        try:
             self._workflows._storage[workflow.id] = workflow
+        except AttributeError:
+            wf_id = workflow["id"] if "id" in workflow else "wor_0123456789abcdef"
+            self._workflows.seed_raw_workflow(wf_id, workflow)
 
     def set_execution(self, record: ExecutionRecord | Any | None) -> None:
         """Helper to seed an execution record for tests."""
         if record is None:
             self._executions._storage.clear()
-        elif isinstance(record, ExecutionRecord):
+            return
+        if isinstance(record, ExecutionRecord):
             self._executions._save_isolated(record.id, record)
-        elif hasattr(record, "id"):
+            return
+        try:
             self._executions._storage[record.id] = record
-        elif isinstance(record, dict) and "id" in record:
-            self._executions._storage[record["id"]] = record
+        except AttributeError:
+            if "id" in record:
+                self._executions._storage[record["id"]] = record
 
     def set_model_registry(self, registry: SystemConfigModelRegistry | None, registry_id: str | None = None) -> None:
         """Helper to seed model registry for tests."""
         self._system.set_model_registry(registry, registry_id)
 
-    def set_user(self, user: User | dict[str, Any] | None) -> None:
+    def set_user(self, user: User | Any | None) -> None:
         """Helper to seed a user for tests."""
         if user is None:
             self._identities._users.clear()
-        elif isinstance(user, dict):
-            u_id = user.get("id", "usr_0123456789abcdef")
-            self._identities._users[u_id] = copy.deepcopy(user)  # type: ignore[assignment]
-        else:
+            return
+        if isinstance(user, User):
             self._identities._users[user.id] = self._identities._clone(user)
+            return
+        try:
+            self._identities._users[user.id] = self._identities._clone(user)
+        except AttributeError:
+            u_id = user["id"] if "id" in user else "usr_0123456789abcdef"
+            self._identities._users[u_id] = copy.deepcopy(user)  # type: ignore[assignment]
 
     def set_organization(self, org: Organization | None) -> None:
         """Helper to seed an organization for tests."""
@@ -1835,13 +1847,13 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         else:
             self._identities._save_isolated(org.id, org)
 
-    def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | dict[str, Any]) -> None:
+    def set_mcp_gateways(self, gateways: SystemConfigMCPGateways | Any) -> None:
         """Helper to seed mcp gateways for tests."""
-        if isinstance(gateways, dict):
-            self._system._mcp_gateways = copy.deepcopy(gateways)  # type: ignore[assignment]
+        if isinstance(gateways, SystemConfigMCPGateways):
+            self._system._mcp_gateways = gateways.model_copy(deep=True)
         else:
             self._system._mcp_gateways = SystemConfigMCPGateways.model_validate(
-                gateways.model_dump(mode="python"), strict=False
+                gateways, strict=False
             )
 
     def seed_system_config(self, key: str, item: JsonValue) -> None:

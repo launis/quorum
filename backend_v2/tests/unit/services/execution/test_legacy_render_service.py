@@ -22,6 +22,7 @@ from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.execution.legacy_render_service import ExecutionLegacyRenderService
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
+    InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
 
@@ -504,14 +505,15 @@ async def test_get_execution_export_bytes_success(
 
 def test_transformer_success() -> None:
     """Verify _transformer returns BlueprintTransformer when all required repositories are provided."""
+    repo = InMemoryUnifiedWorkflowRepository()
     service = ExecutionLegacyRenderService(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
     transformer = service._transformer()
     assert isinstance(transformer, BlueprintTransformer)

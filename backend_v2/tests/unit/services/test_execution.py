@@ -61,9 +61,8 @@ def _make_test_record(
     profile_id: str | None = None,
     **kwargs: Any,
 ) -> ExecutionRecord:
-    clean_kwargs = dict(kwargs)
-    clean_kwargs.pop("is_public", None)
-    data: dict[str, Any] = {
+    clean_kwargs = {k: v for k, v in kwargs.items() if k != "is_public"}
+    data = {
         "id": execution_id,
         "workflow_id": workflow_id,
         "organization_id": organization_id,
@@ -87,7 +86,7 @@ def _make_test_profile(
     organization_id: str = "org_1",
     **kwargs: Any,
 ) -> OutputProfile:
-    data: dict[str, Any] = {
+    data = {
         "id": profile_id,
         "slug": "test-profile",
         "workflow_id": workflow_id,
@@ -106,7 +105,7 @@ def _make_test_workflow(
     model_registry_id: str | None = "sys_e26807f3bfa3454d",
     **kwargs: Any,
 ) -> Workflow:
-    data: dict[str, Any] = {
+    data = {
         "id": workflow_id,
         "slug": "test-wf",
         "name": I18nText(translations={"en": "Test WF"}),
