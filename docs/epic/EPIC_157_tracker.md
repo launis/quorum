@@ -90,15 +90,15 @@
 **Plan:** @[docs/epic/tasks_EPIC_157/05_phase5_plan.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=5`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
   - [x] Step 5.0: Strategic Alignment & Persistence Census Probe
   - [x] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
   - [x] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
   - [x] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
   - [x] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)
   - [x] Step 5.5: Concurrency, Fuzzer & Logic Suites Persistence Migration (Census A & I)
-  - [ ] Step 5.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 5.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 5 test contracts across 20 Orchestrator, Strategy, and Concurrency test files, strict >=90% TDD unit test coverage (global 97.67%, 5,091 passed), zero AST violations, Census A=0, B=0, C=0, I=0, D=0, X=0, and 10/10 backend audit stages with exit code 0.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 6: Test Persistence Migration — Workers, API & Integration
@@ -310,9 +310,9 @@
 | Orchestrator Fixtures Modernization & cast(Any) Eradication | test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_concurrency.py, test_rag_preflight_service.py | Phase 5, Step 1 | Typed fixtures, Census X=0 | [OK] |
 | Census B Attribute Replacements & Fault Injection | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_preflight.py, strategies/test_llm.py, test_dag_taskgroup.py | Phase 5, Step 2 | Census B=0, localized pytest passes | [OK] |
 | Keyword-Injected Repository Mocks Eradication (Census D) | 14 orchestrator and strategy test files | Phase 5, Step 3 | Census D=0 across target files | [OK] |
-| Orchestrator & Strategy Persistence Emulation-Fake Migration | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_audit.py, test_dag_executor_preflight.py, strategies/test_llm.py, strategies/test_llm_cost_tracking.py, strategies/test_logic.py, test_synthesis_distiller.py | Phase 5, Step 4 | Census A=0, Census I=0 across target files | [NOK] |
-| Concurrency, Fuzzer & Logic Suites Persistence Migration | test_dag_executor_prompt_blocks.py, test_dag_taskgroup.py, test_concurrency_fuzzer.py, test_logic.py | Phase 5, Step 5 | Census A=0, Census I=0 across target files | [NOK] |
-| Phase 5 Quality Gates, Baseline Ratchet & SDUI Parity | 20 target files across orchestrator, strategy, and concurrency suites | Phase 5, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 21 | [NOK] |
+| Orchestrator & Strategy Persistence Emulation-Fake Migration | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_audit.py, test_dag_executor_preflight.py, strategies/test_llm.py, strategies/test_llm_cost_tracking.py, strategies/test_logic.py, test_synthesis_distiller.py | Phase 5, Step 4 | Census A=0, Census I=0 across target files | [OK] |
+| Concurrency, Fuzzer & Logic Suites Persistence Migration | test_dag_executor_prompt_blocks.py, test_dag_taskgroup.py, test_concurrency_fuzzer.py, test_logic.py | Phase 5, Step 5 | Census A=0, Census I=0 across target files | [OK] |
+| Phase 5 Quality Gates, Baseline Ratchet & SDUI Parity | 20 target files across orchestrator, strategy, and concurrency suites | Phase 5, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 21 | [OK] |
 
 ---
 
@@ -331,25 +331,30 @@
   - Step 4.4: Eradicated 419 Census A assignments and Census I imports across 9 target files (`test_blueprint.py`, `test_execution.py`, `test_execution_resumability.py`, `test_report_service.py`, `test_ingress_service.py`, `test_output_profile_service.py`, `test_workflow_service.py`, `test_auth.py`, `test_usage_service.py`), seeding real domain models and snapshot fakes.
   - Step 4.5: Eradicated all 269 Census D keyword-injected repository mocks across `test_execution.py` (182), `test_security.py` (80), and `test_legacy_render_service.py` (7).
   - Step 4.6: Verified zero residual census matches on all 23 Phase 4 target files: A=0, B=0, C=0, I=0, D=0, dict_to_obj=0 (100% eradicated). Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passing in 16.50s. Ratcheted repo-wide residual debt ceilings in `scripts/audit_warning_baseline.py` monotonically: D lowered from 362 to 173 (-189, cumulative -269 from baseline), T lowered from 403 to 397 (-6), P lowered from 359 to 358 (-1). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,091 passing tests, 97.67% total test coverage, zero AST violations, and clean MyPy strict validation.
-- Successfully completed Tier 0 Research & Red-Teaming for Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`):
-  - Verified exact live census counts across all 20 target files: Census A=161, Census B=10, Census C=0, Census D=152, Census I=11, Census X=1, Fixtures=2.
-  - Falsified potential fault injection and in-memory execution update failure modes, proving `BaseInMemoryRepository.inject_fault` decrements trigger counts cleanly and executes deterministic failure branches.
-  - Aligned exact AST line bounds for all target files (specifically `test_rag_preflight_service.py#L111-L136`) and verified 100% compliance with `scripts/audit_markdown_boundaries.py` (passing with exit code 0).
-  - Validated that eradicating 152 Census D mocks in Phase 5 reduces repo-wide Census D ceiling from 173 to 21, preparing the exact baseline for Phase 6.
+- Successfully implemented and verified Phase 5:
+  - Step 5.0: Baseline persistence census probe completed (A=161, B=10, C=0, I=11 files, D=152, X=1, Fixtures=2).
+  - Step 5.1: Modernized repository fixtures (`mock_repo`, `mock_repos`) in `test_dag_executor_atom_ceiling.py` and `test_dag_executor_mcp_concurrency.py` to `InMemoryUnifiedWorkflowRepository`. Eradicated Census X `cast(Any, None)` in `test_rag_preflight_service.py#L115`.
+  - Step 5.2: Eradicated all 10 Census B attribute replacements (`mock_repo.<attr> = AsyncMock(...)`) across 5 target files using real in-memory stores and deterministic `repo.inject_fault("update_execution", ...)`.
+  - Step 5.3: Eradicated all 152 Census D keyword-injected repository mocks (`exec_repo=AsyncMock(...)`, etc.) across 14 target files by passing typed `InMemoryUnifiedWorkflowRepository` instances satisfying all 8 `StrategyDependencies` repository interfaces.
+  - Step 5.4: Eradicated all Census A and Census I occurrences across 8 Orchestrator and Strategy test files (`test_dag_executor.py`, `test_dag_executor_atom_ceiling.py`, `test_dag_executor_mcp_audit.py`, `test_dag_executor_preflight.py`, `strategies/test_llm.py`, `strategies/test_llm_cost_tracking.py`, `strategies/test_logic.py`, `test_synthesis_distiller.py`), seeding real domain models and snapshot fakes.
+  - Step 5.5: Eradicated all Census A and Census I occurrences across Concurrency, Fuzzer, and Logic test suites (`test_dag_executor_prompt_blocks.py`, `test_dag_taskgroup.py`, `test_concurrency_fuzzer.py`, `test_logic.py`), validating safe free-threading concurrency under `asyncio.TaskGroup`.
+  - Step 5.6: Verified zero residual census matches on all 20 Phase 5 target files: A=0, B=0, C=0, I=0, D=0, X=0 (100% eradicated). Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passing in 18.14s. Ratcheted repo-wide residual debt ceilings in `scripts/audit_warning_baseline.py` monotonically: D lowered from 173 to 21 (-152), X lowered from 14 to 13 (-1), T lowered from 397 to 396 (-1), P lowered from 358 to 357 (-1). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,091 passing tests, 97.67% total test coverage, zero AST violations, and clean MyPy strict validation.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
 - In `BaseInMemoryRepository`, `self._clone(item)` provides Rust-accelerated validation/dumping for Pydantic models while safely handling `dict` instances via deep copy for negative configuration error test fixtures.
-- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 269 from 442 to 173, and Phase 5 will lower it by 152 from 173 to 21).
+- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 421 cumulative from 442 to 21).
 - In `BaseInMemoryRepository.inject_fault`, `self._check_fault(method_name)` executes at the start of each repository method before database or in-memory collection lookups, guaranteeing deterministic error injection even when entities are not pre-seeded.
 - In `scripts/audit_markdown_boundaries.py`, MBD004 computes `node_start` as `min(d.lineno for d in node.decorator_list)` when decorators exist; line spans must encompass `@pytest.mark.asyncio` through the function end line.
 - `InMemoryUnifiedWorkflowRepository` delegates all step methods (`get_step_by_id`, `get_step`, `save_step`, `create_step`, `seed_raw_step`) to `self._workflows` and all execution methods (`get_execution`, `update_execution`, `create_execution`) to `self._executions`, enabling single-instance injection for all 8 `StrategyDependencies` and `DAGExecutor` dependencies.
+- `NodeExecutionUpdateDTO.to_execution_update_dto` must omit `steps` from serialized kwargs when `self.steps is None` so `exclude_unset=True` preserves non-nullable `ExecutionRecord.steps` rather than overwriting with `None`.
+- `ExecutionRecord.id` and `Workflow.id` require strict regex validation (`^exe_[a-fA-F0-9]{16,32}$`, `^wf_[a-fA-F0-9]{16,32}$`); test fixtures must use conforming hex IDs to ensure zero-bypass Pydantic V2 model validation.
 
 ## Remaining
-- Execute & Audit Phase 5 (`/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`).
+- Audit Phase 5 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`).
 - Plan, Research, Execute & Audit Phases 6 through 13.
 
 ## Resume Command
-/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]
 
 

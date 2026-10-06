@@ -1816,7 +1816,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             except AttributeError:
                 try:
                     s_id = step_data["id"]
-                except (KeyError, TypeError):
+                except KeyError, TypeError:
                     s_id = "stp_0123456789abcdef0123456789abcdef"
         self._workflows.seed_raw_step(s_id, step_data)
         self._workflows._default_step = step_data
@@ -1848,7 +1848,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             except AttributeError:
                 try:
                     b_id = b["id"]
-                except (KeyError, TypeError):
+                except KeyError, TypeError:
                     b_id = f"blk_{uuid.uuid4().hex[:16]}"
             self._prompt_blocks.seed_raw_prompt_block(b_id, b)
 
