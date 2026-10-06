@@ -1,21 +1,22 @@
 """Unit tests for Epic 66: Unified Vertex AI Model Garden & Multi-Provider Integration."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from backend_v2.llm.handler import LLMHandler
-from backend_v2.llm.provider import LLMFactory
+from backend_v2.llm.provider import LiteLLMProvider, LLMFactory
 from backend_v2.settings import Settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> AsyncMock:
-    return AsyncMock()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.fixture
-def handler(mock_repo: AsyncMock) -> LLMHandler:
+def handler(mock_repo: InMemoryUnifiedWorkflowRepository) -> LLMHandler:
     return LLMHandler(mock_repo)
 
 
@@ -154,6 +155,7 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         model_name="anthropic/claude-3-5-sonnet",
         limits={"tpm": 1000, "rpm": 10},
     )
+    assert isinstance(provider, LiteLLMProvider)
     assert provider.api_key == "anthropic-key"
 
     # 2. Test explicit API key override with litellm provider type
@@ -163,4 +165,5 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         api_key="anthropic-key",
         limits={"tpm": 1000, "rpm": 10},
     )
+    assert isinstance(provider_litellm, LiteLLMProvider)
     assert provider_litellm.api_key == "anthropic-key"

@@ -22,7 +22,7 @@ from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
 from backend_v2.services.chat_parser import ChatParserService
 from backend_v2.services.orchestrator.prompts.graph_linking import build_linker_user_prompt
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from scripts._ast_guardrails import scan_source_code_for_guardrails
 
 TARGET_FILES = [
@@ -168,7 +168,7 @@ async def test_chat_parser_cdata_verbatim_anchor_compatibility(mock_from_strateg
     mock_client._config = mock_config
     mock_from_strategy.return_value = mock_client
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
     res = await ChatParserService.parse_pasted_chat(raw_paste, mock_repo)
 
     assert len(res.conversation) == 2

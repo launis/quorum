@@ -5,11 +5,11 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.system_config import ChatMessageDTO
+from backend_v2.models.domain.system_config import ChatMessageDTO, ProviderExtraParamsDTO
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 class MockLLMResponse:
@@ -32,14 +32,14 @@ class DummyModel(BaseModel):
 
 
 @pytest.fixture
-def mock_repository() -> InMemoryBlueprintTransformerRepository:
-    repo = InMemoryBlueprintTransformerRepository()
+def mock_repository() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
     return repo
 
 
 @pytest.mark.asyncio
 async def test_run_structured_task_self_healing_success(
-    mock_repository: InMemoryBlueprintTransformerRepository,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Tests that the self-healing retry loop successfully catches a JSON error
     on the first attempt and successfully recovers with valid JSON on the second.
@@ -52,6 +52,7 @@ async def test_run_structured_task_self_healing_success(
         rpm_limit=100,
         temperature=0.2,
         default_max_tokens=1000,
+        additional_params=ProviderExtraParamsDTO(),
     )
     client = LLMClient(config=config)
     executor = LLMTaskExecutor(PromptCompiler())
@@ -95,7 +96,7 @@ async def test_run_structured_task_self_healing_success(
 
 @pytest.mark.asyncio
 async def test_run_structured_task_self_healing_exhaustion(
-    mock_repository: InMemoryBlueprintTransformerRepository,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Tests that the self-healing circuit breaker triggers an AgentExecutionError
     if the maximum number of retries is exhausted with invalid schema outputs.
@@ -108,6 +109,7 @@ async def test_run_structured_task_self_healing_exhaustion(
         rpm_limit=100,
         temperature=0.2,
         default_max_tokens=1000,
+        additional_params=ProviderExtraParamsDTO(),
     )
     client = LLMClient(config=config)
     executor = LLMTaskExecutor(PromptCompiler())

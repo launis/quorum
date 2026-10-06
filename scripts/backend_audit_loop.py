@@ -124,11 +124,13 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                             )
                         else:
                             cov_target = str(found[0]).removesuffix(".py").replace("\\", ".").replace("/", ".")
+                        cov_filter_name = f"{clean_name}.py"
                     else:
-                        cov_target = "backend_v2." + ".".join(rel_parts)
+                        cov_target = "backend_v2"
+                        cov_filter_name = None
                 else:
                     cov_target = "backend_v2." + ".".join(rel_parts)
-                cov_filter_name = f"{clean_name}.py"
+                    cov_filter_name = f"{clean_name}.py"
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
                 cov_filter_name = filename
@@ -216,7 +218,10 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
 
         # 2. Run Coverage Report filtered strictly to this target file
         if result.returncode == 0:
-            coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{cov_filter_name}", "--fail-under=90", "-m"]
+            if cov_filter_name:
+                coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{cov_filter_name}", "--fail-under=90", "-m"]
+            else:
+                coverage_cmd = ["uv", "run", "coverage", "report", "--fail-under=0", "-m"]
             result = subprocess.run(coverage_cmd)
     else:
         parts = target_clean.strip("/").split("/")

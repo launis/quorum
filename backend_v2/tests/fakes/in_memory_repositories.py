@@ -8,6 +8,7 @@ guaranteeing `repo.get(id) is not repo.get(id)` and `repo.get(id) == repo.get(id
 from __future__ import annotations
 
 import asyncio
+import copy
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -15,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.database.interfaces import (
     IAgentRepository,
@@ -94,7 +95,9 @@ class BaseInMemoryRepository[T: BaseModel]:
 
     def _clone(self, item: T) -> T:
         """Deep-clone a Pydantic model using Rust-native validation/dumping."""
-        return type(item).model_validate(item.model_dump(mode="python"), strict=False)
+        if isinstance(item, BaseModel):
+            return type(item).model_validate(item.model_dump(mode="python"), strict=False)
+        return copy.deepcopy(item)
 
     def _save_isolated(self, key: str, item: T) -> None:
         """Save an isolated deep copy to in-memory store."""
@@ -240,9 +243,9 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         count = 0
         for x in self._storage.values():
             if (
-                type(x.context_variables) is dict
-                and "matrix_id" in x.context_variables
-                and x.context_variables["matrix_id"] == matrix_id
+                x.context_variables is not None
+                and "matrix_id" in x.context_variables.variables
+                and x.context_variables.variables["matrix_id"] == matrix_id
             ):
                 count += 1
         return count
@@ -877,6 +880,18 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         }
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._system_settings: SystemSettingsDTO | None = None
+        self._raw_system_configs: dict[str, JsonValue] = {}
+
+    def seed_raw_system_config(self, key: str, item: JsonValue) -> None:
+        """Seed a raw dictionary or domain model into system storage for testing."""
+        self._raw_system_configs[key] = copy.deepcopy(item)
+
+    def remove_system_config(self, config_id: str) -> None:
+        """Removes a system config from storage without mutating via dict.pop."""
+        if config_id in self._raw_system_configs:
+            del self._raw_system_configs[config_id]
+        if config_id in self._storage:
+            del self._storage[config_id]
 
     async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         self._check_fault("get_model_registry")
@@ -936,8 +951,10 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             return True
         return False
 
-    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
+    async def get_system_config(self, config_id: str) -> Any:
         self._check_fault("get_system_config")
+        if config_id in self._raw_system_configs:
+            return copy.deepcopy(self._raw_system_configs[config_id])
         return self._get_isolated(config_id)
 
     async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
@@ -1631,8 +1648,16 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool:
         return await self._system.update_system_settings(updates)
 
-    async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
+    async def get_system_config(self, config_id: str) -> Any:
         return await self._system.get_system_config(config_id)
+
+    def seed_system_config(self, key: str, item: JsonValue) -> None:
+        """Seeds a system config record into the underlying system repository."""
+        self._system.seed_raw_system_config(key, item)
+
+    def remove_system_config(self, config_id: str) -> None:
+        """Removes a system config record from the underlying system repository."""
+        self._system.remove_system_config(config_id)
 
     async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
         return await self._system.create_system_config(config_data)

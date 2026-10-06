@@ -9,10 +9,11 @@ Covers:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from pydantic import JsonValue
 
 from backend_v2.exceptions import (
     AppException,
@@ -22,22 +23,35 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.llm.handler import LLMHandler
-from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    ProviderExtraParamsDTO,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.settings import Settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> AsyncMock:
-    """Fixture providing an async mock repository."""
-    return AsyncMock()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    """Fixture providing an in-memory unified workflow repository."""
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.fixture
-def handler(mock_repo: AsyncMock) -> LLMHandler:
-    """Fixture providing an LLMHandler instance with mock repository."""
+def handler(mock_repo: InMemoryUnifiedWorkflowRepository) -> LLMHandler:
+    """Fixture providing an LLMHandler instance with in-memory repository."""
     return LLMHandler(mock_repo)
+
+
+def _seed_system_config(repo: InMemoryUnifiedWorkflowRepository, config_dict: dict[str, JsonValue] | None) -> None:
+    """Helper to seed system config records into in-memory fake."""
+    if config_dict is None:
+        repo.remove_system_config("global_model_registry")
+    else:
+        repo.seed_system_config("global_model_registry", config_dict)
 
 
 def _make_sample_registry(is_active: bool = True) -> SystemConfigModelRegistry:
@@ -58,7 +72,7 @@ def _make_sample_registry(is_active: bool = True) -> SystemConfigModelRegistry:
                 rpm_limit=1000,
                 supports_grounding=False,
                 is_active=is_active,
-                additional_params={},
+                additional_params=ProviderExtraParamsDTO(),
             ),
             CognitiveTier.BALANCED: ModelProfile(
                 provider="vertex_ai",
@@ -69,7 +83,7 @@ def _make_sample_registry(is_active: bool = True) -> SystemConfigModelRegistry:
                 rpm_limit=1000,
                 supports_grounding=True,
                 is_active=is_active,
-                additional_params={"vertex_location": "europe-north1"},
+                additional_params=ProviderExtraParamsDTO(vertex_location="europe-north1"),
             ),
             CognitiveTier.DEEP: ModelProfile(provider="openai", model_name="gpt-4o"),
             CognitiveTier.REASONING: ModelProfile(provider="openai", model_name="gpt-4o"),
@@ -475,15 +489,20 @@ def test_fetch_all_available_models_multi_aggregation(handler: LLMHandler) -> No
 
 
 @pytest.mark.asyncio
-async def test_get_active_model_registry_success(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_active_model_registry_success(
+    handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Verifies successful retrieval and Pydantic validation of model registry."""
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "id": sample_reg.id,
-        "slug": sample_reg.slug,
-        "type": sample_reg.type,
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "id": sample_reg.id,
+            "slug": sample_reg.slug,
+            "type": sample_reg.type,
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     registry = await handler.get_active_model_registry()
     assert "tier_definitions" in registry
@@ -492,28 +511,37 @@ async def test_get_active_model_registry_success(handler: LLMHandler, mock_repo:
 
 
 @pytest.mark.asyncio
-async def test_get_active_model_registry_not_found(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_active_model_registry_not_found(
+    handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Verifies ResourceNotFoundError when model registry record does not exist."""
-    mock_repo.get_system_config.return_value = None
+    _seed_system_config(mock_repo, None)
     with pytest.raises(ResourceNotFoundError):
         await handler.get_active_model_registry()
 
 
 @pytest.mark.asyncio
-async def test_get_active_model_registry_corrupt(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_active_model_registry_corrupt(
+    handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Verifies AppException when model registry schema validation fails."""
-    mock_repo.get_system_config.return_value = {"config": {"invalid": "data"}}
+    _seed_system_config(mock_repo, {"config": {"invalid": "data"}})
     with pytest.raises(AppException):
         await handler.get_active_model_registry()
 
 
 @pytest.mark.asyncio
-async def test_get_model_config_tier_definitions(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_model_config_tier_definitions(
+    handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Verifies get_model_config resolves from tier_definitions."""
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     config = await handler.get_model_config("openai", "fast")
     assert config is not None
@@ -521,12 +549,15 @@ async def test_get_model_config_tier_definitions(handler: LLMHandler, mock_repo:
 
 
 @pytest.mark.asyncio
-async def test_get_model_config_not_found(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_model_config_not_found(handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Verifies get_model_config returns None for non-existent strategy."""
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     assert await handler.get_model_config("openai", "non_existent_mode") is None
 
@@ -540,7 +571,10 @@ async def test_get_model_config_not_found(handler: LLMHandler, mock_repo: AsyncM
 @patch("backend_v2.llm.handler.get_settings")
 @patch("backend_v2.llm.handler.LLMFactory.create_provider")
 async def test_create_provider_for_strategy_success(
-    mock_create_provider: MagicMock, mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_create_provider: MagicMock,
+    mock_get_settings: MagicMock,
+    handler: LLMHandler,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verifies create_provider_for_strategy builds and passes strict provider config."""
     mock_settings = MagicMock(spec=Settings)
@@ -548,12 +582,15 @@ async def test_create_provider_for_strategy_success(
     mock_get_settings.return_value = mock_settings
 
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "id": sample_reg.id,
-        "slug": sample_reg.slug,
-        "type": sample_reg.type,
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "id": sample_reg.id,
+            "slug": sample_reg.slug,
+            "type": sample_reg.type,
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     mock_provider_instance = MagicMock()
     mock_create_provider.return_value = mock_provider_instance
@@ -566,13 +603,16 @@ async def test_create_provider_for_strategy_success(
 @pytest.mark.asyncio
 @patch("backend_v2.llm.handler.get_settings")
 async def test_create_provider_unconfigured_strategy(
-    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Verifies ConfigurationError when strategy is not in registry."""
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     with pytest.raises(ConfigurationError) as exc_info:
         await handler.create_provider_for_strategy("unknown_strategy")
@@ -582,7 +622,7 @@ async def test_create_provider_unconfigured_strategy(
 @pytest.mark.asyncio
 @patch("backend_v2.llm.handler.get_settings")
 async def test_create_provider_disabled_model(
-    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Verifies ServiceUnavailableError when model profile has is_active=False."""
     mock_settings = MagicMock(spec=Settings)
@@ -590,9 +630,12 @@ async def test_create_provider_disabled_model(
     mock_get_settings.return_value = mock_settings
 
     sample_reg = _make_sample_registry(is_active=False)
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     with pytest.raises(ServiceUnavailableError) as exc_info:
         await handler.create_provider_for_strategy("fast")
@@ -603,7 +646,10 @@ async def test_create_provider_disabled_model(
 @patch("backend_v2.llm.handler.get_settings")
 @patch("backend_v2.llm.handler.LLMFactory.create_provider")
 async def test_create_provider_vertex_validation_success(
-    mock_create_provider: MagicMock, mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_create_provider: MagicMock,
+    mock_get_settings: MagicMock,
+    handler: LLMHandler,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verifies strict validation for Vertex AI passes when model is discovered in region."""
     mock_settings = MagicMock(spec=Settings)
@@ -611,9 +657,12 @@ async def test_create_provider_vertex_validation_success(
     mock_get_settings.return_value = mock_settings
 
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     mock_provider_instance = MagicMock()
     mock_create_provider.return_value = mock_provider_instance
@@ -630,7 +679,7 @@ async def test_create_provider_vertex_validation_success(
 @pytest.mark.asyncio
 @patch("backend_v2.llm.handler.get_settings")
 async def test_create_provider_vertex_validation_failure(
-    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
 ) -> None:
     """Verifies strict validation for Vertex AI triggers ConfigurationError when model is missing."""
     mock_settings = MagicMock(spec=Settings)
@@ -638,9 +687,12 @@ async def test_create_provider_vertex_validation_failure(
     mock_get_settings.return_value = mock_settings
 
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     with patch.object(
         handler, "fetch_all_available_models", return_value={LLMPlatformType.VERTEX_AI.value: ["other-model"]}
@@ -654,7 +706,10 @@ async def test_create_provider_vertex_validation_failure(
 @patch("backend_v2.llm.handler.get_settings")
 @patch("backend_v2.llm.handler.LLMFactory.create_provider")
 async def test_create_provider_factory_failure(
-    mock_create_provider: MagicMock, mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_create_provider: MagicMock,
+    mock_get_settings: MagicMock,
+    handler: LLMHandler,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verifies ServiceUnavailableError when factory instantiation raises unexpected error."""
     mock_settings = MagicMock(spec=Settings)
@@ -662,9 +717,12 @@ async def test_create_provider_factory_failure(
     mock_get_settings.return_value = mock_settings
 
     sample_reg = _make_sample_registry()
-    mock_repo.get_system_config.return_value = {
-        "config": sample_reg.model_dump(mode="json"),
-    }
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": sample_reg.model_dump(mode="json"),
+        },
+    )
 
     mock_create_provider.side_effect = RuntimeError("Factory initialization failed")
 
@@ -804,42 +862,47 @@ def test_fetch_all_available_models_multi_vertex_missing_location(handler: LLMHa
 
 
 @pytest.mark.asyncio
-async def test_get_model_config_legacy_models_dict(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+async def test_get_model_config_legacy_models_dict(
+    handler: LLMHandler, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
     """Verifies get_model_config resolves from legacy models dictionary."""
-    mock_repo.get_system_config.return_value = {
-        "config": {
-            "id": "sys_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "name": "Global Model Registry",
-            "type": "model_registry",
-            "default_provider": "openai",
-            "tier_definitions": {
-                "fast": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": True,
-                    "additional_params": {},
-                },
-                "balanced": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                },
-                "deep": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                },
-                "reasoning": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": {
+                "id": "sys_0123456789abcdef0123456789abcdef",
+                "slug": "global_model_registry",
+                "name": "Global Model Registry",
+                "type": "model_registry",
+                "default_provider": "openai",
+                "tier_definitions": {
+                    "fast": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                        "temperature": 0.5,
+                        "max_tokens": 1000,
+                        "tpm_limit": 10000,
+                        "rpm_limit": 1000,
+                        "supports_grounding": False,
+                        "is_active": True,
+                        "additional_params": {},
+                    },
+                    "balanced": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
+                    "deep": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
+                    "reasoning": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
                 },
             },
         },
-    }
+    )
 
     config = await handler.get_model_config("openai", "fast")
     assert config is not None
@@ -850,48 +913,54 @@ async def test_get_model_config_legacy_models_dict(handler: LLMHandler, mock_rep
 @patch("backend_v2.llm.handler.get_settings")
 @patch("backend_v2.llm.handler.LLMFactory.create_provider")
 async def test_create_provider_with_additional_params_and_api_key(
-    mock_create_provider: MagicMock, mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_create_provider: MagicMock,
+    mock_get_settings: MagicMock,
+    handler: LLMHandler,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verifies create_provider resolves api_key, additional_params vertex_location, and base_url."""
     mock_settings = MagicMock()
     mock_settings.vertex_location = "us-central1"
     mock_get_settings.return_value = mock_settings
 
-    mock_repo.get_system_config.return_value = {
-        "config": {
-            "id": "sys_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "name": "Global Model Registry",
-            "type": "model_registry",
-            "default_provider": "openai",
-            "tier_definitions": {
-                "fast": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": True,
-                    "api_key": "custom-openai-key",
-                    "additional_params": {"vertex_location": "us-east4"},
-                },
-                "balanced": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                },
-                "deep": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                },
-                "reasoning": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": {
+                "id": "sys_0123456789abcdef0123456789abcdef",
+                "slug": "global_model_registry",
+                "name": "Global Model Registry",
+                "type": "model_registry",
+                "default_provider": "openai",
+                "tier_definitions": {
+                    "fast": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                        "temperature": 0.5,
+                        "max_tokens": 1000,
+                        "tpm_limit": 10000,
+                        "rpm_limit": 1000,
+                        "supports_grounding": False,
+                        "is_active": True,
+                        "api_key": "custom-openai-key",
+                        "additional_params": {"vertex_location": "us-east4"},
+                    },
+                    "balanced": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
+                    "deep": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
+                    "reasoning": {
+                        "provider": "openai",
+                        "model_name": "gpt-4o",
+                    },
                 },
             },
         },
-    }
+    )
 
     mock_provider = MagicMock()
     mock_create_provider.return_value = mock_provider
@@ -907,46 +976,52 @@ async def test_create_provider_with_additional_params_and_api_key(
 @patch("backend_v2.llm.handler.get_settings")
 @patch("backend_v2.llm.handler.LLMFactory.create_provider")
 async def test_create_provider_ai_studio_validation_success(
-    mock_create_provider: MagicMock, mock_get_settings: MagicMock, handler: LLMHandler, mock_repo: AsyncMock
+    mock_create_provider: MagicMock,
+    mock_get_settings: MagicMock,
+    handler: LLMHandler,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Verifies strict validation for Google AI Studio passes when model exists."""
     mock_settings = MagicMock()
     mock_get_settings.return_value = mock_settings
 
-    mock_repo.get_system_config.return_value = {
-        "config": {
-            "id": "sys_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "name": "Global Model Registry",
-            "type": "model_registry",
-            "default_provider": "ai_studio",
-            "tier_definitions": {
-                "fast": {
-                    "provider": "ai_studio",
-                    "model_name": "gemini/gemini-2.5-flash",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": True,
-                    "additional_params": {},
-                },
-                "balanced": {
-                    "provider": "ai_studio",
-                    "model_name": "gemini/gemini-2.5-flash",
-                },
-                "deep": {
-                    "provider": "ai_studio",
-                    "model_name": "gemini/gemini-2.5-flash",
-                },
-                "reasoning": {
-                    "provider": "ai_studio",
-                    "model_name": "gemini/gemini-2.5-flash",
+    _seed_system_config(
+        mock_repo,
+        {
+            "config": {
+                "id": "sys_0123456789abcdef0123456789abcdef",
+                "slug": "global_model_registry",
+                "name": "Global Model Registry",
+                "type": "model_registry",
+                "default_provider": "ai_studio",
+                "tier_definitions": {
+                    "fast": {
+                        "provider": "ai_studio",
+                        "model_name": "gemini/gemini-2.5-flash",
+                        "temperature": 0.5,
+                        "max_tokens": 1000,
+                        "tpm_limit": 10000,
+                        "rpm_limit": 1000,
+                        "supports_grounding": False,
+                        "is_active": True,
+                        "additional_params": {},
+                    },
+                    "balanced": {
+                        "provider": "ai_studio",
+                        "model_name": "gemini/gemini-2.5-flash",
+                    },
+                    "deep": {
+                        "provider": "ai_studio",
+                        "model_name": "gemini/gemini-2.5-flash",
+                    },
+                    "reasoning": {
+                        "provider": "ai_studio",
+                        "model_name": "gemini/gemini-2.5-flash",
+                    },
                 },
             },
         },
-    }
+    )
 
     mock_provider = MagicMock()
     mock_create_provider.return_value = mock_provider
