@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -50,7 +49,7 @@ async def test_default_get_execution_happy_path(member_token: TokenData) -> None
     """Verify _default_get_execution fetches and returns record for valid tenant."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     service = ExecutionStreamService(exec_repo=exec_repo)
     result = await service._default_get_execution(member_token, "exe_0123456789abcdef")
@@ -61,7 +60,6 @@ async def test_default_get_execution_happy_path(member_token: TokenData) -> None
 async def test_default_get_execution_not_found(member_token: TokenData) -> None:
     """Verify _default_get_execution raises ResourceNotFoundError when execution is missing."""
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=None)
 
     service = ExecutionStreamService(exec_repo=exec_repo)
     with pytest.raises(ResourceNotFoundError):
@@ -73,7 +71,7 @@ async def test_default_get_execution_permission_denied(member_token: TokenData) 
     """Verify _default_get_execution raises PermissionDeniedError when member accesses other tenant's execution."""
     rec = _make_record(org_id="org_other0000000000", user_id="usr_other0000000000")
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     service = ExecutionStreamService(exec_repo=exec_repo)
     with pytest.raises(PermissionDeniedError):

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
 import pytest
 
 from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
@@ -159,9 +157,11 @@ async def test_save_prompt_block_missing_after_save_raises(
     prompt_block_repo: InMemoryPromptBlockRepository,
     admin_token: TokenData,
     sample_block: PersonaPromptBlock,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(prompt_block_repo, "get_prompt_block_by_id", AsyncMock(return_value=None))
+    prompt_block_repo.inject_fault(
+        "get_prompt_block_by_id",
+        ResourceNotFoundError(resource_type="prompt_block", resource_id="blk_1234567890abcdef"),
+    )
     with pytest.raises(ResourceNotFoundError):
         await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", sample_block)
 

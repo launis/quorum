@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -11,11 +12,14 @@ from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.report_artifact import ReportArtifact
-from backend_v2.models.dtos.report_artifact import ReportStatus, ReportStoragePathsDTO
+from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStatus, ReportStoragePathsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.execution.ingress_service import create_execution_record
 from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryExecutionRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryExecutionRepository,
+    InMemoryReportArtifactRepository,
+)
 
 
 def _make_record(
@@ -65,7 +69,8 @@ async def test_list_executions_root_returns_all(root_token: TokenData) -> None:
     rec2 = _make_record(execution_id="exe_1123456789abcdef", org_id="org_bbb0000000000000")
 
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_all_executions = AsyncMock(return_value=[rec1, rec2])
+    await exec_repo.save_execution(rec1)
+    await exec_repo.save_execution(rec2)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     result = await service.list_executions(root_token)
@@ -92,7 +97,9 @@ async def test_list_executions_member_filters_by_org_and_creator(member_token: T
     )
 
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_all_executions = AsyncMock(return_value=[rec_same_org, rec_same_creator, rec_foreign])
+    await exec_repo.save_execution(rec_same_org)
+    await exec_repo.save_execution(rec_same_creator)
+    await exec_repo.save_execution(rec_foreign)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     result = await service.list_executions(member_token)
@@ -105,7 +112,7 @@ async def test_list_executions_with_check_resumability(member_token: TokenData) 
     """Verify list_executions concurrently resolves is_resumable flag via TaskGroup."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_all_executions = AsyncMock(return_value=[rec])
+    await exec_repo.save_execution(rec)
 
     check_fn = AsyncMock(return_value=True)
     service = ExecutionLifecycleService(exec_repo=exec_repo, check_resumability_fn=check_fn)
@@ -120,7 +127,7 @@ async def test_list_executions_with_check_resumability(member_token: TokenData) 
 async def test_list_executions_repository_error_raises_app_exception(member_token: TokenData) -> None:
     """Verify list_executions wraps unexpected errors into 500 AppException."""
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_all_executions = AsyncMock(side_effect=RuntimeError("DB disconnected"))
+    exec_repo.inject_fault("get_all_executions", RuntimeError("DB disconnected"))
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     with pytest.raises(AppException) as exc_info:
@@ -133,7 +140,7 @@ async def test_get_execution_happy_path(member_token: TokenData) -> None:
     """Verify get_execution returns record with resumability evaluation."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     check_fn = AsyncMock(return_value=True)
     service = ExecutionLifecycleService(exec_repo=exec_repo, check_resumability_fn=check_fn)
@@ -148,7 +155,7 @@ async def test_get_execution_skip_resumability(member_token: TokenData) -> None:
     """Verify get_execution with skip_resumability=True skips check function."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     check_fn = AsyncMock()
     service = ExecutionLifecycleService(exec_repo=exec_repo, check_resumability_fn=check_fn)
@@ -162,7 +169,6 @@ async def test_get_execution_skip_resumability(member_token: TokenData) -> None:
 async def test_get_execution_not_found(member_token: TokenData) -> None:
     """Verify get_execution raises ResourceNotFoundError when execution is missing."""
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=None)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     with pytest.raises(ResourceNotFoundError):
@@ -178,7 +184,7 @@ async def test_get_execution_permission_denied(member_token: TokenData) -> None:
         user_id="usr_other0000000000",
     )
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     with pytest.raises(PermissionDeniedError):
@@ -189,7 +195,6 @@ async def test_get_execution_permission_denied(member_token: TokenData) -> None:
 async def test_delete_execution_not_found(member_token: TokenData) -> None:
     """Verify delete_execution raises ResourceNotFoundError when record does not exist."""
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=None)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     with pytest.raises(ResourceNotFoundError):
@@ -205,7 +210,7 @@ async def test_delete_execution_permission_denied(member_token: TokenData) -> No
         user_id="usr_other0000000000",
     )
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     service = ExecutionLifecycleService(exec_repo=exec_repo)
     with pytest.raises(PermissionDeniedError):
@@ -217,13 +222,13 @@ async def test_delete_execution_happy_path_with_cascade(member_token: TokenData)
     """Verify delete_execution cascade cleans report artifacts, files, and blob directories."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
-    exec_repo.delete_execution = AsyncMock(return_value=True)
+    await exec_repo.save_execution(rec)
 
     storage_driver = AsyncMock()
     storage_driver.delete = AsyncMock(return_value=True)
     storage_driver.delete_directory = AsyncMock(return_value=True)
 
+    now = datetime.now(UTC)
     report = ReportArtifact(
         id="rep_0123456789abcdef",
         execution_id=rec.id,
@@ -238,10 +243,12 @@ async def test_delete_execution_happy_path_with_cascade(member_token: TokenData)
             excel_path="reports/report.xlsx",
             csv_path="reports/report.csv",
         ),
+        metadata=ReportMetadataDTO(),
+        created_at=now,
+        updated_at=now,
     )
-    report_repo = AsyncMock()
-    report_repo.list_report_artifacts_by_execution = AsyncMock(return_value=[report])
-    report_repo.delete_report_artifact = AsyncMock(return_value=True)
+    report_repo = InMemoryReportArtifactRepository()
+    report_repo.save_report_artifact(report)
 
     service = ExecutionLifecycleService(
         exec_repo=exec_repo,
@@ -251,9 +258,9 @@ async def test_delete_execution_happy_path_with_cascade(member_token: TokenData)
     success = await service.delete_execution(member_token, rec.id)
     assert success is True
     assert storage_driver.delete.call_count == 4
-    report_repo.delete_report_artifact.assert_awaited_once_with(report.id)
+    assert await report_repo.get_report_artifact(report.id) is None
     storage_driver.delete_directory.assert_awaited_once_with(f"executions/{rec.id}")
-    exec_repo.delete_execution.assert_awaited_once_with(rec.id)
+    assert await exec_repo.get_execution(rec.id) is None
 
 
 @pytest.mark.asyncio
@@ -261,14 +268,13 @@ async def test_delete_execution_cascade_report_error_tolerated(member_token: Tok
     """Verify non-fatal cascade report errors are swallowed without halting execution deletion."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
-    exec_repo.delete_execution = AsyncMock(return_value=True)
+    await exec_repo.save_execution(rec)
 
     storage_driver = AsyncMock()
     storage_driver.delete_directory = AsyncMock(return_value=True)
 
-    report_repo = AsyncMock()
-    report_repo.list_report_artifacts_by_execution = AsyncMock(side_effect=OSError("Disk read failure"))
+    report_repo = InMemoryReportArtifactRepository()
+    report_repo.inject_fault("list_report_artifacts_by_execution", OSError("Disk read failure"))
 
     service = ExecutionLifecycleService(
         exec_repo=exec_repo,
@@ -278,7 +284,7 @@ async def test_delete_execution_cascade_report_error_tolerated(member_token: Tok
     success = await service.delete_execution(member_token, rec.id)
     assert success is True
     storage_driver.delete_directory.assert_awaited_once_with(f"executions/{rec.id}")
-    exec_repo.delete_execution.assert_awaited_once_with(rec.id)
+    assert await exec_repo.get_execution(rec.id) is None
 
 
 @pytest.mark.asyncio
@@ -286,8 +292,7 @@ async def test_delete_execution_storage_delete_directory_app_exception_404_ignor
     """Verify 404 from storage.delete_directory is ignored as already cleaned."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
-    exec_repo.delete_execution = AsyncMock(return_value=True)
+    await exec_repo.save_execution(rec)
 
     storage_driver = AsyncMock()
     storage_driver.delete_directory = AsyncMock(side_effect=AppException("Not found", status_code=404))
@@ -295,6 +300,7 @@ async def test_delete_execution_storage_delete_directory_app_exception_404_ignor
     service = ExecutionLifecycleService(exec_repo=exec_repo, storage_driver=storage_driver)
     success = await service.delete_execution(member_token, rec.id)
     assert success is True
+    assert await exec_repo.get_execution(rec.id) is None
 
 
 @pytest.mark.asyncio
@@ -304,7 +310,7 @@ async def test_delete_execution_storage_delete_directory_app_exception_non_404_r
     """Verify non-404 AppException from storage.delete_directory raises 500 AppException."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     storage_driver = AsyncMock()
     storage_driver.delete_directory = AsyncMock(side_effect=AppException("GCS timeout", status_code=503))
@@ -320,7 +326,7 @@ async def test_delete_execution_storage_delete_directory_generic_error_raises(me
     """Verify unexpected exception from storage.delete_directory raises 500 AppException."""
     rec = _make_record()
     exec_repo = InMemoryExecutionRepository()
-    exec_repo.get_execution = AsyncMock(return_value=rec)
+    await exec_repo.save_execution(rec)
 
     storage_driver = AsyncMock()
     storage_driver.delete_directory = AsyncMock(side_effect=RuntimeError("Storage connection failed"))

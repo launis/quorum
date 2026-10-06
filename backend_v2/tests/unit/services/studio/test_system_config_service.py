@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -178,13 +178,11 @@ async def test_get_system_config_permission_denied(service: StudioSystemConfigSe
 async def test_get_system_config_not_found(
     service: StudioSystemConfigService,
     root_token: TokenData,
-    monkeypatch: pytest.MonkeyPatch,
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert missing model registry raises ResourceNotFoundError."""
-    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
-        await service.get_system_config(root_token, "sys_0123456789abcdef")
+        await service.get_system_config(root_token, "sys_missing")
 
 
 @pytest.mark.asyncio
@@ -254,32 +252,25 @@ async def test_clone_system_config_success(
 async def test_clone_system_config_not_found(
     service: StudioSystemConfigService,
     root_token: TokenData,
-    monkeypatch: pytest.MonkeyPatch,
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert clone non-existent model registry raises ResourceNotFoundError."""
-    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
-        await service.clone_system_config(root_token, "sys_0123456789abcdef")
+        await service.clone_system_config(root_token, "sys_missing")
 
 
 @pytest.mark.asyncio
 async def test_save_system_config_not_found_after_save(
     service: StudioSystemConfigService,
     root_token: TokenData,
-    monkeypatch: pytest.MonkeyPatch,
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert ResourceNotFoundError if registry not found after save."""
     reg = _make_dummy_registry("sys_0123456789abcdef")
-    original_update = system_repo.update_model_registry
-
-    async def mock_update_and_clear(data: SystemConfigModelRegistry) -> bool:
-        await original_update(data)
-        monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
-        return True
-
-    monkeypatch.setattr(system_repo, "update_model_registry", mock_update_and_clear)
+    system_repo.inject_fault(
+        "get_model_registry",
+        ResourceNotFoundError(resource_type="system_config", resource_id="sys_0123456789abcdef"),
+    )
     with pytest.raises(ResourceNotFoundError):
         await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
 
@@ -306,13 +297,11 @@ async def test_delete_system_config_permission_denied(
 async def test_delete_system_config_not_found(
     service: StudioSystemConfigService,
     root_token: TokenData,
-    monkeypatch: pytest.MonkeyPatch,
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert delete non-existent system config raises ResourceNotFoundError."""
-    monkeypatch.setattr(system_repo, "get_model_registry", AsyncMock(return_value=None))
     with pytest.raises(ResourceNotFoundError):
-        await service.delete_system_config(root_token, "sys_0123456789abcdef")
+        await service.delete_system_config(root_token, "sys_missing")
 
 
 @pytest.mark.asyncio

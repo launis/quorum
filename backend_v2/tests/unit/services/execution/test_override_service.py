@@ -1,11 +1,13 @@
 """Unit tests for ExecutionOverrideService enforcing human override, synthesis invalidation, and quote rejection."""
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import EvaluatedMatrixContextDTO, ExecutionRecord, ExecutionStepState
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
@@ -15,7 +17,10 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode, VisualIntent
 from backend_v2.services.execution.override_service import ExecutionOverrideService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryExecutionRepository,
+    InMemoryUnifiedWorkflowRepository,
+)
 
 
 def _create_mock_atom(atom_id: str = "tda_1") -> ScorecardAtomDTO:
@@ -72,35 +77,52 @@ def _create_mock_record(
     )
 
 
-def _create_mock_service() -> tuple[ExecutionOverrideService, InMemoryBlueprintTransformerRepository]:
-    exec_repo = InMemoryBlueprintTransformerRepository()
-    workflow_repo = InMemoryBlueprintTransformerRepository()
-    comp_repo = InMemoryBlueprintTransformerRepository()
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    output_profile_repo = InMemoryBlueprintTransformerRepository()
-    identity_repo = InMemoryBlueprintTransformerRepository()
-    system_repo = InMemoryBlueprintTransformerRepository()
-    storage_driver = MagicMock()
+def _create_mock_workflow(
+    workflow_id: str = "wor_0123456789abcdef",
+    profile_id: str = "prf_0123456789abcdef",
+) -> Workflow:
+    return Workflow(
+        id=workflow_id,
+        slug="test-workflow",
+        name=I18nText(translations={"en": "Test Workflow"}),
+        description=I18nText(translations={"en": "Test Description"}),
+        status="active",
+        version=1,
+        organization_id="org_1",
+        default_strictness_level=1,
+        default_profile_id=profile_id,
+        model_registry_id="sys_e26807f3bfa3454d",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=[],
+    )
+
+
+def _create_mock_service(
+    storage_driver: Any = None,
+) -> tuple[ExecutionOverrideService, InMemoryExecutionRepository, InMemoryUnifiedWorkflowRepository]:
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryUnifiedWorkflowRepository()
+    storage = storage_driver if storage_driver is not None else MagicMock()
 
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
         workflow_repo=workflow_repo,
-        comp_repo=comp_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
-        identity_repo=identity_repo,
-        system_repo=system_repo,
-        storage_driver=storage_driver,
+        comp_repo=workflow_repo,
+        prompt_block_repo=workflow_repo,
+        output_profile_repo=workflow_repo,
+        identity_repo=workflow_repo,
+        system_repo=workflow_repo,
+        storage_driver=storage,
     )
-    return service, exec_repo
+    return service, exec_repo, workflow_repo
 
 
 @pytest.mark.asyncio
 async def test_override_atom_success() -> None:
     """Verify applying a human override updates step_states, context_variables, and appends trace event."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
@@ -119,31 +141,33 @@ async def test_override_atom_success() -> None:
         )
 
         mock_recalc.assert_called_once()
-        assert exec_repo.update_execution.called
-        update_dto = exec_repo.update_execution.call_args[0][1]
-        assert update_dto.context_variables == ContextVariablesDTO(variables={"recalculated": True})
-        updated_atom = update_dto.step_states["sr_1"].scorecard_atoms["tda_1"]
+        assert exec_repo.get_call_count("update_execution") > 0
+        updated = await exec_repo.get_execution(record.id)
+        assert updated is not None
+        assert updated.context_variables == ContextVariablesDTO(variables={"recalculated": True})
+        updated_atom = updated.step_states["sr_1"].scorecard_atoms["tda_1"]
         assert updated_atom.human_override is not None
         assert updated_atom.human_override.new_status == ExecutionStatus.PASSED
 
-        assert exec_repo.append_trace_event.called
-        event = exec_repo.append_trace_event.call_args[0][1]
+        assert exec_repo.get_call_count("append_trace_event") > 0
+        assert len(updated.execution_trace) > 0
+        event = updated.execution_trace[-1]
         assert event.event_type == "evidence_override"
 
 
 @pytest.mark.asyncio
 async def test_override_atom_with_evaluated_matrix_context() -> None:
     """Verify override updates EvaluatedMatrixContextDTO in context_variables."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
 
-    raw_atom = EvaluatedAtomDTO(tda_id="tda_1", status="FAILED")
+    raw_atom = EvaluatedAtomDTO(tda_id="tda_1", status="FAILED", exact_quotes=[])
     matrix_ctx = EvaluatedMatrixContextDTO(
         evaluated_atoms={"tda_1": ExecutionStatus.FAILED},
         raw_atoms=[raw_atom],
     )
     record = record.model_copy(update={"context_variables": ContextVariablesDTO(variables={"mat_1": matrix_ctx})})
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
@@ -166,9 +190,9 @@ async def test_override_atom_with_evaluated_matrix_context() -> None:
 @pytest.mark.asyncio
 async def test_override_atom_permission_denied() -> None:
     """Verify non-ROOT initiator from different organization raises PermissionDeniedError."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record(org_id="org_different", user_id="usr_different")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_intruder", role=UserRole.MEMBER, organization_id="org_mine")
     payload = HumanOverrideRequest(
@@ -189,9 +213,9 @@ async def test_override_atom_permission_denied() -> None:
 @pytest.mark.asyncio
 async def test_override_atom_not_found_raises() -> None:
     """Verify modifying an atom_id not present in step_states raises 404 AppException."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     payload = HumanOverrideRequest(
@@ -213,10 +237,10 @@ async def test_override_atom_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_override_atom_missing_repos_raises() -> None:
     """Verify missing required hook dependency repositories triggers CONFIGURATION_ERROR."""
-    exec_repo = InMemoryBlueprintTransformerRepository()
+    exec_repo = InMemoryExecutionRepository()
     service = ExecutionOverrideService(
         exec_repo=exec_repo,
-        workflow_repo=InMemoryBlueprintTransformerRepository(),
+        workflow_repo=InMemoryUnifiedWorkflowRepository(),
         comp_repo=None,  # Missing
         prompt_block_repo=None,
     )
@@ -243,25 +267,15 @@ async def test_override_atom_missing_repos_raises() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_success() -> None:
     """Verify clear_profile_synthesis removes profile data and deletes PDF if default profile."""
-    service, exec_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    storage_mock = MagicMock()
+    storage_mock.delete = AsyncMock()
+    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test Description",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
-    service.storage.delete = AsyncMock()
+    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    await exec_repo.save_execution(record)
+
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with patch(
@@ -273,35 +287,26 @@ async def test_clear_profile_synthesis_success() -> None:
             profile_id="prf_0123456789abcdef",
         )
 
-    service.storage.delete.assert_called_once_with("reports/pdf_1.pdf")
-    assert exec_repo.update_execution.called
-    update_dto = exec_repo.update_execution.call_args[0][1]
-    assert "prf_0123456789abcdef" not in update_dto.profile_syntheses
-    assert update_dto.pdf_report_path is None
+    storage_mock.delete.assert_called_once_with("reports/pdf_1.pdf")
+    assert exec_repo.get_call_count("update_execution") > 0
+    updated = await exec_repo.get_execution(record.id)
+    assert updated is not None
+    assert "prf_0123456789abcdef" not in updated.profile_syntheses
+    assert updated.pdf_report_path is None
 
 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
     """Verify 404 on PDF deletion is caught and ignored cleanly."""
-    service, exec_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    storage_mock = MagicMock()
+    storage_mock.delete = AsyncMock(side_effect=AppException("Not found", 404))
+    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
-    service.storage.delete = AsyncMock(side_effect=AppException("Not found", 404))
+    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    await exec_repo.save_execution(record)
+
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with patch(
@@ -312,31 +317,21 @@ async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
             execution_id=record.id,
             profile_id="prf_0123456789abcdef",
         )
-    assert exec_repo.update_execution.called
+    assert exec_repo.get_call_count("update_execution") > 0
 
 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
     """Verify 409 Conflict on PDF deletion is re-raised."""
-    service, exec_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    storage_mock = MagicMock()
+    storage_mock.delete = AsyncMock(side_effect=AppException("Conflict", 409))
+    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
-    service.storage.delete = AsyncMock(side_effect=AppException("Conflict", 409))
+    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    await exec_repo.save_execution(record)
+
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with patch(
@@ -354,10 +349,9 @@ async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_workflow_missing_raises() -> None:
     """Verify missing workflow raises ResourceNotFoundError."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
-    exec_repo.get_execution = AsyncMock(return_value=record)
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=None)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with pytest.raises(ResourceNotFoundError):
@@ -371,9 +365,9 @@ async def test_clear_profile_synthesis_workflow_missing_raises() -> None:
 @pytest.mark.asyncio
 async def test_reject_evidence_quote_success() -> None:
     """Verify rejecting an evidence quote creates and appends EvidenceOverrideDTO TraceEvent."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record()
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     await service.reject_evidence_quote(
@@ -383,9 +377,13 @@ async def test_reject_evidence_quote_success() -> None:
         reason="Irrelevant excerpt",
     )
 
-    assert exec_repo.append_trace_event.called
-    event = exec_repo.append_trace_event.call_args[0][1]
+    assert exec_repo.get_call_count("append_trace_event") > 0
+    updated = await exec_repo.get_execution(record.id)
+    assert updated is not None
+    assert len(updated.execution_trace) > 0
+    event = updated.execution_trace[-1]
     assert event.event_type == "evidence_override"
+    assert type(event.content) is dict
     assert event.content["evq_id"] == "evq_test123"
     assert event.content["user_rejected"] is True
     assert event.content["rejection_reason"] == "Irrelevant excerpt"
@@ -394,9 +392,9 @@ async def test_reject_evidence_quote_success() -> None:
 @pytest.mark.asyncio
 async def test_reject_evidence_quote_permission_denied() -> None:
     """Verify quote rejection by unauthorized user raises PermissionDeniedError."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, _ = _create_mock_service()
     record = _create_mock_record(org_id="org_other", user_id="usr_other")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
     initiator = TokenData(id="usr_intruder", role=UserRole.MEMBER, organization_id="org_mine")
     with pytest.raises(PermissionDeniedError):
@@ -411,8 +409,7 @@ async def test_reject_evidence_quote_permission_denied() -> None:
 @pytest.mark.asyncio
 async def test_default_get_execution_not_found() -> None:
     """Verify fetching non-existent execution raises ResourceNotFoundError."""
-    service, exec_repo = _create_mock_service()
-    exec_repo.get_execution = AsyncMock(return_value=None)
+    service, exec_repo, _ = _create_mock_service()
 
     initiator = TokenData(id="usr_1", role=UserRole.ROOT, organization_id="org_1")
     with pytest.raises(ResourceNotFoundError):
@@ -422,25 +419,15 @@ async def test_default_get_execution_not_found() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_pdf_delete_500_raises() -> None:
     """Verify 500/unhandled AppException on PDF deletion raises 500."""
-    service, exec_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    storage_mock = MagicMock()
+    storage_mock.delete = AsyncMock(side_effect=AppException("Server Error", 500))
+    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
-    service.storage.delete = AsyncMock(side_effect=AppException("Server Error", 500))
+    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    await exec_repo.save_execution(record)
+
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with pytest.raises(AppException) as exc_info:
@@ -455,25 +442,15 @@ async def test_clear_profile_synthesis_pdf_delete_500_raises() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_pdf_delete_generic_exception_raises() -> None:
     """Verify generic unexpected exception on PDF deletion wraps into 500 AppException."""
-    service, exec_repo = _create_mock_service()
-    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    storage_mock = MagicMock()
+    storage_mock.delete = AsyncMock(side_effect=RuntimeError("Storage connection failed"))
+    service, exec_repo, workflow_repo = _create_mock_service(storage_driver=storage_mock)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
-    service.storage.delete = AsyncMock(side_effect=RuntimeError("Storage connection failed"))
+    record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
+    await exec_repo.save_execution(record)
+
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     with pytest.raises(AppException) as exc_info:
@@ -488,24 +465,12 @@ async def test_clear_profile_synthesis_pdf_delete_generic_exception_raises() -> 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
     """Verify clearing a profile synthesis when the profile is not cached executes cleanly."""
-    service, exec_repo = _create_mock_service()
+    service, exec_repo, workflow_repo = _create_mock_service()
     record = _create_mock_record(pdf_path=None)
-    exec_repo.get_execution = AsyncMock(return_value=record)
+    await exec_repo.save_execution(record)
 
-    mock_wf = Workflow(
-        id=record.workflow_id,
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Test",
-        status="active",
-        version=1,
-        default_strictness_level=1,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
-        historical_context_mode=HistoricalContextMode.DISABLED,
-        steps=[],
-    )
-    service.workflow_repo.get_workflow_by_id = AsyncMock(return_value=mock_wf.model_dump())
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
     await service.clear_profile_synthesis(
@@ -513,4 +478,4 @@ async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
         execution_id=record.id,
         profile_id="prf_non_existent",
     )
-    assert exec_repo.update_execution.called
+    assert exec_repo.get_call_count("update_execution") > 0
