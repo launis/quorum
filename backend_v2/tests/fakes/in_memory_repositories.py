@@ -207,6 +207,8 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
                 dumped["status_message"] = update_dict["current_step_name"]
         for k, v in update_dict.items():
             if k in ExecutionRecord.model_fields:
+                if v is None and k in ("steps", "step_states", "profile_syntheses", "source_identity_manifest"):
+                    continue
                 dumped[k] = v
         updated_record = ExecutionRecord.model_validate(dumped)
         self._save_isolated(execution_id, updated_record)

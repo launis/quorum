@@ -26,7 +26,7 @@ from backend_v2.models.enums import ExecutionStatus, RoleClassification, TargetB
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.synthesis_reducers import (
     extract_user_role_from_trace,
     handle_starvation_if_detected,
@@ -242,7 +242,8 @@ async def test_handle_starvation_if_detected_true() -> None:
         content={"event_type": "starvation", "total_atoms": 0, "reason": "insufficient"},
     )
     exec_rec = _make_execution([evt])
-    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(exec_rec)
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
@@ -261,7 +262,10 @@ async def test_handle_starvation_if_detected_true() -> None:
             mock_render_fn,
         )
         assert detected is True
-        mock_repo.update_execution.assert_called_once()
+        saved_rec = await mock_repo.get_execution(exec_rec.id)
+        assert saved_rec is not None
+        assert saved_rec.profile_syntheses is not None
+        assert "pro_0123456789abcdef01" in saved_rec.profile_syntheses
         mock_render_fn.assert_called_once()
         mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
             execution_id=exec_rec.id,
@@ -285,7 +289,8 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
         content={"event_type": "starvation", "total_atoms": 0, "reason": "none"},
     )
     exec_rec = _make_execution([evt])
-    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(exec_rec)
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
@@ -304,6 +309,10 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
             mock_render_fn,
         )
         assert detected is True
+        saved_rec = await mock_repo.get_execution(exec_rec.id)
+        assert saved_rec is not None
+        assert saved_rec.profile_syntheses is not None
+        assert "pro_0123456789abcdef01" in saved_rec.profile_syntheses
         mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
             execution_id=exec_rec.id,
             profile_id="pro_0123456789abcdef01",
@@ -413,14 +422,15 @@ async def test_recover_trace_telemetry_error_raises_corruption() -> None:
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state() -> None:
     """Test handle_synthesis_failure_state updates virtual step state."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wor_0123456789abcdef01",
-        "target_locale": "en",
-        "metadata": {},
-        "step_states": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_record = ExecutionRecord(
+        id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        step_states={},
+    )
+    await mock_repo.save_execution(mock_record)
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
@@ -428,7 +438,8 @@ async def test_handle_synthesis_failure_state() -> None:
                 "pro_0123456789abcdef01",
                 ValueError("Synthesis error"),
             )
-            mock_repo.update_execution.assert_called_once()
+            saved_rec = await mock_repo.get_execution("exe_0123456789abcdef01")
+            assert saved_rec is not None
 
 
 def test_extract_user_role_from_trace_invalid_entry_continues() -> None:
@@ -509,15 +520,16 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     prof_id = "pro_0123456789abcdef01"
     v_step_id = f"sys_render_{prof_id}"
     v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wor_0123456789abcdef01",
-        "target_locale": "en",
-        "metadata": {},
-        "step_states": {v_step_id: v_step.model_dump(mode="json")},
-        "steps": [v_step.model_dump(mode="json")],
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_record = ExecutionRecord(
+        id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        step_states={v_step_id: v_step},
+        steps=[v_step],
+    )
+    await mock_repo.save_execution(mock_record)
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
@@ -525,14 +537,16 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
                 prof_id,
                 ValueError("Synthesis error"),
             )
-            mock_repo.update_execution.assert_called_once()
+            saved_rec = await mock_repo.get_execution("exe_0123456789abcdef01")
+            assert saved_rec is not None
+            assert saved_rec.step_states[v_step_id].status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state_db_error_raises() -> None:
     """Test handle_synthesis_failure_state raises AppException on repository exception."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.side_effect = OSError("DB unavailable")
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_repo.inject_fault("get_execution", OSError("DB unavailable"), trigger_count=1)
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
             with pytest.raises(AppException) as exc_info:

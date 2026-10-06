@@ -6,7 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.report_worker import (
     generate_pdf_job,
     generate_pdf_task,
@@ -46,7 +49,7 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
         )
     )
 
-    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
 
     with (
         patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
@@ -59,7 +62,7 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
         )
 
     # Invariant: Failure in Phase 2/3 does NOT alter execution record status to FAILED
-    assert not mock_repo.update_execution.called
+    assert (await mock_repo.get_execution("exe_0123456789abcdef")) is None
 
 
 @pytest.mark.asyncio
@@ -134,31 +137,29 @@ async def test_render_profile_job_exception() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_task_execution_not_found() -> None:
     """Verify generate_pdf_task skips processing when execution does not exist in repo."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-            mock_repo.get_execution.return_value = None
-
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await generate_pdf_task("exe_1234567890123456")
-            mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
+            assert (await mock_repo.get_execution("exe_1234567890123456")) is None
 
 
 @pytest.mark.asyncio
 async def test_generate_pdf_task_success_path() -> None:
     """Verify generate_pdf_task happy path: delegates to ReportService for default artifact compilation."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_record = ExecutionRecord(
+        id="exe_1234567890123456",
+        workflow_id="wf_1234567890123456",
+        output_profile_id="prof_1111222233334444",
+        status=ExecutionStatus.RUNNING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+    )
+    await mock_repo.save_execution(mock_record)
+
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-            }
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             mock_artifact = MagicMock()
             mock_artifact.id = "rep_1234567890123456"
 
@@ -180,27 +181,28 @@ async def test_generate_pdf_task_success_path() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_task_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches failure and updates execution status."""
-    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "en",
-                "metadata": {},
-                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                "step_states": {
-                    "sys_render_prof_1111222233334444": {
-                        "id": "sys_render_prof_1111222233334444",
-                        "label": "Rendering",
-                        "status": "RUNNING",
-                    }
-                },
-            }
+    v_step_id = "sys_render_prof_1111222233334444"
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_record = ExecutionRecord(
+        id="exe_1234567890123456",
+        workflow_id="wf_1234567890123456",
+        output_profile_id="prof_1111222233334444",
+        status=ExecutionStatus.RUNNING,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        steps=[ExecutionStep(id=v_step_id, label="Rendering", status=ExecutionStatus.RUNNING)],
+        step_states={
+            v_step_id: ExecutionStep(
+                id=v_step_id,
+                label="Rendering",
+                status=ExecutionStatus.RUNNING,
+            )
+        },
+    )
+    await mock_repo.save_execution(mock_record)
 
+    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
                 mock_service = AsyncMock()
                 mock_service_class.return_value = mock_service
@@ -208,4 +210,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
 
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
-                assert mock_repo.update_execution.call_count >= 1
+
+                saved_record = await mock_repo.get_execution("exe_1234567890123456")
+                assert saved_record is not None
+                assert saved_record.step_states[v_step_id].status == ExecutionStatus.FAILED
