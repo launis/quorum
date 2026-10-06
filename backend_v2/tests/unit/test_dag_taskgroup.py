@@ -7,38 +7,44 @@ import pytest
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
 
-    repo.get_step_by_id.return_value = {
-        "id": "stp_1234567890abcdef",
-        "type": "logic",
-        "slug": "mock",
-        "name": {"translations": {"en": "mock"}},
-        "description": {"translations": {"en": "mock"}},
-        "hook": "mock_hook",
-    }
+    repo.set_step(
+        {
+            "id": "stp_1234567890abcdef",
+            "type": "logic",
+            "slug": "mock",
+            "name": {"translations": {"en": "mock"}},
+            "description": {"translations": {"en": "mock"}},
+            "hook": "mock_hook",
+        }
+    )
 
     # Mock context rehydration
-    repo.get_execution.return_value = {
-        "id": "exe_1111222233334444",
-        "workflow_id": "wf_tg_test",
-        "output_profile_id": "prof_dddd1111dddd1111",
-        "status": ExecutionStatus.PENDING,
-        "target_locale": "en",
-        "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {},
-    }
+    repo.set_execution(
+        ExecutionRecord(
+            id="exe_1111222233334444",
+            workflow_id="wf_tg_test",
+            output_profile_id="prof_dddd1111dddd1111",
+            status=ExecutionStatus.PENDING,
+            target_locale="en",
+            raw_inputs={"dynamic_inputs": {"log": "test"}},
+            metadata=ExecutionMetadata(),
+        )
+    )
     return repo
 
 
@@ -116,14 +122,13 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
 
             assert "Workflow completed with failed steps" in str(exc_info.value), "Should fail fast at workflow level"
 
-            calls = mock_repo.update_execution.call_args_list
-            final_call_args = calls[-1][0]
-            payload = final_call_args[1]
-            assert payload.step_states["step_5555222255552222"].status in (
+            rec = await mock_repo.get_execution("exe_1111222233334444")
+            assert rec is not None
+            assert rec.step_states["step_5555222255552222"].status in (
                 ExecutionStatus.PASSED,
                 ExecutionStatus.PASSED.value,
             )
-            assert payload.step_states["step_ffff1111ffff1111"].status in (
+            assert rec.step_states["step_ffff1111ffff1111"].status in (
                 ExecutionStatus.FAILED,
                 ExecutionStatus.FAILED.value,
             )
@@ -195,14 +200,13 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
 
             assert "Workflow completed with failed steps" in str(exc_info.value), "Should fail fast at workflow level"
 
-            calls = mock_repo.update_execution.call_args_list
-            final_call_args = calls[-1][0]
-            payload = final_call_args[1]
-            assert payload.step_states["step_aaaa1111aaaa1111"].status in (
+            rec = await mock_repo.get_execution("exe_1111222233334444")
+            assert rec is not None
+            assert rec.step_states["step_aaaa1111aaaa1111"].status in (
                 ExecutionStatus.FAILED,
                 ExecutionStatus.FAILED.value,
             )
-            assert payload.step_states["step_cccc3333cccc3333"].status in (
+            assert rec.step_states["step_cccc3333cccc3333"].status in (
                 ExecutionStatus.FAILED,
                 ExecutionStatus.FAILED.value,
             )
@@ -285,10 +289,9 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
                 # stop_after_attempt(3) means 3 total attempts
                 assert mock_execute.call_count == 3
 
-                calls = mock_repo.update_execution.call_args_list
-                final_call_args = calls[-1][0]
-                payload = final_call_args[1]
-                assert payload.step_states["step_ffaa9999ffaa9999"].status in (
+                rec = await mock_repo.get_execution("exe_1111222233334444")
+                assert rec is not None
+                assert rec.step_states["step_ffaa9999ffaa9999"].status in (
                     ExecutionStatus.FAILED,
                     ExecutionStatus.FAILED.value,
                 )
@@ -344,23 +347,28 @@ async def test_dynamic_synthesis_model_strategy_routing(
         ],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_0123456789abcdef01",
-        "type": "standard",
-        "model_strategy": "synthesis",
-        "pre_hooks": ["synthesis_distiller_hook"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "bp_0123456789abcdef01",
+            "type": "standard",
+            "model_strategy": "synthesis",
+            "pre_hooks": ["synthesis_distiller_hook"],
+        },
+        step_id="bp_0123456789abcdef01",
+    )
 
-    mock_repo.get_workflow_by_id.return_value = workflow.model_dump()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wf_0123456789abcdef01",
-        "output_profile_id": "prof_1",
-        "status": "PASSED",
-        "target_locale": "en",
-        "metadata": {},
-        "raw_inputs": {"dynamic_inputs": {}},
-    }
+    mock_repo.set_workflow(workflow)
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_0123456789abcdef01",
+            workflow_id="wf_0123456789abcdef01",
+            output_profile_id="prof_1",
+            status=ExecutionStatus.PASSED,
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            raw_inputs={"dynamic_inputs": {}},
+        )
+    )
 
     mock_bp_validate.return_value = MagicMock(
         id="bp_0123456789abcdef01", type="standard", model_strategy="synthesis", pre_hooks=["synthesis_distiller_hook"]

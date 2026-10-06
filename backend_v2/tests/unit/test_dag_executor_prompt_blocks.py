@@ -5,20 +5,23 @@ import pytest
 
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+    from backend_v2.models.domain.system_config import SystemConfigModelRegistry
     from backend_v2.models.enums import BlockDataType
 
     prompt_blocks = [
@@ -48,9 +51,8 @@ def mock_repo() -> Any:
             }
         ),
     ]
-    repo.get_all_prompt_blocks.return_value = prompt_blocks
-    repo.get_prompt_blocks_by_ids.return_value = prompt_blocks
-    repo.get_step.return_value = {
+    repo.set_prompt_blocks(prompt_blocks)
+    step_def = {
         "id": "step_1111111111111111",
         "slug": "task_bp",
         "name": {"translations": {"fi": "Vaihe", "en": "Step"}},
@@ -60,52 +62,59 @@ def mock_repo() -> Any:
         "cognitive_tier": "reasoning",
         "pre_hooks": [],
     }
-    repo.get_step_by_id.return_value = repo.get_step.return_value
-    repo.get_workflow.return_value = {
-        "id": "wf_5555555555555555",
-        "slug": "wf_test_slug",
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prof_dddd1111dddd1111",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "sys_e26807f3bfa3454d",
-        "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
-        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-        "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
-    }
-    repo.get_output_profile_by_id.return_value = {
-        "id": "prof_dddd1111dddd1111",
-        "slug": "test_profile",
-        "workflow_id": "wf_5555555555555555",
-        "name": {"translations": {"en": "Test Profile"}},
-        "visible_block_extensions": [],
-        "visible_workflow_extensions": [],
-        "matrix_synthesis_groups": [
+    repo.set_step(step_def)
+    repo.seed_raw_step("task_bp", step_def)
+    repo.set_workflow(
+        {
+            "id": "wf_5555555555555555",
+            "slug": "wf_test_slug",
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_dddd1111dddd1111",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "sys_e26807f3bfa3454d",
+            "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+            "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
+        }
+    )
+    repo.set_output_profiles(
+        [
             {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
+                "id": "prof_dddd1111dddd1111",
+                "slug": "test_profile",
+                "workflow_id": "wf_5555555555555555",
+                "name": {"translations": {"en": "Test Profile"}},
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_0000000000000001",
+                        "title": {"translations": {"en": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
-        ],
-    }
-    model_reg = {
-        "id": "sys_e26807f3bfa3454d",
-        "type": "model_registry",
-        "slug": "default",
-        "tier_definitions": {
-            tier: {
-                "provider": "openai",
-                "model_name": "gpt-4o-mini",
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-                "max_tokens": 4096,
-                "temperature": 0.0,
-            }
-            for tier in ("fast", "balanced", "deep", "reasoning")
-        },
-    }
-    repo.get_model_registry.return_value = model_reg
-    repo.get_all_model_registries.return_value = [model_reg]
+        ]
+    )
+    model_reg = SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_e26807f3bfa3454d",
+            "name": "Default Stack",
+            "tier_definitions": {
+                tier: {
+                    "provider": "openai",
+                    "model_name": "gpt-4o-mini",
+                    "tpm_limit": 100000,
+                    "rpm_limit": 1000,
+                    "max_tokens": 4096,
+                    "temperature": 0.0,
+                }
+                for tier in ("fast", "balanced", "deep", "reasoning")
+            },
+        }
+    )
+    repo.set_model_registry(model_reg)
     return repo
 
 
@@ -219,15 +228,17 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             mock_hook_state.inputs = {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
             mock_hook_state.global_context_vars = {}
 
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1231231231231231",
-                "workflow_id": "wf_5555555555555555",
-                "status": ExecutionStatus.PENDING,
-                "target_locale": "fi",
-                "output_profile_id": "prof_dddd1111dddd1111",
-                "raw_inputs": {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
-                "metadata": {},
-            }
+            mock_repo.set_execution(
+                ExecutionRecord(
+                    id="exe_1231231231231231",
+                    workflow_id="wf_5555555555555555",
+                    status=ExecutionStatus.PENDING,
+                    target_locale="fi",
+                    output_profile_id="prof_dddd1111dddd1111",
+                    raw_inputs={"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
+                    metadata=ExecutionMetadata(),
+                )
+            )
 
             # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
             with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
@@ -254,8 +265,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 )
 
     # Assert repo called new method instead of get_all_matrices
-    mock_repo.get_prompt_blocks_by_ids.assert_called_once()
-    assert "get_all_matrices" not in dir(mock_repo) or not mock_repo.get_all_matrices.called
+    assert mock_repo.get_call_count("get_prompt_blocks_by_ids") >= 1
+    assert mock_repo.get_call_count("get_all_matrices") == 0
     assert record.status == ExecutionStatus.RUNNING
     from backend_v2.models.state import StateProjector
 

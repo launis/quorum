@@ -6,12 +6,12 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.mark.asyncio
 async def test_logic_strategy_missing_blueprint() -> None:
-    fake_repo = InMemoryBlueprintTransformerRepository()
+    fake_repo = InMemoryUnifiedWorkflowRepository()
     compiler = MagicMock()
     deps = StrategyDependencies(
         exec_repo=fake_repo,
@@ -46,9 +46,8 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     from backend_v2.models.state import StepOutputDTO
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    # Mock get_step_by_id to return a valid step def
-    fake_repo.get_step_by_id.return_value = {"id": "st_1234567890123456"}
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    fake_repo.set_step({"id": "st_1234567890123456"}, step_id="blueprint_123")
 
     compiler = MagicMock()
     deps = StrategyDependencies(
@@ -114,8 +113,7 @@ async def test_logic_strategy_signature_parity() -> None:
     from backend_v2.models.domain.execution import FrozenContext
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    fake_repo.get_step_by_id.return_value = None
+    fake_repo = InMemoryUnifiedWorkflowRepository()
 
     compiler = MagicMock()
     deps = StrategyDependencies(

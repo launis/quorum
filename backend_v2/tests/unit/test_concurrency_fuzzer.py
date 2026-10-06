@@ -7,14 +7,18 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture(autouse=True)
@@ -37,8 +41,8 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
 
     def _mock_step_data() -> dict[str, Any]:
         return {
@@ -52,18 +56,19 @@ def mock_repo() -> Any:
             "description": {"translations": {"en": "mock"}},
         }
 
-    repo.get_step_by_id.return_value = _mock_step_data()
-    repo.get_step.return_value = repo.get_step_by_id.return_value
-    repo.get_execution.return_value = {
-        "id": "exe_1111222233334444",
-        "workflow_id": "wf_0000000000000000",
-        "output_profile_id": "prof_0000000000000000",
-        "status": ExecutionStatus.PENDING,
-        "target_locale": "en",
-        "raw_inputs": {"dynamic_inputs": {"log": "test"}},
-        "metadata": {},
-    }
-    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+    repo.set_step(_mock_step_data())
+    repo.seed_raw_step("bp_fuzz", _mock_step_data())
+    repo.set_execution(
+        ExecutionRecord(
+            id="exe_1111222233334444",
+            workflow_id="wf_0000000000000000",
+            output_profile_id="prof_0000000000000000",
+            status=ExecutionStatus.PENDING,
+            target_locale="en",
+            raw_inputs={"dynamic_inputs": {"log": "test"}},
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     prompt_blocks = [
         PromptBlockAdapter.validate_python(
@@ -80,43 +85,45 @@ def mock_repo() -> Any:
             }
         )
     ]
-    repo.get_all_prompt_blocks.return_value = prompt_blocks
-    repo.get_prompt_blocks_by_ids.return_value = prompt_blocks
-    repo.get_output_profile_by_id.return_value = {
-        "id": "prof_0000000000000000",
-        "slug": "test_profile",
-        "workflow_id": "wf_0000000000000000",
-        "name": {"translations": {"en": "Test Profile"}},
-        "visible_block_extensions": [],
-        "visible_workflow_extensions": [],
-        "matrix_synthesis_groups": [
+    repo.set_prompt_blocks(prompt_blocks)
+    repo.set_output_profiles(
+        [
             {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
+                "id": "prof_0000000000000000",
+                "slug": "test_profile",
+                "workflow_id": "wf_0000000000000000",
+                "name": {"translations": {"en": "Test Profile"}},
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_0000000000000001",
+                        "title": {"translations": {"en": "Default"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
-        ],
-    }
-    repo.get_workflow.return_value = _create_workflow(1).model_dump(mode="json")
-    repo.get_workflow_by_id.return_value = repo.get_workflow.return_value
-    model_reg = {
-        "id": "sys_e26807f3bfa3454d",
-        "type": "model_registry",
-        "slug": "default",
-        "tier_definitions": {
-            tier: {
-                "provider": "openai",
-                "model_name": "gpt-4o-mini",
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-                "max_tokens": 4096,
-                "temperature": 0.0,
-            }
-            for tier in ("fast", "balanced", "deep", "reasoning")
-        },
-    }
-    repo.get_model_registry.return_value = model_reg
-    repo.get_all_model_registries.return_value = [model_reg]
+        ]
+    )
+    repo.set_workflow(_create_workflow(10))
+    model_reg = SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_e26807f3bfa3454d",
+            "name": "Default Stack",
+            "tier_definitions": {
+                tier: {
+                    "provider": "openai",
+                    "model_name": "gpt-4o-mini",
+                    "tpm_limit": 100000,
+                    "rpm_limit": 1000,
+                    "max_tokens": 4096,
+                    "temperature": 0.0,
+                }
+                for tier in ("fast", "balanced", "deep", "reasoning")
+            },
+        }
+    )
+    repo.set_model_registry(model_reg)
     return repo
 
 
