@@ -62,7 +62,6 @@ def test_warning_baseline_ledger_rejects_any_nonzero_warning_violation() -> None
             message="Reflection",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
     ]
     with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):
@@ -84,7 +83,6 @@ def test_generate_baseline_report_compiles_correctly() -> None:
             message="Reflection",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
         GuardrailViolation(
             filepath="backend_v2/test2.py",
@@ -94,7 +92,6 @@ def test_generate_baseline_report_compiles_correctly() -> None:
             message="Reflection",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
         GuardrailViolation(
             filepath="backend_v2/test3.py",
@@ -104,7 +101,6 @@ def test_generate_baseline_report_compiles_correctly() -> None:
             message="Naked dict",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
     ]
 
@@ -129,7 +125,6 @@ def test_generate_baseline_report_fails_on_fatals() -> None:
             message="Syntax error",
             remediation="Fix syntax",
             severity=GuardrailSeverity.FATAL,
-            is_suppressed=False,
         ),
     ]
 
@@ -150,7 +145,6 @@ def test_generate_baseline_report_verify_zero() -> None:
             message="Reflection",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
     ]
 
@@ -243,7 +237,6 @@ def test_main_cli_failure_on_exceeding_ceiling() -> None:
             message="Reflection",
             remediation="Fix it",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         ),
     ]
     with patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)):

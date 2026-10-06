@@ -98,6 +98,7 @@ class DictEradicationReport:
         pydantic_annotated_violations: Count of duplicate Field() on Annotated fields.
         mutable_class_defaults: Count of mutable class-level defaults (list, dict, set).
         unauthorized_open_json_annotations: Count of unwhitelisted dict[..., JsonValue] annotations.
+        permissive_casts: Count of banned permissive cast(typing.Any, ...) calls.
         violations: List of discovered audit violations.
     """
 
@@ -112,6 +113,7 @@ class DictEradicationReport:
     pydantic_annotated_violations: int = 0
     mutable_class_defaults: int = 0
     unauthorized_open_json_annotations: int = 0
+    permissive_casts: int = 0
     violations: list[AuditViolation] = field(default_factory=list)
 
     @property
@@ -129,6 +131,7 @@ class DictEradicationReport:
             + self.pydantic_annotated_violations
             + self.mutable_class_defaults
             + self.unauthorized_open_json_annotations
+            + self.permissive_casts
         )
 
 
@@ -601,7 +604,37 @@ class DictEradicationVisitor(ast.NodeVisitor):
                     case _:
                         pass
 
-            # 3. Banned .get() lookups on internal state / variables
+            # 3. Banned permissive cast(typing.Any, ...) call (Metric 12)
+            is_cast = False
+            match node.func:
+                case ast.Name(id="cast"):
+                    is_cast = True
+                case ast.Attribute(value=ast.Name(id="typing"), attr="cast"):
+                    is_cast = True
+                case _:
+                    is_cast = False
+
+            if is_cast and node.args:
+                first_arg = node.args[0]
+                is_any = False
+                match first_arg:
+                    case ast.Name(id="Any"):
+                        is_any = True
+                    case ast.Attribute(value=ast.Name(id="typing"), attr="Any"):
+                        is_any = True
+                    case _:
+                        is_any = False
+                if is_any:
+                    self.violations.append(
+                        AuditViolation(
+                            filepath=self.filepath,
+                            line=node.lineno,
+                            metric="permissive_casts",
+                            message=f"Banned permissive cast(typing.Any, ...) call: {ast.unparse(node)}",
+                        )
+                    )
+
+            # 4. Banned .get() lookups on internal state / variables
             if not self.is_test and self.is_domain_or_service:
                 if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
                     if len(node.args) == 0 and not any(
@@ -720,7 +753,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
 
 
 def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolation]:
-    """Audits comments in a file to verify all # noqa: QGR suppressions have substantive reasons.
+    """Audits comments in a file to verify zero # noqa comment suppressions.
 
     Args:
         filepath: Target file path of the source code.
@@ -738,37 +771,15 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
         for tok in tokens:
             if tok.type == tokenize.COMMENT:
                 text = tok.string
-                match = re.search(
-                    r"#\s*noqa(?::\s*([A-Za-z0-9_,\s]+))?(?:\s*\[(?:REASON|reason):\s*([^\]]+)\])?",
-                    text,
-                    re.IGNORECASE,
-                )
-                if match:
-                    rules_str = match.group(1)
-                    raw_reason = match.group(2)
-                    rule_codes = {r.strip().upper() for r in rules_str.split(",") if r.strip()} if rules_str else {"*"}
-                    has_qgr = any(r.startswith("QGR") or r == "*" for r in rule_codes)
-                    if has_qgr:
-                        if not raw_reason or not raw_reason.strip():
-                            violations.append(
-                                AuditViolation(
-                                    filepath=filepath,
-                                    line=tok.start[0],
-                                    metric="unauthorized_suppressions",
-                                    message="Missing reason for # noqa: QGR suppression.",
-                                )
-                            )
-                        else:
-                            clean_reason = raw_reason.strip().lower()
-                            if clean_reason in BANNED_REASON_PLACEHOLDERS or len(clean_reason) < 10:
-                                violations.append(
-                                    AuditViolation(
-                                        filepath=filepath,
-                                        line=tok.start[0],
-                                        metric="unauthorized_suppressions",
-                                        message=f"Trivial/placeholder reason for # noqa suppression: `{raw_reason}`",
-                                    )
-                                )
+                if "# noqa" in text.lower():
+                    violations.append(
+                        AuditViolation(
+                            filepath=filepath,
+                            line=tok.start[0],
+                            metric="unauthorized_suppressions",
+                            message=f"Unauthorized '# noqa' comment suppression detected: {tok.string.strip()}",
+                        )
+                    )
     except (tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError) as e:
         violations.append(
             AuditViolation(
@@ -847,6 +858,8 @@ def audit_dict_eradication(
                 report.mutable_class_defaults += 1
             elif v.metric == "unauthorized_open_json_annotations":
                 report.unauthorized_open_json_annotations += 1
+            elif v.metric == "permissive_casts":
+                report.permissive_casts += 1
             elif v.metric == "syntax_parse_error":
                 report.syntax_parse_errors += 1
             report.violations.append(v)
@@ -891,6 +904,8 @@ Statically analyzes backend Python files to mathematically verify:
   8. Exactly 0 dynamic reflection calls (getattr, hasattr, setattr) in domain layers
   9. Exactly 0 duplicate Field() assignments on Annotated fields
   10. Exactly 0 class-level mutable defaults (list, dict, set) in domain and DTO models
+  11. Exactly 0 unauthorized/unwhitelisted dict[..., JsonValue] annotations
+  12. Exactly 0 permissive cast(typing.Any, ...) calls
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):
@@ -939,6 +954,7 @@ Statically analyzes backend Python files to mathematically verify:
     print(f"9. Duplicate Field() on Annotated Fields:         {report.pydantic_annotated_violations}")
     print(f"10. Class-Level Mutable Defaults (list/dict/set): {report.mutable_class_defaults}")
     print(f"11. Unauthorized Open-JSON (dict[..., JsonValue]):{report.unauthorized_open_json_annotations}")
+    print(f"12. Permissive Casts (cast to Any):            {report.permissive_casts}")
     print("-" * 80)
     print(f"TOTAL VIOLATIONS:                               {report.total_violations}")
     print("=" * 80)

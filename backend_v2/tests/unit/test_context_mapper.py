@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,10 +16,11 @@ def test_context_mapper_empty_or_wildcard() -> None:
 
 def test_context_mapper_fail_fast_on_dict() -> None:
     """Test that passing naked dictionaries triggers the Fail-Fast AppException."""
+    raw_invalid_blocks: Any = [{"id": "blk_1"}]
     with pytest.raises(AppException) as exc_info:
         ContextMapper.build_ordinal_mapping(
             target_blocks=["blk_1"],
-            all_blocks=cast(Any, [{"id": "blk_1"}]),
+            all_blocks=raw_invalid_blocks,
         )
     assert exc_info.value.status_code == 500
     assert "Internal compilation error" in str(exc_info.value.message)

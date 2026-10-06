@@ -235,7 +235,6 @@ def test_cmd_verify_unsuppressed_ast_violations_fail(tmp_path: Path) -> None:
         message="Reflection call getattr",
         remediation="Use match/case",
         severity=GuardrailSeverity.WARNING,
-        is_suppressed=False,
     )
     matrix_dto = AuditMatrixDTO(
         target_file="backend_v2/services/execution.py",

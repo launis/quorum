@@ -11,16 +11,18 @@ import re
 import sys
 from pathlib import Path
 
-# Add scripts directory to sys.path if not present
-scripts_dir = Path(__file__).resolve().parent
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
-
-from _ast_boundary_utils import (  # noqa: E402
-    extract_deprecated_symbols,
-    extract_target_files,
-    find_symbols_in_python_code,
-)
+try:
+    from _ast_boundary_utils import (
+        extract_deprecated_symbols,
+        extract_target_files,
+        find_symbols_in_python_code,
+    )
+except ImportError:
+    from scripts._ast_boundary_utils import (
+        extract_deprecated_symbols,
+        extract_target_files,
+        find_symbols_in_python_code,
+    )
 
 
 def extract_phase_content(epic_text: str, phase_num: int | None) -> str:

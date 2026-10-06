@@ -205,18 +205,41 @@ def test_audit_dict_eradication_detects_dict_utils_imports(tmp_path: Path) -> No
 
 
 def test_audit_dict_eradication_detects_unauthorized_suppressions(tmp_path: Path) -> None:
-    """Verifies detection of missing and placeholder # noqa: QGR reasons."""
+    """Verifies that any # noqa suppression comment unconditionally triggers an unauthorized_suppressions violation."""
     service_dir = tmp_path / "services"
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "suppression_file.py"
     target_file.write_text(
-        "x = 1  # noqa: QGR001\ny = 2  # noqa: QGR002 [REASON: todo]\n",
+        "x = 1  # noqa: QGR001\ny = 2  # noqa: QGR002 [REASON: A substantive valid reason of more than ten characters]\n",
         encoding="utf-8",
     )
 
     report = audit_dict_eradication(target_file)
     assert report.unauthorized_suppressions == 2
     assert report.total_violations >= 2
+
+
+def test_audit_dict_eradication_detects_permissive_casts(tmp_path: Path) -> None:
+    """Verifies detection of cast(Any, ...) and typing.cast(typing.Any, ...) calls (Metric 12)."""
+    service_dir = tmp_path / "services"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    target_file = service_dir / "cast_file.py"
+    target_file.write_text(
+        "from typing import Any, cast\n"
+        "import typing\n"
+        "a = cast(Any, 123)\n"
+        "b = typing.cast(typing.Any, 'abc')\n"
+        "c = cast(int, '456')\n",
+        encoding="utf-8",
+    )
+
+    report = audit_dict_eradication(target_file)
+    assert report.permissive_casts == 2
+    assert report.total_violations >= 2
+    cast_violations = [v for v in report.violations if v.metric == "permissive_casts"]
+    assert len(cast_violations) == 2
+    assert any("cast(Any, 123)" in v.message for v in cast_violations)
+    assert any("typing.cast(typing.Any, 'abc')" in v.message for v in cast_violations)
 
 
 def test_audit_dict_eradication_targets_handling(tmp_path: Path) -> None:

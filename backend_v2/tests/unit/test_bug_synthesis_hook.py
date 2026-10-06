@@ -1,7 +1,9 @@
 import pytest
 
-import backend_v2.hooks  # noqa: F401
-import backend_v2.services.orchestrator.synthesis_distiller  # noqa: F401
+import backend_v2.hooks as _hooks
+import backend_v2.services.orchestrator.synthesis_distiller as _distiller
+
+_ = (_hooks, _distiller)
 from backend_v2.core.hook_registry import hook_registry
 from backend_v2.exceptions import AppException
 

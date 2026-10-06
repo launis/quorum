@@ -11,17 +11,20 @@ import re
 import sys
 from pathlib import Path
 
-# Add scripts directory to sys.path if not present
-scripts_dir = Path(__file__).resolve().parent
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
-
-from _ast_boundary_utils import (  # noqa: E402
-    extract_deprecated_symbols,
-    extract_target_files,
-    parse_line_bound,
-    validate_ast_line_bound,
-)
+try:
+    from _ast_boundary_utils import (
+        extract_deprecated_symbols,
+        extract_target_files,
+        parse_line_bound,
+        validate_ast_line_bound,
+    )
+except ImportError:
+    from scripts._ast_boundary_utils import (
+        extract_deprecated_symbols,
+        extract_target_files,
+        parse_line_bound,
+        validate_ast_line_bound,
+    )
 
 
 def main(argv: list[str] | None = None) -> None:

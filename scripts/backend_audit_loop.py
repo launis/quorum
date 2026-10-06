@@ -404,7 +404,7 @@ Optional steps:
 
     print("\n⏳ 4/10: Checking AST Codebase Guardrails (scripts/_ast_guardrails.py)...")
     violations, is_success = scan_files_for_guardrails(targets, strict=ast_strict)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     fatal_violations = [v for v in unsuppressed if v.severity == GuardrailSeverity.FATAL]
 
     if ast_strict and unsuppressed:

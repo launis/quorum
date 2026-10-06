@@ -65,14 +65,18 @@ async def test_get_execution_status(mock_current_user: Any, mock_execution_servi
     )
     assert result.id == "exe_1234567890abcdef1234567890abcdef"
     mock_execution_service.get_execution.assert_called_once_with(
-        initiator=mock_current_user, execution_id="exe_1234567890abcdef1234567890abcdef"
-    )  # noqa: E501
+        initiator=mock_current_user,
+        execution_id="exe_1234567890abcdef1234567890abcdef",
+    )
 
 
 @pytest.mark.asyncio
 async def test_start_execution(
-    mock_current_user: Any, mock_execution_service: AsyncMock, mock_doc_service: AsyncMock, mock_arq_pool: AsyncMock
-) -> None:  # noqa: E501
+    mock_current_user: Any,
+    mock_execution_service: AsyncMock,
+    mock_doc_service: AsyncMock,
+    mock_arq_pool: AsyncMock,
+) -> None:
     """Test starting an execution router delegation."""
     from backend_v2.models.domain.execution import ExecutionCreate
 
@@ -117,8 +121,9 @@ async def test_delete_execution(mock_current_user: Any, mock_execution_service: 
         execution_service=mock_execution_service,
     )
     mock_execution_service.delete_execution.assert_called_once_with(
-        initiator=mock_current_user, execution_id="exe_1234567890abcdef1234567890abcdef"
-    )  # noqa: E501
+        initiator=mock_current_user,
+        execution_id="exe_1234567890abcdef1234567890abcdef",
+    )
 
 
 @pytest.mark.asyncio

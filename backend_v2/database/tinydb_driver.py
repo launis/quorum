@@ -60,7 +60,7 @@ class TinyDBDriver(StorageDriver):
         if isinstance(data, uuid.UUID):
             return str(data)
 
-        if isinstance(data, collections.abc.Mapping):  # noqa: QGR012 [REASON: TinyDB driver recursive document serialization]
+        if isinstance(data, collections.abc.Mapping):
             return {k: self._serialize(v) for k, v in data.items()}
 
         if isinstance(data, (list, collections.abc.Sequence)) and not isinstance(data, (str, bytes)):

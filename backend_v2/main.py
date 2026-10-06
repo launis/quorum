@@ -27,7 +27,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from tinydb import TinyDB
 
-import backend_v2.hooks  # noqa: F401
+import backend_v2.hooks as _hooks
+
+_ = _hooks
 from backend_v2.api.routers.execution import (
     external_reports_router,
     reports_router,

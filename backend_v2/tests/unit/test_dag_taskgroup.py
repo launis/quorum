@@ -67,7 +67,7 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-    )  # noqa: E501
+    )
 
     workflow = Workflow(
         model_registry_id="cfg_model_registry_01",
@@ -148,7 +148,7 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-    )  # noqa: E501
+    )
 
     workflow = Workflow(
         model_registry_id="cfg_model_registry_01",

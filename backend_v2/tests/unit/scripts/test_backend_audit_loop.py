@@ -175,7 +175,6 @@ def test_ast_gate_strict_mode_fails_on_warning_violation(mock_exit: MagicMock, m
         message="getattr reflection",
         remediation="Use match/case",
         severity=GuardrailSeverity.WARNING,
-        is_suppressed=False,
     )
 
     with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([warning_violation], False)):
@@ -198,7 +197,6 @@ def test_backend_audit_loop_fails_fast_on_any_unsuppressed_violation(mock_exit: 
         message="getattr reflection",
         remediation="Use match/case",
         severity=GuardrailSeverity.WARNING,
-        is_suppressed=False,
     )
 
     with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([warning_violation], False)):
@@ -219,7 +217,6 @@ def test_backend_audit_loop_permissive_warn_flag_allows_advisory_mode(mock_sub: 
         message="getattr reflection",
         remediation="Use match/case",
         severity=GuardrailSeverity.WARNING,
-        is_suppressed=False,
     )
 
     with patch(
@@ -244,7 +241,6 @@ def test_backend_audit_loop_permissive_warn_still_fails_on_fatal(mock_exit: Magi
         message="SyntaxError",
         remediation="Fix syntax",
         severity=GuardrailSeverity.FATAL,
-        is_suppressed=False,
     )
 
     with patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([fatal_violation], False)):

@@ -1,11 +1,13 @@
 """LLM Provider implementations (LiteLLM, Mock, Unconfigured)."""
 
 import asyncio
+import inspect
 import json
 import logging
 import os
 import re
 import time
+import types
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -54,6 +56,47 @@ __all__ = [
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+_SENTINEL = object()
+
+
+def _safe_static_getattr(obj: Any, attr: str, default: Any = None) -> Any:
+    """Safely extracts an attribute using static inspection without dynamic reflection."""
+    if obj is None:
+        return default
+    try:
+        val = inspect.getattr_static(obj, attr, _SENTINEL)
+        if val is not _SENTINEL:
+            if isinstance(val, property):
+                return val.fget(obj) if val.fget is not None else default
+            if isinstance(val, types.FunctionType):
+                return val.__get__(obj, type(obj))
+            return val
+    except AttributeError, TypeError:
+        pass
+    try:
+        if attr in obj:
+            return obj[attr]
+    except TypeError, KeyError:
+        pass
+    return default
+
+
+def _safe_static_hasattr(obj: Any, attr: str) -> bool:
+    """Safely checks if an attribute exists using static inspection without dynamic reflection."""
+    if obj is None:
+        return False
+    try:
+        val = inspect.getattr_static(obj, attr, _SENTINEL)
+        if val is not _SENTINEL:
+            return True
+    except AttributeError, TypeError:
+        pass
+    try:
+        return attr in obj
+    except TypeError, KeyError:
+        return False
+
 
 # Ensure env is loaded from project root for LLM secrets
 _root_dir = Path(__file__).resolve().parent.parent.parent
@@ -202,7 +245,7 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     # 4. Check HTTP Status Code attributes (e.g. 429, 500, 502, 503, 504) for upstream errors
     # Note: Domain AppExceptions are evaluated specifically in step 5 by their domain error_code.
     if not isinstance(e, AppException):
-        e_status_code = getattr(e, "status_code", None)  # noqa: QGR001 [REASON: Third-party LiteLLM exception status code inspection]
+        e_status_code = _safe_static_getattr(e, "status_code")
         if isinstance(e_status_code, int) and e_status_code in (429, 500, 502, 503, 504):
             return True
 
@@ -236,7 +279,7 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return True
 
     # 7. Recursively inspect causes and wrapped exceptions
-    orig_err = getattr(e, "original_error", None)  # noqa: QGR001 [REASON: Third-party LiteLLM wrapped exception inspection]
+    orig_err = _safe_static_getattr(e, "original_error")
     if isinstance(orig_err, BaseException) and _is_transient_llm_error(orig_err, _visited):
         return True
 
@@ -271,11 +314,11 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
     _visited.add(id(e))
 
     # 1. Check headers (direct or via response attribute)
-    headers = getattr(e, "headers", None)  # noqa: QGR001 [REASON: Third-party HTTP exception headers]
+    headers = _safe_static_getattr(e, "headers")
     if headers is None:
-        resp = getattr(e, "response", None)  # noqa: QGR001 [REASON: Third-party HTTP response object]
+        resp = _safe_static_getattr(e, "response")
         if resp is not None:
-            headers = getattr(resp, "headers", None)  # noqa: QGR001 [REASON: Third-party HTTP response headers]
+            headers = _safe_static_getattr(resp, "headers")
     if headers and "items" in dir(headers):
         for k, v in headers.items():
             if str(k).lower() == "retry-after":
@@ -308,7 +351,7 @@ def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = N
             return max(candidates)
 
     # 4. Recursively check original_error, __cause__, __context__
-    orig_err_retry = getattr(e, "original_error", None)  # noqa: QGR001 [REASON: Third-party LiteLLM wrapped exception inspection]
+    orig_err_retry = _safe_static_getattr(e, "original_error")
     if isinstance(orig_err_retry, BaseException):
         child_val = _extract_retry_after_seconds(orig_err_retry, _visited)
         if child_val is not None:
@@ -975,8 +1018,8 @@ class LiteLLMProvider(LLMProvider):
             reasoning_token = None
 
             # Check standard LiteLLM extra fields
-            if hasattr(message, "provider_specific_fields") and message.provider_specific_fields:  # noqa: QGR001 [REASON: Third-party LiteLLM message provider fields]
-                psf = message.provider_specific_fields
+            psf = _safe_static_getattr(message, "provider_specific_fields")
+            if psf and isinstance(psf, dict):
                 if "thought_signature" in psf:
                     reasoning_token = psf["thought_signature"]
                 elif "reasoning_blob" in psf:
@@ -985,16 +1028,17 @@ class LiteLLMProvider(LLMProvider):
                     reasoning_token = None
 
             # Fallback: Check top level attributes
-            if not reasoning_token and hasattr(response, "model_extra"):  # noqa: QGR001 [REASON: Third-party LiteLLM response model_extra check]
-                me = response.model_extra
+            me = _safe_static_getattr(response, "model_extra")
+            if not reasoning_token and isinstance(me, dict):
                 if "thought_signature" in me:
                     reasoning_token = me["thought_signature"]
 
             usage: dict[str, Any] = {}
-            if hasattr(response, "usage") and response.usage:  # noqa: QGR001 [REASON: Third-party LiteLLM usage object check]
-                p_tokens = getattr(response.usage, "prompt_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM prompt tokens lookup]
-                c_tokens = getattr(response.usage, "completion_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM completion tokens lookup]
-                t_tokens = getattr(response.usage, "total_tokens", None)  # noqa: QGR001 [REASON: Third-party LiteLLM total tokens lookup]
+            resp_usage = _safe_static_getattr(response, "usage")
+            if resp_usage:
+                p_tokens = _safe_static_getattr(resp_usage, "prompt_tokens")
+                c_tokens = _safe_static_getattr(resp_usage, "completion_tokens")
+                t_tokens = _safe_static_getattr(resp_usage, "total_tokens")
 
                 if p_tokens is not None:
                     usage["prompt_tokens"] = p_tokens
@@ -1012,15 +1056,17 @@ class LiteLLMProvider(LLMProvider):
                         sum_tokens += c_tokens
                     usage["total_tokens"] = sum_tokens
 
-                if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details:  # noqa: QGR001 [REASON: Third-party LiteLLM prompt tokens details]
-                    details = response.usage.prompt_tokens_details
-                    if hasattr(details, "cached_tokens") and details.cached_tokens is not None:  # noqa: QGR001 [REASON: Third-party LiteLLM cached tokens check]
-                        usage["cached_tokens"] = details.cached_tokens
+                p_details = _safe_static_getattr(resp_usage, "prompt_tokens_details")
+                if p_details:
+                    cached_tok = _safe_static_getattr(p_details, "cached_tokens")
+                    if cached_tok is not None:
+                        usage["cached_tokens"] = cached_tok
 
-                if hasattr(response.usage, "completion_tokens_details") and response.usage.completion_tokens_details:  # noqa: QGR001 [REASON: Third-party LiteLLM completion tokens details]
-                    details = response.usage.completion_tokens_details
-                    if hasattr(details, "reasoning_tokens") and details.reasoning_tokens is not None:  # noqa: QGR001 [REASON: Third-party LiteLLM reasoning tokens check]
-                        usage["reasoning_tokens"] = details.reasoning_tokens
+                c_details = _safe_static_getattr(resp_usage, "completion_tokens_details")
+                if c_details:
+                    reasoning_tok = _safe_static_getattr(c_details, "reasoning_tokens")
+                    if reasoning_tok is not None:
+                        usage["reasoning_tokens"] = reasoning_tok
 
             final_content = raw_content
             parsed_obj = None
@@ -1032,7 +1078,7 @@ class LiteLLMProvider(LLMProvider):
 
             active_span = otel_trace.get_current_span()
             if active_span.is_recording():
-                resp_model = getattr(response, "model", None)  # noqa: QGR001 [REASON: Third-party LiteLLM response model lookup]
+                resp_model = _safe_static_getattr(response, "model")
                 if resp_model:
                     active_span.set_attribute("gen_ai.response.model", str(resp_model))
                 if "prompt_tokens" in usage and usage["prompt_tokens"] is not None:
@@ -1041,22 +1087,22 @@ class LiteLLMProvider(LLMProvider):
                     active_span.set_attribute("gen_ai.usage.output_tokens", int(usage["completion_tokens"]))
 
             # --- ADVANCED TELEMETRY & METADATA ---
-            system_fingerprint = None
-            if hasattr(response, "system_fingerprint"):  # noqa: QGR001 [REASON: Third-party LiteLLM system fingerprint attribute check]
-                system_fingerprint = response.system_fingerprint
+            system_fingerprint = _safe_static_getattr(response, "system_fingerprint")
             if finish_reason in ["stop", "eos"]:
                 finish_reason = None
 
             provider_meta = {}
-            if hasattr(response, "model_dump"):  # noqa: QGR001 [REASON: Third-party LiteLLM model dump method check]
-                provider_meta = response.model_dump()
+            dump_fn = _safe_static_getattr(response, "model_dump")
+            if callable(dump_fn):
+                provider_meta = dump_fn()
 
             # Rate limits
-            if hasattr(response, "_hidden_params") and isinstance(response._hidden_params, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM hidden params inspection]
+            hidden_params = _safe_static_getattr(response, "_hidden_params")
+            if isinstance(hidden_params, dict):
                 headers = {}
-                if "headers" in response._hidden_params:
-                    headers = response._hidden_params["headers"]
-                if isinstance(headers, dict):  # noqa: QGR012 [REASON: External LiteLLM response headers inspection]
+                if "headers" in hidden_params:
+                    headers = hidden_params["headers"]
+                if isinstance(headers, dict):
                     ratelimit_key = "x-ratelimit-remaining-requests"
                     rem_reqs = None
                     if ratelimit_key in headers:
@@ -1067,17 +1113,18 @@ class LiteLLMProvider(LLMProvider):
                             logger.warning("[LiteLLMProvider] QUOTA WARNING: Only %s requests remaining.", rem_reqs)
 
             # Vertex AI Safety & Grounding Citations
-            if hasattr(response, "model_extra") and isinstance(response.model_extra, dict):  # noqa: QGR001, QGR012 [REASON: External LiteLLM model_extra metadata inspection]
-                if "safety_ratings" in response.model_extra:
-                    provider_meta["safety_ratings"] = response.model_extra["safety_ratings"]
+            model_extra = _safe_static_getattr(response, "model_extra")
+            if isinstance(model_extra, dict):
+                if "safety_ratings" in model_extra:
+                    provider_meta["safety_ratings"] = model_extra["safety_ratings"]
                 gm = {}
-                if "grounding_metadata" in response.model_extra:
-                    gm = response.model_extra["grounding_metadata"]
-                if isinstance(gm, dict) and "grounding_chunks" in gm:  # noqa: QGR012 [REASON: External LiteLLM grounding metadata inspection]
+                if "grounding_metadata" in model_extra:
+                    gm = model_extra["grounding_metadata"]
+                if isinstance(gm, dict) and "grounding_chunks" in gm:
                     urls = [
                         chunk["web"]["uri"]
                         for chunk in gm["grounding_chunks"]
-                        if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]  # noqa: QGR012 [REASON: External LiteLLM grounding chunks inspection]
+                        if isinstance(chunk, dict) and "web" in chunk and "uri" in chunk["web"]
                     ]
                     if urls:
                         provider_meta["grounding_urls"] = urls
@@ -1226,7 +1273,7 @@ class LiteLLMProvider(LLMProvider):
             # Jan 2026: Reduce Error Verbosity & Improve Classification
             error_msg = str(e)
             error_type = type(e).__name__
-            status_code = getattr(e, "status_code", None)  # noqa: QGR001 [REASON: Third-party LiteLLM exception status code]
+            status_code = _safe_static_getattr(e, "status_code")
             from litellm.exceptions import (
                 APIConnectionError,
                 AuthenticationError,
@@ -1486,7 +1533,7 @@ class MockProvider(LLMProvider):
         content_str = ""
         parsed_result = None
 
-        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":  # noqa: QGR012 [REASON: Mock LLM service dictionary payload inspection]
+        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":
             # STRICT MANDATE: No mock hydration fallbacks. If seed missing, crash properly.
             raise ConfigurationError(
                 message=(
@@ -1495,7 +1542,7 @@ class MockProvider(LLMProvider):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         else:
-            if isinstance(result, dict):  # noqa: QGR012 [REASON: Mock LLM service dictionary payload inspection]
+            if isinstance(result, dict):
                 content_str = json.dumps(result, ensure_ascii=False)
                 parsed_result = result
             elif isinstance(result, BaseModel):

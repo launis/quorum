@@ -341,7 +341,7 @@ class JSONFormatter(logging.Formatter):
             details_dict = None
             try:
                 raw_details = object.__getattribute__(record, "details")
-                if isinstance(raw_details, collections.abc.Mapping):  # noqa: QGR012 [REASON: Logging record details mapping normalization]
+                if isinstance(raw_details, collections.abc.Mapping):
                     details_dict = dict(raw_details)
             except AttributeError:
                 pass

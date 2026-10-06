@@ -472,8 +472,6 @@ class MarkdownAuditor:
             dedented_code = textwrap.dedent(code_text)
             violations = scan_source_code_for_guardrails(self.file_path, dedented_code.encode("utf-8"))
             for v in violations:
-                if v.is_suppressed:
-                    continue
                 # Offset the violation line by the markdown block's starting line
                 md_line = start_line + (v.lineno - 1)
                 severity = GuardrailSeverity.FATAL if v.severity.value == "FATAL" else GuardrailSeverity.WARNING

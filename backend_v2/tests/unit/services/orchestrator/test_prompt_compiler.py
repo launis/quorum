@@ -102,8 +102,10 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     DynamicSchema = compiler.build_dynamic_schema(
-        schema_name="TestSchema", criteria=[PromptBlockAdapter.validate_python(mock_matrix_block)], strictness_level=50
-    )  # noqa: E501
+        schema_name="TestSchema",
+        criteria=[PromptBlockAdapter.validate_python(mock_matrix_block)],
+        strictness_level=50,
+    )
 
     # Assert
     assert issubclass(DynamicSchema, BaseModel)
@@ -158,7 +160,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
                     }
                 ],
             }
-        ],  # noqa: E501
+        ],
     }
 
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
@@ -229,7 +231,7 @@ def test_dynamic_schema_descriptions_are_present() -> None:
     assert (
         ChunkSchema.model_fields["chunk_id"].description
         == "The unique system identifier of the current execution chunk."
-    )  # noqa: E501
+    )
     assert ChunkSchema.model_fields["records"].description == "List of records contained in this execution chunk."
 
     records_field = ChunkSchema.model_fields["records"]
@@ -240,11 +242,11 @@ def test_dynamic_schema_descriptions_are_present() -> None:
     assert (
         chunk_record_model.model_fields["original_id"].description
         == "The original system identifier of the source record."
-    )  # noqa: E501
+    )
     assert (
         chunk_record_model.model_fields["payload"].description
         == "The validated item payload matching the target data schema."
-    )  # noqa: E501
+    )
 
     # 3. Assert max_length constraints DO NOT exist to limit LLM schema serving states
     from backend_v2.services.orchestrator.schema_factory import StrippedBaseTDAExtraction

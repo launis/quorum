@@ -22,9 +22,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
-    "BANNED_REASON_PLACEHOLDERS",
     "BOUNDARY_EXEMPTION_FILES",
-    "CommentSuppressor",
     "GuardrailSeverity",
     "GuardrailViolation",
     "INTERFACE_REPOSITORY_METHODS",
@@ -71,23 +69,6 @@ class GuardrailViolation(BaseModel):
     message: Annotated[str, Field(description="Descriptive violation message")]
     remediation: Annotated[str, Field(description="Deterministic remediation guidance")]
     severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
-    is_suppressed: Annotated[bool, Field(description="Whether violation is suppressed via inline comment")]
-
-
-BANNED_REASON_PLACEHOLDERS: set[str] = {
-    "n/a",
-    "na",
-    "ok",
-    "none",
-    "test",
-    "todo",
-    "fix",
-    "pass",
-    "fail",
-    "temporary",
-    "temp",
-    "",
-}
 
 
 BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset({
@@ -401,138 +382,16 @@ def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
     return violations
 
 
-class CommentSuppressor:
-    """Parses inline comment suppressions (# noqa: QGRxxx [REASON: ...]) across physical source lines."""
-
-    def __init__(self, source_bytes: bytes, filepath: str = "unknown") -> None:
-        """Initialize CommentSuppressor with raw source bytes and filepath.
-
-        Args:
-            source_bytes: Raw source code content in bytes.
-            filepath: Target file path.
-        """
-        self.filepath = filepath
-        self.suppressions: dict[int, set[str]] = {}
-        self.invalid_suppressions: list[GuardrailViolation] = []
-        path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
-        self._is_domain_code = not (
-            "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
-        )
-        self._is_boundary_exempt = is_boundary_exempt(filepath)
-        self._parse_comments(source_bytes)
-
-    def _parse_comments(self, source_bytes: bytes) -> None:
-        """Parses inline comments from raw source bytes to extract suppression directives.
-
-        Args:
-            source_bytes: Raw source code content in bytes.
-        """
-        try:
-            tokens = tokenize.tokenize(io.BytesIO(source_bytes).readline)
-            for tok in tokens:
-                if tok.type == tokenize.COMMENT:
-                    text = tok.string
-                    match = re.search(
-                        r"#\s*noqa(?::\s*([A-Za-z0-9_,\s]+))?(?:\s*\[(?:REASON|reason):\s*([^\]]+)\])?",
-                        text,
-                        re.IGNORECASE,
-                    )
-                    if match:
-                        rules_str = match.group(1)
-                        raw_reason = match.group(2)
-                        line_num = tok.start[0]
-                        col_offset = tok.start[1]
-                        if rules_str:
-                            rule_codes = {r.strip().upper() for r in rules_str.split(",") if r.strip()}
-                        else:
-                            rule_codes = {"*"}
-
-                        qgr_rules = [r for r in rule_codes if r.startswith("QGR") or r == "*"]
-                        if qgr_rules:
-                            if self._is_domain_code and not self._is_boundary_exempt:
-                                self.invalid_suppressions.append(
-                                    GuardrailViolation(
-                                        filepath=self.filepath,
-                                        lineno=line_num,
-                                        col_offset=col_offset,
-                                        rule_code="QGR000",
-                                        message=(
-                                            "QGR comment suppressions are strictly prohibited in domain code. "
-                                            "Resolve the underlying architectural violation instead of suppressing it."
-                                        ),
-                                        remediation=(
-                                            "Remove the '# noqa' suppression comment and refactor the code to comply with "
-                                            "architectural invariants (strict Pydantic V2 models, TaskGroup, or in-memory fakes)."
-                                        ),
-                                        severity=GuardrailSeverity.FATAL,
-                                        is_suppressed=False,
-                                    )
-                                )
-                                continue
-
-                            cleaned_reason = raw_reason.strip() if raw_reason else ""
-                            if (
-                                not cleaned_reason
-                                or len(cleaned_reason) < 10
-                                or cleaned_reason.lower() in BANNED_REASON_PLACEHOLDERS
-                            ):
-                                self.invalid_suppressions.append(
-                                    GuardrailViolation(
-                                        filepath=self.filepath,
-                                        lineno=line_num,
-                                        col_offset=col_offset,
-                                        rule_code="QGR000",
-                                        message=(
-                                            f"Unjustified # noqa suppression for rule(s) '{', '.join(sorted(rule_codes))}': "
-                                            f"Missing or insufficient '[REASON: <substantive justification>]' block (minimum 10 characters)."
-                                        ),
-                                        remediation="Append an explicit reason block to your suppression comment, e.g., '# noqa: QGR001 [REASON: Third-party LiteLLM model attribute]'.",
-                                        severity=GuardrailSeverity.FATAL,
-                                        is_suppressed=False,
-                                    )
-                                )
-                                continue
-
-                        if line_num not in self.suppressions:
-                            self.suppressions[line_num] = set()
-                        self.suppressions[line_num].update(rule_codes)
-        except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:
-            pass
-
-    def is_suppressed(self, rule_code: str, start_line: int, end_line: int | None = None) -> bool:
-        """Checks whether a rule is suppressed for the specified line range.
-
-        Args:
-            rule_code: Guardrail rule code e.g. QGR001.
-            start_line: 1-indexed starting line number.
-            end_line: Optional 1-indexed ending line number.
-
-        Returns:
-            True if rule is suppressed, False otherwise.
-        """
-        if rule_code == "QGR000":
-            return False  # Fatal rule QGR000 is immune to suppression
-        last_line = end_line if end_line is not None else start_line
-        for line in range(start_line, last_line + 1):
-            if line in self.suppressions:
-                rules_on_line = self.suppressions[line]
-                if "*" in rules_on_line or rule_code in rules_on_line:
-                    return True
-        return False
-
-
 class QuorumGuardrailVisitor(ast.NodeVisitor):
     """AST Visitor detecting domain architectural violations with zero reflection."""
 
-    def __init__(self, filepath: str, suppressor: CommentSuppressor) -> None:
-        """Initialize QuorumGuardrailVisitor with target filepath and suppressor.
+    def __init__(self, filepath: str) -> None:
+        """Initialize QuorumGuardrailVisitor with target filepath.
 
         Args:
             filepath: Target file path to scan.
-            suppressor: CommentSuppressor instance containing parsed suppressions.
         """
         self.filepath = filepath
-        self.suppressor = suppressor
         self.violations: list[GuardrailViolation] = []
         path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
         self._is_test_file = "tests" in path_parts or Path(filepath).name.startswith("test_")
@@ -617,7 +476,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             else lineno
         )
 
-        is_suppressed = self.suppressor.is_suppressed(rule_code, lineno, end_lineno)
         self.violations.append(
             GuardrailViolation(
                 filepath=self.filepath,
@@ -627,7 +485,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 message=message,
                 remediation=remediation,
                 severity=severity,
-                is_suppressed=is_suppressed,
             )
         )
 
@@ -875,7 +732,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
-        if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
+        if not self._is_boundary_exempt and isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
             types_arg = node.args[1]
 
             def _check_isinstance_target(t_node: ast.AST) -> tuple[bool, bool]:
@@ -2003,7 +1860,6 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
                 message=f"Fatal encoding error reading file: {exc}",
                 remediation="Ensure file is valid UTF-8 encoded text.",
                 severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
             )
         ]
 
@@ -2021,13 +1877,11 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
                 message=f"Fatal Python syntax error during AST parse: {exc}",
                 remediation="Fix Python syntax or indentation errors to allow AST parsing.",
                 severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
             )
         ]
 
     # 2. Check for tokenization errors and parse comments
     try:
-        suppressor = CommentSuppressor(source_bytes, filepath=filepath)
         list(tokenize.tokenize(io.BytesIO(source_bytes).readline))
     except (tokenize.TokenError, IndentationError, SyntaxError) as exc:
         return [
@@ -2039,12 +1893,11 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
                 message=f"Fatal tokenization error during token parsing: {exc}",
                 remediation="Fix unbalanced brackets or unclosed multi-line string literals.",
                 severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
             )
         ]
 
     # 3. Traverse AST with RecursionError isolation
-    visitor = QuorumGuardrailVisitor(filepath, suppressor)
+    visitor = QuorumGuardrailVisitor(filepath)
     try:
         visitor.visit(tree)
     except RecursionError as exc:
@@ -2057,11 +1910,10 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
                 message=f"Fatal recursion depth exceeded during AST traversal: {exc}",
                 remediation="Simplify deeply nested expressions or data structures.",
                 severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
             )
         ]
 
-    return suppressor.invalid_suppressions + visitor.violations
+    return visitor.violations
 
 
 def scan_file_for_guardrails(filepath: str | Path) -> list[GuardrailViolation]:
@@ -2086,7 +1938,6 @@ def scan_file_for_guardrails(filepath: str | Path) -> list[GuardrailViolation]:
                 message=f"Fatal OS read error: {exc}",
                 remediation="Verify physical file existence and read permissions.",
                 severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
             )
         ]
 
@@ -2129,7 +1980,7 @@ def scan_files_for_guardrails(
 
     Args:
         targets: Sequence of target file or directory paths.
-        strict: When True, requires 0 unsuppressed violations of any severity.
+        strict: When True, requires 0 violations of any severity.
 
     Returns:
         Tuple containing list of violations and boolean success flag.
@@ -2142,11 +1993,10 @@ def scan_files_for_guardrails(
             file_violations = scan_file_for_guardrails(py_file)
             all_violations.extend(file_violations)
 
-    unsuppressed = [v for v in all_violations if not v.is_suppressed]
-    fatal_violations = [v for v in unsuppressed if v.severity == GuardrailSeverity.FATAL]
+    fatal_violations = [v for v in all_violations if v.severity == GuardrailSeverity.FATAL]
 
     if strict:
-        is_success = len(unsuppressed) == 0
+        is_success = len(all_violations) == 0
     else:
         is_success = len(fatal_violations) == 0
 
@@ -2167,9 +2017,8 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 
     lines = ["\n🛡️  AST GUARDRAIL VIOLATIONS REPORT", "=" * 80]
     for v in violations:
-        status = " [SUPPRESSED]" if v.is_suppressed else ""
         sev_tag = "❌ FATAL" if v.severity == GuardrailSeverity.FATAL else "⚠️  WARN "
-        lines.append(f"{sev_tag} [{v.rule_code}]{status} {v.filepath}:{v.lineno}:{v.col_offset}")
+        lines.append(f"{sev_tag} [{v.rule_code}] {v.filepath}:{v.lineno}:{v.col_offset}")
         lines.append(f"   Message:     {v.message}")
         lines.append(f"   Remediation: {v.remediation}")
         lines.append("-" * 80)
@@ -2246,10 +2095,9 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
     strict_mode: bool = args.strict_mode
 
     violations, is_success = scan_files_for_guardrails(targets, strict=strict_mode)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
 
-    if unsuppressed or (strict_mode and violations):
-        print(format_violations_table(unsuppressed))
+    if violations:
+        print(format_violations_table(violations))
     else:
         print(f"✅ AST Guardrails passed cleanly for {len(targets)} target(s).")
 

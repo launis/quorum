@@ -177,7 +177,7 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:  # noqa: E501
+def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
     """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
     from pydantic import BaseModel, ValidationError
 
@@ -208,7 +208,7 @@ def test_control_ratio_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: 
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")
-def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:  # noqa: E501
+def test_text_metrics_hook_invalid_schema(mock_validate: AsyncMock, mock_deps: HookDependencies) -> None:
     """Mock the DTO validation to force a ValidationError and check Fail-Fast behavior."""
     from pydantic import BaseModel, ValidationError
 

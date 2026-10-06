@@ -313,7 +313,7 @@ class BaseLLMAdapter(ABC):
             # Extract any explicit discriminator property names declared in the schema
             self._collect_discriminator_names(schema_dict, known_discriminators)
 
-        if isinstance(schema_dict, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary stripping and normalization for LLM provider API]
+        if isinstance(schema_dict, dict):
             # [2026-07-03] Targeted Schema Stripping:
             # We MUST strip mechanical constraints that cause Vertex's Guided Decoding state machine
             # to explode ("too many states for serving"). These include lengths, regexes, and bounds.
@@ -341,7 +341,7 @@ class BaseLLMAdapter(ABC):
             # Remove contextual constraints not supported by standard strict schemas
             if "properties" in schema_dict:
                 properties = schema_dict["properties"]
-                if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
+                if isinstance(properties, dict):
                     if "contextual_override" in properties:
                         del properties["contextual_override"]
                     if "override_reason" in properties:
@@ -349,7 +349,7 @@ class BaseLLMAdapter(ABC):
 
                 # Ensure any discriminator property present in properties is marked required
                 properties = schema_dict["properties"]
-                if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
+                if isinstance(properties, dict):
                     if "required" not in schema_dict or not isinstance(schema_dict["required"], list):
                         schema_dict["required"] = []
                     for disc in known_discriminators:
@@ -375,8 +375,8 @@ class BaseLLMAdapter(ABC):
             node: The schema node to inspect.
             result: The accumulator set of discriminator names.
         """
-        if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema discriminator extraction]
-            if "discriminator" in node and isinstance(node["discriminator"], dict):  # noqa: QGR012 [REASON: JSON schema discriminator object inspection]
+        if isinstance(node, dict):
+            if "discriminator" in node and isinstance(node["discriminator"], dict):
                 prop_name = None
                 if "propertyName" in node["discriminator"]:
                     prop_name = node["discriminator"]["propertyName"]

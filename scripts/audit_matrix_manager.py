@@ -389,7 +389,7 @@ def cmd_verify(args: argparse.Namespace, exit_on_completion: bool = True) -> lis
             continue
 
         # If unsuppressed AST violations are present, status cannot be PASS
-        unsuppressed_violations = [v for v in rule.ast_violations if not v.is_suppressed]
+        unsuppressed_violations = rule.ast_violations
         if status == AuditRuleStatus.PASS and unsuppressed_violations:
             errors.append(
                 f"Rule '{rule_id}': Marked as PASS but contains {len(unsuppressed_violations)} un-suppressed AST violations "

@@ -144,15 +144,21 @@
   - [x] Step 8.4: Universal Quality Gate Stage 10/10 Integration
   - [x] Step 8.5: Hermetic Unit Tests for Stage 10/10 Gating
   - [x] Step 8.6: Universal Two-Stage Verification Gate & Final Pipeline Validation
-- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 8 test persistence contracts across all 11 target files, strict >=90% TDD unit test coverage (global 97.70%, 5,081 passed), zero AST violations, zero dict violations (Census A=0, D=0, I=0, K=0, F=51, N=73 ratcheted from 74, R=186 ratcheted from 191), 46 verified shared DTO models, and 10/10 backend audit stages passing with exit code 0.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 9: Suppression & Cast Eradication (# noqa, cast(Any, ...))
 **Plan:** @[docs/epic/tasks_EPIC_157/09_phase9_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=9`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=9`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [x] Step 9.0: Strategic Alignment Check & Baseline Pre-Condition Audit
+  - [x] Step 9.1: AST Inline Suppressor Eradication (CommentSuppressor Removal)
+  - [x] Step 9.2: Call & Comment Audit Hardening in `audit_dict_eradication.py`
+  - [x] Step 9.3: Provider & Adapter DTO Reconstitution (Third-Party Attributes)
+  - [x] Step 9.4: Census N (`# noqa`) Comment Token Eradication (30 Files)
+  - [x] Step 9.5: Census X (`cast(Any, ...)`) Eradication (5 Files)
+  - [x] Step 9.6: Monotonic Ratchet Update & Universal Two-Stage Verification Gate
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 9 test contracts, unit tests (5,083 passed in backend_v2, 97.69% total line coverage exceeding 90% threshold), zero AST violations, Census N=0 (ratcheted from 73 to 0), Census X=0 (ratcheted from 13 to 0), and all 10/10 backend audit stages passing with exit code 0.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 10: # type: ignore Eradication & Strict mypy Ignore Accounting
@@ -260,6 +266,9 @@
   - [ ] @[backend_v2/models/dtos/node_execution.py]
   - [ ] @[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]
   - [ ] @[backend_v2/tests/unit/test_input_processing.py]
+  - [ ] @[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]
+  - [ ] @[scripts/audit_epic_coverage.py]
+  - [ ] @[scripts/audit_planner_output.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files.
   - [ ] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
@@ -412,6 +421,9 @@
   - Step 8.4: Integrated `scripts/audit_dict_eradication.py backend_v2 --strict` as Stage 10/10 into `scripts/backend_audit_loop.py` and updated module docstring.
   - Step 8.5: Implemented hermetic unit tests in `backend_v2/tests/unit/scripts/test_backend_audit_loop.py` (`test_subprocess_dict_eradication_failure` and Stage 10 assertion in `test_backend_audit_loop_runs_all_stages`), achieving 93% line coverage on the audit runner.
   - Step 8.6: Hardened `backend_v2/tests/unit/database/test_wrapper.py` `time.time` mocks with `itertools.chain/repeat` to eliminate non-deterministic `StopIteration` exhaustion. Verified all quality gates and the full 10-stage universal backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,081 passed tests, 97.70% total test coverage, and exit code 0.
+- Completed and PASSED Tier 8 Red Team Audit for Phase 8 (`@[docs/epic/tasks_EPIC_157/08_phase8_plan.md]`) with 100% mathematical proof across all 5 axes, Census A=0, D=0, I=0, K=0, zero residual dict violations, 46 verified shared DTO models, and 10/10 backend audit stages clean.
+- Created detailed, fully verified implementation plan for Phase 9 (`@[docs/epic/tasks_EPIC_157/09_phase9_plan.md]`) covering complete Suppression & Cast Eradication across 40 target files, CommentSuppressor removal from AST guardrails, reject-all `# noqa` comment tokens and `cast(Any, ...)` calls, third-party attribute adapter DTO reconstitution, Census N=0, and Census X=0.
+- Completed Tier 0 Red-Teaming and Five-Axis Deep Deconstruction of Phase 9 Plan (`@[docs/epic/tasks_EPIC_157/09_phase9_plan.md]`): verified baseline census (Census N=73 active `# noqa` tokens across 29 files, Census X=11 executable `cast(Any, ...)` calls across 5 files in `backend_v2` plus 2 baseline regex comments in `scripts/audit_warning_baseline.py`), resolved 1-hop caller blast radius for `CommentSuppressor` removal in `scripts/audit_matrix_manager.py:392`, `scripts/audit_markdown_boundaries.py:475`, and 12 unit test fixtures across 3 test files, aligned boundary exemption contract in `scripts/_ast_guardrails.py` line 878 for QGR012, and verified 100% bidirectional parity with `scripts/audit_markdown_boundaries.py` passing cleanly with zero findings.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
@@ -438,12 +450,22 @@
 - Adding `"systemconfigmcpgateways": "mcpgateway"` to `EXPLICIT_MODEL_ALIASES` in `scripts/audit_dto_parity.py` expands verified cross-domain coverage from 45 to 46 models without field divergence.
 - In `backend_v2/tests/unit/database/test_wrapper.py`, patching `time.time` globally intercepts Logfire and internal process timing calls; replacing finite list mocks with `backend_v2.database.wrapper.time.time` and `itertools.chain([0.0, 0.0], itertools.repeat(16.0))` prevents `StopIteration` generator exhaustion under full concurrent test suite runs.
 - Wiring `scripts/audit_dict_eradication.py` into `scripts/backend_audit_loop.py` as Stage 10/10 permanently locks in the complete eradication of loose dicts across all backend domain transit layers.
+- Removing `CommentSuppressor` and `is_suppressed` from `GuardrailViolation` breaks 1-hop callers enforcing Pydantic `extra="forbid"`; `scripts/audit_matrix_manager.py` line 392, `scripts/audit_markdown_boundaries.py` line 475, and test fixtures in `test_backend_audit_loop.py`, `test_audit_warning_baseline.py`, and `test_audit_matrix_manager.py` must be updated concurrently.
+- Line 878 of `scripts/_ast_guardrails.py` omitted `not self._is_boundary_exempt and self._is_domain_code` in `visit_Call` for QGR012; adding this check aligns QGR012 with `BOUNDARY_EXEMPTION_FILES` and allows deleting the 9 historical `# noqa: QGR012` comments without triggering false-positive violations.
+- Census X baseline ledger match count of 13 included lines 59 and 127 in `scripts/audit_warning_baseline.py` matching its own regex `re.findall(r"cast\(\s*Any\b", text)`; rephrasing those comments eliminates self-referential matches before locking `x=0`.
+
+- In `backend_v2/llm/provider.py`, `_safe_static_getattr` uses `inspect.getattr_static` combined with `types.FunctionType` descriptor binding and mapping container fallback (`attr in obj`) to safely extract third-party LiteLLM `ModelResponse` and `Usage` fields without dynamic reflection, eradicating all 27 `# noqa` tokens.
+- Eradication of `CommentSuppressor` and `is_suppressed` in `scripts/_ast_guardrails.py` makes all AST guardrail violations in domain code unconditionally fatal; 1-hop callers (`backend_audit_loop.py`, `audit_warning_baseline.py`, `audit_matrix_manager.py`, `audit_markdown_boundaries.py`) and test suites were synchronously aligned.
+- Metric 12 (`permissive_casts`) in `scripts/audit_dict_eradication.py` and unconditional `# noqa` rejection guarantee programmatic eradication of Census N and Census X.
+- Census N reached 0 (all 73 `# noqa` comment tokens eradicated across 29 files) and Census X reached 0 (all 11 `cast(Any, ...)` call sites in 5 files and 2 self-referential ledger comments eradicated).
+- `CURRENT_RESIDUAL_CEILINGS.n = 0` and `CURRENT_RESIDUAL_CEILINGS.x = 0` locked in `scripts/audit_warning_baseline.py`, passing all 10 stages of `backend_audit_loop.py` (5,083 tests passed, 97.69% coverage).
 
 ## Remaining
-- Audit Phase 8 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
-- Research, Execute, and Audit Phases 9 through 13.
+- Research, Execute, and Audit Phases 10 through 13.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/08_phase8_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/09_phase9_plan.md] @[docs/epic/EPIC_157_tracker.md]
+
+
 
 

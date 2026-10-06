@@ -89,7 +89,7 @@ def test_e2e_orchestration() -> None:
                 env=env,
                 stdout=backend_log_fp,
                 stderr=subprocess.STDOUT,
-                shell=True,  # noqa: E501
+                shell=True,
             )
 
             # Start worker

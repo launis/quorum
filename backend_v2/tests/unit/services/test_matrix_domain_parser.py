@@ -23,7 +23,6 @@ from backend_v2.models.enums import (
     LaxPromptBlockCategory,
     PromptBlockCategory,
 )
-from backend_v2.models.state import WorkflowState  # noqa: F401
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 

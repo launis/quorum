@@ -42,7 +42,6 @@ def test_qgr000_syntax_error_resilience() -> None:
     v = violations[0]
     assert v.rule_code == "QGR000"
     assert v.severity == GuardrailSeverity.FATAL
-    assert not v.is_suppressed
     assert "syntax error" in v.message.lower()
 
 
@@ -90,7 +89,6 @@ def test_qgr000_immunity_against_suppression() -> None:
     violations = _scan_snippet(code)
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR000"
-    assert violations[0].is_suppressed is False
 
 
 def test_qgr000_os_read_error(tmp_path: Path) -> None:
@@ -110,7 +108,7 @@ def test_qgr000_os_read_error(tmp_path: Path) -> None:
 def test_qgr001_getattr_detection() -> None:
     code = "val = getattr(obj, 'attr', None)\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "getattr" in unsuppressed[0].message
@@ -119,7 +117,7 @@ def test_qgr001_getattr_detection() -> None:
 def test_qgr001_hasattr_detection() -> None:
     code = "if hasattr(obj, 'attr'):\n    pass\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "hasattr" in unsuppressed[0].message
@@ -128,7 +126,7 @@ def test_qgr001_hasattr_detection() -> None:
 def test_qgr001_setattr_detection() -> None:
     code = "setattr(obj, 'attr', 42)\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "setattr" in unsuppressed[0].message
@@ -137,7 +135,7 @@ def test_qgr001_setattr_detection() -> None:
 def test_qgr001_object_setattr_detection() -> None:
     code = "object.__setattr__(obj, 'attr', 42)\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "object.__setattr__" in unsuppressed[0].message
@@ -146,7 +144,7 @@ def test_qgr001_object_setattr_detection() -> None:
 def test_qgr001_vars_detection() -> None:
     code = "d = vars(obj)\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "vars()" in unsuppressed[0].message
@@ -156,7 +154,7 @@ def test_qgr001_vars_detection() -> None:
 def test_qgr001_dict_attribute_detection() -> None:
     code = "d = obj.__dict__\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert ".__dict__" in unsuppressed[0].message
@@ -166,7 +164,7 @@ def test_qgr001_dict_attribute_detection() -> None:
 def test_qgr001_attrgetter_detection() -> None:
     code = "getter = operator.attrgetter('name')\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert "attrgetter" in unsuppressed[0].message
@@ -176,7 +174,7 @@ def test_qgr001_attrgetter_detection() -> None:
 def test_qgr001_test_file_fatal_severity() -> None:
     code = "val = getattr(obj, 'attr', None)\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR001"
     assert unsuppressed[0].severity == GuardrailSeverity.FATAL
@@ -190,7 +188,7 @@ def test_qgr001_test_file_fatal_severity() -> None:
 def test_qgr002_get_default_detection() -> None:
     code = "val = data.get('missing_key', 'fallback_value')\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR002"
     assert unsuppressed[0].severity == GuardrailSeverity.FATAL
@@ -200,7 +198,7 @@ def test_qgr002_get_default_detection() -> None:
 def test_qgr002_single_arg_get_detection() -> None:
     code = "val = data.get('key')\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR002"
     assert unsuppressed[0].severity == GuardrailSeverity.FATAL
@@ -240,7 +238,7 @@ except Exception:
     pass
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR003"
 
@@ -253,7 +251,7 @@ except (Exception, BaseException):
     return {}
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR003"
 
@@ -266,7 +264,7 @@ except:
     pass
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR003"
 
@@ -279,7 +277,7 @@ except (ValidationError, TypeError):
     return []
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR003"
     assert unsuppressed[0].severity == GuardrailSeverity.FATAL
@@ -309,7 +307,7 @@ class ChameleonModel(BaseModel):
         return super().__new__(cls)
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr004 = [v for v in unsuppressed if v.rule_code == "QGR004"]
     assert len(qgr004) == 1
     assert "__new__" in qgr004[0].message
@@ -324,7 +322,7 @@ class ChameleonModel(BaseModel):
         return cls()
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr004 = [v for v in unsuppressed if v.rule_code == "QGR004"]
     assert len(qgr004) == 1
     assert "model_construct" in qgr004[0].message
@@ -343,7 +341,7 @@ elif category == "system_rule":
     do_rule()
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr005 = [v for v in unsuppressed if v.rule_code == "QGR005"]
     assert len(qgr005) == 2
 
@@ -356,7 +354,7 @@ elif category == "system_rule":
 def test_qgr006_asyncio_gather_detection() -> None:
     code = "results = await asyncio.gather(task1(), task2())\n"
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR006"
 
@@ -372,7 +370,7 @@ class BadModel(BaseModel):
     name: str
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr007 = [v for v in unsuppressed if v.rule_code == "QGR007"]
     assert len(qgr007) == 1
     assert "ConfigDict" in qgr007[0].message
@@ -385,7 +383,7 @@ class LooseModel(BaseModel):
     name: str
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr007 = [v for v in unsuppressed if v.rule_code == "QGR007"]
     assert len(qgr007) == 1
 
@@ -426,7 +424,7 @@ client = httpx.AsyncClient(timeout=10)
 await asyncio.sleep(5)
 """
     violations = _scan_snippet(code, filepath="backend_v2/services/network.py")
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr008 = [v for v in unsuppressed if v.rule_code == "QGR008"]
     assert len(qgr008) == 2
 
@@ -443,7 +441,7 @@ raise AppException(error_code="invalid_string", message="error")
 raise AppException()
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr009 = [v for v in unsuppressed if v.rule_code == "QGR009"]
     assert len(qgr009) == 3
 
@@ -460,7 +458,7 @@ t2 = datetime.utcnow()
 t3 = datetime.now(tz=None)
 """
     violations = _scan_snippet(code)
-    unsuppressed = [v for v in violations if not v.is_suppressed]
+    unsuppressed = violations
     qgr010 = [v for v in unsuppressed if v.rule_code == "QGR010"]
     assert len(qgr010) == 3
 
@@ -559,7 +557,7 @@ class TestFixtureModel(BaseModel):
 
 
 # ==============================================================================
-# Partition 27-31: Inline and Multiline Suppression Verification
+# Partition 27-31: Unconditional Violation Verification (Zero Comment Suppressions)
 # ==============================================================================
 
 
@@ -568,29 +566,21 @@ def test_inline_suppression_single_line_with_valid_reason() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
-    assert violations[0].is_suppressed is True
 
 
 def test_inline_suppression_missing_reason_fails_fatal() -> None:
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
-    assert len(violations) == 2
-    # First violation is QGR000 FATAL for missing reason
-    qgr000 = next(v for v in violations if v.rule_code == "QGR000")
-    assert qgr000.severity == GuardrailSeverity.FATAL
-    assert "Missing or insufficient '[REASON:" in qgr000.message
-    # Original violation is NOT suppressed
-    qgr001 = next(v for v in violations if v.rule_code == "QGR001")
-    assert qgr001.is_suppressed is False
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR001"
 
 
 def test_inline_suppression_placeholder_reason_fails_fatal() -> None:
     for placeholder in ["test", "n/a", "ok", "todo", "short"]:
         code = f"val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: {placeholder}]\n"
         violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
-        qgr000 = next((v for v in violations if v.rule_code == "QGR000"), None)
-        assert qgr000 is not None, f"Expected QGR000 for placeholder '{placeholder}'"
-        assert qgr000.severity == GuardrailSeverity.FATAL
+        assert len(violations) == 1
+        assert violations[0].rule_code == "QGR001"
 
 
 def test_multiline_suppression_call_span_with_reason() -> None:
@@ -604,7 +594,6 @@ val = getattr(
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
-    assert violations[0].is_suppressed is True
 
 
 def test_multiline_suppression_except_span_with_reason() -> None:
@@ -620,7 +609,6 @@ except (
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR003"
-    assert violations[0].is_suppressed is True
 
 
 def test_inline_suppression_all_rules_with_reasons() -> None:
@@ -635,18 +623,15 @@ val = getattr(obj, "attr", None)  # noqa [REASON: Bare noqa wildcard rule suppre
 """
     violations = _scan_snippet(code, filepath="scripts/worker_script.py")
     assert len(violations) == 6
-    for v in violations:
-        assert v.is_suppressed is True
 
 
 def test_qgr000_domain_suppression_fatal() -> None:
-    """QGR000: Any # noqa: QGR* suppression in domain code emits FATAL QGR000 regardless of reason."""
+    """Any AST violation in domain code emits FATAL violation regardless of # noqa comment."""
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Legitimate reason for third party]\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
-    qgr000 = [v for v in violations if v.rule_code == "QGR000"]
-    assert len(qgr000) == 1
-    assert qgr000[0].severity == GuardrailSeverity.FATAL
-    assert "strictly prohibited in domain code" in qgr000[0].message
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR001"
+    assert violations[0].severity == GuardrailSeverity.FATAL
 
 
 def test_valid_except_exception_with_raise() -> None:
@@ -706,7 +691,6 @@ def test_format_violations_table() -> None:
             message="Reflection duck typing",
             remediation="Use match/case",
             severity=GuardrailSeverity.WARNING,
-            is_suppressed=False,
         )
     ]
     report = format_violations_table(violations)
@@ -843,12 +827,20 @@ def test_qgr012_allows_isinstance_non_dict() -> None:
     assert len(violations) == 0
 
 
-def test_qgr012_allows_valid_inline_suppression() -> None:
-    code = "if isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload handling]\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/execution.py")
-    assert len(violations) == 1
-    assert violations[0].rule_code == "QGR012"
-    assert violations[0].is_suppressed is True
+def test_qgr012_boundary_exemption_honored() -> None:
+    code = "if isinstance(payload, dict):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
+    qgr012 = [v for v in violations if v.rule_code == "QGR012"]
+    assert len(qgr012) == 0
+
+
+def test_qgr012_isinstance_dict_in_domain_fatal() -> None:
+    code = "if isinstance(payload, dict):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr012 = [v for v in violations if v.rule_code == "QGR012"]
+    assert len(qgr012) == 1
+    assert qgr012[0].rule_code == "QGR012"
+    assert qgr012[0].severity == GuardrailSeverity.FATAL
 
 
 def test_relative_path_fatal_enforcement() -> None:
@@ -1226,13 +1218,13 @@ def test_qgr016_boundary_exempt_file_fatal() -> None:
     assert qgr016[0].severity == GuardrailSeverity.FATAL
 
 
-def test_qgr016_comment_suppression_works() -> None:
-    """QGR016: Inline comment suppression # noqa: QGR016 suppresses the violation."""
+def test_qgr016_comment_suppression_rejected() -> None:
+    """QGR016: Comment suppression does not suppress the violation."""
     code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
     violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
-    assert qgr016[0].is_suppressed is True
+    assert qgr016[0].severity == GuardrailSeverity.FATAL
 
 
 def test_qgr016_ternary_literal_fallback_in_domain() -> None:
@@ -1300,13 +1292,12 @@ def test_qgr017_canonical_imports_allowed_false_positive_immunity() -> None:
     assert len(qgr017) == 0
 
 
-def test_qgr017_comment_suppression_works() -> None:
-    """QGR017: Comment suppression with valid reason suppresses the violation."""
+def test_qgr017_comment_suppression_rejected() -> None:
+    """QGR017: Comment suppression does not suppress the violation."""
     code = "from backend_v2.models.v2_core import Step  # noqa: QGR017 [REASON: temporary historical testing fixture]\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/foo.py")
     qgr017 = [v for v in violations if v.rule_code == "QGR017"]
     assert len(qgr017) == 1
-    assert qgr017[0].is_suppressed is True
 
 
 # ==============================================================================
@@ -1682,8 +1673,7 @@ def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
         for rel_path in nine_new_members:
             abs_path = REPO_ROOT / rel_path
             violations = scan_file_for_guardrails(abs_path)
-            unsuppressed = [v for v in violations if not v.is_suppressed]
-            assert len(unsuppressed) == 0, f"Expected 0 violations for {rel_path}, got: {unsuppressed}"
+            assert len(violations) == 0, f"Expected 0 violations for {rel_path}, got: {violations}"
 
 
 # ==============================================================================

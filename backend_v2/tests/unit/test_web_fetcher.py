@@ -58,7 +58,11 @@ def test_fetch_text_network_error() -> None:
 def test_fetch_text_paywall_warning(caplog: Any) -> None:
     class MockResponse:
         def __init__(self) -> None:
-            self.content = b"<html><body>Please verify you are a human to continue reading this long text that bypasses the length limit.......................................................................................................................................................</body></html>"  # noqa: E501
+            self.content = (
+                b"<html><body>Please verify you are a human to continue reading this long text that bypasses "
+                b"the length limit.........................................................................."
+                b".............................................................................</body></html>"
+            )
 
         def raise_for_status(self) -> None:
             pass

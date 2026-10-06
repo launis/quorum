@@ -14,7 +14,11 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import BlockDataType, LaxHistoricalContextMode, PresetView, PromptBlockCategory
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
+from backend_v2.tests.unit.services.test_blueprint_sdui_crash import (
+    test_blueprint_variance_validation_success,
+)
+
+_ = test_blueprint_variance_validation_success
 
 
 def fix_mock_dict(d: Any) -> Any:
@@ -273,7 +277,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
-    )  # noqa: E501
+    )
     dto = await transformer.build_report_dto("exe_0000000000000002")
 
     assert isinstance(dto, ReportDataDTO)
@@ -361,7 +365,7 @@ def mock_repo_microcot() -> Any:
                     "type": "float",
                     "is_evaluative": True,
                     "description": {"translations": {"en": "Description", "fi": "Description"}},
-                    "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},  # noqa: E501
+                    "label": {"translations": {"en": "Kahneman T1", "fi": "Kaksoisprosessiteoria"}},
                     "scales": [
                         {
                             "score": 0,
@@ -396,7 +400,7 @@ def mock_repo_microcot() -> Any:
                     "type": "float",
                     "is_evaluative": True,
                     "description": {"translations": {"en": "Description", "fi": "Description"}},
-                    "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},  # noqa: E501
+                    "label": {"translations": {"en": "Epistemic", "fi": "Episteeminen Nöyryys"}},
                     "scales": [
                         {
                             "score": 0,
@@ -586,7 +590,7 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
         output_profile_repo=mock_repo_transformer,
         identity_repo=mock_repo_transformer,
         system_repo=mock_repo_transformer,
-    )  # noqa: E501
+    )
     dto = await transformer.build_report_dto("exe_0000000000000004", accept_language="en")
 
     # 3 items in, 1 duplicate must be removed → 2 unique

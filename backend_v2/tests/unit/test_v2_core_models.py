@@ -6,7 +6,9 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.enums import DisplayScale
-from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
+from backend_v2.models.state import WorkflowState
+
+_ = WorkflowState
 
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:

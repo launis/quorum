@@ -3,7 +3,8 @@
 import hashlib
 import json
 import sys
-from typing import Any, cast
+import types
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,25 +17,33 @@ if "_mock_cached_contents" not in dir(sys):
 mock_cached_contents = sys._mock_cached_contents  # type: ignore[attr-defined]
 
 
-class MockGenerativeModels:
-    cached_contents = mock_cached_contents
+class MockGenerativeModels(types.ModuleType):
+    cached_contents: Any = mock_cached_contents
 
 
-class MockPreview:
-    generative_models = MockGenerativeModels
+mod_gen_models = MockGenerativeModels("vertexai.preview.generative_models")
 
 
-class MockVertexAI:
-    preview = MockPreview
+class MockPreview(types.ModuleType):
+    generative_models: Any = mod_gen_models
+
+
+mod_preview = MockPreview("vertexai.preview")
+
+
+class MockVertexAI(types.ModuleType):
+    preview = mod_preview
 
     @classmethod
     def init(cls, *args: Any, **kwargs: Any) -> None:
         pass
 
 
-sys.modules["vertexai"] = cast(Any, MockVertexAI)
-sys.modules["vertexai.preview"] = cast(Any, MockPreview)
-sys.modules["vertexai.preview.generative_models"] = cast(Any, MockGenerativeModels)
+mod_vertex_ai = MockVertexAI("vertexai")
+
+sys.modules["vertexai"] = mod_vertex_ai
+sys.modules["vertexai.preview"] = mod_preview
+sys.modules["vertexai.preview.generative_models"] = mod_gen_models
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage

@@ -6,12 +6,13 @@ import asyncio
 import hashlib
 import json
 import sys
-from typing import Any, cast
+import types
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
+from backend_v2.llm.adapters.ai_studio_adapter import (
     GoogleAIStudioCacheAdapter,
     get_redis_client,
 )
@@ -27,7 +28,7 @@ if "_mock_genai_client" not in dir(sys):
 mock_genai_client = sys._mock_genai_client  # type: ignore[attr-defined]
 
 
-class MockGenAITypes:
+class MockGenAITypes(types.ModuleType):
     @staticmethod
     def CreateCachedContentConfig(*args: Any, **kwargs: Any) -> Any:
         config = MagicMock()
@@ -37,27 +38,33 @@ class MockGenAITypes:
         return config
 
 
-class MockGenAIModule:
-    types = MockGenAITypes
+class MockGenAIModule(types.ModuleType):
+    types = MockGenAITypes("google.genai.types")
 
     @staticmethod
     def Client(*args: Any, **kwargs: Any) -> Any:
         return mock_genai_client
 
 
+mod_genai_types = MockGenAITypes("google.genai.types")
+mod_genai = MockGenAIModule("google.genai")
+mod_genai.types = mod_genai_types
+
 try:
     import google
 
-    google.genai = MockGenAIModule
+    google.genai = mod_genai
 except ImportError:
-    mock_google = MagicMock()
-    mock_google.__path__ = []
-    mock_google.genai = MockGenAIModule
-    mock_google.genai.types = MockGenAITypes
-    sys.modules["google"] = cast(Any, mock_google)
 
-sys.modules["google.genai"] = cast(Any, MockGenAIModule)
-sys.modules["google.genai.types"] = cast(Any, MockGenAITypes)
+    class MockGoogleModule(types.ModuleType):
+        __path__: list[str] = []
+        genai: Any = mod_genai
+
+    mock_google = MockGoogleModule("google")
+    sys.modules["google"] = mock_google
+
+sys.modules["google.genai"] = mod_genai
+sys.modules["google.genai.types"] = mod_genai_types
 
 
 @pytest.fixture(autouse=True)

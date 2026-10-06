@@ -12,7 +12,7 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, JsonValue
 
@@ -965,9 +965,8 @@ class LLMNodeStrategy(NodeStrategy):
                         MAX_RETRIES,
                     )
 
-                    exec_record_raw = await self.exec_repo.get_execution(context.execution_id)
-                    exec_record = cast(Any, exec_record_raw)
-                    if exec_record and step.id in exec_record.step_states:
+                    exec_record = await self.exec_repo.get_execution(context.execution_id)
+                    if exec_record is not None and step.id in exec_record.step_states:
                         new_state = exec_record.step_states[step.id].model_copy(
                             update={"status": ExecutionStatus.RUNNING, "message_code": "event_llm_anomaly_retry"}
                         )
