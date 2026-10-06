@@ -24,20 +24,22 @@ from backend_v2.models.domain.linguistics import (
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     """Fixture providing mocked dependencies for linguistics hook execution."""
+    repo = InMemoryUnifiedWorkflowRepository()
     return HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=MagicMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
         search_client=AsyncMock(),
     )
 

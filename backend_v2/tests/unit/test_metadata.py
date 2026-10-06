@@ -1,6 +1,3 @@
-from typing import cast
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
 from pydantic import ValidationError
 
@@ -8,29 +5,34 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metadata import inject_step_metadata
 from backend_v2.models.domain.metadata import MetadataHookResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> HookDependencies:
+    r = repo or InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=r,
+        workflow_repo=r,
+        comp_repo=r,
+        prompt_block_repo=r,
+        output_profile_repo=r,
+        identity_repo=r,
+        audit_repo=r,
+        system_repo=r,
+    )
 
 
 def test_inject_step_metadata_empty_state() -> None:
     """Test behavior when state is None."""
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
-    result = cast(HookResult, inject_step_metadata(None, deps))  # type: ignore[arg-type]
+    result = inject_step_metadata(None, deps)
 
     assert result.success is True
     assert result.state_delta is not None
@@ -46,16 +48,7 @@ def test_inject_step_metadata_missing_execution_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
@@ -74,16 +67,7 @@ def test_inject_step_metadata_missing_step_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
@@ -102,16 +86,7 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
@@ -128,18 +103,9 @@ def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         metadata=ExecutionMetadata(),
-        global_context_vars=None,
+        global_context_vars=None,  # type: ignore[arg-type]
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
@@ -159,18 +125,9 @@ def test_inject_step_metadata_custom_values() -> None:
         global_context_vars=GlobalContextVarsDTO(initiator_id="usr_777"),
         metadata=ExecutionMetadata(),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
-    result = cast(HookResult, inject_step_metadata(state, deps))
+    result = inject_step_metadata(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None

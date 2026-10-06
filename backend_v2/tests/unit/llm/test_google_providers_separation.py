@@ -21,6 +21,7 @@ from backend_v2.llm.handler import LLMHandler
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.enums import GCPVertexDiscoveryRegion, LLMPlatformType, LLMProviderName
 from backend_v2.settings import Settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 def test_cache_adapter_factory_returns_vertex_adapter() -> None:
@@ -111,7 +112,7 @@ def test_istqb_negative_vertex_ai_missing_deps_raises_service_dependency_missing
 
     with patch("backend_v2.llm.handler.GOOGLE_DEPS_AVAILABLE", False):
         with pytest.raises(ConfigurationError) as exc_info:
-            handler = LLMHandler(repo=AsyncMock())
+            handler = LLMHandler(repo=InMemorySystemRepository())
             handler._fetch_vertex_models(target_location="europe-north1", settings=mock_settings)
 
         assert exc_info.value.error_code == ErrorCodes.SERVICE_DEPENDENCY_MISSING
@@ -128,7 +129,7 @@ def test_istqb_negative_vertex_ai_missing_adc_raises_authentication_failed() -> 
         patch("google.auth.default", side_effect=Exception("Could not automatically determine credentials")),
     ):
         with pytest.raises(ConfigurationError) as exc_info:
-            handler = LLMHandler(repo=AsyncMock())
+            handler = LLMHandler(repo=InMemorySystemRepository())
             handler._fetch_vertex_models(target_location="europe-north1", settings=mock_settings)
 
         assert exc_info.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
@@ -176,7 +177,7 @@ def test_istqb_equivalence_enabled_providers_independence() -> None:
 
 def test_istqb_isolation_non_vertex_discovery_without_location() -> None:
     """ISTQB Boundary Test 4: Querying AI Studio models does not require target_location."""
-    handler = LLMHandler(repo=AsyncMock())
+    handler = LLMHandler(repo=InMemorySystemRepository())
 
     with patch.object(handler, "_fetch_ai_studio_models", return_value=["gemini-2.5-flash", "gemini-2.5-pro"]):
         # location is explicitly None
@@ -194,7 +195,7 @@ def test_istqb_isolation_non_vertex_discovery_without_location() -> None:
 @pytest.mark.asyncio
 async def test_istqb_anti_heuristic_model_validation_derives_platform_from_provider() -> None:
     """ISTQB Boundary Test 5: create_provider_for_strategy derives platform from provider, not model_name."""
-    handler = LLMHandler(repo=AsyncMock())
+    handler = LLMHandler(repo=InMemorySystemRepository())
 
     dummy_registry = {
         "models": {

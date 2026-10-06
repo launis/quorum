@@ -1,7 +1,3 @@
-from collections.abc import Awaitable
-from typing import cast
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 
@@ -9,16 +5,23 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode, TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 class QuoteEvidenceDTOFactory(ModelFactory[QuoteEvidenceDTO]):
@@ -29,57 +32,67 @@ class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
     __model__ = StepOutputDTO
 
 
+def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> HookDependencies:
+    r = repo or InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=r,
+        workflow_repo=r,
+        comp_repo=r,
+        prompt_block_repo=r,
+        output_profile_repo=r,
+        identity_repo=r,
+        audit_repo=r,
+        system_repo=r,
+    )
+
+
 @pytest.mark.asyncio
-@patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
-async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate: MagicMock) -> None:
+async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
     """PROMISE: Prove execution_state.evidence_quotes strictly converts to QuoteEvidenceDTO list."""
-    mock_validate.return_value = MagicMock(
-        historical_context_mode="DISABLED", steps=[], model_registry_id="sys_e26807f3bfa3454d"
+    repo = InMemoryUnifiedWorkflowRepository()
+    wf = Workflow(
+        id="wf_0123456789abcdef01",
+        slug="wf_slug",
+        name="wf",
+        description="Workflow description",
+        status="ACTIVE",
+        version=1,
+        organization_id="org1",
+        default_profile_id="prof1",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        steps=[],
+        model_registry_id="sys_e26807f3bfa3454d",
     )
+    repo._workflows._storage[wf.id] = wf
 
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+    exe = ExecutionRecord(
+        id="exe_0123456789abcdef01",
+        workflow_id=wf.id,
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        output_profile_id="prof_1111111111111111",
+        raw_inputs=WorkflowInputs(),
+        step_states={},
     )
+    repo._executions._storage[exe.id] = exe
 
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
-        "id": "wf_0123456789abcdef01",
-        "name": "wf",
-        "organization_id": "org1",
-        "default_profile_id": "prof1",
-        "steps": [],
-    }
-    cast(AsyncMock, deps.exec_repo.get_execution).return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wf_0123456789abcdef01",
-        "status": "PASSED",
-        "target_locale": "en",
-        "metadata": {},
-        "output_profile_id": "prof_1111111111111111",
-        "raw_inputs": {"dynamic_inputs": {}},
-        "step_states": {},
-    }
-    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "prof1",
-        "workflow_id": "wf_0123456789abcdef01",
-        "name": {"translations": {"en": "Prof 1"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
-            }
+    prof = OutputProfile(
+        id="prof_1111111111111111",
+        slug="prof1",
+        workflow_id=wf.id,
+        name=I18nText(translations={"en": "Prof 1"}),
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0000000000000001",
+                title=I18nText(translations={"en": "Default"}),
+                target_blocks=["*"],
+            )
         ],
-    }
-    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
-    cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+    )
+    repo._output_profiles._storage[prof.id] = prof
+
+    deps = _create_hook_deps(repo)
 
     step_output = StepOutputDTO(
         step_id="stp_1",
@@ -96,7 +109,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
     )
 
-    result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+    result = await synthesis_distiller_hook(state, deps)
 
     assert result.success is True
     assert result.state_delta is not None
@@ -105,55 +118,9 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
-async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: MagicMock) -> None:
+async def test_synthesis_distiller_hook_negative_missing_locale() -> None:
     """PROMISE: Prove that missing target_locale crashes the hook (anti-happy-path)."""
-    mock_validate.return_value = MagicMock(
-        historical_context_mode="DISABLED", steps=[], model_registry_id="sys_e26807f3bfa3454d"
-    )
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
-
-    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
-        "id": "wf_0123456789abcdef01",
-        "name": "wf",
-        "organization_id": "org1",
-        "default_profile_id": "prof1",
-        "steps": [],
-    }
-    cast(AsyncMock, deps.exec_repo.get_execution).return_value = {
-        "id": "exe_0123456789abcdef01",
-        "workflow_id": "wf_0123456789abcdef01",
-        "status": "PASSED",
-        "target_locale": "en",
-        "metadata": {},
-        "output_profile_id": "prof_1111111111111111",
-        "raw_inputs": {"dynamic_inputs": {}},
-        "step_states": {},
-    }
-    cast(AsyncMock, deps.output_profile_repo.get_output_profile_by_id).return_value = {
-        "id": "prof_1111111111111111",
-        "slug": "prof1",
-        "workflow_id": "wf_0123456789abcdef01",
-        "name": {"translations": {"en": "Prof 1"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_0000000000000001",
-                "title": {"translations": {"en": "Default"}},
-                "target_blocks": ["*"],
-            }
-        ],
-    }
-    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
-    cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
+    deps = _create_hook_deps()
 
     step_output = StepOutputDTO(
         step_id="stp_1",
@@ -172,7 +139,7 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
     )
 
     with pytest.raises(AppException) as exc_info:
-        await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
+        await synthesis_distiller_hook(state, deps)
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500

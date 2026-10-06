@@ -1,5 +1,4 @@
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -16,6 +15,21 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> HookDependencies:
+    r = repo or InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=r,
+        workflow_repo=r,
+        comp_repo=r,
+        prompt_block_repo=r,
+        output_profile_repo=r,
+        identity_repo=r,
+        audit_repo=r,
+        system_repo=r,
+    )
 
 
 def test_hook_state_instantiation() -> None:
@@ -103,16 +117,7 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
             global_context_vars=GlobalContextVarsDTO(),
             inputs=ExecutionInputsDTO(raw_inputs={"param": 1}),
         )
-        deps = HookDependencies(
-            exec_repo=MagicMock(),
-            workflow_repo=MagicMock(),
-            comp_repo=MagicMock(),
-            prompt_block_repo=MagicMock(),
-            output_profile_repo=MagicMock(),
-            identity_repo=MagicMock(),
-            audit_repo=MagicMock(),
-            system_repo=MagicMock(),
-        )
+        deps = _create_hook_deps()
 
         res_sync = await hook_registry.execute("sync_test_hook", state, deps)
         assert res_sync.success is True
@@ -153,16 +158,7 @@ async def test_hook_registry_fail_fast_conditions() -> None:
             global_context_vars=GlobalContextVarsDTO(),
             inputs=ExecutionInputsDTO(),
         )
-        deps = HookDependencies(
-            exec_repo=MagicMock(),
-            workflow_repo=MagicMock(),
-            comp_repo=MagicMock(),
-            prompt_block_repo=MagicMock(),
-            output_profile_repo=MagicMock(),
-            identity_repo=MagicMock(),
-            audit_repo=MagicMock(),
-            system_repo=MagicMock(),
-        )
+        deps = _create_hook_deps()
         with pytest.raises(AppException) as exc_missing:
             hook_registry.get_hook("non_existent")
         assert exc_missing.value.status_code == 404

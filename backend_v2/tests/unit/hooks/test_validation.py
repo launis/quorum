@@ -1,5 +1,4 @@
-from typing import cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -7,13 +6,28 @@ from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
-    HookResult,
     HookState,
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.validation import verify_output_language, verify_structure
-from backend_v2.models.dtos.hook_delta import AnomalyRetryResultDTO, ValidationResultDTO
+from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
+from backend_v2.models.dtos.hook_delta import AnomalyRetryResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _create_hook_deps(repo: InMemoryUnifiedWorkflowRepository | None = None) -> HookDependencies:
+    r = repo or InMemoryUnifiedWorkflowRepository()
+    return HookDependencies(
+        exec_repo=r,
+        workflow_repo=r,
+        comp_repo=r,
+        prompt_block_repo=r,
+        output_profile_repo=r,
+        identity_repo=r,
+        audit_repo=r,
+        system_repo=r,
+    )
 
 
 def test_verify_output_language_detects_english_leakage() -> None:
@@ -22,16 +36,7 @@ def test_verify_output_language_detects_english_leakage() -> None:
         raw_inputs={"evaluation_notes": "The user was very good and the system is fine.", "language": "fi"}
     )
 
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
@@ -41,7 +46,7 @@ def test_verify_output_language_detects_english_leakage() -> None:
     )
 
     # Act
-    result = cast(HookResult, verify_output_language(state, deps))
+    result = verify_output_language(state, deps)
 
     # Assert
     assert result.success is True
@@ -61,16 +66,7 @@ def test_verify_output_language_ignores_finnish_text() -> None:
         }
     )
 
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
@@ -79,7 +75,7 @@ def test_verify_output_language_ignores_finnish_text() -> None:
         inputs=inputs,
     )
 
-    result = cast(HookResult, verify_output_language(state, deps))
+    result = verify_output_language(state, deps)
 
     # Assert no warnings injected
     assert result.state_delta is not None
@@ -92,16 +88,7 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
         raw_inputs={"evaluation_notes": "The user was very good and the system is fine.", "language": "en"}
     )
 
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     state = HookState(
         execution_id="exec-123",
         workflow_id="wf-123",
@@ -110,10 +97,10 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
         inputs=inputs,
     )
 
-    result = cast(HookResult, verify_output_language(state, deps))
+    result = verify_output_language(state, deps)
 
     assert result.state_delta is not None
-    assert not result.state_delta.delta or "_system_warnings" not in result.state_delta.delta
+    assert result.state_delta.delta is None
 
 
 def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
@@ -126,16 +113,7 @@ def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     # Act & Assert
     with pytest.raises(AppException) as exc:
@@ -155,19 +133,11 @@ def test_verify_structure_success_with_valid_content() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
-    result = cast(HookResult, verify_structure(state, deps))
+    result = verify_structure(state, deps)
     assert result.success is True
+    assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, ValidationResultDTO)
     assert result.state_delta.delta.is_valid is True
 
@@ -181,16 +151,7 @@ def test_verify_structure_fails_on_short_or_empty_field() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
@@ -209,16 +170,7 @@ def test_verify_structure_ignored_keys_and_no_content() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
@@ -240,17 +192,8 @@ def test_verify_structure_nested_inputs_unpacked() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-    result = cast(HookResult, verify_structure(state, deps))
+    deps = _create_hook_deps()
+    result = verify_structure(state, deps)
     assert result.success is True
 
 
@@ -262,17 +205,8 @@ def test_verify_output_language_invalid_inputs_raises() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"evaluation_notes": 12345}, target_locale="fi"),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-    result = cast(HookResult, verify_output_language(state, deps))
+    deps = _create_hook_deps()
+    result = verify_output_language(state, deps)
     assert result.success is True
 
 
@@ -286,17 +220,8 @@ def test_verify_anomaly_empty_inputs_returns_success() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-    result = cast(HookResult, verify_anomaly(state, deps))
+    deps = _create_hook_deps()
+    result = verify_anomaly(state, deps)
     assert result.success is True
 
 
@@ -310,16 +235,7 @@ def test_verify_structure_invalid_payload_source_raises() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=mock_inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc:
         verify_structure(state, deps)
     assert exc.value.details["error_code"] == "INVALID_OUTPUT_SCHEMA"
@@ -340,16 +256,7 @@ def test_verify_output_language_invalid_system_warnings_raises() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc:
         verify_output_language(state, deps)
     assert exc.value.details["error_code"] == "INVALID_OUTPUT_SCHEMA"
@@ -360,7 +267,7 @@ def test_verify_anomaly_invalid_atom_type() -> None:
 
     inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
-            "block_1": [
+            "block_1": [  # type: ignore[dict-item]
                 "not_a_valid_dict_or_atom",
                 {"score_level": 1.0, "hit": True},
             ]
@@ -373,16 +280,7 @@ def test_verify_anomaly_invalid_atom_type() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc_info:
         verify_anomaly(state, deps)
     assert exc_info.value.status_code == 400
@@ -395,7 +293,7 @@ def test_validation_hook_rejects_malformed_dto() -> None:
 
     inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
-            "block_1": [
+            "block_1": [  # type: ignore[dict-item]
                 {"hit": True},  # Missing mandatory score_level
             ]
         }
@@ -407,16 +305,7 @@ def test_validation_hook_rejects_malformed_dto() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc_info:
         verify_anomaly(state, deps)
     assert exc_info.value.status_code == 400
@@ -424,33 +313,15 @@ def test_validation_hook_rejects_malformed_dto() -> None:
 
 
 def test_verify_structure_none_state_raises_empty_input() -> None:
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc:
         verify_structure(None, deps)
     assert exc.value.details["error_code"] == "EMPTY_INPUT"
 
 
 def test_verify_output_language_none_state_returns_success() -> None:
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-    result = cast(HookResult, verify_output_language(None, deps))
+    deps = _create_hook_deps()
+    result = verify_output_language(None, deps)
     assert result.success is True
     assert result.state_delta is None or not result.state_delta.delta
 
@@ -464,16 +335,7 @@ def test_verify_output_language_missing_target_locale_raises() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
     with pytest.raises(AppException) as exc:
         verify_output_language(state, deps)
     assert exc.value.details["error_code"] == "VALIDATION_FAILED"
@@ -483,10 +345,10 @@ def test_verify_anomaly_detects_guttman_inversion() -> None:
     inputs = ExecutionInputsDTO(
         raw_inputs={
             "block_1": [
-                {"score_level": 1.0, "hit": False},
-                {"score_level": 1.0, "hit": False},
-                {"score_level": 2.0, "hit": True},
-                {"score_level": 2.0, "hit": True},
+                GuttmanAtomItemDTO(score_level=1.0, hit=False),
+                GuttmanAtomItemDTO(score_level=1.0, hit=False),
+                GuttmanAtomItemDTO(score_level=2.0, hit=True),
+                GuttmanAtomItemDTO(score_level=2.0, hit=True),
             ]
         }
     )
@@ -497,20 +359,11 @@ def test_verify_anomaly_detects_guttman_inversion() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     from backend_v2.hooks.validation import verify_anomaly
 
-    result = cast(HookResult, verify_anomaly(state, deps))
+    result = verify_anomaly(state, deps)
     assert result.success is True
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, AnomalyRetryResultDTO)
@@ -521,10 +374,10 @@ def test_verify_anomaly_passes_when_no_inversion() -> None:
     inputs = ExecutionInputsDTO(
         raw_inputs={
             "block_1": [
-                {"score_level": 1.0, "hit": True},
-                {"score_level": 1.0, "hit": True},
-                {"score_level": 2.0, "hit": False},
-                {"score_level": 2.0, "hit": False},
+                GuttmanAtomItemDTO(score_level=1.0, hit=True),
+                GuttmanAtomItemDTO(score_level=1.0, hit=True),
+                GuttmanAtomItemDTO(score_level=2.0, hit=False),
+                GuttmanAtomItemDTO(score_level=2.0, hit=False),
             ]
         }
     )
@@ -535,40 +388,18 @@ def test_verify_anomaly_passes_when_no_inversion() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs,
     )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
+    deps = _create_hook_deps()
 
     from backend_v2.hooks.validation import verify_anomaly
 
-    result = cast(HookResult, verify_anomaly(state, deps))
+    result = verify_anomaly(state, deps)
     assert result.success is True
-    assert (
-        result.state_delta is None
-        or not result.state_delta.delta
-        or "llm_anomaly_retry_requested" not in result.state_delta.delta
-    )
+    assert result.state_delta is None or result.state_delta.delta is None
 
 
 def test_verify_anomaly_none_state() -> None:
     from backend_v2.hooks.validation import verify_anomaly
 
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-    result = cast(HookResult, verify_anomaly(None, deps))
+    deps = _create_hook_deps()
+    result = verify_anomaly(None, deps)
     assert result.success is True

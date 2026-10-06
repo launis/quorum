@@ -67,13 +67,13 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
 
 # Configured baseline ceilings (EPIC 157 Phase 3 ratchet)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
-    d=807,
+    d=442,
     f=51,
-    k=25,
-    x=806,
+    k=0,
+    x=14,
     n=76,
-    t=409,
-    p=401,
+    t=406,
+    p=362,
     m=10,
     r=191,
     s=0,

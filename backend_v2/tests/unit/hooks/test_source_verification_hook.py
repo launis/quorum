@@ -23,20 +23,22 @@ from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
     """Mock dependencies fixture for HookDependencies."""
+    repo = InMemoryUnifiedWorkflowRepository()
     return HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
 
@@ -209,14 +211,15 @@ async def test_source_verification_hook_success(
 @pytest.mark.asyncio
 async def test_source_verification_hook_missing_system_repo_raises() -> None:
     """TC-HOOK-03B: Missing system_repo in HookDependencies triggers Fail-Fast AppException."""
+    repo = InMemoryUnifiedWorkflowRepository()
     deps_no_repo = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
         system_repo=None,  # type: ignore[arg-type]
     )
 
@@ -244,7 +247,7 @@ async def test_source_verification_hook_invalid_input_type(mock_deps: HookDepend
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(raw_inputs={"document_text": 12345}),  # type: ignore[dict-item]
+        inputs=ExecutionInputsDTO(raw_inputs={"document_text": 12345}),
     )
 
     with pytest.raises(AppException) as exc:
@@ -318,7 +321,7 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
+        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),  # type: ignore[arg-type]
     )
 
     result = await source_verification_hook(state, mock_deps)
@@ -382,7 +385,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs="A direct string input for source checking.",
+        inputs="A direct string input for source checking.",  # type: ignore[arg-type]
     )
 
     result_str = await source_verification_hook(state_str, mock_deps)
@@ -395,7 +398,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=["Line one of content.", "Line two of content."],
+        inputs=["Line one of content.", "Line two of content."],  # type: ignore[arg-type]
     )
 
     result_list = await source_verification_hook(state_list, mock_deps)
@@ -434,7 +437,7 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=CustomDataModel(text="Generic base model text for verification."),
+        inputs=CustomDataModel(text="Generic base model text for verification."),  # type: ignore[arg-type]
     )
 
     res = await source_verification_hook(state_bm, mock_deps)
@@ -472,3 +475,77 @@ async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
         assert result.state_delta is not None
         assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
         assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
+
+
+@pytest.mark.asyncio
+async def test_source_verification_hook_extra_none_and_invalid_type(
+    mock_deps: HookDependencies,
+) -> None:
+    """Test inputs parsing with None extra values and invalid non-string extra value."""
+    # Extra key with None is skipped
+    state_none = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wor_1111222233334444",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "Valid document content for verification.", "extra_key": None}
+        ),
+    )
+    with patch("backend_v2.hooks.source_verification_hook.get_settings") as mock_get:
+        mock_get.return_value.tavily_max_results = 0
+        result = await source_verification_hook(state_none, mock_deps)
+        assert result.success is True
+
+    # Extra key with non-string raises AppException
+    state_invalid = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wor_1111222233334444",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "Valid document content for verification.", "extra_key": 12345}
+        ),
+    )
+    with pytest.raises(AppException) as exc:
+        await source_verification_hook(state_invalid, mock_deps)
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
+async def test_source_verification_hook_with_payload_dto_and_registry_override(
+    mock_service_cls: AsyncMock,
+    mock_from_strategy: AsyncMock,
+    mock_deps: HookDependencies,
+) -> None:
+    """Test ExecutionInputsDTO input and metadata model_registry_id override."""
+    mock_from_strategy.return_value = AsyncMock()
+    mock_instance = AsyncMock()
+    mock_service_cls.return_value = mock_instance
+    mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
+        claims=[],
+        verification_timestamp="2026-08-23T12:00:00Z",
+        total_claims=0,
+        verified_count=0,
+        hallucination_count=0,
+        audit_traces=[],
+    )
+
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wor_1111222233334444",
+        metadata=ExecutionMetadata(model_registry_id="sys_e26807f3bfa3454d"),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "document_text": "This is a valid payload DTO document text that satisfies the minimum length requirement."
+            },
+            target_locale="fi",
+        ),
+    )
+
+    result = await source_verification_hook(state, mock_deps)
+    assert result.success is True
+    mock_from_strategy.assert_called_once()

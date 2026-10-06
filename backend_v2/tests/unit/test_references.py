@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,15 +25,18 @@ async def test_generate_bibliography_hook_success() -> None:
         metadata=ExecutionMetadata(),
     )
 
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+    repo = InMemoryUnifiedWorkflowRepository()
     deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
     from collections.abc import Awaitable
@@ -63,7 +66,7 @@ async def test_generate_bibliography_hook_none_state() -> None:
     from backend_v2.core.hook_registry import HookResult
 
     deps = MagicMock(spec=HookDependencies)
-    result = await cast(Awaitable[HookResult], generate_bibliography_hook(None, deps))  # type: ignore[arg-type]
+    result = await cast(Awaitable[HookResult], generate_bibliography_hook(None, deps))
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta.delta is None
@@ -105,7 +108,7 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
         execution_id="123",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        global_context_vars=None,
+        global_context_vars=None,  # type: ignore[arg-type]
         metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -177,6 +180,7 @@ async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -
 
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     from backend_v2.models.domain.references import BibliographyResultDTO
 
     assert isinstance(result.state_delta.delta, BibliographyResultDTO)

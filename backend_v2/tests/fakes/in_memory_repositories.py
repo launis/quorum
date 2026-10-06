@@ -910,7 +910,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         if not registry_id or registry_id not in self._model_registries:
             raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id or "")
         reg = self._model_registries[registry_id]
-        return self._clone(reg)
+        return reg.model_copy(deep=True)
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
         self._check_fault("get_all_model_registries")
@@ -920,7 +920,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             reg_id = reg.id if isinstance(reg, SystemConfigModelRegistry) else reg_key
             if reg_id not in seen_ids:
                 seen_ids.add(reg_id)
-                result.append(self._clone(reg))
+                result.append(reg.model_copy(deep=True))
         return result
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
