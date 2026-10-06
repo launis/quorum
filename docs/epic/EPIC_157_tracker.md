@@ -54,7 +54,7 @@
   - [x] Step 2.5: Ingress Service & Strategy Typings
   - [x] Step 2.6: Phase 2 Unit & Integration Test Coverage
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 2 test contracts, strict >=90% TDD unit test coverage across all 24 modified target files, zero AST violations, Census P=401 ratchet floor, and 10/10 backend audit stages.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 3: Test Persistence Migration — Hooks & LLM
 **Plan:** @[docs/epic/tasks_EPIC_157/03_phase3_plan.md]
@@ -268,12 +268,12 @@
 | Open-JSON Whitelist & Unauthorized JsonValue Ban (QGR027) | scripts/_ast_guardrails.py, scripts/audit_dict_eradication.py, backend_v2/models/ | Phase 1, Step 7 | test_ast_guardrails.py, test_audit_dict_eradication.py, Metric 11 | [OK] |
 | 1-hop Consumer Migration & Ingress Service Alignment | models/dtos/context_variables.py, synthesis_engine.py, matrix_reducer.py, matrix_explanation_service.py, ingress_service.py | Phase 1, Step 5 | pytest test_synthesis_engine.py test_ingress_service.py | [OK] |
 | Unconditional Skip & Xfail Test Eradication (QGR026) | test_boundaries.py, test_epic_61_hardening.py, test_provider_rate_limit.py, test_fallback_caching.py, test_scoring.py | Phase 1, Step 6 | Census S command returns 0 matches | [OK] |
-| Domain Exception Extraction to AppException Hierarchy | models/domain/base.py, core/exceptions.py, core/error_codes.py, services/orchestrator/dag_executor.py | Phase 2, Step 1 | test_domain_exceptions.py, test_dag_executor.py | [NOK] |
-| Hook System Permissive Type Eradication & Strict Contracts | hooks/base.py, hooks/context.py, hooks/input_processing.py, hooks/scoring.py, hooks/registry.py | Phase 2, Step 2 | test_hooks.py, audit_dict_eradication.py | [NOK] |
-| Provider Adapter Type Parity & Caching Contract | llm/provider.py, llm/adapters/base_adapter.py, llm/adapters/vertex_adapter.py, llm/adapters/ai_studio_adapter.py | Phase 2, Step 3 | test_vertex_adapter.py, test_ai_studio_adapter.py | [NOK] |
-| Core Engine Context Refactoring (No-Dict Invariant) | services/orchestrator/dag_executor.py, services/orchestrator/context_router.py, services/orchestrator/two_pass_atomizer.py | Phase 2, Step 4 | test_context_router.py, test_two_pass_atomizer.py | [NOK] |
-| Ingress Service & Strategy Typings | services/execution/ingress_service.py, services/execution/lifecycle_service.py, services/mcp/tavily_search_client.py | Phase 2, Step 5 | test_ingress_service.py, test_tavily_search_client.py | [NOK] |
-| Phase 2 Unit & Integration Test Coverage | backend_v2/tests/unit/core/, tests/unit/hooks/, tests/unit/llm/, tests/integration/ | Phase 2, Step 6 | Global backend audit loop passes | [NOK] |
+| Domain Exception Extraction to AppException Hierarchy | models/domain/base.py, core/exceptions.py, core/error_codes.py, services/orchestrator/dag_executor.py | Phase 2, Step 1 | test_domain_exceptions.py, test_dag_executor.py | [OK] |
+| Hook System Permissive Type Eradication & Strict Contracts | hooks/base.py, hooks/context.py, hooks/input_processing.py, hooks/scoring.py, hooks/registry.py | Phase 2, Step 2 | test_hooks.py, audit_dict_eradication.py | [OK] |
+| Provider Adapter Type Parity & Caching Contract | llm/provider.py, llm/adapters/base_adapter.py, llm/adapters/vertex_adapter.py, llm/adapters/ai_studio_adapter.py | Phase 2, Step 3 | test_vertex_adapter.py, test_ai_studio_adapter.py | [OK] |
+| Core Engine Context Refactoring (No-Dict Invariant) | services/orchestrator/dag_executor.py, services/orchestrator/context_router.py, services/orchestrator/two_pass_atomizer.py | Phase 2, Step 4 | test_context_router.py, test_two_pass_atomizer.py | [OK] |
+| Ingress Service & Strategy Typings | services/execution/ingress_service.py, services/execution/lifecycle_service.py, services/mcp/tavily_search_client.py | Phase 2, Step 5 | test_ingress_service.py, test_tavily_search_client.py | [OK] |
+| Phase 2 Unit & Integration Test Coverage | backend_v2/tests/unit/core/, tests/unit/hooks/, tests/unit/llm/, tests/integration/ | Phase 2, Step 6 | Global backend audit loop passes | [OK] |
 
 ---
 
@@ -285,50 +285,32 @@
 - Created placeholder plans with complete boundary preservation for Phases 3 through 13 (`03_phase3_plan.md` to `13_phase13_plan.md`).
 - Verified 100% boundary pass rates via `scripts/audit_planner_output.py` and `scripts/audit_markdown_boundaries.py`.
 - Established `docs/epic/EPIC_157_tracker.md` governing all 13 phases, Traceability Matrix, and Post-Implementation quality gates.
-- Completed Tier 0 deep System 2 research, falsification, and red-teaming for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`).
-- Mathematically verified all 30 model violations across 17 files with `audit_dict_eradication.py`.
-- Formulated OS-independent POSIX path normalization for `BOUNDARY_EXEMPTION_FILES` to eliminate Windows backslash matching bugs.
-- Uncovered root cause for `test_scoring.py` xfail markers: 2 tests were already XPASSing, and 2 were failing `ExecutionInputsDTO` hydration due to cognitive state invariant violations in test fixtures.
-- Successfully implemented 100% of Phase 1: established `BOUNDARY_EXEMPTION_FILES` SSOT, created `ResidualDebtCeilingsDTO` wired into Stage 9/10 audit loop, implemented `QGR026`, retyped all 30 model violations, migrated 1-hop consumers, and eradicated unconditional test skip/xfail markers.
-- Promoted `PromptBlockSimulationResponse.trace` and `WorkflowSimulationResponse.trace` in `@[backend_v2/models/dtos/studio.py]` to strictly typed `StepSimulationTraceDTO` and eliminated loose `trace={}` instantiation in `@[backend_v2/services/studio/simulation_service.py]`.
-- Eliminated permissive `dict[str, JsonValue]` in `@[backend_v2/models/domain/archivist.py]` and `@[backend_v2/models/domain/analyst.py]`, retyping `dynamic_inputs` to `dict[str, IngressInputValue]` while decoupling circular dependency cycles.
-- Implemented static AST rule `QGR027` (FATAL) in `@[scripts/_ast_guardrails.py]` with `OPEN_JSON_EXEMPTION_FILES` SSOT whitelist and monotonic phase ratchet `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`.
-- Wired Metric 11 (`unauthorized_open_json_annotations`) into `@[scripts/audit_dict_eradication.py]` to fail fast if any non-whitelisted model introduces `dict[..., JsonValue]`.
-- Added unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` (Partition 27) and `@[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]`, achieving 100% green tests.
-- Completed Tier 8 System 2 Post-Implementation Red Team Audit (`red_team_audit_01_phase1_plan.md`): Verified 100% adherence to model retyping, boundary SSOT, and destructive cleanups; identified 12 failing legacy test fixtures requiring alignment before phase sign-off.
-- Remediated all 12 legacy test fixture, hook envelope, and logging format regressions identified in the Tier 8 Red Team Audit.
-- Updated trace metadata fixtures to canonical `step_metadata` across test suites (`test_blueprint_combined_costs.py`, `test_worker.py`, `test_execution_worker.py`, `test_blueprint.py`).
-- Retyped `MetricsPayloadDTO.root` to `dict[str, IngressInputValue | None]` and aligned `test_security.py`.
-- Formulated `type NestedValidationInputs = dict[str, IngressInputValue]` PEP 695 type alias for `ValidationHookPayloadDTO` and guarded empty raw inputs unpacking in `backend_v2/hooks/validation.py`.
-- Fixed logging format string placeholder parity in `backend_v2/services/auth.py`.
-- Completed Tier 8 System 2 Post-Implementation Red Team Audit (`red_team_audit_01_phase1_plan.md`): Verified 100% adherence to model retyping, boundary SSOT, and destructive cleanups; confirmed 10/10 Universal Quality Gate stages clean with 5,067 passing tests, 97.74% coverage, 0 AST violations, and 0 skipped/xfailed tests. Phase 1 is formally signed off.
-- Completed Tier 0 deep System 2 research, falsification, and red-teaming for Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`).
-- Audited all 12 line-bounded files from the Epic against the physical codebase AST, verifying 100% boundary preservation.
-- Executed `scripts/audit_dict_eradication.py` across Phase 2 targets, identifying exactly 35 AST violations across 10 files and codifying them into `Pre-Implementation Cleanups`.
-- Synthesized the 5-Column Architectural Directives Table with 1:1 table-protocol reconciliation (rule `MBD008`) and zero markdown boundary errors (`scripts/audit_markdown_boundaries.py`).
-- Uncovered and resolved critical failure points: retyping `LLMMessageDTO` content blocks for Anthropic caching parity, sanitizing `ValidationError.errors()` context to JSON-safe primitives for `AppException(details=...)`, adding `test_caching_service.py` to target boundaries for defined `CachingPayloadResultDTO` 2-tuple mock modernization, and consolidating parallel matrix hook nested maps into defined `MatrixAggregationStateDTO`.
+- Successfully implemented and verified Phase 1: established `BOUNDARY_EXEMPTION_FILES` SSOT, created `ResidualDebtCeilingsDTO`, implemented `QGR026`, retyped 30 model violations, and signed off Tier 8 audit (`red_team_audit_01_phase1_plan.md`).
+- Successfully implemented and verified Phase 2:
+  - Retyped `AppException.details` to `dict[str, JsonValue] | None` and implemented RFC 7807 `ProblemDetailDTO` with `.model_dump(mode="json", exclude_none=True)` serialization at FastAPI boundaries (`main.py`, `core/rate_limit.py`).
+  - Sanitized exception caller details (sanitizing `ValidationError.errors()` in `input_processing.py` to JSON primitives).
+  - Refactored `prepare_caching_payload` across `BaseLLMAdapter`, `LLMCachingService`, and all 6 adapters (`vertex_adapter.py`, `ai_studio_adapter.py`, `anthropic_adapter.py`, `openai_adapter.py`, `mock_adapter.py`) to return `CachingPayloadResultDTO`, eliminating anonymous tuples.
+  - Consolidated parallel matrix hook accumulator maps into `MatrixAggregationStateDTO` and eliminated `judge_model: dict[str, Any]` in `passivity_hook.py`.
+  - Defined `LinguisticAnalysisDTO` in `hooks/linguistics.py` and retyped source verification payloads.
+  - Strongly typed dynamic Pydantic model fields in `core/registry.py` and `schema_builder.py` via `DynamicFieldDefinition`, retyped `MOCK_REGISTRY` to `dict[type[BaseModel], BaseModel]`, and retyped `get_fallback_data` / `parse_llm_output` to `dict[str, JsonValue]`.
+- Completed Tier 8 System 2 Post-Implementation Red Team Audit (`red_team_audit_02_phase2_plan.md`):
+  - Verified 100% contract adherence across all 6 execution steps and 9 DoD checklist items.
+  - Verified 10/10 Universal Quality Gate stages passed cleanly with 5,087 passing tests, 97.75% coverage, 0 AST violations, and 0 MyPy issues across 354 source files.
+  - Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passed cleanly in 44.56s.
+  - Phase 2 is formally signed off.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
 - Phase 1 and Phase 2 establish the physical boundary SSOT, domain model field typings, system exception contracts, and hook/LLM typing covenants.
-- `BOUNDARY_EXEMPTION_FILES` must enforce OS-independent path normalization (`Path(filepath).resolve().relative_to(repo_root).as_posix()`) across `_ast_guardrails.py` and `audit_dict_eradication.py` to prevent false positive violations on Windows environments.
-- Permissive `dict[str, JsonValue]` is a duct-tape shortcut for internal models and execution traces; Open-JSON must be restricted exclusively to 7 approved external specification boundaries (`mcp.py`, `system_config.py`, `validation.py`, `base.py`, `llm.py`, `generate_openapi.py`).
-- Internal simulation traces must be strictly typed to `StepSimulationTraceDTO` with typed attributes rather than open-ended JSON dictionaries.
-- Using `IngressInputValue` for dynamic input schemas resolves values while cleanly decoupling domain import cycles (`inputs.py` -> `coach.py` -> `judge.py` -> `archivist.py`).
-- Static AST guardrails (`QGR027`) and `audit_dict_eradication.py` Metric 11 mathematically prevent future regressions of unauthorized `JsonValue` dictionaries.
-- Phases 3 through 7 systematically migrate unit, integration, and mock persistence tests to stateful in-memory repository fakes, completely eliminating deceptive mocks.
-- Phases 8 through 13 integrate universal audit loops (Stages 9 and 10), eradicate all suppression comments and loose Dart maps, and lock residual debt baselines to zero.
-- Eliminating legacy fallback keys (specifically `_step_metadata`) from trace models requires simultaneously updating test fixtures in `test_blueprint_combined_costs.py`, `test_worker.py`, and `test_execution_worker.py` to supply the canonical `step_metadata` key.
-- Defining a PEP 695 type alias `type NestedValidationInputs = dict[str, IngressInputValue]` cleanly models dynamic nested dictionaries under Pydantic V2 while maintaining 0 AST violations and zero permissive typing.
-- Guarding against falsy `{}` in validation hook payload extraction (`state.inputs.raw_inputs is not None`) prevents unintended fallback to dumping unflattened model attributes.
-- In `anthropic_adapter.py`, block-level caching injects structured dictionary blocks into message content; retyping `LLMMessageDTO.content` to accommodate structured content blocks preserves strict DTO contracts across provider boundaries without fallback dicts.
-- Passing raw `ValidationError.errors()` to `AppException.details` violates JSON serialization contracts because `ErrorDetails.ctx` can contain non-JSON Python objects; extracting location, message, and type into JSON-safe dictionaries resolves RFC 7807 compliance.
-- Mock specifications in `test_caching_service.py` expecting 2-tuples must be updated synchronously when modernizing `prepare_caching_payload` to return defined `CachingPayloadResultDTO`.
-- In `matrix_hook.py`, parallel block-level accumulator maps (`block_scale_stats`, `evaluated_atoms_by_block`, `matrix_extensions_by_block`) create primitive obsession violations that are eliminated by grouping them into a single defined `MatrixAggregationStateDTO`.
+- Retyping `AppException.details` to `dict[str, JsonValue] | None` locks RFC 7807 serialization at the network boundary, preventing arbitrary non-serializable objects from entering Starlette `JSONResponse`.
+- In `input_processing.py`, raw `ValidationError.errors()` contains non-JSON context objects; sanitizing them into primitive string dictionaries (`loc`, `msg`, `type`) guarantees JSON safety.
+- Establishing `CachingPayloadResultDTO` as an immutable Pydantic V2 contract owned by `BaseLLMAdapter.prepare_caching_payload` completely eradicates anonymous tuple state transit and positional type blindness across caching workflows.
+- Unifying parallel block-level nested dictionary accumulators into a single `MatrixAggregationStateDTO` eliminates Primitive Obsession while preserving strict `extra="forbid"` integrity.
+- In `backend_v2/models/llm.py`, `LLMMessageDTO.content: str | list[dict[str, JsonValue]]` was introduced for Anthropic structured caching blocks; while `models/llm.py` is exempt for Metric 11 (Open-JSON), Metric 2 flags `list[dict[...]]`. A dedicated `StructuredContentBlockDTO` should be defined in a future phase to achieve zero nested dict annotations.
 
 ## Remaining
-- Execute Phase 2: `/tier2-execute @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-- Plan, Research & Execute Phases 3 through 13.
+- Create & Research Plan for Phase 3: `03_phase3_plan.md` (Test Persistence Migration — Hooks & LLM).
+- Execute Phases 3 through 13.
 
 ## Resume Command
-/tier2-execute @[docs/epic/tasks_EPIC_157/02_phase2_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto
+/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/03_phase3_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=3

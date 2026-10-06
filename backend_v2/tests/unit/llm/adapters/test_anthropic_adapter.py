@@ -302,14 +302,12 @@ async def test_anthropic_adapter_consecutive_messages_and_kwargs_branches() -> N
     res = await adapter.prepare_caching_payload(prompt, "claude-3-5-sonnet")
     assert any(
         isinstance(m.content, list)
-        and any(
-            "User static 1\n\nUser static 2" in str(block["text"])
-            for block in m.content
-            if "text" in block
-        )
+        and any("User static 1\n\nUser static 2" in str(block["text"]) for block in m.content if "text" in block)
         for m in res.messages
     )
-    assert any(m.role == "assistant" and m.content == "Assistant dynamic 1\n\nAssistant dynamic 2" for m in res.messages)
+    assert any(
+        m.role == "assistant" and m.content == "Assistant dynamic 1\n\nAssistant dynamic 2" for m in res.messages
+    )
 
     from backend_v2.settings import Settings
 
