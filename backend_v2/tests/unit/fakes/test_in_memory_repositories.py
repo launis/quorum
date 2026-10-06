@@ -37,10 +37,8 @@ from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, ReportStatus, StepType, SystemLocale
 from backend_v2.models.state import TraceEvent
 from backend_v2.tests.fakes.in_memory_repositories import (
-    DynamicRepoMethod,
     InMemoryAgentRepository,
     InMemoryAuditRepository,
-    InMemoryBlueprintTransformerRepository,
     InMemoryComponentRepository,
     InMemoryExecutionPersonaRepository,
     InMemoryExecutionRepository,
@@ -237,11 +235,19 @@ async def test_deterministic_fault_injection_context_manager() -> None:
 
 
 def test_fault_injection_invalid_method() -> None:
-    """Verify injecting fault on non-existent method raises ValueError Fail-Fast."""
+    """Verify injecting fault on non-existent, private, or excluded method raises ValueError Fail-Fast."""
     repo = InMemoryExecutionRepository()
     with pytest.raises(ValueError) as exc_info:
         repo.inject_fault("non_existent_method", RuntimeError("Boom"))
     assert "does not exist" in str(exc_info.value)
+
+    with pytest.raises(ValueError) as exc_info_private:
+        repo.inject_fault("_clone", RuntimeError("Boom"))
+    assert "does not exist" in str(exc_info_private.value)
+
+    with pytest.raises(ValueError) as exc_info_excluded:
+        repo.inject_fault("inject_fault", RuntimeError("Boom"))
+    assert "does not exist" in str(exc_info_excluded.value)
 
 
 # ==============================================================================
@@ -760,78 +766,3 @@ async def test_all_15_fake_repositories_and_facade() -> None:
         ReportArtifactUpdateDTO(error_message="Err2"),
     )
     assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
-
-
-@pytest.mark.asyncio
-async def test_in_memory_blueprint_transformer_repository_and_dynamic_method() -> None:
-    """Positive: verifies DynamicRepoMethod inspection mechanics and InMemoryBlueprintTransformerRepository."""
-
-    # 1. Direct DynamicRepoMethod testing
-    async def _async_fallback(x: int) -> int:
-        return x * 2
-
-    m = DynamicRepoMethod("test_method", _async_fallback)
-    m.assert_not_called()
-    assert m.called is False
-    assert m.call_count == 0
-    assert m.call_args is None
-    assert m.call_args_list == []
-    assert m.side_effect is None
-
-    # Fallback execution
-    res = await m(5)
-    assert res == 10
-    assert m.called is True
-    assert m.call_count == 1
-    m.assert_called()
-    m.assert_called_once()
-    m.assert_called_with(5)
-    m.assert_called_once_with(5)
-    m.assert_awaited()
-    m.assert_awaited_once()
-    m.assert_awaited_with(5)
-    m.assert_awaited_once_with(5)
-
-    # Return value override
-    m.return_value = 99
-    assert m.return_value == 99
-    res2 = await m(10)
-    assert res2 == 99
-
-    # Side effect override (exception)
-    m.side_effect = ValueError("boom")
-    assert m.side_effect is not None
-    with pytest.raises(ValueError, match="boom"):
-        await m(1)
-
-    # Side effect async coroutine
-    async def _side_async(x: int) -> int:
-        return x + 100
-
-    m.side_effect = _side_async
-    res3 = await m(7)
-    assert res3 == 107
-
-    # Reset mock
-    m.reset_mock()
-    m.assert_not_called()
-
-    # DynamicRepoMethod without fallback returning None
-    empty_m = DynamicRepoMethod("empty")
-    assert await empty_m() is None
-
-    # 2. InMemoryBlueprintTransformerRepository testing
-    repo = InMemoryBlueprintTransformerRepository()
-    # Un-mocked method on base repo
-    assert repo.get_all_workflows is not None
-    # Synthetic method access
-    synth = repo.custom_mock_method
-    assert synth is not None
-    synth.return_value = "custom_result"
-    assert await repo.custom_mock_method() == "custom_result"
-    repo.custom_mock_method.assert_called_once()
-
-    # Base method override
-    repo.get_step_by_id.return_value = {"id": "stp_custom"}
-    res_step = await repo.get_step_by_id("stp_test")
-    assert res_step == {"id": "stp_custom"}

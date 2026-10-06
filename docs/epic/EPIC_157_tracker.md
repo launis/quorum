@@ -118,10 +118,18 @@
 
 ### Phase 7: Mock-Emulation Sunset & QGR014 FATAL Hardening
 **Plan:** @[docs/epic/tasks_EPIC_157/07_phase7_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=7`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=7`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [x] Step 7.0: Strategic Alignment Check & Baseline Pre-Condition Verification
+  - [x] Step 7.1: `inject_fault` Reflection Eradication in `BaseInMemoryRepository`
+  - [x] Step 7.2: Mock-Emulation Layer Sunset (`DynamicRepoMethod` & `InMemoryBlueprintTransformerRepository` Deletion)
+  - [x] Step 7.3: Synthesis Worker Test Decorator Patch Migration in `test_worker_synthesis.py` and `test_worker_synthesis_accumulation.py`
+  - [x] Step 7.4: Shared Predicate & Positive Registry Resolution in `scripts/_ast_guardrails.py`
+  - [x] Step 7.5: Hardened QGR014 Visitor Implementations (Detections A-G) in `scripts/_ast_guardrails.py`
+  - [x] Step 7.6: Comprehensive Negative & Positive Test Fixtures in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`
+  - [x] Step 7.7: Universal Two-Stage Verification Gate & Residual Ledger Audit
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 7 test persistence contracts across all 7 target files, strict >=90% TDD unit test coverage (global 97.70%, 5,080 passed), zero AST violations, Census A=0, D=0, I=0, K=0, F=51, N=74 (ratcheted from 75), and 10/10 backend audit stages passing with exit code 0.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 8: Universal Quality Gate Stage 10 Integration & Full-Duplex Client Parity
@@ -238,6 +246,10 @@
   - [ ] @[scripts/audit_dict_eradication.py]
   - [ ] @[scripts/audit_warning_baseline.py]
   - [ ] @[scripts/audit_dto_parity.py]
+  - [x] @[backend_v2/tests/fakes/in_memory_repositories.py]
+  - [x] @[backend_v2/tests/fakes/__init__.py]
+  - [x] @[backend_v2/tests/unit/fakes/test_in_memory_repositories.py]
+  - [x] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files.
   - [ ] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
@@ -358,11 +370,21 @@
   - Step 6.5: Migrated Main Worker & Worker Synthesis Suites persistence (Census A, F & I) across `test_worker.py`, `test_worker_synthesis.py`, `test_worker_synthesis_accumulation.py`. Bound all 39 repository patches in these files to `InMemoryUnifiedWorkflowRepository`, eliminating ad-hoc step routing closures in favor of native step seeding.
   - Step 6.6: Verified zero residual census matches on all 15 Phase 6 target files: Census A=0, Census D=0 (repo-wide), Census I=0 (all 104 eradicated), Census F=51 (all bound to typed fakes). Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passing in 21.46s. Ratcheted repo-wide residual debt ceilings in `scripts/audit_warning_baseline.py` monotonically: D lowered from 21 to 0 (-21, cumulative -442 from baseline). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,070 passing tests, 97.68% total test coverage, zero AST violations, and clean MyPy strict validation.
 - Completed and PASSED Tier 8 Red Team Audit for Phase 6 (`@[docs/epic/tasks_EPIC_157/06_phase6_plan.md]`) with 100% mathematical proof across all 5 axes, Census A=0, D=0, I=0, F=51, and 10/10 backend audit stages clean.
+- Completed Tier 0 Red-Teaming and Five-Axis Deep Deconstruction of Phase 7 Plan (`@[docs/epic/tasks_EPIC_157/07_phase7_plan.md]`).
+- Successfully executed Phase 7 in Continuous Full-Auto Mode (`@[docs/epic/tasks_EPIC_157/07_phase7_plan.md]`):
+  - Step 7.0: Verified strategic alignment and pre-conditions: Census A=0, D=0, I=0, K=0 outside test fakes.
+  - Step 7.1: Eradicated reflection and `# noqa: QGR001` suppression from `BaseInMemoryRepository.inject_fault` using positive static inspection (`inspect.getattr_static(type(self), method_name, None)` with `_BASE_EXCLUDED_METHODS`).
+  - Step 7.2: Permanently deleted mock-emulation layer (`DynamicRepoMethod` and `InMemoryBlueprintTransformerRepository`) from `in_memory_repositories.py` and eradicated dead test function and imports from `test_in_memory_repositories.py`.
+  - Step 7.3: Migrated all 17 synthesis worker test functions in `test_worker_synthesis.py` (16 functions) and `test_worker_synthesis_accumulation.py` (1 function) to scoped `with patch("...UnifiedWorkflowRepository", return_value=mock_repo):` context managers, eradicating parameter mocks and `mock_repo_class.return_value = ...` assignments.
+  - Step 7.4: Implemented shared predicate `_is_repository_identifier(name: str)` and positive registry resolutions (`_resolve_positive_repository_classes()`, `_resolve_interface_repository_methods()`) in `scripts/_ast_guardrails.py`.
+  - Step 7.5: Hardened AST guardrail `QGR014` at unconditional `GuardrailSeverity.FATAL` severity across detections (a)-(g) in `scripts/_ast_guardrails.py`.
+  - Step 7.6: Added 7 negative test fixtures (a)-(g) and 4 positive immunity test fixtures to `backend_v2/tests/unit/scripts/test_ast_guardrails.py`, passing all 16 QGR014 tests and 145/145 suite tests.
+  - Step 7.7: Ratcheted Census N from 75 to 74 in `scripts/audit_warning_baseline.py`, aligned Census D test script exemption with Census F, and passed 10/10 stages in `scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` with 5,080 passing tests, 97.70% total test coverage, zero AST violations, and clean MyPy strict validation.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
 - In `BaseInMemoryRepository`, `self._clone(item)` provides Rust-accelerated validation/dumping for Pydantic models while safely handling `dict` instances via deep copy for negative configuration error test fixtures.
-- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 442 cumulative from 442 to 0).
+- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 442 cumulative from 442 to 0, Census N ratcheted to 74).
 - In `BaseInMemoryRepository.inject_fault`, `self._check_fault(method_name)` executes at the start of each repository method before database or in-memory collection lookups, guaranteeing deterministic error injection even when entities are not pre-seeded.
 - In `scripts/audit_markdown_boundaries.py`, MBD004 computes `node_start` as `min(d.lineno for d in node.decorator_list)` when decorators exist; line spans must encompass `@pytest.mark.asyncio` through the function end line.
 - `InMemoryUnifiedWorkflowRepository` delegates all step methods (`get_step_by_id`, `get_step`, `save_step`, `create_step`, `seed_raw_step`) to `self._workflows` and all execution methods (`get_execution`, `update_execution`, `create_execution`) to `self._executions`, enabling single-instance injection for all 8 `StrategyDependencies` and `DAGExecutor` dependencies.
@@ -372,11 +394,16 @@
 - In `InMemoryUnifiedWorkflowRepository`, method calls mutate real in-memory state; mock assertions (`fake_repo.update_execution.assert_called_once()`) in `test_progress.py`, `test_execution_worker.py`, and `test_synthesis_reducers.py` must be upgraded to real roundtrip state persistence assertions (`record = await fake_repo.get_execution(...)`) and call count checks (`fake_repo.get_call_count(...)`).
 - Census D occurrences in `test_tavily_e2e_full_pipeline.py` (14) and `test_tavily_live.py` (7) were the final 21 keyword-injected repository mocks in `HookDependencies`, whose eradication enabled `CURRENT_RESIDUAL_CEILINGS.d` in `scripts/audit_warning_baseline.py` to be ratcheted down to 0 repo-wide.
 - All 51 Census F string patches in worker test suites are bound directly to `InMemoryUnifiedWorkflowRepository()`, guaranteeing zero unverified mock facades prior to Phase 7 Mock-Emulation Sunset and `QGR014` hardening.
+- In `scripts/_ast_guardrails.py`, QGR014 detections (a)-(g) must share the extracted predicate `_is_repository_identifier` and build positive repository-class and interface-method sets once per scan to ensure deterministic performance and zero domain guessing.
+- In `BaseInMemoryRepository.inject_fault`, inspecting `base.__dict__` triggers FATAL `QGR001` (`.__dict__` access ban); method existence must be validated cleanly via `inspect.getattr_static(type(self), method_name, None)` combined with `_BASE_EXCLUDED_METHODS`.
+- In worker synthesis tests, `@patch("...UnifiedWorkflowRepository")` on function decorators with subsequent `mock_repo_class.return_value = ...` inside the test body triggers both hardened QGR014 (b) (`.return_value` on repo identifier) and (f) (`patch` without in-memory fake binding); migrating these to `with patch("...UnifiedWorkflowRepository", return_value=mock_repo):` around the task invocation guarantees zero AST violations when QGR014 is hardened.
+- `_resolve_positive_repository_classes()` must scan `backend_v2/database/repository.py` in addition to `interfaces.py` and `repositories/` to ensure `UnifiedWorkflowRepository` is positively registered.
 
 ## Remaining
-- Execute and Audit Phases 7 through 13.
+- Audit Phase 7 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
+- Research, Execute, and Audit Phases 8 through 13.
 
 ## Resume Command
-/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=7
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/07_phase7_plan.md] @[docs/epic/EPIC_157_tracker.md]
 
 

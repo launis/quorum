@@ -27,9 +27,12 @@ __all__ = [
     "CommentSuppressor",
     "GuardrailSeverity",
     "GuardrailViolation",
+    "INTERFACE_REPOSITORY_METHODS",
     "OPEN_JSON_EXEMPTION_FILES",
+    "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
+    "_is_repository_identifier",
     "format_violations_table",
     "is_boundary_exempt",
     "is_open_json_exempt",
@@ -158,6 +161,88 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset({
     "backend_v2/models/state.py",
 })
 
+
+def _is_repository_identifier(name: str) -> bool:
+    """Determine whether an identifier name refers to a repository."""
+    name_lower = name.lower()
+    return (
+        ("_repo" in name_lower or "repo_" in name_lower or name_lower.endswith("repo") or name_lower == "repo")
+        and not ("report" in name_lower or "response" in name_lower)
+    )
+
+
+def _resolve_positive_repository_classes() -> frozenset[str]:
+    """Dynamically resolve all concrete and protocol repository class names across the database layer."""
+    repo_root = REPO_ROOT
+    classes: set[str] = set()
+    targets: list[Path] = [
+        repo_root / "backend_v2" / "database" / "interfaces.py",
+        repo_root / "backend_v2" / "database" / "repository.py",
+    ]
+    repos_dir = repo_root / "backend_v2" / "database" / "repositories"
+    if repos_dir.is_dir():
+        targets.extend(repos_dir.glob("*.py"))
+
+    for file_path in targets:
+        if not file_path.exists():
+            continue
+        try:
+            tree = ast.parse(file_path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    if node.name.endswith("Repository") or (node.name.startswith("I") and "Repo" in node.name):
+                        classes.add(node.name)
+                    elif file_path.name == "interfaces.py":
+                        classes.add(node.name)
+        except (OSError, UnicodeDecodeError, SyntaxError):
+            pass
+    return frozenset(classes)
+
+
+def _resolve_interface_repository_methods() -> frozenset[str]:
+    """Extract all public method names defined across Protocols in backend_v2/database/interfaces.py."""
+    interfaces_path = REPO_ROOT / "backend_v2" / "database" / "interfaces.py"
+    if not interfaces_path.exists():
+        return frozenset()
+    methods: set[str] = set()
+    try:
+        tree = ast.parse(interfaces_path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                for item in node.body:
+                    if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not item.name.startswith("_"):
+                            methods.add(item.name)
+    except (OSError, UnicodeDecodeError, SyntaxError):
+        pass
+    return frozenset(methods)
+
+
+POSITIVE_REPOSITORY_CLASSES: frozenset[str] = _resolve_positive_repository_classes()
+INTERFACE_REPOSITORY_METHODS: frozenset[str] = _resolve_interface_repository_methods()
+
+
+def _get_root_identifier(node: ast.AST) -> str | None:
+    """Traverse attribute access or indexing to find root identifier name."""
+    curr = node
+    while isinstance(curr, (ast.Attribute, ast.Subscript)):
+        curr = curr.value
+    if isinstance(curr, ast.Name):
+        return curr.id
+    return None
+
+
+def _is_mock_instantiation(node: ast.AST | None) -> bool:
+    """Check if an AST node is a Call to Mock, MagicMock, or AsyncMock."""
+    if not isinstance(node, ast.Call):
+        return False
+    match node.func:
+        case ast.Name(id="AsyncMock" | "MagicMock" | "Mock"):
+            return True
+        case ast.Attribute(attr="AsyncMock" | "MagicMock" | "Mock"):
+            return True
+        case _:
+            return False
 
 
 def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
@@ -458,6 +543,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._is_open_json_exempt = is_open_json_exempt(filepath)
         self._pydantic_base_classes_in_file: set[str] = set()
         self._bool_condition_nodes: set[ast.AST] = set()
+        self._function_stack: list[str] = []
         self._current_class_name: str | None = None
         self._function_depth: int = 0
         self._in_finally: bool = False
@@ -861,12 +947,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     if kw.arg in ("spec", "spec_set"):
                         match kw.value:
                             case ast.Name(id=name) if (
-                                name.startswith("I") and name.endswith("Repository")
-                            ) or name == "IUnifiedWorkflowRepository":
+                                (name.startswith("I") and name.endswith("Repository"))
+                                or name in POSITIVE_REPOSITORY_CLASSES
+                            ):
                                 is_repo_mock = True
                             case ast.Attribute(attr=attr_name) if (
-                                attr_name.startswith("I") and attr_name.endswith("Repository")
-                            ) or attr_name == "IUnifiedWorkflowRepository":
+                                (attr_name.startswith("I") and attr_name.endswith("Repository"))
+                                or attr_name in POSITIVE_REPOSITORY_CLASSES
+                            ):
                                 is_repo_mock = True
                             case _:
                                 pass
@@ -882,29 +970,60 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 ast.Name(id="patch")
                 | ast.Attribute(value=ast.Name(id="mock" | "unittest" | "unittest.mock"), attr="patch")
             ):
-                if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                # Detection (f): patch("<module>.<Class>") targeting repository class without fake binding
+                if (
+                    self._is_test_file
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)
+                ):
                     target_str = node.args[0].value
-                    target_lower = target_str.lower()
-                    is_repo_target = (
-                        "interfaces.i" in target_lower
-                        or "repository" in target_lower
-                        or (
-                            ("_repo" in target_lower or ".repo" in target_lower or target_lower.endswith("repo"))
-                            and not (
-                                "_report" in target_lower or ".report" in target_lower or "pdfreport" in target_lower
+                    class_name = target_str.rsplit(".", 1)[-1]
+                    if class_name in POSITIVE_REPOSITORY_CLASSES:
+                        has_valid_binding = False
+                        for kw in node.keywords:
+                            if kw.arg in ("return_value", "new", "side_effect"):
+                                if not _is_mock_instantiation(kw.value):
+                                    has_valid_binding = True
+                        if not has_valid_binding:
+                            self._add_violation(
+                                node,
+                                "QGR014",
+                                f"Banned `@patch` targeting repository `{target_str}` without fake binding in tests.",
+                                "Bind `return_value` to an In-Memory Fake from `backend_v2/tests/fakes/in_memory_repositories.py` (e.g. `return_value=InMemoryWorkflowRepository()`) instead of unverified mocks.",
+                                severity=GuardrailSeverity.FATAL,
                             )
-                        )
-                    )
-                    if is_repo_target and ("service" in self.filepath.lower() or "interfaces.i" in target_lower):
-                        self._add_violation(
-                            node,
-                            "QGR014",
-                            f"Banned `@patch` targeting repository `{target_str}` in tests.",
-                            "Use dependency-injected In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of monkey-patching repositories.",
-                            severity=GuardrailSeverity.FATAL,
-                        )
             case _:
                 pass
+
+        # Detection (d): patch.object(<repo>, ...) and monkeypatch.setattr(<repo>, ...)
+        if self._is_test_file:
+            match node.func:
+                case ast.Attribute(attr="object" | "setattr"):
+                    if node.args:
+                        root_id = _get_root_identifier(node.args[0])
+                        if root_id and _is_repository_identifier(root_id):
+                            self._add_violation(
+                                node,
+                                "QGR014",
+                                f"Banned patch/monkeypatch targeting repository object `{root_id}` in tests.",
+                                "Use dependency-injected In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of monkey-patching repository objects.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
+                case _:
+                    pass
+
+        # Detection (e): Keyword arguments whose name satisfies _is_repository_identifier bound to mock instances
+        if self._is_test_file:
+            for kw in node.keywords:
+                if kw.arg and _is_repository_identifier(kw.arg) and _is_mock_instantiation(kw.value):
+                    self._add_violation(
+                        kw,
+                        "QGR014",
+                        f"Banned mock instance passed to repository keyword argument `{kw.arg}`.",
+                        "Pass strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock instances.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
 
         # QGR018: Dictionary type laundering via Pydantic TypeAdapter
         is_type_adapter = False
@@ -1099,6 +1218,21 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         self._check_qgr026_decorators(node)
+
+        # QGR014 (g): Prohibit ad-hoc repository classes defining interface methods outside tests/fakes/
+        if self._is_test_file and "tests/fakes" not in self.filepath.replace("\\", "/"):
+            for stmt in node.body:
+                if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if stmt.name in INTERFACE_REPOSITORY_METHODS:
+                        self._add_violation(
+                            stmt,
+                            "QGR014",
+                            f"Banned ad-hoc test double class `{node.name}` implementing repository interface method `{stmt.name}`.",
+                            "Use centralized In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of defining ad-hoc test repository classes.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+                        break
+
         prev_class = self._current_class_name
         self._current_class_name = node.name
 
@@ -1293,6 +1427,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         if node.value is not None:
             for sub_node in ast.walk(node.value):
                 self._bool_condition_nodes.add(sub_node)
+
+            # QGR014 (a): Prohibit returning mock instances from repository functions/fixtures in test files
+            if self._is_test_file and self._function_stack:
+                current_fn = self._function_stack[-1]
+                if _is_repository_identifier(current_fn) and _is_mock_instantiation(node.value):
+                    self._add_violation(
+                        node,
+                        "QGR014",
+                        f"Banned mock instance returned from repository function/fixture `{current_fn}()`.",
+                        "Return strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock instances.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
         self.generic_visit(node)
 
     def visit_Raise(self, node: ast.Raise) -> None:
@@ -1429,14 +1575,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
+        self._function_stack.append(node.name)
         self.generic_visit(node)
+        self._function_stack.pop()
         self._function_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
+        self._function_stack.append(node.name)
         self.generic_visit(node)
+        self._function_stack.pop()
         self._function_depth -= 1
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
@@ -1503,28 +1653,42 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-        # QGR014: mock repository variable assignment in test files
+        # QGR014: mock repository variable assignment and attribute tampering in test files
         if self._is_test_file:
             for target in node.targets:
-                if isinstance(target, ast.Name):
-                    target_id_lower = target.id.lower()
-                    if (
-                        "_repo" in target_id_lower or "repo_" in target_id_lower or target_id_lower.endswith("repo")
-                    ) and not ("report" in target_id_lower or "response" in target_id_lower):
-                        match node.value:
-                            case ast.Call(
-                                func=ast.Name(id="AsyncMock" | "MagicMock" | "Mock")
-                                | ast.Attribute(attr="AsyncMock" | "MagicMock" | "Mock")
-                            ):
-                                self._add_violation(
-                                    node,
-                                    "QGR014",
-                                    f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
-                                    "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
-                                    severity=GuardrailSeverity.FATAL,
-                                )
-                            case _:
-                                pass
+                # Direct name assignment: repo = AsyncMock()
+                if isinstance(target, ast.Name) and _is_repository_identifier(target.id):
+                    if _is_mock_instantiation(node.value):
+                        self._add_violation(
+                            node,
+                            "QGR014",
+                            f"Banned mock repository variable `{target.id} = AsyncMock/MagicMock()` detected.",
+                            "Use strongly typed In-Memory Fakes from `backend_v2/tests/fakes/in_memory_repositories.py` instead of mock repository fixtures.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
+                # Attribute assignment: target is ast.Attribute
+                elif isinstance(target, ast.Attribute):
+                    root_id = _get_root_identifier(target)
+                    if root_id and _is_repository_identifier(root_id):
+                        # Detection (b): .return_value or .side_effect on repository identifier
+                        if target.attr in ("return_value", "side_effect"):
+                            self._add_violation(
+                                node,
+                                "QGR014",
+                                f"Banned `.{target.attr}` assignment on repository identifier `{root_id}` in tests.",
+                                "Configure state or inject faults on In-Memory Fakes (`fake_repo.inject_fault()`) instead of mocking repository return values or side effects.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
+                        # Detection (c): <repo>.<attr> = AsyncMock(...)
+                        elif _is_mock_instantiation(node.value):
+                            self._add_violation(
+                                node,
+                                "QGR014",
+                                f"Banned mock replacement assignment `{ast.unparse(target)} = AsyncMock/MagicMock(...)` on repository in tests.",
+                                "Use strongly typed In-Memory Fakes with stateful methods instead of monkey-patching attributes on repository instances.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
 
         # QGR020: Class-level mutable default for unannotated class attributes (only directly in class body)
         if (

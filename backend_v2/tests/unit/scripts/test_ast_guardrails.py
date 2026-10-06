@@ -1004,6 +1004,122 @@ def test_qgr014_patch_repository_fatal() -> None:
     assert qgr014[0].severity == GuardrailSeverity.FATAL
 
 
+def test_qgr014_detection_a_fixture_returning_mock_fatal() -> None:
+    """QGR014 (a): Function/fixture with repo identifier returning AsyncMock raises QGR014 FATAL."""
+    code = "from unittest.mock import AsyncMock\ndef repo_fixture():\n    return AsyncMock()\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "repo_fixture" in qgr014[0].message
+
+
+def test_qgr014_detection_b_return_value_assignment_fatal() -> None:
+    """QGR014 (b): repo.get_step.return_value = {} raises QGR014 FATAL."""
+    code = "repo.get_step.return_value = {}\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "return_value" in qgr014[0].message
+
+
+def test_qgr014_detection_c_attribute_replacement_fatal() -> None:
+    """QGR014 (c): exec_repo.get_execution = AsyncMock(return_value=rec) raises QGR014 FATAL."""
+    code = "from unittest.mock import AsyncMock\nexec_repo.get_execution = AsyncMock(return_value=rec)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "exec_repo.get_execution" in qgr014[0].message
+
+
+def test_qgr014_detection_d_monkeypatch_object_fatal() -> None:
+    """QGR014 (d): monkeypatch.setattr(system_repo, 'get_model_registry', AsyncMock()) raises QGR014 FATAL."""
+    code = "from unittest.mock import AsyncMock\nmonkeypatch.setattr(system_repo, 'get_model_registry', AsyncMock())\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) >= 1
+    assert any(v.severity == GuardrailSeverity.FATAL for v in qgr014)
+    assert any("system_repo" in v.message for v in qgr014)
+
+
+def test_qgr014_detection_e_keyword_injected_mock_fatal() -> None:
+    """QGR014 (e): HookDependencies(exec_repo=MagicMock()) raises QGR014 FATAL."""
+    code = "from unittest.mock import MagicMock\ndeps = HookDependencies(exec_repo=MagicMock())\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "exec_repo" in qgr014[0].message
+
+
+def test_qgr014_detection_f_string_target_patch_without_fake_fatal() -> None:
+    """QGR014 (f): patch('backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository') raises QGR014 FATAL."""
+    code = (
+        "from unittest.mock import patch\n"
+        "@patch('backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository')\n"
+        "def test_worker(mock_repo_cls):\n"
+        "    pass\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "UnifiedWorkflowRepository" in qgr014[0].message
+
+
+def test_qgr014_detection_g_adhoc_repository_class_fatal() -> None:
+    """QGR014 (g): Class MockRepoWaterfall defining get_output_profile_by_id in test module raises QGR014 FATAL."""
+    code = "class MockRepoWaterfall:\n    def get_output_profile_by_id(self, profile_id: str):\n        pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+    assert qgr014[0].severity == GuardrailSeverity.FATAL
+    assert "MockRepoWaterfall" in qgr014[0].message
+    assert "get_output_profile_by_id" in qgr014[0].message
+
+
+def test_qgr014_positive_immunity_non_repository_mock() -> None:
+    """QGR014 Immunity 1: mock_report_service.get_report.return_value = ReportDataDTO(...) produces 0 violations."""
+    code = "mock_report_service.get_report.return_value = ReportDataDTO()\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 0
+
+
+def test_qgr014_positive_immunity_settings_monkeypatch() -> None:
+    """QGR014 Immunity 2: monkeypatch.setattr('backend_v2.services.execution.stream_service.get_settings', factory) produces 0 violations."""
+    code = "monkeypatch.setattr('backend_v2.services.execution.stream_service.get_settings', factory)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 0
+
+
+def test_qgr014_positive_immunity_fake_bound_patch() -> None:
+    """QGR014 Immunity 3: patch('backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository', return_value=InMemoryUnifiedWorkflowRepository()) produces 0 violations."""
+    code = (
+        "from unittest.mock import patch\n"
+        "with patch('backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository', return_value=InMemoryUnifiedWorkflowRepository()):\n"
+        "    pass\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 0
+
+
+def test_qgr014_positive_immunity_storage_driver_patch() -> None:
+    """QGR014 Immunity 4: patch('backend_v2.database.repositories.execution.get_storage_driver') produces 0 violations."""
+    code = (
+        "from unittest.mock import patch\n"
+        "with patch('backend_v2.database.repositories.execution.get_storage_driver'):\n"
+        "    pass\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 0
+
+
 def test_qgr015_typeguard_import_and_usage_fatal() -> None:
     """QGR015: TypeGuard import and annotation returns FATAL severity."""
     code = "from typing import TypeGuard\ndef is_str(val: object) -> TypeGuard[str]:\n    return isinstance(val, str)\n"

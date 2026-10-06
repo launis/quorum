@@ -65,15 +65,15 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
     s: Annotated[int, Field(ge=0, description="Census S: Unconditional skip/xfail markers ceiling.")]
 
 
-# Configured baseline ceilings (EPIC 157 Phase 5 completion ratchet)
+# Configured baseline ceilings (EPIC 157 Phase 7 completion ratchet)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
-    d=21,
+    d=0,
     f=51,
     k=0,
     x=13,
-    n=76,
+    n=74,
     t=396,
-    p=357,
+    p=351,
     m=10,
     r=191,
     s=0,
@@ -117,6 +117,8 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
     d_count = 0
     if tests_dir.exists():
         for p in tests_dir.rglob("*.py"):
+            if "/tests/unit/scripts/" in p.as_posix():
+                continue
             text = p.read_text(encoding="utf-8", errors="ignore")
             for m in re.finditer(r"\b(\w*repo\w*)=(AsyncMock|MagicMock|Mock)\(", text):
                 if not re.search(r"report|response", m.group(1), re.IGNORECASE):

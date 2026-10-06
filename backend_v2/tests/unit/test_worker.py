@@ -11,14 +11,15 @@ from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
-from backend_v2.models.dtos.base import DataStarvationEvent
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_render_profile_job_catches_service_unavailable_error,
 )
@@ -91,6 +92,49 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
     }
 
 
+def _get_base_workflow_dict() -> dict[str, Any]:
+    return {
+        "id": "wf_1234567890123456",
+        "name": "Test WF",
+        "slug": "test-wf",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "steps": [],
+        "historical_context_mode": "DISABLED",
+        "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "sys_1111222233334444",
+        "default_strictness_level": 50,
+    }
+
+
+def _get_base_profile_dict() -> dict[str, Any]:
+    return {
+        "id": "prof_1111222233334444",
+        "slug": "prof-1",
+        "workflow_id": "wf_1234567890123456",
+        "name": {"translations": {"en": "Profile"}},
+        "synthesis_length_constraint": 500,
+        "tone_instruction": "Direct tone",
+        "executive_summary_directive": "Synthesize executive summary.",
+        "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
+        "xai_synthesis_directive": "Synthesize XAI highlights.",
+        "row_explanation_directive": "Explain matrix row causality.",
+        "variance_synthesis_directive": "Synthesize cognitive variance.",
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_1111111111111111",
+                "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
+                "target_blocks": ["blk_1111222233334444"],
+            }
+        ],
+        "target_block_order": ["matrix_graphs_block"],
+        "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+        "variance_target_block": "blk_1111222233334444",
+        "max_extension_items": 3,
+    }
+
+
 @pytest.fixture(autouse=True)
 def mock_worker_report_service() -> Generator[MagicMock]:
     """Mock ReportService for background worker synthesis tasks."""
@@ -141,9 +185,8 @@ def test_variance_explanation_result() -> None:
 async def test_startup() -> None:
     """Verify worker startup initializes repos, registries, and context dependencies."""
     with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with patch("backend_v2.worker.LLMClient"):
                 with patch("backend_v2.worker.PromptCompilerAdapter"):
                     with patch("backend_v2.worker.DAGExecutor"):
@@ -157,9 +200,7 @@ async def test_startup() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_not_found() -> None:
     """Negative test: verify workflow not found routes to DLQ and marks failed."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = None
-
+    mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_engine = AsyncMock()
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine}
@@ -171,21 +212,25 @@ async def test_execute_workflow_job_not_found() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_execution_missing_in_db() -> None:
     """Negative test: verify missing execution record in DB triggers Fail-Fast."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 50,
+            },
+            strict=False,
+        )
+    )
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_missing")
@@ -195,28 +240,32 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_missing_strictness_level() -> None:
     """Negative test: verify missing strictness level triggers Fail-Fast AppException."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": None,
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": None,
-    }
-    mock_repo.get_output_profile_by_id.return_value = None
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "status": "PENDING",
-        "step_states": {},
-        "output_profile_id": None,
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    wf = Workflow.model_construct(
+        id="wf_1234567890123456",
+        name="Test WF",
+        slug="test-wf",
+        description="desc",
+        status="draft",
+        version=1,
+        steps=[],
+        default_profile_id=None,
+        model_registry_id="sys_1111222233334444",
+        historical_context_mode="DISABLED",
+        default_strictness_level=None,
+    )
+    await mock_repo.save_workflow(wf)
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            status=ExecutionStatus.PENDING,
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            step_states={},
+            output_profile_id=None,
+        )
+    )
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -226,36 +275,49 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> None:
     """Verify execute_workflow_job fails fast when target_locale is missing in metadata."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "slug": "wf-1",
-        "name": {"translations": {"en": "Workflow 1"}},
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 85,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "status": "PENDING",
-        "step_states": {},
-        "target_locale": "",  # Empty target_locale triggers fail-fast
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "slug": "wf-1",
+                "name": {"translations": {"en": "Workflow 1"}},
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 85,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    rec = ExecutionRecord.model_construct(
+        id="exe_1234567890123456",
+        workflow_id="wf_1234567890123456",
+        status=ExecutionStatus.PENDING,
+        step_states={},
+        target_locale="",  # Empty target_locale triggers fail-fast
+        metadata=ExecutionMetadata(),
+    )
+    await mock_repo.save_execution(rec)
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -265,8 +327,8 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
 @pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled() -> None:
     """Verify execute_workflow_job handles asyncio.CancelledError gracefully."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.side_effect = asyncio.CancelledError()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -276,9 +338,9 @@ async def test_execute_workflow_job_cancelled() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_failure_update_error() -> None:
     """Negative test: verify execute_workflow_job logs error when failure update raises exception."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.side_effect = RuntimeError("Initial crash")
-    mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_repo.inject_fault("get_workflow", RuntimeError("Initial crash"))
+    mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -288,9 +350,9 @@ async def test_execute_workflow_job_failure_update_error() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled_update_error() -> None:
     """Negative test: verify execute_workflow_job logs error when cancellation update raises exception."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.side_effect = asyncio.CancelledError()
-    mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
+    mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -300,38 +362,51 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     """Verify execute_workflow_job extracts trace metrics and updates status to PASSED when redis is absent."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "PENDING",
-        "target_locale": "fi",
-        "step_states": {},
-        "metadata": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 50,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.PENDING,
+            target_locale="fi",
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     mock_trace = [
         TraceEvent(
@@ -403,7 +478,10 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
 
     assert res.status == "COMPLETED"
     assert res.execution_id == "exe_1234567890123456"
-    mock_repo.update_execution.assert_called()
+    assert mock_repo.get_call_count("update_execution") >= 1
+    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -468,39 +546,40 @@ async def test_render_profile_job_exception() -> None:
 async def test_generate_pdf_task_execution_not_found() -> None:
     """Verify generate_pdf_task skips processing when execution does not exist in repo."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-            mock_repo.get_execution.return_value = None
-
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await generate_pdf_task("exe_1234567890123456")
-            mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
+            assert (await mock_repo.get_execution("exe_1234567890123456")) is None
 
 
 @pytest.mark.asyncio
 async def test_generate_pdf_task_success_path() -> None:
     """Verify generate_pdf_task happy path: builds DTO, creates PDF, saves to storage, updates execution."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                "step_states": {
-                    "sys_render_prof_1111222233334444": {
-                        "id": "sys_render_prof_1111222233334444",
-                        "label": "Rendering",
-                        "status": "RUNNING",
-                    }
-                },
-            }
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    steps=[
+                        ExecutionStep(
+                            id="sys_render_prof_1111222233334444", label="Rendering", status=ExecutionStatus.RUNNING
+                        )
+                    ],
+                    step_states={
+                        "sys_render_prof_1111222233334444": {
+                            "id": "sys_render_prof_1111222233334444",
+                            "label": "Rendering",
+                            "status": ExecutionStatus.RUNNING,
+                        }
+                    },
+                )
+            )
 
             mock_artifact = MagicMock()
             mock_artifact.id = "rep_1234567890123456"
@@ -523,26 +602,30 @@ async def test_generate_pdf_task_success_path() -> None:
 async def test_generate_pdf_task_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches failure and updates execution status to FAILED."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "en",
-                "metadata": {},
-                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                "step_states": {
-                    "sys_render_prof_1111222233334444": {
-                        "id": "sys_render_prof_1111222233334444",
-                        "label": "Rendering",
-                        "status": "RUNNING",
-                    }
-                },
-            }
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="en",
+                    metadata=ExecutionMetadata(),
+                    steps=[
+                        ExecutionStep(
+                            id="sys_render_prof_1111222233334444", label="Rendering", status=ExecutionStatus.RUNNING
+                        )
+                    ],
+                    step_states={
+                        "sys_render_prof_1111222233334444": {
+                            "id": "sys_render_prof_1111222233334444",
+                            "label": "Rendering",
+                            "status": ExecutionStatus.RUNNING,
+                        }
+                    },
+                )
+            )
 
             with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
                 mock_service = AsyncMock()
@@ -550,20 +633,20 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 mock_service.get_or_create_default_artifact.side_effect = RuntimeError("Transformer error")
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
-                assert mock_repo.update_execution.call_count >= 1
+                assert mock_repo.get_call_count("update_execution") >= 1
+                rec = await mock_repo.get_execution("exe_1234567890123456")
+                assert rec is not None
+                assert rec.step_states["sys_render_prof_1111222233334444"].status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
     """Verify generate_profile_synthesis_and_pdf_task gracefully exits when execution missing."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-            mock_repo.get_execution.return_value = None
-
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", "en")
-            mock_repo.get_execution.assert_called_once_with("exe_1234567890123456")
+            assert (await mock_repo.get_execution("exe_1234567890123456")) is None
 
 
 @pytest.mark.asyncio
@@ -583,27 +666,27 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
     """Verify generate_profile_synthesis_and_pdf_task calls compile_and_persist_artifact when cached."""
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {
-                    "prof_1111222233334444": {
-                        "section_syntheses": {},
-                        "row_explanations": {},
-                        "cited_sources": [],
-                        "xai_highlights": [],
-                    }
-                },
-            }
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                    profile_syntheses={
+                        "prof_1111222233334444": RenderedSynthesisCache(
+                            section_syntheses={},
+                            row_explanations={},
+                            cited_sources=[],
+                            xai_highlights=[],
+                        )
+                    },
+                )
+            )
 
             await generate_profile_synthesis_and_pdf_task(
                 "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
@@ -622,43 +705,54 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {},
-            }
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Profile"}},
-                "synthesis_length_constraint": 500,
-                "matrix_synthesis_groups": [],
-                "target_block_order": [],
-            }
-            mock_repo.get_workflow_by_id.return_value = {
-                "id": "wf_1234567890123456",
-                "name": "Test WF",
-                "slug": "test-wf",
-                "description": "desc",
-                "status": "draft",
-                "version": 1,
-                "steps": [],
-                "historical_context_mode": "DISABLED",
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
-            }
-            mock_repo.get_all_prompt_blocks.return_value = []
-            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                    profile_syntheses={},
+                )
+            )
+            mock_repo.set_output_profiles(
+                [
+                    OutputProfile.model_validate(
+                        {
+                            "id": "prof_1111222233334444",
+                            "slug": "prof-1",
+                            "workflow_id": "wf_1234567890123456",
+                            "name": {"translations": {"en": "Profile"}},
+                            "synthesis_length_constraint": 500,
+                            "matrix_synthesis_groups": [],
+                            "target_block_order": [],
+                        }
+                    )
+                ]
+            )
+            await mock_repo.save_workflow(
+                Workflow.model_validate(
+                    {
+                        "id": "wf_1234567890123456",
+                        "name": "Test WF",
+                        "slug": "test-wf",
+                        "description": "desc",
+                        "status": "draft",
+                        "version": 1,
+                        "steps": [],
+                        "historical_context_mode": "DISABLED",
+                        "default_profile_id": "prof_1111222233334444",
+                        "model_registry_id": "sys_1111222233334444",
+                    },
+                    strict=False,
+                )
+            )
+            mock_repo.set_prompt_blocks([])
+            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
@@ -670,7 +764,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
                 )
 
-                assert mock_repo.update_execution.call_count >= 1
+                assert mock_repo.get_call_count("update_execution") >= 1
                 mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                     "rep_1234567890123456",
                     mock_redis,
@@ -681,57 +775,72 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
 async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_items() -> None:
     """Negative test: verify visible extensions with missing max_extension_items triggers AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {},
-            }
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Profile"}},
-                "visible_workflow_extensions": ["authenticity_evaluation"],
-                "max_extension_items": None,
-                "matrix_synthesis_groups": [],
-                "target_block_order": [],
-            }
-            mock_repo.get_prompt_block.return_value = {
-                "id": "blk_1111222233334444",
-                "slug": "synth",
-                "type": "instruction",
-                "label": {"translations": {"en": "Synth"}},
-                "description": {"translations": {"en": "Desc"}},
-                "instruction_text": "Synthesize data.",
-                "category_id": "system_rule",
-            }
-            mock_repo.get_workflow_by_id.return_value = {
-                "id": "wf_1234567890123456",
-                "name": "Test WF",
-                "slug": "test-wf",
-                "description": "desc",
-                "status": "draft",
-                "version": 1,
-                "steps": [],
-                "historical_context_mode": "DISABLED",
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
-            }
-            mock_repo.get_all_prompt_blocks.return_value = []
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                    profile_syntheses={},
+                )
+            )
+            mock_repo.set_output_profiles(
+                [
+                    OutputProfile.model_construct(
+                        id="prof_1111222233334444",
+                        slug="prof-1",
+                        workflow_id="wf_1234567890123456",
+                        name={"translations": {"en": "Profile"}},
+                        visible_workflow_extensions=["authenticity_evaluation"],
+                        max_extension_items=None,
+                        matrix_synthesis_groups=[],
+                        target_block_order=[],
+                    )
+                ]
+            )
+            mock_repo.set_prompt_blocks(
+                [
+                    {
+                        "id": "blk_1111222233334444",
+                        "slug": "synth",
+                        "type": "instruction",
+                        "label": {"translations": {"en": "Synth"}},
+                        "description": {"translations": {"en": "Desc"}},
+                        "instruction_text": "Synthesize data.",
+                        "category_id": "system_rule",
+                    }
+                ]
+            )
+            await mock_repo.save_workflow(
+                Workflow.model_validate(
+                    {
+                        "id": "wf_1234567890123456",
+                        "name": "Test WF",
+                        "slug": "test-wf",
+                        "description": "desc",
+                        "status": "draft",
+                        "version": 1,
+                        "steps": [],
+                        "historical_context_mode": "DISABLED",
+                        "default_profile_id": "prof_1111222233334444",
+                        "model_registry_id": "sys_1111222233334444",
+                    },
+                    strict=False,
+                )
+            )
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
             ) as mock_distiller:
-                mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
+                mock_distiller.return_value = HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}),
+                )
                 with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
                         "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
@@ -750,110 +859,111 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
     mock_redis = AsyncMock()
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {},
-                "context_variables": {
-                    "variables": {
-                        "step_linguistics": {
-                            "performative_patterns": [
-                                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
-                            ],
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                    profile_syntheses={},
+                    context_variables={
+                        "variables": {
+                            "step_linguistics": {
+                                "performative_patterns": [
+                                    {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
+                                ],
+                            }
                         }
-                    }
-                },
-                "execution_trace": [
-                    {
-                        "v": 1,
-                        "timestamp": datetime.now(UTC).isoformat(),
-                        "event_type": "output",
-                        "step_name": "step_perf",
-                        "content": {
-                            "_step_metadata": {"task_blueprint": "step_perf"},
-                            "blk_1111222233334444": {
-                                "raw_score": 85.0,
-                                "normalized_score": 85.0,
-                                "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
+                    },
+                    execution_trace=[
+                        TraceEvent(
+                            v=1,
+                            timestamp=datetime.now(UTC),
+                            event_type="output",
+                            step_name="step_perf",
+                            content={
+                                "_step_metadata": {"task_blueprint": "step_perf"},
+                                "blk_1111222233334444": {
+                                    "raw_score": 85.0,
+                                    "normalized_score": 85.0,
+                                    "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
+                                },
                             },
-                        },
-                    }
-                ],
-            }
+                        )
+                    ],
+                )
+            )
 
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Profile"}},
-                "synthesis_length_constraint": 500,
-                "tone_instruction": "Direct tone",
-                "executive_summary_directive": "Synthesize executive summary.",
-                "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
-                "xai_synthesis_directive": "Synthesize XAI highlights.",
-                "row_explanation_directive": "Explain matrix row causality.",
-                "variance_synthesis_directive": "Synthesize cognitive variance.",
-                "matrix_synthesis_groups": [
+            mock_repo.set_output_profiles(
+                [
+                    OutputProfile.model_validate(
+                        {
+                            "id": "prof_1111222233334444",
+                            "slug": "prof-1",
+                            "workflow_id": "wf_1234567890123456",
+                            "name": {"translations": {"en": "Profile"}},
+                            "synthesis_length_constraint": 500,
+                            "tone_instruction": "Direct tone",
+                            "executive_summary_directive": "Synthesize executive summary.",
+                            "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
+                            "xai_synthesis_directive": "Synthesize XAI highlights.",
+                            "row_explanation_directive": "Explain matrix row causality.",
+                            "variance_synthesis_directive": "Synthesize cognitive variance.",
+                            "matrix_synthesis_groups": [
+                                {
+                                    "id": "grp_1111111111111111",
+                                    "title": {
+                                        "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
+                                    },
+                                    "target_blocks": ["blk_1111222233334444"],
+                                }
+                            ],
+                            "target_block_order": ["matrix_graphs_block"],
+                            "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+                            "variance_target_block": "blk_1111222233334444",
+                            "max_extension_items": 3,
+                        }
+                    )
+                ]
+            )
+
+            mock_repo.set_prompt_blocks(
+                [
                     {
-                        "id": "grp_1111111111111111",
-                        "title": {
-                            "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
-                        },
-                        "target_blocks": ["blk_1111222233334444"],
+                        "id": "blk_1111222233334444",
+                        "slug": "target_1",
+                        "type": "instruction",
+                        "label": {"translations": {"en": "Target Matrix"}},
+                        "description": {"translations": {"en": "Desc"}},
+                        "instruction_text": "Target Matrix evaluation",
+                        "category_id": "system_rule",
                     }
-                ],
-                "target_block_order": ["matrix_graphs_block"],
-                "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-                "variance_target_block": "blk_1111222233334444",
-                "max_extension_items": 3,
-            }
-
-            async def mock_get_pb(pb_id: str) -> dict[str, Any] | None:
-                return {
-                    "id": pb_id,
-                    "slug": f"slug_{pb_id}",
-                    "type": "instruction",
-                    "label": {"translations": {"en": "Label"}},
-                    "description": {"translations": {"en": "Desc"}},
-                    "instruction_text": f"Instruction for {pb_id}",
-                    "category_id": "system_rule",
-                }
-
-            mock_repo.get_prompt_block.side_effect = mock_get_pb
-            mock_repo.get_all_prompt_blocks.return_value = [
-                {
-                    "id": "blk_1111222233334444",
-                    "slug": "target_1",
-                    "type": "instruction",
-                    "label": {"translations": {"en": "Target Matrix"}},
-                    "description": {"translations": {"en": "Desc"}},
-                    "instruction_text": "Target Matrix evaluation",
-                    "category_id": "system_rule",
-                }
-            ]
-            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
-            mock_repo.get_workflow_by_id.return_value = {
-                "id": "wf_1234567890123456",
-                "name": "Test WF",
-                "slug": "test-wf",
-                "description": "desc",
-                "status": "draft",
-                "version": 1,
-                "steps": [],
-                "historical_context_mode": "DISABLED",
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
-                "default_strictness_level": 50,
-            }
+                ]
+            )
+            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+            await mock_repo.save_workflow(
+                Workflow.model_validate(
+                    {
+                        "id": "wf_1234567890123456",
+                        "name": "Test WF",
+                        "slug": "test-wf",
+                        "description": "desc",
+                        "status": "draft",
+                        "version": 1,
+                        "steps": [],
+                        "historical_context_mode": "DISABLED",
+                        "default_profile_id": "prof_1111222233334444",
+                        "model_registry_id": "sys_1111222233334444",
+                        "default_strictness_level": 50,
+                    },
+                    strict=False,
+                )
+            )
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
@@ -882,7 +992,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
                 )
 
-                mock_repo.update_execution.assert_called()
+                assert mock_repo.get_call_count("update_execution") >= 1
                 mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                     "rep_1234567890123456",
                     mock_redis,
@@ -892,38 +1002,51 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
 @pytest.mark.asyncio
 async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     """Verify execute_workflow_job enqueues render_profile_job and updates status to RUNNING when redis is present."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 85,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "PENDING",
-        "target_locale": "fi",
-        "step_states": {},
-        "metadata": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 85,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.PENDING,
+            target_locale="fi",
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     mock_exec_record = ExecutionRecord(
         id="exe_1234567890123456",
@@ -949,9 +1072,10 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
 
     assert res.status == "COMPLETED"
     mock_redis.enqueue_job.assert_not_called()
-    mock_repo.update_execution.assert_called()
-    update_dto = mock_repo.update_execution.call_args[0][1]
-    assert update_dto.status == ExecutionStatus.PASSED
+    assert mock_repo.get_call_count("update_execution") >= 1
+    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    assert updated_rec is not None
+    assert updated_rec.status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -961,121 +1085,124 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
     mock_redis = AsyncMock()
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {},
-                "context_variables": {},
-                "execution_trace": [
-                    {
-                        "v": 1,
-                        "timestamp": datetime.now(UTC),
-                        "event_type": "output",
-                        "step_name": "sr_matrix_step",
-                        "content": {
-                            "blk_1111222233334444": {
-                                "raw_score": 3.0,
-                                "normalized_score": 50.0,
-                                "level_breakdown": {"1.0": {"hits": 1, "total": 2}, "5.0": {"hits": 1, "total": 2}},
-                                "atom_quotes": ["Evidence quote"],
-                            }
-                        },
-                    }
-                ],
-            }
-
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Profile"}},
-                "display_scale": "original",
-                "matrix_synthesis_groups": [],
-                "target_block_order": [],
-            }
-
-            mock_repo.get_workflow_by_id.return_value = {
-                "id": "wf_1234567890123456",
-                "name": "Test WF",
-                "slug": "test-wf",
-                "description": "desc",
-                "status": "draft",
-                "version": 1,
-                "steps": [],
-                "historical_context_mode": "DISABLED",
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
-                "default_strictness_level": 85,
-            }
-
-            mock_repo.get_all_prompt_blocks.return_value = [
-                {
-                    "id": "blk_1111222233334444",
-                    "slug": "matrix_block",
-                    "type": "float",
-                    "label": {"translations": {"en": "Matrix"}},
-                    "description": {"translations": {"en": "Desc"}},
-                    "ai_description": "Evaluation instruction.",
-                    "category_id": "matrix",
-                    "scales": [
-                        {
-                            "score": 1,
-                            "ai_label": "LOW",
-                            "claims": [
-                                {
-                                    "label": {"translations": {"en": "Low claim"}},
-                                    "tda_assertions": [
-                                        {
-                                            "tda_id": "tda_11112222333344445555666677778888",
-                                            "concept_description": "Concept description for low claim.",
-                                            "inverse_evidence": False,
-                                            "aggregation_mode": "EXISTS",
-                                        }
-                                    ],
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                    profile_syntheses={},
+                    context_variables={},
+                    execution_trace=[
+                        TraceEvent(
+                            v=1,
+                            timestamp=datetime.now(UTC),
+                            event_type="output",
+                            step_name="sr_matrix_step",
+                            content={
+                                "blk_1111222233334444": {
+                                    "raw_score": 3.0,
+                                    "normalized_score": 50.0,
+                                    "level_breakdown": {"1.0": {"hits": 1, "total": 2}, "5.0": {"hits": 1, "total": 2}},
+                                    "atom_quotes": ["Evidence quote"],
                                 }
-                            ],
-                        },
-                        {
-                            "score": 5,
-                            "ai_label": "HIGH",
-                            "claims": [
-                                {
-                                    "label": {"translations": {"en": "High claim"}},
-                                    "tda_assertions": [
-                                        {
-                                            "tda_id": "tda_22223333444455556666777788889999",
-                                            "concept_description": "Concept description for high claim.",
-                                            "inverse_evidence": False,
-                                            "aggregation_mode": "EXISTS",
-                                        }
-                                    ],
-                                }
-                            ],
-                        },
+                            },
+                        )
                     ],
-                }
-            ]
+                )
+            )
 
-            mock_repo.get_prompt_block.return_value = {
-                "id": "blk_1111222233334444",
-                "slug": "synth",
-                "type": "instruction",
-                "label": {"translations": {"en": "Synth"}},
-                "description": {"translations": {"en": "Desc"}},
-                "instruction_text": "Synthesize data.",
-                "category_id": "system_rule",
-            }
+            mock_repo.set_output_profiles(
+                [
+                    OutputProfile.model_validate(
+                        {
+                            "id": "prof_1111222233334444",
+                            "slug": "prof-1",
+                            "workflow_id": "wf_1234567890123456",
+                            "name": {"translations": {"en": "Profile"}},
+                            "display_scale": "original",
+                            "matrix_synthesis_groups": [],
+                            "target_block_order": [],
+                        }
+                    )
+                ]
+            )
 
-            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+            await mock_repo.save_workflow(
+                Workflow.model_validate(
+                    {
+                        "id": "wf_1234567890123456",
+                        "name": "Test WF",
+                        "slug": "test-wf",
+                        "description": "desc",
+                        "status": "draft",
+                        "version": 1,
+                        "steps": [],
+                        "historical_context_mode": "DISABLED",
+                        "default_profile_id": "prof_1111222233334444",
+                        "model_registry_id": "sys_1111222233334444",
+                        "default_strictness_level": 85,
+                    },
+                    strict=False,
+                )
+            )
+
+            mock_repo.set_prompt_blocks(
+                [
+                    {
+                        "id": "blk_1111222233334444",
+                        "slug": "matrix_block",
+                        "type": "float",
+                        "label": {"translations": {"en": "Matrix"}},
+                        "description": {"translations": {"en": "Desc"}},
+                        "ai_description": "Evaluation instruction.",
+                        "category_id": "matrix",
+                        "scales": [
+                            {
+                                "score": 1,
+                                "ai_label": "LOW",
+                                "claims": [
+                                    {
+                                        "label": {"translations": {"en": "Low claim"}},
+                                        "tda_assertions": [
+                                            {
+                                                "tda_id": "tda_11112222333344445555666677778888",
+                                                "concept_description": "Concept description for low claim.",
+                                                "inverse_evidence": False,
+                                                "aggregation_mode": "EXISTS",
+                                            }
+                                        ],
+                                    }
+                                ],
+                            },
+                            {
+                                "score": 5,
+                                "ai_label": "HIGH",
+                                "claims": [
+                                    {
+                                        "label": {"translations": {"en": "High claim"}},
+                                        "tda_assertions": [
+                                            {
+                                                "tda_id": "tda_22223333444455556666777788889999",
+                                                "concept_description": "Concept description for high claim.",
+                                                "inverse_evidence": False,
+                                                "aggregation_mode": "EXISTS",
+                                            }
+                                        ],
+                                    }
+                                ],
+                            },
+                        ],
+                    }
+                ]
+            )
+
+            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
@@ -1094,19 +1221,16 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
                 )
 
-                mock_repo.update_execution.assert_called()
+                assert mock_repo.get_call_count("update_execution") >= 1
 
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises() -> None:
     """Negative test: verify database update failure in synthesis task raises AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.side_effect = RuntimeError("DB connection lost")
-
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        mock_repo.inject_fault("get_execution", RuntimeError("DB connection lost"))
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with pytest.raises(RuntimeError):
                 await generate_profile_synthesis_and_pdf_task(
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
@@ -1117,27 +1241,34 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
 async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_app_exception() -> None:
     """Negative test: verify missing workflow in synthesis task raises Fail-Fast AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_nonexistent_1234",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-            }
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_nonexistent_1234",
-                "name": {"translations": {"en": "Profile 1"}},
-                "display_scale": "original",
-                "matrix_synthesis_groups": [],
-                "target_block_order": [],
-            }
-            mock_repo.get_workflow_by_id.return_value = None
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_nonexistent_1234",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="fi",
+                    metadata=ExecutionMetadata(),
+                    step_states={},
+                )
+            )
+            mock_repo.set_output_profiles(
+                [
+                    OutputProfile.model_validate(
+                        {
+                            "id": "prof_1111222233334444",
+                            "slug": "prof-1",
+                            "workflow_id": "wf_nonexistent_1234",
+                            "name": {"translations": {"en": "Profile 1"}},
+                            "display_scale": "original",
+                            "matrix_synthesis_groups": [],
+                            "target_block_order": [],
+                        }
+                    )
+                ]
+            )
 
             with pytest.raises(AppException) as exc_info:
                 await generate_profile_synthesis_and_pdf_task(
@@ -1151,21 +1282,25 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
 async def test_generate_pdf_task_app_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches AppException and re-raises with execution update."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "en",
-                "metadata": {},
-                "step_states": {
-                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
-                },
-            }
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="en",
+                    metadata=ExecutionMetadata(),
+                    step_states={
+                        "sys_render_prof_1": {
+                            "id": "sys_render_prof_1",
+                            "label": "Rendering",
+                            "status": ExecutionStatus.RUNNING,
+                        }
+                    },
+                )
+            )
 
             with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
                 mock_service = AsyncMock()
@@ -1178,7 +1313,7 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
 
                 with pytest.raises(AppException):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
-                assert mock_repo.update_execution.call_count >= 1
+                assert mock_repo.get_call_count("update_execution") >= 1
 
 
 @pytest.mark.asyncio
@@ -1187,60 +1322,48 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 ) -> None:
     """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = InMemoryBlueprintTransformerRepository()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "en",
-                "execution_trace": [
-                    {
-                        "step_name": "synthesis_step",
-                        "event_type": "output",
-                        "content": {"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
-                    }
-                ],
-                "step_states": {
-                    "sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}
-                },
-                "metadata": {},
-            }
+        mock_repo = InMemoryUnifiedWorkflowRepository()
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
+            await mock_repo.save_execution(
+                ExecutionRecord(
+                    id="exe_1234567890123456",
+                    workflow_id="wf_1234567890123456",
+                    output_profile_id="prof_1111222233334444",
+                    status=ExecutionStatus.RUNNING,
+                    target_locale="en",
+                    execution_trace=[
+                        TraceEvent(
+                            v=1,
+                            timestamp=datetime.now(UTC),
+                            step_name="synthesis_step",
+                            event_type="output",
+                            content={"event_type": "starvation", "total_atoms": 0, "reason": "No atoms"},
+                        )
+                    ],
+                    step_states={
+                        "sys_render_prof_1": {
+                            "id": "sys_render_prof_1",
+                            "label": "Rendering",
+                            "status": ExecutionStatus.RUNNING,
+                        }
+                    },
+                    metadata=ExecutionMetadata(),
+                )
+            )
 
             mock_redis = AsyncMock()
             await generate_profile_synthesis_and_pdf_task(
                 "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
             )
 
-            assert mock_repo.update_execution.call_count >= 1
-            calls_with_syntheses = [
-                call[0][1]
-                for call in mock_repo.update_execution.call_args_list
-                if (isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None)
-                or (type(call[0][1]) is dict and "profile_syntheses" in call[0][1])
-            ]
-            assert len(calls_with_syntheses) == 1
-            call_payload = calls_with_syntheses[0]
-            ps = (
-                call_payload.profile_syntheses
-                if isinstance(call_payload, ExecutionUpdateDTO)
-                else call_payload["profile_syntheses"]
-            )
-            saved_cache = ps["prof_1111222233334444"]
-            starvation = (
-                saved_cache.data_starvation
-                if isinstance(saved_cache, RenderedSynthesisCache)
-                else saved_cache["data_starvation"]
-            )
-            ev_type = starvation.event_type if isinstance(starvation, DataStarvationEvent) else starvation["event_type"]
-            total_atoms = (
-                starvation.total_atoms if isinstance(starvation, DataStarvationEvent) else starvation["total_atoms"]
-            )
-            assert ev_type == "starvation"
-            assert total_atoms == 0
+            assert mock_repo.get_call_count("update_execution") >= 1
+            updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+            assert updated_exec is not None
+            assert updated_exec.profile_syntheses is not None
+            saved_cache = updated_exec.profile_syntheses["prof_1111222233334444"]
+            assert saved_cache.data_starvation is not None
+            assert saved_cache.data_starvation.event_type == "starvation"
+            assert saved_cache.data_starvation.total_atoms == 0
             mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                 "rep_1234567890123456",
                 mock_redis,
@@ -1250,38 +1373,51 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 @pytest.mark.asyncio
 async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None:
     """Verify execute_workflow_job hydrates offloaded trace when in-memory trace lacks metadata."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "PENDING",
-        "target_locale": "fi",
-        "step_states": {},
-        "metadata": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 50,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.PENDING,
+            target_locale="fi",
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     in_memory_trace = [
         TraceEvent(
@@ -1345,78 +1481,86 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     assert res.status == "COMPLETED"
     mock_storage.read.assert_called_once_with("executions/exe_1234567890123456/execution_trace.json")
 
-    update_call = mock_repo.update_execution.call_args[0][1]
-    assert update_call.dag_cost_usd == 0.05
-    assert update_call.prompt_tokens == 500
-    assert update_call.completion_tokens == 100
-    assert update_call.cached_tokens == 20
-    assert update_call.reasoning_tokens == 10
-    assert update_call.cost_estimate == 0.05
-    assert update_call.models_used == {"fast": 600}
-    assert len(update_call.steps) == 1
-    assert update_call.steps[0].status == ExecutionStatus.PASSED
-    assert update_call.steps[0].cost_usd == 0.05
-    assert update_call.steps[0].prompt_tokens == 500
+    assert mock_repo.get_call_count("update_execution") >= 1
+    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    assert updated_rec is not None
+    assert updated_rec.dag_cost_usd == 0.05
+    assert updated_rec.prompt_tokens == 500
+    assert updated_rec.completion_tokens == 100
+    assert updated_rec.cached_tokens == 20
+    assert updated_rec.reasoning_tokens == 10
+    assert updated_rec.cost_estimate == 0.05
+    assert updated_rec.models_used == {"fast": 600}
+    assert len(updated_rec.steps) == 1
+    assert updated_rec.steps[0].status == ExecutionStatus.PASSED
+    assert updated_rec.steps[0].cost_usd == 0.05
+    assert updated_rec.steps[0].prompt_tokens == 500
 
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     """Verify render_profile_job recovers DAG telemetry from blob if dag_cost_usd is 0."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = []
-    mock_repo.get_workflow_by_id.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "historical_context_mode": "DISABLED",
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "en",
-        "dag_cost_usd": 0.0,
-        "cost_estimate": 0.0,
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "cumulative_synthesis_cost": 0.0,
-        "cumulative_synthesis_tokens": 0,
-        "execution_trace": [],
-        "execution_trace_storage_path": "executions/exe_1234567890123456/execution_trace.json",
-        "step_states": {"sys_render_prof_1": {"id": "sys_render_prof_1", "label": "Rendering", "status": "RUNNING"}},
-        "metadata": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "historical_context_mode": "DISABLED",
+                "default_strictness_level": 50,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    mock_repo.set_prompt_blocks([])
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="en",
+            dag_cost_usd=0.0,
+            cost_estimate=0.0,
+            prompt_tokens=0,
+            completion_tokens=0,
+            cumulative_synthesis_cost=0.0,
+            cumulative_synthesis_tokens=0,
+            execution_trace=[],
+            execution_trace_storage_path="executions/exe_1234567890123456/execution_trace.json",
+            step_states={
+                "sys_render_prof_1": {
+                    "id": "sys_render_prof_1",
+                    "label": "Rendering",
+                    "status": ExecutionStatus.RUNNING,
+                }
+            },
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     offloaded_blob = (
         b'[{"v": 1, "step_name": "step_dag", "event_type": "output", "content": '
@@ -1446,19 +1590,15 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         )
 
     assert mock_storage.read.called
-    update_calls = [
-        call[0][1]
-        for call in mock_repo.update_execution.call_args_list
-        if isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None
-    ]
-    assert len(update_calls) == 1
-    call_payload = update_calls[0]
-    assert call_payload.dag_cost_usd == 0.15
-    assert call_payload.prompt_tokens == 800
-    assert call_payload.completion_tokens == 200
-    assert call_payload.cached_tokens == 50
-    assert call_payload.reasoning_tokens == 20
-    assert call_payload.cost_estimate >= 0.15
+    assert mock_repo.get_call_count("update_execution") >= 1
+    updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+    assert updated_exec is not None
+    assert updated_exec.dag_cost_usd == 0.15
+    assert updated_exec.prompt_tokens == 800
+    assert updated_exec.completion_tokens == 200
+    assert updated_exec.cached_tokens == 50
+    assert updated_exec.reasoning_tokens == 20
+    assert updated_exec.cost_estimate >= 0.15
 
 
 @pytest.mark.asyncio
@@ -1482,61 +1622,61 @@ async def test_job_wrappers_call_tasks() -> None:
 async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_fallback() -> None:
     """Verify DAG cost is recovered from cost_estimate - prev_cost when storage path is missing."""
     get_settings().use_mock_llm = True
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "historical_context_mode": "DISABLED",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile 1"}},
-        "display_scale": "original",
-        "matrix_synthesis_groups": [],
-        "target_block_order": [],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = []
-    mock_repo.get_workflow_by_id.return_value = {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "historical_context_mode": "DISABLED",
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "default_strictness_level": 50,
-    }
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "en",
-        "dag_cost_usd": 0.0,
-        "cost_estimate": 1.25,
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "cumulative_synthesis_cost": 0.25,
-        "cumulative_synthesis_tokens": 100,
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": "wf_1234567890123456",
+                "name": "Test WF",
+                "slug": "test-wf",
+                "description": "desc",
+                "status": "draft",
+                "version": 1,
+                "steps": [],
+                "historical_context_mode": "DISABLED",
+                "default_profile_id": "prof_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
+                "default_strictness_level": 50,
+            },
+            strict=False,
+        )
+    )
+    mock_repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_1111222233334444",
+                    "slug": "prof-1",
+                    "workflow_id": "wf_1234567890123456",
+                    "name": {"translations": {"en": "Profile 1"}},
+                    "display_scale": "original",
+                    "matrix_synthesis_groups": [],
+                    "target_block_order": [],
+                }
+            )
+        ]
+    )
+    mock_repo.set_prompt_blocks([])
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="en",
+            dag_cost_usd=0.0,
+            cost_estimate=1.25,
+            prompt_tokens=0,
+            completion_tokens=0,
+            cumulative_synthesis_cost=0.25,
+            cumulative_synthesis_tokens=100,
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1553,80 +1693,35 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
             "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
         )
 
-    update_calls = [
-        call[0][1]
-        for call in mock_repo.update_execution.call_args_list
-        if isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None
-    ]
-    assert len(update_calls) == 1
-    call_payload = update_calls[0]
-    assert call_payload.dag_cost_usd == 1.0
-    assert call_payload.cost_estimate >= 1.0
-
-
-def _get_base_workflow_dict() -> dict[str, Any]:
-    return {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "historical_context_mode": "DISABLED",
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "default_strictness_level": 50,
-    }
-
-
-def _get_base_profile_dict() -> dict[str, Any]:
-    return {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile"}},
-        "synthesis_length_constraint": 500,
-        "tone_instruction": "Direct tone",
-        "executive_summary_directive": "Synthesize executive summary.",
-        "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
-        "xai_synthesis_directive": "Synthesize XAI highlights.",
-        "row_explanation_directive": "Explain matrix row causality.",
-        "variance_synthesis_directive": "Synthesize cognitive variance.",
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_1111111111111111",
-                "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
-                "target_blocks": ["blk_1111222233334444"],
-            }
-        ],
-        "target_block_order": ["matrix_graphs_block"],
-        "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-        "variance_target_block": "blk_1111222233334444",
-        "max_extension_items": 3,
-    }
+    assert mock_repo.get_call_count("update_execution") >= 1
+    updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+    assert updated_exec is not None
+    assert updated_exec.dag_cost_usd == 1.0
+    assert updated_exec.cost_estimate >= 1.0
 
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_matrix_directive_skips_group() -> None:
-    """Positive: Verify missing matrix synthesis directive skips group synthesis gracefully with a warning."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    """Positive: Verify missing matrix 1D directive skips matrix group synthesis gracefully."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
     prof_dict = _get_base_profile_dict()
     prof_dict["matrix_1d_synthesis_directive"] = None
-    mock_repo.get_output_profile_by_id.return_value = prof_dict
+    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1639,7 +1734,15 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
                     state_delta=HookDeltaDTO(
                         delta={
                             "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [],
+                            "matrices_to_explain": [
+                                {
+                                    "real_matrix_id": "blk_1111222233334444",
+                                    "matrix_id": "m0",
+                                    "matrix_label": "Target Matrix",
+                                    "score": 85.0,
+                                    "justification": "Evidence verified.",
+                                }
+                            ],
                             "target_locale": "fi",
                             "title_map": {},
                         }
@@ -1655,24 +1758,26 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> None:
-    """Positive: Verify missing XAI synthesis directive skips XAI synthesis gracefully with a warning."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    """Positive: Verify missing XAI directive skips XAI highlight synthesis gracefully."""
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
     prof_dict = _get_base_profile_dict()
     prof_dict["xai_synthesis_directive"] = None
-    mock_repo.get_output_profile_by_id.return_value = prof_dict
+    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1685,7 +1790,15 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
                     state_delta=HookDeltaDTO(
                         delta={
                             "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [],
+                            "matrices_to_explain": [
+                                {
+                                    "real_matrix_id": "blk_1111222233334444",
+                                    "matrix_id": "m0",
+                                    "matrix_label": "Target Matrix",
+                                    "score": 85.0,
+                                    "justification": "Evidence verified.",
+                                }
+                            ],
                             "target_locale": "fi",
                             "title_map": {},
                         }
@@ -1702,24 +1815,26 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_row_explanation_directive_skips_row_explanations() -> None:
     """Positive: Verify missing row explanation directive skips row explanation synthesis gracefully."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
     prof_dict = _get_base_profile_dict()
     prof_dict["target_block_order"] = ["matrix_graphs_block", "matrix_summary_table_block"]
     prof_dict["row_explanation_directive"] = None
-    mock_repo.get_output_profile_by_id.return_value = prof_dict
+    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1757,20 +1872,22 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_state_delta_raises_app_exception() -> None:
     """Negative: Verify missing state_delta from distiller hook raises AppException."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_output_profiles([OutputProfile.model_validate(_get_base_profile_dict())])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1790,20 +1907,22 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_exception() -> None:
     """Negative: Verify missing distilled_inputs from state_delta raises AppException."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_output_profiles([OutputProfile.model_validate(_get_base_profile_dict())])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1823,21 +1942,22 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_gracefully() -> None:
     """Positive: Verify missing output profile when synthesizing row explanations skips gracefully with a warning."""
-    mock_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo.get_execution.return_value = {
-        "id": "exe_1234567890123456",
-        "workflow_id": "wf_1234567890123456",
-        "output_profile_id": "prof_1111222233334444",
-        "status": "RUNNING",
-        "target_locale": "fi",
-        "execution_trace": [],
-        "execution_trace_storage_path": None,
-        "step_states": {},
-        "metadata": {},
-    }
-    mock_repo.get_workflow_by_id.return_value = _get_base_workflow_dict()
-    mock_repo.get_output_profile_by_id.return_value = None
-    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(
+        ExecutionRecord(
+            id="exe_1234567890123456",
+            workflow_id="wf_1234567890123456",
+            output_profile_id="prof_1111222233334444",
+            status=ExecutionStatus.RUNNING,
+            target_locale="fi",
+            execution_trace=[],
+            execution_trace_storage_path=None,
+            step_states={},
+            metadata=ExecutionMetadata(),
+        )
+    )
+    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
+    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),

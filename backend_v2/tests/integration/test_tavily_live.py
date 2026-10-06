@@ -8,8 +8,6 @@ import _socket
 import socket
 from unittest.mock import patch
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
 import pytest
 
 from backend_v2.core.hook_registry import (
@@ -29,6 +27,7 @@ from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture(autouse=True)

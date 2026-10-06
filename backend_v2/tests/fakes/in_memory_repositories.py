@@ -7,14 +7,13 @@ guaranteeing `repo.get(id) is not repo.get(id)` and `repo.get(id) == repo.get(id
 
 from __future__ import annotations
 
-import asyncio
 import copy
+import inspect
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import MagicMock
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -88,6 +87,15 @@ from backend_v2.models.state import TraceEvent
 class BaseInMemoryRepository[T: BaseModel]:
     """Generic base in-memory repository providing Rust-accelerated snapshot isolation and fault injection."""
 
+    _BASE_EXCLUDED_METHODS: frozenset[str] = frozenset(
+        {
+            "inject_fault",
+            "clear_faults",
+            "fault_context",
+            "get_call_count",
+        }
+    )
+
     def __init__(self) -> None:
         self._storage: dict[str, T] = {}
         self._faults: dict[str, tuple[Exception, int | None]] = {}
@@ -130,7 +138,9 @@ class BaseInMemoryRepository[T: BaseModel]:
 
     def inject_fault(self, method_name: str, exception: Exception, trigger_count: int | None = None) -> None:
         """Inject a deterministic fault into a repository method."""
-        func = getattr(self, method_name, None)  # noqa: QGR001 [REASON: Test fake introspection to validate method existence for fault injection]
+        if method_name.startswith("_") or method_name in self._BASE_EXCLUDED_METHODS:
+            raise ValueError(f"Method '{method_name}' does not exist on {type(self).__name__}")
+        func = inspect.getattr_static(type(self), method_name, None)
         if func is None or not callable(func):
             raise ValueError(f"Method '{method_name}' does not exist on {type(self).__name__}")
         self._faults[method_name] = (exception, trigger_count)
@@ -199,14 +209,15 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         if existing is None:
             return False
         dumped = existing.model_dump(mode="python")
-        update_dict = updates.model_dump(mode="python", exclude_unset=True)
-        if "status_message" not in update_dict:
-            if "current_step" in update_dict and update_dict["current_step"]:
-                dumped["status_message"] = update_dict["current_step"]
-            elif "current_step_name" in update_dict and update_dict["current_step_name"]:
-                dumped["status_message"] = update_dict["current_step_name"]
-        for k, v in update_dict.items():
+        update_dict = updates.model_dump(mode="python")
+        if "status_message" not in updates.model_fields_set:
+            if "current_step" in updates.model_fields_set and updates.current_step:
+                dumped["status_message"] = updates.current_step
+            elif "current_step_name" in updates.model_fields_set and updates.current_step_name:
+                dumped["status_message"] = updates.current_step_name
+        for k in updates.model_fields_set:
             if k in ExecutionRecord.model_fields:
+                v = update_dict[k]
                 if v is None and k in ("steps", "step_states", "profile_syntheses", "source_identity_manifest"):
                     continue
                 dumped[k] = v
@@ -2037,166 +2048,3 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def delete_extraction_protocol(self, protocol_id: str) -> bool:
         return await self._extraction_protocols.delete_extraction_protocol(protocol_id)
-
-
-# ==============================================================================
-# 17. Blueprint Transformer Test Repository Fake
-# ==============================================================================
-
-
-class DynamicRepoMethod:
-    """Async method wrapper allowing test fixtures to override returns or inspect calls."""
-
-    def __init__(self, name: str, fallback: Any = None) -> None:
-        self._mock = MagicMock()
-        self._name = name
-        self._fallback = fallback
-        self._has_return_value = False
-        self._side_effect: Any = None
-
-    @property
-    def return_value(self) -> Any:
-        return self._mock.return_value
-
-    @return_value.setter
-    def return_value(self, val: Any) -> None:
-        self._has_return_value = True
-        self._mock.return_value = val
-
-    @property
-    def side_effect(self) -> Any:
-        return self._side_effect
-
-    @side_effect.setter
-    def side_effect(self, val: Any) -> None:
-        self._side_effect = val
-        self._mock.side_effect = val
-
-    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        if self._side_effect is not None or self._has_return_value:
-            res = self._mock(*args, **kwargs)
-            if asyncio.iscoroutine(res):
-                return await res
-            return res
-        res = self._mock(*args, **kwargs)
-        if asyncio.iscoroutine(res):
-            await res
-        if self._fallback:
-            res_fb = self._fallback(*args, **kwargs)
-            if asyncio.iscoroutine(res_fb):
-                return await res_fb
-            return res_fb
-        return None
-
-    @property
-    def called(self) -> bool:
-        return self._mock.called
-
-    @property
-    def call_count(self) -> int:
-        return self._mock.call_count
-
-    @property
-    def call_args(self) -> Any:
-        return self._mock.call_args
-
-    @property
-    def call_args_list(self) -> list[Any]:
-        return self._mock.call_args_list
-
-    def assert_called(self) -> None:
-        self._mock.assert_called()
-
-    def assert_called_once(self) -> None:
-        self._mock.assert_called_once()
-
-    def assert_called_with(self, *args: Any, **kwargs: Any) -> None:
-        self._mock.assert_called_with(*args, **kwargs)
-
-    def assert_called_once_with(self, *args: Any, **kwargs: Any) -> None:
-        self._mock.assert_called_once_with(*args, **kwargs)
-
-    def assert_not_called(self) -> None:
-        self._mock.assert_not_called()
-
-    def assert_awaited(self) -> None:
-        self._mock.assert_called()
-
-    def assert_awaited_once(self) -> None:
-        self._mock.assert_called_once()
-
-    def assert_awaited_with(self, *args: Any, **kwargs: Any) -> None:
-        self._mock.assert_called_with(*args, **kwargs)
-
-    def assert_awaited_once_with(self, *args: Any, **kwargs: Any) -> None:
-        self._mock.assert_called_once_with(*args, **kwargs)
-
-    def reset_mock(self, *args: Any, **kwargs: Any) -> None:
-        self._mock.reset_mock(*args, **kwargs)
-
-
-class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
-    """Specialized in-memory composite repository for BlueprintTransformer tests."""
-
-    _dynamic_methods: dict[str, DynamicRepoMethod]
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._dynamic_methods = {}
-
-    def __getattribute__(self, name: str) -> Any:
-        """Dynamically wraps or synthesizes a DynamicRepoMethod for legacy mock compatibility."""
-        if name.startswith("_") or name in (
-            "inject_fault",
-            "clear_faults",
-            "fault_context",
-            "get_call_count",
-            "seed_raw_step",
-            "seed_raw_workflow",
-            "seed_raw_prompt_block",
-            "set_output_profiles",
-            "set_prompt_blocks",
-            "set_workflow",
-            "set_execution",
-            "set_model_registry",
-        ):
-            return super().__getattribute__(name)
-        dyn_methods = super().__getattribute__("_dynamic_methods")
-        if name in dyn_methods:
-            return dyn_methods[name]
-        try:
-            val = super().__getattribute__(name)
-        except AttributeError:
-            method = DynamicRepoMethod(name, None)
-            dyn_methods[name] = method
-            return method
-        if callable(val) and not isinstance(val, type):
-            method = DynamicRepoMethod(name, val)
-            dyn_methods[name] = method
-            return method
-        return val
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Sets attributes, synchronizing dynamic method replacements with _dynamic_methods."""
-        if name.startswith("_"):
-            super().__setattr__(name, value)
-            return
-        try:
-            dyn_methods = super().__getattribute__("_dynamic_methods")
-        except AttributeError:
-            super().__setattr__(name, value)
-            return
-        if isinstance(value, DynamicRepoMethod):
-            dyn_methods[name] = value
-        elif callable(value):
-            method = DynamicRepoMethod(name, value)
-            val_attrs = dir(value)
-            if "return_value" in val_attrs or "_mock_return_value" in val_attrs:
-                method.return_value = value.return_value
-            if "side_effect" in val_attrs and value.side_effect is not None:
-                method.side_effect = value.side_effect
-            dyn_methods[name] = method
-        else:
-            if name in dyn_methods:
-                del dyn_methods[name]
-            super().__setattr__(name, value)

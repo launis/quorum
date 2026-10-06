@@ -5,25 +5,26 @@ without losing DAG execution costs or token figures.
 """
 
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers import generate_profile_synthesis_and_pdf_task
 
 
-def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, execution: ExecutionRecord) -> None:
+async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, execution: ExecutionRecord) -> None:
     """Helper to populate repository mock data matching test_worker_synthesis conventions."""
-    fake_repo.get_execution.return_value = execution
-    fake_repo.get_workflow_by_id.return_value = {
+    await fake_repo.save_execution(execution)
+
+    wf_dict = {
         "id": "wf_1234567812345678",
         "slug": "test_workflow",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -36,22 +37,19 @@ def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, executio
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
+    await fake_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
 
-    async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
-        if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "type": "logic", "hook": "text_consolidation_hook"}
-        return None
-
-    fake_repo.get_step_by_id.side_effect = mock_get_step_by_id
-    fake_repo.get_all_steps.return_value = [
+    fake_repo.seed_raw_step(
+        "sp_1234567812345678",
         {
             "id": "sp_1234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
             "type": "logic",
             "hook": "text_consolidation_hook",
-        }
-    ]
+        },
+    )
+
     profile = {
         "provider": "mock_llm_99",
         "model_name": "gemini-2.5-pro",
@@ -61,7 +59,7 @@ def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, executio
         "tpm_limit": 100000,
         "rpm_limit": 1000,
     }
-    fake_repo.get_model_registry.return_value = {
+    model_reg = {
         "id": "sys_1111222233334444",
         "name": "Default Test Registry",
         "type": "model_registry",
@@ -74,26 +72,28 @@ def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, executio
             "reasoning": profile,
         },
     }
-    fake_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "pb_1111111111111111",
-            "slug": "system_prompt",
-            "type": "instruction",
-            "label": {"translations": {"en": "System"}},
-            "description": {"translations": {"en": "System prompt"}},
-            "category_id": "system_rule",
-        }
-    ]
-    fake_repo.get_prompt_block.return_value = {
+    fake_repo.set_model_registry(SystemConfigModelRegistry.model_validate(model_reg), "sys_1111222233334444")
+
+    pb_1 = {
+        "id": "pb_1111111111111111",
+        "slug": "system_prompt",
+        "type": "instruction",
+        "label": {"translations": {"en": "System"}},
+        "description": {"translations": {"en": "System prompt"}},
+        "category_id": "system_rule",
+    }
+    pb_2 = {
         "id": "pb_2222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "Synth System"}},
         "description": {"translations": {"en": "System prompt for synthesis"}},
-        "ai_description": "You are an AI.",
+        "instruction_text": "You are an AI.",
         "category_id": "system_rule",
     }
-    fake_repo.get_output_profile_by_id.return_value = {
+    fake_repo.set_prompt_blocks([pb_1, pb_2])
+
+    output_prof = {
         "slug": "test_slug",
         "workflow_id": "wf_1234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -112,19 +112,18 @@ def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, executio
         "target_block_order": ["matrix_graphs_block"],
         "display_scale": "original",
     }
+    fake_repo.set_output_profiles([output_prof])
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
 @patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_accumulates_costs_monotonically(
-    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+    _mock_driver: AsyncMock,
 ) -> None:
     """Test that consecutive synthesis runs accumulate costs and tokens monotonically without losing DAG costs."""
     get_settings().use_mock_llm = True
 
-    fake_repo = InMemoryBlueprintTransformerRepository()
-    mock_repo_class.return_value = fake_repo
+    fake_repo = InMemoryUnifiedWorkflowRepository()
 
     mock_record_initial = ExecutionRecord(
         id="exe_1234567812345678",
@@ -150,60 +149,42 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
         ],
     )
 
-    _setup_mock_repo(fake_repo, mock_record_initial)
+    await _setup_mock_repo(fake_repo, mock_record_initial)
 
-    # --- Run 1: First Synthesis Execution ---
-    await generate_profile_synthesis_and_pdf_task(
-        execution_id="exe_1234567812345678",
-        accept_language="fi",
-        profile_id="prof_1111111111111111",
-        redis=None,
-    )
+    with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=fake_repo):
+        # --- Run 1: First Synthesis Execution ---
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id="exe_1234567812345678",
+            accept_language="fi",
+            profile_id="prof_1111111111111111",
+            redis=None,
+        )
 
-    def _find_synthesis_update(calls: list[Any]) -> ExecutionUpdateDTO:
-        for call in reversed(calls):
-            args, _kwargs = call
-            if len(args) >= 2 and isinstance(args[1], ExecutionUpdateDTO):
-                if args[1].cumulative_synthesis_tokens is not None:
-                    return args[1]
-        raise AssertionError("No ExecutionUpdateDTO with cumulative_synthesis_tokens found")
+        rec1 = await fake_repo.get_execution("exe_1234567812345678")
+        assert rec1 is not None
+        run1_tokens = rec1.cumulative_synthesis_tokens
+        run1_cost = rec1.cumulative_synthesis_cost
+        run1_estimate = rec1.cost_estimate
 
-    update_dto1 = _find_synthesis_update(fake_repo.update_execution.call_args_list)
+        assert run1_tokens is not None and run1_tokens >= 0
+        assert run1_cost is not None and run1_cost >= 0.0
+        # Total cost estimate must incorporate the DAG cost plus synthesis cost
+        assert run1_estimate == pytest.approx(1.85 + run1_cost)
 
-    run1_tokens = update_dto1.cumulative_synthesis_tokens
-    run1_cost = update_dto1.cumulative_synthesis_cost
-    run1_estimate = update_dto1.cost_estimate
+        # --- Run 2: Second Synthesis Execution (Accumulation) ---
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id="exe_1234567812345678",
+            accept_language="fi",
+            profile_id="prof_1111111111111111",
+            redis=None,
+        )
 
-    assert run1_tokens is not None and run1_tokens >= 0
-    assert run1_cost is not None and run1_cost >= 0.0
-    # Total cost estimate must incorporate the DAG cost plus synthesis cost
-    assert run1_estimate == pytest.approx(1.85 + run1_cost)
+        rec2 = await fake_repo.get_execution("exe_1234567812345678")
+        assert rec2 is not None
+        run2_tokens = rec2.cumulative_synthesis_tokens
+        run2_cost = rec2.cumulative_synthesis_cost
+        run2_estimate = rec2.cost_estimate
 
-    # --- Run 2: Second Synthesis Execution (Accumulation) ---
-    # Simulate database state after Run 1
-    mock_record_after_run1 = mock_record_initial.model_copy(
-        update={
-            "cumulative_synthesis_tokens": run1_tokens,
-            "cumulative_synthesis_cost": run1_cost,
-            "cost_estimate": run1_estimate,
-        }
-    )
-    fake_repo.get_execution.return_value = mock_record_after_run1
-    fake_repo.update_execution.reset_mock()
-
-    await generate_profile_synthesis_and_pdf_task(
-        execution_id="exe_1234567812345678",
-        accept_language="fi",
-        profile_id="prof_1111111111111111",
-        redis=None,
-    )
-
-    update_dto2 = _find_synthesis_update(fake_repo.update_execution.call_args_list)
-
-    run2_tokens = update_dto2.cumulative_synthesis_tokens
-    run2_cost = update_dto2.cumulative_synthesis_cost
-    run2_estimate = update_dto2.cost_estimate
-
-    assert run2_tokens is not None and run2_tokens >= run1_tokens
-    assert run2_cost is not None and run2_cost >= run1_cost
-    assert run2_estimate == pytest.approx(1.85 + run2_cost)
+        assert run2_tokens is not None and run2_tokens >= run1_tokens
+        assert run2_cost is not None and run2_cost >= run1_cost
+        assert run2_estimate == pytest.approx(1.85 + run2_cost)

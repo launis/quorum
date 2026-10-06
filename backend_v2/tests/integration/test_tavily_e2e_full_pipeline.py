@@ -11,8 +11,6 @@ Tests the complete lifecycle:
 import _socket
 import socket
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
-
 import pytest
 
 from backend_v2.core.hook_registry import (
@@ -34,6 +32,7 @@ from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture(autouse=True)
