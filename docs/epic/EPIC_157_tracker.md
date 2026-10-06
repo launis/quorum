@@ -84,13 +84,20 @@
   - [x] Step 4.5: Keyword-Injected Repository Mocks Eradication (Census D)
   - [x] Step 4.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 4 test contracts, unit tests (5,091 passed in backend_v2, 97.67% total line coverage exceeding 90% threshold), SDUI semantic parity, 0 AST violations, and 10/10 backend audit stages.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/04_phase4_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/04_phase4_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 5: Test Persistence Migration — Orchestrator & DAG
 **Plan:** @[docs/epic/tasks_EPIC_157/05_phase5_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=5`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=5`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [ ] Step 5.0: Strategic Alignment & Persistence Census Probe
+  - [ ] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
+  - [ ] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
+  - [ ] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
+  - [ ] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)
+  - [ ] Step 5.5: Concurrency, Fuzzer & Logic Suites Persistence Migration (Census A & I)
+  - [ ] Step 5.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
@@ -300,6 +307,12 @@
 | Service & Studio Persistence Emulation-Fake Migration | test_blueprint.py, test_execution.py, test_execution_resumability.py, test_report_service.py, test_ingress_service.py, test_output_profile_service.py, test_workflow_service.py, test_auth.py, test_usage_service.py | Phase 4, Step 4 | Census A=0, Census I=0 across target files | [OK] |
 | Keyword-Injected Repository Mocks Eradication | test_execution.py, test_security.py, test_legacy_render_service.py | Phase 4, Step 5 | Census D=0 across target files | [OK] |
 | Phase 4 Quality Gates, Baseline Ratchet & SDUI Parity | 23 target files across services, studio, execution & database suites | Phase 4, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 173 | [OK] |
+| Orchestrator Fixtures Modernization & cast(Any) Eradication | test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_concurrency.py, test_rag_preflight_service.py | Phase 5, Step 1 | Typed fixtures, Census X=0 | [NOK] |
+| Census B Attribute Replacements & Fault Injection | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_preflight.py, strategies/test_llm.py, test_dag_taskgroup.py | Phase 5, Step 2 | Census B=0, localized pytest passes | [NOK] |
+| Keyword-Injected Repository Mocks Eradication (Census D) | 14 orchestrator and strategy test files | Phase 5, Step 3 | Census D=0 across target files | [NOK] |
+| Orchestrator & Strategy Persistence Emulation-Fake Migration | test_dag_executor.py, test_dag_executor_atom_ceiling.py, test_dag_executor_mcp_audit.py, test_dag_executor_preflight.py, strategies/test_llm.py, strategies/test_llm_cost_tracking.py, strategies/test_logic.py, test_synthesis_distiller.py | Phase 5, Step 4 | Census A=0, Census I=0 across target files | [NOK] |
+| Concurrency, Fuzzer & Logic Suites Persistence Migration | test_dag_executor_prompt_blocks.py, test_dag_taskgroup.py, test_concurrency_fuzzer.py, test_logic.py | Phase 5, Step 5 | Census A=0, Census I=0 across target files | [NOK] |
+| Phase 5 Quality Gates, Baseline Ratchet & SDUI Parity | 20 target files across orchestrator, strategy, and concurrency suites | Phase 5, Step 6 | Global backend audit loop & SDUI parity pass, D ratcheted to 21 | [NOK] |
 
 ---
 
@@ -307,8 +320,8 @@
 
 ## Achieved
 - Formally drafted `EPIC 157: Zero Permissive Typing & Test Persistence Modernization` at `@[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md]`.
-- Created detailed, fully verified implementation plans for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`), and Phase 4 (`@[docs/epic/tasks_EPIC_157/04_phase4_plan.md]`).
-- Successfully created `implementation_plan.md` and `task.md` system artifacts for Phase 3 and Phase 4.
+- Created detailed, fully verified implementation plans for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`), Phase 4 (`@[docs/epic/tasks_EPIC_157/04_phase4_plan.md]`), and Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`).
+- Successfully created `implementation_plan.md` and `task.md` system artifacts for Phase 3, Phase 4, and Phase 5.
 - Successfully implemented and verified Phase 1, Phase 2, and Phase 3 (all with PASSED Tier 8 Red Team audits).
 - Successfully implemented and verified Phase 4:
   - Step 4.0: Baseline persistence census probe completed (A=419, B=45, C=7, I=9 files, D=269, Fixtures=6 returning AsyncMock, Driver Mocks=1 file, Increment Version Mocks=3 files, dict_to_obj=8 occurrences).
@@ -318,21 +331,25 @@
   - Step 4.4: Eradicated 419 Census A assignments and Census I imports across 9 target files (`test_blueprint.py`, `test_execution.py`, `test_execution_resumability.py`, `test_report_service.py`, `test_ingress_service.py`, `test_output_profile_service.py`, `test_workflow_service.py`, `test_auth.py`, `test_usage_service.py`), seeding real domain models and snapshot fakes.
   - Step 4.5: Eradicated all 269 Census D keyword-injected repository mocks across `test_execution.py` (182), `test_security.py` (80), and `test_legacy_render_service.py` (7).
   - Step 4.6: Verified zero residual census matches on all 23 Phase 4 target files: A=0, B=0, C=0, I=0, D=0, dict_to_obj=0 (100% eradicated). Verified SDUI semantic parity (`test_sdui_semantic_parity.py`) passing in 16.50s. Ratcheted repo-wide residual debt ceilings in `scripts/audit_warning_baseline.py` monotonically: D lowered from 362 to 173 (-189, cumulative -269 from baseline), T lowered from 403 to 397 (-6), P lowered from 359 to 358 (-1). Verified 10/10 stages in global backend audit loop (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`) passing with 5,091 passing tests, 97.67% total test coverage, zero AST violations, and clean MyPy strict validation.
+- Successfully completed Tier 0 Research & Red-Teaming for Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`):
+  - Verified exact live census counts across all 20 target files: Census A=161, Census B=10, Census C=0, Census D=152, Census I=11, Census X=1, Fixtures=2.
+  - Falsified potential fault injection and in-memory execution update failure modes, proving `BaseInMemoryRepository.inject_fault` decrements trigger counts cleanly and executes deterministic failure branches.
+  - Aligned exact AST line bounds for all target files (specifically `test_rag_preflight_service.py#L111-L136`) and verified 100% compliance with `scripts/audit_markdown_boundaries.py` (passing with exit code 0).
+  - Validated that eradicating 152 Census D mocks in Phase 5 reduces repo-wide Census D ceiling from 173 to 21, preparing the exact baseline for Phase 6.
 
 ## Learned
 - Strict adherence to the 13-phase architecture requires zero permissive typing, absolute eradication of loose dicts, eradication of inline `# noqa` and `# type: ignore` suppressions, and full-duplex DTO parity with Flutter.
 - In `BaseInMemoryRepository`, `self._clone(item)` provides Rust-accelerated validation/dumping for Pydantic models while safely handling `dict` instances via deep copy for negative configuration error test fixtures.
-- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 269 from 442 to 173).
-- In `test_blueprint.py`, `dict_to_obj` was used in 5 call sites to bypass Pydantic model validation with `SimpleNamespace`. Migrating to typed `Workflow.model_validate` or `Workflow(...)` requires valid Stripe IDs (`wor_...`) and `I18nText`.
-- In `test_repositories_v2.py`, `mock_driver = AsyncMock(spec=StorageDriver)` asserted mock calls without verifying real database persistence; migrating to `TinyDBDriver(str(tmp_path / "test_repo_v2.json"))` verifies real roundtrip persistence across all 7 repository implementations.
-- In `test_agent.py`, `test_prompt_block.py`, and `test_task_blueprint.py`, `repo._increment_version = MagicMock(...)` with `# type: ignore[method-assign]` bypassed version calculation; over a real `TinyDBDriver` on `tmp_path`, `_increment_version` executes naturally and updates are verified on disk.
-- In `test_lifecycle_service.py` and `test_override_service.py`, 39 Census B attribute replacements were eradicated by seeding records directly into `InMemoryExecutionRepository` via `create_execution` and using `repo.inject_fault()` for negative testing.
-- `InMemorySystemRepository` must provide `remove_system_config(config_id)` to support clean state resets in test handlers without reflection.
+- When Census D, K, and X are eradicated from test suites, `CURRENT_RESIDUAL_CEILINGS` in `scripts/audit_warning_baseline.py` must be ratcheted down monotonically to lock in quality gains permanently (Census D ceiling lowered by 269 from 442 to 173, and Phase 5 will lower it by 152 from 173 to 21).
+- In `BaseInMemoryRepository.inject_fault`, `self._check_fault(method_name)` executes at the start of each repository method before database or in-memory collection lookups, guaranteeing deterministic error injection even when entities are not pre-seeded.
+- In `scripts/audit_markdown_boundaries.py`, MBD004 computes `node_start` as `min(d.lineno for d in node.decorator_list)` when decorators exist; line spans must encompass `@pytest.mark.asyncio` through the function end line.
+- `InMemoryUnifiedWorkflowRepository` delegates all step methods (`get_step_by_id`, `get_step`, `save_step`, `create_step`, `seed_raw_step`) to `self._workflows` and all execution methods (`get_execution`, `update_execution`, `create_execution`) to `self._executions`, enabling single-instance injection for all 8 `StrategyDependencies` and `DAGExecutor` dependencies.
 
 ## Remaining
-- Perform Tier 8 Red Team Audit for Phase 4 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_157/04_phase4_plan.md] @[docs/epic/EPIC_157_tracker.md]`).
-- Plan, Research, Execute & Audit Phases 5 through 13.
+- Execute & Audit Phase 5 (`/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`).
+- Plan, Research, Execute & Audit Phases 6 through 13.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/04_phase4_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto
+
 
