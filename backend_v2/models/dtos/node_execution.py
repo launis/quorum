@@ -61,15 +61,17 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         Returns:
             ExecutionUpdateDTO populated with instance fields.
         """
-        return ExecutionUpdateDTO(
-            status=self.status,
-            execution_trace=self.execution_trace,
-            step_states=self.step_states,
-            frozen_context=self.frozen_context,
-            context_variables=self.context_variables,
-            error=self.error,
-            steps=self.steps,
-        )
+        kwargs: dict[str, Any] = {
+            "status": self.status,
+            "execution_trace": self.execution_trace,
+            "step_states": self.step_states,
+            "frozen_context": self.frozen_context,
+            "context_variables": self.context_variables,
+            "error": self.error,
+        }
+        if self.steps is not None:
+            kwargs["steps"] = self.steps
+        return ExecutionUpdateDTO(**kwargs)
 
 
 class LogicNodeStateDTO(V2CoreBase):

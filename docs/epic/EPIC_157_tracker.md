@@ -94,8 +94,8 @@
   - [x] Step 5.0: Strategic Alignment & Persistence Census Probe
   - [x] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
   - [x] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
-  - [ ] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
-  - [ ] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)
+  - [x] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
+  - [x] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)
   - [ ] Step 5.5: Concurrency, Fuzzer & Logic Suites Persistence Migration (Census A & I)
   - [ ] Step 5.6: Two-Stage Testing Pipeline & Zero-Bypass Verification Gate
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.

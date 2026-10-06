@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
@@ -17,7 +18,7 @@ from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
@@ -28,36 +29,43 @@ def mock_compiler() -> MagicMock:
 
 
 @pytest.fixture
-def mock_repo() -> InMemoryBlueprintTransformerRepository:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_all_prompt_blocks.return_value = []
-    repo.get_output_profile_by_id.return_value = {
-        "id": "prof_0123456789abcdef0123456789abcdef",
-        "slug": "test",
-        "name": {"translations": {"en": "Test"}},
-        "workflow_id": "wf_123",
-        "organization_id": "root",
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_1234567890123456",
-                "title": {"translations": {"en": "Test"}},
-                "target_blocks": ["*"],
-            }
-        ],
-    }
-    repo.get_workflow.return_value = {
-        "id": "wf_0123456789abcdef0123456789abcdef",
-        "slug": "test",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prof",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "steps": [],
-    }
-    repo.get_execution.return_value = None
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.set_output_profiles(
+        [
+            OutputProfile.model_validate(
+                {
+                    "id": "prof_0123456789abcdef0123456789abcdef",
+                    "slug": "test",
+                    "name": {"translations": {"en": "Test"}},
+                    "workflow_id": "wf_123",
+                    "organization_id": "root",
+                    "matrix_synthesis_groups": [
+                        {
+                            "id": "grp_1234567890123456",
+                            "title": {"translations": {"en": "Test"}},
+                            "target_blocks": ["*"],
+                        }
+                    ],
+                }
+            )
+        ]
+    )
+    repo.seed_raw_workflow(
+        "wf_0123456789abcdef0123456789abcdef",
+        {
+            "id": "wf_0123456789abcdef0123456789abcdef",
+            "slug": "test",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "steps": [],
+        },
+    )
     return repo
 
 
@@ -168,13 +176,15 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
 
     context = MagicMock()
     context.execution_id = "exec_1"
-    context.workflow_id = "wf_1"
+    context.workflow_id = "wf_0123456789abcdef0123456789abcdef"
+    context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
+    context.target_locale = "en"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
+    step_payload = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -183,7 +193,10 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
     }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.seed_raw_step("stp_0123456789abcdef0123456789abcdef", step_payload)
+    mock_repo.seed_raw_step("bp_cost", step_payload)
+    mock_repo.seed_raw_prompt_block(
+        "blk_0123456789abcdef0123456789abcdef",
         {
             "id": "blk_0123456789abcdef0123456789abcdef",
             "slug": "test_block",
@@ -193,6 +206,9 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
             "instruction_text": "Test Block AI Desc",
         },
+    )
+    mock_repo.seed_raw_prompt_block(
+        "blk_573802341db9d68c",
         {
             "id": "blk_573802341db9d68c",
             "slug": "zero_trust_extraction_protocol",
@@ -202,7 +218,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
             "instruction_text": "Strict extraction protocol.",
         },
-    ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}

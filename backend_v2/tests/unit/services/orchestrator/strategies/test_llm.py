@@ -14,10 +14,7 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-from backend_v2.tests.fakes.in_memory_repositories import (
-    InMemoryBlueprintTransformerRepository,
-    InMemoryUnifiedWorkflowRepository,
-)
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 class DummySynthesisOutputDTO(BaseModel):
@@ -26,70 +23,80 @@ class DummySynthesisOutputDTO(BaseModel):
 
 
 @pytest.fixture
-def mock_repo() -> InMemoryBlueprintTransformerRepository:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_all_prompt_blocks.return_value = []
-    repo.get_output_profile_by_id.return_value = {
-        "id": "prof_0123456789abcdef0123456789abcdef",
-        "slug": "test",
-        "name": {"translations": {"en": "Test"}},
-        "workflow_id": "wf_123",
-        "organization_id": "root",
-        "matrix_synthesis_groups": [
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.set_output_profiles(
+        [
             {
-                "id": "grp_1234567890123456",
-                "title": {"translations": {"en": "Test"}},
-                "target_blocks": ["*"],
+                "id": "prof_0123456789abcdef0123456789abcdef",
+                "slug": "test",
+                "name": {"translations": {"en": "Test"}},
+                "workflow_id": "wf_123",
+                "organization_id": "root",
+                "matrix_synthesis_groups": [
+                    {
+                        "id": "grp_1234567890123456",
+                        "title": {"translations": {"en": "Test"}},
+                        "target_blocks": ["*"],
+                    }
+                ],
             }
-        ],
-    }
-    repo.get_workflow.return_value = {
-        "id": "wf_0123456789abcdef",
-        "slug": "test",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prof",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "steps": [],
-    }
-    repo.get_execution.return_value = None
-    repo.get_model_registry.return_value = {
-        "id": "sys_e26807f3bfa3454d",
-        "name": "Default Stack",
-        "tier_definitions": {
-            "fast": {
-                "provider": "google",
-                "model_name": "gemini-2.5-flash",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
+        ]
+    )
+    repo.set_workflow(
+        {
+            "id": "wf_0123456789abcdef",
+            "slug": "test",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "steps": [],
+        }
+    )
+    from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+
+    reg = SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_e26807f3bfa3454d",
+            "name": "Default Stack",
+            "tier_definitions": {
+                "fast": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-flash",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "balanced": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-flash",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "deep": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-pro",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "reasoning": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-pro",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
             },
-            "balanced": {
-                "provider": "google",
-                "model_name": "gemini-2.5-flash",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-            "deep": {
-                "provider": "google",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-            "reasoning": {
-                "provider": "google",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-        },
-    }
+        }
+    )
+    repo.set_model_registry(reg, "cfg_model_registry_01")
+    repo.set_model_registry(reg, "sys_e26807f3bfa3454d")
     return repo
 
 
@@ -172,7 +179,6 @@ async def test_execute_fails_fast_if_blueprint_not_found(llm_strategy: LLMNodeSt
     context.execution_id = "exec_1"
 
     # Mock DB returning None
-    mock_repo.get_step_by_id.return_value = None
 
     with pytest.raises(AppException) as exc_info:
         await llm_strategy.execute(
@@ -207,15 +213,17 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test", "fi": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test", "fi": "Test"}},
+            "description": {"translations": {"en": "Test", "fi": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+        }
+    )
 
     # Needs to bypass pre-hooks smoothly
     mock_hook_state = MagicMock()
@@ -258,28 +266,32 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test", "fi": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["missing_block_999"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test", "fi": "Test"}},
+            "description": {"translations": {"en": "Test", "fi": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["missing_block_999"],
+        }
+    )
 
     # DB returns only the protocol block
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_573802341db9d68c",
-            "slug": "zero_trust_extraction_protocol",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "instruction_text": "Strict extraction protocol.",
-        }
-    ]
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust_extraction_protocol",
+                "category_id": "system_rule",
+                "type": "instruction",
+                "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "instruction_text": "Strict extraction protocol.",
+            }
+        ]
+    )
 
     # Needs to bypass pre-hooks smoothly
     mock_hook_state = MagicMock()
@@ -328,47 +340,53 @@ async def test_execute_success_path_structured_output(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test", "fi": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test", "fi": "Test"}},
+            "description": {"translations": {"en": "Test", "fi": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_0123456789abcdef0123456789abcdef",
+                "slug": "test_block",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Label", "fi": "Label"}},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+                "instruction_text": "Test Block AI Desc",
+            },
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust_extraction_protocol",
+                "category_id": "system_rule",
+                "type": "instruction",
+                "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
+                "instruction_text": "Strict extraction protocol.",
+            },
+        ]
+    )
+    mock_repo.set_workflow(
         {
-            "id": "blk_0123456789abcdef0123456789abcdef",
-            "slug": "test_block",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Label", "fi": "Label"}},
-            "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "instruction_text": "Test Block AI Desc",
-        },
-        {
-            "id": "blk_573802341db9d68c",
-            "slug": "zero_trust_extraction_protocol",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "description": {"translations": {"en": "Zero-Trust", "fi": "Zero-Trust"}},
-            "instruction_text": "Strict extraction protocol.",
-        },
-    ]
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_0123456789abcdef0123456789abcdef",
-        "slug": "test",
-        "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "description": {"translations": {"en": "Test", "fi": "Test"}},
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prf_123",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-    }
+            "id": "wf_0123456789abcdef0123456789abcdef",
+            "slug": "test",
+            "name": {"translations": {"en": "Test", "fi": "Test"}},
+            "description": {"translations": {"en": "Test", "fi": "Test"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prf_123",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+        }
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
@@ -430,67 +448,71 @@ async def test_llm_strategy_missing_atoms_crash(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_matrix",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_2222222222222222",
-        "criteria_block_ids": ["blk_1111111111111111"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_1111111111111111",
-            "slug": "matrix_block",
-            "category_id": "matrix",
-            "type": "float",
-            "label": {"translations": {"en": "Test"}},
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_matrix",
+            "name": {"translations": {"en": "Test"}},
             "description": {"translations": {"en": "Test"}},
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "bad",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Test"}},
-                            "tda_assertions": [
-                                {
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                    "concept_description": "mock concept description",
-                                }
-                            ],
-                        }
-                    ],
-                },
-                {
-                    "score": 5,
-                    "ai_label": "good",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Test"}},
-                            "tda_assertions": [
-                                {
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                    "concept_description": "mock concept description",
-                                }
-                            ],
-                        }
-                    ],
-                },
-            ],
-        },
-        {
-            "id": "blk_2222222222222222",
-            "slug": "system_block",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"translations": {"en": "Test"}},
-            "description": {"translations": {"en": "Test"}},
-        },
-    ]
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_2222222222222222",
+            "criteria_block_ids": ["blk_1111111111111111"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_1111111111111111",
+                "slug": "matrix_block",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Test"}},
+                "description": {"translations": {"en": "Test"}},
+                "scales": [
+                    {
+                        "score": 1,
+                        "ai_label": "bad",
+                        "claims": [
+                            {
+                                "label": {"translations": {"en": "Test"}},
+                                "tda_assertions": [
+                                    {
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                        "concept_description": "mock concept description",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "ai_label": "good",
+                        "claims": [
+                            {
+                                "label": {"translations": {"en": "Test"}},
+                                "tda_assertions": [
+                                    {
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                        "concept_description": "mock concept description",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+            {
+                "id": "blk_2222222222222222",
+                "slug": "system_block",
+                "category_id": "system_rule",
+                "type": "instruction",
+                "label": {"translations": {"en": "Test"}},
+                "description": {"translations": {"en": "Test"}},
+            },
+        ]
+    )
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}  # Missing shuffled_atoms
     mock_hook_state.global_context_vars = {}
@@ -537,67 +559,71 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_matrix",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_2222222222222222",
-        "criteria_block_ids": ["blk_1111111111111111"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_1111111111111111",
-            "slug": "matrix_block",
-            "category_id": "matrix",
-            "type": "float",
-            "label": {"translations": {"en": "Test"}},
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_matrix",
+            "name": {"translations": {"en": "Test"}},
             "description": {"translations": {"en": "Test"}},
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "bad",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Test"}},
-                            "tda_assertions": [
-                                {
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                    "concept_description": "mock concept description",
-                                }
-                            ],
-                        }
-                    ],
-                },
-                {
-                    "score": 5,
-                    "ai_label": "good",
-                    "claims": [
-                        {
-                            "label": {"translations": {"en": "Test"}},
-                            "tda_assertions": [
-                                {
-                                    "inverse_evidence": False,
-                                    "aggregation_mode": "EXISTS",
-                                    "concept_description": "mock concept description",
-                                }
-                            ],
-                        }
-                    ],
-                },
-            ],
-        },
-        {
-            "id": "blk_2222222222222222",
-            "slug": "system_block",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"translations": {"en": "Test"}},
-            "description": {"translations": {"en": "Test"}},
-        },
-    ]
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_2222222222222222",
+            "criteria_block_ids": ["blk_1111111111111111"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_1111111111111111",
+                "slug": "matrix_block",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Test"}},
+                "description": {"translations": {"en": "Test"}},
+                "scales": [
+                    {
+                        "score": 1,
+                        "ai_label": "bad",
+                        "claims": [
+                            {
+                                "label": {"translations": {"en": "Test"}},
+                                "tda_assertions": [
+                                    {
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                        "concept_description": "mock concept description",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    {
+                        "score": 5,
+                        "ai_label": "good",
+                        "claims": [
+                            {
+                                "label": {"translations": {"en": "Test"}},
+                                "tda_assertions": [
+                                    {
+                                        "inverse_evidence": False,
+                                        "aggregation_mode": "EXISTS",
+                                        "concept_description": "mock concept description",
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+            },
+            {
+                "id": "blk_2222222222222222",
+                "slug": "system_block",
+                "category_id": "system_rule",
+                "type": "instruction",
+                "label": {"translations": {"en": "Test"}},
+                "description": {"translations": {"en": "Test"}},
+            },
+        ]
+    )
 
 
 @pytest.mark.asyncio
@@ -626,87 +652,95 @@ async def test_execute_with_role_and_persona_and_protocol(
     context.expected_inputs = []
     context.strictness_level = 1
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "full_step",
-        "name": {"translations": {"en": "Full Step", "fi": "Täysi vaihe"}},
-        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-        "role_block_id": "blk_1111111111111111",
-        "execution_persona_block_id": "blk_2222222222222222",
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "full_step",
+            "name": {"translations": {"en": "Full Step", "fi": "Täysi vaihe"}},
+            "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+            "role_block_id": "blk_1111111111111111",
+            "execution_persona_block_id": "blk_2222222222222222",
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_1111111111111111",
-            "slug": "role_lead",
-            "category_id": "agent_role",
-            "type": "instruction",
-            "label": {"translations": {"en": "Role"}},
-            "description": {"translations": {"en": "Role"}},
-            "role_enforcement": "Act as an expert auditor.",
-        },
-        {
-            "id": "blk_2222222222222222",
-            "slug": "persona_strict",
-            "category_id": "execution_persona",
-            "type": "instruction",
-            "label": {"translations": {"en": "Persona"}},
-            "description": {"translations": {"en": "Persona"}},
-            "role_enforcement": "Strict Persona.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-        {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate clarity.",
-        },
-    ]
-
-    mock_repo.get_workflow.return_value = {
-        "id": "wf_0123456789abcdef0123456789abcdef",
-        "slug": "test_wf",
-        "name": {"translations": {"en": "Workflow"}},
-        "description": {"translations": {"en": "Workflow"}},
-        "status": "draft",
-        "version": 1,
-        "default_profile_id": "prof_123",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "steps": [
+    mock_repo.set_prompt_blocks(
+        [
             {
-                "id": "stp_0123456789abcdef0123456789abcdef",
-                "task_blueprint": "bp_full",
-                "depends_on": [],
-                "input_mappings": {},
-            }
-        ],
-    }
+                "id": "blk_1111111111111111",
+                "slug": "role_lead",
+                "category_id": "agent_role",
+                "type": "instruction",
+                "label": {"translations": {"en": "Role"}},
+                "description": {"translations": {"en": "Role"}},
+                "role_enforcement": "Act as an expert auditor.",
+            },
+            {
+                "id": "blk_2222222222222222",
+                "slug": "persona_strict",
+                "category_id": "execution_persona",
+                "type": "instruction",
+                "label": {"translations": {"en": "Persona"}},
+                "description": {"translations": {"en": "Persona"}},
+                "role_enforcement": "Strict Persona.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate clarity.",
+            },
+        ]
+    )
+
+    mock_repo.set_workflow(
+        {
+            "id": "wf_0123456789abcdef0123456789abcdef",
+            "slug": "test_wf",
+            "name": {"translations": {"en": "Workflow"}},
+            "description": {"translations": {"en": "Workflow"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_123",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "steps": [
+                {
+                    "id": "stp_0123456789abcdef0123456789abcdef",
+                    "task_blueprint": "bp_full",
+                    "depends_on": [],
+                    "input_mappings": {},
+                }
+            ],
+        }
+    )
     from unittest.mock import AsyncMock, patch
 
     from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
-    mock_repo.get_execution.return_value = ExecutionRecord(
-        id="exe_0123456789abcdef0123456789abcdef",
-        workflow_id="wf_0123456789abcdef0123456789abcdef",
-        output_profile_id="prof_123",
-        target_locale="fi",
-        metadata=ExecutionMetadata(),
-        source_identity_manifest={"inputs": "Input Document"},
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_0123456789abcdef0123456789abcdef",
+            workflow_id="wf_0123456789abcdef0123456789abcdef",
+            output_profile_id="prof_123",
+            target_locale="fi",
+            metadata=ExecutionMetadata(),
+            source_identity_manifest={"inputs": "Input Document"},
+        )
     )
 
     mock_engine = llm_strategy._engine
@@ -774,37 +808,41 @@ async def test_execute_synthesis_engine_path(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "synth_step",
-        "name": {"translations": {"en": "Synth"}},
-        "description": {"translations": {"en": "Synth"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-        "pre_hooks": ["synthesis_distiller_hook"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "synth_step",
+            "name": {"translations": {"en": "Synth"}},
+            "description": {"translations": {"en": "Synth"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+            "pre_hooks": ["synthesis_distiller_hook"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
     from backend_v2.models.enums import ExecutionStatus
@@ -882,43 +920,47 @@ async def test_execute_anomaly_retry_flow(
     projector.snapshot = []
 
     context = MagicMock()
-    context.execution_id = "exec_1"
+    context.execution_id = "exe_0123456789abcdef0123456789abcdef"
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "retry_step",
-        "name": {"translations": {"en": "Retry"}},
-        "description": {"translations": {"en": "Retry"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "retry_step",
+            "name": {"translations": {"en": "Retry"}},
+            "description": {"translations": {"en": "Retry"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
     from backend_v2.models.enums import ExecutionStatus
@@ -933,7 +975,7 @@ async def test_execute_anomaly_retry_flow(
             "step_retry": ExecutionStepState(id="step_retry", label="Retry Step", status=ExecutionStatus.RUNNING)
         },
     )
-    mock_repo.get_execution.return_value = mock_exec_record
+    mock_repo.set_execution(mock_exec_record)
 
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
@@ -982,7 +1024,7 @@ async def test_execute_anomaly_retry_flow(
 
     assert len(traces) == 1
     assert traces[0].content["output"] == "Success after retry"
-    mock_repo.update_execution.assert_called_once()
+    assert mock_repo.get_call_count("update_execution") == 1
 
 
 @pytest.mark.asyncio
@@ -1001,16 +1043,18 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": "blk_1111111111111111",
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = []
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "role_block_id": "blk_1111111111111111",
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks([])
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1050,27 +1094,31 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": None,
-        "execution_persona_block_id": "blk_2222222222222222",
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "role_block_id": None,
+            "execution_persona_block_id": "blk_2222222222222222",
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
         }
-    ]
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            }
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1114,35 +1162,39 @@ async def test_execute_fails_fast_on_missing_output_profile(
     context.target_locale = "en"
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate clarity.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
-    mock_repo.get_output_profile_by_id.return_value = None
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate clarity.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+    mock_repo.set_output_profile(None)
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1195,34 +1247,38 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate clarity.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate clarity.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1329,7 +1385,6 @@ def test_configure_llm_context_hook_success() -> None:
 
 def test_configure_llm_context_hook_empty_state() -> None:
     from typing import cast
-    from unittest.mock import MagicMock
 
     from backend_v2.core.hook_registry import HookDependencies, HookState
     from backend_v2.hooks.llm import configure_llm_context_hook
@@ -1354,7 +1409,7 @@ def test_configure_llm_context_hook_empty_state() -> None:
 
 
 def test_configure_llm_context_hook_error() -> None:
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     import pytest
 
@@ -1417,34 +1472,38 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
     context.target_locale = ""
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1487,36 +1546,40 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
-    mock_repo.get_execution.side_effect = RuntimeError("DB connection dropped")
+    mock_repo.inject_fault("get_execution", RuntimeError("DB connection dropped"))
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1568,15 +1631,17 @@ async def test_execute_matrix_chunking_flow(
     context.expected_inputs = []
     context.strictness_level = 1
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "matrix_step",
-        "name": {"translations": {"en": "Matrix"}},
-        "description": {"translations": {"en": "Matrix"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_5555555555555555"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "matrix_step",
+            "name": {"translations": {"en": "Matrix"}},
+            "description": {"translations": {"en": "Matrix"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_5555555555555555"],
+        }
+    )
 
     matrix_block_dict = {
         "id": "blk_5555555555555555",
@@ -1603,34 +1668,38 @@ async def test_execute_matrix_chunking_flow(
         ],
     }
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        matrix_block_dict,
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
-
-    mock_repo.get_output_profile_by_id.return_value = {
-        "id": "prof_0123456789abcdef0123456789abcdef",
-        "slug": "exec_profile",
-        "workflow_id": "wf_0123456789abcdef0123456789abcdef",
-        "name": {"translations": {"en": "Profile"}},
-        "description": {"translations": {"en": "Profile"}},
-        "tone_instruction": "Professional and analytical.",
-        "matrix_synthesis_groups": [
+    mock_repo.set_prompt_blocks(
+        [
+            matrix_block_dict,
             {
-                "id": "grp_1234567890123456",
-                "title": {"translations": {"en": "Test"}},
-                "target_blocks": ["*"],
-            }
-        ],
-    }
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+
+    mock_repo.set_output_profile(
+        {
+            "id": "prof_0123456789abcdef0123456789abcdef",
+            "slug": "exec_profile",
+            "workflow_id": "wf_0123456789abcdef0123456789abcdef",
+            "name": {"translations": {"en": "Profile"}},
+            "description": {"translations": {"en": "Profile"}},
+            "tone_instruction": "Professional and analytical.",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_1234567890123456",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
+        }
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {
@@ -1643,13 +1712,15 @@ async def test_execute_matrix_chunking_flow(
 
     from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 
-    mock_repo.get_execution.return_value = ExecutionRecord(
-        id="exe_0123456789abcdef0123456789abcdef",
-        workflow_id="wf_0123456789abcdef0123456789abcdef",
-        output_profile_id="prof_123",
-        target_locale="en",
-        metadata=ExecutionMetadata(),
-        source_identity_manifest={"doc_1": "Uploaded Document"},
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_0123456789abcdef0123456789abcdef",
+            workflow_id="wf_0123456789abcdef0123456789abcdef",
+            output_profile_id="prof_123",
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            source_identity_manifest={"doc_1": "Uploaded Document"},
+        )
     )
 
     mock_engine = llm_strategy._engine
@@ -1708,36 +1779,40 @@ async def test_execute_anomaly_retry_exceeded_limit(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "retry_max_step",
-        "name": {"translations": {"en": "Retry Max"}},
-        "description": {"translations": {"en": "Retry Max"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "retry_max_step",
+            "name": {"translations": {"en": "Retry Max"}},
+            "description": {"translations": {"en": "Retry Max"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
@@ -1796,15 +1871,17 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
     context.metadata = ExecutionMetadata()
     context.prompt_blocks = None
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [{"invalid_field": "corrupted_payload"}]
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks([{"invalid_field": "corrupted_payload"}])
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1846,49 +1923,53 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "matrix_step",
-        "name": {"translations": {"en": "Matrix"}},
-        "description": {"translations": {"en": "Matrix"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_5555555555555555"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_5555555555555555",
-            "slug": "eval_matrix",
-            "category_id": "matrix",
-            "type": "float",
-            "label": {"translations": {"en": "Matrix"}},
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "matrix_step",
+            "name": {"translations": {"en": "Matrix"}},
             "description": {"translations": {"en": "Matrix"}},
-            "ai_description": "Analyze.",
-            "theory_grounding": None,
-            "allow_contextual_override": True,
-            "scales": [
-                {
-                    "score": 1,
-                    "ai_label": "LOW",
-                    "claims": [],
-                },
-                {
-                    "score": 5,
-                    "ai_label": "HIGH",
-                    "claims": [],
-                },
-            ],
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_5555555555555555"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_5555555555555555",
+                "slug": "eval_matrix",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Matrix"}},
+                "description": {"translations": {"en": "Matrix"}},
+                "ai_description": "Analyze.",
+                "theory_grounding": None,
+                "allow_contextual_override": True,
+                "scales": [
+                    {
+                        "score": 1,
+                        "ai_label": "LOW",
+                        "claims": [],
+                    },
+                    {
+                        "score": 5,
+                        "ai_label": "HIGH",
+                        "claims": [],
+                    },
+                ],
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {"shuffled_atoms": []}
@@ -1938,36 +2019,40 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     context.expected_inputs = []
     context.strictness_level = 0
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "str_step",
-        "name": {"translations": {"en": "Str Step"}},
-        "description": {"translations": {"en": "Str Step"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "str_step",
+            "name": {"translations": {"en": "Str Step"}},
+            "description": {"translations": {"en": "Str Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = [
-        {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
@@ -2029,35 +2114,39 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "cognitive_tier": "unsupported_nonexistent_tier",
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_4444444444444444",
-            "slug": "criteria_rule",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Criteria"}},
-            "description": {"translations": {"en": "Criteria"}},
-            "instruction_text": "Evaluate.",
-        },
-        {
-            "id": "blk_3333333333333333",
-            "slug": "zero_trust",
-            "category_id": "protocol",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "protocol_instructions": "Zero trust protocol.",
-        },
-    ]
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "cognitive_tier": "unsupported_nonexistent_tier",
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -2163,17 +2252,19 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     context.strictness_level = 0
     context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "packed_step",
-        "name": {"translations": {"en": "Packed Step"}},
-        "description": {"translations": {"en": "Packed Step"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "packed_step",
+            "name": {"translations": {"en": "Packed Step"}},
+            "description": {"translations": {"en": "Packed Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
 
-    mock_repo.get_all_prompt_blocks.return_value = prompt_blocks_raw
+    mock_repo.set_prompt_blocks(prompt_blocks_raw)
 
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(
@@ -2295,23 +2386,25 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
     context = MagicMock()
     context.execution_id = "exec_step_scoped"
-    context.workflow_id = "wf_step_scoped"
+    context.workflow_id = "wf_0123456789abcdef"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
     context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "scoped_step",
-        "name": {"translations": {"en": "Scoped Step"}},
-        "description": {"translations": {"en": "Scoped Step"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_3333333333333333",
-        "criteria_block_ids": ["blk_4444444444444444"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = prompt_blocks_raw
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "scoped_step",
+            "name": {"translations": {"en": "Scoped Step"}},
+            "description": {"translations": {"en": "Scoped Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(prompt_blocks_raw)
 
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(
@@ -2454,26 +2547,30 @@ async def test_execute_fails_fast_on_missing_protocol_block(
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_0123456789abcdef0123456789abcdef",
-            "slug": "criteria_block",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Label"}},
-            "description": {"translations": {"en": "Desc"}},
-            "instruction_text": "Criteria block",
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         }
-    ]
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_0123456789abcdef0123456789abcdef",
+                "slug": "criteria_block",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Label"}},
+                "description": {"translations": {"en": "Desc"}},
+                "instruction_text": "Criteria block",
+            }
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -2517,35 +2614,39 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
     context.metadata = ExecutionMetadata()
     context.cognitive_tier = None
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_0123456789abcdef0123456789abcdef",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test"}},
-        "description": {"translations": {"en": "Test"}},
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-    }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    mock_repo.set_step(
         {
-            "id": "blk_0123456789abcdef0123456789abcdef",
-            "slug": "criteria_block",
-            "category_id": "system_rule",
-            "type": "string",
-            "label": {"translations": {"en": "Label"}},
-            "description": {"translations": {"en": "Desc"}},
-            "instruction_text": "Criteria block",
-        },
-        {
-            "id": "blk_573802341db9d68c",
-            "slug": "protocol_block",
-            "category_id": "system_rule",
-            "type": "instruction",
-            "label": {"translations": {"en": "Protocol"}},
-            "description": {"translations": {"en": "Protocol"}},
-            "instruction_text": "Protocol block",
-        },
-    ]
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_0123456789abcdef0123456789abcdef",
+                "slug": "criteria_block",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Label"}},
+                "description": {"translations": {"en": "Desc"}},
+                "instruction_text": "Criteria block",
+            },
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "protocol_block",
+                "category_id": "system_rule",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "instruction_text": "Protocol block",
+            },
+        ]
+    )
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}

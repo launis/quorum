@@ -969,7 +969,7 @@ class LLMNodeStrategy(NodeStrategy):
                     exec_record = cast(Any, exec_record_raw)
                     if exec_record and step.id in exec_record.step_states:
                         new_state = exec_record.step_states[step.id].model_copy(
-                            update={"status": "processing", "message_code": "event_llm_anomaly_retry"}
+                            update={"status": ExecutionStatus.RUNNING, "message_code": "event_llm_anomaly_retry"}
                         )
                         new_states = {**exec_record.step_states, step.id: new_state}
                         await self.exec_repo.update_execution(

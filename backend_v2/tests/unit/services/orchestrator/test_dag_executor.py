@@ -17,24 +17,27 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_step_by_id.return_value = {
-        "id": "blp_1234567890abcdef",
-        "type": "logic",
-        "slug": "mock_step",
-        "name": {"translations": {"en": "Mock Step"}},
-        "description": {"translations": {"en": "Mock"}},
-        "hook": "mock_hook",
-    }
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    repo = InMemoryUnifiedWorkflowRepository()
+    repo.seed_raw_step(
+        "blp_1234567890abcdef",
+        {
+            "id": "blp_1234567890abcdef",
+            "type": "logic",
+            "slug": "mock_step",
+            "name": {"translations": {"en": "Mock Step"}},
+            "description": {"translations": {"en": "Mock"}},
+            "hook": "mock_hook",
+        },
+    )
     return repo
 
 
@@ -72,7 +75,6 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         steps=[],
     )
 
-    mock_repo.get_execution.return_value = None
     await mock_repo.create_user(
         User(
             id="usr_test1234",
@@ -136,8 +138,6 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
         steps=[],
     )
 
-    mock_repo.get_execution.return_value = None
-
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute.side_effect = Exception("Hook failed internally")
 
@@ -154,7 +154,24 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
 
 @pytest.mark.asyncio
 async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
-    committer = ExecutionCommitter(mock_repo, "exec_123")
+    from backend_v2.models.domain.execution import ExecutionRecord
+
+    record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wor_1234567890abcdef",
+        output_profile_id="prof_1234567890abcdef",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        status=ExecutionStatus.PENDING,
+        steps=[],
+        step_states={},
+        execution_trace=[],
+    )
+    await mock_repo.save_execution(record)
+    committer = ExecutionCommitter(mock_repo, "exe_1234567890abcdef")
 
     await committer.commit_trace(
         trace=[],
@@ -164,12 +181,12 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
         context_variables=ContextVariablesDTO(variables={"test_key": "test_val"}),
     )
 
-    mock_repo.update_execution.assert_called_once()
-    args, kwargs = mock_repo.update_execution.call_args
-    assert args[0] == "exec_123"
-    assert args[1].status == ExecutionStatus.PENDING
-    assert args[1].error == "test error"
-    assert args[1].context_variables == ContextVariablesDTO(variables={"test_key": "test_val"})
+    assert mock_repo.get_call_count("update_execution") == 1
+    updated = await mock_repo.get_execution("exe_1234567890abcdef")
+    assert updated is not None
+    assert updated.error == "test error"
+    assert updated.context_variables is not None
+    assert updated.context_variables.variables["test_key"] == "test_val"
 
 
 @pytest.mark.asyncio
@@ -199,8 +216,6 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
     )
-
-    mock_repo.get_execution.return_value = None
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -284,8 +299,6 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         ],
     )
 
-    mock_repo.get_execution.return_value = None
-
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
@@ -296,6 +309,20 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
                 state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={"chat_log": "test"})),
             )
         )
+        from backend_v2.services.execution import create_execution_record
+
+        initial_record = create_execution_record(
+            execution_id="exe_1231231231231231",
+            workflow_id=workflow.id,
+            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
+            frozen_context=FrozenContext(),
+            source_identity_manifest={},
+            status=ExecutionStatus.PENDING,
+            steps=[],
+            step_states={},
+        )
+        await mock_repo.save_execution(initial_record)
+
         # Force the node executor to raise a generic exception to trigger the TaskGroup crash
         mock_node_execute.side_effect = Exception("System Crash")
 
@@ -309,17 +336,11 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         assert exc_info.value.status_code == 500
         assert "Workflow failed" in exc_info.value.message
 
-        # Verify that committer was called with FAILED status for the whole execution
-        calls = mock_repo.update_execution.call_args_list
-        final_call_args = calls[-1][0]
-        assert final_call_args[1].status in (ExecutionStatus.FAILED, ExecutionStatus.FAILED.value)
-
-        # Verify that the original error was committed at some point
-        error_recorded = any(
-            isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].error and "System Crash" in call[0][1].error
-            for call in calls
-        )
-        assert error_recorded, "The exception 'System Crash' should have been committed as an error"
+        # Verify that committer persisted FAILED status and error for the whole execution
+        persisted = await mock_repo.get_execution("exe_1231231231231231")
+        assert persisted is not None
+        assert persisted.status == ExecutionStatus.FAILED
+        assert persisted.error is not None and "System Crash" in persisted.error
 
 
 @pytest.mark.asyncio
@@ -334,16 +355,17 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [
+    mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
+    mock_prompt_block_repo.seed_raw_prompt_block(
+        "blk_1234567890abcdef",
         SystemRulePromptBlock(
             id="blk_1234567890abcdef",
             slug="synthesis-rule",
             label=I18nText(translations={"en": "Synthesis Rule"}),
             description=I18nText(translations={"en": "Synthesis Rule Desc"}),
             category_id=PromptBlockCategory.SYSTEM_RULE,
-        )
-    ]
+        ),
+    )
 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -364,17 +386,20 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
         expected_sdui_type="markdown",
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_1234567890abcdef",
-        "slug": "synthesis-slug",
-        "type": "llm",
-        "cognitive_tier": "fast",
-        "pre_hooks": ["atom_flattening_hook"],
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
+    mock_repo.seed_raw_step(
+        "bp_1234567890abcdef",
+        {
+            "id": "bp_1234567890abcdef",
+            "slug": "synthesis-slug",
+            "type": "llm",
+            "cognitive_tier": "fast",
+            "pre_hooks": ["atom_flattening_hook"],
+            "criteria_block_ids": ["blk_1234567890abcdef"],
+            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
     projector = MagicMock()
     projector.snapshot = {}
     semaphore = asyncio.Semaphore(1)
@@ -450,8 +475,7 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
-    mock_workflow_repo.get_step_by_id.return_value = None
+    mock_workflow_repo = InMemoryUnifiedWorkflowRepository()
     deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_workflow_repo,
@@ -494,7 +518,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
+    mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
     matrix_block = MatrixPromptBlock(
         id="blk_1111222233334444",
         slug="matrix-block",
@@ -516,7 +540,8 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         description=I18nText(translations={"en": "Sys Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
     )
-    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [matrix_block, system_block]
+    mock_prompt_block_repo.seed_raw_prompt_block("blk_1111222233334444", matrix_block)
+    mock_prompt_block_repo.seed_raw_prompt_block("blk_5555666677778888", system_block)
 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -576,16 +601,17 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 
-    mock_pb_repo = InMemoryBlueprintTransformerRepository()
-    mock_pb_repo.get_prompt_blocks_by_ids.return_value = [
+    mock_pb_repo = InMemoryUnifiedWorkflowRepository()
+    mock_pb_repo.seed_raw_prompt_block(
+        "blk_1111222233334444",
         SystemRulePromptBlock(
             id="blk_1111222233334444",
             slug="rule",
             label=I18nText(translations={"en": "Rule"}),
             description=I18nText(translations={"en": "Desc"}),
             category_id=PromptBlockCategory.SYSTEM_RULE,
-        )
-    ]
+        ),
+    )
     deps = StrategyDependencies(
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
@@ -603,15 +629,18 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
         task_blueprint="bp_1111222233334444",
         input_mappings={"text": "steps.step1.text_field"},
     )
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_1111222233334444",
-        "slug": "s",
-        "type": "logic",
-        "cognitive_tier": "fast",
-        "hook": "mock_hook",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
+    mock_repo.seed_raw_step(
+        "bp_1111222233334444",
+        {
+            "id": "bp_1111222233334444",
+            "slug": "s",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "hook": "mock_hook",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
     projector = MagicMock()
     projector.snapshot = [
         StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text_field": "hello"})
@@ -676,16 +705,26 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
             ),
         ],
     )
-    mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.side_effect = lambda b_id: {
-        "id": b_id,
-        "slug": b_id,
+    step_data_1 = {
+        "id": "bp_1111222233334444",
+        "slug": "bp_1111222233334444",
         "type": "logic",
         "cognitive_tier": "fast",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
     }
+    step_data_2 = {
+        "id": "bp_5555666677778888",
+        "slug": "bp_5555666677778888",
+        "type": "logic",
+        "cognitive_tier": "fast",
+        "hook": "mock_hook",
+        "name": {"translations": {"en": "en"}},
+        "description": {"translations": {"en": "en"}},
+    }
+    mock_repo.seed_raw_step("bp_1111222233334444", step_data_1)
+    mock_repo.seed_raw_step("bp_5555666677778888", step_data_2)
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -746,17 +785,20 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "synthesis",
-        "type": "llm",
-        "cognitive_tier": "fast",
-        "pre_hooks": ["atom_flattening_hook"],
-        "criteria_block_ids": ["blk_1111222233334444"],
-        "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
+    mock_repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "synthesis",
+            "type": "llm",
+            "cognitive_tier": "fast",
+            "pre_hooks": ["atom_flattening_hook"],
+            "criteria_block_ids": ["blk_1111222233334444"],
+            "extraction_protocol_block_id": "blk_1111222233334444",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
 
     existing_record = ExecutionRecord(
         id="exe_1111222233334444",
@@ -775,7 +817,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         },
         execution_trace=[TraceEvent(step_name="raw_inputs", event_type="input", content={})],
     )
-    mock_repo.get_execution.return_value = existing_record.model_dump(mode="json")
+    await mock_repo.save_execution(existing_record)
+    await mock_repo.save_workflow(workflow)
 
     with (
         patch("backend_v2.services.orchestrator.matrix_reducer.MatrixReducer.reduce_matrix") as mock_matrix_reducer,
@@ -873,18 +916,20 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "synthesis",
-        "type": "llm",
-        "cognitive_tier": "fast",
-        "pre_hooks": ["atom_flattening_hook"],
-        "criteria_block_ids": ["blk_1111222233334444"],
-        "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "synthesis",
+            "type": "llm",
+            "cognitive_tier": "fast",
+            "pre_hooks": ["atom_flattening_hook"],
+            "criteria_block_ids": ["blk_1111222233334444"],
+            "extraction_protocol_block_id": "blk_1111222233334444",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -928,18 +973,20 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "synthesis",
-        "type": "llm",
-        "cognitive_tier": "fast",
-        "pre_hooks": ["atom_flattening_hook"],
-        "criteria_block_ids": ["blk_1111222233334444"],
-        "extraction_protocol_block_id": "blk_1111222233334444",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "synthesis",
+            "type": "llm",
+            "cognitive_tier": "fast",
+            "pre_hooks": ["atom_flattening_hook"],
+            "criteria_block_ids": ["blk_1111222233334444"],
+            "extraction_protocol_block_id": "blk_1111222233334444",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -989,15 +1036,17 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "logic",
-        "type": "logic",
-        "hook": "mock_hook",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "logic",
+            "type": "logic",
+            "hook": "mock_hook",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
 
     decision_event = TraceEvent(
         step_name="stp_1111222233334444",
@@ -1061,15 +1110,17 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "logic",
-        "type": "logic",
-        "hook": "mock_hook",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "stp_1111222233334444",
+        {
+            "id": "stp_1111222233334444",
+            "slug": "logic",
+            "type": "logic",
+            "hook": "mock_hook",
+            "name": {"translations": {"en": "en"}},
+            "description": {"translations": {"en": "en"}},
+        },
+    )
 
     from backend_v2.models.domain.system_config import MCPAuditTrace
 
@@ -1146,15 +1197,21 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    block = SystemRulePromptBlock(
-        id="blk_0123456789abcdef0123456789abcdef",
-        slug="common-block",
-        label=I18nText(translations={"en": "Common"}),
-        description=I18nText(translations={"en": "Common Desc"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-    )
-    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = [block]
+    mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
+    for b_id, slug in [
+        ("blk_0123456789abcdef0123456789abcdef", "common-block"),
+        ("blk_11112222333344445555666677778888", "role-block"),
+        ("blk_22223333444455556666777788889999", "protocol-block"),
+        ("blk_33334444555566667777888899990000", "persona-block"),
+    ]:
+        b = SystemRulePromptBlock(
+            id=b_id,
+            slug=slug,
+            label=I18nText(translations={"en": slug}),
+            description=I18nText(translations={"en": slug}),
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+        )
+        mock_prompt_block_repo.seed_raw_prompt_block(b_id, b)
 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -1206,15 +1263,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
             step_def=step_def,
         )
 
-        mock_prompt_block_repo.get_prompt_blocks_by_ids.assert_called_once_with(
-            [
-                "blk_0123456789abcdef0123456789abcdef",
-                "blk_11112222333344445555666677778888",
-                "blk_22223333444455556666777788889999",
-                "blk_33334444555566667777888899990000",
-            ],
-            strict=True,
-        )
+        assert mock_prompt_block_repo.get_call_count("get_prompt_blocks_by_ids") == 1
 
 
 @pytest.mark.asyncio
@@ -1238,19 +1287,20 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         steps=[step_rule],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_11112222333344445555666677778888",
-        "type": "logic",
-        "cognitive_tier": "fast",
-        "slug": "exec_analysis",
-        "name": {"translations": {"en": "Executive Analysis", "fi": "Johtoryhmän analyysi"}},
-        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-        "hook": "mock_hook",
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "bp_11112222333344445555666677778888",
+        {
+            "id": "bp_11112222333344445555666677778888",
+            "type": "logic",
+            "cognitive_tier": "fast",
+            "slug": "exec_analysis",
+            "name": {"translations": {"en": "Executive Analysis", "fi": "Johtoryhmän analyysi"}},
+            "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+            "hook": "mock_hook",
+        },
+    )
 
-    prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
+    prompt_block_repo = InMemoryUnifiedWorkflowRepository()
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1290,8 +1340,6 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
     """Verify transient DB lock failure during intermediate progress reporting does not crash the step."""
     from backend_v2.models.state import TraceEvent
 
-    mock_repo.get_execution.return_value = None
-
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -1303,6 +1351,18 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
+    )
+
+    mock_repo.seed_raw_step(
+        "bp_1111222233334444",
+        {
+            "id": "bp_1111222233334444",
+            "type": "logic",
+            "slug": "progress_step",
+            "name": {"translations": {"en": "Progress Step"}},
+            "description": {"translations": {"en": "Desc"}},
+            "hook": "mock_hook",
+        },
     )
 
     workflow = Workflow(
@@ -1352,7 +1412,6 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
 ) -> None:
     """Verify transient DB lock failure during RAG preflight progress reporting does not crash the workflow."""
     mock_rag_preflight = AsyncMock()
-    mock_repo.get_execution.return_value = None
 
     async def mock_rag_execute(*args: Any, **kwargs: Any) -> dict[str, Any]:
         if "emit_progress" in kwargs and kwargs["emit_progress"]:
@@ -1398,15 +1457,18 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
         ],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_2222333344445555",
-        "type": "logic",
-        "pre_hooks": ["synthesis_distiller_hook"],
-        "slug": "synth_step",
-        "name": {"translations": {"en": "Synth Step"}},
-        "description": {"translations": {"en": "Synth"}},
-        "hook": "mock_hook",
-    }
+    mock_repo.seed_raw_step(
+        "bp_2222333344445555",
+        {
+            "id": "bp_2222333344445555",
+            "type": "logic",
+            "pre_hooks": ["synthesis_distiller_hook"],
+            "slug": "synth_step",
+            "name": {"translations": {"en": "Synth Step"}},
+            "description": {"translations": {"en": "Synth"}},
+            "hook": "mock_hook",
+        },
+    )
 
     from backend_v2.models.state import TraceEvent
 
@@ -1427,9 +1489,6 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
 @pytest.mark.asyncio
 async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, mock_compiler: Any) -> None:
     """Verify DAGExecutor raises AppException(CONFIGURATION_ERROR) if step blueprint is not found."""
-    mock_repo.get_step_by_id.return_value = None
-    mock_repo.get_execution.return_value = None
-
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -1493,14 +1552,17 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         steps=[step_rule],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_2222333344445555",
-        "type": "logic",
-        "slug": "logic_step",
-        "name": {"translations": {"en": "Logic Step"}},
-        "description": {"translations": {"en": "Desc"}},
-        "hook": "mock_hook",
-    }
+    mock_repo.seed_raw_step(
+        "bp_2222333344445555",
+        {
+            "id": "bp_2222333344445555",
+            "type": "logic",
+            "slug": "logic_step",
+            "name": {"translations": {"en": "Logic Step"}},
+            "description": {"translations": {"en": "Desc"}},
+            "hook": "mock_hook",
+        },
+    )
 
     existing_record = create_execution_record(
         execution_id="exe_2222333344445555",
@@ -1516,7 +1578,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
             )
         },
     ).model_copy(update={"metadata": None})
-    mock_repo.get_execution.return_value = existing_record
+    await mock_repo.save_execution(existing_record)
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1576,17 +1638,28 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         steps=[step1, step2],
     )
 
-    def fake_get_step(b_id: str) -> dict[str, Any]:
-        return {
-            "id": b_id,
+    mock_repo.seed_raw_step(
+        "bp_3333444455556666",
+        {
+            "id": "bp_3333444455556666",
             "type": "logic",
-            "slug": b_id,
-            "name": {"translations": {"en": b_id}},
-            "description": {"translations": {"en": b_id}},
+            "slug": "bp_3333444455556666",
+            "name": {"translations": {"en": "bp_3333444455556666"}},
+            "description": {"translations": {"en": "bp_3333444455556666"}},
             "hook": "mock_hook",
-        }
-
-    mock_repo.get_step_by_id.side_effect = fake_get_step
+        },
+    )
+    mock_repo.seed_raw_step(
+        "bp_4444555566667777",
+        {
+            "id": "bp_4444555566667777",
+            "type": "logic",
+            "slug": "bp_4444555566667777",
+            "name": {"translations": {"en": "bp_4444555566667777"}},
+            "description": {"translations": {"en": "bp_4444555566667777"}},
+            "hook": "mock_hook",
+        },
+    )
 
     existing_record = create_execution_record(
         execution_id="exe_3333444455556666",
@@ -1609,7 +1682,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         },
         metadata=ExecutionMetadata(workflow_version=1, model_registry_id="cfg_model_registry_01"),
     )
-    mock_repo.get_execution.return_value = existing_record
+    await mock_repo.save_execution(existing_record)
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1667,15 +1740,17 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_5555666677778888",
-        "type": "logic",
-        "slug": "bp_watch_run",
-        "name": {"translations": {"en": "Watch Run Step"}},
-        "description": {"translations": {"en": "Desc"}},
-        "hook": "mock_hook",
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "bp_5555666677778888",
+        {
+            "id": "bp_5555666677778888",
+            "type": "logic",
+            "slug": "bp_watch_run",
+            "name": {"translations": {"en": "Watch Run Step"}},
+            "description": {"translations": {"en": "Desc"}},
+            "hook": "mock_hook",
+        },
+    )
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1743,15 +1818,17 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
         steps=[step1],
     )
 
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_6666777788889999",
-        "type": "logic",
-        "slug": "bp_schema_merge",
-        "name": {"translations": {"en": "Schema Merge Step"}},
-        "description": {"translations": {"en": "Desc"}},
-        "hook": "mock_hook",
-    }
-    mock_repo.get_execution.return_value = None
+    mock_repo.seed_raw_step(
+        "bp_6666777788889999",
+        {
+            "id": "bp_6666777788889999",
+            "type": "logic",
+            "slug": "bp_schema_merge",
+            "name": {"translations": {"en": "Schema Merge Step"}},
+            "description": {"translations": {"en": "Desc"}},
+            "hook": "mock_hook",
+        },
+    )
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1798,8 +1875,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
-    mock_prompt_block_repo = InMemoryBlueprintTransformerRepository()
-    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
+    mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
