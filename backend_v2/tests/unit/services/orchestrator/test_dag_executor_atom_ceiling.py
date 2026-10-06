@@ -7,7 +7,7 @@ from backend_v2.exceptions import WorkflowExecutionError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
@@ -15,11 +15,12 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import CognitiveTier
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
-def mock_repo() -> MagicMock:
-    return AsyncMock()
+def mock_repo() -> InMemoryUnifiedWorkflowRepository:
+    return InMemoryUnifiedWorkflowRepository()
 
 
 @pytest.fixture
@@ -35,7 +36,9 @@ def mock_compiler() -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: MagicMock) -> None:
+async def test_dag_executor_atom_ceiling(
+    mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
+) -> None:
     executor = DAGExecutor(
         rag_preflight=RAGPreflightService(
             system_repo=mock_repo, prompt_compiler=mock_compiler, workflow_repo=mock_repo
@@ -43,8 +46,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
         identity_repo=mock_repo,
         audit_repo=mock_repo,
         system_repo=mock_repo,
@@ -71,11 +74,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         ],
     )
 
-    mock_repo.update_execution = AsyncMock()
-
-    mock_repo.get_execution.return_value = None
-
-    model_registry_data = SystemConfigModelRegistry(
+    model_registry = SystemConfigModelRegistry(
         id="sys_e26807f3bfa3454d",
         type="model_registry",
         slug="models",
@@ -94,22 +93,21 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             ),
         },
-    ).model_dump(mode="json")
-    mock_repo.get_system_config_model_registry.return_value = model_registry_data
-    mock_repo.get_model_registry = AsyncMock()
-    mock_repo.get_model_registry.return_value = model_registry_data
-    mock_repo.get_all_model_registries.return_value = [model_registry_data]
-    mock_repo.get_step_by_id.return_value = {
-        "id": "blp_1234567890abcdef",
-        "slug": "test_step",
-        "organization_id": "org_1",
-        "name": {"translations": {"en": "test"}},
-        "description": {"translations": {"en": "test"}},
-        "type": "llm",
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "pre_hooks": ["synthesis_distiller_hook"],
-    }
+    )
+    mock_repo._system.set_model_registry(model_registry)
+
+    step_def = Step(
+        id="blp_1234567890abcdef",
+        slug="test_step",
+        organization_id="org_1",
+        name=I18nText(translations={"en": "test"}),
+        description=I18nText(translations={"en": "test"}),
+        type="llm",
+        criteria_block_ids=["blk_1234567890abcdef"],
+        extraction_protocol_block_id="blk_1234567890abcdef",
+        pre_hooks=["synthesis_distiller_hook"],
+    )
+    mock_repo.seed_raw_step("blp_1234567890abcdef", step_def)
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,

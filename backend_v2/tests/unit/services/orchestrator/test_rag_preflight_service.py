@@ -1,7 +1,7 @@
 """Unit tests for RAGPreflightService."""
 
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,54 +24,22 @@ from backend_v2.services.orchestrator.rag_preflight_service import (
     RAGPreflightService,
     _extract_inputs_from_record,
 )
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemorySystemRepository,
+    InMemoryWorkflowRepository,
+)
 
 
 @pytest.fixture
-def mock_workflow_repo() -> InMemoryBlueprintTransformerRepository:
+def mock_workflow_repo() -> InMemoryWorkflowRepository:
     """In-memory workflow repository."""
-    return InMemoryBlueprintTransformerRepository()
+    return InMemoryWorkflowRepository()
 
 
 @pytest.fixture
-def mock_system_repo() -> InMemoryBlueprintTransformerRepository:
+def mock_system_repo() -> InMemorySystemRepository:
     """In-memory system repository."""
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_model_registry.return_value = {
-        "id": "sys_e26807f3bfa3454d",
-        "name": "Default Stack",
-        "tier_definitions": {
-            "fast": {
-                "provider": "google",
-                "model_name": "gemini-2.5-flash",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-            "balanced": {
-                "provider": "google",
-                "model_name": "gemini-2.5-flash",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-            "deep": {
-                "provider": "google",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-            "reasoning": {
-                "provider": "google",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "tpm_limit": 100000,
-                "rpm_limit": 100,
-            },
-        },
-    }
-    return repo
+    return InMemorySystemRepository()
 
 
 @pytest.fixture
@@ -82,7 +50,9 @@ def mock_compiler() -> MagicMock:
 
 @pytest.fixture
 def preflight_service(
-    mock_workflow_repo: MagicMock, mock_system_repo: MagicMock, mock_compiler: MagicMock
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_system_repo: InMemorySystemRepository,
+    mock_compiler: MagicMock,
 ) -> RAGPreflightService:
     """Provides initialized RAGPreflightService."""
     return RAGPreflightService(
@@ -112,7 +82,7 @@ def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
 async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: RAGPreflightService) -> None:
     """Tests that missing task_blueprint raises CONFIGURATION_ERROR AppException."""
     step_rule = StepRule.model_construct(
-        id="stp_1234567890abcdef", task_blueprint=cast(Any, None), input_mappings={}, depends_on=[]
+        id="stp_1234567890abcdef", task_blueprint=None, input_mappings={}, depends_on=[]
     )
     step_def = make_valid_step_def()
     exec_record = ExecutionRecord(

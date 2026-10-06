@@ -91,8 +91,8 @@
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=5`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/05_phase5_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-  - [ ] Step 5.0: Strategic Alignment & Persistence Census Probe
-  - [ ] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
+  - [x] Step 5.0: Strategic Alignment & Persistence Census Probe
+  - [x] Step 5.1: Repository Fixtures Modernization & MCP Concurrency Fakes
   - [ ] Step 5.2: Census B Attribute Replacements & Deterministic Fault Injection
   - [ ] Step 5.3: Keyword-Injected Repository Mocks Eradication (Census D)
   - [ ] Step 5.4: Orchestrator & Strategy Persistence Emulation-Fake Migration (Census A & I)

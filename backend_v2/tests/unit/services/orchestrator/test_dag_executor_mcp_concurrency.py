@@ -8,40 +8,58 @@ import pytest
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_repos() -> dict[str, Any]:
-    repo = InMemoryBlueprintTransformerRepository()
-    repo.get_execution.return_value = None
-    repo.get_step_by_id.side_effect = lambda bp_id: {
-        "id": bp_id,
-        "type": "logic",
-        "cognitive_tier": "fast",
-        "slug": f"slug_{bp_id}",
-        "name": {"translations": {"en": f"Step {bp_id}"}},
-        "description": {"translations": {"en": "Desc"}},
-        "hook": "mock_hook",
-        "criteria_block_ids": [],
-    }
-    repo.get_workflow_by_id.side_effect = lambda wf_id: {
-        "id": wf_id,
-        "slug": f"slug_{wf_id}",
-        "name": {"translations": {"en": "Workflow"}},
-        "description": {"translations": {"en": "Desc"}},
-        "version": 1,
-        "status": "active",
-        "default_profile_id": "prof_1111111111111111",
-        "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
-        "steps": [],
-    }
+    repo = InMemoryUnifiedWorkflowRepository()
+    for bp_id in [
+        "bp_aaaaaaaaaaaaaaaa",
+        "bp_bbbbbbbbbbbbbbbb",
+        "bp_cccccccccccccccc",
+        "bp_1111111111111111",
+        "bp_2222222222222222",
+    ]:
+        repo.seed_raw_step(
+            bp_id,
+            Step(
+                id=bp_id,
+                type="logic",
+                cognitive_tier=CognitiveTier.FAST,
+                slug=f"slug_{bp_id}",
+                name=I18nText(translations={"en": f"Step {bp_id}"}),
+                description=I18nText(translations={"en": "Desc"}),
+                hook="mock_hook",
+                criteria_block_ids=[],
+            ),
+        )
+
+    for wf_id, name in [
+        ("wf_1111111111111111", "Concurrency Test"),
+        ("wf_2222222222222222", "Schema Test"),
+    ]:
+        repo.seed_raw_workflow(
+            wf_id,
+            Workflow(
+                id=wf_id,
+                slug=f"slug_{wf_id}",
+                name=I18nText(translations={"en": name}),
+                description=I18nText(translations={"en": "Desc"}),
+                version=1,
+                status="active",
+                default_profile_id="prof_1111111111111111",
+                historical_context_mode="DISABLED",
+                model_registry_id="cfg_model_registry_01",
+                steps=[],
+            ),
+        )
 
     return {
         "exec_repo": repo,
