@@ -612,5 +612,5 @@
 
 ## Resume Command
 ```bash
-/tier5-resume --target="@[docs/epic/tasks_EPIC_157/11_phase11_plan.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"
+/tier5-resume --target="@[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"
 ```
