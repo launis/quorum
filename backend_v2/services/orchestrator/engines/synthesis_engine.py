@@ -16,7 +16,6 @@ from pydantic import BaseModel, ValidationError
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, RawXAIExtensionDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
@@ -68,10 +67,8 @@ class SynthesisEngine:
         distill_span.set_attribute("step.id", request.step.id)
 
         try:
-            raw_blackboard: object = request.context.context_variables.global_atom_blackboard
-            if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
-                raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-            if raw_blackboard is None:
+            blackboard = request.context.context_variables.global_atom_blackboard
+            if blackboard is None:
                 distill_span.set_status(
                     trace.StatusCode.ERROR, "__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables"
                 )
@@ -85,21 +82,12 @@ class SynthesisEngine:
                     details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
                 )
 
-            blackboard = (
-                raw_blackboard
-                if isinstance(raw_blackboard, GlobalAtomBlackboard)
-                else GlobalAtomBlackboard.model_validate(raw_blackboard)
-            )
             all_atom_ids = blackboard.get_all_atom_ids()
             doc_aliases = list(blackboard.atoms_by_input.keys())
             total_atoms = len(all_atom_ids)
             settings = get_settings()
 
             matrix_reducer_output = request.context.context_variables.matrix_reducer_output
-            if matrix_reducer_output is None and "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables:
-                m_val = request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
-                if isinstance(m_val, (LightweightMatrixDTO, LightweightMatrixOutput)):
-                    matrix_reducer_output = m_val
 
             has_matrix_evidence = False
             if matrix_reducer_output is not None:
@@ -156,7 +144,15 @@ class SynthesisEngine:
 
             # Validate dual-input context (hydrated messages required)
             if request.hydrated_messages is None:
-                raise ValueError("hydrated_messages must be provided for SynthesisEngine")
+                logger.error(
+                    "synthesis_engine_missing_hydrated_messages",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": request.step.id},
+                )
+                raise AppException(
+                    message="hydrated_messages must be provided for SynthesisEngine",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": request.step.id},
+                )
 
             local_messages = list(request.hydrated_messages)
 
@@ -212,7 +208,15 @@ class SynthesisEngine:
             logger.info("SynthesisEngine: Final hydrated message count: %d", len(local_messages))
 
             if request.compiled_schema is None:
-                raise ValueError("compiled_schema must be provided for SynthesisEngine")
+                logger.error(
+                    "synthesis_engine_missing_compiled_schema",
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": request.step.id},
+                )
+                raise AppException(
+                    message="compiled_schema must be provided for SynthesisEngine",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": request.step.id},
+                )
 
             if request.progress_callback:
                 await request.progress_callback(10, 100)
@@ -242,9 +246,7 @@ class SynthesisEngine:
             alias_engine.hydrate_and_filter_aliases(output_dict, {"atom_id", "source_id"})
 
             # Re-validate model after alias hydration
-            validated_output = (
-                request.compiled_schema.model_validate(output_dict) if request.compiled_schema else validated_model
-            )
+            validated_output = request.compiled_schema.model_validate(output_dict)
 
             trace_events: list[TraceEvent] = []
             if usage.total_tokens > 0 or usage.cost_usd > 0.0:

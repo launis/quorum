@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import DraftExtractedAtom, GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
@@ -371,6 +371,7 @@ async def test_synthesis_engine_missing_hydrated_messages(
         await engine.execute(req)
 
     assert "hydrated_messages must be provided" in str(exc_info.value)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -384,6 +385,7 @@ async def test_synthesis_engine_missing_compiled_schema(
         await engine.execute(req)
 
     assert "compiled_schema must be provided" in str(exc_info.value)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -432,8 +434,10 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
 
 
 @pytest.mark.asyncio
-async def test_synthesis_engine_validation_error(engine: SynthesisEngine, base_request: EngineExecutionRequest) -> None:
-    """Tests that a Pydantic ValidationError on GlobalAtomBlackboard is wrapped as AppException."""
+async def test_synthesis_engine_ignores_untyped_blackboard_variable(
+    engine: SynthesisEngine, base_request: EngineExecutionRequest
+) -> None:
+    """Tests that an untyped blackboard variable is ignored and triggers SYNTHESIS_ENGINE_ERROR."""
     req = base_request.model_copy(
         update={
             "context": base_request.context.model_copy(
@@ -449,15 +453,15 @@ async def test_synthesis_engine_validation_error(engine: SynthesisEngine, base_r
     with pytest.raises(AppException) as exc_info:
         await engine.execute(req)
 
-    assert "validation failed" in str(exc_info.value).lower()
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.SYNTHESIS_ENGINE_ERROR.value
 
 
 @pytest.mark.asyncio
 async def test_synthesis_engine_with_lightweight_matrix_output(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
 ) -> None:
-    """Tests synthesis execution with LightweightMatrixOutput under __MATRIX_REDUCER_OUTPUT__."""
+    """Tests synthesis execution with LightweightMatrixOutput under matrix_reducer_output."""
     matrix_output = LightweightMatrixOutput(
         evaluated_atoms={"atm_1": LaxExecutionStatus.PASSED},
         extensions={XaiExtensionType.RISK_FLAG: {"risk": "high"}},
@@ -470,7 +474,7 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
                         global_atom_blackboard=GlobalAtomBlackboard(
                             atoms_by_input={"doc_0": {"atoms": [make_atom("atm_1")]}}
                         ),
-                        variables={"__MATRIX_REDUCER_OUTPUT__": matrix_output},
+                        matrix_reducer_output=matrix_output,
                     )
                 }
             )
