@@ -38,10 +38,7 @@ void main() {
         id: 'profile_main',
         workflowId: testWfId,
         name: I18nText(
-          translations: {
-            'en': 'Main Profile',
-            'fi': 'Pääprofiili',
-          },
+          translations: {'en': 'Main Profile', 'fi': 'Pääprofiili'},
         ),
         visibleBlockExtensions: [],
         visibleWorkflowExtensions: [],

@@ -69,7 +69,10 @@ void main() {
       await tester.pumpWidget(createTestWidget(studioClient: mockStudioClient));
       await tester.pumpAndSettle();
 
-      expect(find.text('No workflows available for your account.'), findsOneWidget);
+      expect(
+        find.text('No workflows available for your account.'),
+        findsOneWidget,
+      );
       expect(
         find.text('Select a workflow from the list to begin.'),
         findsOneWidget,
@@ -138,10 +141,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SnackBar), findsOneWidget);
-        expect(
-          find.text('Please fill in required inputs.'),
-          findsOneWidget,
-        );
+        expect(find.text('Please fill in required inputs.'), findsOneWidget);
       },
     );
 
@@ -197,10 +197,7 @@ void main() {
         final productInput = ExpectedInput(
           inputKey: 'product_text',
           label: const I18nText(
-            translations: {
-              'en': 'Product Deliverable',
-              'fi': 'Lopputuote',
-            },
+            translations: {'en': 'Product Deliverable', 'fi': 'Lopputuote'},
           ),
           description: const I18nText(
             translations: {

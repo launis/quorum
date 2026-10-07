@@ -65,7 +65,7 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
     s: Annotated[int, Field(ge=0, description="Census S: Unconditional skip/xfail markers ceiling.")]
 
 
-# Configured baseline ceilings (EPIC 157 Phase 11 ratchet)
+# Configured baseline ceilings (EPIC 157 Phase 12 ratchet)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
     d=0,
     f=51,
@@ -75,7 +75,7 @@ CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
     t=0,
     p=0,
     m=0,
-    r=186,
+    r=0,
     s=0,
 )
 

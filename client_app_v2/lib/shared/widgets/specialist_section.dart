@@ -578,7 +578,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         (widget.data['arguments'] as List?)?.cast<Map<String, Object?>>() ?? [];
 
     final methodology =
-        widget.data['methodological_log'] ??
+        widget.data['methodological_log'] as String? ??
         widget.data['metodologinen_loki'] as String?;
 
     final List<Widget> children = [];
@@ -609,7 +609,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       label: l10n.lblStrategicDepth,
       value: stratScore,
       max: 4.0,
-      description: widget.data['strategic_help'] ?? "Strategic Depth Help",
+      description:
+          widget.data['strategic_help']?.toString() ?? "Strategic Depth Help",
       displayValue: stratDisplay,
       color: Theme.of(context).colorScheme.secondary,
       axisLabels: [
@@ -629,7 +630,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       label: l10n.lblBloomScore,
       value: bloomScore,
       max: 6.0,
-      description: widget.data['bloom_help'] ?? "Bloom Help",
+      description: widget.data['bloom_help']?.toString() ?? "Bloom Help",
       displayValue: bloomDisplay,
       color: Theme.of(context).colorScheme.secondary,
       axisLabels: [
@@ -650,7 +651,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       label: l10n.lblToulminScore,
       value: toulminScore,
       max: 6.0,
-      description: widget.data['toulmin_help'] ?? "Toulmin Help",
+      description: widget.data['toulmin_help']?.toString() ?? "Toulmin Help",
       displayValue: "${toulminScore.toStringAsFixed(1)}/6.0",
       color: Theme.of(context).colorScheme.primary,
       axisLabels: [l10n.lblClaim, '', l10n.lblData, '', l10n.lblBacking, ''],
@@ -802,11 +803,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     // STRICT: Use Backend Provided Label Keys
 
     // Threat
-    final threatLabel = widget.data['threat_label'] ?? "Threat Unknown";
+    final threatLabel =
+        widget.data['threat_label']?.toString() ?? "Threat Unknown";
     final threat = widget.data['threat_detected'] == true; // Keep for color
 
     // Risk
-    final riskLabel = widget.data['risk_label'] ?? "Risk Unknown";
+    final riskLabel = widget.data['risk_label']?.toString() ?? "Risk Unknown";
     // Determine color from Key (Safe/Canonical) or just use level if simpler?
     // We still need logic for color. BFF sends risk_color?
     // BFF sent "risk_color".
@@ -835,13 +837,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       riskIcon = Icons.check_circle;
 
     // Anonymized
-    final anonLabel = widget.data['anonymized_label'] ?? "Anonymity Unknown";
+    final anonLabel =
+        widget.data['anonymized_label']?.toString() ?? "Anonymity Unknown";
     final anonymized = widget.data['anonymized'] == true;
 
-    final findings =
-        (widget.data['findings'] ?? widget.data['loydokset'] as List?)
-            ?.cast<String>() ??
-        [];
+    final rawFindings = widget.data['findings'] ?? widget.data['loydokset'];
+    final findings = rawFindings is List
+        ? rawFindings.map((e) => e.toString()).toList()
+        : <String>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,11 +968,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
-      double scoreVal = (fidelity['fidelity_score_display'] as String?) != null
-          ? double.tryParse(
-                  fidelity['fidelity_score_display']!.split('/')[0],
-                ) ??
-                0.0
+      final fidelityDisplay = fidelity['fidelity_score_display'] as String?;
+      double scoreVal = fidelityDisplay != null
+          ? double.tryParse(fidelityDisplay.split('/')[0]) ?? 0.0
           : 0.0;
 
       leftChildren.add(
@@ -986,7 +987,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 label: AppLocalizations.of(context)!.lblFidelity,
                 value: scoreVal,
                 max: 3.0,
-                description: widget.data['fidelity_help'] ?? "Fidelity Help",
+                description:
+                    widget.data['fidelity_help']?.toString() ?? "Fidelity Help",
                 displayValue: fidelity['fidelity_score_display'] != null
                     ? "${fidelity['fidelity_score_display']}/3.0"
                     : "0.0/3.0",
@@ -1113,7 +1115,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 label: AppLocalizations.of(context)!.lblAbductiveReasoning,
                 value: abductiveScore,
                 max: 3.0,
-                description: widget.data['abductive_help'] ?? "Abductive Help",
+                description:
+                    widget.data['abductive_help']?.toString() ??
+                    "Abductive Help",
                 displayValue: widget.data['abductive_score_display'] != null
                     ? "${widget.data['abductive_score_display']}/3.0"
                     : "${abductiveScore.toStringAsFixed(1)}/3.0",
@@ -1202,10 +1206,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   value: plausibilityScore,
                   max: 3.0,
                   description:
-                      widget.data['plausibility_help'] ?? "Plausibility Help",
+                      widget.data['plausibility_help']?.toString() ??
+                      "Plausibility Help",
                   displayValue:
-                      widget.data['plausibility_score_display'] ??
-                      "${plausibilityScore}/3.0",
+                      widget.data['plausibility_score_display']?.toString() ??
+                      "$plausibilityScore/3.0",
                   color: Theme.of(context).colorScheme.secondary,
                   axisLabels: const ['Epäuskottava', '', 'Uskottava'],
                 ),
@@ -1247,15 +1252,15 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     // Explicitly read flat metrics
     final wordCount =
-        widget.data['word_count_display'] ??
+        widget.data['word_count_display']?.toString() ??
         widget.data['word_count']?.toString() ??
         '0';
     final avgLength =
-        widget.data['avg_sentence_length_display'] ??
+        widget.data['avg_sentence_length_display']?.toString() ??
         widget.data['avg_sentence_length']?.toString() ??
         '0.0';
     final lexicalDiv =
-        widget.data['lexical_diversity_display'] ??
+        widget.data['lexical_diversity_display']?.toString() ??
         widget.data['lexical_diversity']?.toString() ??
         '0.0';
 
@@ -1318,12 +1323,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     // New additions for Automation Bias & Say-Do gap (Flat properties)
     final l10n = AppLocalizations.of(context)!;
-    final autoBiasLabel = widget.data['automation_bias_label'];
+    final autoBiasLabel = widget.data['automation_bias_label']?.toString();
     final autoBiasColor = widget.data['automation_bias_color'] == 'red'
         ? Theme.of(context).colorScheme.error
         : const Color(0xFF2E7D32);
 
-    final sayDoLabel = widget.data['say_do_gap_label'];
+    final sayDoLabel = widget.data['say_do_gap_label']?.toString();
     final sayDoColor = widget.data['say_do_gap_color'] == 'red'
         ? Theme.of(context).colorScheme.error
         : Color(0xFF2E7D32);
@@ -1426,9 +1431,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 color: Theme.of(context).colorScheme.error,
               ),
               title: Text(
-                e['label'] ??
-                    e['issue_type'] ??
-                    e['tyyppi'] ??
+                e['label']?.toString() ??
+                    e['issue_type']?.toString() ??
+                    e['tyyppi']?.toString() ??
                     AppLocalizations.of(context)!.lblEthicalObservation,
                 style: (e['is_critical'] == true)
                     ? TextStyle(
@@ -1437,8 +1442,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                       )
                     : null,
               ),
-              subtitle: Text(e['description'] ?? e['kuvaus'] ?? ''),
-              trailing: Text(e['severity'] ?? e['vakavuus'] ?? 'N/A'),
+              subtitle: Text(
+                e['description']?.toString() ?? e['kuvaus']?.toString() ?? '',
+              ),
+              trailing: Text(
+                e['severity']?.toString() ?? e['vakavuus']?.toString() ?? 'N/A',
+              ),
             ),
           );
         }),
@@ -1485,7 +1494,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
           return ListTile(
             leading: Icon(i, color: c),
-            title: Text(f['vaite'] ?? f['claim'] ?? ''),
+            title: Text(f['vaite']?.toString() ?? f['claim']?.toString() ?? ''),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1497,7 +1506,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     fontSize: 12,
                   ),
                 ),
-                Text(f['lahde_tai_paattely'] ?? f['source'] ?? ''),
+                Text(
+                  f['lahde_tai_paattely']?.toString() ??
+                      f['source']?.toString() ??
+                      '',
+                ),
               ],
             ),
           );
@@ -1581,7 +1594,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                         : (overall.contains("AUTH_PERFORMATIVE") ? 2.0 : 1.0)),
                 max: 3.0,
                 description:
-                    widget.data['authenticity_help'] ?? "Authenticity Help",
+                    widget.data['authenticity_help']?.toString() ??
+                    "Authenticity Help",
                 displayValue:
                     "${(widget.data['authenticity_score'] as num?)?.toDouble().toStringAsFixed(1) ?? '?'}/3.0",
                 color: Theme.of(context).colorScheme.tertiary,
@@ -1626,7 +1640,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         children: heuristics.map<Widget>((b) {
           final raised = b['flag'] == true;
           return Chip(
-            label: Text(b['name'] ?? ''),
+            label: Text(b['name']?.toString() ?? ''),
             avatar: Icon(
               raised ? Icons.flag : Icons.check,
               size: 16,
@@ -1667,14 +1681,13 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   Widget _buildArchivistCheck(BuildContext context) {
     // English Keys: compliance_score, consistency_analysis, precedents
     final score = widget.data['compliance_score'];
-    final recs =
-        (widget.data['recommendations'] ??
-            widget.data['suositukset'] as List?) ??
-        [];
+    final rawRecs =
+        widget.data['recommendations'] ?? widget.data['suositukset'];
+    final recs = rawRecs is List ? rawRecs : const [];
 
     final analysis =
-        widget.data['consistency_analysis'] ??
-        widget.data['analysis'] as String?;
+        widget.data['consistency_analysis']?.toString() ??
+        widget.data['analysis']?.toString();
 
     double normalizedScore = 0;
     if (score is num) normalizedScore = score / 100.0;
@@ -1693,8 +1706,8 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                   (normalizedScore * 5.0),
               max: 5.0,
               description:
-                  widget.data['help_archivist'] ??
-                  widget.data['help_compliance'] ??
+                  widget.data['help_archivist']?.toString() ??
+                  widget.data['help_compliance']?.toString() ??
                   "Compliance Help",
               displayValue:
                   "${(score as num?)?.toDouble() ?? (normalizedScore * 5.0).toStringAsFixed(1)}/5.0",
@@ -1957,10 +1970,11 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     // Keys are typically "help_key" or just "key_help".
     // We try both common patterns.
     final text =
-        widget.data[key] ??
-        widget.data['help_$key'] ??
-        widget.data['${key}_help'] ??
-        "";
+        (widget.data[key] ??
+                widget.data['help_$key'] ??
+                widget.data['${key}_help'] ??
+                "")
+            .toString();
     if (text.isEmpty) return const SizedBox.shrink();
 
     return IconButton(
@@ -2011,7 +2025,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       'strategy',
     ], "Driver Profile");
     final roleRaw = widget.data['role_classification'] as String;
-    final ratio = widget.data['input_control_ratio'];
+    final ratio = widget.data['input_control_ratio'] as num?;
 
     final cmdCount = widget.data['imperative_command_count'] as int;
     final isHighDependency = widget.data['high_dependency'] as bool;
@@ -2071,7 +2085,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             ),
             const SizedBox(height: 10),
             Text(
-              showRatio ? "${(ratio! * 100).toStringAsFixed(0)}%" : "N/A",
+              ratio != null ? "${(ratio * 100).toStringAsFixed(0)}%" : "N/A",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 32,
@@ -2246,7 +2260,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       rightChildren.add(
         _buildInfoCard(
           "Poikkeamat Linjasta",
-          widget.data['poikkeamat_linjasta'],
+          widget.data['poikkeamat_linjasta']?.toString(),
           Icons.call_split,
           color: Theme.of(context).colorScheme.surface,
         ),
@@ -2281,7 +2295,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               ),
               const SizedBox(height: 8),
               Text(
-                widget.data['suositus_tuomarille'],
+                widget.data['suositus_tuomarille']?.toString() ?? "",
                 style: const TextStyle(fontSize: 14),
               ),
             ],

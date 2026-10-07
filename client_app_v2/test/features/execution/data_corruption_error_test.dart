@@ -141,10 +141,7 @@ void main() {
 
         final hint = exception.toLocalizedHint(l10n);
 
-        expect(
-          hint,
-          contains('Validointivirhe'),
-        );
+        expect(hint, contains('Validointivirhe'));
         expect(hint, contains('lopputuote sitra.pdf'));
         expect(hint, contains("contradicting target slot 'chat_log'"));
       },

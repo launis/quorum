@@ -27,7 +27,13 @@ void main() {
 
       expect(
         () => LlmPlatform.fromJson(incompleteJson),
-        throwsA(anyOf(isA<FormatException>(), isA<CheckedFromJsonException>(), isA<TypeError>())),
+        throwsA(
+          anyOf(
+            isA<FormatException>(),
+            isA<CheckedFromJsonException>(),
+            isA<TypeError>(),
+          ),
+        ),
       );
     });
 

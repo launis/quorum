@@ -42,10 +42,7 @@ class UserRepository {
     Map<String, Object?> data,
   ) async {
     try {
-      final response = await _client.patch(
-        '/iam/users/me',
-        data: data,
-      );
+      final response = await _client.patch('/iam/users/me', data: data);
       if (response.data == null) return Left(const AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {

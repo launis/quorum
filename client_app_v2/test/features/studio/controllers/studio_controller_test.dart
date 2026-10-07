@@ -264,66 +264,88 @@ void main() {
   });
 
   group('ModelRegistryController Operations & Exception Handling', () {
-    test('Positive: saveConfig saves typed ModelConfig and updates state', () async {
-      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
-      when(
-        () => mockClient.saveSystemConfig(any(), any()),
-      ).thenAnswer((_) async => validConfig);
+    test(
+      'Positive: saveConfig saves typed ModelConfig and updates state',
+      () async {
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+        when(
+          () => mockClient.saveSystemConfig(any(), any()),
+        ).thenAnswer((_) async => validConfig);
 
-      final controller = container.read(modelRegistryControllerProvider.notifier);
-      final result = await controller.saveConfig('cfg_0123456789abcdef', validConfig);
-
-      expect(result.id, 'cfg_0123456789abcdef');
-      verify(
-        () => mockClient.saveSystemConfig(
+        final controller = container.read(
+          modelRegistryControllerProvider.notifier,
+        );
+        final result = await controller.saveConfig(
           'cfg_0123456789abcdef',
-          any(that: isA<ModelConfig>()),
-        ),
-      ).called(1);
-    });
+          validConfig,
+        );
 
-    test('Negative 1: saveConfig rolls back and throws on server error', () async {
-      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
-      when(
-        () => mockClient.saveSystemConfig(any(), any()),
-      ).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: '/studio/system-configs/cfg_0123456789abcdef'),
-          type: DioExceptionType.badResponse,
-        ),
-      );
+        expect(result.id, 'cfg_0123456789abcdef');
+        verify(
+          () => mockClient.saveSystemConfig(
+            'cfg_0123456789abcdef',
+            any(that: isA<ModelConfig>()),
+          ),
+        ).called(1);
+      },
+    );
 
-      final controller = container.read(modelRegistryControllerProvider.notifier);
-      expect(
-        () => controller.saveConfig('cfg_0123456789abcdef', validConfig),
-        throwsA(isA<AppException>()),
-      );
-    });
+    test(
+      'Negative 1: saveConfig rolls back and throws on server error',
+      () async {
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+        when(() => mockClient.saveSystemConfig(any(), any())).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(
+              path: '/studio/system-configs/cfg_0123456789abcdef',
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
 
-    test('Negative 2: deleteConfig throws AppException on orphan rejection', () async {
-      final appError = AppException(
-        extensions: const {'error_code': 'RESOURCE_IN_USE'},
-        detail: 'Cannot delete system config in use by workflow',
-        status: 400,
-      );
+        final controller = container.read(
+          modelRegistryControllerProvider.notifier,
+        );
+        expect(
+          () => controller.saveConfig('cfg_0123456789abcdef', validConfig),
+          throwsA(isA<AppException>()),
+        );
+      },
+    );
 
-      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
-      when(() => mockClient.deleteSystemConfig('cfg_0123456789abcdef')).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: '/studio/system-configs/cfg_0123456789abcdef'),
-          error: appError,
-        ),
-      );
+    test(
+      'Negative 2: deleteConfig throws AppException on orphan rejection',
+      () async {
+        final appError = AppException(
+          extensions: const {'error_code': 'RESOURCE_IN_USE'},
+          detail: 'Cannot delete system config in use by workflow',
+          status: 400,
+        );
 
-      final controller = container.read(modelRegistryControllerProvider.notifier);
-      expect(
-        () => controller.deleteConfig('cfg_0123456789abcdef'),
-        throwsA(
-          isA<AppException>()
-              .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
-              .having((e) => e.status, 'status', 400),
-        ),
-      );
-    });
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+        when(
+          () => mockClient.deleteSystemConfig('cfg_0123456789abcdef'),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(
+              path: '/studio/system-configs/cfg_0123456789abcdef',
+            ),
+            error: appError,
+          ),
+        );
+
+        final controller = container.read(
+          modelRegistryControllerProvider.notifier,
+        );
+        expect(
+          () => controller.deleteConfig('cfg_0123456789abcdef'),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
+                .having((e) => e.status, 'status', 400),
+          ),
+        );
+      },
+    );
   });
 }

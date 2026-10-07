@@ -43,7 +43,7 @@ class GenericGrid extends StatelessWidget {
                   runSpacing: 12,
                   children: items.map((item) {
                     final itemMap = item as Map<String, Object?>;
-                    final label = itemMap['label'] ?? '';
+                    final label = itemMap['label']?.toString() ?? '';
                     final value = itemMap['value']?.toString() ?? 'N/A';
                     final highlight = itemMap['highlight'] == true;
 

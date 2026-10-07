@@ -79,7 +79,13 @@ void main() {
 
       expect(
         () => HumanOverrideRequestDto.fromJson(hallucinatedJson),
-        throwsA(anyOf(isA<FormatException>(), isA<TypeError>(), isA<CheckedFromJsonException>())),
+        throwsA(
+          anyOf(
+            isA<FormatException>(),
+            isA<TypeError>(),
+            isA<CheckedFromJsonException>(),
+          ),
+        ),
       );
     });
   });

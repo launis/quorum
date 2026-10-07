@@ -25,9 +25,7 @@ class WorkflowSelector extends StatelessWidget {
       final nameRaw = wf['name'];
       String nameStr = l10n.sharedUnknown;
       if (nameRaw is Map) {
-        nameStr = I18nText.fromJson(
-          Map.from(nameRaw),
-        ).get(locale);
+        nameStr = I18nText.fromJson(Map.from(nameRaw)).get(locale);
       } else if (nameRaw is String && nameRaw.isNotEmpty) {
         nameStr = nameRaw;
       }

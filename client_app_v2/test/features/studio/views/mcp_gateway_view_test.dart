@@ -15,7 +15,10 @@ class MockMcpGatewayFormController extends McpGatewayForm {
   final McpGateway initialGateway;
   final bool simulateError;
 
-  MockMcpGatewayFormController(this.initialGateway, {this.simulateError = false});
+  MockMcpGatewayFormController(
+    this.initialGateway, {
+    this.simulateError = false,
+  });
 
   @override
   FutureOr<McpGateway> build(String gatewayId) async {
@@ -35,7 +38,10 @@ void main() {
       key: UniqueKey(),
       overrides: [
         mcpGatewayFormProvider(gateway.id).overrideWith(
-          () => MockMcpGatewayFormController(gateway, simulateError: simulateError),
+          () => MockMcpGatewayFormController(
+            gateway,
+            simulateError: simulateError,
+          ),
         ),
       ],
       child: MaterialApp(
@@ -59,9 +65,13 @@ void main() {
       tools: [
         AllowedMcpTool(
           toolId: 'tavily_search',
-          name: I18nText(translations: {'en': 'Tavily Search', 'fi': 'Tavily Haku'}),
+          name: I18nText(
+            translations: {'en': 'Tavily Search', 'fi': 'Tavily Haku'},
+          ),
           description: 'Search the web using Tavily API',
-          inputSchema: {'query': {'type': 'string'}},
+          inputSchema: {
+            'query': {'type': 'string'},
+          },
         ),
       ],
     );
@@ -128,35 +138,45 @@ void main() {
       expect(find.text('No tools defined for this gateway.'), findsOneWidget);
     });
 
-    testWidgets('negative ISTQB partition: invalid JSON schema triggers validation error', (tester) async {
-      tester.view.physicalSize = const Size(1920, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'negative ISTQB partition: invalid JSON schema triggers validation error',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      await tester.pumpWidget(createTestWidget(gateway: testGateway));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget(gateway: testGateway));
+        await tester.pumpAndSettle();
 
-      // Find the JSON input schema field by its label text
-      final jsonField = find.widgetWithText(TextFormField, 'JSON Input Schema');
-      expect(jsonField, findsOneWidget);
+        // Find the JSON input schema field by its label text
+        final jsonField = find.widgetWithText(
+          TextFormField,
+          'JSON Input Schema',
+        );
+        expect(jsonField, findsOneWidget);
 
-      await tester.ensureVisible(jsonField);
-      await tester.enterText(jsonField, '{invalid json syntax');
-      await tester.pumpAndSettle();
+        await tester.ensureVisible(jsonField);
+        await tester.enterText(jsonField, '{invalid json syntax');
+        await tester.pumpAndSettle();
 
-      // Tap Save button in AppBar
-      final saveFinder = find.byIcon(Icons.save);
-      await tester.tap(saveFinder);
-      await tester.pumpAndSettle();
+        // Tap Save button in AppBar
+        final saveFinder = find.byIcon(Icons.save);
+        await tester.tap(saveFinder);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Invalid JSON'), findsOneWidget);
-    });
+        expect(find.text('Invalid JSON'), findsOneWidget);
+      },
+    );
 
-    testWidgets('negative ISTQB partition: error state renders ErrorView', (tester) async {
-      await tester.pumpWidget(createTestWidget(gateway: testGateway, simulateError: true));
+    testWidgets('negative ISTQB partition: error state renders ErrorView', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestWidget(gateway: testGateway, simulateError: true),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(ErrorView), findsOneWidget);

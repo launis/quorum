@@ -420,9 +420,7 @@ sealed class PromptBlock with _$PromptBlock {
     List<dynamic> rawList,
   ) async {
     return safeIsolateRun(() {
-      return rawList
-          .map((e) => PromptBlock.fromJson(e))
-          .toList();
+      return rawList.map((e) => PromptBlock.fromJson(e)).toList();
     });
   }
 }

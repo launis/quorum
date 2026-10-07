@@ -32,7 +32,9 @@ void main() {
 
   final standardInput = const ExpectedInput(
     inputKey: 'transcription',
-    label: I18nText(translations: {'en': 'Transcription', 'fi': 'Transkriptio'}),
+    label: I18nText(
+      translations: {'en': 'Transcription', 'fi': 'Transkriptio'},
+    ),
     required: true,
     description: I18nText(translations: {'en': 'Interview transcription'}),
   );
@@ -46,17 +48,21 @@ void main() {
     questionnaireDefinition: [
       QuestionnaireItem(
         questionId: 'q1',
-        question: I18nText(translations: {'en': 'Company name', 'fi': 'Yrityksen nimi'}),
+        question: I18nText(
+          translations: {'en': 'Company name', 'fi': 'Yrityksen nimi'},
+        ),
         type: 'text',
       ),
     ],
   );
 
   setUpAll(() {
-    registerFallbackValue(const ExecutionCreateRequestDto(
-      workflowId: testWorkflowId,
-      targetLocale: 'en',
-    ));
+    registerFallbackValue(
+      const ExecutionCreateRequestDto(
+        workflowId: testWorkflowId,
+        targetLocale: 'en',
+      ),
+    );
   });
 
   setUp(() {
@@ -65,9 +71,7 @@ void main() {
     mockLogger = MockLoggerService();
   });
 
-  Widget createTestWidget({
-    Locale locale = const Locale('en'),
-  }) {
+  Widget createTestWidget({Locale locale = const Locale('en')}) {
     return ProviderScope(
       overrides: [
         workflowClientProvider.overrideWithValue(mockWorkflowClient),
@@ -91,19 +95,23 @@ void main() {
   }
 
   group('DynamicStartScreen Widget Tests', () {
-    testWidgets('renders loading indicator while schema is resolving',
-        (tester) async {
-      when(() => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId))
-          .thenAnswer((_) => Completer<WorkflowUiSchema>().future);
+    testWidgets('renders loading indicator while schema is resolving', (
+      tester,
+    ) async {
+      when(
+        () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+      ).thenAnswer((_) => Completer<WorkflowUiSchema>().future);
 
       await tester.pumpWidget(createTestWidget());
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('renders ErrorView when schema loading fails (Negative Test)',
-        (tester) async {
-      when(() => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId))
-          .thenThrow(Exception('Failed to fetch schema'));
+    testWidgets('renders ErrorView when schema loading fails (Negative Test)', (
+      tester,
+    ) async {
+      when(
+        () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+      ).thenThrow(Exception('Failed to fetch schema'));
 
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
@@ -111,46 +119,55 @@ void main() {
       expect(find.byType(ErrorView), findsOneWidget);
     });
 
-    testWidgets('renders input fields, questionnaire, and executes start on click',
-        (tester) async {
-      final schema = WorkflowUiSchema(
-        expectedInputs: [standardInput, questionnaireInput],
-      );
+    testWidgets(
+      'renders input fields, questionnaire, and executes start on click',
+      (tester) async {
+        final schema = WorkflowUiSchema(
+          expectedInputs: [standardInput, questionnaireInput],
+        );
 
-      when(() => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId))
-          .thenAnswer((_) async => schema);
+        when(
+          () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+        ).thenAnswer((_) async => schema);
 
-      when(() => mockExecutionClient.startExecution(
+        when(
+          () => mockExecutionClient.startExecution(
             request: any(named: 'request'),
-          )).thenAnswer((_) async => const ExecutionRecord(
+          ),
+        ).thenAnswer(
+          (_) async => const ExecutionRecord(
             id: 'exec_123',
             workflowId: testWorkflowId,
             targetLocale: 'en',
             status: 'PENDING',
-          ));
+          ),
+        );
 
-      await tester.pumpWidget(createTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
 
-      // Verify header and fields
-      expect(find.textContaining(testWorkflowId), findsOneWidget);
-      expect(find.textContaining('Transcription *'), findsOneWidget);
-      expect(find.textContaining('Survey'), findsOneWidget);
-      expect(find.text('Company name'), findsOneWidget);
+        // Verify header and fields
+        expect(find.textContaining(testWorkflowId), findsOneWidget);
+        expect(find.textContaining('Transcription *'), findsOneWidget);
+        expect(find.textContaining('Survey'), findsOneWidget);
+        expect(find.text('Company name'), findsOneWidget);
 
-      // Fill in questionnaire
-      await tester.enterText(find.byType(TextFormField).first, 'Acme Corp');
-      await tester.pumpAndSettle();
+        // Fill in questionnaire
+        await tester.enterText(find.byType(TextFormField).first, 'Acme Corp');
+        await tester.pumpAndSettle();
 
-      // Tap start button
-      final startButton = find.byType(FilledButton);
-      expect(startButton, findsOneWidget);
-      await tester.tap(startButton);
-      await tester.pumpAndSettle();
+        // Tap start button
+        final startButton = find.byType(FilledButton);
+        expect(startButton, findsOneWidget);
+        await tester.tap(startButton);
+        await tester.pumpAndSettle();
 
-      verify(() => mockExecutionClient.startExecution(
+        verify(
+          () => mockExecutionClient.startExecution(
             request: any(named: 'request'),
-          )).called(1);
-    });
+          ),
+        ).called(1);
+      },
+    );
   });
 }

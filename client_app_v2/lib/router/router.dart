@@ -22,7 +22,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/execution_view.dart';
-import 'package:client_app/features/execution/views/execution_report_view.dart';
 import 'package:client_app/features/reports/views/execution_reports_view.dart';
 
 part 'router.g.dart';

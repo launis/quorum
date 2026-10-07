@@ -58,9 +58,7 @@ class AuthRepository {
       }
 
       // 4. Return Hydrated User
-      return Right(
-        User.fromJson(response.data['user']),
-      );
+      return Right(User.fromJson(response.data['user']));
     } on firebase.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
         return Left(AppException.unauthorized());
@@ -117,9 +115,7 @@ class AuthRepository {
       // Note: We don't have a Firebase User, so the calls to `authStateChanges` stream
       // won't fire. The Controller must handle this manually or we create a fake internal session.
       // For Phase 2, we will just return the User and let the Controller manage state.
-      return Right(
-        User.fromJson(response.data['user']),
-      );
+      return Right(User.fromJson(response.data['user']));
     } catch (e) {
       // DEBUG: Return raw error to UI
       return Left(AppException(detail: "Debug Login Failed: $e"));

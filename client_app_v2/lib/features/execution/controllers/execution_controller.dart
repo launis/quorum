@@ -34,9 +34,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 
   final List<dynamic> data = response.data as List;
 
-  return data
-      .map((e) => ExecutionRecord.fromJson(e))
-      .toList();
+  return data.map((e) => ExecutionRecord.fromJson(e)).toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.

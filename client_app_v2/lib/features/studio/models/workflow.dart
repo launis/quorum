@@ -186,9 +186,7 @@ abstract class Workflow with _$Workflow {
     List<dynamic> rawList,
   ) async {
     return safeIsolateRun(() {
-      return rawList
-          .map((e) => Workflow.fromJson(e))
-          .toList();
+      return rawList.map((e) => Workflow.fromJson(e)).toList();
     });
   }
 }

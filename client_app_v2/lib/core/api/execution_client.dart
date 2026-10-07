@@ -75,9 +75,7 @@ class ExecutionClient {
       if (response.statusCode == 202 ||
           (data is Map &&
               data['status']?.toString().toLowerCase() == 'pending')) {
-        final msg = data is Map
-            ? data['message'] as String?
-            : null;
+        final msg = data is Map ? data['message'] as String? : null;
         onProgress?.call(msg);
 
         attempts++;
@@ -104,8 +102,6 @@ class ExecutionClient {
       '/execution/executions/$executionId/atoms/$atomId/override',
       data: payload.toJson(),
     );
-    return GenericStatusResponseDto.fromJson(
-      response.data,
-    );
+    return GenericStatusResponseDto.fromJson(response.data);
   }
 }

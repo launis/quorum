@@ -36,21 +36,14 @@ class ReportsClient {
         'model_registry_id': ?modelRegistryId,
       },
     );
-    return ReportArtifactSummary.fromJson(
-      response.data,
-    );
+    return ReportArtifactSummary.fromJson(response.data);
   }
 
   /// Lists all materialized report artifacts compiled for an execution.
   Future<List<ReportArtifactSummary>> listReports(String executionId) async {
     final response = await _dio.get('/executions/$executionId/reports');
     final list = response.data as List<dynamic>;
-    return list
-        .map(
-          (item) =>
-              ReportArtifactSummary.fromJson(item),
-        )
-        .toList();
+    return list.map((item) => ReportArtifactSummary.fromJson(item)).toList();
   }
 
   /// Fetches the full domain model detail for a report artifact.
@@ -69,17 +62,13 @@ class ReportsClient {
   Future<List<ReportRowItem>> getReportRows(String reportId) async {
     final response = await _dio.get('/reports/$reportId/rows');
     final list = response.data as List<dynamic>;
-    return list
-        .map((item) => ReportRowItem.fromJson(item))
-        .toList();
+    return list.map((item) => ReportRowItem.fromJson(item)).toList();
   }
 
   /// Re-enqueues report synthesis and formatting generation without re-running DAG.
   Future<ReportArtifactSummary> regenerateReport(String reportId) async {
     final response = await _dio.post('/reports/$reportId/regenerate');
-    return ReportArtifactSummary.fromJson(
-      response.data,
-    );
+    return ReportArtifactSummary.fromJson(response.data);
   }
 
   /// Deletes a report artifact and its associated disk files.

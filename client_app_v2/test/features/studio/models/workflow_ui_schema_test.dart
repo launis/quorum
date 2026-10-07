@@ -49,18 +49,28 @@ void main() {
 
       expect(
         () => WorkflowUiSchema.fromJson(hallucinatedJson),
-        throwsA(anyOf(isA<FormatException>(), isA<TypeError>(), isA<CheckedFromJsonException>())),
+        throwsA(
+          anyOf(
+            isA<FormatException>(),
+            isA<TypeError>(),
+            isA<CheckedFromJsonException>(),
+          ),
+        ),
       );
     });
 
     test('test_workflow_ui_schema_invalid_type_fail_fast', () {
-      final invalidTypeJson = {
-        'expected_inputs': 'not_a_list',
-      };
+      final invalidTypeJson = {'expected_inputs': 'not_a_list'};
 
       expect(
         () => WorkflowUiSchema.fromJson(invalidTypeJson),
-        throwsA(anyOf(isA<TypeError>(), isA<FormatException>(), isA<CheckedFromJsonException>())),
+        throwsA(
+          anyOf(
+            isA<TypeError>(),
+            isA<FormatException>(),
+            isA<CheckedFromJsonException>(),
+          ),
+        ),
       );
     });
   });
