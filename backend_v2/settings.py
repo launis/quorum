@@ -492,7 +492,7 @@ class Settings(BaseSettings):
     redis_port: Annotated[int, Field(description="Redis Port")] = 6379
     worker_job_timeout: Annotated[int, Field(description="Max seconds Arq worker processes a job")] = 14400
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def default_safety_settings(self) -> list[SafetySettingDTO]:
         """Returns standard safety settings (Auditing Mode: BLOCK_NONE).
@@ -545,7 +545,7 @@ class Settings(BaseSettings):
     # --- Paths ---
     log_file_name: Annotated[str, Field(description="Name of the debug log file")] = "backend_debug.log"
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def base_dir(self) -> str:
         """Returns the base directory of the backend application.
@@ -555,7 +555,7 @@ class Settings(BaseSettings):
         """
         return str(Path(__file__).resolve().parent)
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def data_dir(self) -> str:
         """Returns the path to the persistent data directory.
@@ -565,7 +565,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir).parent / "data")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def files_dir(self) -> str:
         """Returns the path to the central files directory.
@@ -575,7 +575,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.data_dir) / "files")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def docs_dir(self) -> str:
         """Returns the path to the static docs directory.
@@ -585,7 +585,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir).parent / "docs")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def db_dir(self) -> str:
         """Returns the path to the database directory.
@@ -595,7 +595,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir) / "database")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def scripts_dir(self) -> str:
         """Returns the path to the scripts directory.
@@ -605,7 +605,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir).parent / "scripts")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def prod_db_path(self) -> str:
         """Returns the path to the production database file. Isolated to V2.
@@ -615,7 +615,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.data_dir) / "db_v2.json")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def seed_data_path(self) -> str:
         """Returns the path to the seed data file. Isolated to V2.
@@ -625,7 +625,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir) / "seed" / "seed_data.json")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def mock_responses_path(self) -> str:
         """Returns the path to the mock responses file.
@@ -635,7 +635,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.data_dir) / "mock_responses.json")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def log_file_path(self) -> str:
         """Absolute path to the log file in the project root.
@@ -645,7 +645,7 @@ class Settings(BaseSettings):
         """
         return str(Path(self.base_dir).parent / self.log_file_name)
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def active_backend(self) -> StorageBackend:
         """Determines the active storage backend based on configuration.
@@ -676,7 +676,7 @@ class Settings(BaseSettings):
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def is_cloud_storage(self) -> bool:
         """Returns True if active_backend is FIRESTORE.
@@ -812,7 +812,7 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         return self
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def enabled_providers(self) -> list[str]:
         """Returns list of enabled LLM providers based on configuration.
@@ -846,7 +846,7 @@ class Settings(BaseSettings):
 
     # --- 12-Factor Development Overrides ---
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def log_format(self) -> str:
         """Determines if logs should be JSON (production) or readable (development).
@@ -858,7 +858,7 @@ class Settings(BaseSettings):
             return "json"
         return "readable" if self.environment.lower() == "development" else "json"
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def allow_mock_tokens(self) -> bool:
         """Strictly disallow mock tokens in cloud environments or active Firebase Auth production.
@@ -875,7 +875,7 @@ class Settings(BaseSettings):
             return True
         return self.environment.lower() == "development"
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def schema_max_chunk_records(self) -> int:
         """Maximum number of records (main + context) the LLM is expected to parse in a single chunk.
@@ -885,7 +885,7 @@ class Settings(BaseSettings):
         """
         return self.llm_max_chunk_size + 5
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def schema_max_source_aliases(self) -> int:
         """Target limits for source document array (logically bound to quote limit, capped by chunk size).

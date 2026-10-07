@@ -62,7 +62,7 @@ def test_node_strategy_registry_llm_without_engine_raises_app_exception(mock_dep
 def test_node_strategy_registry_unregistered_type_raises_app_exception(mock_deps: StrategyDependencies) -> None:
     """Test factory raises AppException(CONFIGURATION_ERROR) for unregistered step type."""
     with pytest.raises(AppException) as exc_info:
-        NodeStrategyFactory.create_strategy("unregistered_type", deps=mock_deps)  # type: ignore[arg-type]
+        NodeStrategyFactory.create_strategy("unregistered_type", deps=mock_deps)
 
     assert exc_info.value.status_code == 500
     assert "Unsupported step type" in exc_info.value.message

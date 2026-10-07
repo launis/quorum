@@ -59,7 +59,7 @@ def test_schema_factory_atom_response_has_bounded_arrays() -> None:
         model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
         atom_id: str = Field(..., description="Atom ID")
 
-    class AtomResponseStrict(step_strict_dynamic, AtomResponseBase):  # type: ignore[misc, valid-type]
+    class AtomResponseStrict(step_strict_dynamic, AtomResponseBase):
         pass
 
     atom_schema = AtomResponseStrict.model_json_schema()

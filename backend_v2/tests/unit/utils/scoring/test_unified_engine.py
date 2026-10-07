@@ -137,7 +137,7 @@ def test_unified_scoring_engine_dto_immutability() -> None:
 
     with pytest.raises(ValidationError):
         # Trying to mutate frozen Pydantic model raises error
-        result.score = 99.0  # type: ignore[misc]
+        result.score = 99.0
 
 
 def test_unified_scoring_engine_dto_forbids_extra_fields() -> None:
@@ -151,7 +151,7 @@ def test_unified_scoring_engine_dto_forbids_extra_fields() -> None:
             score=result.score,
             xai_log=result.xai_log,
             breakdown=result.breakdown,
-            arbitrary_extra_field=123,  # type: ignore[call-arg]
+            arbitrary_extra_field=123,
         )
 
 

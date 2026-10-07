@@ -46,7 +46,7 @@ def test_context_mapper_build_ordinal_mapping_success() -> None:
 def test_context_mapper_build_ordinal_mapping_invalid_block_type_raises() -> None:
     """Test that non-PromptBlockBase in all_blocks raises DATA_CORRUPTION AppException."""
     with pytest.raises(AppException) as exc_info:
-        ContextMapper.build_ordinal_mapping(["pb_1"], [{"id": "pb_1"}])  # type: ignore[list-item]
+        ContextMapper.build_ordinal_mapping(["pb_1"], [{"id": "pb_1"}])
 
     assert exc_info.value.error_code == "DATA_CORRUPTION"
 

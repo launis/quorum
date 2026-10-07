@@ -49,7 +49,7 @@ def test_generated_schema_manifest_frozen_immutability() -> None:
     """Verifies that GeneratedSchemaManifestDTO rejects in-place attribute mutations."""
     manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
     with pytest.raises(ValidationError):
-        manifest.schemas = {"stp_2": {"type": "string"}}  # type: ignore[misc]
+        manifest.schemas = {"stp_2": {"type": "string"}}
 
 
 def test_generated_schema_manifest_extra_fields_forbidden() -> None:
@@ -62,16 +62,16 @@ def test_generated_schema_manifest_item_assignment_rejected() -> None:
     """Negative boundary: Item assignment is rejected on immutable manifest."""
     manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
     with pytest.raises(TypeError):
-        manifest["stp_1"] = {"type": "new"}  # type: ignore[index]
+        manifest["stp_1"] = {"type": "new"}
     with pytest.raises(TypeError):
-        manifest["stp_2"] = {"type": "new"}  # type: ignore[index]
+        manifest["stp_2"] = {"type": "new"}
 
 
 def test_generated_schema_manifest_item_deletion_rejected() -> None:
     """Negative boundary: Item deletion is rejected on immutable manifest."""
     manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
     with pytest.raises(TypeError):
-        del manifest["stp_1"]  # type: ignore[attr-defined]
+        del manifest["stp_1"]
 
 
 def test_generated_schema_manifest_invalid_payload_type() -> None:

@@ -671,7 +671,7 @@ class DAGExecutor:
                         and processed_result.state_delta is not None
                     ):
                         delta_content_dict = dict(processed_result.state_delta)
-                    delta_content = StepOutputContentDTO(data=delta_content_dict)  # type: ignore[arg-type]
+                    delta_content = StepOutputContentDTO.model_validate({"data": delta_content_dict})
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)

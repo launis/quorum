@@ -20,7 +20,7 @@ def test_trace_scoring_payload_strictness() -> None:
     assert dto.total_score == 5.0
 
     with pytest.raises(ValidationError) as exc:
-        TraceScoringPayloadDTO(total_score=5.0, extra_field="fail")  # type: ignore
+        TraceScoringPayloadDTO(total_score=5.0, extra_field="fail")
     assert "Extra inputs are not permitted" in str(exc.value)
 
 
@@ -30,7 +30,7 @@ def test_trace_matrix_payload_strictness() -> None:
     assert dto.raw_score == 4.5
 
     with pytest.raises(ValidationError):
-        TraceMatrixPayloadDTO(raw_score=4.5, extra_field="fail")  # type: ignore
+        TraceMatrixPayloadDTO(raw_score=4.5, extra_field="fail")
 
 
 def test_trace_matrix_payload_accepts_allowed_extensions() -> None:

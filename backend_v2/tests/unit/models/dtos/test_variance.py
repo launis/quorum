@@ -96,4 +96,4 @@ def test_variance_engine_result_dto_frozen() -> None:
         alignment_verdict=AlignmentVerdict.ALIGNED,
     )
     with pytest.raises(ValidationError):
-        dto.variance_score = 1.0  # type: ignore[misc]
+        dto.variance_score = 1.0

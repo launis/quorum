@@ -51,11 +51,11 @@ def test_level_stats_dto_defaults_and_fields() -> None:
 
     # Negative extra forbidden
     with pytest.raises(ValidationError):
-        LevelStatsDTO(hits=1, total=2, extra="forbidden")  # type: ignore[call-arg]
+        LevelStatsDTO.model_validate({"hits": 1, "total": 2, "extra": "forbidden"})
 
     # Immutability
     with pytest.raises(ValidationError):
-        dto_default.hits = 4  # type: ignore[misc]
+        dto_default.hits = 4
 
 
 def test_lightweight_matrix_output_normalized_score_validation() -> None:
@@ -71,7 +71,7 @@ def test_lightweight_matrix_output_normalized_score_validation() -> None:
 
     # Extra forbidden
     with pytest.raises(ValidationError):
-        LightweightMatrixOutput(extra_field=123)  # type: ignore[call-arg]
+        LightweightMatrixOutput.model_validate({"extra_field": 123})
 
 
 def test_output_profile_config() -> None:
@@ -84,10 +84,12 @@ def test_output_profile_config() -> None:
     assert cfg.visible_workflow_extensions == []
 
     with pytest.raises(ValidationError):
-        OutputProfileConfig(
-            visible_block_extensions=[],
-            visible_workflow_extensions=[],
-            unsupported="extra",  # type: ignore[call-arg]
+        OutputProfileConfig.model_validate(
+            {
+                "visible_block_extensions": [],
+                "visible_workflow_extensions": [],
+                "unsupported": "extra",
+            }
         )
 
 
@@ -101,7 +103,7 @@ def test_xai_log_dto() -> None:
     assert custom_log.engine_debug_trace == {"ratio": 1.25}
 
     with pytest.raises(ValidationError):
-        XAILogDto(pedagogical_key="key", unknown="extra")  # type: ignore[call-arg]
+        XAILogDto.model_validate({"pedagogical_key": "key", "unknown": "extra"})
 
 
 def test_scoring_result_dto() -> None:
@@ -119,11 +121,11 @@ def test_scoring_result_dto() -> None:
 
     # Immutability
     with pytest.raises(ValidationError):
-        result.score = 80.0  # type: ignore[misc]
+        result.score = 80.0
 
     # Extra forbidden
     with pytest.raises(ValidationError):
-        ScoringResultDTO(score=75.0, xai_log=xai, breakdown={}, extra_field=1)  # type: ignore[call-arg]
+        ScoringResultDTO.model_validate({"score": 75.0, "xai_log": xai, "breakdown": {}, "extra_field": 1})
 
 
 def test_merged_facts_dto() -> None:
@@ -132,4 +134,4 @@ def test_merged_facts_dto() -> None:
     assert isinstance(facts, MergedFactsDTO)
 
     with pytest.raises(ValidationError):
-        MergedFactsDTO(extra="bad")  # type: ignore[call-arg]
+        MergedFactsDTO.model_validate({"extra": "bad"})

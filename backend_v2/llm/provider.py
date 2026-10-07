@@ -565,7 +565,7 @@ class LiteLLMProvider(LLMProvider):
         self._config = config
 
         import litellm
-        from litellm import Router  # type: ignore[attr-defined] # External library typing constraint
+        from litellm.router import Router
 
         # litellm general config
         litellm.drop_params = True

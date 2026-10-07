@@ -66,7 +66,7 @@ def test_xai_aesthetics_rules_dto_lookup() -> None:
         _ = rules["nonexistent"]
 
     with pytest.raises(ValidationError):
-        XaiAestheticsItemDTO(severity=VisualIntent.SUCCESS, icon_name="bulb", extra_field="bad")  # type: ignore[call-arg]
+        XaiAestheticsItemDTO(severity=VisualIntent.SUCCESS, icon_name="bulb", extra_field="bad")
 
 
 def test_penalties_rules_dto_lookup() -> None:
@@ -93,7 +93,7 @@ def test_global_score_aesthetics_dto() -> None:
     assert dto.visual_intent == "primary"
 
     with pytest.raises(ValidationError):
-        GlobalScoreAestheticsDTO(unknown_key=123)  # type: ignore[call-arg]
+        GlobalScoreAestheticsDTO(unknown_key=123)
 
 
 def test_matrix_graphs_aesthetics_dto() -> None:

@@ -46,7 +46,7 @@ def test_scorecard_atom_collection_dto() -> None:
         _ = col["unknown"]
 
     with pytest.raises(ValidationError):
-        ScorecardAtomCollectionDTO(unknown="field")  # type: ignore[call-arg]
+        ScorecardAtomCollectionDTO(unknown="field")
 
 
 def test_parsed_matrices_result_dto() -> None:
@@ -69,5 +69,5 @@ def test_parsed_matrices_result_dto() -> None:
             informational_matrices=[],
             all_parsed_matrices={},
             step_scorecard_atoms={},
-            extra_field="bad",  # type: ignore[call-arg]
+            extra_field="bad",
         )

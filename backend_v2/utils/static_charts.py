@@ -406,13 +406,16 @@ def generate_radar_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
         values += values[:1]
 
+        from matplotlib.projections.polar import PolarAxes
+
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={"polar": True})
 
         max_scale = max((a.scale_max for a in axes if a.scale_max is not None), default=6.0)
         min_scale = min((a.scale_min for a in axes if a.scale_min is not None), default=0.0)
 
-        ax.set_theta_offset(pi / 2)  # type: ignore[attr-defined]
-        ax.set_theta_direction(-1)  # type: ignore[attr-defined]
+        if isinstance(ax, PolarAxes):
+            ax.set_theta_offset(pi / 2)
+            ax.set_theta_direction(-1)
 
         ax.set_xticks(angles[:-1])
         wrapped_names = [n.replace(" ", "\n") for n in names]

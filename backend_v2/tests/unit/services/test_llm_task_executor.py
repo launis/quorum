@@ -575,11 +575,11 @@ async def test_execute_structured_task_logical_error_empty_dynamic_messages_and_
 async def test_validate_non_empty_payload_with_dict_and_non_sequence() -> None:
     """PROMISE: Prove payload validation handles dictionary message input and non-sequence structures."""
     # Dict item in messages
-    _validate_non_empty_payload([{"role": "user", "content": "Valid payload text inside a dictionary format."}])  # type: ignore[list-item]
+    _validate_non_empty_payload([{"role": "user", "content": "Valid payload text inside a dictionary format."}])
 
     # Non-sequence payload falls back to empty and raises
     with pytest.raises(AppException) as exc_info:
-        _validate_non_empty_payload(123)  # type: ignore[arg-type]
+        _validate_non_empty_payload(123)
     assert exc_info.value.status_code == 400
 
 

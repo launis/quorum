@@ -58,7 +58,7 @@ def test_global_context_vars_immutability() -> None:
     """Verify that GlobalContextVarsDTO is strictly frozen against in-place mutations."""
     dto = GlobalContextVarsDTO(language="fi")
     with pytest.raises(ValidationError):
-        dto.language = "en"  # type: ignore[misc]
+        dto.language = "en"
 
 
 def test_global_context_vars_extra_forbidden() -> None:

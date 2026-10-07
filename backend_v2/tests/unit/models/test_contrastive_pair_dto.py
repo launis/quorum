@@ -25,7 +25,7 @@ def test_contrastive_pair_dto_positive() -> None:
 
     # Invariant: Immutable frozen model
     with pytest.raises(ValidationError):
-        pair.acceptable = "Mutating field should fail"  # type: ignore[misc]
+        pair.acceptable = "Mutating field should fail"
 
 
 def test_contrastive_pair_dto_negative_identical_exemplars() -> None:
@@ -76,10 +76,12 @@ def test_contrastive_pair_dto_negative_missing_fields() -> None:
 def test_contrastive_pair_dto_extra_forbidden() -> None:
     """Negative 5: Extra fields are strictly forbidden."""
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        ContrastivePairDTO(
-            acceptable="Valid acceptable exemplar with sufficient length",
-            rejected="Valid rejected counterpart demonstrating failure",
-            unknown_extra="disallowed",  # type: ignore[call-arg]
+        ContrastivePairDTO.model_validate(
+            {
+                "acceptable": "Valid acceptable exemplar with sufficient length",
+                "rejected": "Valid rejected counterpart demonstrating failure",
+                "unknown_extra": "disallowed",
+            }
         )
 
 
@@ -100,21 +102,25 @@ def test_tda_assertion_contrastive_example_schema() -> None:
 
     # Direct raw string should fail strict validation
     with pytest.raises(ValidationError):
-        TDAAssertion(
-            concept_description="Concept description testing contrastive pair integration",
-            contrastive_example="ACCEPTABLE: something\nUNACCEPTABLE: something else",  # type: ignore[arg-type]
-            inverse_evidence=False,
-            aggregation_mode="ALL_MUST_COMPLY",
+        TDAAssertion.model_validate(
+            {
+                "concept_description": "Concept description testing contrastive pair integration",
+                "contrastive_example": "ACCEPTABLE: something\nUNACCEPTABLE: something else",
+                "inverse_evidence": False,
+                "aggregation_mode": "ALL_MUST_COMPLY",
+            }
         )
 
 
 def test_flattened_atom_rejects_raw_string_contrastive_example() -> None:
     """Verify FlattenedAtom strictly rejects raw string contrastive_example."""
     with pytest.raises(ValidationError):
-        FlattenedAtom(
-            atom_id="tda_1234567890abcdef",
-            question="Valid test question",
-            contrastive_example="Legacy string should fail",  # type: ignore[arg-type]
+        FlattenedAtom.model_validate(
+            {
+                "atom_id": "tda_1234567890abcdef",
+                "question": "Valid test question",
+                "contrastive_example": "Legacy string should fail",
+            }
         )
 
 

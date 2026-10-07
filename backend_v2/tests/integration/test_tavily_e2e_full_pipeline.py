@@ -155,7 +155,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
     sdui_blocks_en = PrintableSourcesAdapter.build(adapter_context_en)
     assert len(sdui_blocks_en) == 1
-    assert "### Sources and Bibliography" in sdui_blocks_en[0].text  # type: ignore[attr-defined]
+    assert "### Sources and Bibliography" in sdui_blocks_en[0].text
 
 
 @pytest.mark.asyncio
@@ -223,4 +223,4 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
     sdui_blocks = PrintableSourcesAdapter.build(adapter_context)
     # When no citations or search traces exist and summary box is enabled, PrintableSourcesAdapter renders empty notice
     assert len(sdui_blocks) == 1
-    assert "ei havaittu ulkoisia kirjallisuusviitteitä" in sdui_blocks[0].text  # type: ignore[attr-defined]
+    assert "ei havaittu ulkoisia kirjallisuusviitteitä" in sdui_blocks[0].text

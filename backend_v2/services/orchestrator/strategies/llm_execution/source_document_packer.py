@@ -12,12 +12,17 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from backend_v2.core.hook_registry import ExecutionInputsDTO
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.inputs import IngressInputValue
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
 
 __all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]
 
 logger = logging.getLogger(__name__)
+
+_MAPPING_ADAPTER: TypeAdapter[Mapping[str, IngressInputValue | object]] = TypeAdapter(
+    Mapping[str, IngressInputValue | object]
+)
 
 
 class ContextTargetFilterDTO(V2CoreBase):
@@ -218,13 +223,13 @@ class SourceDocumentPacker:
                 if clean_str:
                     sections.append(clean_str)
             else:
-                dict_payload: Mapping[str, object]
+                dict_payload: Mapping[str, IngressInputValue | object]
                 if isinstance(inputs_payload, ExecutionInputsDTO):
                     dict_payload = {**inputs_payload.raw_inputs, **inputs_payload.dynamic_inputs}
                 else:
                     try:
-                        dict_payload = dict(inputs_payload.items())  # type: ignore[attr-defined]
-                    except (AttributeError, TypeError) as err:
+                        dict_payload = _MAPPING_ADAPTER.validate_python(inputs_payload)
+                    except ValidationError as err:
                         logger.error(
                             "[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload)
                         )

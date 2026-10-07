@@ -51,25 +51,29 @@ def test_hook_state_instantiation() -> None:
 def test_hook_state_rejects_invalid_inputs() -> None:
     """Test that HookState rejects invalid non-mapping inputs."""
     with pytest.raises(ValidationError):
-        HookState(
-            execution_id="exec_1",
-            workflow_id="wf_1",
-            metadata=ExecutionMetadata(),
-            global_context_vars=GlobalContextVarsDTO(),
-            inputs=12345,  # type: ignore[arg-type]
+        HookState.model_validate(
+            {
+                "execution_id": "exec_1",
+                "workflow_id": "wf_1",
+                "metadata": ExecutionMetadata(),
+                "global_context_vars": GlobalContextVarsDTO(),
+                "inputs": 12345,
+            }
         )
 
 
 def test_hook_state_strictness() -> None:
     """Test extra fields rejection on HookState."""
     with pytest.raises(ValidationError):
-        HookState(
-            execution_id="exec_1",
-            workflow_id="wf_1",
-            metadata=ExecutionMetadata(),
-            global_context_vars=GlobalContextVarsDTO(),
-            inputs=ExecutionInputsDTO(),
-            extra="fail",  # type: ignore[call-arg]
+        HookState.model_validate(
+            {
+                "execution_id": "exec_1",
+                "workflow_id": "wf_1",
+                "metadata": ExecutionMetadata(),
+                "global_context_vars": GlobalContextVarsDTO(),
+                "inputs": ExecutionInputsDTO(),
+                "extra": "fail",
+            }
         )
 
 
@@ -82,10 +86,12 @@ def test_hook_result_strictness() -> None:
     assert res.state_delta.delta == payload
 
     with pytest.raises(ValidationError):
-        HookResult(
-            success=True,
-            state_delta=HookDeltaDTO(delta=payload),
-            extra="fail",  # type: ignore[call-arg]
+        HookResult.model_validate(
+            {
+                "success": True,
+                "state_delta": HookDeltaDTO(delta=payload),
+                "extra": "fail",
+            }
         )
 
 

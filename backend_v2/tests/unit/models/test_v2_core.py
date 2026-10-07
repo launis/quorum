@@ -32,14 +32,14 @@ def test_provider_extra_params_valid() -> None:
 def test_provider_extra_params_extra_forbidden() -> None:
     """Test Contract 2: ProviderExtraParamsDTO raises ValidationError on unknown extra field."""
     with pytest.raises(ValidationError) as exc_info:
-        ProviderExtraParamsDTO(temperature=0.7, unknown_field="invalid")  # type: ignore[call-arg]
+        ProviderExtraParamsDTO.model_validate({"temperature": 0.7, "unknown_field": "invalid"})
     assert "Extra inputs are not permitted" in str(exc_info.value)
 
 
 def test_provider_extra_params_type_strictness() -> None:
     """Test Contract 3: ProviderExtraParamsDTO raises ValidationError on type mismatch."""
     with pytest.raises(ValidationError) as exc_info:
-        ProviderExtraParamsDTO(max_output_tokens="two_thousand")  # type: ignore[arg-type]
+        ProviderExtraParamsDTO.model_validate({"max_output_tokens": "two_thousand"})
     assert "Input should be a valid integer" in str(exc_info.value)
 
 
@@ -56,14 +56,14 @@ def test_model_profile_uses_provider_extra_params() -> None:
 def test_step_trace_metadata_extra_forbidden() -> None:
     """Test Contract 4: StepTraceMetadataDTO raises ValidationError on forbidden extra field."""
     with pytest.raises(ValidationError) as exc_info:
-        StepTraceMetadataDTO(task_blueprint="step_1", fake_key=123)  # type: ignore[call-arg]
+        StepTraceMetadataDTO.model_validate({"task_blueprint": "step_1", "fake_key": 123})
     assert "Extra inputs are not permitted" in str(exc_info.value)
 
 
 def test_step_trace_metadata_type_strictness() -> None:
     """Test StepTraceMetadataDTO raises ValidationError on invalid types."""
     with pytest.raises(ValidationError):
-        StepTraceMetadataDTO(chunk_size="invalid_size")  # type: ignore[arg-type]
+        StepTraceMetadataDTO.model_validate({"chunk_size": "invalid_size"})
 
 
 def test_trace_event_metadata_envelope_hydration() -> None:
@@ -385,12 +385,14 @@ def test_execution_record_flat_finops_and_steps() -> None:
 def test_execution_record_extra_forbidden() -> None:
     """Verify ExecutionRecord rejects unknown extra fields."""
     with pytest.raises(ValidationError):
-        ExecutionRecord(
-            id="exe_1111111111111111",
-            workflow_id="wor_1111111111111111",
-            output_profile_id="prof_default",
-            target_locale="fi",
-            unknown_legacy_field="illegal",  # type: ignore[call-arg]
+        ExecutionRecord.model_validate(
+            {
+                "id": "exe_1111111111111111",
+                "workflow_id": "wor_1111111111111111",
+                "output_profile_id": "prof_default",
+                "target_locale": "fi",
+                "unknown_legacy_field": "illegal",
+            }
         )
 
 

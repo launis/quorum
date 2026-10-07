@@ -32,11 +32,11 @@ def test_execution_inputs_dto_instantiation() -> None:
 def test_execution_inputs_dto_strictness() -> None:
     """Verify ExecutionInputsDTO forbids extra fields and enforces immutability."""
     with pytest.raises(ValidationError):
-        ExecutionInputsDTO(extra_field="fail")  # type: ignore[call-arg]
+        ExecutionInputsDTO.model_validate({"extra_field": "fail"})
 
     dto = ExecutionInputsDTO()
     with pytest.raises(ValidationError):
-        dto.user_role = "mutated"  # type: ignore[misc]
+        dto.user_role = "mutated"
 
 
 def test_global_context_vars_dto_instantiation() -> None:
@@ -53,7 +53,7 @@ def test_global_context_vars_dto_instantiation() -> None:
 def test_global_context_vars_dto_strictness() -> None:
     """Verify GlobalContextVarsDTO forbids extra fields and enforces immutability."""
     with pytest.raises(ValidationError):
-        GlobalContextVarsDTO(extra_field="fail")  # type: ignore[call-arg]
+        GlobalContextVarsDTO.model_validate({"extra_field": "fail"})
 
 
 def test_hook_delta_dto_instantiation() -> None:
@@ -74,4 +74,4 @@ def test_hook_delta_dto_instantiation() -> None:
 def test_hook_delta_dto_strictness() -> None:
     """Verify HookDeltaDTO forbids extra fields and enforces immutability."""
     with pytest.raises(ValidationError):
-        HookDeltaDTO(extra_field="fail")  # type: ignore[call-arg]
+        HookDeltaDTO.model_validate({"extra_field": "fail"})

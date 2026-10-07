@@ -406,7 +406,7 @@ def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_local
             context_text="Some context",
             nodes=[node],
             tda_id_to_alias={"tda_11111111": "a0"},
-            target_locale=invalid_locale,  # type: ignore[arg-type]
+            target_locale=invalid_locale,
         )
 
     assert exc_info.value.status_code == 400

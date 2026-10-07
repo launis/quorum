@@ -102,7 +102,7 @@ def test_base_tda_extraction_valid_and_coerce() -> None:
 
     # None coerced to []
     ext_none = BaseTDAExtraction(
-        exact_quotes=None,  # type: ignore[arg-type]
+        exact_quotes=None,
         localized_anchors_found=[],
         contextual_override=False,
         semantic_reasoning="Reasoning",

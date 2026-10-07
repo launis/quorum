@@ -23,9 +23,9 @@ from backend_v2.models.prompt import CompiledPrompt
 
 # Setup mock modules for google.genai BEFORE importing adapter
 if "_mock_genai_client" not in dir(sys):
-    sys._mock_genai_client = MagicMock()  # type: ignore[attr-defined]
+    sys._mock_genai_client = MagicMock()
 
-mock_genai_client = sys._mock_genai_client  # type: ignore[attr-defined]
+mock_genai_client = sys._mock_genai_client
 
 
 class MockGenAITypes(types.ModuleType):

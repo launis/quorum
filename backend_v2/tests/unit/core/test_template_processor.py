@@ -183,9 +183,7 @@ class TestTemplateProcessor:
         from backend_v2.exceptions import AppException, ErrorCodes
 
         with pytest.raises(AppException) as exc_info:
-            TemplateProcessor.render_prompt(
-                "raw string"  # type: ignore[arg-type]
-            )
+            TemplateProcessor.render_prompt("raw string")
 
         assert exc_info.value.status_code == 400
         assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -194,9 +192,7 @@ class TestTemplateProcessor:
         )
 
         with pytest.raises(AppException) as exc_info_dict:
-            TemplateProcessor.render_prompt(
-                {"not": "a template"}  # type: ignore[arg-type]
-            )
+            TemplateProcessor.render_prompt({"not": "a template"})
 
         assert exc_info_dict.value.status_code == 400
         assert exc_info_dict.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

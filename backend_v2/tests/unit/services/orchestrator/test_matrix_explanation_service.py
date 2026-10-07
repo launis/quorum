@@ -1006,7 +1006,7 @@ def test_quote_candidate_dto_model() -> None:
     assert candidate.quote_length == 56
 
     with pytest.raises((TypeError, ValueError)):
-        candidate.quote = "mutated"  # type: ignore[misc]
+        candidate.quote = "mutated"
 
 
 def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> None:

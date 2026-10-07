@@ -236,7 +236,7 @@ async def test_boundary_partition_invalid_locale_fails_fast(invalid_locale: str 
             executor=executor,
             client=client,
             context_text="Valid document context.",
-            target_locale=invalid_locale,  # type: ignore[arg-type]
+            target_locale=invalid_locale,
         )
 
     assert exc_info.value.status_code == 400

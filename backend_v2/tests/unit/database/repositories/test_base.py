@@ -83,21 +83,25 @@ def test_version_increment_dto_invariants() -> None:
 
     # Immutability check (frozen=True)
     with pytest.raises(ValidationError):
-        dto.version = 3  # type: ignore[misc]
+        dto.version = 3
 
     # Extra fields forbidden check (extra="forbid")
     with pytest.raises(ValidationError):
-        VersionIncrementDTO(
-            base_id="wor_123",
-            new_id="wor_123_v2",
-            version=2,
-            extra_field="invalid",  # type: ignore[call-arg]
+        VersionIncrementDTO.model_validate(
+            {
+                "base_id": "wor_123",
+                "new_id": "wor_123_v2",
+                "version": 2,
+                "extra_field": "invalid",
+            }
         )
 
     # Strict type check (strict=True)
     with pytest.raises(ValidationError):
-        VersionIncrementDTO(
-            base_id="wor_123",
-            new_id="wor_123_v2",
-            version="not_an_int",  # type: ignore[arg-type]
+        VersionIncrementDTO.model_validate(
+            {
+                "base_id": "wor_123",
+                "new_id": "wor_123_v2",
+                "version": "not_an_int",
+            }
         )

@@ -7,15 +7,16 @@ synthesis distiller to prevent God Code and maintain Single Responsibility.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.hook_delta import HookDeltaDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["MatrixExplanationService", "QuoteCandidateDTO"]
 
 _ATOM_RESULT_ADAPTER: TypeAdapter[AtomResultDTO | ReducedAtomDTO] = TypeAdapter(AtomResultDTO | ReducedAtomDTO)
+_MAPPING_ADAPTER: TypeAdapter[Mapping[str, JsonValue]] = TypeAdapter(Mapping[str, JsonValue])
 
 
 class QuoteCandidateDTO(BaseModel):
@@ -110,13 +112,9 @@ class MatrixExplanationService:
                 results_list = [dto.payload]
             elif isinstance(dto.payload, list):
                 results_list = dto.payload
-            elif not isinstance(dto.payload, (str, int, float, bool, list)) and dto.payload is not None:
-                if "results" in dto.payload:
-                    res = dto.payload["results"]  # type: ignore[index]
-                    if isinstance(res, list):
-                        results_list = res
-
-            if not results_list:
+            elif isinstance(dto.payload, HookDeltaDTO):
+                results_list = dto.payload.results
+            else:
                 continue
 
             for atom_item in results_list:
@@ -179,10 +177,10 @@ class MatrixExplanationService:
                     extensions={},
                 )
             else:
-                # Step 1: Pure immutable dictionary comprehension complying with QGR019
                 try:
-                    payload_to_validate = {k: v for k, v in payload.items() if k != "results"}  # type: ignore[union-attr]
-                    lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
+                    mapping_payload = _MAPPING_ADAPTER.validate_python(payload)
+                    clean_payload = {k: v for k, v in mapping_payload.items() if k != "results"}
+                    lw_matrix = LightweightMatrixOutput.model_validate(clean_payload, strict=False)
                 except (ValidationError, ValueError, AttributeError, TypeError) as e:
                     logger.error(
                         "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",

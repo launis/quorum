@@ -2,12 +2,13 @@
 
 import contextvars
 import logging
-from typing import Any
+from typing import Any, cast
 
 import arq.connections
 import arq.worker
 from arq.connections import ArqRedis
 from fakeredis.aioredis import FakeRedis
+from redis.asyncio.connection import ConnectionPool
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,10 @@ class ArqCompatibleFakeRedis(FakeRedis):
 
     Attributes:
         retry: Mock retry handler for Arq execution.
+        connection_kwargs: Connection parameters dictionary.
     """
+
+    connection_kwargs: dict[str, str | int]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initializes the fake redis instance with Arq compatibility attributes.
@@ -72,6 +76,7 @@ class ArqCompatibleFakeRedis(FakeRedis):
         """
         super().__init__(*args, **kwargs)
         self.retry = MockRetry()
+        self.connection_kwargs = {"host": "localhost", "port": 6379}
 
     async def get_connection(self) -> Any:
         """Returns self as the active connection.
@@ -124,7 +129,8 @@ class ArqCompatibleFakeRedis(FakeRedis):
         Returns:
             None
         """
-        res = await self.execute_command(*args, **kwargs)  # type: ignore[no-untyped-call]
+        cmd: Any = self.execute_command
+        res = await cmd(*args, **kwargs)
         _last_response_var.set(res)
 
     async def read_response(self) -> Any:
@@ -143,7 +149,8 @@ def _patch_arq_logging() -> None:
         pass
 
     arq.connections.log_redis_info = _no_op_log
-    arq.worker.log_redis_info = _no_op_log  # type: ignore[attr-defined]
+    worker_module: Any = arq.worker
+    worker_module.log_redis_info = _no_op_log
 
 
 def get_patched_fakeredis_pool() -> ArqRedis:
@@ -159,11 +166,11 @@ def get_patched_fakeredis_pool() -> ArqRedis:
     from fakeredis import FakeServer
 
     fake_redis = ArqCompatibleFakeRedis(server=FakeServer())
-    fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}  # type: ignore[attr-defined]
+    fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}
 
     _patch_arq_logging()
 
-    arq_redis = ArqRedis(fake_redis)  # type: ignore[arg-type]
+    arq_redis = ArqRedis(cast(ConnectionPool, fake_redis))
     logger.info("In-Memory Redis pool (Patched) initialized.")
 
     return arq_redis

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import copy
+import logging
 from typing import TYPE_CHECKING, cast
 
-from pydantic import JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
@@ -46,6 +48,13 @@ __all__ = [
     "merge_execution_inputs",
     "reduce_hook_delta",
 ]
+
+logger = logging.getLogger(__name__)
+
+
+class _EvaluativeMatricesWrapperDTO(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    evaluative_matrices: dict[str, float] = Field(default_factory=dict)
 
 
 def merge_execution_inputs(
@@ -268,10 +277,21 @@ def reduce_hook_delta(
             eval_map: dict[str, float] = {}
             if "_evaluative_matrices" in updated_dynamic:
                 raw_eval = updated_dynamic["_evaluative_matrices"]
-                if not isinstance(raw_eval, (str, int, float, bool, list)) and raw_eval is not None:
-                    for k, v in raw_eval.items():  # type: ignore[union-attr]
-                        if isinstance(v, (int, float)):
-                            eval_map[str(k)] = float(v)
+                if raw_eval is not None:
+                    try:
+                        wrapper = _EvaluativeMatricesWrapperDTO.model_validate({"evaluative_matrices": raw_eval})
+                        eval_map.update(wrapper.evaluative_matrices)
+                    except (ValidationError, ValueError, TypeError) as err:
+                        logger.error(
+                            "[StateReducer] Failed to parse _evaluative_matrices: %s",
+                            err,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                        raise AppException(
+                            message=f"Invalid _evaluative_matrices in dynamic inputs: {err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from err
             for pb_id, matrix_out in delta.matrix_outputs.items():
                 if matrix_out.normalized_score is not None:
                     eval_map[pb_id] = float(matrix_out.normalized_score)

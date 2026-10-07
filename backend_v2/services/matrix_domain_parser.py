@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import status
 from pydantic import ValidationError
@@ -606,6 +606,14 @@ class MatrixDomainParser:
             if norm_score is not None:
                 norm_score_float = float(norm_score)
 
+            validated_evidence_type: Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None = None
+            if evidence_type == "EXPLICIT_QUOTE":
+                validated_evidence_type = "EXPLICIT_QUOTE"
+            elif evidence_type == "IMPLIED_INTENT":
+                validated_evidence_type = "IMPLIED_INTENT"
+            elif evidence_type == "NO_EVIDENCE":
+                validated_evidence_type = "NO_EVIDENCE"
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
@@ -619,7 +627,7 @@ class MatrixDomainParser:
                 true_atoms=true_atoms,
                 total_atoms=total_atoms,
                 row_explanation=cleaned_explanation,
-                evidence_type=evidence_type,  # type: ignore[arg-type]
+                evidence_type=validated_evidence_type,
                 cited_source_id=cited_source_id,
                 cited_text_quote=cited_text_quote,
                 cited_web_citation=cited_web_citation,

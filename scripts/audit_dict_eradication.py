@@ -22,6 +22,7 @@ import io
 import re
 import sys
 import tokenize
+import tomllib
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,11 +44,61 @@ __all__ = [
     "BOUNDARY_EXEMPTION_FILES",
     "DictEradicationReport",
     "DictEradicationVisitor",
+    "FROZEN_APPROVED_DART_ANALYZER_ERRORS",
+    "FROZEN_APPROVED_PER_FILE_IGNORE_PATHS",
+    "FROZEN_APPROVED_RUFF_IGNORES",
     "audit_dict_eradication",
     "audit_file_comments",
+    "check_config_suppression_ratchet",
     "is_boundary_exempt",
     "main",
 ]
+
+FROZEN_APPROVED_RUFF_IGNORES: frozenset[str] = frozenset(
+    {
+        "B008",
+        "E402",
+        "D100",
+        "D101",
+        "D102",
+        "D103",
+        "D107",
+        "D205",
+        "D417",
+        "UP017",
+    }
+)
+
+FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset(
+    {
+        "backend_v2/services/orchestrator/anchor_validation_service.py",
+        "backend_v2/services/orchestrator/prompt_compiler.py",
+        "backend_v2/services/orchestrator/schema_factory.py",
+        "backend_v2/services/pii_analyzer.py",
+        "backend_v2/tests/unit/services/orchestrator/test_schema_healing_prompt.py",
+        "backend_v2/tests/unit/test_seed_architectural_guardrails.py",
+        "scripts/backend_audit_loop.py",
+        "scripts/flutter_audit_loop.py",
+        "tools/check_trace_size.py",
+        "backend_v2/services/mcp/mcp_tool_loop.py",
+        "backend_v2/services/orchestrator/extractive_sensor_service.py",
+        "backend_v2/services/orchestrator/localization_compiler.py",
+        "backend_v2/services/orchestrator/prompt_compiler_adapter.py",
+        "backend_v2/services/orchestrator/strategies/llm.py",
+        "backend_v2/services/source_verification_service.py",
+        "backend_v2/tests/unit/hooks/test_scoring.py",
+        "backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py",
+        "backend_v2/tests/unit/services/test_blueprint.py",
+        "backend_v2/tests/unit/test_tavily_search_client.py",
+        "backend_v2/utils/alias_engine.py",
+    }
+)
+
+FROZEN_APPROVED_DART_ANALYZER_ERRORS: frozenset[str] = frozenset(
+    {
+        "invalid_annotation_target",
+    }
+)
 
 BANNED_REASON_PLACEHOLDERS: set[str] = {
     "n/a",
@@ -322,8 +373,9 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             line=node.lineno,
                             metric="mutable_class_defaults",
                             message=(
-                                f"Banned mutable class-level default in `{self.current_class_name}` on field `{target_name}`: "
-                                f"`{ast.unparse(node.value)}`. Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
+                                f"Banned mutable class-level default in `{self.current_class_name}` on "
+                                f"field `{target_name}`: `{ast.unparse(node.value)}`. "
+                                "Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
                             ),
                         )
                     )
@@ -367,9 +419,10 @@ class DictEradicationVisitor(ast.NodeVisitor):
                         line=node.lineno,
                         metric="unauthorized_open_json_annotations",
                         message=(
-                            f"Unauthorized Open-JSON `dict[..., JsonValue]` annotation found: `{ast.unparse(jsonvalue_sub)}`. "
-                            "Open-JSON is permitted exclusively on approved external specifications (MCP, OpenAPI, JSON Schema, RFC 7807). "
-                            "Encapsulate internal domain entities and simulation traces in a dedicated Pydantic V2 DTO per EPIC 157 Section 2.4."
+                            f"Unauthorized Open-JSON `dict[..., JsonValue]` annotation found: "
+                            f"`{ast.unparse(jsonvalue_sub)}`. Open-JSON is permitted exclusively on approved "
+                            "external specifications (MCP, OpenAPI, JSON Schema, RFC 7807). Encapsulate internal "
+                            "domain entities and simulation traces in a dedicated Pydantic V2 DTO."
                         ),
                     )
                 )
@@ -397,8 +450,9 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             line=node.lineno,
                             metric="mutable_class_defaults",
                             message=(
-                                f"Banned mutable class-level default in `{self.current_class_name}` on field `{target_name}`: "
-                                f"`{ast.unparse(node.value)}`. Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
+                                f"Banned mutable class-level default in `{self.current_class_name}` on "
+                                f"field `{target_name}`: `{ast.unparse(node.value)}`. "
+                                "Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
                             ),
                         )
                     )
@@ -753,7 +807,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
 
 
 def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolation]:
-    """Audits comments in a file to verify zero # noqa comment suppressions.
+    """Audits comments in a file to verify zero # noqa and type: ignore comment suppressions.
 
     Args:
         filepath: Target file path of the source code.
@@ -780,6 +834,15 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
                             message=f"Unauthorized '# noqa' comment suppression detected: {tok.string.strip()}",
                         )
                     )
+                if re.search(r"#\s*type" + r":\s*ignore", text, re.IGNORECASE):
+                    violations.append(
+                        AuditViolation(
+                            filepath=filepath,
+                            line=tok.start[0],
+                            metric="unauthorized_suppressions",
+                            message=f"Unauthorized '{'#'} type: ignore' comment suppression detected: {tok.string.strip()}",
+                        )
+                    )
     except (tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError) as e:
         violations.append(
             AuditViolation(
@@ -792,15 +855,211 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
     return violations
 
 
+type TomlValue = object
+type TomlTable = dict[str, TomlValue]
+
+
+def _extract_dict_table(container: object, key: str) -> TomlTable:
+    """Safely extracts a nested sub-table dict from a parent container.
+
+    Args:
+        container: Parent container object, expected to be a dictionary.
+        key: String key to extract from the parent container.
+
+    Returns:
+        Extracted dictionary mapping string keys to objects, or empty dictionary if absent/invalid.
+    """
+    if type(container) is dict and key in container:
+        val = container[key]
+        if type(val) is dict:
+            return {str(k): v for k, v in val.items()}
+    return {}
+
+
+def check_config_suppression_ratchet(repo_root: Path | None = None) -> list[AuditViolation]:
+    """Validates configuration files against frozen approved suppression sets.
+
+    Audits pyproject.toml and client_app_v2/analysis_options.yaml to verify:
+    1. Zero unapproved Ruff global ignore codes in [tool.ruff.lint.ignore].
+    2. Zero unapproved per-file ignore paths in [tool.ruff.lint.per-file-ignores].
+    3. Global warn_unused_ignores = true under [tool.mypy].
+    4. Exact disable_error_code = ["prop-decorator"] under [tool.mypy].
+    5. Zero [[tool.mypy.overrides]] blocks in pyproject.toml.
+    6. Zero unapproved Dart analyzer errors in client_app_v2/analysis_options.yaml.
+
+    Args:
+        repo_root: Root directory of the repository (defaults to workspace root).
+
+    Returns:
+        List of AuditViolation instances for any unapproved configuration suppressions.
+    """
+    root = repo_root if repo_root is not None else Path(_workspace_root)
+    violations: list[AuditViolation] = []
+
+    pyproject_path = root / "pyproject.toml"
+    if pyproject_path.exists():
+        data: TomlTable = {}
+        try:
+            with open(pyproject_path, "rb") as f:
+                data = tomllib.load(f)
+        except (tomllib.TOMLDecodeError, OSError) as e:
+            violations.append(
+                AuditViolation(
+                    filepath=str(pyproject_path),
+                    line=1,
+                    metric="syntax_parse_error",
+                    message=f"Failed to parse pyproject.toml with tomllib: {e}",
+                )
+            )
+
+        tool_section = _extract_dict_table(data, "tool")
+        ruff_section = _extract_dict_table(tool_section, "ruff")
+        ruff_lint = _extract_dict_table(ruff_section, "lint")
+
+        # 1. Check tool.ruff.lint.ignore
+        if "ignore" in ruff_lint:
+            raw_ignores = ruff_lint["ignore"]
+            if isinstance(raw_ignores, list):
+                unapproved_ignores = set(raw_ignores) - FROZEN_APPROVED_RUFF_IGNORES
+                if unapproved_ignores:
+                    violations.append(
+                        AuditViolation(
+                            filepath=str(pyproject_path),
+                            line=1,
+                            metric="unauthorized_suppressions",
+                            message=(
+                                f"Unapproved Ruff ignore(s) detected in pyproject.toml: "
+                                f"{sorted(unapproved_ignores)}. Approved set: {sorted(FROZEN_APPROVED_RUFF_IGNORES)}"
+                            ),
+                        )
+                    )
+
+        # 2. Check tool.ruff.lint.per-file-ignores
+        if "per-file-ignores" in ruff_lint:
+            per_file_ignores = ruff_lint["per-file-ignores"]
+            if type(per_file_ignores) is dict:
+                unapproved_paths = set(per_file_ignores.keys()) - FROZEN_APPROVED_PER_FILE_IGNORE_PATHS
+                if unapproved_paths:
+                    violations.append(
+                        AuditViolation(
+                            filepath=str(pyproject_path),
+                            line=1,
+                            metric="unauthorized_suppressions",
+                            message=(
+                                f"Unapproved Ruff per-file-ignore path(s) detected in pyproject.toml: "
+                                f"{sorted(unapproved_paths)}. "
+                                f"Approved set: {sorted(FROZEN_APPROVED_PER_FILE_IGNORE_PATHS)}"
+                            ),
+                        )
+                    )
+
+        mypy_conf = _extract_dict_table(tool_section, "mypy")
+        if mypy_conf:
+            # 3. Check warn_unused_ignores
+            warn_unused = mypy_conf["warn_unused_ignores"] if "warn_unused_ignores" in mypy_conf else None
+            if warn_unused is not True:
+                violations.append(
+                    AuditViolation(
+                        filepath=str(pyproject_path),
+                        line=1,
+                        metric="unauthorized_suppressions",
+                        message="Missing 'warn_unused_ignores = true' globally under [tool.mypy] in pyproject.toml",
+                    )
+                )
+
+            # 4. Check disable_error_code
+            disabled_codes = mypy_conf["disable_error_code"] if "disable_error_code" in mypy_conf else []
+            if not isinstance(disabled_codes, list) or set(disabled_codes) != {"prop-decorator"}:
+                violations.append(
+                    AuditViolation(
+                        filepath=str(pyproject_path),
+                        line=1,
+                        metric="unauthorized_suppressions",
+                        message=(
+                            f"Unauthorized or missing disable_error_code in [tool.mypy]: {disabled_codes}. "
+                            "Expected exactly ['prop-decorator']."
+                        ),
+                    )
+                )
+
+            # 5. Check [[tool.mypy.overrides]]
+            if "overrides" in mypy_conf:
+                overrides = mypy_conf["overrides"]
+                if overrides:
+                    violations.append(
+                        AuditViolation(
+                            filepath=str(pyproject_path),
+                            line=1,
+                            metric="unauthorized_suppressions",
+                            message=(
+                                f"Unauthorized [[tool.mypy.overrides]] block detected in pyproject.toml: {overrides}"
+                            ),
+                        )
+                    )
+
+    yaml_path = root / "client_app_v2" / "analysis_options.yaml"
+    if yaml_path.exists():
+        in_analyzer = False
+        in_errors = False
+        errors_indent = 0
+        try:
+            for line_no, raw_line in enumerate(yaml_path.read_text(encoding="utf-8").splitlines(), start=1):
+                line = raw_line.rstrip()
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                indent = len(line) - len(line.lstrip())
+                if stripped == "analyzer:":
+                    in_analyzer = True
+                    in_errors = False
+                    continue
+                if in_analyzer and stripped == "errors:":
+                    in_errors = True
+                    errors_indent = indent
+                    continue
+                if in_errors:
+                    if indent <= errors_indent:
+                        in_errors = False
+                        in_analyzer = False
+                    elif ":" in stripped:
+                        key = stripped.split(":", 1)[0].strip()
+                        if key not in FROZEN_APPROVED_DART_ANALYZER_ERRORS:
+                            violations.append(
+                                AuditViolation(
+                                    filepath=str(yaml_path),
+                                    line=line_no,
+                                    metric="unauthorized_suppressions",
+                                    message=(
+                                        "Unauthorized Dart analyzer error suppression detected in "
+                                        f"analysis_options.yaml: '{key}'. "
+                                        f"Approved set: {sorted(FROZEN_APPROVED_DART_ANALYZER_ERRORS)}"
+                                    ),
+                                )
+                            )
+        except (OSError, UnicodeDecodeError) as e:
+            violations.append(
+                AuditViolation(
+                    filepath=str(yaml_path),
+                    line=1,
+                    metric="syntax_parse_error",
+                    message=f"Failed to read analysis_options.yaml: {e}",
+                )
+            )
+
+    return violations
+
+
 def audit_dict_eradication(
     targets: Path | str | Sequence[Path | str] = "backend_v2",
     strict: bool = False,
+    repo_root: Path | None = None,
 ) -> DictEradicationReport:
     """Executes the complete multi-layer dict eradication audit on target directory or files.
 
     Args:
         targets: Directory or sequence of files/directories to audit.
         strict: Whether strict reflection checking on tests is enabled.
+        repo_root: Optional repository root for configuration suppression ratchet checks.
 
     Returns:
         DictEradicationReport containing metrics and discovered violations.
@@ -871,6 +1130,14 @@ def audit_dict_eradication(
             else:
                 report.unauthorized_suppressions += 1
             report.violations.append(cv)
+
+    config_violations = check_config_suppression_ratchet(repo_root=repo_root)
+    for cv in config_violations:
+        if cv.metric == "syntax_parse_error":
+            report.syntax_parse_errors += 1
+        else:
+            report.unauthorized_suppressions += 1
+        report.violations.append(cv)
 
     return report
 

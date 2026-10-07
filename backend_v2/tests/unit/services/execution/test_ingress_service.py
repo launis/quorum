@@ -110,7 +110,7 @@ def test_create_execution_record_handles_dict_metadata() -> None:
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        metadata={"workflow_version": 2},  # type: ignore[arg-type]
+        metadata={"workflow_version": 2},
     )
 
     assert record.metadata is not None

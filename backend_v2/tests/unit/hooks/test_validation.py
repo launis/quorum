@@ -267,7 +267,7 @@ def test_verify_anomaly_invalid_atom_type() -> None:
 
     inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
-            "block_1": [  # type: ignore[dict-item]
+            "block_1": [
                 "not_a_valid_dict_or_atom",
                 {"score_level": 1.0, "hit": True},
             ]
@@ -293,7 +293,7 @@ def test_validation_hook_rejects_malformed_dto() -> None:
 
     inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
-            "block_1": [  # type: ignore[dict-item]
+            "block_1": [
                 {"hit": True},  # Missing mandatory score_level
             ]
         }

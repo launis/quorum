@@ -57,7 +57,7 @@ def test_projected_results_dto() -> None:
     assert atom.tda_id in dto.hydrated_references
 
     with pytest.raises(ValidationError):
-        dto.results = []  # type: ignore[misc]
+        dto.results = []
 
     with pytest.raises(ValidationError):
         ProjectedResultsDTO.model_validate({"results": [atom], "hydrated_references": {}, "extra": 1})
@@ -70,7 +70,7 @@ def test_missing_context_dto() -> None:
     assert dto.missing_context_text == "Missing A, B"
 
     with pytest.raises(ValidationError):
-        dto.missing_atoms = []  # type: ignore[misc]
+        dto.missing_atoms = []
 
     with pytest.raises(ValidationError):
         MissingContextDTO.model_validate({"missing_atoms": [], "forbidden": "field"})
@@ -89,7 +89,7 @@ def test_matrix_projection_result_dto() -> None:
     assert dto.missing_context.missing_atoms == ["Atom C"]
 
     with pytest.raises(ValidationError):
-        dto.matrix_output = matrix  # type: ignore[misc]
+        dto.matrix_output = matrix
 
     with pytest.raises(ValidationError):
         MatrixProjectionResultDTO.model_validate({"results": [atom], "matrix_output": matrix, "unexpected": True})
@@ -109,7 +109,7 @@ def test_matrix_hook_result_dto() -> None:
     assert len(dto.atom_quotes["blk_test"]) == 1
 
     with pytest.raises(ValidationError):
-        dto.matrix_outputs = {}  # type: ignore[misc]
+        dto.matrix_outputs = {}
 
     with pytest.raises(ValidationError):
         MatrixHookResultDTO.model_validate(
@@ -200,7 +200,7 @@ def test_hook_delta_dto_variants_and_roundtrip() -> None:
     assert empty_delta.metadata_updates is None
 
     with pytest.raises(ValidationError):
-        empty_delta.delta = None  # type: ignore[misc]
+        empty_delta.delta = None
 
     with pytest.raises(ValidationError):
         HookDeltaDTO.model_validate({"extra_forbidden": True})
@@ -209,7 +209,7 @@ def test_hook_delta_dto_variants_and_roundtrip() -> None:
 def test_hook_delta_dto_negative_partitions() -> None:
     """ISTQB Negative Partitions: Assert raw dictionaries are rejected in delta and metadata_updates."""
     with pytest.raises(ValidationError):
-        HookDeltaDTO(delta={"raw": 1})  # type: ignore[arg-type]
+        HookDeltaDTO.model_validate({"delta": {"raw": 1}})
 
     with pytest.raises(ValidationError):
-        HookDeltaDTO(metadata_updates={"invalid_key": "val"})  # type: ignore[arg-type]
+        HookDeltaDTO.model_validate({"metadata_updates": {"invalid_key": "val"}})

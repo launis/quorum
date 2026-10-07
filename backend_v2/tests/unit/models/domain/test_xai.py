@@ -147,4 +147,4 @@ def test_additional_extension_types_and_results() -> None:
     assert rep.format == "markdown"
 
     with pytest.raises(ValidationError):
-        JustificationExtension(reasoning="Valid", extra_field="fail")  # type: ignore[call-arg]
+        JustificationExtension(reasoning="Valid", extra_field="fail")

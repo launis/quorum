@@ -101,7 +101,7 @@ class FactCheckRFI(V2CoreBase):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
-    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @computed_field
     @property
     def is_verified(self) -> bool:
         """Boolean verification status."""
@@ -161,7 +161,7 @@ class EthicalObservation(V2CoreBase):
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
-    @computed_field  # type: ignore[prop-decorator]  # Pydantic computed_field with @property
+    @computed_field
     @property
     def is_critical(self) -> bool:
         """Is the issue critical?"""

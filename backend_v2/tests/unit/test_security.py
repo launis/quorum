@@ -41,7 +41,7 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(deps: HookDependencies)
     state = HookState.model_construct(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=None,  # type: ignore[arg-type]
+        inputs=None,
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
@@ -58,7 +58,7 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(deps: HookDependencies) ->
     state = HookState.model_construct(
         execution_id="exe_123",
         workflow_id="wf_123",
-        inputs=["invalid", "list"],  # type: ignore[arg-type]
+        inputs=["invalid", "list"],
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
     )

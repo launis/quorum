@@ -95,10 +95,6 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"backend_v2/tasks/legacy_migration_tasks.py" = ["E501"]  # Long prompt strings
-"backend_v2/tasks/analysis.py" = ["E501"]
-"backend_v2/tasks/critique.py" = ["E501"]
-"backend_v2/database/firestore_repo.py" = ["E501"]
 "backend_v2/services/orchestrator/anchor_validation_service.py" = ["E501"]
 "backend_v2/services/orchestrator/prompt_compiler.py" = ["E501"]
 "backend_v2/services/orchestrator/schema_factory.py" = ["E501"]
@@ -113,7 +109,6 @@ convention = "google"
 "backend_v2/services/orchestrator/localization_compiler.py" = ["E501"]
 "backend_v2/services/orchestrator/prompt_compiler_adapter.py" = ["E501"]
 "backend_v2/services/orchestrator/strategies/llm.py" = ["E501"]
-"backend_v2/services/orchestrator/strategies/llm_execution/chunk_worker.py" = ["E501"]
 "backend_v2/services/source_verification_service.py" = ["E501"]
 "backend_v2/tests/unit/hooks/test_scoring.py" = ["E501"]
 "backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py" = ["E501"]
@@ -126,14 +121,9 @@ python_version = "3.14"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
+warn_unused_ignores = true
+disable_error_code = ["prop-decorator"]
 exclude = ["docs/", "scratch/", "tmp/", "client_app_v2/", "tools/", "backend_v2/tests/"]
-
-[[tool.mypy.overrides]]
-module = [
-    "backend_v2.database.firestore_driver",
-    "backend_v2.database.factory"
-]
-warn_unused_ignores = false
 
 [tool.logfire]
 ignore_no_config = true

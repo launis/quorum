@@ -82,7 +82,7 @@ async def test_analyze_interaction_role_missing_system_repo(mock_repository: InM
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
         audit_repo=mock_repository,
-        system_repo=None,  # type: ignore[arg-type]
+        system_repo=None,
     )
 
     with pytest.raises(AppException) as exc:

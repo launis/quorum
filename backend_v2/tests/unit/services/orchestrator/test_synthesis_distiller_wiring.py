@@ -197,7 +197,7 @@ async def test_synthesis_distiller_wiring_none_state_raises_validation_failed() 
     deps = _build_mock_deps()
 
     with pytest.raises(AppException) as exc_info:
-        await cast(Awaitable[HookResult], synthesis_distiller_hook(None, deps))  # type: ignore[arg-type]
+        await cast(Awaitable[HookResult], synthesis_distiller_hook(cast(HookState, None), deps))
 
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert exc_info.value.status_code == 500
@@ -212,7 +212,7 @@ async def test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_sch
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
-        inputs="invalid_inputs_string",  # type: ignore[arg-type]
+        inputs=cast(ExecutionInputsDTO, "invalid_inputs_string"),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
@@ -323,7 +323,7 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
             dynamic_inputs={"steps": [raw_step_dict]},
-            target_locale="en",  # type: ignore[dict-item]
+            target_locale="en",
         ),
         global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )

@@ -249,7 +249,7 @@ async def test_atom_flattening_invalid_block_format_fails_fast(base_hook_state: 
     """Test hook raises VALIDATION_FAILED when raw block fails Pydantic validation."""
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_step(mock_step)
-    repo._prompt_blocks._storage["invalid"] = {"invalid": "format_no_id"}  # type: ignore[assignment]
+    repo._prompt_blocks._storage["invalid"] = {"invalid": "format_no_id"}
     deps = _make_deps(workflow_repo=repo, comp_repo=repo)
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(base_hook_state, deps)

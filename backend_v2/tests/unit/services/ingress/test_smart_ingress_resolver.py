@@ -160,9 +160,11 @@ class TestSmartIngressResolver:
     )
     def test_empty_required_inputs_fail_fast(self, empty_value: object) -> None:
         """Partition 5: Empty required inputs fail fast with missing_fields."""
-        raw_inputs = WorkflowInputsIngress(
-            dynamic_inputs={
-                "chat_log": empty_value,  # type: ignore[dict-item]
+        raw_inputs = WorkflowInputsIngress.model_validate(
+            {
+                "dynamic_inputs": {
+                    "chat_log": empty_value,
+                }
             }
         )
 
@@ -183,9 +185,11 @@ class TestSmartIngressResolver:
     def test_invalid_type_inputs_rejected_at_ingress(self, invalid_value: object) -> None:
         """Partition 5b: Non-IngressInputValue types (None, naked dict) rejected at ingress boundary."""
         with pytest.raises(ValidationError):
-            WorkflowInputsIngress(
-                dynamic_inputs={
-                    "chat_log": invalid_value,  # type: ignore[dict-item]
+            WorkflowInputsIngress.model_validate(
+                {
+                    "dynamic_inputs": {
+                        "chat_log": invalid_value,
+                    }
                 }
             )
 
@@ -231,14 +235,16 @@ class TestSmartIngressResolver:
         )
 
         with pytest.raises(ValidationError):
-            ResolvedIngressDTO(
-                resolved_inputs={"chat_log": "valid"},
-                source_identity_manifest={"chat_log": "sample.pdf"},
-                hallucinated_extra_key="forbidden",  # type: ignore[call-arg]
+            ResolvedIngressDTO.model_validate(
+                {
+                    "resolved_inputs": {"chat_log": "valid"},
+                    "source_identity_manifest": {"chat_log": "sample.pdf"},
+                    "hallucinated_extra_key": "forbidden",
+                }
             )
 
         with pytest.raises(ValidationError):
-            dto.resolved_inputs = {"mutated": True}  # type: ignore[misc]
+            dto.resolved_inputs = {"mutated": True}
 
     def test_ambiguous_match_fails_fast(self) -> None:
         """Negative: Candidate resolving to multiple distinct slots raises 400 VALIDATION_FAILED."""

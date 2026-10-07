@@ -108,7 +108,7 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
         execution_id="123",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        global_context_vars=None,  # type: ignore[arg-type]
+        global_context_vars=None,
         metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)
@@ -134,7 +134,7 @@ async def test_generate_bibliography_hook_invalid_context_raises() -> None:
             execution_id="123",
             workflow_id="wf1",
             inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-            global_context_vars=GlobalContextVarsDTO(knowledge_base="not_a_dict"),  # type: ignore[arg-type]
+            global_context_vars=GlobalContextVarsDTO(knowledge_base="not_a_dict"),
             metadata=ExecutionMetadata(),
         )
         await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))

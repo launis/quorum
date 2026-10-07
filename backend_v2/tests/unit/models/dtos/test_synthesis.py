@@ -26,11 +26,15 @@ def test_synthesis_section_strictness() -> None:
     assert dto.layout_id == "lay_1"
 
     with pytest.raises(ValidationError):
-        SynthesisSectionDTO(
-            layout_id="lay_1",
-            content_blocks=[ParagraphBlock(block_type="paragraph", text="content", exact_quotes=[], citations=[])],
-            extra="fail",
-        )  # type: ignore
+        SynthesisSectionDTO.model_validate(
+            {
+                "layout_id": "lay_1",
+                "content_blocks": [
+                    ParagraphBlock(block_type="paragraph", text="content", exact_quotes=[], citations=[])
+                ],
+                "extra": "fail",
+            }
+        )
 
 
 def test_xai_highlight_strictness() -> None:
@@ -38,7 +42,7 @@ def test_xai_highlight_strictness() -> None:
     assert dto.extension_type == "risk_flag"
 
     with pytest.raises(ValidationError):
-        XaiHighlightItem(extension_type="risk", content="text", extra="fail")  # type: ignore
+        XaiHighlightItem.model_validate({"extension_type": "risk", "content": "text", "extra": "fail"})
 
 
 def test_executive_summary_section_result_strictness() -> None:
@@ -54,18 +58,26 @@ def test_executive_summary_section_result_strictness() -> None:
     assert len(dto.executive_summary) == 1
 
     with pytest.raises(ValidationError):
-        ExecutiveSummarySectionResult(
-            user_role=RoleClassification.ARCHITECT,
-            user_role_justification="High maturity",
-            executive_summary=[ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])],
-            extra_field="fail",
-        )  # type: ignore
+        ExecutiveSummarySectionResult.model_validate(
+            {
+                "user_role": RoleClassification.ARCHITECT,
+                "user_role_justification": "High maturity",
+                "executive_summary": [
+                    ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])
+                ],
+                "extra_field": "fail",
+            }
+        )
 
     with pytest.raises(ValidationError):
-        ExecutiveSummarySectionResult(
-            user_role="ROLE_EXECUTIVE_STRATEGIST",  # type: ignore[arg-type]
-            user_role_justification="Invalid role hallucination",
-            executive_summary=[ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])],
+        ExecutiveSummarySectionResult.model_validate(
+            {
+                "user_role": "ROLE_EXECUTIVE_STRATEGIST",
+                "user_role_justification": "Invalid role hallucination",
+                "executive_summary": [
+                    ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])
+                ],
+            }
         )
 
 
@@ -83,10 +95,12 @@ def test_matrix_section_syntheses_result_strictness() -> None:
     assert len(dto.sections) == 1
 
     with pytest.raises(ValidationError):
-        MatrixSectionSynthesesResult(
-            sections=[],
-            extra_forbidden="fail",
-        )  # type: ignore
+        MatrixSectionSynthesesResult.model_validate(
+            {
+                "sections": [],
+                "extra_forbidden": "fail",
+            }
+        )
 
 
 def test_xai_highlights_result_strictness() -> None:
@@ -98,10 +112,12 @@ def test_xai_highlights_result_strictness() -> None:
     assert len(dto.xai_highlights) == 1
 
     with pytest.raises(ValidationError):
-        XaiHighlightsResult(
-            xai_highlights=[],
-            extra_forbidden="fail",
-        )  # type: ignore
+        XaiHighlightsResult.model_validate(
+            {
+                "xai_highlights": [],
+                "extra_forbidden": "fail",
+            }
+        )
 
 
 def test_synthesis_output_strictness() -> None:
@@ -120,11 +136,13 @@ def test_synthesis_output_strictness() -> None:
     assert len(dto.section_syntheses) == 1
 
     with pytest.raises(ValidationError):
-        SynthesisOutputDTO(
-            user_role="ROLE_ARCHITECT",
-            user_role_justification="Test",
-            extra="fail",
-        )  # type: ignore
+        SynthesisOutputDTO.model_validate(
+            {
+                "user_role": "ROLE_ARCHITECT",
+                "user_role_justification": "Test",
+                "extra": "fail",
+            }
+        )
 
 
 def test_executive_summary_section_result_role_optional() -> None:
@@ -178,13 +196,15 @@ def test_matrix_explanation_context_strictness() -> None:
     assert validated_list[0].matrix_id == "m0"
 
     with pytest.raises(ValidationError):
-        MatrixExplanationContextDTO(
-            real_matrix_id="blk_0123456789abcdef01",
-            matrix_id="m0",
-            matrix_label="Strategic Alignment",
-            justification="Justification",
-            extra="forbidden",
-        )  # type: ignore[call-arg]
+        MatrixExplanationContextDTO.model_validate(
+            {
+                "real_matrix_id": "blk_0123456789abcdef01",
+                "matrix_id": "m0",
+                "matrix_label": "Strategic Alignment",
+                "justification": "Justification",
+                "extra": "forbidden",
+            }
+        )
 
 
 def test_synthesis_distillation_strictness() -> None:
@@ -195,10 +215,10 @@ def test_synthesis_distillation_strictness() -> None:
     assert dto.target_locale == "en"
 
     with pytest.raises(ValidationError):
-        dto.distilled_inputs = "mutated"  # type: ignore[misc]
+        dto.distilled_inputs = "mutated"
 
     with pytest.raises(ValidationError):
-        SynthesisDistillationDTO(distilled_inputs="test", unknown_field="fail")  # type: ignore[call-arg]
+        SynthesisDistillationDTO.model_validate({"distilled_inputs": "test", "unknown_field": "fail"})
 
 
 def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
@@ -215,14 +235,18 @@ def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
     assert len(res.explanations) == 1
 
     with pytest.raises(ValidationError):
-        SynthesisRowExplanationDTO(
-            matrix_id="m0",
-            row_explanation="Explanation",
-            extra="forbidden",
-        )  # type: ignore[call-arg]
+        SynthesisRowExplanationDTO.model_validate(
+            {
+                "matrix_id": "m0",
+                "row_explanation": "Explanation",
+                "extra": "forbidden",
+            }
+        )
 
     with pytest.raises(ValidationError):
-        MatrixExplanationsResult(
-            explanations=[row],
-            extra="forbidden",
-        )  # type: ignore[call-arg]
+        MatrixExplanationsResult.model_validate(
+            {
+                "explanations": [row],
+                "extra": "forbidden",
+            }
+        )

@@ -150,7 +150,7 @@ def test_process_executive_summary_result_with_budget() -> None:
     res = process_executive_summary_result((exec_res, usage), prof)
     assert res.exec_dto is not None
     assert len(res.blocks) == 1
-    assert len(res.blocks[0].text) <= 100 or "..." in res.blocks[0].text  # type: ignore[attr-defined]
+    assert len(res.blocks[0].text) <= 100 or "..." in res.blocks[0].text
     assert res.cost_usd == 0.005
     assert res.total_tokens == 30
 

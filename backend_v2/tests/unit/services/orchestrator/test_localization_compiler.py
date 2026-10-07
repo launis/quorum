@@ -171,7 +171,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
 
     # Invalid type raises AppException
     with pytest.raises(AppException) as exc2:
-        compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=12345)  # type: ignore[arg-type]
+        compiler.compile_dynamic_instructions(blocks, target_locale="en", execution_time=12345)
     assert exc2.value.status_code == 400
 
 

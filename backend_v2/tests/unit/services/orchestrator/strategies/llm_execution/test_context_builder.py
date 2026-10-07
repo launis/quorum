@@ -355,7 +355,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
     # 1. Non-str or empty criteria
-    assert ContextBuilder.apply_spatial_slicing(123, None) == 123  # type: ignore[arg-type]
+    assert ContextBuilder.apply_spatial_slicing(123, None) == 123
     assert ContextBuilder.apply_spatial_slicing("Sample text", []) == "Sample text"
 
     # 2. Blocks hierarchy

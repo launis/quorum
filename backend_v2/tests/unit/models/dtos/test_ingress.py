@@ -21,16 +21,18 @@ def test_chat_turn_anchor_dto_valid() -> None:
 
     # Frozen check
     with pytest.raises(ValidationError):
-        dto.speaker = "ai"  # type: ignore[misc]
+        dto.speaker = "ai"
 
 
 def test_chat_turn_anchor_dto_invalid_speaker() -> None:
     """Test validation failure on invalid speaker role."""
     with pytest.raises(ValidationError):
-        ChatTurnAnchorDTO(
-            speaker="system",  # type: ignore[arg-type]
-            start_phrase="Hello world test",
-            end_phrase="Goodbye world test",
+        ChatTurnAnchorDTO.model_validate(
+            {
+                "speaker": "system",
+                "start_phrase": "Hello world test",
+                "end_phrase": "Goodbye world test",
+            }
         )
 
 
@@ -89,7 +91,7 @@ def test_resolved_ingress_dto_valid() -> None:
 
     # Immutability check
     with pytest.raises(ValidationError):
-        dto.resolved_inputs = {}  # type: ignore[misc]
+        dto.resolved_inputs = {}
 
 
 def test_resolved_ingress_dto_extra_fields_forbidden() -> None:

@@ -23,25 +23,25 @@ def test_sensor_validation_context_dto_valid() -> None:
     assert dto.step_id == "stp_67890"
 
     with pytest.raises(ValidationError):
-        dto.sub_task = "new_task"  # type: ignore[misc]
+        dto.sub_task = "new_task"
 
 
 def test_sensor_validation_context_dto_missing_required() -> None:
     """Test ValidationError when required sub_task field is omitted."""
     with pytest.raises(ValidationError):
-        _ = SensorValidationContextDTO()  # type: ignore[call-arg]
+        _ = SensorValidationContextDTO.model_validate({})
 
 
 def test_sensor_validation_context_dto_extra_fields() -> None:
     """Test ValidationError when extra forbidden fields are supplied."""
     with pytest.raises(ValidationError):
-        _ = SensorValidationContextDTO(sub_task="extract", extra_val="invalid")  # type: ignore[call-arg]
+        _ = SensorValidationContextDTO.model_validate({"sub_task": "extract", "extra_val": "invalid"})
 
 
 def test_sensor_validation_context_dto_strict_type() -> None:
     """Test ValidationError when non-string type is provided under strict mode."""
     with pytest.raises(ValidationError):
-        _ = SensorValidationContextDTO(sub_task=12345)  # type: ignore[arg-type]
+        _ = SensorValidationContextDTO.model_validate({"sub_task": 12345})
 
 
 def test_ensemble_call_result_dto_defaults() -> None:
@@ -51,7 +51,7 @@ def test_ensemble_call_result_dto_defaults() -> None:
     assert dto.usage.total_tokens == 0
 
     with pytest.raises(ValidationError):
-        dto.evaluations = {}  # type: ignore[misc]
+        dto.evaluations = {}
 
 
 def test_ensemble_call_result_dto_with_evaluations() -> None:
@@ -71,4 +71,4 @@ def test_ensemble_call_result_dto_with_evaluations() -> None:
 def test_ensemble_call_result_dto_extra_fields_forbidden() -> None:
     """Test that extra fields trigger ValidationError."""
     with pytest.raises(ValidationError):
-        _ = EnsembleCallResultDTO(extra_field="disallowed")  # type: ignore[call-arg]
+        _ = EnsembleCallResultDTO.model_validate({"extra_field": "disallowed"})

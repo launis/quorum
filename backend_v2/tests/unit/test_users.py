@@ -27,4 +27,4 @@ async def test_get_all_users(mock_current_user: TokenData, mock_auth_service: As
 async def test_get_user(mock_current_user: TokenData, mock_auth_service: AsyncMock) -> None:
     mock_auth_service.get_user.return_value = "mock_user"
     res = await get_user(id="usr_456", current_user=mock_current_user, auth_service=mock_auth_service)
-    assert res == "mock_user"  # type: ignore
+    assert res == "mock_user"

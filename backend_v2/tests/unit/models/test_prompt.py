@@ -21,10 +21,12 @@ def test_compiled_prompt_pydantic_strictness() -> None:
 
     # Extra fields must raise ValidationError
     with pytest.raises(ValidationError):
-        CompiledPrompt(
-            static_messages=[LLMMessageDTO(role="system", content="Static")],
-            dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic")],
-            invalid_extra_field="error",  # type: ignore[call-arg]
+        CompiledPrompt.model_validate(
+            {
+                "static_messages": [LLMMessageDTO(role="system", content="Static")],
+                "dynamic_messages": [LLMMessageDTO(role="user", content="Dynamic")],
+                "invalid_extra_field": "error",
+            }
         )
 
 
@@ -82,19 +84,19 @@ def test_compiled_prompt_forbids_system_in_dynamic() -> None:
 def test_llm_message_dto_missing_required_field() -> None:
     """Verifies that missing required fields in LLMMessageDTO trigger ValidationError."""
     with pytest.raises(ValidationError):
-        LLMMessageDTO(content="text")  # type: ignore[call-arg]
+        LLMMessageDTO.model_validate({"content": "text"})
 
 
 def test_llm_message_dto_extra_field_forbidden() -> None:
     """Verifies that extra fields in LLMMessageDTO are forbidden and raise ValidationError."""
     with pytest.raises(ValidationError):
-        LLMMessageDTO(role="user", content="text", invalid_extra="value")  # type: ignore[call-arg]
+        LLMMessageDTO.model_validate({"role": "user", "content": "text", "invalid_extra": "value"})
 
 
 def test_llm_message_dto_strict_types() -> None:
     """Verifies that non-string role types trigger ValidationError in strict mode."""
     with pytest.raises(ValidationError):
-        LLMMessageDTO(role=123, content="text")  # type: ignore[arg-type]
+        LLMMessageDTO.model_validate({"role": 123, "content": "text"})
 
 
 def test_llm_message_dto_serialization_null_omission() -> None:

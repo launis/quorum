@@ -293,7 +293,7 @@ async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(),
-        execution_trace=[evt_ling, evt_mat, "not_a_trace_event"],  # type: ignore[list-item]
+        execution_trace=[evt_ling, evt_mat, "not_a_trace_event"],
         context_variables=None,
     )
     prof = _make_profile(

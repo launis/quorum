@@ -109,7 +109,7 @@ def test_tda_assertion_depends_on_list_coercion() -> None:
         inverse_evidence=False,
         aggregation_mode="ALL_MUST_COMPLY",
         concept_description="Concept description that is at least 10 chars.",
-        depends_on=[edge],  # type: ignore[arg-type]
+        depends_on=[edge],
     )
     assert isinstance(tda.depends_on, tuple)
     assert len(tda.depends_on) == 1

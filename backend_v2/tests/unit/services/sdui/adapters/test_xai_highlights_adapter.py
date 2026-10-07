@@ -182,7 +182,7 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
     XaiHighlightsAdapter.build(context)
 
     with pytest.raises(ValidationError):
-        context.locale = "fi"  # type: ignore[misc]
+        context.locale = "fi"
 
 
 def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fixture: OutputProfile) -> None:

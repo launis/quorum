@@ -136,14 +136,8 @@ class LLMNodeStrategy(NodeStrategy):
             elif "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
                 blackboard = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
 
-        if blackboard is None:
-            if hook_state.global_context_vars is not None and not isinstance(
-                hook_state.global_context_vars, (str, int, float, bool, list)
-            ):
-                if "__GLOBAL_ATOM_BLACKBOARD__" in hook_state.global_context_vars:  # type: ignore[operator]
-                    blackboard = hook_state.global_context_vars["__GLOBAL_ATOM_BLACKBOARD__"]  # type: ignore[index]
-            if blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
-                blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
+        if blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
+            blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
 
         atoms_by_input = {}
         if blackboard is not None:
@@ -341,8 +335,8 @@ class LLMNodeStrategy(NodeStrategy):
             initial_gvars = GlobalContextVarsDTO()
 
         safe_raw_inputs = {}
-        if not isinstance(inputs_unwrapped, (str, int, float, bool, list)) and inputs_unwrapped is not None:
-            safe_raw_inputs = dict(inputs_unwrapped)  # type: ignore[call-overload]
+        if type(inputs_unwrapped) is dict:
+            safe_raw_inputs = dict(inputs_unwrapped)
         hook_state = HookState(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
@@ -675,8 +669,8 @@ class LLMNodeStrategy(NodeStrategy):
                 inputs_dict: object = inputs_payload
                 if "inputs" in inputs_payload:
                     inputs_dict = inputs_payload["inputs"]
-                if not isinstance(inputs_dict, (str, int, float, bool, list)) and inputs_dict is not None:
-                    for k, text_content in inputs_dict.items():  # type: ignore[attr-defined]
+                if type(inputs_dict) is dict:
+                    for k, text_content in inputs_dict.items():
                         if isinstance(text_content, str):
                             display_name = k
                             if k in manifest:

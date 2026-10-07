@@ -16,13 +16,16 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 # Force UTF-8 encoding for stdout/stderr to support emojis on Windows
-try:
-    if sys.stdout is not None:
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-    if sys.stderr is not None:
-        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
-except AttributeError, io.UnsupportedOperation:
-    pass
+if isinstance(sys.stdout, io.TextIOWrapper):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except AttributeError, io.UnsupportedOperation:
+        pass
+if isinstance(sys.stderr, io.TextIOWrapper):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except AttributeError, io.UnsupportedOperation:
+        pass
 
 
 class DtoFieldMismatchDTO(BaseModel):

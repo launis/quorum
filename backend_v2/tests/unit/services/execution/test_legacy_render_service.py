@@ -133,7 +133,7 @@ def render_service(
     )
     transformer_mock = AsyncMock()
     transformer_mock.build_report_dto.return_value = mock_report_dto
-    service._transformer = lambda: transformer_mock  # type: ignore[method-assign]
+    service._transformer = lambda: transformer_mock
     return service
 
 

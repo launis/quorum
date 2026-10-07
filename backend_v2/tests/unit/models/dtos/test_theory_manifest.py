@@ -31,7 +31,7 @@ def test_injected_theory_manifest_frozen_immutability() -> None:
     """Verifies that InjectedTheoryManifestDTO rejects in-place attribute mutations."""
     manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
     with pytest.raises(ValidationError):
-        manifest.theories = {"th_2": "New theory"}  # type: ignore[misc]
+        manifest.theories = {"th_2": "New theory"}
 
 
 def test_injected_theory_manifest_extra_fields_forbidden() -> None:

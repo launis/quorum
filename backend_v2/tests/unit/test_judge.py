@@ -23,7 +23,7 @@ def test_judge_input_strictness() -> None:
 
     # Fails extra
     with pytest.raises(ValidationError):
-        JudgeInput(chat_log="Hi", extra_field="fail")  # type: ignore
+        JudgeInput.model_validate({"chat_log": "Hi", "extra_field": "fail"})
 
 
 def test_dimension_result_strictness() -> None:
@@ -44,7 +44,9 @@ def test_dimension_result_strictness() -> None:
 
     # Fails extra
     with pytest.raises(ValidationError):
-        DimensionResultItem(dimension_id="D", dimension_label="L", score=1, reasoning="R", extra="fail")  # type: ignore
+        DimensionResultItem.model_validate(
+            {"dimension_id": "D", "dimension_label": "L", "score": 1, "reasoning": "R", "extra": "fail"}
+        )
 
 
 def test_judge_score_card_strictness() -> None:
@@ -151,4 +153,6 @@ def test_scoring_result_strictness() -> None:
 
     # Fails extra
     with pytest.raises(ValidationError):
-        ScoringResult(total_score=5.0, calculated_average=4.5, score_summary="S", extra="no")  # type: ignore
+        ScoringResult.model_validate(
+            {"total_score": 5.0, "calculated_average": 4.5, "score_summary": "S", "extra": "no"}
+        )

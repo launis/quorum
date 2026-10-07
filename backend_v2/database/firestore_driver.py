@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import status
-from google.cloud import firestore  # type: ignore[attr-defined]
+from google.cloud import firestore
 from pydantic import BaseModel
 
 from backend_v2.database.driver import Filter, StorageDriver
@@ -71,7 +71,7 @@ class FirestoreDriver(StorageDriver):
         doc_ref = self.db.collection(collection).document(doc_id)
         doc = await doc_ref.get()
         if doc.exists:
-            return doc.to_dict()  # type: ignore
+            return doc.to_dict()
         return None
 
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
@@ -198,7 +198,7 @@ class FirestoreDriver(StorageDriver):
                 query = query.where(f.field, f.operator, f.value)
 
         try:
-            aggregate_query = query.count()  # type: ignore[no-untyped-call]
+            aggregate_query = query.count()
             snapshots = await aggregate_query.get()
             return int(snapshots[0][0].value)
         except AttributeError, RuntimeError, TypeError, OSError:

@@ -12,8 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-# Ignore untyped markdown library as it lacks official stubs in Python 3.14
-import markdown  # type: ignore[import-untyped, unused-ignore]
+import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes

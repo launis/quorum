@@ -40,7 +40,7 @@ class TestMultiChannelIngressService:
         """Negative: None input triggers immediate AppException with EMPTY_INPUT."""
         service = MultiChannelIngressService()
         with pytest.raises(AppException) as excinfo:
-            await service.process_chat(None, mock_system_repo, key="chat_log")  # type: ignore[arg-type]
+            await service.process_chat(None, mock_system_repo, key="chat_log")
 
         assert excinfo.value.details["error_code"] == ErrorCodes.EMPTY_INPUT.value
 

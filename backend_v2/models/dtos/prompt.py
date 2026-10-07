@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
+from collections.abc import ItemsView, KeysView, Mapping, ValuesView
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, JsonValue
@@ -38,10 +38,6 @@ class PromptMappingDTO(V2CoreBase):
     def __contains__(self, key: object) -> bool:
         """Allow membership check against inner mappings."""
         return key in self.mappings
-
-    def __iter__(self) -> Iterator[str]:  # type: ignore[override]
-        """Allow iteration over mapping keys."""
-        return iter(self.mappings)
 
     def keys(self) -> KeysView[str]:
         """Return view of mapping keys."""

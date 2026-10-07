@@ -86,17 +86,20 @@ class ContextVariablesDTO(V2CoreBase):
 
         for k, v in updates.items():
             if k in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
-                new_global_atom_blackboard = v  # type: ignore[assignment]
+                if isinstance(v, GlobalAtomBlackboard) or v is None:
+                    new_global_atom_blackboard = v
             elif k in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
-                new_matrix_reducer_output = v  # type: ignore[assignment]
+                if isinstance(v, (LightweightMatrixDTO, LightweightMatrixOutput)) or v is None:
+                    new_matrix_reducer_output = v
             elif k == "report_context":
-                new_report_context = v  # type: ignore[assignment]
+                if not isinstance(v, (GlobalAtomBlackboard, LightweightMatrixDTO, EvaluatedMatrixContextDTO)):
+                    new_report_context = v
             elif k == "step_detector":
-                new_step_detector = v  # type: ignore[assignment]
+                if not isinstance(v, (GlobalAtomBlackboard, LightweightMatrixDTO, EvaluatedMatrixContextDTO)):
+                    new_step_detector = v
             elif k == "evaluated_matrices":
-                new_evaluated_matrices = v  # type: ignore[assignment]
-            elif k == "variables":
-                var_updates.update(v)  # type: ignore[arg-type]
+                if not isinstance(v, (GlobalAtomBlackboard, LightweightMatrixDTO, EvaluatedMatrixContextDTO)):
+                    new_evaluated_matrices = v
             elif not isinstance(v, (GlobalAtomBlackboard, LightweightMatrixDTO)):
                 var_updates[k] = v
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, Protocol
 
 import openai
 import requests
@@ -38,6 +38,13 @@ if GOOGLE_DEPS_AVAILABLE:
     import google.auth.transport.requests
 
 logger = logging.getLogger(__name__)
+
+
+class _RefreshableCredentials(Protocol):
+    token: str | None
+
+    def refresh(self, request: Any) -> None: ...
+
 
 DEFAULT_HTTP_TIMEOUT = 10
 MAX_DISCOVERY_CONCURRENCY = 20
@@ -170,7 +177,10 @@ class LLMHandler:
             candidates = sorted(list(set(candidates)))
 
             try:
-                credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                raw_credentials, project = google.auth.default(
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                )
+                credentials: _RefreshableCredentials = raw_credentials
             except Exception as auth_err:
                 logger.error(
                     "Google Authentication failed during Vertex AI discovery: %s",
@@ -216,7 +226,7 @@ class LLMHandler:
                 else:
                     try:
                         auth_request = google.auth.transport.requests.Request()
-                        credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
+                        credentials.refresh(auth_request)
                         headers = {"Authorization": f"Bearer {credentials.token}"}
 
                         url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
@@ -338,7 +348,10 @@ class LLMHandler:
 
         try:
             try:
-                credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+                raw_credentials, project = google.auth.default(
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                )
+                credentials: _RefreshableCredentials = raw_credentials
             except Exception as auth_err:
                 logger.error(
                     "Google Authentication failed during Vertex AI location discovery: %s",
@@ -362,7 +375,7 @@ class LLMHandler:
                 )
 
             auth_request = google.auth.transport.requests.Request()
-            credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
+            credentials.refresh(auth_request)
             headers = {"Authorization": f"Bearer {credentials.token}"}
 
             url = f"https://aiplatform.googleapis.com/v1/projects/{project}/locations"

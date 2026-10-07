@@ -129,21 +129,23 @@ def test_models_frozen_and_extra_forbid() -> None:
     """Test that all models are frozen and forbid extra fields."""
     usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError):
-        usage.prompt_tokens = 10  # type: ignore
+        usage.prompt_tokens = 10
 
     with pytest.raises(ValidationError):
-        TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, extra_field="invalid")  # type: ignore
+        TokenUsage.model_validate(
+            {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "extra_field": "invalid"}
+        )
 
     agg = UsageAggregate(scope="sys", period="all")
     with pytest.raises(ValidationError):
-        agg.scope = "new"  # type: ignore
+        agg.scope = "new"
 
     with pytest.raises(ValidationError):
-        UsageAggregate(scope="sys", period="all", unknown="field")  # type: ignore
+        UsageAggregate.model_validate({"scope": "sys", "period": "all", "unknown": "field"})
 
     report = UsageReport(scope="sys", period="all")
     with pytest.raises(ValidationError):
-        report.scope = "new"  # type: ignore
+        report.scope = "new"
 
     with pytest.raises(ValidationError):
-        UsageReport(scope="sys", period="all", unknown="field")  # type: ignore
+        UsageReport.model_validate({"scope": "sys", "period": "all", "unknown": "field"})

@@ -167,7 +167,7 @@ def test_resolve_with_valid_execution_metadata() -> None:
 def test_resolve_invalid_context_type_raises_app_exception() -> None:
     """ISTQB Negative test: Passing invalid context type raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
-        ExecutionTimeResolver.resolve(llm_context_data="not a dto")  # type: ignore[arg-type]
+        ExecutionTimeResolver.resolve(llm_context_data="not a dto")
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
@@ -175,7 +175,7 @@ def test_resolve_invalid_context_type_raises_app_exception() -> None:
 def test_resolve_invalid_inputs_type_raises_app_exception() -> None:
     """ISTQB Negative test: Passing invalid inputs type raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
-        ExecutionTimeResolver.resolve(inputs={"document_date": "2026-01-01"})  # type: ignore[arg-type]
+        ExecutionTimeResolver.resolve(inputs={"document_date": "2026-01-01"})
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
@@ -183,7 +183,7 @@ def test_resolve_invalid_inputs_type_raises_app_exception() -> None:
 def test_resolve_invalid_metadata_type_raises_app_exception() -> None:
     """ISTQB Negative test: Passing invalid metadata type raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
-        ExecutionTimeResolver.resolve(metadata={"invalid": "meta"})  # type: ignore[arg-type]
+        ExecutionTimeResolver.resolve(metadata={"invalid": "meta"})
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 

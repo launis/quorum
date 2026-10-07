@@ -51,7 +51,7 @@ def test_flat_execution_record_dto_extra_fields_forbid() -> None:
             execution_id="exe_test789",
             workflow_id="wor_gamma",
             status="COMPLETED",
-            extra_field="invalid",  # type: ignore[call-arg]
+            extra_field="invalid",
         )
 
 
@@ -59,7 +59,7 @@ def test_flat_execution_record_dto_type_validation_fail_fast() -> None:
     """Verify FlatExecutionRecordDTO rejects invalid types fail-fast."""
     with pytest.raises(ValidationError):
         FlatExecutionRecordDTO(
-            execution_id=12345,  # type: ignore[arg-type]
+            execution_id=12345,
             workflow_id="wor_delta",
             status="COMPLETED",
         )

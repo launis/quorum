@@ -21,7 +21,7 @@ def test_engine_execution_result_is_frozen() -> None:
     """Test that EngineExecutionResult is immutable."""
     result = EngineExecutionResult(results=[], hydrated_references={})
     with pytest.raises(ValidationError):
-        result.results = []  # type: ignore
+        result.results = []
 
 
 def test_engine_execution_request_is_frozen() -> None:
@@ -89,7 +89,7 @@ def test_matrix_evaluation_context_is_frozen() -> None:
     """Test that MatrixEvaluationContext is immutable."""
     context = MatrixEvaluationContext()
     with pytest.raises(ValidationError):
-        context.allow_contextual_override = True  # type: ignore
+        context.allow_contextual_override = True
 
 
 def test_matrix_evaluation_context_invalid_types() -> None:
@@ -206,14 +206,16 @@ def test_engine_execution_request_extra_fields_rejected() -> None:
     client = MagicMock(spec=LLMClient)
 
     with pytest.raises(ValidationError):
-        EngineExecutionRequest(
-            bound_client=client,
-            system_prompt="System",
-            step=step,
-            context=context,
-            global_source_text="Source",
-            prompt_compiler=MagicMock(),
-            disallowed_extra="bad",  # type: ignore[call-arg]
+        EngineExecutionRequest.model_validate(
+            {
+                "bound_client": client,
+                "system_prompt": "System",
+                "step": step,
+                "context": context,
+                "global_source_text": "Source",
+                "prompt_compiler": MagicMock(),
+                "disallowed_extra": "bad",
+            }
         )
 
 

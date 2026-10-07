@@ -59,7 +59,7 @@ def test_report_artifact_rejects_extra_fields() -> None:
             locale="fi",
             title="Raportti",
             status=ReportStatus.PENDING,
-            extra_field="disallowed",  # type: ignore[call-arg]
+            extra_field="disallowed",
         )
 
 
@@ -91,7 +91,7 @@ def test_report_artifact_strict_type_enforcement() -> None:
     with pytest.raises(ValidationError):
         ReportArtifact(
             id="rep_1234567890abcdef",
-            execution_id=12345,  # type: ignore[arg-type]
+            execution_id=12345,
             workflow_id="wor_1234567890abcdef",
             profile_id="prf_1234567890abcdef",
             locale="en",

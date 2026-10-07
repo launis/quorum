@@ -495,6 +495,9 @@ class WorkflowState(ExecutionCoreFields):
         return self.get_context("step_judge_cognitive", JudgeOutput)
 
 
+type SnapshotValue = StepOutputContentDTO | object
+
+
 class StateProjector:
     """In-Memory cache and reducer for Event Sourcing read models.
 
@@ -507,7 +510,7 @@ class StateProjector:
         Args:
             trace: Optional list of TraceEvents to initialize snapshot.
         """
-        self._snapshot: dict[str, StepOutputContentDTO] = {}
+        self._snapshot: dict[str, SnapshotValue] = {}
         self._schema_version: int = 0
         self._trace_length: int = 0
         if trace:
@@ -577,30 +580,30 @@ class StateProjector:
         """
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
-            try:
-                items_iter = step_output.data.items()
-            except (AttributeError, TypeError) as err:
+            if not isinstance(step_output, StepOutputContentDTO):
                 # Epic 43 Phase 2 Fail-Fast: Legacy unstructured traces are strictly forbidden.
                 msg = (
                     f"Legacy flat trace detected for step '{step_id}'. "
                     "Zero-Compromise Pledge forbids unstructured data."
                 )
                 logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-
                 raise AppException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     message=msg,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from err
+                )
 
+            items_iter = step_output.data.items()
             for block_id, payload in items_iter:
                 try:
                     output.append(
-                        StepOutputDTO(
-                            step_id=step_id,
-                            block_id=block_id,
-                            data_type="unknown",
-                            payload=payload,  # type: ignore[arg-type]
+                        StepOutputDTO.model_validate(
+                            {
+                                "step_id": step_id,
+                                "block_id": block_id,
+                                "data_type": "unknown",
+                                "payload": payload,
+                            }
                         )
                     )
                 except ValidationError as err:
@@ -648,7 +651,7 @@ class StateProjector:
             elif type(content) is dict:
                 self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
             else:
-                self._snapshot[event.step_name] = content  # type: ignore[assignment]
+                self._snapshot[event.step_name] = content
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker
             redacted_hash = "unknown"

@@ -12,9 +12,9 @@ from pydantic import BaseModel
 
 # Mock vertexai / GCP SDK BEFORE any imports
 if "_mock_cached_contents" not in dir(sys):
-    sys._mock_cached_contents = MagicMock()  # type: ignore[attr-defined]
+    sys._mock_cached_contents = MagicMock()
 
-mock_cached_contents = sys._mock_cached_contents  # type: ignore[attr-defined]
+mock_cached_contents = sys._mock_cached_contents
 
 
 class MockGenerativeModels(types.ModuleType):

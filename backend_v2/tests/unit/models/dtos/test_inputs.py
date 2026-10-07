@@ -11,7 +11,7 @@ def test_question_answer_pair_strictness() -> None:
     assert pair.answer == "Yes."
 
     with pytest.raises(ValidationError, match="Instance is frozen"):
-        pair.question = "Why?"  # type: ignore[misc]
+        pair.question = "Why?"
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted|Extra inputs are not permitted"):
         # We test that extra fields fail, but without passing them explicitly in kwargs, which mypy hates

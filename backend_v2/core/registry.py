@@ -7,6 +7,7 @@ routines linked with formal Pydantic schemas.
 from __future__ import annotations
 
 import logging
+import types
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
 from enum import Enum, StrEnum
@@ -543,7 +544,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 "StepDTOStrictDynamic",
                 __base__=StepDTOStrict,
                 source_document_aliases=(
-                    list[FinalDocIdsType],  # type: ignore
+                    types.GenericAlias(list, (FinalDocIdsType,)),
                     Field(
                         ...,
                         description="Dynamic literals corresponding to available documents.",
@@ -562,7 +563,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 "StepDTOSemanticDynamic",
                 __base__=StepDTOSemantic,
                 source_document_aliases=(
-                    list[FinalDocIdsType],  # type: ignore
+                    types.GenericAlias(list, (FinalDocIdsType,)),
                     Field(
                         ...,
                         description="Dynamic literals corresponding to available documents.",
@@ -643,7 +644,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 break
                             for tda in claim.tda_assertions:
                                 atom_id = str(tda.tda_id)
-                                if isinstance(dag_results, (list, tuple)):
+                                if isinstance(dag_results, Sequence):
                                     for step_out in dag_results:
                                         if isinstance(step_out, StepOutputDTO):
                                             payload = step_out.payload
@@ -659,7 +660,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                                             break
                                 else:
                                     if atom_id in dag_results:
-                                        atom_item = dag_results[atom_id]  # type: ignore[call-overload]
+                                        atom_item = dag_results[atom_id]
                                         if isinstance(atom_item, AtomResultDTO):
                                             if atom_item.status == ExecutionStatus.PASSED:
                                                 has_evidence = True

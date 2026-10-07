@@ -424,7 +424,7 @@ async def test_execute_success_path_structured_output(
     assert traces[0].event_type == "output"
 
     # Verify that DAG components were invoked
-    llm_strategy._engine.execute.assert_called_once()  # type: ignore
+    llm_strategy._engine.execute.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -744,7 +744,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     )
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
+    mock_engine.execute.return_value = EngineExecutionResult(
         results=[],
         hydrated_references={},
         usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.001),
@@ -871,7 +871,7 @@ async def test_execute_synthesis_engine_path(
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
+    mock_engine.execute.return_value = EngineExecutionResult(
         results=[],
         hydrated_references={},
         synthesis_output=MockSynthesisDTO(summary="Synthesized Analysis"),
@@ -980,9 +980,7 @@ async def test_execute_anomaly_retry_flow(
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
-        results=[], hydrated_references={}
-    )
+    mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -1724,7 +1722,7 @@ async def test_execute_matrix_chunking_flow(
     )
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
+    mock_engine.execute.return_value = EngineExecutionResult(
         results=[],
         hydrated_references={},
         usage=TokenUsage(prompt_tokens=300, completion_tokens=100, total_tokens=400, cost_usd=0.005),
@@ -1817,9 +1815,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
-        results=[], hydrated_references={}
-    )
+    mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}
@@ -2057,9 +2053,7 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     from backend_v2.models.dtos.engine import EngineExecutionResult
 
     mock_engine = llm_strategy._engine
-    mock_engine.execute.return_value = EngineExecutionResult(  # type: ignore
-        results=[], hydrated_references={}
-    )
+    mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = {}

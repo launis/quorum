@@ -53,15 +53,17 @@ def test_flattened_atom_coerces_lists_to_tuples() -> None:
         acceptable="Valid phrase with minimum ten chars", rejected="Bad phrase with minimum ten chars"
     )
 
-    atom = FlattenedAtom(
-        atom_id="tda_123",
-        question="Question",
-        depends_on=[edge],  # type: ignore[arg-type]
-        contrastive_example=contrastive,
-        acceptance_criteria=[criterion],  # type: ignore[arg-type]
-        anti_patterns=[anti],  # type: ignore[arg-type]
-        syntactic_anchors=["anchor1", "anchor2"],  # type: ignore[arg-type]
-        target_speaker=TargetSpeaker.AI,
+    atom = FlattenedAtom.model_validate(
+        {
+            "atom_id": "tda_123",
+            "question": "Question",
+            "depends_on": [edge],
+            "contrastive_example": contrastive,
+            "acceptance_criteria": [criterion],
+            "anti_patterns": [anti],
+            "syntactic_anchors": ["anchor1", "anchor2"],
+            "target_speaker": TargetSpeaker.AI,
+        }
     )
     assert isinstance(atom.depends_on, tuple)
     assert len(atom.depends_on) == 1
@@ -84,4 +86,4 @@ def test_flattened_atom_is_frozen() -> None:
     """Test that FlattenedAtom instances are immutable."""
     atom = FlattenedAtom(atom_id="tda_1", question="Q")
     with pytest.raises(ValidationError):
-        atom.question = "New Q"  # type: ignore[misc]
+        atom.question = "New Q"

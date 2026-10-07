@@ -440,7 +440,7 @@ def test_source_document_packer_extended_coverage() -> None:
     from backend_v2.models.state import StepOutputDTO
 
     # 1. Whitespace and non-string mappings in resolve_context_targets
-    dirty_mapping = {"empty_val": "   ", "non_str": 999}  # type: ignore[dict-item]
+    dirty_mapping = {"empty_val": "   ", "non_str": 999}
     empty_resolved = SourceDocumentPacker.resolve_context_targets(dirty_mapping)
     assert empty_resolved.allowed_input_keys == frozenset()
     assert empty_resolved.allowed_step_ids == frozenset()

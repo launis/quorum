@@ -23,13 +23,13 @@ from backend_v2.services.progress import (
 def test_progress_state_extra_field_forbidden() -> None:
     """ISTQB Negative Test: Extra fields on ProgressState must trigger ValidationError."""
     with pytest.raises(ValidationError):
-        ProgressState(status="running", timestamp="2026-08-31T00:00:00Z", extra_key=123)  # type: ignore[call-arg]
+        ProgressState(status="running", timestamp="2026-08-31T00:00:00Z", extra_key=123)
 
 
 def test_progress_state_strict_types() -> None:
     """ISTQB Boundary Test: Invalid field types must trigger ValidationError in strict mode."""
     with pytest.raises(ValidationError):
-        ProgressState(status=123, timestamp="2026-08-31T00:00:00Z")  # type: ignore[arg-type]
+        ProgressState(status=123, timestamp="2026-08-31T00:00:00Z")
 
 
 from backend_v2.models.domain.execution import ExecutionRecord

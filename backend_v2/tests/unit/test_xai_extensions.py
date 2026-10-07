@@ -66,23 +66,22 @@ def test_xai_extensions_schema_generation_happy_path(test_blocks: Any) -> None:
     instance = adapter.validate_python(payload)
 
     # Strict attribute checking
-    assert instance.matrix_risk == 5.0  # type: ignore[attr-defined]
-    assert instance.matrix_risk_confidence == 95.5  # type: ignore[attr-defined]
-    assert instance.matrix_risk_risk_flag is True  # type: ignore[attr-defined]
-    assert instance.matrix_risk_remediation_steps == ["Step 1", "Step 2"]  # type: ignore[attr-defined]
+    dump = instance.model_dump()
+    assert dump["matrix_risk"] == 5.0
+    assert dump["matrix_risk_confidence"] == 95.5
+    assert dump["matrix_risk_risk_flag"] is True
+    assert dump["matrix_risk_remediation_steps"] == ["Step 1", "Step 2"]
 
-    assert instance.block_coach == "Nice work"  # type: ignore[attr-defined]
-    assert instance.block_coach_coaching == "Try alternative phrasing."  # type: ignore[attr-defined]
-    assert instance.block_coach_emotional_sentiment == "Positive and encouraging"  # type: ignore[attr-defined]
-    assert instance.block_coach_theory_link == "Constructivist learning theory"  # type: ignore[attr-defined]
+    assert dump["block_coach"] == "Nice work"
+    assert dump["block_coach_coaching"] == "Try alternative phrasing."
+    assert dump["block_coach_emotional_sentiment"] == "Positive and encouraging"
+    assert dump["block_coach_theory_link"] == "Constructivist learning theory"
 
-    assert instance.matrix_logic == 1  # type: ignore[attr-defined]
-    assert instance.matrix_logic_justification == "Valid logic structure."  # type: ignore[attr-defined]
-    assert instance.matrix_logic_citation == "'Always test edge cases.'"  # type: ignore[attr-defined]
-    assert instance.matrix_logic_falsification == "Unless the edge case is impossible."  # type: ignore[attr-defined]
-    assert (
-        instance.matrix_logic_missing_context == "Background dependencies not mentioned."  # type: ignore[attr-defined]
-    )
+    assert dump["matrix_logic"] == 1
+    assert dump["matrix_logic_justification"] == "Valid logic structure."
+    assert dump["matrix_logic_citation"] == "'Always test edge cases.'"
+    assert dump["matrix_logic_falsification"] == "Unless the edge case is impossible."
+    assert dump["matrix_logic_missing_context"] == "Background dependencies not mentioned."
 
 
 def test_xai_extensions_validation_failures(test_blocks: Any) -> None:
@@ -135,5 +134,6 @@ def test_xai_extensions_validation_failures(test_blocks: Any) -> None:
     good_coercion["matrix_risk_confidence"] = 90  # Int should correctly coerce to 90.0 FLOAT
 
     instance = adapter.validate_python(good_coercion)
-    assert instance.matrix_risk_confidence == 90.0  # type: ignore[attr-defined]
-    assert isinstance(instance.matrix_risk_confidence, float)  # type: ignore[attr-defined]
+    dump_coercion = instance.model_dump()
+    assert dump_coercion["matrix_risk_confidence"] == 90.0
+    assert isinstance(dump_coercion["matrix_risk_confidence"], float)

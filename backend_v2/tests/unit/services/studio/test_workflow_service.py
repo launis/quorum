@@ -185,7 +185,7 @@ async def test_list_workflows_public_and_system_allowed(
     wf_public = _valid_workflow("wor_0000000000000001", org_id="org_999")
     wf_public = wf_public.model_copy(update={"is_public": True})
     wf_system = _valid_workflow("wor_0000000000000002", org_id="SYSTEM")
-    wf_none = _valid_workflow("wor_0000000000000003", org_id=None)  # type: ignore[arg-type]
+    wf_none = _valid_workflow("wor_0000000000000003", org_id=None)
     await mock_workflow_repo.save_workflow(wf_public)
     await mock_workflow_repo.save_workflow(wf_system)
     await mock_workflow_repo.save_workflow(wf_none)

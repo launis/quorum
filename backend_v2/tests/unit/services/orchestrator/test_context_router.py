@@ -222,7 +222,7 @@ def test_route_and_prune_missing_base_field() -> None:
     output_profile = OutputProfileConfig(visible_block_extensions=[], visible_workflow_extensions=[])
 
     with pytest.raises(ConfigurationError) as exc_info:
-        ContextRouter.route_and_prune(trace_event, output_profile)  # type: ignore[arg-type]
+        ContextRouter.route_and_prune(trace_event, output_profile)
 
     assert "Missing required base field or invalid trace event type" in exc_info.value.message
 
@@ -303,6 +303,6 @@ def test_route_and_prune_validation_error() -> None:
     }
     output_profile = OutputProfileConfig(visible_block_extensions=[], visible_workflow_extensions=[])
     with pytest.raises(ConfigurationError) as exc_info:
-        ContextRouter.route_and_prune(invalid_trace, output_profile)  # type: ignore[arg-type]
+        ContextRouter.route_and_prune(invalid_trace, output_profile)
 
     assert "Missing required base field or invalid trace event type" in exc_info.value.message

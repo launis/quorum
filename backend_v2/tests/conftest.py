@@ -46,11 +46,11 @@ def patch_pydantic_base_model_cache() -> None:
 
     import pydantic._internal._import_utils as import_utils
 
-    import_utils.import_cached_base_model = custom_import_cached_base_model  # type: ignore[assignment]
+    import_utils.import_cached_base_model = custom_import_cached_base_model
 
     import pydantic._internal._model_construction as model_construction
 
-    model_construction.import_cached_base_model = custom_import_cached_base_model  # type: ignore[attr-defined, assignment]
+    model_construction.import_cached_base_model = custom_import_cached_base_model
 
     class NameMatcherMeta(type):
         def __instancecheck__(self, instance: Any) -> bool:
@@ -66,7 +66,7 @@ def patch_pydantic_base_model_cache() -> None:
         orig = orig_default_ignored_types()
         return orig + (PydanticIgnoreMatcher,)
 
-    model_construction.default_ignored_types = custom_default_ignored_types  # type: ignore[assignment]
+    model_construction.default_ignored_types = custom_default_ignored_types
 
     from pydantic._internal._generate_schema import GenerateSchema
     from pydantic_core import core_schema
@@ -78,7 +78,7 @@ def patch_pydantic_base_model_cache() -> None:
             return core_schema.is_instance_schema(obj)
         return orig_unknown(self, obj)
 
-    GenerateSchema._unknown_type_schema = custom_unknown  # type: ignore[method-assign]
+    GenerateSchema._unknown_type_schema = custom_unknown
 
 
 patch_pydantic_base_model_cache()

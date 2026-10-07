@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -39,10 +40,11 @@ if sys.platform == "win32":
     except (AttributeError, OSError, io.UnsupportedOperation) as e:
         print("Warning: Failed to set UTF-8 console encoding on Windows:", e, file=sys.stderr)
 
+logfire: types.ModuleType | None
 try:
     import logfire
 except ImportError:
-    logfire = None  # type: ignore[assignment]
+    logfire = None
     logging.getLogger(__name__).info("Logfire module not found. Cloud observability will be disabled.")
 except (RuntimeError, TypeError, OSError) as e:
     logging.getLogger(__name__).error("Unexpected error importing logfire.", exc_info=True)
@@ -247,10 +249,12 @@ def setup_logging(log_level: int = logging.INFO) -> None:
 
     # Lazy import: heavy AI/ML library (no_inline_imports mandate)
     try:
-        import litellm as _litellm
+        import litellm
+
+        _litellm: Any = litellm
 
         try:
-            _litellm.set_verbose = False  # type: ignore[attr-defined]
+            _litellm.set_verbose = False
             _litellm.suppress_debug_info = True  # Suppress print statements
         except (RuntimeError, TypeError, ValueError, AttributeError) as e:
             logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)

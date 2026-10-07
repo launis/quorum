@@ -183,22 +183,24 @@ def test_atom_evaluation_result_dto_frozen_immutability() -> None:
         reasoning="Reasoning",
     )
     with pytest.raises(ValidationError):
-        dto.status = ExecutionStatus.FAILED  # type: ignore[misc]
+        dto.status = ExecutionStatus.FAILED
 
 
 def test_atom_evaluation_result_dto_forbids_extra_fields() -> None:
     """Test AtomEvaluationResultDTO forbids extra fields."""
     with pytest.raises(ValidationError):
-        AtomEvaluationResultDTO(
-            status=ExecutionStatus.PASSED,
-            extra_field="disallowed",  # type: ignore[call-arg]
+        AtomEvaluationResultDTO.model_validate(
+            {
+                "status": ExecutionStatus.PASSED,
+                "extra_field": "disallowed",
+            }
         )
 
 
 def test_atom_evaluation_result_dto_missing_status_fails() -> None:
     """Test AtomEvaluationResultDTO fails if mandatory status is omitted."""
     with pytest.raises(ValidationError):
-        AtomEvaluationResultDTO()  # type: ignore[call-arg]
+        AtomEvaluationResultDTO.model_validate({})
 
 
 def test_atom_evaluation_result_dto_source_quote_max_length() -> None:
@@ -226,9 +228,11 @@ def test_chunk_packet_dto_valid() -> None:
 def test_chunk_packet_dto_forbids_extra() -> None:
     """Test ChunkPacketDTO strictly forbids extra fields."""
     with pytest.raises(ValidationError):
-        ChunkPacketDTO(
-            start_block="blk_start",
-            end_block="blk_end",
-            packet_keys=["k1"],
-            extra_field="disallowed",  # type: ignore[call-arg]
+        ChunkPacketDTO.model_validate(
+            {
+                "start_block": "blk_start",
+                "end_block": "blk_end",
+                "packet_keys": ["k1"],
+                "extra_field": "disallowed",
+            }
         )

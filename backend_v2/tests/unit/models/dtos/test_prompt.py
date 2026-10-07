@@ -22,7 +22,6 @@ def test_prompt_mapping_dto_basic_operations() -> None:
 
     assert "prompt_a" in mapping
     assert "nonexistent" not in mapping
-    assert list(iter(mapping)) == ["prompt_a", "prompt_b"]
     assert list(mapping.keys()) == ["prompt_a", "prompt_b"]
     assert list(mapping.values()) == ["$steps.s1.output", "$inputs.raw"]
     assert list(mapping.items()) == [
@@ -31,7 +30,7 @@ def test_prompt_mapping_dto_basic_operations() -> None:
     ]
 
     with pytest.raises(ValidationError):
-        mapping.mappings = {}  # type: ignore[misc]
+        mapping.mappings = {}
 
 
 def test_prompt_mapping_dto_default_empty() -> None:

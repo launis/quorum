@@ -429,7 +429,7 @@ async def test_render_execution_flat() -> None:
             matrix_metrics={"flat": "data"},
         )
         with patch("backend_v2.services.flattener.FlatFileService.flatten_results", return_value=flat_rec):
-            data, mime, filename = await service.render_execution(
+            render_res = await service.render_execution(
                 initiator=initiator,
                 execution_id="exe_0123456789abcdef",
                 format_type="flat",
@@ -437,6 +437,7 @@ async def test_render_execution_flat() -> None:
                 accept_language="en",
                 arq_pool=arq_pool,
             )
+            data, mime, filename = render_res.content, render_res.media_type, render_res.filename
 
     assert data == flat_rec
     assert mime == "application/json"
@@ -474,7 +475,7 @@ async def test_render_execution_json() -> None:
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
-        data, mime, filename = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
             format_type="json",
@@ -482,6 +483,7 @@ async def test_render_execution_json() -> None:
             accept_language=None,
             arq_pool=arq_pool,
         )
+        data, mime, filename = render_res.content, render_res.media_type, render_res.filename
 
     assert isinstance(data, ReportDataDTO)
     assert data.workflow_id == "wor_0123456789abcdef"
@@ -769,10 +771,12 @@ async def test_phase_1_5_negative_invalid_human_override_crashes() -> None:
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        HumanOverrideRequest(
-            new_status="NOT_AN_ENUM",  # type: ignore[arg-type]
-            reason="Invalid",
-            evidence_quotes=[],
+        HumanOverrideRequest.model_validate(
+            {
+                "new_status": "NOT_AN_ENUM",
+                "reason": "Invalid",
+                "evidence_quotes": [],
+            }
         )
 
 
@@ -907,7 +911,7 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
             return rec
         raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
-    service.get_execution = mock_get_exec  # type: ignore[method-assign]
+    service.get_execution = mock_get_exec
 
     events: list[str] = []
     async for event in service.stream_status(initiator=initiator, execution_id="exe_0b51fa35ea584ca7a42cd30b444d1241"):
@@ -1254,7 +1258,7 @@ async def test_render_execution_formats() -> None:
         mock_trans.build_report_dto.return_value = mock_dto
         mock_transformer_cls.return_value = mock_trans
 
-        data, mime, fname = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
             format_type="flat",
@@ -1263,6 +1267,7 @@ async def test_render_execution_formats() -> None:
             arq_pool=AsyncMock(),
             custom_preface_md="# Custom Preface",
         )
+        mime, fname = render_res.media_type, render_res.filename
         assert mime == "application/json"
         assert fname is None
 
@@ -1481,7 +1486,7 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
             return_value="<html><body>Report</body></html>",
         ),
     ):
-        content_bytes, mime, filename = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
             format_type="html",
@@ -1489,6 +1494,7 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
             accept_language="en",
             arq_pool=AsyncMock(),
         )
+        content_bytes, mime, filename = render_res.content, render_res.media_type, render_res.filename
         assert mime == "text/html"
         assert filename == "execution_exe_0123456789abcdef.html"
         assert b"<html>" in content_bytes
@@ -1517,7 +1523,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
     storage_mock = AsyncMock()
     storage_mock.read.return_value = b"%PDF-1.4 pregenerated"
     with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        pdf_bytes, mime, filename = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
             format_type="pdf",
@@ -1525,6 +1531,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
             accept_language="en",
             arq_pool=AsyncMock(),
         )
+        pdf_bytes, mime = render_res.content, render_res.media_type
         assert pdf_bytes == b"%PDF-1.4 pregenerated"
         assert mime == "application/pdf"
 
@@ -1562,7 +1569,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
             "backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"
         ),
     ):
-        pdf_bytes, mime, filename = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
             format_type="pdf",
@@ -1570,6 +1577,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
             accept_language="en",
             arq_pool=AsyncMock(),
         )
+        pdf_bytes, mime = render_res.content, render_res.media_type
         assert pdf_bytes == b"%PDF-1.4 fresh"
         assert mime == "application/pdf"
         assert repo.get_call_count("update_execution") >= 1
@@ -1615,7 +1623,7 @@ async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
     repo.set_execution(rec)
 
     arq_pool = AsyncMock()
-    res, mime, filename = await service.render_execution(
+    render_res = await service.render_execution(
         initiator=initiator,
         execution_id="exe_0123456789abcdef",
         format_type="json",
@@ -1623,6 +1631,7 @@ async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
         accept_language="en",
         arq_pool=arq_pool,
     )
+    res, mime, filename = render_res.content, render_res.media_type, render_res.filename
     assert isinstance(res, JobAcceptedDTO)
     assert mime == "application/json"
     assert filename is None
@@ -2066,7 +2075,7 @@ async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() 
     )
     repo.set_execution(rec)
 
-    res, mime, filename = await service.render_execution(
+    render_res = await service.render_execution(
         initiator=initiator,
         execution_id="exe_0123456789abcdef",
         format_type="json",
@@ -2074,6 +2083,7 @@ async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() 
         accept_language="en",
         arq_pool=AsyncMock(),
     )
+    res = render_res.content
     assert isinstance(res, JobAcceptedDTO)
     assert res.message == "Rendering PDF..."
 
@@ -2245,7 +2255,7 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
         created_by="usr_owner",
     )
 
-    service.get_execution = AsyncMock(side_effect=[rec, OSError("Connection dropped")])  # type: ignore[assignment]
+    service.get_execution = AsyncMock(side_effect=[rec, OSError("Connection dropped")])
 
     initiator = TokenData(id="usr_owner", role=UserRole.ADMIN, organization_id="org_test")
     events = [event async for event in service.stream_status(initiator, "exe_0000000000000000")]

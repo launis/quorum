@@ -142,7 +142,7 @@ class TestPhase1DTORefactoring:
 
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
-        source = inspect.getsource(QuoteEvidenceDTO.resolve_and_verify_aliases)  # type: ignore[arg-type]
+        source = inspect.getsource(QuoteEvidenceDTO.resolve_and_verify_aliases)
         assert "logger" not in source, (
             "BROKEN CONTRACT: resolve_and_verify_aliases contains logging. "
             "Phase 1 mandates: 'No logging or side-effects inside the validator.'"

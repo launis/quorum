@@ -220,7 +220,7 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
         output_profile_repo=repo,
         identity_repo=repo,
         audit_repo=repo,
-        system_repo=None,  # type: ignore[arg-type]
+        system_repo=None,
     )
 
     state = HookState(
@@ -321,7 +321,7 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),  # type: ignore[arg-type]
+        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
     )
 
     result = await source_verification_hook(state, mock_deps)
@@ -385,7 +385,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs="A direct string input for source checking.",  # type: ignore[arg-type]
+        inputs="A direct string input for source checking.",
     )
 
     result_str = await source_verification_hook(state_str, mock_deps)
@@ -398,7 +398,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=["Line one of content.", "Line two of content."],  # type: ignore[arg-type]
+        inputs=["Line one of content.", "Line two of content."],
     )
 
     result_list = await source_verification_hook(state_list, mock_deps)
@@ -437,7 +437,7 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         workflow_id="wor_1111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=CustomDataModel(text="Generic base model text for verification."),  # type: ignore[arg-type]
+        inputs=CustomDataModel(text="Generic base model text for verification."),
     )
 
     res = await source_verification_hook(state_bm, mock_deps)

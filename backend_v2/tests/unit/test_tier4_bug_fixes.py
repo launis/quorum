@@ -9,7 +9,7 @@ def test_bug_metric_mappings_silent_override() -> None:
         id="prof_1234abcd1234abcd",
         slug="test",
         workflow_id="wf_1234",
-        name={"translations": {"en": "Name"}},  # type: ignore
+        name={"translations": {"en": "Name"}},
         matrix_synthesis_groups=[
             {
                 "id": "grp_1234567890123456",

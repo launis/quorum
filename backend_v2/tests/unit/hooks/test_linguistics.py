@@ -90,7 +90,7 @@ def test_get_lexical_fuzz_threshold_locales() -> None:
 async def test_detect_performative_patterns_empty_state() -> None:
     """Verify empty state returns successful no-op."""
     deps = MagicMock()
-    result = await detect_performative_patterns(None, deps)  # type: ignore[arg-type]
+    result = await detect_performative_patterns(None, deps)
     assert result.success
     assert result.state_delta is not None
     assert not result.state_delta.delta

@@ -17,7 +17,7 @@ from backend_v2.models.llm import LLMProviderConfig
 
 
 def test_configure_llm_context_hook_no_state() -> None:
-    result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))  # type: ignore[arg-type]
+    result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta.delta is None

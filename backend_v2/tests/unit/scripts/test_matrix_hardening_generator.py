@@ -211,5 +211,5 @@ def test_negative_strict_dto_validation() -> None:
             positive_atoms=2,
             inverse_atoms=1,
             is_fragile=False,
-            unexpected_field="disallowed",  # type: ignore[call-arg]
+            unexpected_field="disallowed",
         )

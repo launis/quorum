@@ -9,7 +9,7 @@ def test_hook_list_response_strictness() -> None:
     assert dto.hooks == ["hook_1", "hook_2"]
 
     with pytest.raises(ValidationError):
-        HookListResponse(hooks=["hook_1"], extra_field="fail")  # type: ignore
+        HookListResponse(hooks=["hook_1"], extra_field="fail")
 
 
 def test_client_error_payload_strictness() -> None:
@@ -30,7 +30,7 @@ def test_client_error_payload_strictness() -> None:
     with pytest.raises(ValidationError):
         ClientErrorPayload(
             error_message="Fatal crash",
-            extra="fail",  # type: ignore
+            extra="fail",
         )
 
 

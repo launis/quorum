@@ -45,7 +45,7 @@ def test_output_profile_create_dto_strictness() -> None:
 
     # Immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):
-        dto.slug = "new-slug"  # type: ignore[misc]
+        dto.slug = "new-slug"
 
     # Forbid extra check
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):

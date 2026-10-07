@@ -212,7 +212,7 @@ def test_adaptive_wait_clamping_to_max_seconds() -> None:
     outcome = Future(1)
     outcome.set_exception(err)
     retry_state = RetryCallState(
-        retry_object=None,  # type: ignore[arg-type]
+        retry_object=None,
         fn=None,
         args=(),
         kwargs={},

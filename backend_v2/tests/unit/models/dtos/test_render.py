@@ -55,7 +55,7 @@ def test_render_execution_result_dto_extra_fields_forbid() -> None:
         RenderExecutionResultDTO(
             content="data",
             media_type="text/plain",
-            extra_field="unauthorized",  # type: ignore[call-arg]
+            extra_field="unauthorized",
         )
 
 
@@ -63,6 +63,6 @@ def test_render_execution_result_dto_invalid_type_fail_fast() -> None:
     """Verify RenderExecutionResultDTO rejects invalid content type fail-fast."""
     with pytest.raises(ValidationError):
         RenderExecutionResultDTO(
-            content=12345,  # type: ignore[arg-type]
+            content=12345,
             media_type="text/plain",
         )

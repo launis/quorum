@@ -356,13 +356,13 @@ def test_sliding_window_linker_dtos_extra_fields_forbidden() -> None:
     )
 
     with pytest.raises(ValidationError):
-        LinkerEdgeDTO(edge_reasoning="reason", tda_id="a0", extra_field="bad")  # type: ignore[call-arg]
+        LinkerEdgeDTO.model_validate({"edge_reasoning": "reason", "tda_id": "a0", "extra_field": "bad"})
 
     with pytest.raises(ValidationError):
-        LinkerDependencyDTO(child_alias="a1", extra_field="bad")  # type: ignore[call-arg]
+        LinkerDependencyDTO.model_validate({"child_alias": "a1", "extra_field": "bad"})
 
     with pytest.raises(ValidationError):
-        LinkerResponseDTO(extra_field="bad")  # type: ignore[call-arg]
+        LinkerResponseDTO.model_validate({"extra_field": "bad"})
 
     with pytest.raises(ValidationError):
-        WindowCausalEdgesDTO(extra_field="bad")  # type: ignore[call-arg]
+        WindowCausalEdgesDTO.model_validate({"extra_field": "bad"})

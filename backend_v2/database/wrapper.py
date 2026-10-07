@@ -8,6 +8,7 @@ import logging
 import os
 import threading
 import time
+import types
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Generator
@@ -42,9 +43,14 @@ HAS_MSVCRT = importlib.util.find_spec("msvcrt") is not None
 if HAS_MSVCRT:
     import msvcrt
 
-HAS_FCNTL = importlib.util.find_spec("fcntl") is not None
-if HAS_FCNTL:
+fcntl: types.ModuleType
+if importlib.util.find_spec("fcntl") is not None:
     import fcntl
+
+    HAS_FCNTL = True
+else:
+    fcntl = types.ModuleType("fcntl")
+    HAS_FCNTL = False
 
 
 MAX_REPLACE_RETRIES: int = 20
@@ -113,7 +119,7 @@ def db_lock(db_path: str) -> Generator[None]:
             try:
                 while True:
                     try:
-                        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined] # Unix-only attribute
+                        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
                         break
                     except BlockingIOError as e:
                         if time.time() - start_time > lock_timeout:
@@ -123,7 +129,7 @@ def db_lock(db_path: str) -> Generator[None]:
                 logger.debug("[TinyDB Lock] Acquired FCNTL lock on %s in %.1f ms", lock_file_path, wait_time_ms)
                 yield
             finally:
-                fcntl.flock(f, fcntl.LOCK_UN)  # type: ignore[attr-defined] # Unix-only attribute
+                fcntl.flock(f, fcntl.LOCK_UN)
                 f.close()
         else:
             lock_dir = db_path + ".lock_dir"

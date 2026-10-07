@@ -26,7 +26,7 @@ def test_report_data_dto_extra_forbidden() -> None:
             workflow_id="wor_1234567890abcdef",
             execution_id="exe_1234567890abcdef",
             profile_id="pro_1234567890abcdef",
-            extra_field="disallowed",  # type: ignore[call-arg]
+            extra_field="disallowed",
         )
 
 

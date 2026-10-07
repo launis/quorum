@@ -5,10 +5,13 @@ import pytest
 
 from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+_STEP_NAME = I18nText(translations={"en": "s1"})
 
 
 class DummyStrategy(NodeStrategy):
@@ -79,7 +82,7 @@ async def test_assert_quota_exceeded(dummy_strategy: DummyStrategy, monkeypatch:
 async def test_run_pre_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     from backend_v2.core.hook_registry import ExecutionInputsDTO, GlobalContextVarsDTO
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", pre_hooks=[])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, pre_hooks=[])
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
@@ -112,7 +115,7 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", pre_hooks=["hook_test"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, pre_hooks=["hook_test"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -144,7 +147,7 @@ async def test_run_pre_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch:
     mock_result = HookResult(success=False, state_delta=None)
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", pre_hooks=["hook_fail"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, pre_hooks=["hook_fail"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -163,7 +166,7 @@ async def test_run_pre_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch:
 async def test_run_post_hooks_empty(dummy_strategy: DummyStrategy) -> None:
     from backend_v2.core.hook_registry import ExecutionInputsDTO, GlobalContextVarsDTO
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", post_hooks=[])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, post_hooks=[])
     hook_state = HookState(
         execution_id="e1",
         workflow_id="w1",
@@ -196,7 +199,7 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", post_hooks=["hook_post"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, post_hooks=["hook_post"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -228,7 +231,7 @@ async def test_run_post_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch
     mock_result = HookResult(success=False, state_delta=None)
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", post_hooks=["hook_fail"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, post_hooks=["hook_fail"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -272,7 +275,7 @@ async def test_run_post_hooks_with_matrix_hook_result(
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", post_hooks=["hook_matrix"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, post_hooks=["hook_matrix"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -316,7 +319,7 @@ async def test_run_pre_and_post_hooks_with_dto_and_explicit_inputs(
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
 
-    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", pre_hooks=["hook_pre"])  # type: ignore[arg-type]
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name=_STEP_NAME, pre_hooks=["hook_pre"])
     step_rule = MagicMock(id="node_1")
     hook_state = HookState(
         execution_id="e1",
@@ -349,9 +352,11 @@ def test_strategy_context_validation_and_immutability() -> None:
 
     # Extra fields rejected fail-fast
     with pytest.raises(ValidationError):
-        StrategyContext(
-            execution_id="exe_1",
-            workflow_id="wf_1",
-            metadata=ExecutionMetadata(),
-            extra_field="rejected",  # type: ignore[call-arg]
+        StrategyContext.model_validate(
+            {
+                "execution_id": "exe_1",
+                "workflow_id": "wf_1",
+                "metadata": ExecutionMetadata(),
+                "extra_field": "rejected",
+            }
         )

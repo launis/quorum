@@ -90,9 +90,9 @@ def _build_mock_deps(
     pb = base_repo if prompt_block_repo is ... else prompt_block_repo
     return HookDependencies(
         exec_repo=base_repo,
-        workflow_repo=wf,  # type: ignore[arg-type]
+        workflow_repo=wf,
         comp_repo=base_repo,
-        prompt_block_repo=pb,  # type: ignore[arg-type]
+        prompt_block_repo=pb,
         output_profile_repo=base_repo,
         identity_repo=base_repo,
         system_repo=base_repo,

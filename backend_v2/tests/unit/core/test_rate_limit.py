@@ -12,7 +12,7 @@ def test_rate_limit_exceeded_handler() -> None:
 
     mock_limit = MagicMock()
     mock_limit.error_message = None
-    mock_limit.__str__ = MagicMock(return_value="1 per 1 minute")  # type: ignore[method-assign]
+    mock_limit.__str__ = MagicMock(return_value="1 per 1 minute")
     exc = RateLimitExceeded(mock_limit)
     response = rate_limit_exceeded_handler(mock_request, exc)
 

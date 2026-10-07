@@ -157,7 +157,7 @@ def test_ranked_round_robin_unhashable_group_key_raises_type_error() -> None:
     with pytest.raises(TypeError):
         ranked_round_robin_select(
             items=items,
-            group_key=lambda x: x,  # type: ignore[arg-type] # unhashable list
+            group_key=lambda x: x,
             rank_key=lambda x: len(x),
             max_items=2,
         )

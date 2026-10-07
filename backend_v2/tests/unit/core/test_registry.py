@@ -88,19 +88,21 @@ def test_task_definition_strictness() -> None:
     assert td.metadata == meta
 
     with pytest.raises(ValidationError):
-        TaskDefinition(
-            name="test",
-            handler=handler,
-            input_schema=DummyInput,
-            output_schema=DummyOutput,
-            extra="fail",  # type: ignore[call-arg]
+        TaskDefinition.model_validate(
+            {
+                "name": "test",
+                "handler": handler,
+                "input_schema": DummyInput,
+                "output_schema": DummyOutput,
+                "extra": "fail",
+            }
         )
 
 
 def test_task_metadata_dto_extra_field_forbidden() -> None:
     """ISTQB Negative Test: Extra fields on TaskMetadataDTO must raise ValidationError."""
     with pytest.raises(ValidationError):
-        TaskMetadataDTO(category="test", extra_key="invalid")  # type: ignore[call-arg]
+        TaskMetadataDTO.model_validate({"category": "test", "extra_key": "invalid"})
 
 
 def test_get_schema_strategy_resolves_correctly() -> None:
@@ -307,7 +309,7 @@ def test_grid_schema_strategy_missing_label_raises_configuration_error() -> None
     invalid_block = SystemRulePromptBlock.model_construct(
         id="pb_5234567890abcdef",
         slug="invalid-block",
-        label=None,  # type: ignore[arg-type]
+        label=None,
         description=I18nText(translations={"en": "Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.CRITERIA,

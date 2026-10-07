@@ -157,11 +157,11 @@ async def test_synthesis_engine_immutable_messages(
     mock_usage = TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30)
     mock_executor.execute_structured_task.return_value = (mock_output, mock_usage)
 
-    original_messages_len = len(base_request.hydrated_messages)  # type: ignore
+    original_messages_len = len(base_request.hydrated_messages)
 
     await engine.execute(base_request)
 
-    assert len(base_request.hydrated_messages) == original_messages_len  # type: ignore
+    assert len(base_request.hydrated_messages) == original_messages_len
 
 
 @pytest.mark.asyncio

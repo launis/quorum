@@ -43,7 +43,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
             label=label,
             description=desc,
             category_id=PromptBlockCategory.MATRIX,
-            type=BlockDataType.INSTRUCTION,  # type: ignore[arg-type]
+            type=BlockDataType.INSTRUCTION,
             allow_decimals=True,
             output_extensions=[],
             scales=[scale],

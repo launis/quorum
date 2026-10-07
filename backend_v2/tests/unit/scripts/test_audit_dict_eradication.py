@@ -8,6 +8,8 @@ import pytest
 
 from scripts.audit_dict_eradication import (
     audit_dict_eradication,
+    audit_file_comments,
+    check_config_suppression_ratchet,
     main,
 )
 
@@ -71,7 +73,8 @@ def test_audit_dict_eradication_detects_primitive_obsession_nested_dict(tmp_path
     target_file.write_text(
         "level_breakdown: dict[str, dict[str, int]] | None = None\n"
         "messages: list[dict[str, str]] | None = None\n\n"
-        "def compute_stats(breakdown: dict[str, dict[str, int]], items: list[dict[str, str]]) -> dict[str, dict[str, int]]:\n"
+        "def compute_stats(breakdown: dict[str, dict[str, int]], "
+        "items: list[dict[str, str]]) -> dict[str, dict[str, int]]:\n"
         "    return breakdown\n\n"
         "async def async_compute(data: dict[str, dict[str, int]]) -> list[dict[str, str]]:\n"
         "    return []\n",
@@ -147,7 +150,9 @@ def test_boundary_exemption_files_is_shared_ssot() -> None:
 
 
 def test_audit_dict_eradication_exempts_boundary_drivers_and_legit_get(tmp_path: Path) -> None:
-    """Verifies that locked physical boundary files and legitimate get calls are exempt, while domain files sharing basename are not."""
+    """Verifies that locked boundary files and legitimate get calls are exempt,
+    while domain files sharing basename are not.
+    """
     driver_dir = tmp_path / "backend_v2" / "database"
     driver_dir.mkdir(parents=True, exist_ok=True)
     exempt_file = driver_dir / "tinydb_driver.py"
@@ -210,7 +215,8 @@ def test_audit_dict_eradication_detects_unauthorized_suppressions(tmp_path: Path
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "suppression_file.py"
     target_file.write_text(
-        "x = 1  # noqa: QGR001\ny = 2  # noqa: QGR002 [REASON: A substantive valid reason of more than ten characters]\n",
+        "x = 1  # noqa: QGR001\n"
+        "y = 2  # noqa: QGR002 [REASON: A substantive valid reason of more than ten characters]\n",
         encoding="utf-8",
     )
 
@@ -373,3 +379,100 @@ def test_audit_dict_eradication_detects_unauthorized_open_json(tmp_path: Path) -
 
     exit_code = main([str(target_file)])
     assert exit_code == 1
+
+
+def test_audit_file_comments_detects_type_ignore(tmp_path: Path) -> None:
+    """Verifies that type ignore comments trigger unauthorized_suppressions."""
+    ti = "#" + " type: ignore"
+    ti_arg = "#" + " type: ignore[arg-type]"
+    ti_attr = "#" + " type: ignore[attr-defined]"
+    ti_upper = "#" + " TYPE: IGNORE[call-arg]"
+    ti_spaces = "#" + "   type:   ignore"
+    code = f"x: int = 1  {ti}\ny: str = 'a'  {ti_arg}\nz: float = 2.0  {ti_attr}\n{ti_upper}\n{ti_spaces}\n"
+    violations = audit_file_comments(str(tmp_path / "test.py"), code.encode("utf-8"))
+    assert len(violations) == 5
+    assert all(v.metric == "unauthorized_suppressions" for v in violations)
+    expected_token = "#" + " type: ignore"
+    assert all(expected_token in v.message for v in violations)
+
+
+def test_audit_file_comments_ignores_string_literals(tmp_path: Path) -> None:
+    """Verifies that string literals containing type ignore tokens do not trigger comment violations."""
+    ti_arg = "#" + " type: ignore[arg-type]"
+    ti_plain = "#" + " type: ignore"
+    code = f'pattern = "{ti_arg}"\nmulti_line = """\nHere is a string with {ti_plain}\n"""\n'
+    violations = audit_file_comments(str(tmp_path / "test.py"), code.encode("utf-8"))
+    assert len(violations) == 0
+
+
+def test_check_config_suppression_ratchet_detects_unapproved_ruff_ignore(tmp_path: Path) -> None:
+    """Verifies that unapproved Ruff global ignore codes trigger violations."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[tool.ruff.lint]\nignore = ["B008", "E999"]\n'
+        "[tool.mypy]\nwarn_unused_ignores = true\ndisable_error_code = ['prop-decorator']\n",
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any(v.metric == "unauthorized_suppressions" and "E999" in v.message for v in violations)
+
+
+def test_check_config_suppression_ratchet_detects_unapproved_per_file_ignore_path(tmp_path: Path) -> None:
+    """Verifies that unapproved per-file ignore paths trigger violations."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[tool.ruff.lint]\nignore = ["B008"]\n'
+        '[tool.ruff.lint.per-file-ignores]\n"backend_v2/rogue.py" = ["E501"]\n'
+        "[tool.mypy]\nwarn_unused_ignores = true\ndisable_error_code = ['prop-decorator']\n",
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any(v.metric == "unauthorized_suppressions" and "backend_v2/rogue.py" in v.message for v in violations)
+
+
+def test_check_config_suppression_ratchet_detects_mypy_violations(tmp_path: Path) -> None:
+    """Verifies that missing warn_unused_ignores, unauthorized disable_error_code, or overrides trigger violations."""
+    # 1. Missing warn_unused_ignores
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[tool.mypy]\nwarn_unused_ignores = false\ndisable_error_code = ["prop-decorator"]\n',
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any("warn_unused_ignores" in v.message for v in violations)
+
+    # 2. Unauthorized disable_error_code
+    pyproject.write_text(
+        '[tool.mypy]\nwarn_unused_ignores = true\ndisable_error_code = ["prop-decorator", "arg-type"]\n',
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any("disable_error_code" in v.message for v in violations)
+
+    # 3. Unauthorized [[tool.mypy.overrides]]
+    pyproject.write_text(
+        '[tool.mypy]\nwarn_unused_ignores = true\ndisable_error_code = ["prop-decorator"]\n\n'
+        '[[tool.mypy.overrides]]\nmodule = ["test"]\nwarn_unused_ignores = false\n',
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any("tool.mypy.overrides" in v.message for v in violations)
+
+
+def test_check_config_suppression_ratchet_detects_unapproved_dart_analyzer_error(tmp_path: Path) -> None:
+    """Verifies that unapproved Dart analyzer errors in analysis_options.yaml trigger violations."""
+    dart_dir = tmp_path / "client_app_v2"
+    dart_dir.mkdir(parents=True, exist_ok=True)
+    yaml_file = dart_dir / "analysis_options.yaml"
+    yaml_file.write_text(
+        "analyzer:\n  errors:\n    invalid_annotation_target: ignore\n    rogue_rule: ignore\n",
+        encoding="utf-8",
+    )
+    violations = check_config_suppression_ratchet(repo_root=tmp_path)
+    assert any(v.metric == "unauthorized_suppressions" and "rogue_rule" in v.message for v in violations)
+
+
+def test_check_config_suppression_ratchet_passes_production_config() -> None:
+    """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations."""
+    violations = check_config_suppression_ratchet()
+    assert len(violations) == 0, f"Unexpected production config violations: {violations}"

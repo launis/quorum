@@ -22,7 +22,7 @@ def test_mcp_gateway_delete_response_strictness() -> None:
     assert dto.deleted_id == "mcp_123"
 
     with pytest.raises(ValidationError):
-        MCPGatewayDeleteResponse(status="success", deleted_id="mcp_123", extra_field="fail")  # type: ignore
+        MCPGatewayDeleteResponse.model_validate({"status": "success", "deleted_id": "mcp_123", "extra_field": "fail"})
 
 
 def test_model_registry_delete_response_strictness() -> None:
@@ -31,7 +31,7 @@ def test_model_registry_delete_response_strictness() -> None:
     assert dto.deleted_id == "mdl_123"
 
     with pytest.raises(ValidationError):
-        ModelRegistryDeleteResponse(status="deleted", deleted_id="mdl_123", extra="fail")  # type: ignore
+        ModelRegistryDeleteResponse.model_validate({"status": "deleted", "deleted_id": "mdl_123", "extra": "fail"})
 
 
 def test_prompt_block_responses_strictness() -> None:
@@ -43,7 +43,7 @@ def test_prompt_block_responses_strictness() -> None:
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        PromptBlockSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
+        PromptBlockSimulationResponse.model_validate({"trace": StepSimulationTraceDTO(), "extra": "fail"})
 
 
 def test_step_responses_strictness() -> None:
@@ -55,7 +55,7 @@ def test_step_responses_strictness() -> None:
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        StepSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
+        StepSimulationResponse.model_validate({"trace": StepSimulationTraceDTO(), "extra": "fail"})
 
 
 def test_workflow_responses_strictness() -> None:
@@ -67,7 +67,7 @@ def test_workflow_responses_strictness() -> None:
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        WorkflowSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
+        WorkflowSimulationResponse.model_validate({"trace": StepSimulationTraceDTO(), "extra": "fail"})
 
 
 def test_core_response_dto_strictness() -> None:
@@ -339,7 +339,7 @@ def test_step_simulation_response_trace_type() -> None:
     """Test StepSimulationResponse trace is strictly typed to StepSimulationTraceDTO."""
     # Negative partition: Raw dict for trace should fail strict validation
     with pytest.raises(ValidationError):
-        StepSimulationResponse(trace={"step": "done"})  # type: ignore[arg-type]
+        StepSimulationResponse.model_validate({"trace": {"step": "done"}})
 
     # Positive partition: StepSimulationTraceDTO
     res = StepSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=5.0, estimated_tokens=12))

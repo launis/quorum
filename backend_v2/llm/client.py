@@ -654,7 +654,7 @@ class LLMClient:
                 cleaned_json_str = json.dumps(cleaned_dict)
                 parsed_json = response_model.model_validate_json(cleaned_json_str, context=validation_context)
 
-                validated_model = cast(T, parsed_json)  # type: ignore[redundant-cast]
+                validated_model = parsed_json
 
                 return validated_model, token_usage
 

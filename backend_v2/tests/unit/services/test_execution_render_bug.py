@@ -75,7 +75,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
-        data, mime, filename = await service.render_execution(
+        render_res = await service.render_execution(
             initiator=initiator,
             execution_id=exec_id,
             format_type="json",
@@ -83,6 +83,7 @@ async def test_render_execution_json_default_profile_resolves() -> None:
             accept_language=None,
             arq_pool=arq_pool,
         )
+        data, mime, filename = render_res.content, render_res.media_type, render_res.filename
 
     mock_transformer.build_report_dto.assert_called_once_with(
         exec_id, profile_id=None, accept_language="en", custom_preface_md=None, local_time_str=None

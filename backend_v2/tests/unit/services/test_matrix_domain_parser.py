@@ -103,7 +103,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             cls = PROMPT_BLOCK_REGISTRY[cat_enum]
         else:
             cls = SystemRulePromptBlock
-        block = cls(  # type: ignore[call-arg]
+        block = cls(
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test",
             category_id=cat_enum,
@@ -111,7 +111,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             label=label,
             description=desc,
         )
-        return block  # type: ignore[return-value]
+        return block
     return MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",

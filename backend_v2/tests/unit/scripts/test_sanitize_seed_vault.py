@@ -123,7 +123,7 @@ def test_sanitize_prompt_blocks_pipeline() -> None:
     block = sanitized_blocks[0]
     assert "<system_directive>" not in str(block["ai_description"])
 
-    assertions = block["scales"][0]["claims"][0]["tda_assertions"]  # type: ignore[index]
+    assertions = block["scales"][0]["claims"][0]["tda_assertions"]
     # Check specific atom harmonization
     a1 = assertions[0]
     assert a1["tda_id"] == "tda_453ddf8b14a442e988836098e3c7b55c"

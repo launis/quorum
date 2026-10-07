@@ -29,7 +29,7 @@ def test_v2_core_base_strict_mode() -> None:
 
     # Should fail if given a string that can be cast to int, because strict=True
     with pytest.raises(ValidationError) as exc_info:
-        DummyModel(field="123")  # type: ignore[arg-type]
+        DummyModel(field="123")
 
     assert "Input should be a valid integer" in str(exc_info.value) or "int_type" in str(exc_info.value)
 

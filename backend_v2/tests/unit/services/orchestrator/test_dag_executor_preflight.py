@@ -148,7 +148,7 @@ async def test_dag_executor_preflight_execution(
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
-        executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
+        executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
             execution_id="exe_1234567890abcdef",
@@ -217,7 +217,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
-        executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
+        executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
             execution_id="exe_1234567890abcdef",

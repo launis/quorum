@@ -18,10 +18,12 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-try:
-    from scripts._ast_guardrails import GuardrailViolation, scan_files_for_guardrails
-except ModuleNotFoundError:
-    from _ast_guardrails import GuardrailViolation, scan_files_for_guardrails  # type: ignore[no-redef]
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+from scripts._ast_guardrails import GuardrailViolation, scan_files_for_guardrails
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):

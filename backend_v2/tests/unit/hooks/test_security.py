@@ -93,7 +93,7 @@ def test_sanitize_text_hook_invalid_language_payload_raises(mock_deps: HookDepen
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "test"}),
-        global_context_vars=GlobalContextVarsDTO.model_construct(language={"invalid": 123}),  # type: ignore[arg-type]
+        global_context_vars=GlobalContextVarsDTO.model_construct(language={"invalid": 123}),
     )
 
     with pytest.raises(AppException) as exc_info:

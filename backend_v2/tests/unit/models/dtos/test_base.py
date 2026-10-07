@@ -29,7 +29,7 @@ def test_base_dto_is_frozen_and_strict() -> None:
 
     # Should be frozen
     with pytest.raises(ValidationError, match="Instance is frozen"):
-        dto.name = "new"  # type: ignore[misc]
+        dto.name = "new"
 
     # Should forbid extra
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
@@ -63,7 +63,7 @@ def test_generic_status_response_dto() -> None:
     assert custom_dto.message == "Resource created"
 
     with pytest.raises(ValidationError):
-        GenericStatusResponseDTO(message="missing", extra_prop=123)  # type: ignore[call-arg]
+        GenericStatusResponseDTO.model_validate({"message": "missing", "extra_prop": 123})
 
 
 def test_data_starvation_event() -> None:
@@ -86,8 +86,8 @@ def test_data_starvation_event() -> None:
 
     # Invalid event_type discriminator fails validation
     with pytest.raises(ValidationError):
-        DataStarvationEvent(total_atoms=0, event_type="other")  # type: ignore[arg-type]
+        DataStarvationEvent.model_validate({"total_atoms": 0, "event_type": "other"})
 
     # Frozen immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):
-        event.total_atoms = 5  # type: ignore[misc]
+        event.total_atoms = 5

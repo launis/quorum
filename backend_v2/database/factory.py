@@ -7,7 +7,7 @@ via the UnifiedWorkflowRepository and StorageDriver pattern.
 
 import logging
 
-from google.cloud import firestore  # type: ignore[attr-defined]
+from google.cloud import firestore
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.firestore_driver import FirestoreDriver

@@ -15,19 +15,19 @@ def test_calculate_mechanical_cognitive_variance_validation() -> None:
 
     # Test invalid performative_phrases_count string type
     with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count="5")  # type: ignore[arg-type]
+        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count="5")
 
     # Test invalid performative_phrases_count boolean type
     with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count=True)  # type: ignore[arg-type]
+        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count=True)
 
     # Test invalid llm_authenticity_score string type
     with pytest.raises(AppException, match="llm_authenticity_score must be a float or int."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score="2.0", performative_phrases_count=5)  # type: ignore[arg-type]
+        calculate_mechanical_cognitive_variance(llm_authenticity_score="2.0", performative_phrases_count=5)
 
     # Test invalid llm_authenticity_score boolean type
     with pytest.raises(AppException, match="llm_authenticity_score must be a float or int."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=True, performative_phrases_count=5)  # type: ignore[arg-type]
+        calculate_mechanical_cognitive_variance(llm_authenticity_score=True, performative_phrases_count=5)
 
 
 def test_calculate_mechanical_cognitive_variance_nan_infinity_validation() -> None:

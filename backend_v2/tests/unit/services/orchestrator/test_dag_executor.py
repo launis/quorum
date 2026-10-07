@@ -1176,7 +1176,7 @@ def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> N
             event_type="decision",
             content={"mcp_audit_traces": [{"invalid_field": 123}]},
             metadata={"mcp_audit_traces": [{"invalid_field": 123}]},
-            mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
+            mcp_audit_traces=[{"invalid_field": 123}],
         )
 
     assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
@@ -1773,7 +1773,7 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
             # Allow watcher task to run and commit
             await asyncio.sleep(0.05)
             # Record current status from commit_trace calls
-            for call in executor.committer.commit_trace.call_args_list:  # type: ignore[attr-defined]
+            for call in executor.committer.commit_trace.call_args_list:
                 if "step_states" in call.kwargs:
                     step_states_arg = call.kwargs["step_states"]
                     if "stp_5555666677778888" in step_states_arg:

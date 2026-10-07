@@ -42,7 +42,7 @@ def test_audit_dto_structure() -> None:
     # Test immutability (frozen=True)
     with pytest.raises(ValidationError):
         # Mutating frozen field should fail
-        issue.collection = "steps"  # type: ignore[misc]
+        issue.collection = "steps"
 
     report = FullDatabaseAuditReport(
         total_matrices=1,

@@ -3197,7 +3197,7 @@ async def test_recalculate_fails_fast_on_raw_dict() -> None:
     repo = InMemoryUnifiedWorkflowRepository()
     deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc:
-        await recalculate({"raw": "dict"}, "prf_123", deps)  # type: ignore[arg-type]
+        await recalculate({"raw": "dict"}, "prf_123", deps)
     assert exc.value.error_code == "VALIDATION_FAILED"
     assert "recalculate requires ContextVariablesDTO" in exc.value.message
 

@@ -1920,7 +1920,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
             self._identities._users[user.id] = self._identities._clone(user)
         except AttributeError:
             u_id = user["id"] if "id" in user else "usr_0123456789abcdef"
-            self._identities._users[u_id] = copy.deepcopy(user)  # type: ignore[assignment]
+            self._identities._users[u_id] = copy.deepcopy(user)
 
     def set_organization(self, org: Organization | None) -> None:
         """Helper to seed an organization for tests."""

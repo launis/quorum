@@ -237,7 +237,7 @@ def test_prompt_block_frozen_immutability(sample_i18n_text: I18nText) -> None:
         description=sample_i18n_text,
     )
     with pytest.raises(ValidationError):
-        block.slug = "mutated-slug"  # type: ignore[misc]
+        block.slug = "mutated-slug"
 
 
 def test_prompt_block_registry_coverage() -> None:

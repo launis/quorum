@@ -27,4 +27,4 @@ async def test_get_all_organizations(mock_current_user: TokenData, mock_auth_ser
 async def test_get_organization(mock_current_user: TokenData, mock_auth_service: AsyncMock) -> None:
     mock_auth_service.get_organization.return_value = "mock_org"
     res = await get_organization(id="org_456", current_user=mock_current_user, auth_service=mock_auth_service)
-    assert res == "mock_org"  # type: ignore
+    assert res == "mock_org"

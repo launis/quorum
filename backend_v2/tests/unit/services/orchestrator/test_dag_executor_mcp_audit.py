@@ -196,7 +196,7 @@ def test_dag_executor_mcp_audit_invalid_trace_fails_fast() -> None:
             event_type="decision",
             content={"mcp_audit_traces": [malformed_trace]},
             metadata={"mcp_audit_traces": [malformed_trace]},
-            mcp_audit_traces=[malformed_trace],  # type: ignore[list-item]
+            mcp_audit_traces=[malformed_trace],
         )
 
     assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
@@ -274,7 +274,7 @@ def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
         TraceEvent(
             step_name="stp_1111222233334444",
             event_type="decision",
-            mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
+            mcp_audit_traces=[{"invalid_field": 123}],
         )
     assert "tool_id" in str(exc_neg1.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
         exc_neg1.value

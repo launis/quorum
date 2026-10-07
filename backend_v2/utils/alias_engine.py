@@ -61,7 +61,7 @@ class AliasEngine:
         if allowed_dynamic_keys:
             choices.update(allowed_dynamic_keys)
 
-        DocIdsLiteral = Literal[tuple(sorted(list(choices)))]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2
+        DocIdsLiteral = Literal.__getitem__(tuple(sorted(list(choices))))
         return DocIdsLiteral
 
     @staticmethod
@@ -79,7 +79,7 @@ class AliasEngine:
             choices.update(allowed_dynamic_keys)
 
         quote_choices = sorted(list(choices))
-        QuoteIdsLiteral = Literal[tuple(quote_choices)]  # type: ignore[valid-type]  # Dynamic Literal generation forced by Pydantic V2
+        QuoteIdsLiteral = Literal.__getitem__(tuple(quote_choices))
         return QuoteIdsLiteral
 
     @staticmethod
@@ -94,7 +94,7 @@ class AliasEngine:
             choices.update(allowed_dynamic_keys)
 
         atom_choices = sorted(list(choices))
-        AtomIdsLiteral = Literal[tuple(atom_choices)]  # type: ignore[valid-type]
+        AtomIdsLiteral = Literal.__getitem__(tuple(atom_choices))
         return AtomIdsLiteral
 
     @staticmethod

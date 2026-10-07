@@ -19,6 +19,7 @@ from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
 from backend_v2.models.state import StateProjector, StepOutputDTO, TraceEvent
 from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
@@ -131,9 +132,12 @@ class LogicNodeStrategy(NodeStrategy):
         )
 
         inputs_payload: dict[str, DomainInputValue] = {
-            d.block_id: d.payload  # type: ignore[misc]
+            d.block_id: d.payload
             for d in current_steps
-            if isinstance(d, StepOutputDTO) and d.step_id == "inputs" and d.block_id
+            if isinstance(d, StepOutputDTO)
+            and d.step_id == "inputs"
+            and d.block_id
+            and not isinstance(d.payload, ProgressTracePayloadDTO)
         }
         if not inputs_payload:
             for d in current_steps:
@@ -142,8 +146,13 @@ class LogicNodeStrategy(NodeStrategy):
                         if not isinstance(d.payload, (str, int, float, bool, list)) and d.payload is not None:
                             for k, v in dict(d.payload).items():
                                 inputs_payload[str(k)] = v
-                    elif d.block_id not in ("simulation_mode", "language", "organization_id", "user_id"):
-                        inputs_payload[d.block_id] = d.payload  # type: ignore[assignment]
+                    elif d.block_id not in (
+                        "simulation_mode",
+                        "language",
+                        "organization_id",
+                        "user_id",
+                    ) and not isinstance(d.payload, ProgressTracePayloadDTO):
+                        inputs_payload[d.block_id] = d.payload
 
         safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,

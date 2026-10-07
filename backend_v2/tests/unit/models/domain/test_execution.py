@@ -35,7 +35,7 @@ def test_theory_manifest_immutability() -> None:
     manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
     assert manifest.theories["th_1"] == "Theory text"
     with pytest.raises((ValidationError, TypeError)):
-        manifest.theories = {"th_2": "New"}  # type: ignore[misc]
+        manifest.theories = {"th_2": "New"}
 
 
 def test_schema_manifest_immutability() -> None:
@@ -44,7 +44,7 @@ def test_schema_manifest_immutability() -> None:
     assert "stp_1" in manifest
     assert manifest["stp_1"] == {"type": "object"}
     with pytest.raises((ValidationError, TypeError)):
-        manifest.schemas = {"stp_2": {"type": "string"}}  # type: ignore[misc]
+        manifest.schemas = {"stp_2": {"type": "string"}}
 
 
 def test_execution_create_defaults() -> None:
@@ -82,10 +82,12 @@ def test_execution_create_custom_and_validator() -> None:
 
 def test_execution_create_extra_forbidden() -> None:
     with pytest.raises(ValidationError):
-        ExecutionCreate(
-            workflow_id="wor_1234567890abcdef",
-            target_locale="fi",
-            unexpected_field="disallowed",  # type: ignore[call-arg]
+        ExecutionCreate.model_validate(
+            {
+                "workflow_id": "wor_1234567890abcdef",
+                "target_locale": "fi",
+                "unexpected_field": "disallowed",
+            }
         )
 
 
@@ -105,10 +107,12 @@ def test_execution_step_instantiation() -> None:
 
 def test_execution_step_extra_forbidden() -> None:
     with pytest.raises(ValidationError):
-        ExecutionStep(
-            id="stp_step12345678",
-            label="Analyst Step",
-            unexpected="bad",  # type: ignore[call-arg]
+        ExecutionStep.model_validate(
+            {
+                "id": "stp_step12345678",
+                "label": "Analyst Step",
+                "unexpected": "bad",
+            }
         )
 
 

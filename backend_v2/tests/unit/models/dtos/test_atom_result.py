@@ -148,12 +148,14 @@ def test_atom_result_system_error_validation() -> None:
 def test_atom_result_extra_fields_forbidden() -> None:
     """Test contract: AtomResultDTO rejects extra unexpected fields."""
     with pytest.raises(ValidationError):
-        AtomResultDTO(
-            tda_id="atm_extra",
-            status=ExecutionStatus.PASSED,
-            evaluation_reasoning="Reasoning",
-            source_quote="Quote",
-            extra_forbidden_field="crash",  # type: ignore[call-arg]
+        AtomResultDTO.model_validate(
+            {
+                "tda_id": "atm_extra",
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": "Reasoning",
+                "source_quote": "Quote",
+                "extra_forbidden_field": "crash",
+            }
         )
 
 
@@ -167,7 +169,7 @@ def test_evaluated_atom_dto_immutability() -> None:
     )
     assert atom.tda_id == "atm_eval_1"
     with pytest.raises((ValidationError, TypeError)):
-        atom.human_override = "FAILED"  # type: ignore[misc]
+        atom.human_override = "FAILED"
 
 
 def test_evaluation_facts_dto_immutability() -> None:
@@ -175,7 +177,7 @@ def test_evaluation_facts_dto_immutability() -> None:
     facts_dto = EvaluationFactsDTO(facts={"cond1": True, "cond2": "PASSED"})
     assert facts_dto.facts["cond1"] is True
     with pytest.raises((ValidationError, TypeError)):
-        facts_dto.facts = {"new": False}  # type: ignore[misc]
+        facts_dto.facts = {"new": False}
 
 
 def test_error_details_dto() -> None:
@@ -184,10 +186,10 @@ def test_error_details_dto() -> None:
     assert err.error_code == "PARSE_ERROR"
     assert err.message == "Invalid JSON"
     with pytest.raises((ValidationError, TypeError)):
-        err.message = "Updated"  # type: ignore[misc]
+        err.message = "Updated"
 
     with pytest.raises(ValidationError):
-        ErrorDetailsDTO(error_code="ERR", message="msg", extra_field=123)  # type: ignore[call-arg]
+        ErrorDetailsDTO.model_validate({"error_code": "ERR", "message": "msg", "extra_field": 123})
 
 
 def test_hydrated_atom_dto() -> None:
@@ -201,10 +203,12 @@ def test_hydrated_atom_dto() -> None:
     assert atom.resolved_claim == "Carbon emissions must be zero."
 
     with pytest.raises(ValidationError):
-        HydratedAtomDTO(
-            sdui_component=SDUIComponentType.BOOLEAN_CARD,
-            resolved_claim="Claim",
-            unsupported_extra=True,  # type: ignore[call-arg]
+        HydratedAtomDTO.model_validate(
+            {
+                "sdui_component": SDUIComponentType.BOOLEAN_CARD,
+                "resolved_claim": "Claim",
+                "unsupported_extra": True,
+            }
         )
 
 
@@ -219,7 +223,7 @@ def test_extracted_value_dto() -> None:
     assert val_bool.unit is None
 
     with pytest.raises(ValidationError):
-        ExtractedValueDTO(value=10, extra_prop="disallowed")  # type: ignore[call-arg]
+        ExtractedValueDTO.model_validate({"value": 10, "extra_prop": "disallowed"})
 
 
 def test_execution_metrics_dto() -> None:
@@ -266,4 +270,4 @@ def test_extension_metrics_dto() -> None:
         ExtensionMetricsDTO(total_word_count=-5)
 
     with pytest.raises(ValidationError):
-        ExtensionMetricsDTO(extra_field=True)  # type: ignore[call-arg]
+        ExtensionMetricsDTO.model_validate({"extra_field": True})

@@ -621,7 +621,7 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
             workflow_id="wf_1234abcd1234abcd",
             status=ExecutionStatus.PASSED,
             output_profile_id="prf_dddd1111dddd1111",
-            frozen_context={"mcp_tool_audit": [invalid_mcp_audit]},  # type: ignore
+            frozen_context={"mcp_tool_audit": [invalid_mcp_audit]},
             metadata=ExecutionMetadata(),
             target_locale="fi",
         )

@@ -48,7 +48,7 @@ def test_context_variables_dto_with_update() -> None:
 
     # Immutability
     with pytest.raises(ValidationError):
-        updated.variables = {}  # type: ignore[misc]
+        updated.variables = {}
 
 
 def test_context_variables_dto_serialization_and_deserialization() -> None:
@@ -186,23 +186,23 @@ def test_context_variables_dto_item_assignment_rejected() -> None:
     """Negative test: Item assignment is rejected as ContextVariablesDTO is an immutable Mapping."""
     dto = ContextVariablesDTO(variables={"existing": "val"})
     with pytest.raises(TypeError):
-        dto["existing"] = "new_val"  # type: ignore[index]
+        dto["existing"] = "new_val"
     with pytest.raises(TypeError):
-        dto["new_key"] = "new_val"  # type: ignore[index]
+        dto["new_key"] = "new_val"
 
 
 def test_context_variables_dto_item_deletion_rejected() -> None:
     """Negative test: Item deletion is rejected as ContextVariablesDTO is an immutable Mapping."""
     dto = ContextVariablesDTO(variables={"existing": "val"})
     with pytest.raises(TypeError):
-        del dto["existing"]  # type: ignore[attr-defined]
+        del dto["existing"]
 
 
 def test_context_variables_dto_attribute_mutation_rejected() -> None:
     """Negative test: In-place attribute assignment fails under frozen=True."""
     dto = ContextVariablesDTO(report_context="original")
     with pytest.raises(ValidationError):
-        dto.report_context = "modified"  # type: ignore[misc]
+        dto.report_context = "modified"
 
 
 def test_context_variables_dto_invalid_type_validation_error() -> None:

@@ -103,7 +103,7 @@ def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         metadata=ExecutionMetadata(),
-        global_context_vars=None,  # type: ignore[arg-type]
+        global_context_vars=None,
     )
     deps = _create_hook_deps()
 
@@ -146,4 +146,4 @@ def test_inject_step_metadata_validation_failure() -> None:
     """Test that strict Pydantic validation fails if context vars contain invalid types."""
     # Since strict=True, passing an integer instead of a string for initiator_id fails at construction
     with pytest.raises(ValidationError):
-        GlobalContextVarsDTO(initiator_id=12345)  # type: ignore[arg-type]
+        GlobalContextVarsDTO(initiator_id=12345)

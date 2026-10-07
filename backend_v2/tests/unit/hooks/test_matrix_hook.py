@@ -259,7 +259,7 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: di
     """Negative test: missing workflow_repo raises AppException(HOOK_EXECUTION_FAILED)."""
     deps = HookDependencies(
         exec_repo=matrix_setup["deps"].exec_repo,
-        workflow_repo=None,  # type: ignore[arg-type]
+        workflow_repo=None,
         comp_repo=matrix_setup["deps"].comp_repo,
         prompt_block_repo=matrix_setup["deps"].prompt_block_repo,
         output_profile_repo=matrix_setup["deps"].output_profile_repo,

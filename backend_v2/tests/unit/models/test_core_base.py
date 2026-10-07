@@ -32,11 +32,11 @@ def test_v2_core_base_immutability_and_strictness() -> None:
 
     # 1. Immutability check
     with pytest.raises(ValidationError):
-        model.name = "mutated"  # type: ignore[misc]
+        model.name = "mutated"
 
     # 2. Extra fields forbidden
     with pytest.raises(ValidationError):
-        ConcreteModel(name="test", extra_field="forbidden")  # type: ignore[call-arg]
+        ConcreteModel(name="test", extra_field="forbidden")
 
     # 3. String whitespace stripping
     stripped_model = ConcreteModel(name="  trimmed  ")

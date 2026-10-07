@@ -47,7 +47,7 @@ class DummyModel(BaseModel):
 def test_format_validation_error_valid_pydantic() -> None:
     """Test that a valid Pydantic error is properly formatted."""
     try:
-        DummyModel(name="test")  # type: ignore[call-arg]
+        DummyModel(name="test")
     except ValidationError as e:
         result = format_validation_error(e)
         assert "DummyModel validation failed. Missing required fields: age" in result

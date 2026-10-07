@@ -70,8 +70,10 @@ def test_ingress_input_value_accepts_valid_types() -> None:
 def test_ingress_input_value_rejects_nested_dict() -> None:
     """Test contract: IngressInputValue rejects arbitrary untyped nested dictionaries."""
     with pytest.raises(ValidationError):
-        WorkflowInputsIngress(
-            dynamic_inputs={"nested": {"key": "val"}},  # type: ignore[arg-type]
+        WorkflowInputsIngress.model_validate(
+            {
+                "dynamic_inputs": {"nested": {"key": "val"}},
+            }
         )
 
 
@@ -79,16 +81,20 @@ def test_domain_input_value_rejects_base64_attachment() -> None:
     """Test contract: DomainInputValue / WorkflowInputs mathematically rejects Base64Attachment."""
     attachment = Base64Attachment(filename="doc.pdf", content_base64="JVBERi...")
     with pytest.raises(ValidationError):
-        WorkflowInputs(
-            dynamic_inputs={"attachment": attachment},  # type: ignore[arg-type]
+        WorkflowInputs.model_validate(
+            {
+                "dynamic_inputs": {"attachment": attachment},
+            }
         )
 
 
 def test_domain_input_value_rejects_raw_base64_dict() -> None:
     """Test contract: WorkflowInputs rejects raw dictionary payloads containing base64 data."""
     with pytest.raises(ValidationError):
-        WorkflowInputs(
-            dynamic_inputs={"file": {"content_base64": "binary_blob"}},  # type: ignore[arg-type]
+        WorkflowInputs.model_validate(
+            {
+                "dynamic_inputs": {"file": {"content_base64": "binary_blob"}},
+            }
         )
 
 
@@ -115,7 +121,7 @@ def test_workflow_inputs_valid_domain_types() -> None:
 def test_execution_inputs_rejects_raw_string_without_coercion() -> None:
     """Test contract: ExecutionInputsDTO rejects raw string inputs without silent coercion."""
     with pytest.raises(ValidationError):
-        ExecutionInputsDTO(raw_inputs="hello")  # type: ignore[arg-type]
+        ExecutionInputsDTO.model_validate({"raw_inputs": "hello"})
 
 
 def test_domain_input_value_accepts_none() -> None:
@@ -158,8 +164,12 @@ def test_domain_input_value_accepts_flattened_atoms() -> None:
         raw_inputs={"shuffled_atoms": [atom]},
         dynamic_inputs={"atom": atom},
     )
-    assert len(dto.raw_inputs["shuffled_atoms"]) == 1  # type: ignore[arg-type]
-    assert dto.dynamic_inputs["atom"].atom_id == "tda_123"  # type: ignore[union-attr]
+    shuffled = dto.raw_inputs["shuffled_atoms"]
+    assert isinstance(shuffled, list)
+    assert len(shuffled) == 1
+    atom_val = dto.dynamic_inputs["atom"]
+    assert isinstance(atom_val, FlattenedAtom)
+    assert atom_val.atom_id == "tda_123"
 
 
 def test_dlq_atom_schema_valid() -> None:
@@ -175,8 +185,9 @@ def test_dlq_atom_schema_valid() -> None:
 def test_validate_no_base64_validator_direct() -> None:
     """Test contract: validate_no_base64 directly raises ValueError on Base64Attachment."""
     attachment = Base64Attachment(filename="doc.pdf", content_base64="JVBERi...")
+    raw_payload = {"attachment": attachment}
     with pytest.raises(ValueError, match="Base64Attachment is strictly forbidden in WorkflowInputs"):
-        WorkflowInputs.validate_no_base64({"attachment": attachment})  # type: ignore[dict-item]
+        WorkflowInputs.validate_no_base64(raw_payload)
 
 
 def test_domain_input_value_accepts_reduced_atoms() -> None:

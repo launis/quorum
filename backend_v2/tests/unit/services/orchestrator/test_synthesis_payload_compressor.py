@@ -273,7 +273,7 @@ def test_compress_payload_heterogeneous_dag_types() -> None:
     assert SynthesisPayloadCompressor.compress_synthesis_payload(False) == "False"
 
     with pytest.raises(AppException):
-        SynthesisPayloadCompressor.compress_synthesis_payload(None)  # type: ignore[arg-type]
+        SynthesisPayloadCompressor.compress_synthesis_payload(None)
     with pytest.raises(AppException):
         SynthesisPayloadCompressor.compress_synthesis_payload("")
     with pytest.raises(AppException):
@@ -287,7 +287,7 @@ def test_compress_payload_non_dict_list_unsupported_type_fails_fast() -> None:
         pass
 
     with pytest.raises(AppException) as exc_info:
-        SynthesisPayloadCompressor.compress_synthesis_payload(CustomObject())  # type: ignore[arg-type]
+        SynthesisPayloadCompressor.compress_synthesis_payload(CustomObject())
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
 
 

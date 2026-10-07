@@ -226,7 +226,7 @@ def test_state_projector_tombstone_event() -> None:
 def test_state_projector_fail_fast_on_legacy_data() -> None:
     """Test that the Zero-Compromise Pledge enforces strict dictionary structures."""
     projector = StateProjector()
-    projector._snapshot["stp_legacy"] = "I am a raw string output from V1"  # type: ignore[assignment]
+    projector._snapshot["stp_legacy"] = "I am a raw string output from V1"
 
     with pytest.raises(AppException) as excinfo:
         _ = projector.snapshot
@@ -401,7 +401,7 @@ def test_state_projector_fold_trace_string_content() -> None:
 def test_state_projector_invalid_payload_raises_validation_failed() -> None:
     """ISTQB Negative Boundary Partition 1: Feeding malformed step output raises AppException(VALIDATION_FAILED)."""
     projector = StateProjector()
-    invalid_content = StepOutputContentDTO.model_construct(data={"blk_invalid": object()})  # type: ignore[dict-item]
+    invalid_content = StepOutputContentDTO.model_construct(data={"blk_invalid": object()})
     projector._snapshot["stp_broken"] = invalid_content
 
     with pytest.raises(AppException) as excinfo:
@@ -419,8 +419,10 @@ def test_trace_event_untyped_arbitrary_object_raises_validation_error() -> None:
         pass
 
     with pytest.raises(ValidationError):
-        TraceEvent(
-            step_name="stp_invalid",
-            event_type="output",
-            content=ArbitraryUnregisteredObject(),  # type: ignore[arg-type]
+        TraceEvent.model_validate(
+            {
+                "step_name": "stp_invalid",
+                "event_type": "output",
+                "content": ArbitraryUnregisteredObject(),
+            }
         )

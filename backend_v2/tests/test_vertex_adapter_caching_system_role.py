@@ -34,7 +34,7 @@ async def test_vertex_adapter_caching_system_role_bug() -> None:
                 # Simulate the exact GCP API Exception
                 from google.api_core.exceptions import InvalidArgument
 
-                raise InvalidArgument("400 Content with system role is not supported.")  # type: ignore[no-untyped-call]
+                raise InvalidArgument("400 Content with system role is not supported.")
 
         mock_instance = MagicMock()
         mock_instance.name = "cachedContent/123"

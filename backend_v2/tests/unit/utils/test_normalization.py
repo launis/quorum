@@ -34,7 +34,7 @@ def test_normalize_evaluation_input_strips_line_padding() -> None:
 def test_normalize_evaluation_input_handles_empty_or_none() -> None:
     """Verify that empty inputs are handled safely without throwing exceptions."""
     assert normalize_evaluation_input("") == ""
-    assert normalize_evaluation_input(None) == ""  # type: ignore[arg-type]
+    assert normalize_evaluation_input(None) == ""
 
 
 def test_normalize_evaluation_input_unicode_and_quotes() -> None:

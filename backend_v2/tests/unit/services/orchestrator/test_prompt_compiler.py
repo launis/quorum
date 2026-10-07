@@ -112,7 +112,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Get the field description which contains the compiled BARS matrix
     matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
-    field_info = matrix_model.model_fields["blk_1234567890abcdef"]  # type: ignore[union-attr]
+    field_info = matrix_model.model_fields["blk_1234567890abcdef"]
     compiled_desc = field_info.description
 
     # Target Snapshot format
@@ -183,8 +183,8 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.global_matrices.blk_2234567890abcdef.semantic_reasoning == "Valid reasoning"  # type: ignore[attr-defined]
-    assert parsed.reasoning_trace == "Let's think..."  # type: ignore[attr-defined]
+    assert parsed.global_matrices.blk_2234567890abcdef.semantic_reasoning == "Valid reasoning"
+    assert parsed.reasoning_trace == "Let's think..."
 
 
 def test_generate_mcp_instruction() -> None:
@@ -315,7 +315,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     )
 
     matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
-    field_info = matrix_model.model_fields["blk_1234567890abcdef"]  # type: ignore[union-attr]
+    field_info = matrix_model.model_fields["blk_1234567890abcdef"]
     compiled_desc = field_info.description
     assert compiled_desc is not None
 
@@ -357,7 +357,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
         "blk_599645bd5baf44e2": "Verification completed successfully.",
     }
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."  # type: ignore[attr-defined]
+    assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."
 
 
 def test_build_xml_context() -> None:
@@ -728,7 +728,7 @@ def test_extract_value_from_state() -> None:
 
     # Test error cases
     with pytest.raises(AppException):
-        compiler._extract_value_from_state(123, state)  # type: ignore[arg-type]
+        compiler._extract_value_from_state(123, state)
 
     with pytest.raises(AppException):
         compiler._extract_value_from_state("missing.path", state)
@@ -778,7 +778,7 @@ def test_calibrate_strictness_exceptions_and_none() -> None:
     compiler = PromptCompiler()
     assert compiler.calibrate_strictness(None) == ""
     with pytest.raises(AppException):
-        compiler.calibrate_strictness("invalid_string")  # type: ignore[arg-type]
+        compiler.calibrate_strictness("invalid_string")
 
 
 def test_get_schema_healing_prompt_strictness_100() -> None:

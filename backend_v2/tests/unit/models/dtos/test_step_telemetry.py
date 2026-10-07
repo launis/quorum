@@ -58,4 +58,4 @@ def test_step_telemetry_entry_dto_negative_tokens() -> None:
 def test_step_telemetry_entry_dto_extra_forbidden() -> None:
     """Verify extra forbidden enforcement."""
     with pytest.raises(ValidationError):
-        StepTelemetryEntryDTO(model_strategy="fast", unknown_field=123)  # type: ignore[call-arg]
+        StepTelemetryEntryDTO(model_strategy="fast", unknown_field=123)
