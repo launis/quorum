@@ -474,7 +474,9 @@ Optional steps:
     print("✅ Residual debt ceilings and warning baseline verified.")
 
     print("\n⏳ 10/10: Verifying Dict Eradication and Typed Domain Transit (scripts/audit_dict_eradication.py)...")
-    res_dict = subprocess.run(["uv", "run", "python", "scripts/audit_dict_eradication.py", "backend_v2", "--strict"])
+    res_dict = subprocess.run(
+        ["uv", "run", "python", "scripts/audit_dict_eradication.py", "backend_v2", "scripts", "--strict"]
+    )
     if res_dict.returncode != 0:
         print("\n❌ Dict eradication audit failed! Eliminate naked dicts/casts.\n")
         sys.exit(res_dict.returncode)

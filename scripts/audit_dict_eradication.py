@@ -203,8 +203,9 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.strict = strict
         self.is_exempt = is_boundary_exempt(filepath)
         self.is_open_json_exempt = is_open_json_exempt(filepath)
+        normalized_path = filepath.replace("\\", "/")
         path_parts = set(Path(filepath).parts)
-        self.is_test = "tests" in path_parts or Path(filepath).name.startswith("test_")
+        self.is_test = "backend_v2/tests/" in normalized_path or "tests" in path_parts
         self.is_domain_or_service = not self.is_test and not ("scripts" in path_parts or "migrations" in path_parts)
         self.current_class_name: str | None = None
         self.function_depth: int = 0
@@ -246,7 +247,10 @@ class DictEradicationVisitor(ast.NodeVisitor):
             if isinstance(target, ast.Subscript):
                 is_dict_type = False
                 match target.value:
-                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                    case (
+                        ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                        | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+                    ):
                         is_dict_type = True
                     case _:
                         is_dict_type = False
@@ -388,7 +392,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
         Args:
             node: AnnAssign node to inspect.
         """
-        if not self.is_exempt and not self.is_test:
+        if not self.is_exempt:
             if self._is_naked_dict_subscript(node.annotation):
                 self.violations.append(
                     AuditViolation(
@@ -398,6 +402,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                         message=f"Naked dict annotation found: `{ast.unparse(node.annotation)}`",
                     )
                 )
+        if not self.is_exempt and not self.is_test:
             if self._find_nested_dict_subscript(node.annotation) is not None:
                 self.violations.append(
                     AuditViolation(
@@ -464,7 +469,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
         Args:
             node: FunctionDef node to inspect.
         """
-        if not self.is_exempt and not self.is_test:
+        if not self.is_exempt:
             if node.returns is not None:
                 if self._is_naked_dict_subscript(node.returns):
                     self.violations.append(
@@ -477,7 +482,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             ),
                         )
                     )
-                if self._find_nested_dict_subscript(node.returns) is not None:
+                if not self.is_test and self._find_nested_dict_subscript(node.returns) is not None:
                     self.violations.append(
                         AuditViolation(
                             filepath=self.filepath,
@@ -506,7 +511,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                                 ),
                             )
                         )
-                    if self._find_nested_dict_subscript(arg.annotation) is not None:
+                    if not self.is_test and self._find_nested_dict_subscript(arg.annotation) is not None:
                         self.violations.append(
                             AuditViolation(
                                 filepath=self.filepath,
@@ -530,7 +535,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
             node: AsyncFunctionDef node to inspect.
         """
         self.function_depth += 1
-        if not self.is_exempt and not self.is_test:
+        if not self.is_exempt:
             if node.returns is not None:
                 if self._is_naked_dict_subscript(node.returns):
                     self.violations.append(
@@ -544,7 +549,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             ),
                         )
                     )
-                if self._find_nested_dict_subscript(node.returns) is not None:
+                if not self.is_test and self._find_nested_dict_subscript(node.returns) is not None:
                     self.violations.append(
                         AuditViolation(
                             filepath=self.filepath,
@@ -573,7 +578,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                                 ),
                             )
                         )
-                    if self._find_nested_dict_subscript(arg.annotation) is not None:
+                    if not self.is_test and self._find_nested_dict_subscript(arg.annotation) is not None:
                         self.violations.append(
                             AuditViolation(
                                 filepath=self.filepath,

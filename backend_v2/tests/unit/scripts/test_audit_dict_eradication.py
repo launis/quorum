@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from scripts.audit_dict_eradication import (
+    DictEradicationVisitor,
     audit_dict_eradication,
     audit_file_comments,
     check_config_suppression_ratchet,
@@ -476,3 +477,60 @@ def test_check_config_suppression_ratchet_passes_production_config() -> None:
     """Verifies that production pyproject.toml and analysis_options.yaml pass with 0 violations."""
     violations = check_config_suppression_ratchet()
     assert len(violations) == 0, f"Unexpected production config violations: {violations}"
+
+
+def test_audit_dict_eradication_detects_mapping_naked_dict(tmp_path: Path) -> None:
+    """Verifies that Mapping[str, Any] and Mapping[str, object] annotations produce naked_dict_annotations violations."""
+    target_file = tmp_path / "mapping_module.py"
+    target_file.write_text(
+        "from collections.abc import Mapping\nfrom typing import Any\n\n"
+        "a: Mapping[str, Any] = {}\n"
+        "b: Mapping[str, object] = {}\n"
+        "def func(m: Mapping[str, Any]) -> Mapping[str, object]:\n"
+        "    return m\n",
+        encoding="utf-8",
+    )
+    report = audit_dict_eradication(target_file)
+    assert report.naked_dict_annotations == 4
+    assert report.total_violations >= 4
+
+
+def test_audit_dict_eradication_detects_mutable_mapping_naked_dict(tmp_path: Path) -> None:
+    """Verifies that MutableMapping[str, Any] and MutableMapping[str, object] produce naked_dict_annotations violations."""
+    target_file = tmp_path / "mutable_mapping_module.py"
+    target_file.write_text(
+        "from collections.abc import MutableMapping\nfrom typing import Any\n\n"
+        "a: MutableMapping[str, Any] = {}\n"
+        "b: MutableMapping[str, object] = {}\n"
+        "def func(m: MutableMapping[str, Any]) -> MutableMapping[str, object]:\n"
+        "    return m\n",
+        encoding="utf-8",
+    )
+    report = audit_dict_eradication(target_file)
+    assert report.naked_dict_annotations == 4
+    assert report.total_violations >= 4
+
+
+def test_audit_dict_eradication_classifies_test_settings_as_production() -> None:
+    """Verifies that backend_v2/core/test_settings.py is classified as is_test=False and is_domain_or_service=True."""
+    visitor = DictEradicationVisitor("backend_v2/core/test_settings.py", b"")
+    assert visitor.is_test is False
+    assert visitor.is_domain_or_service is True
+
+
+def test_audit_dict_eradication_detects_naked_dict_in_test_files(tmp_path: Path) -> None:
+    """Verifies that a test file under backend_v2/tests/ with dict[str, Any] annotation produces a violation."""
+    test_dir = tmp_path / "backend_v2" / "tests" / "unit"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    test_file = test_dir / "test_sample.py"
+    test_file.write_text(
+        "from typing import Any\n\n"
+        "fixture_payload: dict[str, Any] = {}\n"
+        "def test_foo(mock_resp: dict[str, Any]) -> None:\n"
+        "    pass\n",
+        encoding="utf-8",
+    )
+    report = audit_dict_eradication(test_file)
+    assert report.naked_dict_annotations == 2
+    assert report.total_violations >= 2
+

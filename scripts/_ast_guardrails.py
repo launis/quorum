@@ -393,10 +393,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         """
         self.filepath = filepath
         self.violations: list[GuardrailViolation] = []
-        path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
-        self._is_test_file = "tests" in path_parts or Path(filepath).name.startswith("test_")
+        normalized_path = filepath.replace("\\", "/")
+        path_parts = set(normalized_path.strip("/").split("/"))
+        self._is_test_file = "backend_v2/tests/" in normalized_path or "tests" in path_parts
         self._is_domain_code = not (
-            "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
+            self._is_test_file or "scripts" in path_parts
         )
         self._is_boundary_exempt = is_boundary_exempt(filepath)
         self._is_open_json_exempt = is_open_json_exempt(filepath)
