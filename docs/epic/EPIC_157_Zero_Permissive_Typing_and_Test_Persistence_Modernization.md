@@ -620,7 +620,7 @@ Specifically and exhaustively, all changes must comply with:
   - `uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` (Stage 10 over `backend_v2 scripts`)
 
 ### Phase 12: Client Permissive Map Eradication (Dart)
-- **Objective**: Retype census R (193 non-codec `Map<String, dynamic>` occurrences in 48 hand-written files; enumerated in @[docs/epic/EPIC_157_residual_ledger.md] and part of this phase's target boundary) to Freezed DTOs mirroring backend CLOSED models, or to `Map<String, Object?>` for backend OPEN-JSON fields. Implement `DGR005` in `scripts/_dart_guardrails.py` banning non-codec `Map<String, dynamic>`; promote `DGR001`, `DGR004` (Dart lint suppressions), and `DGR005` to unconditional FATAL severity in `scripts/_dart_guardrails.py` and `scripts/flutter_audit_loop.py`; and eradicate the 25 `// ignore:` suppressions across 23 files. `ExecutionRecord.contextVariables` and `ExecutionRecord.executionTrace` mirror the already typed backend fields `context_variables: ContextVariablesDTO` and `execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent]`. The 67 codec signatures remain (Section 2.2 item 6).
+- **Objective**: Retype census R (193 non-codec `Map<String, dynamic>` occurrences in 48 hand-written files, ratcheted down to 186 across 45 files following Phase 8; enumerated in @[docs/epic/EPIC_157_residual_ledger.md] and part of this phase's target boundary) to Freezed DTOs mirroring backend CLOSED models, or to `Map<String, Object?>` for backend OPEN-JSON fields. Implement `DGR005` in `scripts/_dart_guardrails.py` banning non-codec `Map<String, dynamic>`; promote `DGR001`, `DGR004` (Dart lint suppressions), and `DGR005` to unconditional FATAL severity in `scripts/_dart_guardrails.py` and `scripts/flutter_audit_loop.py`; and eradicate the 25 `// ignore:` suppressions across 23 files. `ExecutionRecord.contextVariables` and `ExecutionRecord.executionTrace` mirror the already typed backend fields `context_variables: ContextVariablesDTO` and `execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent]`. The 67 codec signatures remain (Section 2.2 item 6).
 - **Target Boundaries**:
   - `[MODIFY] @[scripts/_dart_guardrails.py]` (rule `DGR005`; unconditional FATAL severity for DGR001, DGR004, DGR005)
   - `[MODIFY] @[scripts/flutter_audit_loop.py]` (unconditional FATAL enforcement of DGR001, DGR004, DGR005)
@@ -628,6 +628,7 @@ Specifically and exhaustively, all changes must comply with:
   - `[MODIFY] @[client_app_v2/lib/features/execution/models/execution_record.dart]`
   - `[MODIFY] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]`
   - `[MODIFY] @[scripts/audit_dto_parity.py]`
+  - `[MODIFY] @[scripts/audit_warning_baseline.py]` (ratchet `CURRENT_RESIDUAL_CEILINGS.r = 0`)
 - **Verification Gate**:
   - Census command R (Residual Ledger) returns 0.
   - DGR004 (Dart lint suppressions) reports 0 occurrences across `client_app_v2/lib/`.
