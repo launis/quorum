@@ -211,9 +211,7 @@ class Settings(BaseSettings):
     ] = 30
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
-    semaphore_low_rpm_limit: Annotated[
-        int, Field(ge=1, description="Concurrency limit for low RPM environments")
-    ] = 2
+    semaphore_low_rpm_limit: Annotated[int, Field(ge=1, description="Concurrency limit for low RPM environments")] = 2
     semaphore_max_concurrency: Annotated[int, Field(ge=1, description="Max simultaneous active LLM connections")] = 10
     semaphore_rpm_divisor: Annotated[int, Field(ge=1, description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
