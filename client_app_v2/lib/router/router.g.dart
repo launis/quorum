@@ -480,7 +480,7 @@ mixin $ProfileEditorRoute on GoRouteData {
   static ProfileEditorRoute _fromState(GoRouterState state) =>
       ProfileEditorRoute(
         workflowId: state.pathParameters['workflowId']!,
-        $extra: state.extra as Map<String, dynamic>?,
+        $extra: state.extra as Map<String, Object?>?,
       );
 
   ProfileEditorRoute get _self => this as ProfileEditorRoute;
@@ -531,7 +531,7 @@ mixin $OutputProfileEditRoute on GoRouteData {
   static OutputProfileEditRoute _fromState(GoRouterState state) =>
       OutputProfileEditRoute(
         id: state.pathParameters['id']!,
-        $extra: state.extra as Map<String, dynamic>?,
+        $extra: state.extra as Map<String, Object?>?,
       );
 
   OutputProfileEditRoute get _self => this as OutputProfileEditRoute;
@@ -628,7 +628,7 @@ mixin $McpGatewayEditRoute on GoRouteData {
   static McpGatewayEditRoute _fromState(GoRouterState state) =>
       McpGatewayEditRoute(
         id: state.pathParameters['id']!,
-        $extra: state.extra as Map<String, dynamic>?,
+        $extra: state.extra as Map<String, Object?>?,
       );
 
   McpGatewayEditRoute get _self => this as McpGatewayEditRoute;
@@ -678,7 +678,7 @@ mixin $MatrixNewRoute on GoRouteData {
 mixin $MatrixEditRoute on GoRouteData {
   static MatrixEditRoute _fromState(GoRouterState state) => MatrixEditRoute(
     id: state.pathParameters['id']!,
-    $extra: state.extra as Map<String, dynamic>?,
+    $extra: state.extra as Map<String, Object?>?,
   );
 
   MatrixEditRoute get _self => this as MatrixEditRoute;

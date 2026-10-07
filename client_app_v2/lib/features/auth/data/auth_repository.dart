@@ -48,18 +48,18 @@ class AuthRepository {
       final token = await firebaseUser.getIdToken();
 
       // 3. Verify with Backend to get full profile (Role, OrgID)
-      final response = await _client.post<Map<String, dynamic>>(
+      final response = await _client.post(
         '/iam/auth/verify',
         data: {'token': token},
       );
 
-      if (response.data == null || response.data!['user'] == null) {
+      if (response.data == null || response.data['user'] == null) {
         return Left(AppException(detail: ''));
       }
 
       // 4. Return Hydrated User
       return Right(
-        User.fromJson(response.data!['user'] as Map<String, dynamic>),
+        User.fromJson(response.data['user']),
       );
     } on firebase.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
@@ -72,7 +72,7 @@ class AuthRepository {
     } on DioException catch (e) {
       if (e.response != null && e.response!.data != null) {
         final data = e.response!.data;
-        if (data is Map<String, dynamic> && data.containsKey('error_code')) {
+        if (data is Map<String, Object?> && data.containsKey('error_code')) {
           final code = data['error_code'] as String?;
 
           // Strict Mapping of Backend Error Codes
@@ -104,12 +104,12 @@ class AuthRepository {
   Future<Either<AppException, User>> debugSignInWithMockToken(String id) async {
     try {
       // 1. Verify with Backend (using special mock-token prefix logic)
-      final response = await _client.post<Map<String, dynamic>>(
+      final response = await _client.post(
         '/iam/auth/verify',
         data: {'token': 'mock-token:$id'},
       );
 
-      if (response.data == null || response.data!['user'] == null) {
+      if (response.data == null || response.data['user'] == null) {
         return Left(AppException(detail: ''));
       }
 
@@ -118,7 +118,7 @@ class AuthRepository {
       // won't fire. The Controller must handle this manually or we create a fake internal session.
       // For Phase 2, we will just return the User and let the Controller manage state.
       return Right(
-        User.fromJson(response.data!['user'] as Map<String, dynamic>),
+        User.fromJson(response.data['user']),
       );
     } catch (e) {
       // DEBUG: Return raw error to UI

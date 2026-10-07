@@ -205,7 +205,7 @@ class PromptBlocksController extends _$PromptBlocksController {
   /// Simulates rendering of a Prompt Block or Matrix with mock data.
   Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock block,
-    Map<String, dynamic> mockInputs, {
+    Map<String, Object?> mockInputs, {
     int? targetScaleScore,
     String? targetLocale,
     String? contextText,

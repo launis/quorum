@@ -35,7 +35,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
   final List<dynamic> data = response.data as List;
 
   return data
-      .map((e) => ExecutionRecord.fromJson(e as Map<String, dynamic>))
+      .map((e) => ExecutionRecord.fromJson(e))
       .toList();
 }
 
@@ -62,7 +62,7 @@ class ExecutionController extends _$ExecutionController {
   /// Starts an execution, sets the state to loading, and connects to SSE.
   Future<void> startExecution(
     String workflowId,
-    Map<String, dynamic> inputs, {
+    Map<String, Object?> inputs, {
     String targetLocale = 'fi',
     String? targetProfileId,
   }) async {

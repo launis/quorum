@@ -89,9 +89,10 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             e.response!.data is List<int>) {
           try {
             final decodedString = utf8.decode(e.response!.data as List<int>);
-            final jsonMap = jsonDecode(decodedString) as Map<String, dynamic>;
+            final jsonMap =
+                (jsonDecode(decodedString) as Map).cast<String, Object?>();
             if (jsonMap.containsKey('detail')) {
-              errorMessage = jsonMap['detail'] as String;
+              errorMessage = jsonMap['detail']?.toString() ?? errorMessage;
             }
           } catch (_) {
             // Ignore decoding errors and fallback to default message

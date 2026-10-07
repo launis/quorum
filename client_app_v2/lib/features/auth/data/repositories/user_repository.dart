@@ -19,7 +19,7 @@ class UserRepository {
 
   Future<Either<AppException, User>> fetchCurrentUser() async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/iam/users/me');
+      final response = await _client.get('/iam/users/me');
       if (response.data == null) return Left(const AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
@@ -39,10 +39,10 @@ class UserRepository {
   }
 
   Future<Either<AppException, User>> updateProfile(
-    Map<String, dynamic> data,
+    Map<String, Object?> data,
   ) async {
     try {
-      final response = await _client.patch<Map<String, dynamic>>(
+      final response = await _client.patch(
         '/iam/users/me',
         data: data,
       );

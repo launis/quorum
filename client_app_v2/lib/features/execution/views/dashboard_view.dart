@@ -476,17 +476,17 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
 
       // 1. Fetch old execution
       final getResponse = await dio.get('/execution/executions/$id');
-      final Map<String, dynamic> oldExec = getResponse.data is Map
-          ? getResponse.data as Map<String, dynamic>
+      final Map<String, Object?> oldExec = getResponse.data is Map
+          ? (getResponse.data as Map).cast<String, Object?>()
           : throw AppException.network(
               'Invalid response from server',
             ).copyWith(extensions: const {'error_code': 'INVALID_RESPONSE'});
 
       // 2. Prepare payload
       final metadata = oldExec['metadata'] is Map
-          ? oldExec['metadata'] as Map<String, dynamic>
-          : {};
-      final payload = {
+          ? (oldExec['metadata'] as Map).cast<String, Object?>()
+          : const <String, Object?>{};
+      final payload = <String, Object?>{
         'workflow_id': oldExec['workflow_id'],
         'raw_inputs': oldExec['raw_inputs'],
         'profile_id':

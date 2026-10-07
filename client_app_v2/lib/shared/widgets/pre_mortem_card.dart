@@ -3,13 +3,13 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
 
 class PreMortemCard extends StatelessWidget {
-  final Map<String, dynamic> report;
+  final Map<String, Object?> report;
 
   const PreMortemCard({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {
-    final preMortem = report['pre_mortem_analyysi'] as Map<String, dynamic>?;
+    final preMortem = report['pre_mortem_analyysi'] as Map<String, Object?>?;
 
     if (preMortem == null) return const SizedBox.shrink();
 

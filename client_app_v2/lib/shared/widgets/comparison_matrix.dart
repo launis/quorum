@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ComparisonMatrix extends StatelessWidget {
-  final Map<String, dynamic> comparisonData;
+  final Map<String, Object?> comparisonData;
 
   const ComparisonMatrix({super.key, required this.comparisonData});
 
@@ -14,7 +14,7 @@ class ComparisonMatrix extends StatelessWidget {
     final leftLabel = comparisonData['left_label'] as String? ?? 'Judge A';
     final rightLabel = comparisonData['right_label'] as String? ?? 'Judge B';
     final rowsRaw = comparisonData['rows'] as List?;
-    final rows = rowsRaw?.cast<Map<String, dynamic>>() ?? [];
+    final rows = rowsRaw?.cast<Map<String, Object?>>() ?? [];
 
     if (rows.isEmpty) {
       return Card(
@@ -111,14 +111,14 @@ class ComparisonMatrix extends StatelessWidget {
 
   Widget _buildRow(
     BuildContext context,
-    Map<String, dynamic> row,
+    Map<String, Object?> row,
     String leftLabel,
     String rightLabel,
   ) {
     final theme = Theme.of(context);
     final observation = row['observation'] as String? ?? 'N/A';
-    final left = row['left'] as Map<String, dynamic>?;
-    final right = row['right'] as Map<String, dynamic>?;
+    final left = row['left'] as Map<String, Object?>?;
+    final right = row['right'] as Map<String, Object?>?;
     final delta = (row['delta'] as num?)?.toDouble() ?? 0.0;
 
     // Safely extract scores

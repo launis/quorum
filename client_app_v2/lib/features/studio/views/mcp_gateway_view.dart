@@ -387,10 +387,10 @@ class McpGatewayView extends HookConsumerWidget {
           }
         },
         onSaved: (val) {
-          Map<String, dynamic> schema = {};
+          Map<String, Object?> schema = {};
           if (val != null && val.trim().isNotEmpty) {
             try {
-              schema = jsonDecode(val) as Map<String, dynamic>;
+              schema = jsonDecode(val) as Map<String, Object?>;
             } catch (_) {}
           }
           _updateTool(ref, toolIndex, (t) => t.copyWith(inputSchema: schema));

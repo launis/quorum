@@ -12,8 +12,8 @@ import 'package:client_app/shared/widgets/output_renderer.dart';
 class SpecialistSection extends StatefulWidget {
   final String title;
   final String type; // e.g. LOGIC_ANALYSIS, STRESS_TEST
-  final Map<String, dynamic> data;
-  final Map<String, dynamic>? metrics;
+  final Map<String, Object?> data;
+  final Map<String, Object?>? metrics;
 
   const SpecialistSection({
     super.key,
@@ -575,7 +575,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
     // Strict V3 Flattened Keys
     final arguments =
-        (widget.data['arguments'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        (widget.data['arguments'] as List?)?.cast<Map<String, Object?>>() ?? [];
 
     final methodology =
         widget.data['methodological_log'] ??
@@ -959,9 +959,9 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     _validateRequiredKeys(['findings', 'fidelity_audit'], 'STRESS_TEST');
     // V3 Flat Keys:
     final findings =
-        (widget.data['findings'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        (widget.data['findings'] as List?)?.cast<Map<String, Object?>>() ?? [];
     final fidelity =
-        widget.data['fidelity_audit'] as Map<String, dynamic>? ?? {};
+        widget.data['fidelity_audit'] as Map<String, Object?>? ?? {};
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
@@ -1387,12 +1387,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     _validateRequiredKeys(['fact_checks', 'ethical_issues'], 'FACT_CHECK');
     // English Keys: fact_checks, ethical_issues
     final facts =
-        (widget.data['fact_checks'] as List?)?.cast<Map<String, dynamic>>() ??
+        (widget.data['fact_checks'] as List?)?.cast<Map<String, Object?>>() ??
         [];
 
     final ethics =
         (widget.data['ethical_issues'] as List?)
-            ?.cast<Map<String, dynamic>>() ??
+            ?.cast<Map<String, Object?>>() ??
         [];
 
     final ethicsChildren = <Widget>[];
@@ -1540,7 +1540,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     ], 'PERFORMATIVITY_CHECK');
     // Strict V3 Keys
     final heuristics =
-        (widget.data['heuristics'] as List?)?.cast<Map<String, dynamic>>() ??
+        (widget.data['heuristics'] as List?)?.cast<Map<String, Object?>>() ??
         [];
 
     final overall = widget.data['authenticity_assessment'] as String?;
@@ -1749,7 +1749,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildGenericMap(Map<String, dynamic> map) {
+  Widget _buildGenericMap(Map<String, Object?> map) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: map.entries.map<Widget>((e) {
@@ -2305,7 +2305,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   // NEW: Compact Text Metrics for Logic Analysis (Teal Theme)
   Widget _buildCompactTextMetrics(
     BuildContext context,
-    Map<String, dynamic> metrics,
+    Map<String, Object?> metrics,
   ) {
     final l10n = AppLocalizations.of(context)!;
 

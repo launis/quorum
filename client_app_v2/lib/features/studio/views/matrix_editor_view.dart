@@ -5,7 +5,7 @@ import 'package:client_app/features/studio/views/prompt_block_builder_view.dart'
 /// Enforces the matrix category and float evaluation type for new matrices.
 class MatrixEditorView extends StatelessWidget {
   final String? id;
-  final Map<String, dynamic>? initialData;
+  final Map<String, Object?>? initialData;
 
   const MatrixEditorView({super.key, this.id, this.initialData});
 

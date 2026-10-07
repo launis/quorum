@@ -11,8 +11,8 @@ import 'package:client_app/core/theme/app_spacing.dart';
 /// Provides a clean parameter router
 /// aligning strictly with the `ReportRendererWidget` MVC pattern.
 class BlueprintEditorView extends ConsumerStatefulWidget {
-  final Map<String, dynamic> initialBlueprint;
-  final ValueChanged<Map<String, dynamic>> onSave;
+  final Map<String, Object?> initialBlueprint;
+  final ValueChanged<Map<String, Object?>> onSave;
 
   const BlueprintEditorView({
     super.key,

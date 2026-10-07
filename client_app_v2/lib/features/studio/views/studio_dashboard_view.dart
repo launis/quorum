@@ -47,7 +47,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     if (nameVal is String) return nameVal;
     if (nameVal is Map) {
       return I18nText.fromJson(
-        Map<String, dynamic>.from(nameVal),
+        Map.from(nameVal),
       ).get(currentLocale);
     }
     return entity['id']?.toString() ?? 'Unknown';

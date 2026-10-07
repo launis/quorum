@@ -3,7 +3,7 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:flutter/material.dart';
 
 class WorkflowSelector extends StatelessWidget {
-  final List<Map<String, dynamic>> workflows;
+  final List<Map<String, Object?>> workflows;
   final String? selectedId;
   final ValueChanged<String?> onChanged;
   final bool isLoading;
@@ -26,7 +26,7 @@ class WorkflowSelector extends StatelessWidget {
       String nameStr = l10n.sharedUnknown;
       if (nameRaw is Map) {
         nameStr = I18nText.fromJson(
-          Map<String, dynamic>.from(nameRaw),
+          Map.from(nameRaw),
         ).get(locale);
       } else if (nameRaw is String && nameRaw.isNotEmpty) {
         nameStr = nameRaw;
@@ -66,7 +66,7 @@ class WorkflowSelector extends StatelessWidget {
     );
   }
 
-  bool _isValidSelection(String? id, List<Map<String, dynamic>> workflows) {
+  bool _isValidSelection(String? id, List<Map<String, Object?>> workflows) {
     if (id == null) return false;
     return workflows.any((w) => w['id'] == id);
   }

@@ -441,7 +441,7 @@ class ModelRegistryView extends HookConsumerWidget {
         if (val != null) {
           final updatedTiers = <String, LlmModelConfig>{};
           for (final entry in data.tierDefinitions.entries) {
-            final newParams = Map<String, dynamic>.from(
+            final newParams = Map<String, Object?>.from(
               entry.value.additionalParams,
             );
             newParams['vertex_location'] = val;

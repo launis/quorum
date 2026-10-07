@@ -13,9 +13,9 @@ class SchemaMapper {
   static Widget mapFieldToWidget({
     required BuildContext context,
     required String key,
-    required Map<String, dynamic> schema,
-    required dynamic value,
-    required ValueChanged<dynamic> onChanged,
+    required Map<String, Object?> schema,
+    required Object? value,
+    required ValueChanged<Object?> onChanged,
     required bool isRequired,
   }) {
     final type = schema['type'] as String?;

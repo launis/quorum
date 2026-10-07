@@ -35,7 +35,7 @@ class ValidationTimelineWidget extends StatelessWidget {
               ),
             ...events.asMap().entries.map((entry) {
               final index = entry.key;
-              final e = entry.value as Map<String, dynamic>;
+              final e = entry.value as Map<String, Object?>;
               final ts = e['timestamp'] as String? ?? '';
 
               String timeDisplay = ts;

@@ -14,20 +14,20 @@ class DynamicFormWidget extends StatefulWidget {
   });
 
   /// The JSON Schema defining the form structure.
-  final Map<String, dynamic> schema;
+  final Map<String, Object?> schema;
 
   /// Initial key-value pairs for the form fields.
-  final Map<String, dynamic> initialData;
+  final Map<String, Object?> initialData;
 
   /// Callback triggered whenever the form state changes.
-  final ValueChanged<Map<String, dynamic>> onChanged;
+  final ValueChanged<Map<String, Object?>> onChanged;
 
   @override
   State<DynamicFormWidget> createState() => _DynamicFormWidgetState();
 }
 
 class _DynamicFormWidgetState extends State<DynamicFormWidget> {
-  late Map<String, dynamic> _formData;
+  late Map<String, Object?> _formData;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -44,7 +44,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
     // Use Key on widget if full reset needed.
   }
 
-  void _updateField(String key, dynamic value) {
+  void _updateField(String key, Object? value) {
     setState(() {
       _formData[key] = value;
     });
@@ -55,7 +55,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
   Widget build(BuildContext context) {
     // 2. Parse Schema
     final properties =
-        widget.schema['properties'] as Map<String, dynamic>? ?? {};
+        widget.schema['properties'] as Map<String, Object?>? ?? {};
     final requiredFields =
         (widget.schema['required'] as List<dynamic>?)?.cast<String>() ?? [];
 
@@ -66,7 +66,7 @@ class _DynamicFormWidgetState extends State<DynamicFormWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: properties.entries.map((entry) {
           final key = entry.key;
-          final fieldSchema = entry.value as Map<String, dynamic>;
+          final fieldSchema = entry.value as Map<String, Object?>;
           final isRequired = requiredFields.contains(key);
 
           // Render via SchemaMapper

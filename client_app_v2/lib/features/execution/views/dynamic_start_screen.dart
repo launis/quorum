@@ -33,7 +33,7 @@ class DynamicStartScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schemaAsync = ref.watch(workflowUiSchemaProvider(workflowId));
-    final collectedInputs = useRef<Map<String, dynamic>>({});
+    final collectedInputs = useRef<Map<String, Object?>>({});
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
     return switch (schemaAsync) {
@@ -57,16 +57,16 @@ class DynamicStartScreen extends HookConsumerWidget {
   void _onStart(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> collectedInputs,
+    Map<String, Object?> collectedInputs,
     GlobalKey<FormState> formKey,
   ) {
     if (formKey.currentState?.validate() ?? false) {
       // 1. Process files into base64 for the backend deterministic input hook.
-      final Map<String, dynamic> processedInputs = {};
+      final Map<String, Object?> processedInputs = {};
 
       collectedInputs.forEach((key, value) {
         if (value is PlatformFile && value.bytes != null) {
-          processedInputs[key] = {
+          processedInputs[key] = <String, Object?>{
             'filename': value.name,
             'content_base64': base64Encode(value.bytes!),
           };
@@ -90,7 +90,7 @@ class DynamicStartScreen extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<ExpectedInput> expectedInputs,
-    Map<String, dynamic> collectedInputs,
+    Map<String, Object?> collectedInputs,
     GlobalKey<FormState> formKey,
   ) {
     final locale = Localizations.localeOf(context).languageCode;
@@ -177,10 +177,10 @@ class DynamicStartScreen extends HookConsumerWidget {
     String semanticRole,
     String title,
     List<QuestionnaireItem> definitions,
-    Map<String, dynamic> collectedInputs,
+    Map<String, Object?> collectedInputs,
   ) {
     if (collectedInputs[semanticRole] == null) {
-      collectedInputs[semanticRole] = <String, dynamic>{};
+      collectedInputs[semanticRole] = <String, Object?>{};
     }
 
     final locale = Localizations.localeOf(context).languageCode;
@@ -215,7 +215,7 @@ class DynamicStartScreen extends HookConsumerWidget {
                     final controller = useTextEditingController(
                       text:
                           (collectedInputs[semanticRole]
-                                  as Map<String, dynamic>)[qId]
+                                  as Map<String, Object?>?)?[qId]
                               ?.toString() ??
                           '',
                     );
@@ -229,7 +229,7 @@ class DynamicStartScreen extends HookConsumerWidget {
                       maxLines: 3,
                       onChanged: (val) {
                         (collectedInputs[semanticRole]
-                                as Map<String, dynamic>)[qId] =
+                                as Map<String, Object?>)[qId] =
                             val;
                       },
                     );

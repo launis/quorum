@@ -38,7 +38,7 @@ class NewExecutionController extends _$NewExecutionController {
 
   Future<String> startExecution({
     required String workflowId,
-    required Map<String, dynamic> collectedInputs,
+    required Map<String, Object?> collectedInputs,
     required String targetLocale,
     String? profileId,
   }) async {
@@ -82,7 +82,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   String? _selectedProfileId;
   bool _autoGenerateReport = true;
 
-  final Map<String, dynamic> _compiledInputs = {};
+  final Map<String, Object?> _compiledInputs = {};
 
   // To keep track of filename for UI
   final Map<String, String> _selectedFileNames = {};
@@ -157,9 +157,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           final qId = parts[1];
           if (_compiledInputs[semanticRole] == null ||
               _compiledInputs[semanticRole] is! Map) {
-            _compiledInputs[semanticRole] = <String, dynamic>{};
+            _compiledInputs[semanticRole] = <String, Object?>{};
           }
-          (_compiledInputs[semanticRole] as Map<String, dynamic>)[qId] =
+          (_compiledInputs[semanticRole] as Map<String, Object?>)[qId] =
               controller.text;
         } else {
           // Prioritize file upload if one is already selected

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class GenericGrid extends StatelessWidget {
   final String title;
-  final Map<String, dynamic> data;
+  final Map<String, Object?> data;
 
   const GenericGrid({super.key, required this.title, required this.data});
 
@@ -42,7 +42,7 @@ class GenericGrid extends StatelessWidget {
                   spacing: 16,
                   runSpacing: 12,
                   children: items.map((item) {
-                    final itemMap = item as Map<String, dynamic>;
+                    final itemMap = item as Map<String, Object?>;
                     final label = itemMap['label'] ?? '';
                     final value = itemMap['value']?.toString() ?? 'N/A';
                     final highlight = itemMap['highlight'] == true;

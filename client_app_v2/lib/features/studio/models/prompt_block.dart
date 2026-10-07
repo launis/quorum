@@ -411,7 +411,7 @@ sealed class PromptBlock with _$PromptBlock {
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      final decoded = jsonDecode(rawJson);
       return PromptBlock.fromJson(decoded);
     });
   }
@@ -421,7 +421,7 @@ sealed class PromptBlock with _$PromptBlock {
   ) async {
     return safeIsolateRun(() {
       return rawList
-          .map((e) => PromptBlock.fromJson(e as Map<String, dynamic>))
+          .map((e) => PromptBlock.fromJson(e))
           .toList();
     });
   }

@@ -3,7 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 class ScoreCardRadar extends StatelessWidget {
-  final Map<String, dynamic> cardData;
+  final Map<String, Object?> cardData;
 
   const ScoreCardRadar({super.key, required this.cardData});
 
@@ -16,7 +16,7 @@ class ScoreCardRadar extends StatelessWidget {
     // Use dimensions or fallback if empty
     final rawDimensions = cardData['dimensions'] as List<dynamic>? ?? [];
     final dimensions = rawDimensions
-        .map((e) => e as Map<String, dynamic>)
+        .map((e) => e as Map<String, Object?>)
         .toList();
 
     final dimensionsNotEmpty = dimensions.isNotEmpty;

@@ -307,7 +307,7 @@ class StepEditRoute extends GoRouteData with $StepEditRoute {
 class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
   const ProfileEditorRoute({required this.workflowId, this.$extra});
   final String workflowId;
-  final Map<String, dynamic>? $extra;
+  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -324,7 +324,7 @@ class OutputProfileNewRoute extends GoRouteData with $OutputProfileNewRoute {
 class OutputProfileEditRoute extends GoRouteData with $OutputProfileEditRoute {
   const OutputProfileEditRoute({required this.id, this.$extra});
   final String id;
-  final Map<String, dynamic>? $extra;
+  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -357,7 +357,7 @@ class McpGatewayNewRoute extends GoRouteData with $McpGatewayNewRoute {
 class McpGatewayEditRoute extends GoRouteData with $McpGatewayEditRoute {
   const McpGatewayEditRoute({required this.id, this.$extra});
   final String id;
-  final Map<String, dynamic>? $extra;
+  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -374,7 +374,7 @@ class MatrixNewRoute extends GoRouteData with $MatrixNewRoute {
 class MatrixEditRoute extends GoRouteData with $MatrixEditRoute {
   const MatrixEditRoute({required this.id, this.$extra});
   final String id;
-  final Map<String, dynamic>? $extra;
+  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>

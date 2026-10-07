@@ -14,8 +14,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 class ResultDashboard extends StatelessWidget {
-  final Map<String, dynamic> rawResult;
-  final Map<String, dynamic>? reportView;
+  final Map<String, Object?> rawResult;
+  final Map<String, Object?>? reportView;
 
   const ResultDashboard({super.key, required this.rawResult, this.reportView});
 
@@ -71,10 +71,10 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _buildDynamicDashboard(
     BuildContext context,
-    Map<String, dynamic> view,
+    Map<String, Object?> view,
   ) {
     // 1. SDUI Protocol: We respect backend signals without string parsing
-    final metrics = view['metrics'] as Map<String, dynamic>?;
+    final metrics = view['metrics'] as Map<String, Object?>?;
     final bool isHitlRequired = metrics?['hitl_required'] == true;
     final bool hasWarning = metrics?['has_warning'] == true;
 
@@ -86,7 +86,7 @@ class ResultDashboard extends StatelessWidget {
         metrics?['warning_message']?.toString();
 
     final systemNotification =
-        view['systemNotification'] as Map<String, dynamic>?;
+        view['systemNotification'] as Map<String, Object?>?;
     final blocks = view['blocks'] as List<dynamic>? ?? [];
     final references = view['references'] as List<dynamic>? ?? [];
 
@@ -106,7 +106,7 @@ class ResultDashboard extends StatelessWidget {
             const SizedBox(height: 24),
           ],
           ...blocks.map((blockRaw) {
-            final block = blockRaw as Map<String, dynamic>;
+            final block = blockRaw as Map<String, Object?>;
             return Padding(
               padding: const EdgeInsets.only(bottom: 24.0),
               child: _renderBlock(context, block, view),
@@ -207,7 +207,7 @@ class ResultDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 16.0),
             ...refs.map((refRaw) {
-              final ref = refRaw as Map<String, dynamic>;
+              final ref = refRaw as Map<String, Object?>;
               final refTitle = ref['title']?.toString();
               final refId = ref['id']?.toString() ?? 'Reference';
               final refSnippet = ref['snippet']?.toString() ?? '';
@@ -271,7 +271,7 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _buildSystemNotificationBanner(
     BuildContext context,
-    Map<String, dynamic> notification,
+    Map<String, Object?> notification,
   ) {
     final level = notification['level']?.toString() ?? 'info';
     final isDanger = level == 'danger';
@@ -395,7 +395,7 @@ class ResultDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, Map<String, dynamic> view) {
+  Widget _buildHeader(BuildContext context, Map<String, Object?> view) {
     final intent = view['intent']?.toString();
     Color statusColor = Theme.of(context).colorScheme.onSurfaceVariant;
     if (intent == 'success')
@@ -445,8 +445,8 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _renderBlock(
     BuildContext context,
-    Map<String, dynamic> block,
-    Map<String, dynamic> view,
+    Map<String, Object?> block,
+    Map<String, Object?> view,
   ) {
     final blockType = block['type']?.toString();
     final blockId = block['id']?.toString() ?? '';
@@ -459,7 +459,7 @@ class ResultDashboard extends StatelessWidget {
           if (blockValue != null &&
               blockValue is Map &&
               blockValue.containsKey('dimensions')) {
-            return ScoreCardRadar(cardData: blockValue as Map<String, dynamic>);
+            return ScoreCardRadar(cardData: blockValue as Map<String, Object?>);
           }
         } catch (e) {
           ProviderScope.containerOf(context)
@@ -473,18 +473,18 @@ class ResultDashboard extends StatelessWidget {
         return SpecialistSection(
           title: blockLabel,
           type: blockId,
-          data: blockValue is Map<String, dynamic> ? blockValue : {},
-          metrics: view['metrics'] as Map<String, dynamic>? ?? {},
+          data: blockValue is Map<String, Object?> ? blockValue : {},
+          metrics: view['metrics'] as Map<String, Object?>? ?? {},
         );
 
       case 'metric':
         return GenericGrid(
           title: blockLabel,
-          data: blockValue is Map<String, dynamic> ? blockValue : {},
+          data: blockValue is Map<String, Object?> ? blockValue : {},
         );
 
       case 'paragraph':
-        final content = blockValue is Map<String, dynamic>
+        final content = blockValue is Map<String, Object?>
             ? blockValue['content'] as String? ?? ''
             : blockValue?.toString() ?? '';
 
@@ -572,13 +572,13 @@ class ResultDashboard extends StatelessWidget {
 
       case 'list':
         if (blockId == 'timeline-feed') {
-          final events = blockValue is Map<String, dynamic>
+          final events = blockValue is Map<String, Object?>
               ? blockValue['events'] as List<dynamic>? ?? []
               : [];
           return ValidationTimelineWidget(title: blockLabel, events: events);
         }
 
-        final items = blockValue is Map<String, dynamic>
+        final items = blockValue is Map<String, Object?>
             ? blockValue['items'] as List<dynamic>? ?? []
             : [];
         return Card(
@@ -619,8 +619,8 @@ class ResultDashboard extends StatelessWidget {
   }
 
   void _flattenMap(
-    Map<String, dynamic> source,
-    Map<String, dynamic> target,
+    Map<String, Object?> source,
+    Map<String, Object?> target,
     String prefix,
   ) {
     source.forEach((key, value) {
@@ -669,7 +669,7 @@ class ResultDashboard extends StatelessWidget {
       if (value is Map) {
         // Skip massive metadata maps or raw tool returns
         if (key == 'metadata' || key == 'tool_calls') return;
-        _flattenMap(value as Map<String, dynamic>, target, effectiveKey);
+        _flattenMap(value as Map<String, Object?>, target, effectiveKey);
       } else if (value is List) {
         if (value.isEmpty) {
           target[effectiveKey] = '[]';
@@ -688,14 +688,14 @@ class ResultDashboard extends StatelessWidget {
     });
   }
 
-  Widget _buildFlatDataView(BuildContext context, Map<String, dynamic> data) {
-    final Map<String, dynamic> dataToShow = {};
+  Widget _buildFlatDataView(BuildContext context, Map<String, Object?> data) {
+    final Map<String, Object?> dataToShow = {};
     try {
       if (data.containsKey('context_variables')) {
-        final ctx = data['context_variables'] as Map<String, dynamic>;
+        final ctx = data['context_variables'] as Map<String, Object?>;
         _flattenMap(ctx, dataToShow, '');
       } else if (data.containsKey('step_results')) {
-        final steps = data['step_results'] as Map<String, dynamic>;
+        final steps = data['step_results'] as Map<String, Object?>;
         _flattenMap(steps, dataToShow, '');
       } else {
         _flattenMap(data, dataToShow, '');
@@ -721,7 +721,7 @@ class ResultDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildRawDataView(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildRawDataView(BuildContext context, Map<String, Object?> data) {
     // User specifically requested to see the full raw workflow output data
     // rather than just the narrowed down flat_report.
     final dataToShow = data;

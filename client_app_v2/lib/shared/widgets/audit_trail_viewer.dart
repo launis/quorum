@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
 
 class AuditTrailViewer extends StatelessWidget {
-  final Map<String, dynamic> data;
+  final Map<String, Object?> data;
 
   const AuditTrailViewer({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final rawSteps = data['Raw_Steps'] as Map<String, dynamic>? ?? {};
+    final rawSteps = data['Raw_Steps'] as Map<String, Object?>? ?? {};
 
     if (rawSteps.isEmpty) return const SizedBox.shrink();
 
     // Sort steps
     final stepsList = rawSteps.entries.map((e) {
-      final val = e.value as Map<String, dynamic>;
-      final meta = val['metadata'] as Map<String, dynamic>? ?? {};
+      final val = e.value as Map<String, Object?>;
+      final meta = val['metadata'] as Map<String, Object?>? ?? {};
       final stepNum = meta['vaihe'] as num? ?? 999;
       return MapEntry(stepNum.toInt(), e);
     }).toList()..sort((a, b) => a.key.compareTo(b.key));
@@ -32,8 +32,8 @@ class AuditTrailViewer extends StatelessWidget {
         itemBuilder: (context, index) {
           final entry = stepsList[index].value;
           final key = entry.key;
-          final val = entry.value as Map<String, dynamic>;
-          final meta = val['metadata'] as Map<String, dynamic>? ?? {};
+          final val = entry.value as Map<String, Object?>;
+          final meta = val['metadata'] as Map<String, Object?>? ?? {};
 
           final agent = meta['agent'] as String? ?? key;
           final version = meta['versio'] as String? ?? 'v?';

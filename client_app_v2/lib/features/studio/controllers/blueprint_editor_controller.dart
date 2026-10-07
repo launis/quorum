@@ -18,9 +18,9 @@ class BlueprintEditorController extends _$BlueprintEditorController {
     return const BlueprintConfig(presetView: PresetView.metrics1d);
   }
 
-  void initialize(Map<String, dynamic>? initialOutputMapping) {
+  void initialize(Map<String, Object?>? initialOutputMapping) {
     if (initialOutputMapping != null && initialOutputMapping.isNotEmpty) {
-      state = BlueprintConfig.fromJson(initialOutputMapping);
+      state = BlueprintConfig.fromJson(Map.from(initialOutputMapping));
     } else {
       state = const BlueprintConfig(presetView: PresetView.metrics1d);
     }
