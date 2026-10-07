@@ -8,10 +8,13 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom, GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import (
     EngineExecutionRequest,
     EngineExecutionResult,
@@ -215,12 +218,12 @@ async def test_tda_engine_data_starvation_circuit_breaker_with_shuffled_atoms(
             "shuffled_atoms": [atom],
             "context": engine_request.context.model_copy(
                 update={
-                    "context_variables": {
-                        "__GLOBAL_ATOM_BLACKBOARD__": {
-                            "atoms_by_input": {},
-                            "is_data_starved": True,
-                        }
-                    }
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={},
+                            is_data_starved=True,
+                        )
+                    )
                 }
             ),
         }
@@ -249,33 +252,72 @@ async def test_tda_engine_data_starvation_circuit_breaker_with_shuffled_atoms(
     req.progress_callback.assert_called_with(100, 100)
 
 
+def test_context_variables_corrupted_blackboard_raises_validation_error_at_ingress() -> None:
+    """Test that a corrupted blackboard payload raises ValidationError at ContextVariablesDTO ingress."""
+    with pytest.raises(ValidationError):
+        ContextVariablesDTO.model_validate({"__GLOBAL_ATOM_BLACKBOARD__": "not_a_valid_dict"})
+
+
 @pytest.mark.asyncio
-async def test_tda_engine_corrupted_blackboard_raises_validation_failed(
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+async def test_tda_engine_typed_blackboard_success(
+    mock_task_executor: MagicMock,
+    mock_atomizer: MagicMock,
+    mock_dag_executor: MagicMock,
+    mock_projector: MagicMock,
     engine_request: EngineExecutionRequest,
     mock_compiler: MagicMock,
 ) -> None:
-    """Test that a corrupted blackboard raises AppException with VALIDATION_FAILED."""
+    """Test successful TDAEngine execution with strongly typed ContextVariablesDTO global_atom_blackboard."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_dag_executor_instance = mock_dag_executor.return_value
 
-    class CorruptedMapping:
-        def __contains__(self, key: object) -> bool:
-            raise TypeError("Corrupted mapping simulation")
+    async def mock_execute_phase_0(*args: object, **kwargs: object) -> tuple[str, TokenUsage]:
+        return "mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+
+    mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
+
+    async def mock_execute_graph(*args: object, **kwargs: object):
+        return {"state": "done"}, TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
+
+    mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
 
     req = engine_request.model_copy(
         update={
             "context": engine_request.context.model_copy(
-                update={"context_variables": {"__GLOBAL_ATOM_BLACKBOARD__": CorruptedMapping()}}
+                update={
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={
+                                "doc_0": DraftAtomList(
+                                    atoms=[
+                                        DraftExtractedAtom(
+                                            draft_id="d1",
+                                            reasoning="Reasoning step",
+                                            resolved_claim="Claim",
+                                            source_quote="Quote",
+                                            source_sequence_index=0,
+                                        )
+                                    ]
+                                )
+                            },
+                            is_data_starved=False,
+                        )
+                    )
+                }
             )
         }
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
 
-    with pytest.raises(AppException) as exc_info:
-        await engine.execute(req)
-
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "Corrupted __GLOBAL_ATOM_BLACKBOARD__" in str(exc_info.value.message)
+    assert isinstance(result, EngineExecutionResult)
+    mock_atomizer_instance.execute_phase_0.assert_called_once()
 
 
 @pytest.mark.asyncio

@@ -30,7 +30,6 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
-from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -129,23 +128,13 @@ class LLMNodeStrategy(NodeStrategy):
         ):
             gvars = dict(hook_state.global_context_vars)
 
-        blackboard: Any = None
+        blackboard = None
         if context is not None:
-            if context.context_variables.global_atom_blackboard:
-                blackboard = context.context_variables.global_atom_blackboard
-            elif "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
-                blackboard = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-
-        if blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
-            blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
+            blackboard = context.context_variables.global_atom_blackboard
 
         atoms_by_input = {}
         if blackboard is not None:
-            if isinstance(blackboard, GlobalAtomBlackboard):
-                atoms_by_input = blackboard.atoms_by_input
-            elif not isinstance(blackboard, (str, int, float, bool, list)):
-                if "atoms_by_input" in blackboard:
-                    atoms_by_input = dict(blackboard["atoms_by_input"])
+            atoms_by_input = blackboard.atoms_by_input
 
         doc_aliases: list[str] = ["N/A"]
         if atoms_by_input:

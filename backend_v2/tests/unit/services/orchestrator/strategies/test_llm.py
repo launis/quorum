@@ -2776,12 +2776,17 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         inputs=inputs_dto,
-        global_context_vars={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_gvar": []}}},
+        global_context_vars=GlobalContextVarsDTO(),
     )
     context = StrategyContext(
         execution_id="exec_1",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
+        context_variables=ContextVariablesDTO(
+            global_atom_blackboard=GlobalAtomBlackboard(
+                atoms_by_input={"doc_gvar": DraftAtomList(atoms=[])}
+            )
+        ),
     )
     context_meta = llm_strategy._extract_step_context_metadata(hook_state, context)
     assert context_meta.doc_aliases == ["doc_gvar"]
@@ -2840,3 +2845,149 @@ def test_llm_strategy_metadata_synthesis_engine_branch(llm_strategy: LLMNodeStra
     assert meta_dict["cognitive_tier"] == "deep"
     assert meta_dict["physical_model"] == "gemini-1.5-pro"
     assert meta_dict["token_usage"]["total_tokens"] == 150
+
+
+@pytest.mark.asyncio
+async def test_llm_strategy_resolve_schema_map_workflow_steps(
+    llm_strategy: LLMNodeStrategy, mock_repo: InMemoryUnifiedWorkflowRepository
+) -> None:
+    """Verify _resolve_schema_map iteration over workflow steps with matrix, text, and extension blocks."""
+    from backend_v2.models.dtos.engine import EngineExecutionResult
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.enums import CognitiveTier, PromptBlockCategory
+
+    wf_id = "wf_0123456789abcdef"
+    mock_repo.set_workflow(
+        {
+            "id": wf_id,
+            "slug": "test_schema_wf",
+            "name": {"translations": {"en": "Test Schema Workflow"}},
+            "description": {"translations": {"en": "Desc"}},
+            "status": "draft",
+            "version": 1,
+            "default_profile_id": "prof_0123456789abcdef0123456789abcdef",
+            "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
+            "steps": [
+                {
+                    "id": "sr_1111111111111111",
+                    "task_blueprint": "stp_11111111111111112222222222222222",
+                },
+                {
+                    "id": "sr_2222222222222222",
+                    "task_blueprint": "stp_0123456789abcdef0123456789abcdef",
+                },
+            ],
+        }
+    )
+
+    mock_repo.set_step(
+        {
+            "id": "stp_11111111111111112222222222222222",
+            "slug": "bp_matrix",
+            "name": {"translations": {"en": "Matrix Step Blueprint"}},
+            "description": {"translations": {"en": "Matrix Step Blueprint"}},
+            "role_block_id": "blk_1111111111111111",
+            "extraction_protocol_block_id": "blk_2222222222222222",
+            "execution_persona_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "bp_text",
+            "name": {"translations": {"en": "Text Step Blueprint"}},
+            "description": {"translations": {"en": "Text Step Blueprint"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_2222222222222222",
+            "execution_persona_block_id": None,
+            "criteria_block_ids": ["blk_5555555555555555"],
+        }
+    )
+
+    blk_role = MagicMock()
+    blk_role.id = "blk_1111111111111111"
+    blk_role.category_id = PromptBlockCategory.AGENT_ROLE
+    blk_role.output_extensions = []
+
+    blk_proto = MagicMock()
+    blk_proto.id = "blk_2222222222222222"
+    blk_proto.category_id = PromptBlockCategory.PROTOCOL
+    blk_proto.output_extensions = []
+
+    blk_persona = MagicMock()
+    blk_persona.id = "blk_3333333333333333"
+    blk_persona.category_id = PromptBlockCategory.EXECUTION_PERSONA
+    blk_persona.output_extensions = []
+
+    blk_matrix = MagicMock()
+    blk_matrix.id = "blk_4444444444444444"
+    blk_matrix.category_id = PromptBlockCategory.MATRIX
+    blk_matrix.output_extensions = ["ext_sample_1"]
+
+    blk_text = MagicMock()
+    blk_text.id = "blk_5555555555555555"
+    blk_text.category_id = PromptBlockCategory.SYSTEM_RULE
+    blk_text.output_extensions = []
+
+    mock_blocks = [blk_role, blk_proto, blk_persona, blk_matrix, blk_text]
+
+    step = MagicMock()
+    step.id = "sr_2222222222222222"
+    step.task_blueprint = "stp_0123456789abcdef0123456789abcdef"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+    step.expected_sdui_type = None
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_schema_map"
+    context.workflow_id = wf_id
+    context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
+    context.target_locale = "en"
+    context.expected_inputs = []
+    context.global_context_vars = {"language": "en"}
+    context.metadata = ExecutionMetadata()
+    context.cognitive_tier = CognitiveTier.FAST
+    context.prompt_blocks = mock_blocks
+    context.model_registry_id = "cfg_model_registry_01"
+    context.strictness_level = 50
+
+    mock_engine = llm_strategy._engine
+    mock_engine.execute.return_value = EngineExecutionResult(
+        results=[],
+        hydrated_references={},
+        synthesis_output=DummySynthesisOutputDTO(output="dict output"),
+    )
+
+    mock_hook_state = HookState(
+        execution_id="exec_schema_map",
+        workflow_id=wf_id,
+        metadata=ExecutionMetadata(),
+        global_context_vars={"language": "en"},
+        inputs=ExecutionInputsDTO(dynamic_inputs={"_audit_signature": "sig_123"}),
+    )
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post.return_value = (mock_hook_state, [])
+        result = await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
+
+    assert result is not None
+

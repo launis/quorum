@@ -14,9 +14,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge
 from backend_v2.models.dtos.engine import EngineExecutionRequest, FlattenedAtom
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
@@ -422,12 +424,12 @@ async def test_istqb_partition_4_data_starvation_propagates_depends_on(
             "shuffled_atoms": [atom_parent, atom_child],
             "context": base_engine_request.context.model_copy(
                 update={
-                    "context_variables": {
-                        "__GLOBAL_ATOM_BLACKBOARD__": {
-                            "atoms_by_input": {},
-                            "is_data_starved": True,
-                        }
-                    }
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={},
+                            is_data_starved=True,
+                        )
+                    )
                 }
             ),
         }
