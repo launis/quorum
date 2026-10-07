@@ -48,7 +48,7 @@ def get_test_settings(**custom_overrides: Any) -> Settings:
     Returns:
         Configured Settings instance for development/testing.
     """
-    return Settings(**TEST_SETTINGS_OVERRIDES, **custom_overrides)
+    return Settings.model_validate({**TEST_SETTINGS_OVERRIDES, **custom_overrides})
 
 
 @contextmanager

@@ -106,6 +106,7 @@ class PdfBlockSignatureDTO(V2CoreBase):
     y1: float = Field(description="Rounded bottom vertical coordinate")
     text: str = Field(description="Sanitized text content")
 
+
 type DrawingItemValue = fitz.Rect | tuple[float, ...] | list[float] | float | int | str | bool | None
 
 

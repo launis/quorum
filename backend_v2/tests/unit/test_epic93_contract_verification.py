@@ -15,7 +15,8 @@ System 2 Methodology:
 
 import json
 from pathlib import Path
-from typing import Any
+
+from pydantic import JsonValue
 
 # ============================================================================
 # CONTRACT GROUP 1: EPIC 93 Master Document (Sections 1-3)
@@ -213,7 +214,7 @@ class TestPhase2PipelineUnification:
             SynthesisPayloadCompressor,
         )
 
-        heavy_payload: dict[str, Any] = {
+        heavy_payload: dict[str, JsonValue] = {
             "normalized_score": 75.0,
             "shuffled_atoms": ["a1", "a2", "a3"],
             "evaluations": [
@@ -409,7 +410,7 @@ class TestPhase1Phase2Integration:
             SynthesisPayloadCompressor,
         )
 
-        payload: dict[str, Any] = {
+        payload: dict[str, JsonValue] = {
             "normalized_score": 85.0,
             "evaluations": [
                 {

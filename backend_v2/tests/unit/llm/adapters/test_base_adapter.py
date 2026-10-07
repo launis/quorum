@@ -1,6 +1,6 @@
 """Unit tests for BaseLLMAdapter abstract class and rate pacing logic."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from unittest.mock import AsyncMock, patch
 
 import pytest

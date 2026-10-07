@@ -21,4 +21,3 @@ def test_context_builder_keyerror_reproduction():
     llm_context_data, new_mappings = ContextBuilder.build(input_mappings=input_mappings, state_data=fixed_state_data)
 
     assert llm_context_data["inputs"]["product_text"] == "This is the product text"
-

@@ -1085,7 +1085,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:
         self._check_fault("log_audit_event")
         ts = event_data.timestamp or datetime.now(timezone.utc)
-        ctx: dict[str, Any] = {
+        ctx: dict[str, JsonValue] = {
             "actor_id": event_data.actor_id,
             "action": event_data.action,
         }

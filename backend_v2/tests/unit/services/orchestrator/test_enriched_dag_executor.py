@@ -7,7 +7,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import AtomEvaluationResultDTO, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import AtomEvaluationResultDTO, AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -30,12 +30,12 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
     """Test execute_graph correctly forwards to TopologicalEvaluator and callback works."""
     executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
 
-    dummy_result: dict[str, Any] = {}
+    dummy_result: dict[str, AtomExecutionState] = {}
     captured_callback = None
 
     async def fake_evaluate_graph(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
-    ) -> dict[str, Any]:
+    ) -> dict[str, AtomExecutionState]:
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
         return dummy_result
@@ -113,7 +113,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
 
     async def fake_evaluate_graph(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
-    ) -> dict[str, Any]:
+    ) -> dict[str, AtomExecutionState]:
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
         return {}
@@ -145,7 +145,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
     # Let's do it properly by patching evaluate_graph to run the callback
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
-    ) -> dict[str, Any]:
+    ) -> dict[str, AtomExecutionState]:
         return await batch_evaluation_callback(nodes, {})
 
     with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph_exec):
@@ -191,7 +191,7 @@ async def test_execute_graph_callback_persistent_error(
 
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
-    ) -> dict[str, Any]:
+    ) -> dict[str, AtomExecutionState]:
         return await batch_evaluation_callback(nodes, {})
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom
@@ -247,7 +247,7 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
 
     async def fake_evaluate_graph_exec(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
-    ) -> dict[str, Any]:
+    ) -> dict[str, AtomExecutionState]:
         return await batch_evaluation_callback(nodes, {})
 
     from backend_v2.models.dtos.dag_models import ExtractedAtom

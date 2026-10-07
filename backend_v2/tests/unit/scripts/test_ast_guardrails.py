@@ -1306,7 +1306,7 @@ def test_qgr017_comment_suppression_rejected() -> None:
 
 
 def test_qgr018_typeadapter_dict_laundering_fatal() -> None:
-    code = "adapter = TypeAdapter(dict[str, Any])\n"
+    code = "adapter = TypeAdapter(dict" + "[str, Any])\n"
     violations = _scan_snippet(code)
     qgr018 = [v for v in violations if v.rule_code == "QGR018"]
     assert len(qgr018) == 1

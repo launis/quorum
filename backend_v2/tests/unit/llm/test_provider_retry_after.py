@@ -14,7 +14,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import ServiceUnavailableError
 from backend_v2.llm.client import LLMClient
@@ -122,7 +122,7 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
 
     client = await LLMClient.from_strategy("fast", repository=repo, registry_id=registry_config.id)
 
-    captured_pacing_kwargs: dict[str, Any] = {}
+    captured_pacing_kwargs: dict[str, JsonValue] = {}
 
     async def fake_apply_provider_pacing(**kwargs: Any) -> None:
         nonlocal captured_pacing_kwargs

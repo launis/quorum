@@ -10,10 +10,9 @@ import json
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ResourceNotFoundError
 from backend_v2.models.domain.matrix import ContrastivePairDTO
@@ -601,7 +600,7 @@ class TestEvidenceDistribution:
 
     def test_extract_evidence_distribution_counts(self) -> None:
         """Positive: Test partition counting across quotes, inverse passes, overrides, and failures."""
-        evals: dict[str, dict[str, Any]] = {
+        evals: dict[str, JsonValue] = {
             # Empirical citation
             "atom_quote": {
                 "status": "PASSED",
@@ -893,7 +892,7 @@ class TestEvaluationHelpers:
 def _create_synthetic_run(
     base_dir: Path,
     run_id: str,
-    evaluations: list[dict[str, Any]],
+    evaluations: list[dict[str, JsonValue]],
     input_text: str = "Tämä on laadukas syötetiedosto käyttäjältä. Johtajuus on selkeää ja vastuullista.",
     prompt_tokens: int = 1200,
     completion_tokens: int = 350,
@@ -1557,7 +1556,7 @@ def test_diff_executions_main_cli_help(capsys: pytest.CaptureFixture[str]) -> No
 
 def test_diff_executions_main_cli_delegation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifies that diff_executions.py main() parses arguments and delegates to run_diff."""
-    called: dict[str, Any] = {}
+    called: dict[str, JsonValue] = {}
 
     def mock_run_diff(execution_ids: list[str] | None = None, output_file: str | None = None) -> str:
         called["execution_ids"] = execution_ids

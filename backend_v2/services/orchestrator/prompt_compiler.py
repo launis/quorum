@@ -461,7 +461,7 @@ class PromptCompiler:
                     match v:
                         case Mapping() as v_map:
                             # Attempt to access 'outputs' key directly if available
-                            target_dict: Mapping[Any, Any] = v_map
+                            target_dict = v_map
                             if "outputs" in v_map:
                                 out_val = v_map["outputs"]
                                 match out_val:

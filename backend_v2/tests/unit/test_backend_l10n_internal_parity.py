@@ -9,7 +9,6 @@ Enforces:
 import json
 import re
 from pathlib import Path
-from typing import Any
 
 L10N_DIR = Path(__file__).resolve().parents[2] / "l10n"
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
@@ -56,7 +55,7 @@ def test_backend_json_has_100_percent_internal_language_parity() -> None:
         assert isinstance(v, str) and v.strip(), f"fi.json key '{k}' has empty or non-string value"
 
     # Anti-happy-path negative verification
-    def _verify_parity(dict_a: dict[str, Any], dict_b: dict[str, Any]) -> bool:
+    def _verify_parity(dict_a: dict[str, str], dict_b: dict[str, str]) -> bool:
         keys_a = set(dict_a.keys())
         keys_b = set(dict_b.keys())
         if keys_a != keys_b:

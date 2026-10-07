@@ -1,6 +1,5 @@
 """Unit tests for Multi-Provider LLM Adapter Parameter Sanitization & Normalization."""
 
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest

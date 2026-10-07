@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from backend_v2.core.hook_registry import ExecutionInputsDTO
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.inputs import DomainInputValue, IngressInputValue
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
 
@@ -20,9 +20,7 @@ __all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]
 
 logger = logging.getLogger(__name__)
 
-_MAPPING_ADAPTER: TypeAdapter[Mapping[str, DomainInputValue]] = TypeAdapter(
-    Mapping[str, DomainInputValue]
-)
+_MAPPING_ADAPTER: TypeAdapter[Mapping[str, DomainInputValue]] = TypeAdapter(Mapping[str, DomainInputValue])
 
 
 class ContextTargetFilterDTO(V2CoreBase):

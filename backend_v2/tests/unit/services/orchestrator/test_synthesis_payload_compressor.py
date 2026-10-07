@@ -5,11 +5,11 @@ empty evaluation validation, and all 4 ISTQB heterogeneous payload partitions.
 """
 
 import json
-from typing import Any
 from unittest.mock import patch
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.synthesis import DistilledEvaluation
@@ -33,7 +33,7 @@ def test_compress_synthesis_payload_strips_atom_quotes() -> None:
         semantic_reasoning=massive_string,
     )
 
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "results": [eval_mock.model_dump()],
         "atom_quotes": {"blk_123": [{"level": 5, "level_name": "High", "quote": massive_string}]},
     }
@@ -78,7 +78,7 @@ def test_compress_synthesis_payload_scalar_input() -> None:
 
 def test_compress_synthesis_payload_negative_invalid_types() -> None:
     """PROMISE: Prove that _compress_synthesis_payload crashes on invalid payload structures (anti-happy-path)."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "results": "This should be a list, not a string",
         "atom_quotes": 12345,
         "shuffled_atoms": {"wrong": "type"},
@@ -115,7 +115,7 @@ def test_compress_synthesis_payload_negative_non_dict_evaluation() -> None:
 
 def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
     """PROMISE: Prove that a missing mandatory field raises a KeyError wrapped in an AppException."""
-    payload: dict[str, Any] = {"results": [{"exact_quotes": []}]}  # missing atom_id
+    payload: dict[str, JsonValue] = {"results": [{"exact_quotes": []}]}  # missing atom_id
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
@@ -124,7 +124,7 @@ def test_compress_synthesis_payload_negative_missing_mandatory_field() -> None:
 
 def test_compress_synthesis_payload_negative_validation_error() -> None:
     """PROMISE: Prove that a pydantic validation error raises an AppException."""
-    payload: dict[str, Any] = {"results": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
+    payload: dict[str, JsonValue] = {"results": [{"atom_id": "tda_123", "exact_quotes": {"wrong": "type"}}]}
 
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
@@ -214,7 +214,7 @@ def test_compress_payload_stratification_is_100_percent_deterministic_with_tiebr
 
 def test_compress_payload_strips_hydrated_references_and_heavy_keys() -> None:
     """PROMISE: Prove that hydrated_references, _step_metadata, _audit_signature, and _evaluative_matrices are stripped."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "results": [{"atom_id": "a1", "exact_quotes": ["Valid quote"]}],
         "shuffled_atoms": ["atom_1", "atom_2"],
         "atom_quotes": {"blk_1": []},

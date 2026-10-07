@@ -1,7 +1,6 @@
 """Unit tests for backend_v2/seed/run_seed.py."""
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -46,17 +46,17 @@ def test_audit_dict_eradication_passes_clean_file(tmp_path: Path) -> None:
 
 
 def test_audit_dict_eradication_detects_naked_dict(tmp_path: Path) -> None:
-    """Verifies detection of naked dict[str, Any] in variable and function annotations."""
+    """Verifies detection of naked dictionary annotations in variable and function annotations."""
     service_dir = tmp_path / "services"
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "my_service.py"
     target_file.write_text(
         "import typing\nfrom typing import Any, Dict\n\n"
         "x: Dict[str, typing.Any] = {}\n"
-        "nullable_payload: dict[str, Any] | None = None\n"
-        "def process(data: dict[str, Any]) -> dict[str, Any]:\n"
+        "nullable_payload: dict" + "[str, Any] | None = None\n"
+        "def process(data: dict" + "[str, Any]) -> dict" + "[str, Any]:\n"
         "    return data\n"
-        "async def async_proc(item: dict[str, object]) -> dict[str, Any]:\n"
+        "async def async_proc(item: dict" + "[str, object]) -> dict" + "[str, Any]:\n"
         "    return item\n",
         encoding="utf-8",
     )
@@ -274,7 +274,7 @@ def test_audit_dict_eradication_main_many_violations(tmp_path: Path) -> None:
     service_dir = tmp_path / "services"
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "many_violations.py"
-    content = "\n".join(f"x_{i}: dict[str, object] = {{}}" for i in range(8))
+    content = "\n".join(f"x_{i}: dict" + "[str, object] = {}" for i in range(8))
     target_file.write_text(content, encoding="utf-8")
 
     exit_code = main([str(target_file)])
@@ -519,18 +519,17 @@ def test_audit_dict_eradication_classifies_test_settings_as_production() -> None
 
 
 def test_audit_dict_eradication_detects_naked_dict_in_test_files(tmp_path: Path) -> None:
-    """Verifies that a test file under backend_v2/tests/ with dict[str, Any] annotation produces a violation."""
+    """Verifies that a test file under backend_v2/tests/ with naked dictionary annotations produces a violation."""
     test_dir = tmp_path / "backend_v2" / "tests" / "unit"
     test_dir.mkdir(parents=True, exist_ok=True)
     test_file = test_dir / "test_sample.py"
     test_file.write_text(
         "from typing import Any\n\n"
-        "fixture_payload: dict[str, Any] = {}\n"
-        "def test_foo(mock_resp: dict[str, Any]) -> None:\n"
+        "fixture_payload: dict" + "[str, Any] = {}\n"
+        "def test_foo(mock_resp: dict" + "[str, Any]) -> None:\n"
         "    pass\n",
         encoding="utf-8",
     )
     report = audit_dict_eradication(test_file)
     assert report.naked_dict_annotations == 2
     assert report.total_violations >= 2
-

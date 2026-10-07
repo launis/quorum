@@ -1,10 +1,9 @@
 """Unit tests for MatrixReducer three-state logic and reduce_matrix."""
 
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
@@ -91,7 +90,7 @@ def test_reduce_matrix() -> None:
 
     # Populate execution_trace with various event types
     class MockOutputModel(BaseModel):
-        step_2: dict[str, Any]
+        step_2: dict[str, JsonValue]
 
     evt_output_dict = MagicMock(event_type="output", content={"step_1": {"extensions": [{"id": "ext1"}]}})
     evt_output_model = MagicMock(event_type="output", content=MockOutputModel(step_2={"extensions": [{"id": "ext2"}]}))

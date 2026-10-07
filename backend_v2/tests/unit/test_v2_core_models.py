@@ -40,9 +40,6 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
     assert "INVALID_STATUS" in str(exc_info.value)
 
 
-from typing import Any
-
-
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, JsonValue] = {

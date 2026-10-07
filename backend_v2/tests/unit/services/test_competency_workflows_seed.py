@@ -6,12 +6,12 @@ baseline workflow non-regression, and ISTQB negative boundary conditions.
 
 import json
 import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
 
 import pydantic
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, WorkflowCompilationError
 from backend_v2.models.core_base import I18nText
@@ -51,15 +51,15 @@ EXPECTED_PROFILE_IDS = [
 ]
 
 
-def load_seed_data() -> dict[str, list[dict[str, Any]]]:
+def load_seed_data() -> dict[str, Sequence[Mapping[str, JsonValue]]]:
     """Load raw seed_data.json from workspace.
 
     Returns:
-        dict[str, list[dict[str, Any]]]: Complete seed data dictionary containing collections.
+        dict[str, Sequence[Mapping[str, JsonValue]]]: Complete seed data dictionary containing collections.
     """
     assert SEED_DATA_PATH.exists(), f"Seed data file missing: {SEED_DATA_PATH}"
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
-        data: dict[str, list[dict[str, Any]]] = json.load(f)
+        data: dict[str, Sequence[Mapping[str, JsonValue]]] = json.load(f)
     return data
 
 

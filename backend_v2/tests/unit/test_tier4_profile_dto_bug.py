@@ -1,4 +1,4 @@
-from typing import Any
+from pydantic import JsonValue
 
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
@@ -26,6 +26,6 @@ def test_output_profile_dtos_accept_content_blocks() -> None:
     create_dto = OutputProfileCreateDTO.model_validate(create_data)
     assert create_dto.content_blocks is not None
 
-    update_data: dict[str, Any] = {"content_blocks": []}
+    update_data: dict[str, JsonValue] = {"content_blocks": []}
     update_dto = OutputProfileUpdateDTO.model_validate(update_data)
     assert update_dto.content_blocks == []

@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.core_base import I18nText
@@ -44,7 +45,7 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
 
-    def _mock_step_data() -> dict[str, Any]:
+    def _mock_step_data() -> dict[str, JsonValue]:
         return {
             "id": "stp_1234567890abcdef",
             "type": "llm",

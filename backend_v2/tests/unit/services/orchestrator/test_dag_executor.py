@@ -1413,7 +1413,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     """Verify transient DB lock failure during RAG preflight progress reporting does not crash the workflow."""
     mock_rag_preflight = AsyncMock()
 
-    async def mock_rag_execute(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    async def mock_rag_execute(*args: Any, **kwargs: Any) -> GlobalAtomBlackboard:
         if "emit_progress" in kwargs and kwargs["emit_progress"]:
             mock_repo.inject_fault(
                 "update_execution",

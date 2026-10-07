@@ -8,11 +8,12 @@ Zero Backwards Compatibility by purging legacy keys.
 
 import json
 from collections.abc import Awaitable
-from typing import Any, cast
+from typing import cast
 from unittest.mock import patch
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import JsonValue
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -308,7 +309,7 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
     """Contract: Verify raw dictionary items in inputs['steps'] are hydrated via StepOutputDTO."""
     deps = _build_mock_deps()
 
-    raw_step_dict: dict[str, Any] = {
+    raw_step_dict: dict[str, JsonValue] = {
         "step_id": "stp_raw_dict_1",
         "block_id": "blk_raw_dict_1",
         "data_type": "text",

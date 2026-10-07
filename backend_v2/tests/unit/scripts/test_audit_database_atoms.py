@@ -9,10 +9,9 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
-from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from scripts.audit_database_atoms import (
     AuditIssue,
@@ -63,7 +62,7 @@ def test_audit_dto_structure() -> None:
 def _create_clean_matrix_block(
     block_id: str = "blk_0123456789abcdef",
     tda_id: str = "tda_0123456789abcdef0123456789abcdef",
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Helper to generate a structurally clean matrix prompt block."""
     return {
         "id": block_id,

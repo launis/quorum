@@ -1,10 +1,9 @@
 """Unit tests for SourceDocumentPacker."""
 
 import re
-from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -315,7 +314,7 @@ def test_source_document_packer_non_existent_step_reference_fails_fast() -> None
 def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None:
     """Test structured payload dictionary parsing, non-string mappings, and invalid items."""
     # 1. Non-string value in input_mappings
-    mappings: dict[str, Any] = {"doc": "$inputs.valid", "bad": 12345}
+    mappings: dict[str, JsonValue] = {"doc": "$inputs.valid", "bad": 12345}
     targets = SourceDocumentPacker.resolve_context_targets(mappings)
     assert targets.allowed_input_keys == frozenset({"valid"})
 
@@ -470,7 +469,7 @@ def test_source_document_packer_extended_coverage() -> None:
     assert "Model summary content" in packed_step
 
     # 4. JSON serialization error in StepOutputDTO payload (circular reference)
-    bad_dict: dict[str, object] = {}
+    bad_dict = {}
     bad_dict["self"] = bad_dict
 
     invalid_step = StepOutputDTO.model_construct(

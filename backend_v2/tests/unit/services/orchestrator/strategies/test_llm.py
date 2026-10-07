@@ -21,7 +21,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _make_mock_hook_state(
-    inputs: ExecutionInputsDTO | Mapping[str, Any] | None = None,
+    inputs: ExecutionInputsDTO | Mapping[str, JsonValue] | None = None,
     *,
     execution_id: str = "exec_1",
     workflow_id: str = "wf_1",
@@ -30,8 +30,9 @@ def _make_mock_hook_state(
 ) -> HookState:
     if isinstance(inputs, ExecutionInputsDTO):
         inp = inputs
-    elif isinstance(inputs, Mapping):
-        raw = dict(inputs.get("inputs", {}) if isinstance(inputs.get("inputs"), Mapping) else {})
+    elif inputs is not None:
+        raw_val = inputs["inputs"] if "inputs" in inputs else {}
+        raw = dict(raw_val) if type(raw_val) is dict else {}
         dyn = {k: v for k, v in inputs.items() if k not in ("inputs", "raw_inputs")}
         inp = ExecutionInputsDTO.model_construct(raw_inputs=raw, dynamic_inputs=dyn)
     else:

@@ -4,7 +4,7 @@ Validates that OutputProfileResponseDTO does NOT exclude matrix_synthesis_groups
 preventing Flutter and API clients from wiping matrix_synthesis_groups on profile updates.
 """
 
-from typing import Any
+from pydantic import JsonValue
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -17,7 +17,7 @@ from backend_v2.models.dtos.output_profile import (
 
 def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> None:
     """OutputProfileResponseDTO must serialize matrix_synthesis_groups in JSON output."""
-    db_profile_dict: dict[str, Any] = {
+    db_profile_dict: dict[str, JsonValue] = {
         "id": "prf_5d6e7f8091a2b3c4",
         "slug": "test_profile",
         "workflow_id": "wf_9d68c573802341db",

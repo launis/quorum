@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -5,7 +6,7 @@ import pytest
 
 from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException, ConfigurationError, TokenLimitExceededError
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_state import DomainInputValue, ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -17,8 +18,8 @@ from backend_v2.settings import get_settings
 def _make_hook_state(
     *,
     steps: list[StepOutputDTO] | None = None,
-    raw_inputs: dict[str, Any] | None = None,
-    dynamic_inputs: dict[str, Any] | None = None,
+    raw_inputs: Mapping[str, DomainInputValue] | None = None,
+    dynamic_inputs: Mapping[str, DomainInputValue] | None = None,
     metadata: ExecutionMetadata | None = None,
     global_context_vars: GlobalContextVarsDTO | None = None,
 ) -> HookState:
@@ -245,8 +246,6 @@ def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyP
         "litellm.token_counter",
         lambda model, text: 10,
     )
-
-    from typing import Any
 
     def mock_resolve(data: object, path: str) -> Any:
         raise ValueError("Invalid path syntax")

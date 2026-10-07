@@ -220,8 +220,15 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         },
     )
 
+    mock_inputs = MagicMock()
+    mock_inputs.raw_inputs = {"path": {"to": {"test": "value"}}}
+    mock_inputs.dynamic_inputs = {}
+    mock_inputs.target_locale = "en"
+    mock_inputs.user_role = None
+
     mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
+    mock_hook_state.metadata = ExecutionMetadata()
+    mock_hook_state.inputs = mock_inputs
     mock_hook_state.global_context_vars = {}
 
     expected_usage = TokenUsage(

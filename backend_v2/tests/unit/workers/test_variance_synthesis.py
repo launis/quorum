@@ -5,7 +5,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -28,7 +28,7 @@ TARGET_BLOCK_ID = "blk_0123456789abcdef01"
 
 def _make_execution(
     trace_events: list[TraceEvent] | None = None,
-    context_vars: dict[str, Any] | None = None,
+    context_vars: dict[str, JsonValue] | None = None,
 ) -> ExecutionRecord:
     cv = ContextVariablesDTO(variables=context_vars or {})
     return ExecutionRecord(

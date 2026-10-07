@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.enums import PromptBlockCategory
 from scripts.sanitize_seed_vault import (
@@ -20,7 +20,7 @@ from scripts.sanitize_seed_vault import (
 )
 
 
-def _create_raw_matrix_block() -> dict[str, object]:
+def _create_raw_matrix_block() -> dict[str, JsonValue]:
     """Helper to create a raw matrix block dictionary with mechanical phrases and raw XML."""
     return {
         "id": "blk_1234567890abcdef",

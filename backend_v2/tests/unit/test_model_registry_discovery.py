@@ -5,11 +5,10 @@ parameterized routing, dynamic platform discovery, Gemini 3+ sampling parameter 
 and negative boundary conditions (missing credentials, unprocessable entity, RBAC denial).
 """
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.adapters.ai_studio_adapter import (
@@ -262,7 +261,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
             model_name="vertex_ai/gemini-3.8-flash",
             thinking_budget_tokens=2048,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "vertex_ai/gemini-3.8-flash",
             "vertex_location": "europe-north1",
             "temperature": 0.7,
@@ -291,7 +290,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
             model_name="gemini/gemini-3.8-flash",
             thinking_budget_tokens=4096,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "gemini/gemini-3.8-flash",
             "temperature": 0.5,
             "top_p": 0.9,
@@ -319,7 +318,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
             model_name="vertex_ai/gemini-2.5-pro",
             temperature=0.7,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "vertex_ai/gemini-2.5-pro",
             "vertex_location": "europe-north1",
             "temperature": 0.7,
@@ -334,7 +333,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
     def test_vertex_adapter_prepare_kwargs_fails_fast_when_location_missing(self) -> None:
         """Negative Boundary: prepare_kwargs raises ConfigurationError when no vertex_location is configured."""
         adapter = VertexAdapter()
-        call_kwargs: dict[str, Any] = {"model": "vertex_ai/gemini-2.5-pro"}
+        call_kwargs: dict[str, JsonValue] = {"model": "vertex_ai/gemini-2.5-pro"}
         with pytest.raises(ConfigurationError) as exc_info:
             adapter.prepare_kwargs(call_kwargs)
 

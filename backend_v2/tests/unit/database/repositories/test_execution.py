@@ -2,10 +2,10 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
@@ -339,7 +339,7 @@ async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_dri
 
 @pytest.mark.asyncio
 async def test_get_all_executions_handles_offloaded_null_frozen_context(
-    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, Any]
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, JsonValue]
 ) -> None:
     """Regression: get_all_executions must successfully parse records with offloaded (null) frozen_context."""
     offloaded_doc = dict(valid_execution_doc)
@@ -355,7 +355,7 @@ async def test_get_all_executions_handles_offloaded_null_frozen_context(
 
 @pytest.mark.asyncio
 async def test_get_execution_missing_offload_blob_data_corruption(
-    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, Any]
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, JsonValue]
 ) -> None:
     """Regression: Missing offloaded blob file on disk raises AppException with DATA_CORRUPTION code."""
     doc = dict(valid_execution_doc)

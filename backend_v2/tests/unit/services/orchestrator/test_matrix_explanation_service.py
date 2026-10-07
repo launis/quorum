@@ -7,6 +7,7 @@ and Ranked Round-Robin quote and unmet criteria curation.
 from typing import Any
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
@@ -75,8 +76,8 @@ def _to_status(val: Any) -> ExecutionStatus:
 def _make_step_dtos(
     block_id: str,
     normalized_score: float,
-    evaluated_atoms: dict[str, Any],
-    results: list[dict[str, Any]] | None = None,
+    evaluated_atoms: dict[str, JsonValue],
+    results: list[dict[str, JsonValue]] | None = None,
     level_breakdown: dict[str, LevelStatsDTO] | None = None,
     step_id: str = "step1",
 ) -> list[StepOutputDTO]:
@@ -86,7 +87,7 @@ def _make_step_dtos(
         atom_dtos: list[AtomResultDTO] = []
         for r in results:
             if r is not None and type(r) is dict and "tda_id" in r:
-                atom_data: dict[str, Any] = {
+                atom_data: dict[str, JsonValue] = {
                     "tda_id": r["tda_id"],
                     "status": _to_status(r["status"]),
                 }

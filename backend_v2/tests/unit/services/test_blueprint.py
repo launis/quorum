@@ -30,7 +30,7 @@ def fix_mock_dict(d: Any) -> Any:
     if isinstance(d, list):
         return [fix_mock_dict(item) for item in d]
     if isinstance(d, OutputProfile):
-        updates: dict[str, Any] = {}
+        updates = {}
         if d.matrix_visible_columns is None:
             updates["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
         elif "row_explanation" in d.matrix_visible_columns and len(d.matrix_visible_columns) == 5:
@@ -1911,7 +1911,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         scales=[valid_scale_0, valid_scale_100],
     )
 
-    blocks_by_id: dict[str, Any] = {
+    blocks_by_id: dict[str, MatrixPromptBlock] = {
         "matrix_logic1234": base_matrix,
     }
 

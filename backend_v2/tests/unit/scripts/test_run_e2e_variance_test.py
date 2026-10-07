@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from pydantic import JsonValue
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import ExpectedInput
@@ -660,7 +661,7 @@ class TestModelRegistryComparison:
         """Verify CLI correctly parses --model-registry and --compare-registries and forwards to runner."""
         from scripts import run_e2e_variance_test
 
-        recorded_kwargs: dict[str, Any] = {}
+        recorded_kwargs: dict[str, JsonValue] = {}
 
         def mock_runner(**kwargs: Any) -> list[str]:
             recorded_kwargs.update(kwargs)
@@ -693,7 +694,7 @@ class TestNoNoiseIngressInvariance:
 
         load_calls = 0
 
-        def mock_load_inputs(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        def mock_load_inputs(*args: Any, **kwargs: Any) -> dict[str, JsonValue]:
             nonlocal load_calls
             load_calls += 1
             return {"chat_log": "Hello test prompt", "product_text": "Sample text"}

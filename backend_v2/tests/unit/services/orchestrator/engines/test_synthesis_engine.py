@@ -1,11 +1,10 @@
 """Unit tests for SynthesisEngine."""
 
 import asyncio
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
@@ -31,7 +30,7 @@ def make_atom(
     quote: str = "Evidence quote",
     claim: str = "Claim text",
     reasoning: str = "Reasoning step",
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Helper to construct a valid DraftExtractedAtom dictionary."""
     return {
         "draft_id": draft_id,

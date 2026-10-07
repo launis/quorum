@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Literal, overload
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -670,7 +670,7 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
         payload={"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}},
     )
 
-    eval_record: dict[str, Any] = {
+    eval_record: dict[str, JsonValue] = {
         "tda_id": atom_id,
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Strong evidence found.",
@@ -1123,7 +1123,7 @@ def test_parse_matrices_custom_scale_none_raw_score() -> None:
     )
     pb = get_dummy_pb()
 
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "raw_score": None,
         "normalized_score": None,
         "evaluated_atoms": {},

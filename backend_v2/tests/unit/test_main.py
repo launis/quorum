@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -248,7 +248,7 @@ async def test_path_normalization_middleware_collapses_double_slashes() -> None:
     """Test PathNormalizationMiddleware collapses redundant slashes in HTTP paths."""
     from backend_v2.main import PathNormalizationMiddleware
 
-    called_scope: dict[str, Any] = {}
+    called_scope: dict[str, JsonValue] = {}
 
     async def mock_app(scope: Any, receive: Any, send: Any) -> None:
         called_scope.update(scope)
@@ -256,7 +256,7 @@ async def test_path_normalization_middleware_collapses_double_slashes() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "http", "path": "/api/v2//reports/rep_123///pdf"}
 
-    async def mock_receive() -> dict[str, Any]:
+    async def mock_receive() -> dict[str, JsonValue]:
         return {}
 
     async def mock_send(message: Any) -> None:
@@ -281,7 +281,7 @@ async def test_path_normalization_middleware_ignores_non_http() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "websocket", "path": "//ws"}
 
-    async def mock_receive() -> dict[str, Any]:
+    async def mock_receive() -> dict[str, JsonValue]:
         return {}
 
     async def mock_send(message: Any) -> None:

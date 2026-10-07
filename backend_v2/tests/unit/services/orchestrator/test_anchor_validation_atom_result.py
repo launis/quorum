@@ -1,5 +1,3 @@
-from typing import Any
-
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import ExecutionStatus
@@ -53,21 +51,19 @@ def test_process_atom_evaluation_with_atom_result_dto() -> None:
 
 
 def test_process_atom_evaluation_contextual_override_clears_quote() -> None:
-    atom_dict: dict[str, Any] = {
-        "tda_id": "tda_123",
-        "matrix_id": "mat_1",
-        "status": ExecutionStatus.PASSED,
-        "extracted_data": None,
-        "source_quote": None,
-        "contextual_override": True,
-        "evaluation_reasoning": "override active",
-        "error_details": None,
-        "extensions": {},
-        "depends_on_tda_ids": [],
-        "short_circuit_reason_tda_ids": [],
-    }
-
-    atom = AtomResultDTO.model_validate(atom_dict)
+    atom = AtomResultDTO(
+        tda_id="tda_123",
+        matrix_id="mat_1",
+        status=ExecutionStatus.PASSED,
+        extracted_data=None,
+        source_quote=None,
+        contextual_override=True,
+        evaluation_reasoning="override active",
+        error_details=None,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
     assert atom.source_quote is None
 
     result = AnchorValidationService.process_atom_evaluation(

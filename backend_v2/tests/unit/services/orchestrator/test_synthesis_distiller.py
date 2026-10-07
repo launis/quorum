@@ -4,10 +4,10 @@ Epic 93 Phase 2, Milestone 1.7: Tests for metadata stripping and matrices_to_exp
 """
 
 import json
-from typing import Any
 from unittest.mock import patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
@@ -16,7 +16,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     """Test that _compress_synthesis_payload removes log-heavy keys but preserves lite evaluations."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "normalized_score": 75.0,
         "level_breakdown": {"1": {"hits": 2, "total": 2}, "3": {"hits": 1, "total": 1}},
         "shuffled_atoms": ["atom1", "atom2", "atom3"],
@@ -51,7 +51,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
         }
         for i in range(50)
     ]
-    payload: dict[str, Any] = {"results": evals}
+    payload: dict[str, JsonValue] = {"results": evals}
 
     with patch(
         "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
@@ -82,7 +82,7 @@ def test_compress_synthesis_payload_handles_string_input() -> None:
 
 def test_compress_synthesis_payload_strips_null_quotes() -> None:
     """PROMISE: Verify that _compress_synthesis_payload fails fast if all quotes are stripped."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "results": [
             {
                 "atom_id": "a1",
@@ -106,7 +106,7 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
 
 def test_compress_synthesis_payload_compresses_anchors() -> None:
     """Verify that _compress_synthesis_payload handles nested structures recursively."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "localized_anchors_found": {"doc1": True, "doc2": False},
         "post_quote_anchor": "should remain",
         "nested": {

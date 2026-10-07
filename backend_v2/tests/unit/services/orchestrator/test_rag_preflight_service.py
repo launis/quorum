@@ -17,6 +17,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
@@ -217,15 +218,17 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
 
         async def fake_phase_0(
             client: Any, text: str, progress_callback: Callable[[int, int], Awaitable[None]] | None = None
-        ) -> tuple[dict[str, Any], TokenUsage]:
+        ) -> tuple[GlobalOntologyMap, TokenUsage]:
             if progress_callback:
                 await progress_callback(50, 100)
-            return {"ontology": "valid"}, TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60)
+            return GlobalOntologyMap(entities=[], macro_rules=[]), TokenUsage(
+                prompt_tokens=50, completion_tokens=10, total_tokens=60
+            )
 
         async def fake_phase_1(
             client: Any,
             text: str,
-            ontology: dict[str, Any],
+            ontology: GlobalOntologyMap,
             progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         ) -> tuple[DraftAtomList, TokenUsage]:
             if progress_callback:

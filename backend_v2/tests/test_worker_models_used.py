@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.workflow import Workflow
@@ -26,7 +26,7 @@ async def test_worker_preserves_models_used() -> None:
 
     workflow_id = "wor_a1b2c3d4e5f678901234"
     execution_id = "exe_a1b2c3d4e5f678901234"
-    inputs: dict[str, Any] = {}
+    inputs: dict[str, JsonValue] = {}
 
     # Seed typed Workflow
     mock_workflow = Workflow(

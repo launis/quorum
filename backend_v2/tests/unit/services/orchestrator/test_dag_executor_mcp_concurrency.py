@@ -1,6 +1,7 @@
 """Unit tests for DAGExecutor parallel execution, atomic MCP audit deduplication, and schema accumulation."""
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,8 +18,22 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
+@dataclass(frozen=True)
+class MockDependenciesContainer:
+    exec_repo: InMemoryUnifiedWorkflowRepository
+    workflow_repo: InMemoryUnifiedWorkflowRepository
+    comp_repo: InMemoryUnifiedWorkflowRepository
+    prompt_block_repo: InMemoryUnifiedWorkflowRepository
+    output_profile_repo: InMemoryUnifiedWorkflowRepository
+    identity_repo: InMemoryUnifiedWorkflowRepository
+    audit_repo: InMemoryUnifiedWorkflowRepository
+    system_repo: InMemoryUnifiedWorkflowRepository
+    prompt_compiler: MagicMock
+    rag_preflight: AsyncMock
+
+
 @pytest.fixture
-def mock_repos() -> dict[str, Any]:
+def mock_repos() -> MockDependenciesContainer:
     repo = InMemoryUnifiedWorkflowRepository()
     for bp_id in [
         "bp_aaaaaaaaaaaaaaaa",
@@ -61,34 +76,34 @@ def mock_repos() -> dict[str, Any]:
             ),
         )
 
-    return {
-        "exec_repo": repo,
-        "workflow_repo": repo,
-        "comp_repo": repo,
-        "prompt_block_repo": repo,
-        "output_profile_repo": repo,
-        "identity_repo": repo,
-        "audit_repo": repo,
-        "system_repo": repo,
-        "prompt_compiler": MagicMock(),
-        "rag_preflight": AsyncMock(),
-    }
+    return MockDependenciesContainer(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+        prompt_compiler=MagicMock(),
+        rag_preflight=AsyncMock(),
+    )
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: dict[str, Any]) -> None:
+async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDependenciesContainer) -> None:
     """Verify that concurrent steps emitting MCPAuditTrace with overlapping IDs are atomically deduplicated."""
     executor = DAGExecutor(
-        exec_repo=mock_repos["exec_repo"],
-        workflow_repo=mock_repos["workflow_repo"],
-        comp_repo=mock_repos["comp_repo"],
-        prompt_block_repo=mock_repos["prompt_block_repo"],
-        output_profile_repo=mock_repos["output_profile_repo"],
-        identity_repo=mock_repos["identity_repo"],
-        audit_repo=mock_repos["audit_repo"],
-        system_repo=mock_repos["system_repo"],
-        prompt_compiler=mock_repos["prompt_compiler"],
-        rag_preflight=mock_repos["rag_preflight"],
+        exec_repo=mock_repos.exec_repo,
+        workflow_repo=mock_repos.workflow_repo,
+        comp_repo=mock_repos.comp_repo,
+        prompt_block_repo=mock_repos.prompt_block_repo,
+        output_profile_repo=mock_repos.output_profile_repo,
+        identity_repo=mock_repos.identity_repo,
+        audit_repo=mock_repos.audit_repo,
+        system_repo=mock_repos.system_repo,
+        prompt_compiler=mock_repos.prompt_compiler,
+        rag_preflight=mock_repos.rag_preflight,
     )
 
     # 3 parallel steps without dependencies
@@ -182,19 +197,19 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: dict[str, 
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_generated_schemas_accumulation(mock_repos: dict[str, Any]) -> None:
+async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDependenciesContainer) -> None:
     """Verify that concurrent steps emitting generated_schema in metadata are accumulated in frozen_context."""
     executor = DAGExecutor(
-        exec_repo=mock_repos["exec_repo"],
-        workflow_repo=mock_repos["workflow_repo"],
-        comp_repo=mock_repos["comp_repo"],
-        prompt_block_repo=mock_repos["prompt_block_repo"],
-        output_profile_repo=mock_repos["output_profile_repo"],
-        identity_repo=mock_repos["identity_repo"],
-        audit_repo=mock_repos["audit_repo"],
-        system_repo=mock_repos["system_repo"],
-        prompt_compiler=mock_repos["prompt_compiler"],
-        rag_preflight=mock_repos["rag_preflight"],
+        exec_repo=mock_repos.exec_repo,
+        workflow_repo=mock_repos.workflow_repo,
+        comp_repo=mock_repos.comp_repo,
+        prompt_block_repo=mock_repos.prompt_block_repo,
+        output_profile_repo=mock_repos.output_profile_repo,
+        identity_repo=mock_repos.identity_repo,
+        audit_repo=mock_repos.audit_repo,
+        system_repo=mock_repos.system_repo,
+        prompt_compiler=mock_repos.prompt_compiler,
+        rag_preflight=mock_repos.rag_preflight,
     )
 
     steps = [

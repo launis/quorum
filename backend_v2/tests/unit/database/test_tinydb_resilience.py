@@ -3,10 +3,10 @@
 import json
 import os
 from pathlib import Path
-from typing import Any
 from unittest.mock import patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.database.wrapper import (
     AtomicJSONStorage,
@@ -33,7 +33,7 @@ def test_atomic_json_storage_write_and_read_roundtrip(tmp_path: Path) -> None:
     db_file = tmp_path / "test_roundtrip.json"
     storage = AtomicJSONStorage(str(db_file), indent=2)
 
-    payload: dict[str, dict[str, Any]] = {
+    payload: dict[str, JsonValue] = {
         "users": {
             "usr_1": {"name": "Alice", "role": "admin"},
             "usr_2": {"name": "Bob", "role": "member"},
@@ -57,7 +57,7 @@ def test_atomic_json_storage_retries_on_permission_error_and_succeeds(tmp_path: 
     db_file = tmp_path / "test_retry.json"
     storage = AtomicJSONStorage(str(db_file))
 
-    payload: dict[str, dict[str, Any]] = {"table": {"item": {"val": 123}}}
+    payload: dict[str, JsonValue] = {"table": {"item": {"val": 123}}}
 
     attempts = 0
     orig_replace = os.replace
@@ -84,7 +84,7 @@ def test_atomic_json_storage_raises_when_retries_exhausted_and_cleans_tmp(tmp_pa
     db_file = tmp_path / "test_exhausted.json"
     storage = AtomicJSONStorage(str(db_file))
 
-    initial_payload: dict[str, dict[str, Any]] = {"table": {"k": {"v": "initial"}}}
+    initial_payload: dict[str, JsonValue] = {"table": {"k": {"v": "initial"}}}
     storage.write(initial_payload)
 
     def failing_replace(src: str, dst: str) -> None:

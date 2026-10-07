@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -19,7 +20,7 @@ class DummyTestTool(BaseTool):
     def __init__(self, tool_id: str, declaration: MCPToolDeclarationDTO) -> None:
         self._tool_id = tool_id
         self._declaration = declaration
-        self.last_kwargs: dict[str, Any] = {}
+        self.last_kwargs: dict[str, JsonValue] = {}
 
     @property
     def tool_id(self) -> str:
@@ -29,7 +30,7 @@ class DummyTestTool(BaseTool):
     def declaration(self) -> MCPToolDeclarationDTO:
         return self._declaration
 
-    async def execute(self, **kwargs: Any) -> MCPAuditTrace:
+    async def execute(self, **kwargs: JsonValue) -> MCPAuditTrace:
         self.last_kwargs = kwargs
         query_val = "default_query"
         if "query" in kwargs:

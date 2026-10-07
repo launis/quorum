@@ -8,6 +8,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.step import StepRule
@@ -98,7 +99,7 @@ async def test_tda_engine_execute_success(
 
     mock_atomizer_instance.execute_phase_0.side_effect = mock_execute_phase_0
 
-    async def mock_execute_graph(*args: object, **kwargs: object) -> tuple[dict[str, object], TokenUsage]:
+    async def mock_execute_graph(*args: object, **kwargs: object) -> tuple[dict[str, JsonValue], TokenUsage]:
         progress_cb = kwargs["progress_callback"] if "progress_callback" in kwargs else None
         if callable(progress_cb):
             await progress_cb(1, 1)

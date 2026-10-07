@@ -6,9 +6,8 @@ schema validation, RFC 7807 dual-reporting, and Fail-Fast error boundaries.
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -29,7 +28,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
-def _build_test_matrix_block(pb_id: str, scales: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def _build_test_matrix_block(pb_id: str, scales: list[dict[str, JsonValue]] | None = None) -> dict[str, JsonValue]:
     """Construct a valid MatrixPromptBlock dictionary."""
     if scales is None:
         scales = [
@@ -48,7 +47,7 @@ def _build_test_matrix_block(pb_id: str, scales: list[dict[str, Any]] | None = N
     }
 
 
-def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> dict[str, Any]:
+def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> dict[str, JsonValue]:
     """Construct a valid Step dictionary."""
     return {
         "id": step_id,
@@ -61,8 +60,8 @@ def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> dict[str, A
 
 
 def _build_repo(
-    step: Step | dict[str, Any] | None = None,
-    prompt_block: MatrixPromptBlock | dict[str, Any] | None = None,
+    step: Step | dict[str, JsonValue] | None = None,
+    prompt_block: MatrixPromptBlock | dict[str, JsonValue] | None = None,
 ) -> InMemoryUnifiedWorkflowRepository:
     """Build a stateful in-memory repository seeded with test fixtures."""
     repo = InMemoryUnifiedWorkflowRepository()

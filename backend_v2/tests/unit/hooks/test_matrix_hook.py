@@ -49,6 +49,7 @@ class MatrixSetupDTO:
     deps: HookDependencies
 
     def __getitem__(self, key: str) -> Any:
+        """Emulate dictionary access for test compatibility."""
         match key:
             case "pb_id":
                 return self.pb_id

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO as _FlatExecutionRecordDTO
 from backend_v2.models.dtos.render import RenderExecutionResultDTO as _RenderExecutionResultDTO
@@ -121,7 +122,7 @@ def block_live_network_calls(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(scope="session")
-def seed_data() -> dict[str, Any]:
+def seed_data() -> dict[str, JsonValue]:
     """Loads the authentic SSOT seed_data.json into memory once for all tests."""
     seed_path = Path(__file__).parent.parent / "seed" / "seed_data.json"
     with open(seed_path, encoding="utf-8") as f:

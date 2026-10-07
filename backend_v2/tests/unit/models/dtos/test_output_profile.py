@@ -1,7 +1,5 @@
-from typing import Any
-
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
@@ -12,7 +10,7 @@ from backend_v2.models.dtos.output_profile import (
 from backend_v2.models.dtos.studio import WorkflowUpdateDTO
 from backend_v2.models.enums import DisplayScale, SourcesDisplayMode, TargetBlockType, XaiExtensionType
 
-_VALID_CREATE_PAYLOAD: dict[str, Any] = {
+_VALID_CREATE_PAYLOAD: dict[str, JsonValue] = {
     "slug": "my-profile",
     "workflow_id": "wf_123",
     "name": {"translations": {"en": "Name", "fi": "Name"}},

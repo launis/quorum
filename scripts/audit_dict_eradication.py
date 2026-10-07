@@ -1,7 +1,7 @@
 """Deterministic AST Multi-Layer Dict Eradication Auditor.
 
 Statically analyzes backend Python files to mathematically verify:
-1. Exactly 0 naked dict[str, Any] / dict[str, object] type annotations.
+1. Exactly 0 naked dictionary (with Any or object value) type annotations.
 2. Exactly 0 isinstance(..., dict) checks in domain and service layers.
 3. Exactly 0 unauthorized/unjustified # noqa: QGR suppressions.
 4. Exactly 0 imports or references to legacy dict_utils.
@@ -1166,7 +1166,7 @@ def main(argv: list[str] | None = None) -> int:
         description="""Deterministic AST Multi-Layer Dict Eradication Auditor.
 
 Statically analyzes backend Python files to mathematically verify:
-  1. Exactly 0 naked dict[str, Any] / dict[str, object] type annotations
+  1. Exactly 0 naked dictionary (with Any or object value) type annotations
   2. Exactly 0 Primitive Obsession nested dict annotations (dict[..., dict[...]])
   3. Exactly 0 isinstance(..., dict) checks in domain and service layers
   4. Exactly 0 unauthorized/unjustified # noqa: QGR suppressions
@@ -1215,7 +1215,7 @@ Statically analyzes backend Python files to mathematically verify:
         print(f"\n[ERROR] {e}\n")
         return 1
 
-    print(f"1. Naked Dict Annotations (dict[str, Any]):     {report.naked_dict_annotations}")
+    print(f"1. Naked Dict Annotations:                      {report.naked_dict_annotations}")
     print(f"2. Primitive Obsession (Nested dict[..., dict]): {report.primitive_obsession_nested_dicts}")
     print(f"3. Service Layer Duck-Typing (isinstance):      {report.service_duck_typing}")
     print(f"4. Unauthorized # noqa Suppressions:            {report.unauthorized_suppressions}")

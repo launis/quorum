@@ -2,11 +2,10 @@
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.tinydb_driver import TinyDBDriver
@@ -55,7 +54,7 @@ def test_tinydb_driver_apply_filter() -> None:
     mock_db = MagicMock()
     driver = TinyDBDriver(mock_db)
 
-    doc: dict[str, Any] = {"score": 50, "tags": ["alpha", "beta"], "name": "item1"}
+    doc: dict[str, JsonValue] = {"score": 50, "tags": ["alpha", "beta"], "name": "item1"}
 
     assert driver._apply_filter(doc, Filter(field="score", operator="==", value=50)) is True
     assert driver._apply_filter(doc, Filter(field="score", operator="!=", value=50)) is False

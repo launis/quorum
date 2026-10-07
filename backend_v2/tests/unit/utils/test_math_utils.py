@@ -1,5 +1,5 @@
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from backend_v2.exceptions import AppException, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
@@ -97,7 +97,7 @@ def test_resolve_dot_notation_list() -> None:
 
 
 def test_resolve_dot_notation_missing_dict_key() -> None:
-    state: dict[str, object] = {"user": {}}
+    state: dict[str, JsonValue] = {"user": {}}
     with pytest.raises(MissingInputMappingError) as exc_info:
         resolve_dot_notation(state, "user.profile.age")
     assert "Failed at 'profile': KeyError" in exc_info.value.details["reason"]

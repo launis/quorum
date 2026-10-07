@@ -5,10 +5,9 @@ ISTQB Test Partitioning: TC-ID-01 through TC-ID-08.
 """
 
 import re
-from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import StepRule
@@ -27,7 +26,7 @@ from backend_v2.models.enums import BlockDataType, PromptBlockCategory, StepType
 
 def test_workflow_create_dto_rejects_client_id() -> None:
     """TC-ID-01: WorkflowCreateDTO with extra='forbid' strictly rejects client-supplied id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "wf_client_injected_123",
         "slug": "custom-workflow",
         "name": {"translations": {"en": "Custom Workflow", "fi": "Mukautettu työnkulku"}},
@@ -38,7 +37,7 @@ def test_workflow_create_dto_rejects_client_id() -> None:
 
 def test_workflow_create_dto_accepts_valid_payload() -> None:
     """TC-ID-02: WorkflowCreateDTO accepts valid creation payload without id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "slug": "custom-workflow",
         "name": {"translations": {"en": "Custom Workflow", "fi": "Mukautettu työnkulku"}},
         "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
@@ -57,7 +56,7 @@ def test_workflow_create_dto_accepts_valid_payload() -> None:
 
 def test_step_create_dto_rejects_client_id() -> None:
     """TC-ID-03: StepCreateDTO with extra='forbid' strictly rejects client-supplied id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "step_client_injected_123",
         "slug": "custom-step",
         "name": {"translations": {"en": "Custom Step", "fi": "Mukautettu vaihe"}},
@@ -68,7 +67,7 @@ def test_step_create_dto_rejects_client_id() -> None:
 
 def test_step_create_dto_accepts_valid_payload() -> None:
     """TC-ID-04: StepCreateDTO accepts valid creation payload without id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "slug": "custom-step",
         "name": {"translations": {"en": "Custom Step", "fi": "Mukautettu vaihe"}},
         "type": StepType.LLM,
@@ -87,7 +86,7 @@ def test_step_create_dto_accepts_valid_payload() -> None:
 
 def test_prompt_block_create_dto_rejects_client_id() -> None:
     """TC-ID-05: PromptBlockCreateDTO with extra='forbid' strictly rejects client-supplied id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "blk_client_injected_123",
         "slug": "custom-block",
         "label": {"translations": {"en": "Custom Block", "fi": "Mukautettu lohko"}},
@@ -100,7 +99,7 @@ def test_prompt_block_create_dto_rejects_client_id() -> None:
 
 def test_prompt_block_create_dto_accepts_valid_payload() -> None:
     """TC-ID-06: PromptBlockCreateDTO accepts valid creation payload without id."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "slug": "custom-block",
         "label": {"translations": {"en": "Custom Block", "fi": "Mukautettu lohko"}},
         "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},

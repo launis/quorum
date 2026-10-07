@@ -1,6 +1,6 @@
 """Unit tests for OpenAICacheAdapter strict JSON schema transformations and request preparations."""
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 import pytest
 from pydantic import BaseModel, Field, JsonValue

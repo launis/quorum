@@ -291,10 +291,7 @@ class ContextBuilder:
                 if clean_path == "steps" or clean_path.startswith("steps."):
                     resolved_value = None
                 else:
-                    try:
-                        resolved_value = resolve_dot_notation(lookup_state, clean_path)
-                    except AppException:
-                        resolved_value = resolve_dot_notation(state_data, clean_path)
+                    resolved_value = resolve_dot_notation(lookup_state, clean_path)
 
                 if isinstance(resolved_value, str):
                     resolved_value = ContextBuilder.apply_spatial_slicing(resolved_value, criteria_blocks)

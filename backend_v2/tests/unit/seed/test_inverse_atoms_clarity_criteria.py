@@ -8,12 +8,12 @@ toy-domain contrastive examples and unambiguous structural criteria.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from pydantic import JsonValue
 
 from backend_v2.models.domain.matrix import TDAAssertion
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 
 
 def _load_block_assertions() -> dict[str, TDAAssertion]:
@@ -22,23 +22,20 @@ def _load_block_assertions() -> dict[str, TDAAssertion]:
     with seed_path.open("r", encoding="utf-8") as f:
         data: dict[str, JsonValue] = json.load(f)
 
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]  # type: ignore[assignment]
-    target_block: Mapping[str, JsonValue] | None = None
-    for block in prompt_blocks:
-        if block["id"] == "blk_f6e286f050c94d60":
-            target_block = block
+    prompt_blocks = data["prompt_blocks"]
+    assert type(prompt_blocks) is list
+    target_block: MatrixPromptBlock | None = None
+    for raw_block in prompt_blocks:
+        if type(raw_block) is dict and raw_block["id"] == "blk_f6e286f050c94d60":
+            target_block = MatrixPromptBlock.model_validate(raw_block, strict=False)
             break
 
     assert target_block is not None, "Target matrix block blk_f6e286f050c94d60 not found in seed_data.json"
 
     assertions_map: dict[str, TDAAssertion] = {}
-    scales: Sequence[Mapping[str, JsonValue]] = target_block["scales"]  # type: ignore[assignment]
-    for scale in scales:
-        claims: Sequence[Mapping[str, JsonValue]] = scale["claims"]  # type: ignore[assignment]
-        for claim in claims:
-            raw_assertions: Sequence[Mapping[str, JsonValue]] = claim["tda_assertions"]  # type: ignore[assignment]
-            for raw_tda in raw_assertions:
-                tda = TDAAssertion.model_validate(raw_tda)
+    for scale in target_block.scales:
+        for claim in scale.claims:
+            for tda in claim.tda_assertions:
                 assertions_map[tda.tda_id] = tda
 
     return assertions_map
