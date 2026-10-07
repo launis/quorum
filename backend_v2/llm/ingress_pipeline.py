@@ -10,7 +10,7 @@ import json
 import logging
 import re
 import types
-from typing import Annotated, Any, Union, cast, get_args, get_origin
+from typing import Annotated, Any, Union, get_args, get_origin
 
 from json_repair import repair_json
 from pydantic import BaseModel, Discriminator, JsonValue
@@ -391,14 +391,23 @@ class UniversalIngress:
         raw_stripped = raw_stripped.strip()
 
         try:
-            parsed_data = cast(dict[str, JsonValue], json.loads(raw_stripped))
+            loaded: Any = json.loads(raw_stripped)
+            if type(loaded) is dict:
+                parsed_data = loaded
+            elif type(loaded) is list:
+                parsed_data = {"data": loaded}
+            else:
+                raise ValueError(f"Expected dict or list from JSON decode, got {type(loaded)}")
         except json.JSONDecodeError as e:
             original_error = str(e)
             try:
                 repaired_obj = repair_json(raw_stripped, return_objects=True)
-                if type(repaired_obj) not in (dict, list):
+                if type(repaired_obj) is dict:
+                    parsed_data = repaired_obj
+                elif type(repaired_obj) is list:
+                    parsed_data = {"data": repaired_obj}
+                else:
                     raise ValueError(f"json_repair returned unexpected type: {type(repaired_obj)}")
-                parsed_data = cast(dict[str, JsonValue], repaired_obj)
                 logger.warning(f"[UniversalIngress] Self-healing successful for JSONDecodeError: {original_error}")
             except Exception as repair_e:
                 logger.error(
@@ -417,10 +426,5 @@ class UniversalIngress:
                         "raw_payload": raw_text,
                     },
                 ) from e
-
-        # If it's a list, wrap it in a root object if necessary, or just return it.
-        # Our schemas usually expect a dict.
-        if isinstance(parsed_data, list):
-            return {"data": parsed_data}
 
         return parsed_data

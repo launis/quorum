@@ -7,10 +7,10 @@ synthesis distiller to prevent God Code and maintain Single Responsibility.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["MatrixExplanationService", "QuoteCandidateDTO"]
 
 _ATOM_RESULT_ADAPTER: TypeAdapter[AtomResultDTO | ReducedAtomDTO] = TypeAdapter(AtomResultDTO | ReducedAtomDTO)
-_MAPPING_ADAPTER: TypeAdapter[Mapping[str, JsonValue]] = TypeAdapter(Mapping[str, JsonValue])
 
 
 class QuoteCandidateDTO(BaseModel):
@@ -177,23 +176,22 @@ class MatrixExplanationService:
                     extensions={},
                 )
             else:
-                try:
-                    mapping_payload = _MAPPING_ADAPTER.validate_python(payload)
-                    clean_payload = {k: v for k, v in mapping_payload.items() if k != "results"}
-                    lw_matrix = LightweightMatrixOutput.model_validate(clean_payload, strict=False)
-                except (ValidationError, ValueError, AttributeError, TypeError) as e:
-                    logger.error(
-                        "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        block_id,
-                        e,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
-                    )
-                    raise AppException(
-                        message=f"Invalid matrix payload for block {block_id}: {e}",
-                        status_code=422,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
+                logger.error(
+                    "[MatrixExplanationService] %s: Invalid matrix payload for block %s: expected "
+                    "LightweightMatrixOutput or TraceMatrixPayloadDTO, got %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    block_id,
+                    type(payload),
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                )
+                raise AppException(
+                    message=(
+                        f"Invalid matrix payload for block {block_id}: expected "
+                        f"LightweightMatrixOutput or TraceMatrixPayloadDTO, got {type(payload)}"
+                    ),
+                    status_code=422,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
 
             # Precompute claim labels and scale scores localized to target_locale
             tda_to_claim: dict[str, str] = {}

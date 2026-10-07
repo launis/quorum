@@ -85,15 +85,12 @@ type DomainInputValue = Annotated[
     | DLQAtomSchema
     | list[DLQAtomSchema]
     | HydratedAtomDTO
-    | dict[str, HydratedAtomDTO]
     | LightweightMatrixOutput
     | MatrixAggregationStateDTO
     | ScoringResultDTO
     | TraceScoringPayloadDTO
     | TraceMatrixPayloadDTO
     | StepTraceMetadataDTO
-    | dict[str, float]
-    | dict[str, str]
     | GuttmanAtomItemDTO
     | list[GuttmanAtomItemDTO]
     | ValidationResultDTO

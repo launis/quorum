@@ -20,8 +20,6 @@ __all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]
 
 logger = logging.getLogger(__name__)
 
-_MAPPING_ADAPTER: TypeAdapter[Mapping[str, DomainInputValue]] = TypeAdapter(Mapping[str, DomainInputValue])
-
 
 class ContextTargetFilterDTO(V2CoreBase):
     """Authoritative typed container for resolved context target filters."""
@@ -226,8 +224,9 @@ class SourceDocumentPacker:
                     dict_payload = {**inputs_payload.raw_inputs, **inputs_payload.dynamic_inputs}
                 else:
                     try:
-                        dict_payload = _MAPPING_ADAPTER.validate_python(inputs_payload)
-                    except ValidationError as err:
+                        inputs_dto = ExecutionInputsDTO.model_validate({"raw_inputs": inputs_payload})
+                        dict_payload = {**inputs_dto.raw_inputs, **inputs_dto.dynamic_inputs}
+                    except (ValidationError, ValueError, TypeError) as err:
                         logger.error(
                             "[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload)
                         )

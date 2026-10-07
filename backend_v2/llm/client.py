@@ -20,7 +20,6 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
@@ -83,7 +82,7 @@ class LLMClient:
     def _build_structured_schema(
         self,
         response_model: type[BaseModel],
-        final_messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]],
+        final_messages: Sequence[LLMMessageDTO],
         validation_context: Mapping[str, JsonValue] | None,
     ) -> Any:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints.
@@ -99,7 +98,7 @@ class LLMClient:
         Raises:
             AppException: If preparing structured output fails (ErrorCodes.CONFIGURATION_ERROR).
         """
-        adapter_schema: Any = {"type": "json_schema"}
+        adapter_schema: dict[str, JsonValue] | type[BaseModel] = {"type": "json_schema"}
         if self._config and self._config.provider:
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
@@ -356,7 +355,7 @@ class LLMClient:
 
     async def run_structured_task[T: BaseModel](
         self,
-        messages: Sequence[LLMMessageDTO | ChatMessageDTO | Mapping[str, JsonValue]] | CompiledPrompt,
+        messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt,
         response_model: type[T],
         model: str | None = None,
         temperature: float | None = None,
@@ -725,9 +724,9 @@ class LLMClient:
 
     async def run_chat(
         self,
-        messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]] | CompiledPrompt,
+        messages: Sequence[LLMMessageDTO] | CompiledPrompt,
         model: str | None = None,
-        tools: Sequence[MCPToolDeclarationDTO | Mapping[str, JsonValue]] | None = None,
+        tools: Sequence[MCPToolDeclarationDTO] | None = None,
         tool_choice: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
