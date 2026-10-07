@@ -11,7 +11,7 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 import asyncio
 import json
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from pydantic import BaseModel, JsonValue
@@ -134,13 +134,13 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
 async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
     executor: Any,
-    messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]],
+    messages: Sequence[LLMMessageDTO],
     response_model: type[T],
     allowed_tools: list[str],
     step_name: str,
     mock_identity: str | None = None,
     target_language: str = "en",
-    synthesis_instructions: MCPSynthesisInstructionsDTO | Mapping[str, JsonValue] | None = None,
+    synthesis_instructions: MCPSynthesisInstructionsDTO | None = None,
     validation_context: dict[str, JsonValue] | None = None,
     source_context: str = "",
     alias_engine: AliasEngine | None = None,
@@ -170,6 +170,10 @@ async def execute_tool_loop[T: BaseModel](
             completion fails critically (ErrorCodes.FETCH_FAILED,
             ErrorCodes.VALIDATION_FAILED, or ErrorCodes.WORKFLOW_EXECUTION_FAILED).
     """
+    typed_messages: list[LLMMessageDTO] = [
+        m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
+    ]
+
     audit_traces: list[MCPAuditTrace] = []
     tool_declarations = DISPATCHER.get_declarations(allowed_tools)
 
@@ -177,7 +181,7 @@ async def execute_tool_loop[T: BaseModel](
         # No valid tools — direct passthrough (zero overhead)
         result, usage = await executor.execute_structured_task(
             client=llm_client,
-            messages=messages,
+            messages=typed_messages,
             response_model=response_model,
             mock_identity=mock_identity,
             validation_context=validation_context,
@@ -202,7 +206,7 @@ async def execute_tool_loop[T: BaseModel](
         )
         result, usage = await executor.execute_structured_task(
             client=llm_client,
-            messages=messages,
+            messages=typed_messages,
             response_model=response_model,
             mock_identity=mock_identity,
             validation_context=validation_context,
@@ -231,21 +235,10 @@ async def execute_tool_loop[T: BaseModel](
         extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
-        for msg in messages:
-            if isinstance(msg, LLMMessageDTO):
-                if msg.role == "user":
-                    if isinstance(msg.content, str):
-                        content_val = msg.content
-                    else:
-                        content_val = json.dumps(msg.content)
-                    extraction_messages.append({"role": "user", "content": content_val})
-            elif not isinstance(msg, (str, int, float, bool, list)) and msg is not None:
-                if "role" in msg and msg["role"] == "user":
-                    role_val = str(msg["role"])
-                    content_val = ""
-                    if "content" in msg:
-                        content_val = str(msg["content"])
-                    extraction_messages.append({"role": role_val, "content": content_val})
+        for msg in typed_messages:
+            if msg.role == "user":
+                content_val = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
+                extraction_messages.append({"role": "user", "content": content_val})
 
         # Internal Utility rule: lazy load LLMClient
         from backend_v2.llm.client import LLMClient
@@ -442,18 +435,7 @@ async def execute_tool_loop[T: BaseModel](
 
     # --- PHASE 2: Completion with evidence injected ---
     # Build final messages: original system/user + any evidence injected
-    final_messages = []
-    for m in messages:
-        if isinstance(m, LLMMessageDTO):
-            final_messages.append({"role": m.role, "content": m.content})
-        elif not isinstance(m, (str, int, float, bool, list)) and m is not None:
-            role_val = "user"
-            if "role" in m:
-                role_val = str(m["role"])
-            content_val = ""
-            if "content" in m:
-                content_val = str(m["content"])
-            final_messages.append({"role": role_val, "content": content_val})
+    final_messages = [{"role": m.role, "content": m.content} for m in typed_messages]
 
     if audit_traces:
         evidence_blocks = []
@@ -499,7 +481,11 @@ async def execute_tool_loop[T: BaseModel](
     # EPIC 13: Dynamically inject runtime parameters from OutputProfile via hook extraction
     if synthesis_instructions:
         try:
-            instructions = MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
+            instructions = (
+                synthesis_instructions
+                if isinstance(synthesis_instructions, MCPSynthesisInstructionsDTO)
+                else MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
+            )
         except Exception as e:
             err_msg = "Failed to validate synthesis_instructions."
             logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, err_msg, exc_info=True)

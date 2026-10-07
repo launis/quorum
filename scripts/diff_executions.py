@@ -57,6 +57,7 @@ __all__ = [
     "PhysicalModelBindingDTO",
     "PromptProvenanceDTO",
     "RootCauseBreakdownDTO",
+    "RunFileHashesDTO",
     "ScaleBreakdownDTO",
     "TdaAtomDefinitionDTO",
     "TraceTelemetryDTO",
@@ -160,12 +161,20 @@ class FileInspectionsByRunDTO(BaseModel):
         self.by_run[key] = value
 
 
+class RunFileHashesDTO(BaseModel):
+    """Immutable hash mapping for files within a single execution run."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    hashes: dict[str, str] = Field(default_factory=dict)
+
+
 class IsolationAuditDTO(BaseModel):
     """Immutable cross-run input document cache isolation audit container."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    input_hashes_by_run: Mapping[str, Mapping[str, str]]
+    input_hashes_by_run: Mapping[str, RunFileHashesDTO]
     shared_identical_files: list[str]
     is_fully_isolated: bool
     disable_vertex_cache_active: bool
@@ -597,7 +606,7 @@ def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
     )
 
 
-def get_all_evals(path: str | Path) -> dict[str, Mapping[str, JsonValue]]:
+def get_all_evals(path: str | Path):
     """Extract all evaluated atom dictionaries from an execution trace file.
 
     Args:
@@ -609,7 +618,7 @@ def get_all_evals(path: str | Path) -> dict[str, Mapping[str, JsonValue]]:
     file_path = Path(path)
     with file_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-    all_evals: dict[str, Mapping[str, JsonValue]] = {}
+    all_evals = {}
     for step in data:
         if "content" in step and isinstance(step["content"], dict):
             evals = step["content"].get("evaluations")
@@ -1065,7 +1074,7 @@ def extract_block_normalized_scores(trace_path: Path) -> dict[str, float]:
     return scores
 
 
-def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, Mapping[str, JsonValue]]:
+def extract_block_scoring_diagnostics(trace_path: Path):
     """Extract block-level raw scores, normalized scores, and waterfall diagnostics from trace.
 
     Args:
@@ -1074,7 +1083,7 @@ def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, Mapping[str
     Returns:
         Mapping of block ID to dict with normalized_score, raw_score, level_breakdown, waterfall_breakpoint.
     """
-    diagnostics: dict[str, Mapping[str, JsonValue]] = {}
+    diagnostics = {}
     if not trace_path.exists():
         return diagnostics
     try:
@@ -1287,7 +1296,7 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
         )
 
     sys_configs = seed.get("system_config", [])
-    configs_list: list[Mapping[str, JsonValue]] = []
+    configs_list = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -1418,8 +1427,8 @@ def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: 
 
 
 def extract_evidence_distribution(
-    evals: Mapping[str, Mapping[str, JsonValue]],
-    atom_details: Mapping[str, Mapping[str, JsonValue]] | None = None,
+    evals,
+    atom_details=None,
     enable_contextual_overrides: bool = True,
     run_name: str = "",
 ) -> EvidenceDistributionDTO:
@@ -1531,7 +1540,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     base_executions_dir = Path("data/files/executions")
     loaded_runs: list[str] = []
     loaded_paths: list[Path] = []
-    evals_list: list[Mapping[str, Mapping[str, JsonValue]]] = []
+    evals_list = []
 
     if execution_ids:
         for exe_id in execution_ids:
@@ -1592,7 +1601,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             seed = json.load(f)
 
     atom_rules: dict[str, str] = {}
-    atom_details: dict[str, Mapping[str, JsonValue]] = {}
+    atom_details = {}
     atom_to_block: dict[str, str] = {}
     atom_definitions: dict[str, TdaAtomDefinitionDTO] = {}
 
@@ -1888,7 +1897,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             print(f"Warning: db_v2.json read error: {e}")
 
     # Isolation Audit & SHA-256 Hashes
-    input_hashes_by_run: dict[str, Mapping[str, str]] = {}
+    input_hashes_by_run = {}
     for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
         in_dir = p.parent / "inputs"
         r_hashes: dict[str, str] = {}
@@ -1923,7 +1932,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 pass
 
     isolation_audit = IsolationAuditDTO(
-        input_hashes_by_run=input_hashes_by_run,
+        input_hashes_by_run={r: RunFileHashesDTO(hashes=h) for r, h in input_hashes_by_run.items()},
         shared_identical_files=shared_identical_files,
         is_fully_isolated=len(shared_identical_files) == 0,
         disable_vertex_cache_active=disable_vertex_cache_active,
@@ -2109,7 +2118,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     run_norm_corpuses: list[str] = []
     run_html_norm_corpuses: list[str] = []
     run_md_norm_corpuses: list[str] = []
-    grounding_results_by_run: list[Mapping[str, JsonValue]] = []
+    grounding_results_by_run = []
     for idx, (r_name, p) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
         run_in_dir = p.parent / "inputs"
         corpus = ""
@@ -2227,7 +2236,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     if frozen_data and isinstance(frozen_data, dict):
         hints = frozen_data.get("ui_hints_snapshot", {})
         if hints:
-            block_stats_by_run: list[Mapping[str, BlockOutcomeCountsDTO]] = []
+            block_stats_by_run = []
             for evals in evals_list:
                 block_stats: dict[str, BlockOutcomeCountsDTO] = {}
                 for atom_id, ev in evals.items():
@@ -2278,7 +2287,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 frozen_context_info = "\n" + "\n".join(frozen_lines)
 
     # Per-run cost and token accumulator for FinOps section
-    run_finops: list[Mapping[str, JsonValue]] = []
+    run_finops = []
 
     with report_path.open("w", encoding="utf-8") as f:
         f.write("# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n")

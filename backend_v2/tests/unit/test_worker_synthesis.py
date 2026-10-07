@@ -11,6 +11,7 @@ from pydantic import JsonValue
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
@@ -33,14 +34,14 @@ from backend_v2.workers import VarianceExplanationResult, generate_profile_synth
 
 async def _get_profile_syntheses(
     repo: InMemoryUnifiedWorkflowRepository, exec_id: str = "exec_1234567812345678"
-) -> dict[str, JsonValue] | None:
+) -> dict[str, RenderedSynthesisCache] | None:
     rec = await repo.get_execution(exec_id)
     if rec and rec.profile_syntheses:
-        return {k: v.model_dump(mode="json") for k, v in rec.profile_syntheses.items()}
+        return rec.profile_syntheses
     return None
 
 
-def _get_base_model_registry_dict() -> dict[str, JsonValue]:
+def _get_base_model_registry() -> SystemConfigModelRegistry:
     profile = {
         "provider": "mock_llm_99",
         "model_name": "gemini-2.5-pro",
@@ -50,19 +51,21 @@ def _get_base_model_registry_dict() -> dict[str, JsonValue]:
         "tpm_limit": 100000,
         "rpm_limit": 1000,
     }
-    return {
-        "id": "sys_1111222233334444",
-        "name": "Default Test Registry",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "default_provider": "vertex_ai",
-        "tier_definitions": {
-            "fast": profile,
-            "balanced": profile,
-            "deep": profile,
-            "reasoning": profile,
-        },
-    }
+    return SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_1111222233334444",
+            "name": "Default Test Registry",
+            "type": "model_registry",
+            "slug": "model_registry",
+            "default_provider": "vertex_ai",
+            "tier_definitions": {
+                "fast": profile,
+                "balanced": profile,
+                "deep": profile,
+                "reasoning": profile,
+            },
+        }
+    )
 
 
 @pytest.mark.asyncio
@@ -121,9 +124,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
         },
     )
 
-    mock_repo.set_model_registry(
-        SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()), "sys_1111222233334444"
-    )
+    mock_repo.set_model_registry(_get_base_model_registry(), "sys_1111222233334444")
 
     pb_1 = {
         "id": "pb_1111111111111111",
@@ -173,7 +174,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None, "Execution record was not updated with profile_syntheses"
-    assert type(prof_synth["prof_1111111111111111"]["section_syntheses"]) is dict
+    assert type(prof_synth["prof_1111111111111111"].section_syntheses) is dict
 
 
 async def _setup_mock_repo_for_metrics(
@@ -232,9 +233,7 @@ async def _setup_mock_repo_for_metrics(
     }
     await mock_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
 
-    mock_repo.set_model_registry(
-        SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()), "sys_1111222233334444"
-    )
+    mock_repo.set_model_registry(_get_base_model_registry(), "sys_1111222233334444")
 
     pb_synth = {
         "id": "pb_2222222222222222",
@@ -309,13 +308,13 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert "extension_metrics" in prof_synth["prof_1111111111111111"]
-    metrics = prof_synth["prof_1111111111111111"]["extension_metrics"]
-    assert metrics is not None
-    assert metrics["authenticity_score"] == 2.5
-    assert metrics["performative_phrases_count"] == 2.0
-    assert metrics["total_word_count"] == 100
-    assert metrics["jargon_density"] == 2.0
+    cache = prof_synth["prof_1111111111111111"]
+    assert cache.extension_metrics is not None
+    metrics = cache.extension_metrics
+    assert metrics.authenticity_score == 2.5
+    assert metrics.performative_phrases_count == 2.0
+    assert metrics.total_word_count == 100
+    assert metrics.jargon_density == 2.0
 
 
 @pytest.mark.asyncio
@@ -361,12 +360,12 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert "extension_metrics" in prof_synth["prof_1111111111111111"]
-    metrics = prof_synth["prof_1111111111111111"]["extension_metrics"]
-    assert metrics is not None
-    assert metrics["authenticity_score"] == 1.5
-    assert metrics["performative_phrases_count"] == 1.0
-    assert metrics["total_word_count"] == 200
+    cache = prof_synth["prof_1111111111111111"]
+    assert cache.extension_metrics is not None
+    metrics = cache.extension_metrics
+    assert metrics.authenticity_score == 1.5
+    assert metrics.performative_phrases_count == 1.0
+    assert metrics.total_word_count == 200
 
 
 @pytest.mark.asyncio
@@ -387,10 +386,7 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert (
-        "extension_metrics" not in prof_synth["prof_1111111111111111"]
-        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
-    )
+    assert prof_synth["prof_1111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -432,10 +428,7 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert (
-        "extension_metrics" not in prof_synth["prof_1111111111111111"]
-        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
-    )
+    assert prof_synth["prof_1111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -465,10 +458,7 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert (
-        "extension_metrics" not in prof_synth["prof_1111111111111111"]
-        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
-    )
+    assert prof_synth["prof_1111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -509,10 +499,7 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert (
-        "extension_metrics" not in prof_synth["prof_1111111111111111"]
-        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
-    )
+    assert prof_synth["prof_1111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -827,10 +814,12 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
+    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
     assert "executive_summary_block" in sec_synth
     assert len(sec_synth["executive_summary_block"]) == 1
-    assert sec_synth["executive_summary_block"][0]["text"] == "Executive summary narrative paragraph 1."
+    block = sec_synth["executive_summary_block"][0]
+    assert isinstance(block, ParagraphBlock)
+    assert block.text == "Executive summary narrative paragraph 1."
 
 
 @pytest.mark.asyncio
@@ -915,11 +904,15 @@ async def test_worker_synthesis_multi_section_aggregation(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
+    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
     assert "grp_c5804a9143c34cb1" in sec_synth
     assert len(sec_synth["grp_c5804a9143c34cb1"]) == 2
-    assert sec_synth["grp_c5804a9143c34cb1"][0]["text"] == "Paragraph 1 text"
-    assert sec_synth["grp_c5804a9143c34cb1"][1]["text"] == "Paragraph 2 text"
+    b1 = sec_synth["grp_c5804a9143c34cb1"][0]
+    b2 = sec_synth["grp_c5804a9143c34cb1"][1]
+    assert isinstance(b1, ParagraphBlock)
+    assert isinstance(b2, ParagraphBlock)
+    assert b1.text == "Paragraph 1 text"
+    assert b2.text == "Paragraph 2 text"
 
 
 @pytest.mark.asyncio
@@ -992,7 +985,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"]["section_syntheses"]
+    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
     assert "grp_0000000000000000" not in sec_synth
 
 
@@ -1184,10 +1177,7 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
     # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
-    assert (
-        "extension_metrics" not in prof_synth["prof_1111111111111111"]
-        or prof_synth["prof_1111111111111111"]["extension_metrics"] is None
-    )
+    assert prof_synth["prof_1111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -1237,7 +1227,7 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    cache_dict = prof_synth["prof_1111111111111111"]
-    assert cache_dict["user_role"] == RoleClassification.DRIVER.value
-    assert "blk_53f32679aa514fcb" in str(cache_dict["user_role_justification"])
-    assert "score 4.0" in str(cache_dict["user_role_justification"])
+    cache_item = prof_synth["prof_1111111111111111"]
+    assert cache_item.user_role == RoleClassification.DRIVER.value
+    assert "blk_53f32679aa514fcb" in str(cache_item.user_role_justification)
+    assert "score 4.0" in str(cache_item.user_role_justification)

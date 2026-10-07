@@ -9,16 +9,14 @@ and validated through Pydantic TDAAssertion models.
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
-from pydantic import JsonValue
 
 from backend_v2.models.domain.matrix import TDAAssertion
 
 
-def _load_seed_data() -> dict[str, JsonValue]:
+def _load_seed_data():
     """Loads and returns the raw JSON dictionary from the canonical seed_data.json file.
 
     Returns:
@@ -26,14 +24,14 @@ def _load_seed_data() -> dict[str, JsonValue]:
     """
     seed_path = Path("backend_v2/seed/seed_data.json")
     with seed_path.open("r", encoding="utf-8") as f:
-        data: dict[str, JsonValue] = json.load(f)
+        data = json.load(f)
     return data
 
 
 def test_zero_occurrences_of_case_study_institutions_across_all_blocks() -> None:
     """Asserts that specific case-study institutions do not appear in any prompt block."""
     data = _load_seed_data()
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]
+    prompt_blocks = data["prompt_blocks"]
 
     banned_institutions = ["työterveyslaitos", "tyoterveyslaitos"]
 
@@ -49,9 +47,9 @@ def test_zero_occurrences_of_case_study_institutions_across_all_blocks() -> None
 def test_role_enforcement_persona_neutrality_and_ambiguity_eradication() -> None:
     """Asserts that deterministic parser persona has zero ambiguous terms or case-study names."""
     data = _load_seed_data()
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]
+    prompt_blocks = data["prompt_blocks"]
 
-    target_block: Mapping[str, JsonValue] | None = None
+    target_block = None
     for block in prompt_blocks:
         if block["id"] == "blk_e6b638d1307641da83ed192c65c0283f":
             target_block = block
@@ -87,14 +85,14 @@ def test_role_enforcement_persona_neutrality_and_ambiguity_eradication() -> None
 def test_tda_6ecd649b48c24e68824e27e30ed8a63e_adversarial_roleplay_generalization() -> None:
     """Asserts that roleplay guard atom is generalized to ungrounded critic rather than case-study text."""
     data = _load_seed_data()
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]
+    prompt_blocks = data["prompt_blocks"]
 
     found_tda: TDAAssertion | None = None
     for block in prompt_blocks:
         if "scales" in block:
-            scales: Sequence[Mapping[str, JsonValue]] = block["scales"]
+            scales = block["scales"]
             for scale in scales:
-                claims: Sequence[Mapping[str, JsonValue]] = scale["claims"]
+                claims = scale["claims"]
                 for claim in claims:
                     for raw_tda in claim["tda_assertions"]:
                         if raw_tda["tda_id"] == "tda_6ecd649b48c24e68824e27e30ed8a63e":
@@ -128,14 +126,14 @@ def test_tda_6ecd649b48c24e68824e27e30ed8a63e_adversarial_roleplay_generalizatio
 def test_tda_ae5dd6ac930544f4abd77d3438c59ddd_cognitive_friction_generalization() -> None:
     """Asserts that cognitive friction atom is generalized and free of toy-domain database overfitting."""
     data = _load_seed_data()
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]
+    prompt_blocks = data["prompt_blocks"]
 
     found_tda: TDAAssertion | None = None
     for block in prompt_blocks:
         if "scales" in block:
-            scales: Sequence[Mapping[str, JsonValue]] = block["scales"]
+            scales = block["scales"]
             for scale in scales:
-                claims: Sequence[Mapping[str, JsonValue]] = scale["claims"]
+                claims = scale["claims"]
                 for claim in claims:
                     for raw_tda in claim["tda_assertions"]:
                         if raw_tda["tda_id"] == "tda_ae5dd6ac930544f4abd77d3438c59ddd":
@@ -181,7 +179,7 @@ def test_negative_boundary_partitions_for_overfit_detection() -> None:
 def test_tda_bloom_anti_patterns_domain_neutrality() -> None:
     """Asserts that Bloom Level 3 and 5 anti-patterns are generalized and non-overfitted."""
     data = _load_seed_data()
-    prompt_blocks: Sequence[Mapping[str, JsonValue]] = data["prompt_blocks"]
+    prompt_blocks = data["prompt_blocks"]
 
     bloom_block = next((b for b in prompt_blocks if b["id"] == "blk_f921c7c0989b47e8"), None)
     assert bloom_block is not None, "Bloom matrix block blk_f921c7c0989b47e8 not found."

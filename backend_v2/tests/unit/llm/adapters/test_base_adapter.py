@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.adapters.base_adapter import (
@@ -32,10 +32,10 @@ class ConcreteAdapter(BaseLLMAdapter):
     def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         return usage
 
-    def prepare_provider_kwargs(self, model_name: str) -> dict[str, JsonValue]:
+    def prepare_provider_kwargs(self, model_name: str):
         return {}
 
-    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, JsonValue] | type[BaseModel]:
+    def prepare_structured_output(self, response_model: type[BaseModel]):
         schema = response_model.model_json_schema()
         self._strip_unsupported_constraints(schema)
         return schema

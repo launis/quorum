@@ -6,7 +6,6 @@ DLQ tolerance, contextual overrides without emojis, and comprehensive Fail-Fast 
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
 
 import pytest
 from pydantic import JsonValue, ValidationError
@@ -48,140 +47,130 @@ class MatrixSetupDTO:
     execution_id: str
     deps: HookDependencies
 
-    def __getitem__(self, key: str) -> Any:
-        """Emulate dictionary access for test compatibility."""
-        match key:
-            case "pb_id":
-                return self.pb_id
-            case "tda_id":
-                return self.tda_id
-            case "step_id":
-                return self.step_id
-            case "workflow_id":
-                return self.workflow_id
-            case "profile_id":
-                return self.profile_id
-            case "execution_id":
-                return self.execution_id
-            case "deps":
-                return self.deps
-            case _:
-                raise KeyError(key)
+
+def _build_test_matrix_block(pb_id: str, tda_id: str) -> MatrixPromptBlock:
+    """Construct a valid MatrixPromptBlock for test fixtures."""
+    return MatrixPromptBlock.model_validate(
+        {
+            "id": pb_id,
+            "slug": "test_matrix_block",
+            "label": {"translations": {"en": "Leadership Maturity", "fi": "Johtamisen kypsyys"}},
+            "description": {"translations": {"en": "Measures leadership behavior", "fi": "Mittaa johtajuutta"}},
+            "type": "float",
+            "category_id": PromptBlockCategory.MATRIX.value,
+            "ai_description": "Assess strategic leadership capabilities.",
+            "allow_contextual_override": True,
+            "scales": [
+                {
+                    "score": 1,
+                    "ai_label": "Foundational",
+                    "claims": [
+                        {
+                            "label": {"translations": {"en": "Basic alignment", "fi": "Peruslinjaus"}},
+                            "tda_assertions": [
+                                {
+                                    "tda_id": tda_id,
+                                    "concept_description": "Demonstrates clear vision alignment.",
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "score": 2,
+                    "ai_label": "Advanced",
+                    "claims": [
+                        {
+                            "label": {"translations": {"en": "Strategic synthesis", "fi": "Strateginen synteesi"}},
+                            "tda_assertions": [
+                                {
+                                    "tda_id": "tda_99998888777766669999888877776666",
+                                    "concept_description": "Synthesizes multi-stakeholder strategy.",
+                                    "inverse_evidence": False,
+                                    "aggregation_mode": "EXISTS",
+                                }
+                            ],
+                        }
+                    ],
+                },
+            ],
+        }
+    )
 
 
-def _build_test_matrix_block(pb_id: str, tda_id: str) -> dict[str, JsonValue]:
-    """Construct a valid MatrixPromptBlock dictionary for test fixtures."""
-    return {
-        "id": pb_id,
-        "slug": "test_matrix_block",
-        "label": {"translations": {"en": "Leadership Maturity", "fi": "Johtamisen kypsyys"}},
-        "description": {"translations": {"en": "Measures leadership behavior", "fi": "Mittaa johtajuutta"}},
-        "type": "float",
-        "category_id": PromptBlockCategory.MATRIX.value,
-        "ai_description": "Assess strategic leadership capabilities.",
-        "allow_contextual_override": True,
-        "scales": [
-            {
-                "score": 1,
-                "ai_label": "Foundational",
-                "claims": [
-                    {
-                        "label": {"translations": {"en": "Basic alignment", "fi": "Peruslinjaus"}},
-                        "tda_assertions": [
-                            {
-                                "tda_id": tda_id,
-                                "concept_description": "Demonstrates clear vision alignment.",
-                                "inverse_evidence": False,
-                                "aggregation_mode": "EXISTS",
-                            }
-                        ],
-                    }
-                ],
-            },
-            {
-                "score": 2,
-                "ai_label": "Advanced",
-                "claims": [
-                    {
-                        "label": {"translations": {"en": "Strategic synthesis", "fi": "Strateginen synteesi"}},
-                        "tda_assertions": [
-                            {
-                                "tda_id": "tda_99998888777766669999888877776666",
-                                "concept_description": "Synthesizes multi-stakeholder strategy.",
-                                "inverse_evidence": False,
-                                "aggregation_mode": "EXISTS",
-                            }
-                        ],
-                    }
-                ],
-            },
-        ],
-    }
+def _build_test_step(step_id: str, block_id: str) -> Step:
+    """Construct a valid Step containing the matrix block reference."""
+    return Step.model_validate(
+        {
+            "id": step_id,
+            "slug": "strategic_matrix_step",
+            "name": {"translations": {"en": "Matrix Evaluation Step", "fi": "Matriisiarviointivaihe"}},
+            "type": "logic",
+            "hook": "matrix_scoring_hook",
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_5555666677778888",
+            "criteria_block_ids": [block_id],
+        }
+    )
 
 
-def _build_test_step(step_id: str, block_id: str) -> dict[str, JsonValue]:
-    """Construct a valid Step dictionary containing the matrix block reference."""
-    return {
-        "id": step_id,
-        "slug": "strategic_matrix_step",
-        "name": {"translations": {"en": "Matrix Evaluation Step", "fi": "Matriisiarviointivaihe"}},
-        "type": "logic",
-        "hook": "matrix_scoring_hook",
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_5555666677778888",
-        "criteria_block_ids": [block_id],
-    }
+def _build_test_workflow(workflow_id: str, profile_id: str) -> Workflow:
+    """Construct a valid Workflow."""
+    return Workflow.model_validate(
+        {
+            "id": workflow_id,
+            "slug": "executive_review",
+            "name": {"translations": {"en": "Executive Review", "fi": "Johdon arviointi"}},
+            "description": {"translations": {"en": "Executive review workflow", "fi": "Johdon työnkulku"}},
+            "status": "active",
+            "version": 1,
+            "default_profile_id": profile_id,
+            "default_strictness_level": 70,
+            "enable_contextual_overrides": True,
+            "model_registry_id": "cfg_model_registry_01",
+            "historical_context_mode": "DISABLED",
+        }
+    )
 
 
-def _build_test_workflow(workflow_id: str, profile_id: str) -> dict[str, JsonValue]:
-    """Construct a valid Workflow dictionary."""
-    return {
-        "id": workflow_id,
-        "slug": "executive_review",
-        "name": {"translations": {"en": "Executive Review", "fi": "Johdon arviointi"}},
-        "description": {"translations": {"en": "Executive review workflow", "fi": "Johdon työnkulku"}},
-        "status": "active",
-        "version": 1,
-        "default_profile_id": profile_id,
-        "default_strictness_level": 70,
-        "enable_contextual_overrides": True,
-        "model_registry_id": "cfg_model_registry_01",
-        "historical_context_mode": "DISABLED",
-    }
-
-
-def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) -> dict[str, JsonValue]:
-    """Construct a valid ExecutionRecord dictionary."""
+def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) -> ExecutionRecord:
+    """Construct a valid ExecutionRecord."""
     now = datetime.now(timezone.utc)
-    return {
-        "id": execution_id,
-        "workflow_id": workflow_id,
-        "organization_id": "org_1111222233334444",
-        "created_by": "usr_1111222233334444",
-        "output_profile_id": profile_id,
-        "status": "RUNNING",
-        "target_locale": "en",
-        "created_at": now,
-        "updated_at": now,
-    }
+    return ExecutionRecord.model_validate(
+        {
+            "id": execution_id,
+            "workflow_id": workflow_id,
+            "organization_id": "org_1111222233334444",
+            "created_by": "usr_1111222233334444",
+            "output_profile_id": profile_id,
+            "status": "RUNNING",
+            "target_locale": "en",
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
 
 
-def _build_test_output_profile(profile_id: str, workflow_id: str, block_id: str) -> dict[str, JsonValue]:
-    """Construct a valid OutputProfile dictionary."""
-    return {
-        "id": profile_id,
-        "slug": "standard_executive_profile",
-        "workflow_id": workflow_id,
-        "name": {"translations": {"en": "Standard Executive", "fi": "Vakiojohto"}},
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_1111222233334444",
-                "title": {"translations": {"en": "Leadership", "fi": "Johtajuus"}},
-                "target_blocks": [block_id],
-            }
-        ],
-        "display_scale": "original",
-    }
+def _build_test_output_profile(profile_id: str, workflow_id: str, block_id: str) -> OutputProfile:
+    """Construct a valid OutputProfile."""
+    return OutputProfile.model_validate(
+        {
+            "id": profile_id,
+            "slug": "standard_executive_profile",
+            "workflow_id": workflow_id,
+            "name": {"translations": {"en": "Standard Executive", "fi": "Vakiojohto"}},
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_1111222233334444",
+                    "title": {"translations": {"en": "Leadership", "fi": "Johtajuus"}},
+                    "target_blocks": [block_id],
+                }
+            ],
+            "display_scale": "original",
+        }
+    )
 
 
 @pytest.fixture
@@ -194,18 +183,18 @@ def matrix_setup() -> MatrixSetupDTO:
     profile_id = "prof_1111222233334444"
     execution_id = "exe_1111222233334444"
 
-    pb_dict = _build_test_matrix_block(pb_id, tda_id)
-    step_dict = _build_test_step(step_id, pb_id)
-    wf_dict = _build_test_workflow(workflow_id, profile_id)
-    exec_dict = _build_test_execution(execution_id, workflow_id, profile_id)
-    profile_dict = _build_test_output_profile(profile_id, workflow_id, pb_id)
+    pb = _build_test_matrix_block(pb_id, tda_id)
+    step = _build_test_step(step_id, pb_id)
+    wf = _build_test_workflow(workflow_id, profile_id)
+    exec_rec = _build_test_execution(execution_id, workflow_id, profile_id)
+    profile = _build_test_output_profile(profile_id, workflow_id, pb_id)
 
     repo = InMemoryUnifiedWorkflowRepository()
-    repo._workflows._steps[step_id] = Step.model_validate(step_dict)
-    repo._workflows._save_isolated(workflow_id, Workflow.model_validate(wf_dict))
-    repo._prompt_blocks._save_isolated(pb_id, MatrixPromptBlock.model_validate(pb_dict))
-    repo._executions._save_isolated(execution_id, ExecutionRecord.model_validate(exec_dict))
-    repo._output_profiles._save_isolated(profile_id, OutputProfile.model_validate(profile_dict))
+    repo._workflows._steps[step_id] = step
+    repo._workflows._save_isolated(workflow_id, wf)
+    repo._prompt_blocks._save_isolated(pb_id, pb)
+    repo._executions._save_isolated(execution_id, exec_rec)
+    repo._output_profiles._save_isolated(profile_id, profile)
 
     deps = HookDependencies(
         exec_repo=repo,
@@ -236,9 +225,9 @@ def matrix_setup() -> MatrixSetupDTO:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_happy_path_returns_typed_dto(matrix_setup: MatrixSetupDTO) -> None:
     """Positive test: computes matrix scores, returns MatrixHookResultDTO, zero emojis, zero in-place mutations."""
-    deps = matrix_setup["deps"]
-    tda_id = matrix_setup["tda_id"]
-    pb_id = matrix_setup["pb_id"]
+    deps = matrix_setup.deps
+    tda_id = matrix_setup.tda_id
+    pb_id = matrix_setup.pb_id
 
     atom_result = AtomResultDTO(
         tda_id=tda_id,
@@ -251,9 +240,9 @@ async def test_matrix_scoring_hook_happy_path_returns_typed_dto(matrix_setup: Ma
     raw_inputs_copy = raw_inputs.copy()
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs=raw_inputs),
         global_context_vars=GlobalContextVarsDTO(),
@@ -292,18 +281,18 @@ async def test_matrix_scoring_hook_happy_path_returns_typed_dto(matrix_setup: Ma
 async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Negative test: missing workflow_repo raises AppException(HOOK_EXECUTION_FAILED)."""
     deps = HookDependencies(
-        exec_repo=matrix_setup["deps"].exec_repo,
+        exec_repo=matrix_setup.deps.exec_repo,
         workflow_repo=None,
-        comp_repo=matrix_setup["deps"].comp_repo,
-        prompt_block_repo=matrix_setup["deps"].prompt_block_repo,
-        output_profile_repo=matrix_setup["deps"].output_profile_repo,
-        identity_repo=matrix_setup["deps"].identity_repo,
-        system_repo=matrix_setup["deps"].system_repo,
+        comp_repo=matrix_setup.deps.comp_repo,
+        prompt_block_repo=matrix_setup.deps.prompt_block_repo,
+        output_profile_repo=matrix_setup.deps.output_profile_repo,
+        identity_repo=matrix_setup.deps.identity_repo,
+        system_repo=matrix_setup.deps.system_repo,
     )
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -319,10 +308,10 @@ async def test_matrix_scoring_hook_missing_workflow_repo_raises(matrix_setup: Ma
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_blueprint_id_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Negative test: missing blueprint_id/step_id raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
         step_id=None,
         task_blueprint=None,
         metadata=ExecutionMetadata(),
@@ -340,11 +329,11 @@ async def test_matrix_scoring_hook_missing_blueprint_id_raises(matrix_setup: Mat
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_not_found_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Negative test: step blueprint not found in repository raises AppException(RESOURCE_NOT_FOUND)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
         step_id="stp_0000000000000000",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
@@ -361,11 +350,11 @@ async def test_matrix_scoring_hook_step_not_found_raises(matrix_setup: MatrixSet
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_results_array_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Negative test: missing 'results' array in inputs raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"other_key": "val"}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -381,11 +370,11 @@ async def test_matrix_scoring_hook_missing_results_array_raises(matrix_setup: Ma
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_results_not_list_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Negative test: 'results' not a list raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": "not_a_list"}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -406,9 +395,9 @@ async def test_matrix_scoring_hook_results_not_list_raises(matrix_setup: MatrixS
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_dlq_atom_handling_tolerates_failure(matrix_setup: MatrixSetupDTO) -> None:
     """Negative/Boundary test: atoms with SYSTEM_ERROR/DLQ are counted as DLQ without crashing."""
-    deps = matrix_setup["deps"]
-    tda_id = matrix_setup["tda_id"]
-    pb_id = matrix_setup["pb_id"]
+    deps = matrix_setup.deps
+    tda_id = matrix_setup.tda_id
+    pb_id = matrix_setup.pb_id
 
     dlq_atom = AtomResultDTO(
         tda_id=tda_id,
@@ -417,9 +406,9 @@ async def test_matrix_scoring_hook_dlq_atom_handling_tolerates_failure(matrix_se
     )
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [dlq_atom]}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -444,9 +433,9 @@ async def test_matrix_scoring_hook_dlq_atom_handling_tolerates_failure(matrix_se
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_contextual_override_without_emojis(matrix_setup: MatrixSetupDTO) -> None:
     """Specialized test: contextual override generates pure text quotes without emoji markers."""
-    deps = matrix_setup["deps"]
-    tda_id = matrix_setup["tda_id"]
-    pb_id = matrix_setup["pb_id"]
+    deps = matrix_setup.deps
+    tda_id = matrix_setup.tda_id
+    pb_id = matrix_setup.pb_id
 
     override_atom = AtomResultDTO(
         tda_id=tda_id,
@@ -457,9 +446,9 @@ async def test_matrix_scoring_hook_contextual_override_without_emojis(matrix_set
     )
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [override_atom]}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -489,15 +478,16 @@ async def test_matrix_scoring_hook_contextual_override_without_emojis(matrix_set
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_no_matrix_blocks_skips(matrix_setup: MatrixSetupDTO) -> None:
     """Step has no criteria block IDs or no matrix blocks; skips scoring gracefully."""
-    deps = matrix_setup["deps"]
-    step_without_blocks = _build_test_step(matrix_setup["step_id"], "blk_other")
-    step_without_blocks["criteria_block_ids"] = []
-    await deps.workflow_repo.save_step(Step.model_validate(step_without_blocks))
+    deps = matrix_setup.deps
+    step_without_blocks = _build_test_step(matrix_setup.step_id, "blk_other").model_copy(
+        update={"criteria_block_ids": []}
+    )
+    await deps.workflow_repo.save_step(step_without_blocks)
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -512,11 +502,11 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips(matrix_setup: MatrixSe
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_execution_id_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Missing state.execution_id raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     state = HookState(
         execution_id="",
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -532,12 +522,12 @@ async def test_matrix_scoring_hook_missing_execution_id_raises(matrix_setup: Mat
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: MatrixSetupDTO) -> None:
     """ExecutionRecord missing from DB raises AppException(RESOURCE_NOT_FOUND)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
 
     state = HookState(
         execution_id="exe_0000000000000000",
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -553,13 +543,13 @@ async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: Matr
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Workflow missing from DB raises AppException(RESOURCE_NOT_FOUND)."""
-    deps = matrix_setup["deps"]
-    await deps.workflow_repo.delete_workflow(matrix_setup["workflow_id"])
+    deps = matrix_setup.deps
+    await deps.workflow_repo.delete_workflow(matrix_setup.workflow_id)
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
+        execution_id=matrix_setup.execution_id,
         workflow_id="wf_0000000000000000",
-        step_id=matrix_setup["step_id"],
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -575,13 +565,13 @@ async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: Matri
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_output_profile_not_found_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Output profile referenced in execution not found raises AppException(CONFIGURATION_ERROR)."""
-    deps = matrix_setup["deps"]
-    await deps.output_profile_repo.delete_output_profile(matrix_setup["profile_id"])
+    deps = matrix_setup.deps
+    await deps.output_profile_repo.delete_output_profile(matrix_setup.profile_id)
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -597,16 +587,15 @@ async def test_matrix_scoring_hook_output_profile_not_found_raises(matrix_setup:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_strictness_level_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Workflow lacking default_strictness_level raises AppException(CONFIGURATION_ERROR)."""
-    deps = matrix_setup["deps"]
-    wf_no_strictness = _build_test_workflow(matrix_setup["workflow_id"], matrix_setup["profile_id"])
-    wf_no_strictness["default_strictness_level"] = None
-    wf_obj = Workflow.model_construct(**wf_no_strictness)
+    deps = matrix_setup.deps
+    wf_no_strictness = _build_test_workflow(matrix_setup.workflow_id, matrix_setup.profile_id)
+    wf_obj = wf_no_strictness.model_copy(update={"default_strictness_level": None})
     await deps.workflow_repo.save_workflow(wf_obj)
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -622,16 +611,15 @@ async def test_matrix_scoring_hook_missing_strictness_level_raises(matrix_setup:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: MatrixSetupDTO) -> None:
     """PromptBlock without scales raises AppException(CONFIGURATION_ERROR)."""
-    deps = matrix_setup["deps"]
-    pb_no_scales = _build_test_matrix_block(matrix_setup["pb_id"], matrix_setup["tda_id"])
-    pb_no_scales["scales"] = []
-    pb_obj = MatrixPromptBlock.model_construct(**pb_no_scales)
-    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup["pb_id"]] = pb_obj
+    deps = matrix_setup.deps
+    pb_no_scales = _build_test_matrix_block(matrix_setup.pb_id, matrix_setup.tda_id)
+    pb_obj = pb_no_scales.model_copy(update={"scales": []})
+    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup.pb_id] = pb_obj
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -647,13 +635,13 @@ async def test_matrix_scoring_hook_block_no_scales_raises(matrix_setup: MatrixSe
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Malformed Step blueprint data raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
-    deps.workflow_repo._workflows._steps[matrix_setup["step_id"]] = {"id": "bad_step"}
+    deps = matrix_setup.deps
+    deps.workflow_repo._workflows._steps[matrix_setup.step_id] = {"id": "bad_step"}
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -669,13 +657,13 @@ async def test_matrix_scoring_hook_step_validation_error_raises(matrix_setup: Ma
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_prompt_block_validation_error_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Malformed PromptBlock data raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
-    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup["pb_id"]] = {"id": "bad_pb"}
+    deps = matrix_setup.deps
+    deps.prompt_block_repo._prompt_blocks._storage[matrix_setup.pb_id] = {"id": "bad_pb"}
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -691,12 +679,12 @@ async def test_matrix_scoring_hook_prompt_block_validation_error_raises(matrix_s
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_evaluation_item_malformed_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Malformed evaluation item that cannot be validated as AtomResultDTO raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     raw_bad_inputs: dict[str, JsonValue] = {"results": [{"invalid_atom": 123}]}
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(raw_inputs=raw_bad_inputs),
         global_context_vars=GlobalContextVarsDTO(),
@@ -712,20 +700,29 @@ async def test_matrix_scoring_hook_evaluation_item_malformed_raises(matrix_setup
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_extractive_sensor_and_facts_json_string(matrix_setup: MatrixSetupDTO) -> None:
     """Extractive sensor evaluation track with boolean AST expression and JSON string extracted_facts."""
-    deps = matrix_setup["deps"]
-    pb_id = matrix_setup["pb_id"]
-    tda_id = matrix_setup["tda_id"]
+    deps = matrix_setup.deps
+    pb_id = matrix_setup.pb_id
+    tda_id = matrix_setup.tda_id
 
     pb_data = _build_test_matrix_block(pb_id, tda_id)
-    pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["evaluation_track"] = "EXTRACTIVE_SENSOR"
-    pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["logical_expression"] = "fact_vision_present"
-    pb_data["scales"][0]["claims"][0]["tda_assertions"][0]["facts_to_find"] = ["fact_vision_present"]
-    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
+    scale0 = pb_data.scales[0]
+    claim0 = scale0.claims[0]
+    assertion0 = claim0.tda_assertions[0].model_copy(
+        update={
+            "evaluation_track": "EXTRACTIVE_SENSOR",
+            "logical_expression": "fact_vision_present",
+            "facts_to_find": ["fact_vision_present"],
+        }
+    )
+    claim0 = claim0.model_copy(update={"tda_assertions": [assertion0]})
+    scale0 = scale0.model_copy(update={"claims": [claim0]})
+    pb_data = pb_data.model_copy(update={"scales": [scale0, pb_data.scales[1]]})
+    await deps.prompt_block_repo.update_prompt_block(pb_id, pb_data)
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -746,11 +743,11 @@ async def test_matrix_scoring_hook_extractive_sensor_and_facts_json_string(matri
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_extracted_facts_invalid_json_raises(matrix_setup: MatrixSetupDTO) -> None:
     """Invalid JSON string in extracted_facts raises AppException(VALIDATION_FAILED)."""
-    deps = matrix_setup["deps"]
+    deps = matrix_setup.deps
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -771,18 +768,17 @@ async def test_matrix_scoring_hook_extracted_facts_invalid_json_raises(matrix_se
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matrix_setup: MatrixSetupDTO) -> None:
     """Tests XAI extension parsing and unsupported extension Fail-Fast check."""
-    deps = matrix_setup["deps"]
-    pb_id = matrix_setup["pb_id"]
-    tda_id = matrix_setup["tda_id"]
+    deps = matrix_setup.deps
+    pb_id = matrix_setup.pb_id
+    tda_id = matrix_setup.tda_id
 
     # 1. Successful extension extraction
     pb_data = _build_test_matrix_block(pb_id, tda_id)
-    prof_data = _build_test_output_profile(matrix_setup["profile_id"], matrix_setup["workflow_id"], pb_id)
-    prof_data["visible_block_extensions"] = ["coaching"]
-    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
-    await deps.output_profile_repo.update_output_profile(
-        matrix_setup["profile_id"], OutputProfile.model_validate(prof_data)
+    prof_data = _build_test_output_profile(matrix_setup.profile_id, matrix_setup.workflow_id, pb_id).model_copy(
+        update={"visible_block_extensions": ["coaching"]}
     )
+    await deps.prompt_block_repo.update_prompt_block(pb_id, pb_data)
+    await deps.output_profile_repo.update_output_profile(matrix_setup.profile_id, prof_data)
 
     atom_with_ext = AtomResultDTO(
         tda_id=tda_id,
@@ -793,9 +789,9 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
     )
 
     state = HookState(
-        execution_id=matrix_setup["execution_id"],
-        workflow_id=matrix_setup["workflow_id"],
-        step_id=matrix_setup["step_id"],
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": [atom_with_ext]}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -805,8 +801,8 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
     assert result.success is True
 
     # 2. Unsupported extension triggers Fail-Fast
-    pb_data["output_extensions"] = ["UNSUPPORTED_EXTENSION_ABC"]
-    await deps.prompt_block_repo.update_prompt_block(pb_id, MatrixPromptBlock.model_validate(pb_data))
+    pb_data = pb_data.model_copy(update={"output_extensions": ["UNSUPPORTED_EXTENSION_ABC"]})
+    await deps.prompt_block_repo.update_prompt_block(pb_id, pb_data)
 
     with pytest.raises(AppException) as exc_info:
         await matrix_scoring_hook(state, deps)

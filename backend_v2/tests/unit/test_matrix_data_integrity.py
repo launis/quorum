@@ -1,22 +1,22 @@
 import json
 import os
+from typing import Any
 
 import pytest
-from pydantic import JsonValue
 
 
-def load_seed_data() -> dict[str, JsonValue]:
+def load_seed_data():
     seed_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "seed", "seed_data.json")
     with open(seed_path, encoding="utf-8") as f:
         return dict(json.load(f))
 
 
 @pytest.fixture(scope="module")
-def db() -> dict[str, JsonValue]:
+def db():
     return load_seed_data()
 
 
-def test_all_bars_matrices_allow_decimals(db: dict[str, JsonValue]) -> None:
+def test_all_bars_matrices_allow_decimals(db: Any) -> None:
     """Ensure every PromptBlock or Matrix with 'scales' explicitly permits decimals."""
     for list_name in ["prompt_blocks", "matrices"]:
         items = db[list_name] if list_name in db else []
@@ -31,7 +31,7 @@ def test_all_bars_matrices_allow_decimals(db: dict[str, JsonValue]) -> None:
                 assert allow_dec is True, f"Item {item_id} must have allow_decimals=True"
 
 
-def test_all_bars_matrices_use_discrete_integer_scores(db: dict[str, JsonValue]) -> None:
+def test_all_bars_matrices_use_discrete_integer_scores(db: Any) -> None:
     """Ensure that the defined 'score' values in the BARS matrix are simple integers (1, 2, 3...)."""
     for list_name in ["prompt_blocks", "matrices"]:
         items = db[list_name] if list_name in db else []
@@ -64,7 +64,7 @@ def test_all_bars_matrices_use_discrete_integer_scores(db: dict[str, JsonValue])
                 assert 1 <= score <= 10, f"Score {score} in {item_id} is out of expected logical bounds (1-10)"
 
 
-def test_blueprints_have_normalization_hook(db: dict[str, JsonValue]) -> None:
+def test_blueprints_have_normalization_hook(db: Any) -> None:
     """Ensure that all evaluating step blueprints are intercepted by the normalization hook."""
     steps = db["steps"] if "steps" in db else []
     for step in steps:
@@ -89,7 +89,7 @@ def test_blueprints_have_normalization_hook(db: dict[str, JsonValue]) -> None:
                 )
 
 
-def test_all_matrices_have_valid_mathematical_range(db: dict[str, JsonValue]) -> None:
+def test_all_matrices_have_valid_mathematical_range(db: Any) -> None:
     """Ensure that all matrices have at least two distinct scale scores (math_min < math_max).
     This guarantees that the scoring engine won't crash with division-by-zero or zero-width ranges.
     """

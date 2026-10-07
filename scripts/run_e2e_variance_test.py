@@ -132,7 +132,7 @@ def _normalize_token(text: str) -> str:
 
 def _match_input_key(
     candidate: str,
-    expected_inputs: Sequence[Mapping[str, JsonValue]] | list[ExpectedInput],
+    expected_inputs: Sequence[Any],
 ) -> str | None:
     """Match a candidate file stem against workflow expected inputs using 2-tier lexical matching.
 
@@ -222,7 +222,7 @@ def _match_input_key(
 
 def load_inputs_from_path(
     path: str | Path,
-    expected_inputs: Sequence[Mapping[str, JsonValue]] | list[ExpectedInput] | None = None,
+    expected_inputs: Sequence[Any] | None = None,
 ) -> dict[str, JsonValue]:
     """Load inputs from a directory of files or a single JSON file.
 
@@ -879,7 +879,7 @@ def validate_execution_kelvollisuus(
 def resolve_model_telemetry(
     db_path: Path,
     registry_id: str | None = None,
-) -> dict[str, Mapping[str, JsonValue]]:
+):
     """Load model registry from active database and resolve physical and effective parameters.
 
     Supports Option A flat tier definitions (fast, balanced, deep, reasoning) and multi-registry
@@ -903,7 +903,7 @@ def resolve_model_telemetry(
         return {}
 
     sys_configs = data.get("system_config", [])
-    configs_list: list[Mapping[str, JsonValue]] = []
+    configs_list = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -933,7 +933,7 @@ def resolve_model_telemetry(
 
     target_registries = [selected_registry] if selected_registry else registries
 
-    models_dict: dict[str, tuple[Mapping[str, JsonValue], Mapping[str, JsonValue]]] = {}
+    models_dict = {}
     for cfg in target_registries:
         reg_provider = str(cfg.get("default_provider", "google")).lower()
         tier_defs = cfg.get("tier_definitions", {})
@@ -957,7 +957,7 @@ def resolve_model_telemetry(
             if isinstance(m_cfg, dict):
                 models_dict[m_name] = (m_cfg, cfg)
 
-    result: dict[str, Mapping[str, JsonValue]] = {}
+    result = {}
     for strat, (mcfg, cfg) in models_dict.items():
         model_name = str(mcfg.get("model_name", "unknown"))
         provider = str(mcfg.get("provider", cfg.get("default_provider", "unknown")))
@@ -1095,7 +1095,7 @@ def resolve_comparison_registries(
         data = json.load(f)
 
     sys_configs = data.get("system_config", [])
-    configs_list: list[Mapping[str, JsonValue]] = []
+    configs_list = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -1215,7 +1215,7 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
     return None
 
 
-def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, JsonValue]]:
+def resolve_all_workflows_matrix_telemetry(db_path: Path):
     """Resolve all workflows and attached matrix parameters loaded directly from the database.
 
     Args:
@@ -1231,8 +1231,8 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, J
     with target_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    def _to_id_map(raw: Any) -> dict[str, Mapping[str, JsonValue]]:
-        m: dict[str, Mapping[str, JsonValue]] = {}
+    def _to_id_map(raw: Any):
+        m = {}
         if isinstance(raw, dict):
             for v in raw.values():
                 if isinstance(v, dict) and "id" in v:
@@ -1256,7 +1256,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, J
             return trans.get("fi") or trans.get("en") or next(iter(trans.values()), "")
         return str(val or "")
 
-    results: list[Mapping[str, JsonValue]] = []
+    results = []
 
     for target_wf in workflows_map.values():
         wf_id = str(target_wf.get("id"))
@@ -1271,7 +1271,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, J
         passivity_penalty = float(target_wf.get("passivity_penalty", 0.0))
         default_profile_id = target_wf.get("default_profile_id")
 
-        steps_telemetry: list[Mapping[str, JsonValue]] = []
+        steps_telemetry = []
         total_matrices = 0
         total_scales = 0
         total_claims = 0
@@ -1287,7 +1287,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, J
             strat = sdef.get("cognitive_tier") or sdef.get("model_strategy")
             crit_ids = sdef.get("criteria_block_ids", [])
 
-            step_matrices: list[Mapping[str, JsonValue]] = []
+            step_matrices = []
             for cid in crit_ids:
                 blk = blocks_map.get(cid)
                 if not blk or blk.get("category_id") != "matrix":
@@ -1297,7 +1297,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, J
                 scales_raw = blk.get("scales", [])
                 total_scales += len(scales_raw)
 
-                m_scales: list[Mapping[str, JsonValue]] = []
+                m_scales = []
                 m_atoms = 0
                 m_high_entropy = 0
                 m_claims = 0

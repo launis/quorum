@@ -42,8 +42,9 @@ import io
 import json
 import re
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -284,7 +285,7 @@ def _check_toy_domain_leak(text: str) -> str | None:
 
 
 def audit_prompt_blocks(
-    prompt_blocks: Sequence[Mapping[str, JsonValue]],
+    prompt_blocks: Sequence[Any],
 ) -> tuple[list[AuditIssue], int, int]:
     """Audits the prompt_blocks collection across matrices and non-matrix blocks.
 
@@ -732,7 +733,7 @@ def audit_prompt_blocks(
 
 
 def audit_steps(
-    steps: Sequence[Mapping[str, JsonValue]],
+    steps: Sequence[Any],
     prompt_block_ids: set[str],
 ) -> tuple[list[AuditIssue], int]:
     """Audits the steps collection for referential integrity and blueprint schemas.
@@ -858,7 +859,7 @@ def audit_steps(
 
 
 def audit_workflows(
-    workflows: Sequence[Mapping[str, JsonValue]],
+    workflows: Sequence[Any],
     step_blueprint_ids: set[str],
 ) -> tuple[list[AuditIssue], int]:
     """Audits the workflows collection for variable routing and input contract validity.
@@ -962,7 +963,7 @@ def audit_workflows(
 
 
 def audit_output_profiles(
-    output_profiles: Sequence[Mapping[str, JsonValue]],
+    output_profiles: Sequence[Any],
     prompt_block_ids: set[str],
 ) -> tuple[list[AuditIssue], int]:
     """Audits the output_profiles collection for XML hygiene and referential integrity.

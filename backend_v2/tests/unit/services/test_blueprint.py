@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -10,9 +9,19 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
-from backend_v2.models.enums import BlockDataType, LaxHistoricalContextMode, PresetView, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    ExecutionStatus,
+    LaxHistoricalContextMode,
+    PresetView,
+    PromptBlockCategory,
+)
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import (
     test_blueprint_variance_validation_success,
@@ -124,7 +133,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import DisplayScale, ExecutionStatus, TargetBlockType, XaiExtensionType
+from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.blueprint import BlueprintTransformer
@@ -1710,38 +1719,41 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 
     # 2. Provide results with `block_id` = 'evaluations' to hit 457-546
     results = [
-        SimpleNamespace(
+        StepOutputDTO(
             step_id="step_1",
             block_id="matrix_logic1234",
-            payload={
-                "raw_score": None,  # Hit 251-255
-                "normalized_score": None,
-                "level_breakdown": {},
-                "evaluated_atoms": {"tda_11111111111111111111111111111111": ExecutionStatus.PASSED},
-                "extensions": {},
-            },
+            data_type="matrix",
+            payload=LightweightMatrixOutput(
+                raw_score=None,  # Hit 251-255
+                normalized_score=None,
+                level_breakdown={},
+                evaluated_atoms={"tda_11111111111111111111111111111111": ExecutionStatus.PASSED},
+                extensions={},
+            ),
         ),
-        SimpleNamespace(
+        StepOutputDTO(
             step_id="step_1",
             block_id="matrix_logic1234",  # Duplicate to trigger collision counter 380-385
-            payload={
-                "raw_score": 100.0,
-                "normalized_score": 100.0,
-                "level_breakdown": {"100.0": {"hits": 1, "total": 1}},
-                "evaluated_atoms": {},
-                "extensions": {},
-            },
+            data_type="matrix",
+            payload=LightweightMatrixOutput(
+                raw_score=100.0,
+                normalized_score=100.0,
+                level_breakdown={"100.0": LevelStatsDTO(hits=1, total=1)},
+                evaluated_atoms={},
+                extensions={},
+            ),
         ),
-        SimpleNamespace(
+        StepOutputDTO(
             step_id="step_1",
             block_id="results",
+            data_type="matrix",
             payload=[
-                {
-                    "tda_id": "tda_11111111111111111111111111111111",
-                    "status": "PASSED",
-                    "evaluation_reasoning": "Sem reasoning",
-                    "contextual_override": True,
-                }
+                AtomResultDTO(
+                    tda_id="tda_11111111111111111111111111111111",
+                    status=ExecutionStatus.PASSED,
+                    evaluation_reasoning="Sem reasoning",
+                    contextual_override=True,
+                )
             ],
         ),
     ]
@@ -1804,15 +1816,18 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         "matrix_logic1234": mock_matrix_pb,
     }
 
-    workflow_steps: Any = {
-        "step_1": SimpleNamespace(
-            id="step_1",
+    workflow_steps: dict[str, StepRule] = {
+        "step_1": StepRule(
+            id="sr_1111222233334444",
+            task_blueprint="stp_1111222233334444",
             depends_on=[],
             input_mappings={},
         )
     }
 
-    mcp_audit_map: Any = {"doc1": SimpleNamespace(tool_id="test", step_name="step_1", query="query", source_urls=[])}
+    mcp_audit_map: dict[str, MCPAuditTrace] = {
+        "doc1": MCPAuditTrace(tool_id="test", step_name="step_1", query="query", source_urls=[])
+    }
 
     res = MatrixDomainParser.parse_matrices(
         results=results,
@@ -1916,17 +1931,27 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     }
 
     # 1. Invalid matrix payload format (not a dict) -> lines 226-231
-    results = [SimpleNamespace(step_id="step_1", block_id="matrix_logic1234", payload="invalid_payload_string")]
+    results = [
+        StepOutputDTO(
+            step_id="step_1", block_id="matrix_logic1234", data_type="unknown", payload="invalid_payload_string"
+        )
+    ]
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "Invalid matrix payload format" in str(exc.value)
 
     # 2. Validation failure inside TraceMatrixPayloadDTO -> lines 238-241
     results = [
-        SimpleNamespace(
+        StepOutputDTO(
             step_id="step_1",
             block_id="matrix_logic1234",
-            payload={"invalid_key": "value"},  # Fails TraceMatrixPayloadDTO validation
+            data_type="matrix",
+            payload=AtomResultDTO(
+                tda_id="tda_11111111111111111111111111111111",
+                status=ExecutionStatus.PASSED,
+                evaluation_reasoning="reasoning",
+                contextual_override=True,
+            ),
         )
     ]
     with pytest.raises(AppException) as exc:
@@ -1945,10 +1970,11 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
         scales=[valid_scale_0, valid_scale_100],
     )
     results = [
-        SimpleNamespace(
+        StepOutputDTO(
             step_id="step_1",
             block_id="matrix_logic1234",
-            payload={"raw_score": 100.0, "level_breakdown": {}, "evaluated_atoms": {}, "extensions": {}},
+            data_type="matrix",
+            payload=LightweightMatrixOutput(raw_score=100.0, level_breakdown={}, evaluated_atoms={}, extensions={}),
         )
     ]
     with pytest.raises(AppException) as exc:
@@ -1991,13 +2017,21 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
 
     # 6. Invalid breakdown key
     blocks_by_id["matrix_logic1234"] = base_matrix
-    results[0].payload["level_breakdown"] = {"invalid_float": {"hits": 1, "total": 1}}
+    results[0] = results[0].model_copy(
+        update={
+            "payload": results[0].payload.model_copy(
+                update={"level_breakdown": {"invalid_float": LevelStatsDTO(hits=1, total=1)}}
+            )
+        }
+    )
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
     assert "Invalid level key 'invalid_float'" in str(exc.value)
 
     # 7. Missing row_explanations_cache
-    results[0].payload["level_breakdown"] = {}
+    results[0] = results[0].model_copy(
+        update={"payload": results[0].payload.model_copy(update={"level_breakdown": {}})}
+    )
     profile_with_exp = profile.model_copy(update={"matrix_visible_columns": ["label", "row_explanation"]})
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile_with_exp, {}, [], {})
@@ -2363,10 +2397,17 @@ async def test_blueprint_transformer_fail_fast_branches(
     assert exc2.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     # 3. Missing locale -> 400
-    mock_wf = SimpleNamespace(
+    mock_wf = Workflow(
         id="wf_1234abcd1234abcd",
+        slug="test_wf",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="active",
+        version=1,
         default_profile_id="prf_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
         mcp_gateway_id=None,
+        historical_context_mode="DISABLED",
         expected_inputs=[],
         steps=[],
     )
@@ -2889,11 +2930,18 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     )
     mock_repo_transformer.set_output_profiles([profile])
 
-    mock_wf = SimpleNamespace(
+    mock_wf = Workflow(
         id="wf_1234abcd1234abcd1234abcd1234abcd",
+        slug="test_wf_2",
+        name=I18nText(translations={"en": "Test WF 2"}),
+        description=I18nText(translations={"en": "Desc 2"}),
+        status="active",
+        version=1,
         default_profile_id=profile.id,
         default_strictness_level=80,
+        model_registry_id="cfg_model_registry_01",
         mcp_gateway_id=None,
+        historical_context_mode="DISABLED",
         expected_inputs=[],
         steps=[],
     )

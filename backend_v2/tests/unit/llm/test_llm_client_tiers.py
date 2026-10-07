@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import JsonValue
 
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.llm.client import LLMClient
@@ -22,14 +21,14 @@ from backend_v2.models.enums import CognitiveTier, LLMProvider
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
 
-def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, JsonValue]:
+def _get_seed_model_registry(registry_id: str | None = None) -> SystemConfigModelRegistry:
     """Load model_registry system config from seed_data.json."""
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
     for cfg in data["system_config"]:
         if "type" in cfg and cfg["type"] == "model_registry":
             if registry_id is None or ("id" in cfg and cfg["id"] == registry_id):
-                return cfg
+                return SystemConfigModelRegistry.model_validate(cfg)
     raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
 
 
@@ -257,7 +256,7 @@ class TestLLMClientTiersFailFast:
         """Assert missing tier in provider definition raises ConfigurationError."""
         seed_registry = _get_seed_model_registry()
         # Create a modified registry where REASONING tier was deleted
-        corrupted_registry = json.loads(json.dumps(seed_registry))
+        corrupted_registry = seed_registry.model_dump(mode="json")
         del corrupted_registry["tier_definitions"]["reasoning"]
 
         corrupted_repo = InMemorySystemRepository()
@@ -288,7 +287,7 @@ class TestLLMClientTiersFailFast:
     ) -> None:
         """ISTQB Negative Test: missing required parameter on ModelProfile raises ConfigurationError."""
         seed_registry = _get_seed_model_registry()
-        corrupted_registry = json.loads(json.dumps(seed_registry))
+        corrupted_registry = seed_registry.model_dump(mode="json")
         corrupted_registry["tier_definitions"]["fast"][missing_param] = None
 
         corrupted_repo = InMemorySystemRepository()

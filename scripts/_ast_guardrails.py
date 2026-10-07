@@ -121,6 +121,7 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset({
     "backend_v2/hooks/scoring/matrix_hook.py",
     "backend_v2/llm/client.py",
     "backend_v2/llm/ingress_pipeline.py",
+    "backend_v2/llm/mock_data.py",
     "backend_v2/services/llm_task_executor.py",
     # Phase 4 (Services & Tools)
     "backend_v2/services/mcp/mcp_tool_loop.py",

@@ -7,7 +7,7 @@ schema validation, RFC 7807 dual-reporting, and Fail-Fast error boundaries.
 from __future__ import annotations
 
 import pytest
-from pydantic import JsonValue
+from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -19,49 +19,66 @@ from backend_v2.database.interfaces import IPromptBlockRepository, IWorkflowRepo
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.scoring.matrix_hook import MatrixAggregationStateDTO
 from backend_v2.hooks.scoring.passivity_hook import enforce_passivity_penalty_hook
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
+    MatrixPromptBlock,
+    MatrixScale,
+    PromptBlockAdapter,
+)
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
-def _build_test_matrix_block(pb_id: str, scales: list[dict[str, JsonValue]] | None = None) -> dict[str, JsonValue]:
-    """Construct a valid MatrixPromptBlock dictionary."""
+def _build_test_matrix_block(pb_id: str, scales: list[MatrixScale] | None = None) -> MatrixPromptBlock:
+    """Construct a valid MatrixPromptBlock instance."""
     if scales is None:
         scales = [
-            {"score": 1, "ai_label": "Foundational", "claims": []},
-            {"score": 5, "ai_label": "Exemplary", "claims": []},
+            MatrixScale(score=1, ai_label="Foundational", claims=[]),
+            MatrixScale(score=5, ai_label="Exemplary", claims=[]),
         ]
-    return {
-        "id": pb_id,
-        "slug": "leadership_matrix",
-        "category_id": PromptBlockCategory.MATRIX.value,
-        "label": {"translations": {"en": "Leadership Dimension"}},
-        "description": {"translations": {"en": "Evaluates leadership"}},
-        "type": "float",
-        "ai_description": "Evaluates leadership maturity.",
-        "scales": scales,
-    }
+    if not scales:
+        return MatrixPromptBlock.model_construct(
+            id=pb_id,
+            slug="leadership_matrix",
+            category_id=PromptBlockCategory.MATRIX,
+            label=I18nText(translations={"en": "Leadership Dimension"}),
+            description=I18nText(translations={"en": "Evaluates leadership"}),
+            type=BlockDataType.FLOAT,
+            ai_description="Evaluates leadership maturity.",
+            scales=[],
+        )
+    return MatrixPromptBlock(
+        id=pb_id,
+        slug="leadership_matrix",
+        category_id=PromptBlockCategory.MATRIX,
+        label=I18nText(translations={"en": "Leadership Dimension"}),
+        description=I18nText(translations={"en": "Evaluates leadership"}),
+        type=BlockDataType.FLOAT,
+        ai_description="Evaluates leadership maturity.",
+        scales=scales,
+    )
 
 
-def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> dict[str, JsonValue]:
-    """Construct a valid Step dictionary."""
-    return {
-        "id": step_id,
-        "slug": "leadership_eval_step",
-        "name": {"translations": {"en": "Leadership Evaluation"}},
-        "type": "logic",
-        "hook": "enforce_passivity_penalty",
-        "criteria_block_ids": criteria_block_ids,
-    }
+def _build_test_step(step_id: str, criteria_block_ids: list[str]) -> Step:
+    """Construct a valid Step instance."""
+    return Step(
+        id=step_id,
+        slug="leadership_eval_step",
+        name=I18nText(translations={"en": "Leadership Evaluation"}),
+        type="logic",
+        hook="enforce_passivity_penalty",
+        criteria_block_ids=criteria_block_ids,
+    )
 
 
 def _build_repo(
-    step: Step | dict[str, JsonValue] | None = None,
-    prompt_block: MatrixPromptBlock | dict[str, JsonValue] | None = None,
+    step: Step | object = None,
+    prompt_block: AnyPromptBlock | object = None,
 ) -> InMemoryUnifiedWorkflowRepository:
     """Build a stateful in-memory repository seeded with test fixtures."""
     repo = InMemoryUnifiedWorkflowRepository()
@@ -71,7 +88,7 @@ def _build_repo(
         else:
             repo._workflows._steps[step["id"]] = step
     if prompt_block is not None:
-        if isinstance(prompt_block, MatrixPromptBlock):
+        if isinstance(prompt_block, BaseModel):
             repo._prompt_blocks._storage[prompt_block.id] = prompt_block
         else:
             repo._prompt_blocks._storage[prompt_block["id"]] = prompt_block
@@ -204,14 +221,16 @@ async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
     step_id = "stp_1111222233334444"
     pb_id = "blk_1111222233334444"
 
-    non_matrix_pb = {
-        "id": pb_id,
-        "slug": "system_instruction",
-        "category_id": "system_rule",
-        "label": {"translations": {"en": "Instruction"}},
-        "description": {"translations": {"en": "Instruction desc"}},
-        "instruction_text": "System rule instruction",
-    }
+    non_matrix_pb = PromptBlockAdapter.validate_python(
+        {
+            "id": pb_id,
+            "slug": "system_instruction",
+            "category_id": "system_rule",
+            "label": {"translations": {"en": "Instruction"}},
+            "description": {"translations": {"en": "Instruction desc"}},
+            "instruction_text": "System rule instruction",
+        }
+    )
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=non_matrix_pb)
     deps = _build_mock_deps(repo=repo)
 
@@ -240,7 +259,7 @@ async def test_passivity_hook_legacy_score_card_raises() -> None:
         workflow_id="wf_1111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs={"score_card": {"dim": 1.0}}),
+        inputs=ExecutionInputsDTO(raw_inputs={"score_card": "legacy_score_card"}),
     )
     with pytest.raises(AppException) as exc_info:
         await enforce_passivity_penalty_hook(state, deps)

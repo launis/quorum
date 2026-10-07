@@ -1,8 +1,6 @@
 import ast
 from pathlib import Path
 
-from pydantic import JsonValue
-
 
 class DomainSecurityVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
@@ -101,7 +99,7 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_domain_security(code: str) -> dict[str, JsonValue]:
+def scan_code_for_domain_security(code: str):
     tree = ast.parse(code)
     visitor = DomainSecurityVisitor()
     visitor.visit(tree)
@@ -116,7 +114,7 @@ def scan_code_for_domain_security(code: str) -> dict[str, JsonValue]:
     }
 
 
-def scan_file_for_domain_security(filepath: Path) -> dict[str, JsonValue]:
+def scan_file_for_domain_security(filepath: Path):
     if not filepath.exists():
         return {
             "llmclient_strategy": False,

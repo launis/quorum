@@ -24,7 +24,7 @@ from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
-from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluationFactsDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import (
     Base64Attachment,
     GuidedReflectionInputDTO,
@@ -91,6 +91,10 @@ type DomainInputValue = Annotated[
     | TraceScoringPayloadDTO
     | TraceMatrixPayloadDTO
     | StepTraceMetadataDTO
+    | EvaluationFactsDTO
+    | dict[str, float]
+    | dict[str, str]
+    | dict[str, HydratedAtomDTO]
     | GuttmanAtomItemDTO
     | list[GuttmanAtomItemDTO]
     | ValidationResultDTO

@@ -694,7 +694,7 @@ class TestNoNoiseIngressInvariance:
 
         load_calls = 0
 
-        def mock_load_inputs(*args: Any, **kwargs: Any) -> dict[str, JsonValue]:
+        def mock_load_inputs(*args: Any, **kwargs: Any) -> dict[str, str]:
             nonlocal load_calls
             load_calls += 1
             return {"chat_log": "Hello test prompt", "product_text": "Sample text"}

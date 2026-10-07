@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import JsonValue, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -66,7 +66,7 @@ __all__ = [
 ]
 
 
-def _get_base_model_registry_dict() -> dict[str, JsonValue]:
+def _get_base_model_registry() -> SystemConfigModelRegistry:
     profile = {
         "provider": "mock_llm_99",
         "model_name": "gemini-2.5-pro",
@@ -76,62 +76,69 @@ def _get_base_model_registry_dict() -> dict[str, JsonValue]:
         "tpm_limit": 100000,
         "rpm_limit": 1000,
     }
-    return {
-        "id": "sys_1111222233334444",
-        "name": "Default Test Registry",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "default_provider": "vertex_ai",
-        "tier_definitions": {
-            "fast": profile,
-            "balanced": profile,
-            "deep": profile,
-            "reasoning": profile,
+    return SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_1111222233334444",
+            "name": "Default Test Registry",
+            "type": "model_registry",
+            "slug": "model_registry",
+            "default_provider": "vertex_ai",
+            "tier_definitions": {
+                "fast": profile,
+                "balanced": profile,
+                "deep": profile,
+                "reasoning": profile,
+            },
+        }
+    )
+
+
+def _get_base_workflow() -> Workflow:
+    return Workflow.model_validate(
+        {
+            "id": "wf_1234567890123456",
+            "name": "Test WF",
+            "slug": "test-wf",
+            "description": "desc",
+            "status": "draft",
+            "version": 1,
+            "steps": [],
+            "historical_context_mode": "DISABLED",
+            "default_profile_id": "prof_1111222233334444",
+            "model_registry_id": "sys_1111222233334444",
+            "default_strictness_level": 50,
         },
-    }
+        strict=False,
+    )
 
 
-def _get_base_workflow_dict() -> dict[str, JsonValue]:
-    return {
-        "id": "wf_1234567890123456",
-        "name": "Test WF",
-        "slug": "test-wf",
-        "description": "desc",
-        "status": "draft",
-        "version": 1,
-        "steps": [],
-        "historical_context_mode": "DISABLED",
-        "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
-        "default_strictness_level": 50,
-    }
-
-
-def _get_base_profile_dict() -> dict[str, JsonValue]:
-    return {
-        "id": "prof_1111222233334444",
-        "slug": "prof-1",
-        "workflow_id": "wf_1234567890123456",
-        "name": {"translations": {"en": "Profile"}},
-        "synthesis_length_constraint": 500,
-        "tone_instruction": "Direct tone",
-        "executive_summary_directive": "Synthesize executive summary.",
-        "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
-        "xai_synthesis_directive": "Synthesize XAI highlights.",
-        "row_explanation_directive": "Explain matrix row causality.",
-        "variance_synthesis_directive": "Synthesize cognitive variance.",
-        "matrix_synthesis_groups": [
-            {
-                "id": "grp_1111111111111111",
-                "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
-                "target_blocks": ["blk_1111222233334444"],
-            }
-        ],
-        "target_block_order": ["matrix_graphs_block"],
-        "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-        "variance_target_block": "blk_1111222233334444",
-        "max_extension_items": 3,
-    }
+def _get_base_profile() -> OutputProfile:
+    return OutputProfile.model_validate(
+        {
+            "id": "prof_1111222233334444",
+            "slug": "prof-1",
+            "workflow_id": "wf_1234567890123456",
+            "name": {"translations": {"en": "Profile"}},
+            "synthesis_length_constraint": 500,
+            "tone_instruction": "Direct tone",
+            "executive_summary_directive": "Synthesize executive summary.",
+            "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
+            "xai_synthesis_directive": "Synthesize XAI highlights.",
+            "row_explanation_directive": "Explain matrix row causality.",
+            "variance_synthesis_directive": "Synthesize cognitive variance.",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_1111111111111111",
+                    "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
+                    "target_blocks": ["blk_1111222233334444"],
+                }
+            ],
+            "target_block_order": ["matrix_graphs_block"],
+            "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+            "variance_target_block": "blk_1111222233334444",
+            "max_extension_items": 3,
+        }
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -751,7 +758,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 )
             )
             mock_repo.set_prompt_blocks([])
-            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+            mock_repo.set_model_registry(_get_base_model_registry())
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
@@ -944,7 +951,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                     }
                 ]
             )
-            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+            mock_repo.set_model_registry(_get_base_model_registry())
             await mock_repo.save_workflow(
                 Workflow.model_validate(
                     {
@@ -1201,7 +1208,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 ]
             )
 
-            mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+            mock_repo.set_model_registry(_get_base_model_registry())
 
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
@@ -1534,7 +1541,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         ]
     )
     mock_repo.set_prompt_blocks([])
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+    mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
         ExecutionRecord(
             id="exe_1234567890123456",
@@ -1656,7 +1663,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         ]
     )
     mock_repo.set_prompt_blocks([])
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+    mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
         ExecutionRecord(
             id="exe_1234567890123456",
@@ -1716,11 +1723,10 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
-    prof_dict = _get_base_profile_dict()
-    prof_dict["matrix_1d_synthesis_directive"] = None
-    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_model_registry(_get_base_model_registry())
+    prof = _get_base_profile().model_copy(update={"matrix_1d_synthesis_directive": None})
+    mock_repo.set_output_profiles([prof])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1772,11 +1778,10 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
-    prof_dict = _get_base_profile_dict()
-    prof_dict["xai_synthesis_directive"] = None
-    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_model_registry(_get_base_model_registry())
+    prof = _get_base_profile().model_copy(update={"xai_synthesis_directive": None})
+    mock_repo.set_output_profiles([prof])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1828,12 +1833,15 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
-    prof_dict = _get_base_profile_dict()
-    prof_dict["target_block_order"] = ["matrix_graphs_block", "matrix_summary_table_block"]
-    prof_dict["row_explanation_directive"] = None
-    mock_repo.set_output_profiles([OutputProfile.model_validate(prof_dict)])
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_model_registry(_get_base_model_registry())
+    prof = _get_base_profile().model_copy(
+        update={
+            "target_block_order": ["matrix_graphs_block", "matrix_summary_table_block"],
+            "row_explanation_directive": None,
+        }
+    )
+    mock_repo.set_output_profiles([prof])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1885,8 +1893,8 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_output_profiles([OutputProfile.model_validate(_get_base_profile_dict())])
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_output_profiles([_get_base_profile()])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1920,8 +1928,8 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_output_profiles([OutputProfile.model_validate(_get_base_profile_dict())])
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_output_profiles([_get_base_profile()])
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
@@ -1955,8 +1963,8 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
             metadata=ExecutionMetadata(),
         )
     )
-    await mock_repo.save_workflow(Workflow.model_validate(_get_base_workflow_dict(), strict=False))
-    mock_repo.set_model_registry(SystemConfigModelRegistry.model_validate(_get_base_model_registry_dict()))
+    await mock_repo.save_workflow(_get_base_workflow())
+    mock_repo.set_model_registry(_get_base_model_registry())
 
     with (
         patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),

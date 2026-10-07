@@ -18,9 +18,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -273,7 +273,7 @@ def atomic_save_seed_data(data: Mapping[str, JsonValue], target_path: Path) -> N
     os.replace(temp_name, target_path)
 
 
-def sanitize_prompt_blocks(prompt_blocks: Sequence[Mapping[str, JsonValue]]) -> tuple[list[JsonValue], int]:
+def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue], int]:
     """Sanitizes prompt_blocks collection, matrix atoms, and prompt texts.
 
     Args:
@@ -355,7 +355,7 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Mapping[str, JsonValue]]) -> 
     return sanitized_blocks, mutated_atoms_count
 
 
-def sanitize_steps(steps: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
+def sanitize_steps(steps: Sequence[Any]) -> list[JsonValue]:
     """Sanitizes steps collection and validates with Pydantic V2.
 
     Args:
@@ -381,7 +381,7 @@ def sanitize_steps(steps: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
     return sanitized_steps
 
 
-def sanitize_workflows(workflows: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
+def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
     """Sanitizes workflows collection and validates with Pydantic V2.
 
     Args:
@@ -411,7 +411,7 @@ def sanitize_workflows(workflows: Sequence[Mapping[str, JsonValue]]) -> list[Jso
     return sanitized_workflows
 
 
-def sanitize_output_profiles(output_profiles: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
+def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
     """Sanitizes output_profiles collection and validates with Pydantic V2.
 
     Args:

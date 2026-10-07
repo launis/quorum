@@ -23,10 +23,12 @@ from backend_v2.hooks.scoring import (
     matrix_scoring_hook,
     normalize_matrix_scores_hook,
 )
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
 from backend_v2.models.domain.step import Step
@@ -57,39 +59,41 @@ def generate_atom_hash(text: str, mandate: Any = None) -> str:
     return f"tda_{hashlib.md5(text.encode()).hexdigest()[:32]}"
 
 
-def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, JsonValue]:
-    """Builds a valid scale dictionary for testing prompt blocks."""
-    claims = []
+def _build_valid_scale(score: int, micro_atoms: list[str] | None = None) -> MatrixScale:
+    """Builds a valid scale model for testing prompt blocks."""
+    claims: list[MatrixClaim] = []
     if micro_atoms is not None:
         claims.append(
-            {
-                "label": {"translations": {"en": "Test Claim", "fi": "Test Claim"}},
-                "tda_assertions": [
-                    {
-                        "tda_id": f"tda_{hashlib.md5(atom.encode()).hexdigest()[:32]}",
-                        "concept_description": f"Concept description for {atom}",
-                        "inverse_evidence": False,
-                        "aggregation_mode": "EXISTS",
-                    }
+            MatrixClaim(
+                label=I18nText(translations={"en": "Test Claim", "fi": "Test Claim"}),
+                tda_assertions=[
+                    TDAAssertion(
+                        tda_id=f"tda_{hashlib.md5(atom.encode()).hexdigest()[:32]}",
+                        concept_description=f"Concept description for {atom}",
+                        inverse_evidence=False,
+                        aggregation_mode="EXISTS",
+                    )
                     for atom in micro_atoms
                 ],
-            }
+            )
         )
-    return {
-        "score": score,
-        "ai_label": f"Level {score}",
-        "claims": claims,
-    }
+    return MatrixScale(
+        score=score,
+        ai_label=f"Level {score}",
+        claims=claims,
+    )
 
 
-def _build_valid_pb_dict(
+def _build_valid_pb(
     pb_id: str,
-    scales: Sequence[Mapping[str, JsonValue]],
+    scales: Sequence[MatrixScale] | None = None,
     pb_type: str = "float",
     category_id: str = PromptBlockCategory.MATRIX.value,
-) -> dict[str, JsonValue]:
-    """Builds a valid prompt block dictionary."""
-    pb: dict[str, JsonValue] = {
+    allow_contextual_override: bool = True,
+    output_extensions: list[str] | None = None,
+) -> AnyPromptBlock:
+    """Builds a valid prompt block model."""
+    pb_dict = {
         "id": pb_id,
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -98,59 +102,59 @@ def _build_valid_pb_dict(
         "category_id": category_id,
     }
     if category_id == PromptBlockCategory.MATRIX.value:
-        pb["ai_description"] = "Test AI Desc"
-        pb["allow_contextual_override"] = True
+        pb_dict["ai_description"] = "Test AI Desc"
+        pb_dict["allow_contextual_override"] = allow_contextual_override
     elif category_id in ("execution_persona", "agent_role"):
-        pb["role_enforcement"] = "Test Role Enforcement"
+        pb_dict["role_enforcement"] = "Test Role Enforcement"
     elif category_id == "protocol":
-        pb["protocol_instructions"] = "Test Protocol Instructions"
+        pb_dict["protocol_instructions"] = "Test Protocol Instructions"
     else:
-        pb["instruction_text"] = "Test Instruction Text"
-    if scales:
-        pb["scales"] = scales
-    return pb
+        pb_dict["instruction_text"] = "Test Instruction Text"
+    if scales and category_id == PromptBlockCategory.MATRIX.value:
+        pb_dict["scales"] = [s.model_dump(mode="json") if isinstance(s, BaseModel) else s for s in scales]
+    if output_extensions is not None:
+        pb_dict["output_extensions"] = output_extensions
+    return PromptBlockAdapter.validate_python(pb_dict, strict=False)
 
 
-def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, JsonValue]:
-    """Builds a valid step dictionary."""
-    return {
-        "id": "st_1234567890123456",
-        "slug": "test_step",
-        "name": {"translations": {"en": "Test Step", "fi": "Test Step"}},
-        "type": "logic",
-        "hook": "dummy_hook",
-        "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": prompt_blocks,
-    }
+def _build_valid_step(prompt_blocks: list[str], step_id: str = "st_1234567890123456") -> Step:
+    """Builds a valid step model."""
+    return Step(
+        id=step_id,
+        slug="test_step",
+        name=I18nText(translations={"en": "Test Step", "fi": "Test Step"}),
+        type="logic",
+        hook="dummy_hook",
+        role_block_id=None,
+        extraction_protocol_block_id="blk_573802341db9d68c",
+        criteria_block_ids=prompt_blocks,
+    )
 
 
-def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") -> dict[str, JsonValue]:
-    """Builds a valid execution record dictionary."""
-    from datetime import datetime, timezone
-
-    return {
-        "id": execution_id,
-        "workflow_id": "wf_123",
-        "organization_id": "org_123",
-        "created_by": "usr_123",
-        "output_profile_id": "prof_1111111111111111",
-        "status": "PENDING",
-        "target_locale": "fi",
-        "metadata": {},
-        "raw_inputs": {},
-        "execution_trace": [],
-        "step_states": {},
-        "frozen_context": {},
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
+def _build_valid_execution(execution_id: str, strategy: str = "WATERFALL") -> ExecutionRecord:
+    """Builds a valid execution record model."""
+    return ExecutionRecord(
+        id=execution_id,
+        workflow_id="wf_123",
+        organization_id="org_123",
+        created_by="usr_123",
+        output_profile_id="prof_1111111111111111",
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        raw_inputs={},
+        execution_trace=[],
+        step_states={},
+        frozen_context={},
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
 
 
 async def _create_test_scoring_repo(
     *,
     pb_id: str = "pb_1234567890123456",
-    scales: Sequence[Mapping[str, JsonValue]] | None = None,
+    scales: Sequence[MatrixScale] | None = None,
     corrupt_scale: bool = False,
     corrupt_step: bool = False,
     corrupt_pb: bool = False,
@@ -161,7 +165,7 @@ async def _create_test_scoring_repo(
     enable_overrides: bool = True,
     strictness_level: int | None = 85,
     allow_contextual_override: bool = True,
-    extra_pbs: Sequence[Mapping[str, JsonValue]] | None = None,
+    extra_pbs: Sequence[AnyPromptBlock] | None = None,
     step_blocks: list[str] | None = None,
     profile_id: str = "prof_1111111111111111",
     display_scale: str = "original",
@@ -185,35 +189,52 @@ async def _create_test_scoring_repo(
     # 1. Prompt Block
     if not omit_pb:
         if corrupt_scale:
-            pb_dict = _build_valid_pb_dict(pb_id, [_build_valid_scale("not_a_number")])
-            repo._prompt_blocks._storage[pb_id] = pb_dict
+            repo._prompt_blocks._storage[pb_id] = {
+                "id": pb_id,
+                "slug": "test_slug",
+                "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
+                "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+                "type": "float",
+                "category_id": PromptBlockCategory.MATRIX.value,
+                "ai_description": "Test AI Desc",
+                "allow_contextual_override": True,
+                "scales": [{"score": "not_a_number", "ai_label": "bad", "claims": []}],
+            }
         elif corrupt_pb:
             repo._prompt_blocks._storage[pb_id] = {"id": pb_id, "corrupt": "data"}
         elif no_scales:
-            pb_dict = _build_valid_pb_dict(pb_id, [])
-            pb_dict["scales"] = []
-            repo._prompt_blocks._storage[pb_id] = pb_dict
+            repo._prompt_blocks._storage[pb_id] = {
+                "id": pb_id,
+                "slug": "test_slug",
+                "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
+                "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+                "type": "float",
+                "category_id": PromptBlockCategory.MATRIX.value,
+                "ai_description": "Test AI Desc",
+                "allow_contextual_override": True,
+                "scales": [],
+            }
         else:
             if scales is None:
                 if inverse_evidence:
                     scales = [
-                        {
-                            "score": i,
-                            "ai_label": f"Level {i}",
-                            "claims": [
-                                {
-                                    "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
-                                    "tda_assertions": [
-                                        {
-                                            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-                                            "concept_description": f"Inverse assertion {i}",
-                                            "inverse_evidence": True,
-                                            "aggregation_mode": "EXISTS",
-                                        }
+                        MatrixScale(
+                            score=i,
+                            ai_label=f"Level {i}",
+                            claims=[
+                                MatrixClaim(
+                                    label=I18nText(translations={"en": f"Claim {i}", "fi": f"Väite {i}"}),
+                                    tda_assertions=[
+                                        TDAAssertion(
+                                            tda_id=generate_atom_hash(f"atom_{i}", mandate),
+                                            concept_description=f"Inverse assertion {i} for testing purposes",
+                                            inverse_evidence=True,
+                                            aggregation_mode="EXISTS",
+                                        )
                                     ],
-                                }
+                                )
                             ],
-                        }
+                        )
                         for i in range(1, 6)
                     ]
                 else:
@@ -227,13 +248,15 @@ async def _create_test_scoring_repo(
             if pb_category != "matrix":
                 cat_id = pb_category
                 pb_type = "string" if pb_category in ("execution_persona", "agent_role") else "instruction"
-                pb_dict = _build_valid_pb_dict(pb_id, [], pb_type=pb_type, category_id=cat_id)
+                pb_model = _build_valid_pb(pb_id, [], pb_type=pb_type, category_id=cat_id)
             else:
                 cat_id = PromptBlockCategory.MATRIX.value
-                pb_dict = _build_valid_pb_dict(pb_id, scales, category_id=cat_id)
-                if not allow_contextual_override:
-                    pb_dict["allow_contextual_override"] = False
-            pb_model = PromptBlockAdapter.validate_python(pb_dict, strict=False)
+                pb_model = _build_valid_pb(
+                    pb_id,
+                    scales or [],
+                    category_id=cat_id,
+                    allow_contextual_override=allow_contextual_override,
+                )
             await repo.create_prompt_block(pb_model)
             repo._prompt_blocks._storage[pb_id] = pb_model
 
@@ -254,9 +277,7 @@ async def _create_test_scoring_repo(
             repo._workflows._steps["st_bad"] = {"id": "st_bad", "corrupt": "data"}
         else:
             all_blocks = step_blocks if step_blocks is not None else [pb_id]
-            step_dict = _build_valid_step_dict(all_blocks)
-            step_dict["id"] = step_id
-            step_model = Step.model_validate(step_dict)
+            step_model = _build_valid_step(all_blocks, step_id=step_id)
             await repo.save_step(step_model)
             for s_alias in [
                 "s1",
@@ -280,10 +301,7 @@ async def _create_test_scoring_repo(
 
     # 3. Execution
     if not omit_execution:
-        exec_dict = _build_valid_execution_dict(execution_id)
-        exec_dict["created_at"] = datetime.now(timezone.utc)
-        exec_dict["updated_at"] = datetime.now(timezone.utc)
-        exec_model = ExecutionRecord.model_validate(exec_dict)
+        exec_model = _build_valid_execution(execution_id)
         await repo.save_execution(exec_model)
         for ex_alias in [
             "ex_1",
@@ -693,7 +711,7 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     scales = [_build_valid_scale(1, ["atom_1"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
+    pb_model = _build_valid_pb("pb_1234567890123456", scales=scales)
 
     payload = ContextVariablesDTO.model_construct(
         variables={
@@ -706,7 +724,7 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
     )
 
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
 
     deps = _build_test_scoring_deps(repo)
 
@@ -728,9 +746,11 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         _build_valid_scale(4, ["atom_4"]),
         _build_valid_scale(5, ["atom_5"]),
     ]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    # Add valid output extensions
-    pb_dict["output_extensions"] = ["citation", "falsification"]
+    pb_model = _build_valid_pb(
+        "pb_1234567890123456",
+        scales=scales,
+        output_extensions=["citation", "falsification"],
+    )
 
     atom_1_id = f"tda_{hashlib.md5(b'atom_1').hexdigest()[:32]}"
     atom_5_id = f"tda_{hashlib.md5(b'atom_5').hexdigest()[:32]}"
@@ -750,7 +770,7 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
     )
 
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
 
     deps = _build_test_scoring_deps(repo)
 
@@ -767,8 +787,18 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
-    pb_dict["output_extensions"] = ["totally_invalid_extension_type"]
+    pb_dict = {
+        "id": "pb_1234567890123456",
+        "slug": "test_slug",
+        "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "type": "float",
+        "category_id": PromptBlockCategory.MATRIX.value,
+        "ai_description": "Test AI Desc",
+        "allow_contextual_override": True,
+        "scales": [s.model_dump(mode="json") for s in scales],
+        "output_extensions": ["totally_invalid_extension_type"],
+    }
 
     atom_1_id = f"tda_{hashlib.md5(b'atom_1').hexdigest()[:32]}"
     matrix_dto = LightweightMatrixOutput(
@@ -873,7 +903,7 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
+    pb_model = _build_valid_pb("pb_1234567890123456", scales=scales)
     atom_1_id = f"tda_{hashlib.md5(b'atom_1').hexdigest()[:32]}"
     atom_5_id = f"tda_{hashlib.md5(b'atom_5').hexdigest()[:32]}"
     matrix_dto = LightweightMatrixOutput(
@@ -892,7 +922,7 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
         }
     )
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
+    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
     deps = _build_test_scoring_deps(repo)
     recalculated = await recalculate(payload, "prof_1111111111111111", deps)
     pb_output = recalculated["pb_1234567890123456"]
@@ -3071,14 +3101,6 @@ async def test_normalize_matrix_scores_evaluative_matrices_and_branches() -> Non
     """Test normalize_matrix_scores_hook with pre-populated _evaluative_matrices and non-numeric raw score."""
     from backend_v2.hooks.scoring.normalization_hook import normalize_matrix_scores_hook
 
-    pb_dict = _build_valid_pb_dict(
-        "blk_1234567890123456",
-        scales=[
-            {"score": 1.0, "ai_label": "L1", "claims": []},
-            {"score": 5.0, "ai_label": "L5", "claims": []},
-        ],
-    )
-    pb_dict["is_evaluative"] = True
     matrix_dto = LightweightMatrixOutput(
         raw_score=3.0,
         normalized_score=None,
@@ -3173,7 +3195,9 @@ async def test_falsifier_hook_coverage_branches() -> None:
 
     # 3. Invalid top-level _evaluative_matrices raises
     invalid_top_level = StateInputWrapper(
-        raw_inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": "not-a-float"}}),
+        raw_inputs=ExecutionInputsDTO.model_construct(
+            raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": "not-a-float"}}
+        ),
         steps=[],
     )
     with pytest.raises(AppException) as exc2:
@@ -3182,7 +3206,9 @@ async def test_falsifier_hook_coverage_branches() -> None:
 
     # 4. Invalid scoring payload in extra_dict raises
     invalid_extra = StateInputWrapper(
-        raw_inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "step_falsifier": {"step_falsifier": "not-a-dto"}}),
+        raw_inputs=ExecutionInputsDTO.model_construct(
+            raw_inputs={"steps": [], "step_falsifier": {"step_falsifier": "not-a-dto"}}
+        ),
         steps=[],
     )
     with pytest.raises(AppException) as exc3:

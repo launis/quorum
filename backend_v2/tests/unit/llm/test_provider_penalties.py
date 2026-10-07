@@ -4,7 +4,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import JsonValue
 
 from backend_v2.llm.provider import LiteLLMProvider
 from backend_v2.models.llm import LLMProviderConfig
@@ -53,7 +52,7 @@ async def test_litellm_provider_injects_penalties(monkeypatch: pytest.MonkeyPatc
         choices: list[Any] = [MockChoice()]
         usage: MockUsage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     mock_response = MockResponse()

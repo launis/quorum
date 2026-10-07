@@ -20,6 +20,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
+from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage

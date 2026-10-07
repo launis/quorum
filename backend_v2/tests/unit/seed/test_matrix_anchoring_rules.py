@@ -7,11 +7,10 @@ contrastive example pairs, and negative validation boundaries for the 7 stabiliz
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
-from pydantic import JsonValue, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.models.domain.matrix import ContrastivePairDTO, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
@@ -41,13 +40,13 @@ TARGET_BLOCK_IDS: list[str] = [
 ]
 
 
-def _load_seed_atoms() -> dict[str, Mapping[str, JsonValue]]:
+def _load_seed_atoms() -> dict[str, TDAAssertion]:
     """Loads raw atom dicts from seed_data.json indexed by tda_id."""
     assert SEED_DATA_PATH.exists(), f"Seed data missing at {SEED_DATA_PATH}"
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
-    atoms: dict[str, Mapping[str, JsonValue]] = {}
+    atoms: dict[str, TDAAssertion] = {}
     for block in data["prompt_blocks"]:
         if "scales" not in block:
             continue
@@ -56,7 +55,7 @@ def _load_seed_atoms() -> dict[str, Mapping[str, JsonValue]]:
                 for assertion in claim["tda_assertions"]:
                     tda_id = assertion["tda_id"]
                     if tda_id:
-                        atoms[tda_id] = assertion
+                        atoms[tda_id] = TDAAssertion.model_validate(assertion)
     return atoms
 
 
@@ -287,16 +286,8 @@ def test_all_matrix_atoms_have_high_entropy_activated() -> None:
     atoms = _load_seed_atoms()
     assert len(atoms) == 305, f"Expected 305 matrix atoms in seed_data.json, found {len(atoms)}"
 
-    disabled_atoms: list[str] = []
-    missing_atoms: list[str] = []
+    disabled_atoms: list[str] = [tda_id for tda_id, atom in atoms.items() if atom.high_entropy is not True]
 
-    for tda_id, atom in atoms.items():
-        if "high_entropy" not in atom:
-            missing_atoms.append(tda_id)
-        elif atom["high_entropy"] is not True:
-            disabled_atoms.append(tda_id)
-
-    assert not missing_atoms, f"Atoms missing high_entropy flag: {missing_atoms}"
     assert not disabled_atoms, f"Atoms with high_entropy != True: {disabled_atoms}"
 
 
@@ -305,13 +296,10 @@ def test_high_entropy_coverage_detects_false_atom() -> None:
     atoms = _load_seed_atoms()
     simulated_atoms = dict(atoms)
     target_id = next(iter(simulated_atoms.keys()))
-    corrupted_atom = dict(simulated_atoms[target_id])
-    corrupted_atom["high_entropy"] = False
+    corrupted_atom = simulated_atoms[target_id].model_copy(update={"high_entropy": False})
     simulated_atoms[target_id] = corrupted_atom
 
-    disabled = [
-        tda_id for tda_id, a in simulated_atoms.items() if "high_entropy" in a and a["high_entropy"] is not True
-    ]
+    disabled = [tda_id for tda_id, a in simulated_atoms.items() if a.high_entropy is not True]
     assert len(disabled) == 1
     assert disabled[0] == target_id
 
@@ -321,13 +309,13 @@ def test_high_entropy_schema_rejects_invalid_types() -> None:
     valid_atom = next(iter(_load_seed_atoms().values()))
 
     # Invalid string type in strict mode
-    invalid_string = dict(valid_atom)
+    invalid_string = valid_atom.model_dump()
     invalid_string["high_entropy"] = "not_a_boolean"
     with pytest.raises(ValidationError):
         TDAAssertion.model_validate(invalid_string)
 
     # Invalid collection type
-    invalid_list = dict(valid_atom)
+    invalid_list = valid_atom.model_dump()
     invalid_list["high_entropy"] = [True]
     with pytest.raises(ValidationError):
         TDAAssertion.model_validate(invalid_list)

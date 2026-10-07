@@ -67,7 +67,7 @@ async def test_lite_llm_provider_tool_calls_content_extraction(monkeypatch: pyte
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()

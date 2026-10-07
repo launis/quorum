@@ -38,7 +38,7 @@ async def test_lite_llm_provider_top_k_top_p() -> None:
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()
@@ -122,7 +122,7 @@ async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPat
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()
@@ -825,7 +825,7 @@ async def test_litellm_provider_generate_full_telemetry(monkeypatch: pytest.Monk
         }
         _hidden_params = {"headers": {"x-ratelimit-remaining-requests": "3"}}
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {"raw": "data"}
 
         def model_dump_json(self) -> str:
@@ -879,7 +879,7 @@ async def test_litellm_provider_generate_full_telemetry(monkeypatch: pytest.Monk
 
     # Call with tool calls in diverse formats (OpenAIToolCallDTO, model_dump object, dict, function arguments)
     class MockDumpObj:
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {"id": "dump_id", "type": "function", "function": {"name": "f1", "arguments": "{}"}}
 
     class MockChoiceVaried:
@@ -902,7 +902,7 @@ async def test_litellm_provider_generate_full_telemetry(monkeypatch: pytest.Monk
         model_extra = {"thought_signature": "sig_extra"}
         _hidden_params = {}
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     from opentelemetry.trace import SpanContext, TraceFlags

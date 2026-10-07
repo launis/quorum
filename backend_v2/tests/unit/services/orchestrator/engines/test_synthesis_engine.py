@@ -4,11 +4,11 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
+from backend_v2.models.domain.blackboard import DraftExtractedAtom, GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
@@ -30,16 +30,16 @@ def make_atom(
     quote: str = "Evidence quote",
     claim: str = "Claim text",
     reasoning: str = "Reasoning step",
-) -> dict[str, JsonValue]:
-    """Helper to construct a valid DraftExtractedAtom dictionary."""
-    return {
-        "draft_id": draft_id,
-        "reasoning": reasoning,
-        "resolved_claim": claim,
-        "is_logical_deduction": False,
-        "source_quote": quote,
-        "source_sequence_index": 0,
-    }
+) -> DraftExtractedAtom:
+    """Helper to construct a valid DraftExtractedAtom."""
+    return DraftExtractedAtom(
+        draft_id=draft_id,
+        reasoning=reasoning,
+        resolved_claim=claim,
+        is_logical_deduction=False,
+        source_quote=quote,
+        source_sequence_index=0,
+    )
 
 
 class MockSynthesisOutput(BaseModel):

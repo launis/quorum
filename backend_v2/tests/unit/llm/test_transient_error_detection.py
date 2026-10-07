@@ -134,7 +134,7 @@ async def test_provider_generate_uses_transient_retries_even_in_fast_mode(monkey
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     # Mock router to fail with connection disconnect twice, then succeed on 3rd attempt
@@ -227,7 +227,7 @@ async def test_provider_generate_retries_on_upstream_500_in_development_environm
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     # Upstream fails once with 500 Internal error, then succeeds on retry

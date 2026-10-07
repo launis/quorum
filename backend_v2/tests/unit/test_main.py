@@ -256,7 +256,7 @@ async def test_path_normalization_middleware_collapses_double_slashes() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "http", "path": "/api/v2//reports/rep_123///pdf"}
 
-    async def mock_receive() -> dict[str, JsonValue]:
+    async def mock_receive():
         return {}
 
     async def mock_send(message: Any) -> None:
@@ -281,7 +281,7 @@ async def test_path_normalization_middleware_ignores_non_http() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "websocket", "path": "//ws"}
 
-    async def mock_receive() -> dict[str, JsonValue]:
+    async def mock_receive():
         return {}
 
     async def mock_send(message: Any) -> None:

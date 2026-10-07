@@ -9,7 +9,7 @@ the schema generator omits 'block_type' from 'required'.
 from typing import Annotated, Any, Literal
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.llm.ingress_pipeline import UniversalIngress
@@ -20,7 +20,7 @@ from backend_v2.models.view.sdui import AlertBlock, BulletListBlock, ParagraphBl
 class DummyAdapter(BaseLLMAdapter):
     """Minimal adapter subclass for testing _strip_unsupported_constraints."""
 
-    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, JsonValue] | type[BaseModel]:
+    def prepare_structured_output(self, response_model: type[BaseModel]):
         json_schema = response_model.model_json_schema()
         self._strip_unsupported_constraints(json_schema)
         return json_schema
@@ -28,7 +28,7 @@ class DummyAdapter(BaseLLMAdapter):
     def prepare_caching_payload(self, messages: Any) -> Any:
         return messages, {}
 
-    def prepare_provider_kwargs(self, model: str, temperature: float | None = None) -> dict[str, JsonValue]:
+    def prepare_provider_kwargs(self, model: str, temperature: float | None = None):
         return {}
 
     def calculate_cost(self, usage: Any) -> float:

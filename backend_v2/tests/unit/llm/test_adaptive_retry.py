@@ -111,7 +111,7 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
         model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, JsonValue]:
+        def model_dump(self):
             return {}
 
     # Mock acompletion to fail once, then succeed
