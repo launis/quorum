@@ -1,4 +1,4 @@
-"""Automated Dart Codebase Guardrails Engine (DGR001-DGR004).
+"""Automated Dart Codebase Guardrails Engine (DGR001-DGR005).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
 Scans handwritten client code for loose Map types, UI error concealment, unlocalized strings, and lint suppressions.
@@ -82,6 +82,12 @@ DGR003_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*(['\"])(.*?)\1\s*[,)]")
 # DGR004: Dart lint suppressions (// ignore: or // ignore_for_file:)
 DGR004_PATTERN = re.compile(r"//\s*(?:ignore_for_file|ignore):")
 
+# DGR005: Non-codec Map<String, dynamic> in handwritten Dart code
+DGR005_PATTERN = re.compile(r"Map<\s*String\s*,\s*dynamic\s*>")
+DGR005_CODEC_EXEMPT_PATTERN = re.compile(
+    r"fromJson\(\s*Map<\s*String\s*,\s*dynamic\s*>\s+\w+\s*\)|Map<\s*String\s*,\s*dynamic\s*>\s+toJson\("
+)
+
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9]*$")
 
@@ -94,6 +100,14 @@ def is_generated_dart_file(filepath: Path | str, source_text: str | None = None)
         return True
 
     normalized_path = str(p).replace("\\", "/")
+    if (
+        name == "firebase_options.dart"
+        or "/l10n/gen/" in normalized_path
+        or normalized_path.endswith("/l10n/gen")
+        or "l10n/gen" in normalized_path
+    ):
+        return True
+
     parts = set(normalized_path.strip("/").split("/"))
     if ".dart_tool" in parts or "build" in parts:
         return True
@@ -150,7 +164,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
         if not stripped:
             continue
 
-        # DGR004: Banned Dart lint suppressions
+        # DGR004: Banned Dart lint suppressions (Unconditional FATAL)
         dgr004_match = DGR004_PATTERN.search(line)
         if dgr004_match:
             violations.append(
@@ -161,7 +175,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                     rule_code="DGR004",
                     message="Banned Dart lint suppression comment detected in handwritten code.",
                     remediation="Resolve the underlying static analysis warning instead of using `// ignore:` or `// ignore_for_file:`.",
-                    severity=default_severity,
+                    severity=GuardrailSeverity.FATAL,
                     is_suppressed=False,
                 )
             )
@@ -170,7 +184,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
         if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
             continue
 
-        # DGR001: Banned loose Map return types in API clients or models
+        # DGR001: Banned loose Map return types in API clients or models (Unconditional FATAL)
         if is_api_or_model_scope:
             dgr001_match = DGR001_PATTERN.search(line)
             if dgr001_match:
@@ -184,7 +198,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                         rule_code="DGR001",
                         message=f"Banned loose Map return type `{ret_type}` in method `{method_name}`.",
                         remediation="Return strongly typed Freezed DTOs or domain models instead of raw Map<String, dynamic> in API clients.",
-                        severity=default_severity,
+                        severity=GuardrailSeverity.FATAL,
                         is_suppressed=False,
                     )
                 )
@@ -225,6 +239,22 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                             is_suppressed=False,
                         )
                     )
+
+        # DGR005: Banned non-codec Map<String, dynamic> in handwritten code (Unconditional FATAL)
+        dgr005_match = DGR005_PATTERN.search(line)
+        if dgr005_match and not DGR005_CODEC_EXEMPT_PATTERN.search(line):
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=dgr005_match.start(),
+                    rule_code="DGR005",
+                    message="Banned non-codec `Map<String, dynamic>` detected in handwritten Dart code.",
+                    remediation="Retype to a strongly typed Freezed DTO or `Map<String, Object?>`.",
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
+            )
 
     return violations
 

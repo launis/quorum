@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> None:
 
 Executes a five-stage code hygiene and validation sequence:
   1/5 (Optional): Code generation (flutter gen-l10n & dart run build_runner build -d)
-  2/5: Dart codebase guardrails (scripts/_dart_guardrails.py, DGR001-DGR004)
+  2/5: Dart codebase guardrails (scripts/_dart_guardrails.py, DGR001-DGR005)
   3/5: Code style formatting (dart format)
   4/5: Static architectural analysis (dart analyze)
   5/5 (Optional): Flutter unit tests and coverage (flutter test --coverage)
@@ -75,7 +75,7 @@ Executes a five-stage code hygiene and validation sequence:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Enforce strict Dart Guardrail validation (DGR001-DGR004).",
+        help="Enforce strict Dart Guardrail validation (DGR001-DGR005).",
     )
 
     args = parser.parse_args(argv)
