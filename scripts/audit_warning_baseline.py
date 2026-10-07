@@ -65,7 +65,7 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
     s: Annotated[int, Field(ge=0, description="Census S: Unconditional skip/xfail markers ceiling.")]
 
 
-# Configured baseline ceilings (EPIC 157 Phase 12 ratchet)
+# Configured baseline ceilings (EPIC 157 Phase 13 final lock)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
     d=0,
     f=51,
@@ -181,7 +181,7 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
                     for tok in tokens:
                         if tok.type == tokenize.COMMENT and "# noqa" in tok.string.lower():
                             n_count += 1
-                except Exception:
+                except (tokenize.TokenError, SyntaxError):
                     pass
 
     # Census R: Non-codec Map<String, dynamic> in Dart
@@ -233,9 +233,19 @@ def verify_residual_debt_ceilings(
         "-" * 60,
     ]
     is_valid = True
-    for field_name in ["d", "f", "k", "x", "n", "t", "p", "m", "r", "s"]:
-        live_val = getattr(live, field_name)
-        ceil_val = getattr(ceiling, field_name)
+    comparison_pairs: tuple[tuple[str, int, int], ...] = (
+        ("d", live.d, ceiling.d),
+        ("f", live.f, ceiling.f),
+        ("k", live.k, ceiling.k),
+        ("x", live.x, ceiling.x),
+        ("n", live.n, ceiling.n),
+        ("t", live.t, ceiling.t),
+        ("p", live.p, ceiling.p),
+        ("m", live.m, ceiling.m),
+        ("r", live.r, ceiling.r),
+        ("s", live.s, ceiling.s),
+    )
+    for field_name, live_val, ceil_val in comparison_pairs:
         status = "MATCH"
         if live_val > ceil_val:
             is_valid = False

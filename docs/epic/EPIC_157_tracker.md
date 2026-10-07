@@ -203,22 +203,29 @@
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
   - [x] Step 12.0: Strategic Alignment Check & Census R Baseline Audit
-  - [x] (0f0dfac73) Step 12.1: Dart Guardrails Engine Modernization & Severity Escalation (`scripts/_dart_guardrails.py`, `scripts/flutter_audit_loop.py`, `backend_v2/tests/unit/scripts/test_dart_guardrails.py`)
-  - [x] (3d98f37ce) Step 12.2: DGR004 Eradication (Lint Suppression Cleanup across 18 Freezed and core models, `schema_mapper.dart`, `firebase_options.dart`, `l10n/gen/`)
-  - [x] (e3f11f8bd) Step 12.3: Batch 12.1 — Execution Models Retyping (`execution_record.dart`, `execution_metadata.dart`, `frozen_context_snapshot.dart`, `workflow_inputs.dart`, `report_data_v2_dto.dart`, `distilled_evaluation.dart`, `execution_create_request_dto.dart`)
-  - [x] (3e0fb699b) Step 12.4: Batch 12.2 — Studio Models & Utilities Retyping (`workflow_cloner.dart`, `prompt_block.dart`, `workflow.dart`, `model_config.dart`, `workflow_simulation.dart`, `prompt_block_simulation.dart`, `step_simulation.dart`, `mcp_gateway.dart`)
-  - [x] (45c396fe3) Step 12.5: Batch 12.3 — API Clients & Core Network Retyping (`studio_client.dart`, `execution_client.dart`, `reports_client.dart`, `sse_client.dart`, `workflow_client.dart`, `error_interceptor.dart`, `app_exception.dart`)
-  - [x] (a95dccccd) Step 12.6: Batch 12.4 — Presentation Views, Controllers & Shared Widgets Retyping (26 views, controllers, widgets across `shared/widgets/`, `features/execution/views/`, `features/auth/`, `features/studio/views/`)
-  - [x] (3212e5efb) Step 12.7: Monotonic Ratchet Lock & Universal Verification Gate (`scripts/audit_warning_baseline.py`, `scripts/audit_dto_parity.py`, `flutter_audit_loop.py client_app_v2/ --build`)
+  - [x] Step 12.1: Dart Guardrails Engine Modernization & Severity Escalation (0f0dfac73) (`scripts/_dart_guardrails.py`, `scripts/flutter_audit_loop.py`, `backend_v2/tests/unit/scripts/test_dart_guardrails.py`)
+  - [x] Step 12.2: DGR004 Eradication (Lint Suppression Cleanup) (3d98f37ce) (18 Freezed/core models, `schema_mapper.dart`, `firebase_options.dart`, `l10n/gen/`)
+  - [x] Step 12.3: Batch 12.1 — Execution Models Retyping (e3f11f8bd) (`execution_record.dart`, `execution_metadata.dart`, `frozen_context_snapshot.dart`, `workflow_inputs.dart`, `report_data_v2_dto.dart`, `distilled_evaluation.dart`, `execution_create_request_dto.dart`)
+  - [x] Step 12.4: Batch 12.2 — Studio Models & Utilities Retyping (3e0fb699b) (`workflow_cloner.dart`, `prompt_block.dart`, `workflow.dart`, `model_config.dart`, `workflow_simulation.dart`, `prompt_block_simulation.dart`, `step_simulation.dart`, `mcp_gateway.dart`)
+  - [x] Step 12.5: Batch 12.3 — API Clients & Core Network Retyping (45c396fe3) (`studio_client.dart`, `execution_client.dart`, `reports_client.dart`, `sse_client.dart`, `workflow_client.dart`, `error_interceptor.dart`, `app_exception.dart`)
+  - [x] Step 12.6: Batch 12.4 — Presentation Views, Controllers & Shared Widgets Retyping (a95dccccd) (26 views, controllers, widgets across `shared/widgets/`, `features/execution/views/`, `features/auth/`, `features/studio/views/`)
+  - [x] Step 12.7: Monotonic Ratchet Lock & Universal Verification Gate (3212e5efb) (`scripts/audit_warning_baseline.py`, `scripts/audit_dto_parity.py`, `flutter_audit_loop.py client_app_v2/ --build`)
 - [x] **[OK] Test Coverage Assertions:** Verified 100% eradication of Census R (0 non-codec matches), DGR005 implemented with unconditional FATAL severity, DGR001 and DGR004 promoted to unconditional FATAL severity, 25 lint suppressions eradicated, DTO parity 46/46 models aligned, 130 execution tests passing, and `flutter_audit_loop.py client_app_v2/ --build` 100% passing.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 13: Zero-Bypass Final Gate & Knowledge Synchronization
 **Plan:** @[docs/epic/tasks_EPIC_157/13_phase13_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=13`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+**Status Note:** Tier 0 Research Plan completed and verified. Census F floor (51 repository patches bound to in-memory fakes) mathematically reconciled with QGR014 guardrail and Epic 157 Section 2.1; 3 Pre-Implementation Cleanups documented; 5-Column Directives Table and execution steps 13.0–13.4 synchronized with exact AST bounds; bidirectional table-protocol parity (MBD008) verified with 0 findings via `scripts/audit_markdown_boundaries.py`. Execution is ready to commence via `/tier2-execute`.
+
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=13`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [x] Step 13.0: Strategic Alignment Check & Baseline Census Probe (`audit_warning_baseline.py --check-residual`)
+  - [x] Step 13.1: Pre-Implementation Cleanups in Baseline Script (`verify_residual_debt_ceilings` reflection eradication & tokenizer exception narrowing)
+  - [x] Step 13.2: Final Ratchet Lock of Baseline Residual Ceilings (`CURRENT_RESIDUAL_CEILINGS` & `CURRENT_WARNING_CEILING = 0`)
+  - [x] Step 13.3: Universal Two-Stage Verification Gate (10/10 backend audit loop stages & 4/4 flutter audit loop stages clean)
+  - [x] Step 13.4: Post-Implementation Gates Handoff Sequencing
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 13 test contracts across scripts/audit_warning_baseline.py, unit tests (16 passed in test_audit_warning_baseline.py), census probe D=0, K=0, X=0, N=0, T=0, P=0, M=0, R=0, S=0, F=51 (all 51 bound to in-memory fakes), 10/10 backend audit loop stages clean with 5,103 passed tests and 97.70% line coverage, 4/4 flutter audit loop stages clean, and 130 flutter execution tests passing.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ---
@@ -474,9 +481,9 @@
 
 ---
 
-# Session Handover Context
+## Historical Handover Archive (Phases 1–10)
 
-## Achieved
+### Achieved
 - Formally drafted `EPIC 157: Zero Permissive Typing & Test Persistence Modernization` at `@[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md]`.
 - Created detailed, fully verified implementation plans for Phase 1 (`@[docs/epic/tasks_EPIC_157/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_157/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_157/03_phase3_plan.md]`), Phase 4 (`@[docs/epic/tasks_EPIC_157/04_phase4_plan.md]`), Phase 5 (`@[docs/epic/tasks_EPIC_157/05_phase5_plan.md]`), Phase 6 (`@[docs/epic/tasks_EPIC_157/06_phase6_plan.md]`), and Phase 7 (`@[docs/epic/tasks_EPIC_157/07_phase7_plan.md]`).
 - Successfully created `implementation_plan.md` and `task.md` system artifacts for Phase 3, Phase 4, Phase 5, Phase 6, and Phase 7.
@@ -606,37 +613,33 @@
 
 # Session Handover Context
 
-### Achieved
+## Achieved
 - **Phase 11 Execution & Audit Completed**: Eradicated all 12 evasion anti-patterns in tests/scripts, locked Census P=0 and Census M=0, 5,097 tests passing (97.69% coverage), and completed Tier 8 Audit.
-- **Phase 12 Execution Completed (Commits `0f0dfac73`, `3d98f37ce`, `e3f11f8bd`, `3e0fb699b`, `45c396fe3`, `a95dccccd`, `3212e5efb`)**:
-  - Implemented rule `DGR005` in `scripts/_dart_guardrails.py` banning non-codec `Map<String, dynamic>` with unconditional FATAL severity while exempting serialization codecs `fromJson`/`toJson`.
-  - Promoted `DGR001` (loose Map returns) and `DGR004` (Dart lint suppressions) to unconditional FATAL severity in `scripts/_dart_guardrails.py` and `scripts/flutter_audit_loop.py`.
-  - Granted generated file immunity in `is_generated_dart_file` to `firebase_options.dart` and `client_app_v2/lib/l10n/gen/`.
-  - Added unit test coverage in `backend_v2/tests/unit/scripts/test_dart_guardrails.py` (33 passed, 97% coverage).
-  - Eradicated all 25 `// ignore:` suppressions across 23 Dart files (18 redundant Freezed comments, 1 `schema_mapper.dart` deprecation, 6 generated tooling exemptions).
-  - Retyped execution models (`execution_record.dart`, `execution_metadata.dart`, `frozen_context_snapshot.dart`, `workflow_inputs.dart`, `report_data_v2_dto.dart`, `distilled_evaluation.dart`, `execution_create_request_dto.dart`) to `Map<String, Object?>`.
-  - Retyped studio models & utilities (`workflow_cloner.dart` with all 11 occurrences, `workflow.dart`, `model_config.dart`, `workflow_simulation.dart`, `prompt_block.dart`) to `Map<String, Object?>`.
-  - Retyped API clients & network core (`studio_client.dart`, `execution_client.dart`, `reports_client.dart`, `sse_client.dart`, `workflow_client.dart`, `error_interceptor.dart`, `app_exception.dart`) to `Map<String, Object?>`.
-  - Retyped presentation views, controllers & shared widgets (26 files across `shared/widgets/`, `features/execution/views/`, `features/auth/`, `features/studio/views/`) to `Map<String, Object?>`.
-  - Monotonically locked `CURRENT_RESIDUAL_CEILINGS.r = 0` in `scripts/audit_warning_baseline.py`.
-  - Quality Gate Verification:
-    - `Get-ChildItem client_app_v2/lib -Recurse -Filter "*.dart" | Select-String -Pattern "Map<String,\s*dynamic>"`: exactly 0 non-codec occurrences (Census R=0).
-    - `uv run python scripts/_dart_guardrails.py client_app_v2/lib`: 0 FATAL violations across all rules (DGR001=0, DGR004=0, DGR005=0).
-    - `uv run python scripts/audit_warning_baseline.py --verify-zero`: 0 fatal violations, 0 advisory warnings, Census R=0 match.
-    - `uv run python scripts/audit_dto_parity.py`: 100% parity across all 46 shared models.
-    - `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`: All 4 stages (build_runner, guardrails, format, analyze) passed cleanly with exit code 0.
+- **Phase 12 Execution & Audit Completed**: Eradicated Census R (0 non-codec occurrences), DGR005/DGR001/DGR004 unconditional FATAL gates active, 25 lint suppressions eradicated, 46/46 shared DTO models aligned, 130 Flutter execution tests passing, flutter audit loop passing 4/4 stages, backend completion gate passing 10/10 stages (5,103 passed tests, 97.70% coverage), and completed Tier 8 Audit.
+- **Phase 13 Execution Completed (`@[docs/epic/tasks_EPIC_157/13_phase13_plan.md]`)**:
+  - Implemented Pre-Implementation Cleanups in `scripts/audit_warning_baseline.py`: eradicated dynamic reflection `getattr(live, field_name)` and `getattr(ceiling, field_name)` in `verify_residual_debt_ceilings` in favor of static property tuple iteration; narrowed exception swallowing in Census N tokenizer loop to `except (tokenize.TokenError, SyntaxError): pass`.
+  - Locked `CURRENT_RESIDUAL_CEILINGS` (EPIC 157 Phase 13 final lock) with d=0, f=51, k=0, x=0, n=0, t=0, p=0, m=0, r=0, s=0 and `CURRENT_WARNING_CEILING = 0`.
+  - Executed localized unit tests (`test_audit_warning_baseline.py`): 16/16 passed in 0.48s.
+  - Verified live baseline census probe (`audit_warning_baseline.py --verify-zero --check-residual`): returned exit code 0 with 0 fatal violations, 0 advisory warnings, and exact matches across all 10 census categories.
+  - Executed 10-stage universal backend audit loop (`scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`): all 10 stages clean, 5,103 tests passed, 97.70% line coverage (exceeding strict 90% target), exit code 0.
+  - Executed Flutter audit loop (`scripts/flutter_audit_loop.py client_app_v2/ --build`): code generation, Dart guardrails (DGR001, DGR004, DGR005 FATAL), format, and analyze clean, exit code 0.
+  - Executed Flutter execution tests (`flutter test test/features/execution/`): 130/130 passed, exit code 0.
+  - Synchronized AST line bounds for `verify_residual_debt_ceilings` (`#L216-L262`) in Phase 13 plan, passing `scripts/audit_markdown_boundaries.py` with 0 findings.
 
-### Learned
-- **Implicit Dynamic to fromJson Passing**: In Dart Dio responses and list transformations, passing raw item data directly to `Model.fromJson(item)` avoids explicit `as Map<String, dynamic>` casting while letting Dart safely deserialize without triggering DGR005.
-- **`Map.from` Map Conversion**: Calling `Map.from(raw)` safely creates a typed map that Freezed `fromJson` accepts without containing the banned `Map<String, dynamic>` syntax.
-- **GoRouter Extra State**: GoRouter's `state.extra` can be typed as `Map<String, Object?>?` and cast safely without dynamic map laundering.
-- **String Interpolation & Casting with `Map<String, Object?>`**: When map values are `Object?`, accessing them with `?? ""` produces an expression of type `Object`, not `String`. Using `?.toString() ?? ""` or explicit `as String?` is mathematically necessary and type-safe.
+## Learned
+- **Static Tuple Comparison Invariance**: Replacing dynamic `getattr` reflection with static tuple collections `(("d", live.d, ceiling.d), ...)` adheres strictly to `QGR001` and eliminates all reflection overhead while preserving full static analysis by MyPy strict.
+- **AST Span Synchronization (MBD004)**: Refactoring function bodies changes AST line spans in source code; planning and tracking documents must be synchronously audited with `scripts/audit_markdown_boundaries.py` to prevent line-span drift.
+- **Census Invariant Lock**: All 10 residual debt metrics are officially ratcheted and locked at their absolute physical floors (D=0, F=51, K=0, X=0, N=0, T=0, P=0, M=0, R=0, S=0) with 0 advisory warnings across backend_v2.
 
-### Remaining
-- **Phase 12 Tier 8 Audit (NEXT STEP)**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
-- **Phase 13 (Zero-Bypass Final Gate & Knowledge Synchronization)**: Full two-stage audit loop, CI hardening, and documentation sync.
+## Remaining
+- **Phase 13 Tier 8 Plan Audit (NEXT STEP)**: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
+- **Post-Implementation Gates**:
+  - `/tier2-hardening-backend`
+  - `/tier2-hardening-frontend`
+  - `/tier7-describe-architecture`
+  - `/tier8-audit-epic`
 
 ## Resume Command
 ```bash
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/12_phase12_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_157/13_phase13_plan.md] @[docs/epic/EPIC_157_tracker.md]
 ```
