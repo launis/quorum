@@ -21,7 +21,8 @@ import secrets
 import sys
 from enum import IntEnum
 from pathlib import Path
-from typing import Any
+
+from pydantic import JsonValue
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -88,7 +89,7 @@ def create_template_atom(
     inverse: bool = False,
     anchor_target: str = "Find logical markers and specific evidence clauses.",
     bounding_scope: str = "paragraph",
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Create a fully compliant, strictly typed TDA assertion dictionary.
 
     Args:
@@ -101,7 +102,7 @@ def create_template_atom(
         bounding_scope: Scope of search.
 
     Returns:
-        dict[str, Any]: TDA assertion dictionary.
+        dict[str, JsonValue]: TDA assertion dictionary.
     """
     contrastive = {
         "acceptable": acceptable_example,

@@ -415,9 +415,9 @@ class DictEradicationVisitor(ast.NodeVisitor):
                         ),
                     )
                 )
-            # Unauthorized Open-JSON / JsonValue dictionary check
+            # Unauthorized Open-JSON / JsonValue dictionary check in domain/service models
             jsonvalue_sub = _find_jsonvalue_dict_subscript(node.annotation)
-            if jsonvalue_sub is not None and not self.is_open_json_exempt:
+            if self.is_domain_or_service and jsonvalue_sub is not None and not self.is_open_json_exempt:
                 self.violations.append(
                     AuditViolation(
                         filepath=self.filepath,

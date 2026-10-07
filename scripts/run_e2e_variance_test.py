@@ -50,7 +50,7 @@ import re
 import subprocess
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -66,7 +66,7 @@ if sys.platform == "win32":
         sys.stderr.reconfigure(encoding="utf-8")
 
 import requests
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
@@ -132,7 +132,7 @@ def _normalize_token(text: str) -> str:
 
 def _match_input_key(
     candidate: str,
-    expected_inputs: list[dict[str, Any]] | list[ExpectedInput],
+    expected_inputs: Sequence[Mapping[str, JsonValue]] | list[ExpectedInput],
 ) -> str | None:
     """Match a candidate file stem against workflow expected inputs using 2-tier lexical matching.
 
@@ -222,8 +222,8 @@ def _match_input_key(
 
 def load_inputs_from_path(
     path: str | Path,
-    expected_inputs: list[dict[str, Any]] | list[ExpectedInput] | None = None,
-) -> dict[str, Any]:
+    expected_inputs: Sequence[Mapping[str, JsonValue]] | list[ExpectedInput] | None = None,
+) -> dict[str, JsonValue]:
     """Load inputs from a directory of files or a single JSON file.
 
     Processes files in the directory based on extension:
@@ -248,7 +248,7 @@ def load_inputs_from_path(
         raise FileNotFoundError(msg)
 
     if input_path.is_dir():
-        inputs: dict[str, Any] = {}
+        inputs: dict[str, JsonValue] = {}
         extracted_dates: list[str] = []
         source_files: dict[str, str] = {}
         for file_path in input_path.iterdir():
@@ -336,7 +336,7 @@ def load_inputs_from_path(
             msg = "JSON inputs file must contain a dictionary."
             raise ValueError(msg)
         if expected_inputs is not None:
-            mapped_data: dict[str, Any] = {}
+            mapped_data: dict[str, JsonValue] = {}
             json_source_slots: dict[str, str] = {}
             for k, v in data.items():
                 matched_k = _match_input_key(k, expected_inputs)
@@ -376,7 +376,7 @@ class MarkedInputsPayloadDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    marked_inputs: dict[str, Any] = Field(..., description="Deep copy of inputs dictionary with injected markers")
+    marked_inputs: dict[str, JsonValue] = Field(..., description="Deep copy of inputs dictionary with injected markers")
     marker_metadata: RunMarkerMetadataDTO = Field(..., description="Metadata describing the injected marker")
 
 
@@ -499,7 +499,7 @@ def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
 
 
 def inject_unique_run_marker(
-    inputs: dict[str, Any],
+    inputs: Mapping[str, JsonValue],
     run_index: int,
     stride: int = 50,
 ) -> MarkedInputsPayloadDTO:
@@ -718,7 +718,7 @@ def force_kill_services() -> None:
 
 
 def trigger_execution(
-    raw_inputs: dict[str, Any],
+    raw_inputs: Mapping[str, JsonValue],
     workflow_id: str | None = None,
     profile_id: str | None = None,
     target_locale: str = "fi",
@@ -753,7 +753,7 @@ def trigger_execution(
         raise RuntimeError(msg)
 
     # Dynamic workflow resolution (Strict Canonical Opaque ID only; slug is not a relational identifier)
-    resolved_workflow: dict[str, Any] | None = None
+    resolved_workflow: Mapping[str, JsonValue] | None = None
     if workflow_id:
         resolved_workflow = next(
             (w for w in workflows if w.get("id") == workflow_id),
@@ -790,10 +790,10 @@ def trigger_execution(
         f"Sending POST to {base_url}/execution/executions/ using workflow {final_workflow_id} "
         f"and profile {final_profile_id} (locale: {target_locale})"
     )
-    req_body: dict[str, Any] = {
+    req_body: dict[str, JsonValue] = {
         "workflow_id": final_workflow_id,
         "profile_id": final_profile_id,
-        "raw_inputs": {"dynamic_inputs": raw_inputs},
+        "raw_inputs": {"dynamic_inputs": dict(raw_inputs)},
         "target_locale": target_locale,
     }
     if provider_override:
@@ -829,7 +829,7 @@ def trigger_execution(
 
 
 def validate_execution_kelvollisuus(
-    target_exec: dict[str, Any],
+    target_exec: Mapping[str, JsonValue],
     trace_path: Path | None = None,
 ) -> tuple[bool, str]:
     """Validate that execution output is valid and did not suffer from data starvation.
@@ -879,7 +879,7 @@ def validate_execution_kelvollisuus(
 def resolve_model_telemetry(
     db_path: Path,
     registry_id: str | None = None,
-) -> dict[str, dict[str, Any]]:
+) -> dict[str, Mapping[str, JsonValue]]:
     """Load model registry from active database and resolve physical and effective parameters.
 
     Supports Option A flat tier definitions (fast, balanced, deep, reasoning) and multi-registry
@@ -903,7 +903,7 @@ def resolve_model_telemetry(
         return {}
 
     sys_configs = data.get("system_config", [])
-    configs_list: list[dict[str, Any]] = []
+    configs_list: list[Mapping[str, JsonValue]] = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -914,7 +914,7 @@ def resolve_model_telemetry(
         return {}
 
     # Target specific registry if requested
-    selected_registry: dict[str, Any] | None = None
+    selected_registry: Mapping[str, JsonValue] | None = None
     if registry_id:
         reg_term = registry_id.strip().lower()
         for r in registries:
@@ -933,7 +933,7 @@ def resolve_model_telemetry(
 
     target_registries = [selected_registry] if selected_registry else registries
 
-    models_dict: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+    models_dict: dict[str, tuple[Mapping[str, JsonValue], Mapping[str, JsonValue]]] = {}
     for cfg in target_registries:
         reg_provider = str(cfg.get("default_provider", "google")).lower()
         tier_defs = cfg.get("tier_definitions", {})
@@ -957,7 +957,7 @@ def resolve_model_telemetry(
             if isinstance(m_cfg, dict):
                 models_dict[m_name] = (m_cfg, cfg)
 
-    result: dict[str, dict[str, Any]] = {}
+    result: dict[str, Mapping[str, JsonValue]] = {}
     for strat, (mcfg, cfg) in models_dict.items():
         model_name = str(mcfg.get("model_name", "unknown"))
         provider = str(mcfg.get("provider", cfg.get("default_provider", "unknown")))
@@ -1072,7 +1072,7 @@ def resolve_comparison_registries(
     db_path: Path,
     workflow_id: str | None = None,
     compare_args: list[str] | None = None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[Mapping[str, JsonValue], Mapping[str, JsonValue]]:
     """Deterministically resolve two model registries for differential benchmark comparison.
 
     Args:
@@ -1095,7 +1095,7 @@ def resolve_comparison_registries(
         data = json.load(f)
 
     sys_configs = data.get("system_config", [])
-    configs_list: list[dict[str, Any]] = []
+    configs_list: list[Mapping[str, JsonValue]] = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -1106,7 +1106,7 @@ def resolve_comparison_registries(
         msg = f"Differential comparison requires at least 2 model registries in database, found {len(registries)}."
         raise ValueError(msg)
 
-    def match_reg(term: str) -> dict[str, Any] | None:
+    def match_reg(term: str) -> Mapping[str, JsonValue] | None:
         term_clean = term.strip().lower()
         for r in registries:
             if str(r.get("id", "")).lower() == term_clean:
@@ -1154,7 +1154,7 @@ def resolve_comparison_registries(
     # Auto comparison: Registry A is workflow's bound registry, Registry B is the first alternate
     wfs_raw = data.get("workflows", {})
     wfs_list = list(wfs_raw.values()) if isinstance(wfs_raw, dict) else list(wfs_raw)
-    target_wf: dict[str, Any] | None = None
+    target_wf: Mapping[str, JsonValue] | None = None
     if workflow_id:
         target_wf = next(
             (
@@ -1185,7 +1185,7 @@ def resolve_comparison_registries(
     return (reg_a, reg_b)
 
 
-def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> dict[str, Any] | None:
+def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> Mapping[str, JsonValue] | None:
     """Resolve single workflow and attached matrix parameters loaded directly from the database.
 
     Args:
@@ -1215,7 +1215,7 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
     return None
 
 
-def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]]:
+def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[Mapping[str, JsonValue]]:
     """Resolve all workflows and attached matrix parameters loaded directly from the database.
 
     Args:
@@ -1231,8 +1231,8 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]
     with target_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    def _to_id_map(raw: Any) -> dict[str, dict[str, Any]]:
-        m: dict[str, dict[str, Any]] = {}
+    def _to_id_map(raw: Any) -> dict[str, Mapping[str, JsonValue]]:
+        m: dict[str, Mapping[str, JsonValue]] = {}
         if isinstance(raw, dict):
             for v in raw.values():
                 if isinstance(v, dict) and "id" in v:
@@ -1256,7 +1256,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]
             return trans.get("fi") or trans.get("en") or next(iter(trans.values()), "")
         return str(val or "")
 
-    results: list[dict[str, Any]] = []
+    results: list[Mapping[str, JsonValue]] = []
 
     for target_wf in workflows_map.values():
         wf_id = str(target_wf.get("id"))
@@ -1271,7 +1271,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]
         passivity_penalty = float(target_wf.get("passivity_penalty", 0.0))
         default_profile_id = target_wf.get("default_profile_id")
 
-        steps_telemetry: list[dict[str, Any]] = []
+        steps_telemetry: list[Mapping[str, JsonValue]] = []
         total_matrices = 0
         total_scales = 0
         total_claims = 0
@@ -1287,7 +1287,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]
             strat = sdef.get("cognitive_tier") or sdef.get("model_strategy")
             crit_ids = sdef.get("criteria_block_ids", [])
 
-            step_matrices: list[dict[str, Any]] = []
+            step_matrices: list[Mapping[str, JsonValue]] = []
             for cid in crit_ids:
                 blk = blocks_map.get(cid)
                 if not blk or blk.get("category_id") != "matrix":
@@ -1297,7 +1297,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]
                 scales_raw = blk.get("scales", [])
                 total_scales += len(scales_raw)
 
-                m_scales: list[dict[str, Any]] = []
+                m_scales: list[Mapping[str, JsonValue]] = []
                 m_atoms = 0
                 m_high_entropy = 0
                 m_claims = 0
@@ -1513,7 +1513,7 @@ def poll_database_for_execution(
     target_db_path: Path,
     exec_id: str,
     timeout_seconds: int = 1800,
-) -> dict[str, Any] | None:
+) -> Mapping[str, JsonValue] | None:
     """Poll database until execution reaches a terminal status or timeout expires.
 
     Args:
@@ -1585,7 +1585,7 @@ def run_variance_test(
     """
     target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
 
-    comparison_pair: tuple[dict[str, Any], dict[str, Any]] | None = None
+    comparison_pair: tuple[Mapping[str, JsonValue], Mapping[str, JsonValue]] | None = None
     if compare_registries is not None:
         num_runs = 2
         comparison_pair = resolve_comparison_registries(
@@ -1664,7 +1664,7 @@ def run_variance_test(
     print("================================================================================")
 
     execution_ids: list[str] = []
-    cached_raw_inputs: dict[str, Any] | None = None
+    cached_raw_inputs: dict[str, JsonValue] | None = None
     run1_inputs_hash: str | None = None
 
     for i in range(num_runs):
@@ -1782,7 +1782,7 @@ def run_variance_test(
             print("No workflows found in database")
             sys.exit(1)
 
-        resolved_workflow: dict[str, Any] | None = None
+        resolved_workflow: Mapping[str, JsonValue] | None = None
         if workflow:
             resolved_workflow = next(
                 (w for w in workflows if w.get("id") == workflow),

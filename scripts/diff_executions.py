@@ -28,6 +28,7 @@ import re
 import subprocess
 import sys
 import unicodedata
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -37,7 +38,7 @@ _workspace_root = str(Path(__file__).resolve().parent.parent)
 if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.matrix import ContrastivePairDTO
@@ -131,12 +132,40 @@ class KappaMetricsDTO(BaseModel):
     marginal_bias: float | None = None
 
 
+class BlockOutcomeCountsDTO(BaseModel):
+    """Counts of evaluation outcomes per prompt block."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    PASS: int = 0
+    FAIL: int = 0
+    DLQ: int = 0
+    OTHER: int = 0
+
+
+class FileInspectionsByRunDTO(BaseModel):
+    """Inspections across runs for a specific input file."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    by_run: dict[str, InputFileInspectionDTO] = Field(default_factory=dict)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.by_run
+
+    def __getitem__(self, key: str) -> InputFileInspectionDTO:
+        return self.by_run[key]
+
+    def __setitem__(self, key: str, value: InputFileInspectionDTO) -> None:
+        self.by_run[key] = value
+
+
 class IsolationAuditDTO(BaseModel):
     """Immutable cross-run input document cache isolation audit container."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    input_hashes_by_run: dict[str, dict[str, str]]
+    input_hashes_by_run: Mapping[str, Mapping[str, str]]
     shared_identical_files: list[str]
     is_fully_isolated: bool
     disable_vertex_cache_active: bool
@@ -568,7 +597,7 @@ def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
     )
 
 
-def get_all_evals(path: str | Path) -> dict[str, dict[str, Any]]:
+def get_all_evals(path: str | Path) -> dict[str, Mapping[str, JsonValue]]:
     """Extract all evaluated atom dictionaries from an execution trace file.
 
     Args:
@@ -580,7 +609,7 @@ def get_all_evals(path: str | Path) -> dict[str, dict[str, Any]]:
     file_path = Path(path)
     with file_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-    all_evals: dict[str, dict[str, Any]] = {}
+    all_evals: dict[str, Mapping[str, JsonValue]] = {}
     for step in data:
         if "content" in step and isinstance(step["content"], dict):
             evals = step["content"].get("evaluations")
@@ -783,7 +812,7 @@ def calculate_fleiss_kappa(atom_states_list: list[list[str]], categories: list[s
     return (p_mean - p_e) / (1.0 - p_e)
 
 
-def get_state(e: dict[str, Any]) -> str:
+def get_state(e: Mapping[str, JsonValue]) -> str:
     """Determine the normalized discrete status string of an atom evaluation dictionary.
 
     Args:
@@ -825,7 +854,7 @@ def get_state(e: dict[str, Any]) -> str:
     return "unknown"
 
 
-def get_trace(e: dict[str, Any]) -> str:
+def get_trace(e: Mapping[str, JsonValue]) -> str:
     """Extract qualitative reasoning trace string from an evaluation dictionary.
 
     Args:
@@ -847,7 +876,7 @@ def get_trace(e: dict[str, Any]) -> str:
     return ""
 
 
-def has_quote(e: dict[str, Any]) -> bool:
+def has_quote(e: Mapping[str, JsonValue]) -> bool:
     """Check if an evaluation record contains a non-empty, non-blacklisted quote.
 
     Args:
@@ -885,7 +914,7 @@ def has_quote(e: dict[str, Any]) -> bool:
     return eq_lower not in blacklist
 
 
-def uses_contextual_override(e: dict[str, Any]) -> bool:
+def uses_contextual_override(e: Mapping[str, JsonValue]) -> bool:
     """Check if an evaluation record triggered or applied contextual override.
 
     Args:
@@ -978,7 +1007,7 @@ def verify_quote_in_corpus(
     return md_norm_corpus.find(md_eq) != -1
 
 
-def classify_disagreement(eval_1: dict[str, Any], eval_2: dict[str, Any]) -> DisagreementRootCause:
+def classify_disagreement(eval_1: Mapping[str, JsonValue], eval_2: Mapping[str, JsonValue]) -> DisagreementRootCause:
     """Deterministically classify an evaluation disagreement into a root cause tier.
 
     Args:
@@ -1036,7 +1065,7 @@ def extract_block_normalized_scores(trace_path: Path) -> dict[str, float]:
     return scores
 
 
-def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, dict[str, Any]]:
+def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, Mapping[str, JsonValue]]:
     """Extract block-level raw scores, normalized scores, and waterfall diagnostics from trace.
 
     Args:
@@ -1045,7 +1074,7 @@ def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, dict[str, A
     Returns:
         Mapping of block ID to dict with normalized_score, raw_score, level_breakdown, waterfall_breakpoint.
     """
-    diagnostics: dict[str, dict[str, Any]] = {}
+    diagnostics: dict[str, Mapping[str, JsonValue]] = {}
     if not trace_path.exists():
         return diagnostics
     try:
@@ -1166,7 +1195,7 @@ def calculate_user_documentation_volume(
     )
 
 
-def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -> WorkflowProvenanceDTO | None:
+def extract_workflow_provenance(seed: Mapping[str, JsonValue], workflow_id: str | None) -> WorkflowProvenanceDTO | None:
     """Extract workflow provenance and governance switches snapshot from seed data.
 
     Args:
@@ -1180,7 +1209,7 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
     if not workflows:
         return None
 
-    target_wf: dict[str, Any] | None = None
+    target_wf: Mapping[str, JsonValue] | None = None
     if workflow_id:
         target_wf = next((w for w in workflows if w.get("id") == workflow_id), None)
     if target_wf is None and workflows:
@@ -1237,7 +1266,7 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
     )
 
 
-def resolve_physical_model_bindings(seed: dict[str, Any], registry_id: str) -> list[PhysicalModelBindingDTO]:
+def resolve_physical_model_bindings(seed: Mapping[str, JsonValue], registry_id: str) -> list[PhysicalModelBindingDTO]:
     """Resolve physical model bindings and execution hyperparameters from system config for a specific registry.
 
     Args:
@@ -1258,7 +1287,7 @@ def resolve_physical_model_bindings(seed: dict[str, Any], registry_id: str) -> l
         )
 
     sys_configs = seed.get("system_config", [])
-    configs_list: list[dict[str, Any]] = []
+    configs_list: list[Mapping[str, JsonValue]] = []
     if isinstance(sys_configs, dict):
         configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
     elif isinstance(sys_configs, list):
@@ -1389,8 +1418,8 @@ def resolve_physical_model_bindings(seed: dict[str, Any], registry_id: str) -> l
 
 
 def extract_evidence_distribution(
-    evals: dict[str, dict[str, Any]],
-    atom_details: dict[str, dict[str, Any]] | None = None,
+    evals: Mapping[str, Mapping[str, JsonValue]],
+    atom_details: Mapping[str, Mapping[str, JsonValue]] | None = None,
     enable_contextual_overrides: bool = True,
     run_name: str = "",
 ) -> EvidenceDistributionDTO:
@@ -1502,7 +1531,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     base_executions_dir = Path("data/files/executions")
     loaded_runs: list[str] = []
     loaded_paths: list[Path] = []
-    evals_list: list[dict[str, dict[str, Any]]] = []
+    evals_list: list[Mapping[str, Mapping[str, JsonValue]]] = []
 
     if execution_ids:
         for exe_id in execution_ids:
@@ -1554,7 +1583,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         )
 
     seed_path = Path("backend_v2/seed/seed_data.json")
-    seed: dict[str, Any] = {}
+    seed: Mapping[str, JsonValue] = {}
     try:
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
@@ -1563,7 +1592,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             seed = json.load(f)
 
     atom_rules: dict[str, str] = {}
-    atom_details: dict[str, dict[str, Any]] = {}
+    atom_details: dict[str, Mapping[str, JsonValue]] = {}
     atom_to_block: dict[str, str] = {}
     atom_definitions: dict[str, TdaAtomDefinitionDTO] = {}
 
@@ -1848,7 +1877,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     except (ImportError, AttributeError, KeyError, ValueError, RuntimeError) as e:
         sys_enums = f"Virhe Enumien luvussa: {e}"
 
-    db_executions: dict[str, Any] = {}
+    db_executions: Mapping[str, JsonValue] = {}
     db_file_path = Path("data/db_v2.json")
     if db_file_path.exists():
         try:
@@ -1859,7 +1888,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             print(f"Warning: db_v2.json read error: {e}")
 
     # Isolation Audit & SHA-256 Hashes
-    input_hashes_by_run: dict[str, dict[str, str]] = {}
+    input_hashes_by_run: dict[str, Mapping[str, str]] = {}
     for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
         in_dir = p.parent / "inputs"
         r_hashes: dict[str, str] = {}
@@ -1906,7 +1935,9 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     total_tech_errors = 0
     total_dlqs = 0
     for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
-        health_run_record: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == r_name), {})
+        health_run_record: Mapping[str, JsonValue] = next(
+            (v for v in db_executions.values() if isinstance(v, dict) and v.get("id") == r_name), {}
+        )
         status_val = health_run_record.get("status")
         if status_val not in ["PASSED", "passed"]:
             all_runs_passed = False
@@ -2078,7 +2109,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     run_norm_corpuses: list[str] = []
     run_html_norm_corpuses: list[str] = []
     run_md_norm_corpuses: list[str] = []
-    grounding_results_by_run: list[dict[str, Any]] = []
+    grounding_results_by_run: list[Mapping[str, JsonValue]] = []
     for idx, (r_name, p) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
         run_in_dir = p.parent / "inputs"
         corpus = ""
@@ -2177,8 +2208,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         all_evaluations[atom] = atom_snapshots
 
     frozen_context_info = "Ei saatavilla"
-    first_run_record: dict[str, Any] = (
-        next((v for v in db_executions.values() if v.get("id") == loaded_runs[0]), {}) if loaded_runs else {}
+    first_run_record: Mapping[str, JsonValue] = (
+        next((v for v in db_executions.values() if isinstance(v, dict) and v.get("id") == loaded_runs[0]), {})
+        if loaded_runs
+        else {}
     )
     frozen_data = first_run_record.get("frozen_context")
 
@@ -2194,23 +2227,23 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     if frozen_data and isinstance(frozen_data, dict):
         hints = frozen_data.get("ui_hints_snapshot", {})
         if hints:
-            block_stats_by_run: list[dict[str, dict[str, int]]] = []
+            block_stats_by_run: list[Mapping[str, BlockOutcomeCountsDTO]] = []
             for evals in evals_list:
-                block_stats: dict[str, dict[str, int]] = {}
+                block_stats: dict[str, BlockOutcomeCountsDTO] = {}
                 for atom_id, ev in evals.items():
                     bid = atom_to_block.get(atom_id)
                     if bid:
                         if bid not in block_stats:
-                            block_stats[bid] = {"PASS": 0, "FAIL": 0, "DLQ": 0, "OTHER": 0}
+                            block_stats[bid] = BlockOutcomeCountsDTO()
                         s = get_state(ev).lower()
                         if s in ["true", "pass", "passed"]:
-                            block_stats[bid]["PASS"] += 1
+                            block_stats[bid].PASS += 1
                         elif s in ["false", "fail", "failed"]:
-                            block_stats[bid]["FAIL"] += 1
+                            block_stats[bid].FAIL += 1
                         elif s == "dlq":
-                            block_stats[bid]["DLQ"] += 1
+                            block_stats[bid].DLQ += 1
                         else:
-                            block_stats[bid]["OTHER"] += 1
+                            block_stats[bid].OTHER += 1
                 block_stats_by_run.append(block_stats)
 
             frozen_lines: list[str] = []
@@ -2225,10 +2258,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 run_strs: list[str] = []
                 total_evaluated = 0
                 for r_idx, stats in enumerate(block_stats_by_run):
-                    b_stat = stats.get(block_id, {})
-                    pass_c = b_stat.get("PASS", 0)
-                    fail_c = b_stat.get("FAIL", 0)
-                    dlq_c = b_stat.get("DLQ", 0)
+                    b_stat = stats.get(block_id, BlockOutcomeCountsDTO())
+                    pass_c = b_stat.PASS
+                    fail_c = b_stat.FAIL
+                    dlq_c = b_stat.DLQ
 
                     if pass_c > 0 or fail_c > 0 or dlq_c > 0:
                         total_evaluated += 1
@@ -2245,7 +2278,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 frozen_context_info = "\n" + "\n".join(frozen_lines)
 
     # Per-run cost and token accumulator for FinOps section
-    run_finops: list[dict[str, Any]] = []
+    run_finops: list[Mapping[str, JsonValue]] = []
 
     with report_path.open("w", encoding="utf-8") as f:
         f.write("# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n")
@@ -2301,8 +2334,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         wf_prov = extract_workflow_provenance(seed, first_wf_id)
         physical_models_by_run: dict[str, list[PhysicalModelBindingDTO]] = {}
         for idx, run_name in enumerate(loaded_runs):
-            run_rec: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == run_name), {})
-            reg_id = run_rec.get("model_registry_id") or run_rec.get("metadata", {}).get("model_registry_id")
+            run_rec: Mapping[str, JsonValue] = next(
+                (v for v in db_executions.values() if isinstance(v, dict) and v.get("id") == run_name), {}
+            )
+            reg_id = run_rec.get("model_registry_id") or (
+                run_rec.get("metadata", {}).get("model_registry_id")
+                if isinstance(run_rec.get("metadata"), dict)
+                else None
+            )
             if not reg_id and idx < len(loaded_paths):
                 run_frozen_path = loaded_paths[idx].parent / "frozen_context.json"
                 if run_frozen_path.exists():
@@ -2435,10 +2474,15 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             abs_path = str(exe_path.resolve()).replace("\\", "/")
             f.write(f"- **Run {idx + 1}:** `{run_name}` (Lähde: [{exe_path}](file:///{abs_path}))\n")
 
-            run_record: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == run_name), {})
-            meta = run_record.get("metadata", {})
-            exec_summary = meta.get("execution_summary", {})
-            agg_usage = exec_summary.get("aggregated_usage", {})
+            run_record: Mapping[str, JsonValue] = next(
+                (v for v in db_executions.values() if isinstance(v, dict) and v.get("id") == run_name), {}
+            )
+            meta_val = run_record.get("metadata")
+            meta = meta_val if isinstance(meta_val, dict) else {}
+            exec_summary_val = meta.get("execution_summary")
+            exec_summary = exec_summary_val if isinstance(exec_summary_val, dict) else {}
+            agg_usage_val = exec_summary.get("aggregated_usage")
+            agg_usage = agg_usage_val if isinstance(agg_usage_val, dict) else {}
 
             prompt_tok = int(
                 run_record.get("prompt_tokens") or agg_usage.get("prompt_tokens") or meta.get("prompt_tokens") or 0
@@ -2673,14 +2717,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
         # Input Corpus Profiling & Structural Volume Table
         # Phase 3, Step 3.3: Strongly typed InputFileInspectionDTO storage
-        all_input_files: dict[str, dict[str, InputFileInspectionDTO]] = {}
+        all_input_files: dict[str, FileInspectionsByRunDTO] = {}
         for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
             r_in_dir = p.parent / "inputs"
             if r_in_dir.is_dir():
                 for in_f in sorted(r_in_dir.iterdir()):
                     if in_f.is_file():
                         if in_f.name not in all_input_files:
-                            all_input_files[in_f.name] = {}
+                            all_input_files[in_f.name] = FileInspectionsByRunDTO()
                         all_input_files[in_f.name][r_name] = _inspect_input_file(in_f)
 
         if all_input_files:
@@ -2949,8 +2993,12 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n")
         evidence_distributions: list[EvidenceDistributionDTO] = []
         for r_idx, (r_name, ev_map) in enumerate(zip(loaded_runs, evals_list, strict=False)):
-            r_rec: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == r_name), {})
-            r_wf_id = r_rec.get("workflow_id") or r_rec.get("metadata", {}).get("workflow_id")
+            r_rec: Mapping[str, JsonValue] = next(
+                (v for v in db_executions.values() if isinstance(v, dict) and v.get("id") == r_name), {}
+            )
+            r_wf_id = r_rec.get("workflow_id") or (
+                r_rec.get("metadata", {}).get("workflow_id") if isinstance(r_rec.get("metadata"), dict) else None
+            )
             r_prov = extract_workflow_provenance(seed, r_wf_id)
             r_override_enabled = r_prov.enable_contextual_overrides if r_prov else True
             dist = extract_evidence_distribution(

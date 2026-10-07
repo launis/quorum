@@ -16,7 +16,8 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+
+from pydantic import JsonValue
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -91,7 +92,7 @@ def migrate_seed_data(
         sys.exit(1)
 
     with open(seed_path, encoding="utf-8") as f:
-        data: dict[str, Any] = json.load(f)
+        data: dict[str, JsonValue] = json.load(f)
 
     if not dry_run:
         # 1. Create timestamped and canonical backup copies

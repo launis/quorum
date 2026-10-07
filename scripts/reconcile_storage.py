@@ -13,7 +13,6 @@ import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -26,7 +25,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 from tinydb import Query, TinyDB
 
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -150,8 +149,8 @@ def _resolve_trace_path(storage_dir: Path, exe_id: str, trace_path_raw: str | No
 
 
 def _reconstitute_execution_record(
-    exe_id: str, storage_dir: Path, template_record: dict[str, Any] | None
-) -> dict[str, Any]:
+    exe_id: str, storage_dir: Path, template_record: dict[str, JsonValue] | None
+) -> dict[str, JsonValue]:
     """Constructs and validates an ExecutionRecord dictionary for an unindexed physical disk execution.
 
     Args:
@@ -215,7 +214,7 @@ def _reconstitute_execution_record(
             status_message=None,
         )
 
-    dumped: dict[str, Any] = record.model_dump(mode="json")
+    dumped: dict[str, JsonValue] = record.model_dump(mode="json")
     return dumped
 
 

@@ -14,7 +14,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):
@@ -27,7 +27,7 @@ _workspace_root = Path(__file__).resolve().parent.parent
 if str(_workspace_root) not in sys.path:
     sys.path.insert(0, str(_workspace_root))
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.enums import PromptBlockCategory
@@ -95,10 +95,13 @@ def load_matrix_by_id(matrix_id: str, seed_path: Path = Path("backend_v2/seed/se
         ValueError: If matrix ID is absent or category is not matrix.
     """
     data = json.loads(seed_path.read_text(encoding="utf-8"))
-    blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
+    blocks: list[JsonValue] = (
+        data["prompt_blocks"] if "prompt_blocks" in data and isinstance(data["prompt_blocks"], list) else []
+    )
     for b in blocks:
         if (
-            "id" in b
+            isinstance(b, dict)
+            and "id" in b
             and b["id"] == matrix_id
             and "category_id" in b
             and b["category_id"] == PromptBlockCategory.MATRIX.value
@@ -315,14 +318,20 @@ def apply_matrix_slice(
     if fatal_coherence:
         raise ValueError(f"Slice '{slice_mat.id}' contains fatal field incoherence: {fatal_coherence}")
 
-    data: dict[str, Any] = json.loads(seed_path.read_text(encoding="utf-8"))
-    blocks: list[dict[str, Any]] = data["prompt_blocks"] if "prompt_blocks" in data else []
+    data: dict[str, JsonValue] = json.loads(seed_path.read_text(encoding="utf-8"))
+    blocks: list[JsonValue] = (
+        data["prompt_blocks"] if "prompt_blocks" in data and isinstance(data["prompt_blocks"], list) else []
+    )
     cat = PromptBlockCategory.MATRIX.value
     target_idx = next(
         (
             i
             for i, b in enumerate(blocks)
-            if "id" in b and b["id"] == slice_mat.id and "category_id" in b and b["category_id"] == cat
+            if isinstance(b, dict)
+            and "id" in b
+            and b["id"] == slice_mat.id
+            and "category_id" in b
+            and b["category_id"] == cat
         ),
         None,
     )

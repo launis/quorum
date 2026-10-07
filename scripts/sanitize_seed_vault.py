@@ -18,8 +18,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -32,7 +33,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
@@ -240,7 +241,7 @@ def create_vault_backup(seed_path: Path) -> Path:
     return backup_file
 
 
-def atomic_save_seed_data(data: dict[str, Any], target_path: Path) -> None:
+def atomic_save_seed_data(data: Mapping[str, JsonValue], target_path: Path) -> None:
     """Atomically writes sanitized dictionary to target_path using temporary file replacement.
 
     Args:
@@ -272,7 +273,7 @@ def atomic_save_seed_data(data: dict[str, Any], target_path: Path) -> None:
     os.replace(temp_name, target_path)
 
 
-def sanitize_prompt_blocks(prompt_blocks: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+def sanitize_prompt_blocks(prompt_blocks: Sequence[Mapping[str, JsonValue]]) -> tuple[list[JsonValue], int]:
     """Sanitizes prompt_blocks collection, matrix atoms, and prompt texts.
 
     Args:
@@ -281,7 +282,7 @@ def sanitize_prompt_blocks(prompt_blocks: list[dict[str, Any]]) -> tuple[list[di
     Returns:
         A tuple of (sanitized blocks, mutated atoms count).
     """
-    sanitized_blocks: list[dict[str, Any]] = []
+    sanitized_blocks: list[JsonValue] = []
     mutated_atoms_count = 0
 
     for block in prompt_blocks:
@@ -296,17 +297,17 @@ def sanitize_prompt_blocks(prompt_blocks: list[dict[str, Any]]) -> tuple[list[di
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
             scales = b["scales"] if "scales" in b else []
             if isinstance(scales, list):
-                new_scales: list[dict[str, Any]] = []
+                new_scales: list[JsonValue] = []
                 for scale in scales:
                     s = dict(scale)
                     claims = s["claims"] if "claims" in s else []
                     if isinstance(claims, list):
-                        new_claims: list[dict[str, Any]] = []
+                        new_claims: list[JsonValue] = []
                         for claim in claims:
                             c = dict(claim)
                             assertions = c["tda_assertions"] if "tda_assertions" in c else []
                             if isinstance(assertions, list):
-                                new_assertions: list[dict[str, Any]] = []
+                                new_assertions: list[JsonValue] = []
                                 for assertion in assertions:
                                     a = dict(assertion)
                                     tda_id = str(a["tda_id"]) if "tda_id" in a else ""
@@ -346,7 +347,7 @@ def sanitize_prompt_blocks(prompt_blocks: list[dict[str, Any]]) -> tuple[list[di
                 b["scales"] = new_scales
 
         # Validate with strict Pydantic V2 TypeAdapter
-        adapter_blocks = cast(TypeAdapter[Any], STANDARD_REGISTRY["prompt_blocks"]["model"])
+        adapter_blocks = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["prompt_blocks"]["model"])
         validated_model = adapter_blocks.validate_python(b)
         serialized_block = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_blocks.append(serialized_block)
@@ -354,7 +355,7 @@ def sanitize_prompt_blocks(prompt_blocks: list[dict[str, Any]]) -> tuple[list[di
     return sanitized_blocks, mutated_atoms_count
 
 
-def sanitize_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def sanitize_steps(steps: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
     """Sanitizes steps collection and validates with Pydantic V2.
 
     Args:
@@ -363,8 +364,8 @@ def sanitize_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Returns:
         Sanitized and validated step dictionaries.
     """
-    sanitized_steps: list[dict[str, Any]] = []
-    adapter_steps = cast(TypeAdapter[Any], STANDARD_REGISTRY["steps"]["model"])
+    sanitized_steps: list[JsonValue] = []
+    adapter_steps = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["steps"]["model"])
 
     for step in steps:
         s = dict(step)
@@ -380,7 +381,7 @@ def sanitize_steps(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sanitized_steps
 
 
-def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def sanitize_workflows(workflows: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
     """Sanitizes workflows collection and validates with Pydantic V2.
 
     Args:
@@ -389,8 +390,8 @@ def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Returns:
         Sanitized and validated workflow dictionaries.
     """
-    sanitized_workflows: list[dict[str, Any]] = []
-    adapter_workflows = cast(TypeAdapter[Any], STANDARD_REGISTRY["workflows"]["model"])
+    sanitized_workflows: list[JsonValue] = []
+    adapter_workflows = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["workflows"]["model"])
 
     for workflow in workflows:
         w = dict(workflow)
@@ -410,7 +411,7 @@ def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sanitized_workflows
 
 
-def sanitize_output_profiles(output_profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def sanitize_output_profiles(output_profiles: Sequence[Mapping[str, JsonValue]]) -> list[JsonValue]:
     """Sanitizes output_profiles collection and validates with Pydantic V2.
 
     Args:
@@ -419,8 +420,8 @@ def sanitize_output_profiles(output_profiles: list[dict[str, Any]]) -> list[dict
     Returns:
         Sanitized and validated output profile dictionaries.
     """
-    sanitized_profiles: list[dict[str, Any]] = []
-    adapter_profiles = cast(TypeAdapter[Any], STANDARD_REGISTRY["output_profiles"]["model"])
+    sanitized_profiles: list[JsonValue] = []
+    adapter_profiles = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["output_profiles"]["model"])
 
     for profile in output_profiles:
         p = dict(profile)
