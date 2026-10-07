@@ -61,48 +61,47 @@ def scan_code_for_concurrency(code: str) -> dict[str, bool]:
 
 
 def scan_file_for_concurrency(filepath: Path) -> dict[str, bool]:
-    if not filepath.exists():
-        return {"semaphore": False, "taskgroup": False, "enqueue_job": False}
+    assert filepath.exists(), f"Guardrail target missing: {filepath}"
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_concurrency(code)
 
 
 def test_ast_semaphore_guardrail() -> None:
-    base = Path("backend_v2")
+    base = Path(__file__).resolve().parents[2]
     provider_path = base / "llm" / "provider.py"
     dag_executor_path = base / "services" / "orchestrator" / "dag_executor.py"
 
-    if provider_path.exists():
-        res = scan_file_for_concurrency(provider_path)
-        assert res["semaphore"] is True, f"Missing asyncio.Semaphore in {provider_path}"
+    assert provider_path.exists(), f"Target missing: {provider_path}"
+    res = scan_file_for_concurrency(provider_path)
+    assert res["semaphore"] is True, f"Missing asyncio.Semaphore in {provider_path}"
 
-    if dag_executor_path.exists():
-        res = scan_file_for_concurrency(dag_executor_path)
-        assert res["semaphore"] is True, f"Missing asyncio.Semaphore in {dag_executor_path}"
+    assert dag_executor_path.exists(), f"Target missing: {dag_executor_path}"
+    res = scan_file_for_concurrency(dag_executor_path)
+    assert res["semaphore"] is True, f"Missing asyncio.Semaphore in {dag_executor_path}"
 
 
 def test_ast_taskgroup_guardrail() -> None:
-    base = Path("backend_v2")
+    base = Path(__file__).resolve().parents[2]
     files = [
         base / "services" / "orchestrator" / "dag_executor.py",
         base / "workers" / "synthesis_worker.py",
     ]
     for path in files:
-        if path.exists():
-            res = scan_file_for_concurrency(path)
-            assert res["taskgroup"] is True, f"Missing asyncio.TaskGroup in {path}"
+        assert path.exists(), f"Target missing: {path}"
+        res = scan_file_for_concurrency(path)
+        assert res["taskgroup"] is True, f"Missing asyncio.TaskGroup in {path}"
 
 
 def test_ast_enqueue_job_guardrail() -> None:
-    base = Path("backend_v2")
+    base = Path(__file__).resolve().parents[2]
     files = [
         base / "services" / "report_service.py",
         base / "services" / "execution" / "ingress_service.py",
     ]
     for path in files:
-        if path.exists():
-            res = scan_file_for_concurrency(path)
-            assert res["enqueue_job"] is True, f"Missing enqueue_job in {path}"
+        assert path.exists(), f"Target missing: {path}"
+        res = scan_file_for_concurrency(path)
+        assert res["enqueue_job"] is True, f"Missing enqueue_job in {path}"
 
 
 def test_negative_missing_construct_detection() -> None:

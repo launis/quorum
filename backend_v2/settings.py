@@ -173,8 +173,10 @@ class Settings(BaseSettings):
     max_extracted_atoms_per_document: Annotated[
         int, Field(description="Global limit on number of extracted atoms per document to prevent DB bloat")
     ] = 1000
-    max_concurrent_workflows: Annotated[int, Field(description="Max parallel workflow chunks")] = 10
-    max_concurrent_llm_steps: Annotated[int, Field(description="Max parallel LLM extractions within a TaskGroup")] = 3
+    max_concurrent_workflows: Annotated[int, Field(ge=1, description="Max parallel workflow chunks")] = 10
+    max_concurrent_llm_steps: Annotated[
+        int, Field(ge=1, description="Max parallel Phase 2 synthesis LLM tasks per synthesis job")
+    ] = 3
     llm_max_schema_retries: Annotated[int, Field(description="Max retries for schema validation failures")] = 2
     llm_max_logical_retries: Annotated[int, Field(description="Max retries for logical validation failures")] = 2
     llm_max_transient_retries: Annotated[int, Field(description="Max retries for transient network errors")] = 3
@@ -209,9 +211,11 @@ class Settings(BaseSettings):
     ] = 30
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
-    semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2
-    semaphore_max_concurrency: Annotated[int, Field(description="Max simultaneous active LLM connections")] = 10
-    semaphore_rpm_divisor: Annotated[int, Field(description="Divisor applied to requested RPM constraint")] = 10
+    semaphore_low_rpm_limit: Annotated[
+        int, Field(ge=1, description="Concurrency limit for low RPM environments")
+    ] = 2
+    semaphore_max_concurrency: Annotated[int, Field(ge=1, description="Max simultaneous active LLM connections")] = 10
+    semaphore_rpm_divisor: Annotated[int, Field(ge=1, description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield")] = (

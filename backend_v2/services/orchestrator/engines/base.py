@@ -26,6 +26,6 @@ class ExecutionEngine(Protocol):
             The EngineExecutionResult with projected atoms and references.
 
         Raises:
-            AppException: If engine execution fails catastrophically or concurrency bounds are exceeded.
+            AppException: If engine execution fails catastrophically.
         """
         ...
