@@ -151,16 +151,8 @@ class LLMNodeStrategy(NodeStrategy):
         if atoms_by_input:
             doc_aliases = list(atoms_by_input.keys())
 
-        raw_inputs_dict: Mapping[str, object] = {}
-        dynamic_inputs_dict: Mapping[str, object] = {}
-        if isinstance(hook_state.inputs, ExecutionInputsDTO):
-            raw_inputs_dict = hook_state.inputs.raw_inputs
-            dynamic_inputs_dict = hook_state.inputs.dynamic_inputs
-        else:
-            if not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
-                dynamic_inputs_dict = dict(hook_state.inputs)
-            else:
-                dynamic_inputs_dict = {}
+        raw_inputs_dict: Mapping[str, DomainInputValue] = hook_state.inputs.raw_inputs
+        dynamic_inputs_dict: Mapping[str, DomainInputValue] = hook_state.inputs.dynamic_inputs
 
         dag_results: dict[str, AtomResultDTO] = {}
         combined_inputs: list[Any] = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
@@ -505,18 +497,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id))
 
-        if "metadata" not in state_data and hook_state.metadata:
-            state_data["metadata"] = hook_state.metadata
-        if (
-            "raw_inputs" not in state_data
-            and isinstance(hook_state.inputs, ExecutionInputsDTO)
-            and hook_state.inputs.raw_inputs
-        ):
-            state_data["raw_inputs"] = hook_state.inputs.raw_inputs
-
         llm_context_data, new_input_mappings = ContextBuilder.build(
             input_mappings=input_mappings,
-            state_data=state_data,
+            state_data=hook_state,
             output_profile=output_profile,
             schema_map=schema_map,
             criteria_blocks=criteria_blocks,

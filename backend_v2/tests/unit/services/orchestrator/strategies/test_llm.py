@@ -1,20 +1,48 @@
 import asyncio
+from collections.abc import Mapping
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 
+from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import DraftAtomList, GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _make_mock_hook_state(
+    inputs: ExecutionInputsDTO | Mapping[str, Any] | None = None,
+    *,
+    execution_id: str = "exec_1",
+    workflow_id: str = "wf_1",
+    metadata: ExecutionMetadata | None = None,
+    global_context_vars: GlobalContextVarsDTO | None = None,
+) -> HookState:
+    if isinstance(inputs, ExecutionInputsDTO):
+        inp = inputs
+    elif isinstance(inputs, Mapping):
+        raw = dict(inputs.get("inputs", {}) if isinstance(inputs.get("inputs"), Mapping) else {})
+        dyn = {k: v for k, v in inputs.items() if k not in ("inputs", "raw_inputs")}
+        inp = ExecutionInputsDTO.model_construct(raw_inputs=raw, dynamic_inputs=dyn)
+    else:
+        inp = ExecutionInputsDTO()
+    return HookState.model_construct(
+        execution_id=execution_id,
+        workflow_id=workflow_id,
+        metadata=metadata or ExecutionMetadata(),
+        global_context_vars=global_context_vars or GlobalContextVarsDTO(),
+        inputs=inp,
+    )
 
 
 class DummySynthesisOutputDTO(BaseModel):
@@ -388,9 +416,7 @@ async def test_execute_success_path_structured_output(
         }
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state({"path": {"to": {"test": "value"}}})
 
     from backend_v2.models.dtos.engine import EngineExecutionResult
     from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
@@ -513,9 +539,7 @@ async def test_llm_strategy_missing_atoms_crash(
             },
         ]
     )
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}  # Missing shuffled_atoms
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state({})  # Missing shuffled_atoms
 
     from unittest.mock import AsyncMock, patch
 
@@ -750,9 +774,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.001),
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"inputs": {"doc": "Sample text for extraction"}}
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state({"inputs": {"doc": "Sample text for extraction"}})
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
@@ -847,21 +869,23 @@ async def test_execute_synthesis_engine_path(
     from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
     from backend_v2.models.enums import ExecutionStatus
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = ExecutionInputsDTO(
-        dynamic_inputs={
-            "prev_step": [
-                AtomResultDTO(
-                    tda_id="tda_123",
-                    status=ExecutionStatus.PASSED,
-                    evaluation_reasoning="Evaluation passed based on criteria.",
-                    contextual_override=True,
-                    extracted_data=ExtractedValueDTO(value=4.0),
-                )
-            ]
-        }
+    mock_hook_state = _make_mock_hook_state(
+        ExecutionInputsDTO(
+            dynamic_inputs={
+                "prev_step": [
+                    AtomResultDTO(
+                        tda_id="tda_123",
+                        status=ExecutionStatus.PASSED,
+                        evaluation_reasoning="Evaluation passed based on criteria.",
+                        contextual_override=True,
+                        extracted_data=ExtractedValueDTO(value=4.0),
+                    )
+                ]
+            }
+        ),
+        metadata=context.metadata,
+        global_context_vars=context.global_context_vars,
     )
-    mock_hook_state.global_context_vars = context.global_context_vars
 
     from pydantic import BaseModel
 
@@ -982,9 +1006,7 @@ async def test_execute_anomaly_retry_flow(
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     call_count = 0
 
@@ -1054,8 +1076,7 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
     )
     mock_repo.set_prompt_blocks([])
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1118,8 +1139,7 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
         ]
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1194,8 +1214,7 @@ async def test_execute_fails_fast_on_missing_output_profile(
     )
     mock_repo.set_output_profile(None)
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1278,8 +1297,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
         ]
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1503,8 +1521,7 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
         ]
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1579,8 +1596,7 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
 
     mock_repo.inject_fault("get_execution", RuntimeError("DB connection dropped"))
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     from unittest.mock import AsyncMock, patch
 
@@ -1699,14 +1715,15 @@ async def test_execute_matrix_chunking_flow(
         }
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {
-        "shuffled_atoms": [
-            {"atom_id": "atm_1111111111111111", "question": "Atom 1"},
-            {"atom_id": "atm_2222222222222222", "question": "Atom 2"},
-        ]
-    }
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state(
+        {
+            "shuffled_atoms": [
+                FlattenedAtom(atom_id="atm_1111111111111111", question="Atom 1"),
+                FlattenedAtom(atom_id="atm_2222222222222222", question="Atom 2"),
+            ]
+        },
+        metadata=context.metadata,
+    )
 
     from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 
@@ -1817,9 +1834,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state({})
 
     async def _always_retry_post_hooks(*args: Any, **kwargs: Any) -> tuple[Any, list[Any]]:
         post_state = MagicMock()
@@ -1967,8 +1982,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
         ]
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"shuffled_atoms": []}
+    mock_hook_state = _make_mock_hook_state({"shuffled_atoms": []})
 
     from unittest.mock import AsyncMock, patch
 
@@ -2055,9 +2069,11 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(results=[], hydrated_references={})
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {}
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state = _make_mock_hook_state(
+        {},
+        metadata=context.metadata,
+        global_context_vars=GlobalContextVarsDTO(),
+    )
 
     running_evt = asyncio.Event()
 
@@ -2265,17 +2281,19 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
         results=[], hydrated_references={}, synthesis_output=DummySynthesisOutputDTO(output="Packed synthesis output")
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = ExecutionInputsDTO(
-        dynamic_inputs={
-            "steps": projector.snapshot,
-        },
-        raw_inputs={
-            "chat_log": "Strategic question.",
-            "product_text": "Executive recommendation deliverable.",
-        },
+    mock_hook_state = _make_mock_hook_state(
+        ExecutionInputsDTO(
+            dynamic_inputs={
+                "steps": projector.snapshot,
+            },
+            raw_inputs={
+                "chat_log": "Strategic question.",
+                "product_text": "Executive recommendation deliverable.",
+            },
+        ),
+        metadata=context.metadata,
+        global_context_vars=GlobalContextVarsDTO(),
     )
-    mock_hook_state.global_context_vars = GlobalContextVarsDTO()
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
@@ -2405,17 +2423,19 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
         results=[], hydrated_references={}, synthesis_output=DummySynthesisOutputDTO(output="Scoped output")
     )
 
-    mock_hook_state = MagicMock()
-    mock_hook_state.inputs = ExecutionInputsDTO(
-        dynamic_inputs={
-            "steps": projector.snapshot,
-        },
-        raw_inputs={
-            "chat_log": "Strategic question.",
-            "product_text": "Executive recommendation deliverable.",
-        },
+    mock_hook_state = _make_mock_hook_state(
+        ExecutionInputsDTO(
+            dynamic_inputs={
+                "steps": projector.snapshot,
+            },
+            raw_inputs={
+                "chat_log": "Strategic question.",
+                "product_text": "Executive recommendation deliverable.",
+            },
+        ),
+        metadata=context.metadata,
+        global_context_vars=GlobalContextVarsDTO(),
     )
-    mock_hook_state.global_context_vars = GlobalContextVarsDTO()
 
     # Case A: step maps ONLY product_text -> chat_log is strictly excluded
     step_a = MagicMock()
@@ -2799,7 +2819,7 @@ def test_llm_strategy_metadata_synthesis_engine_branch(llm_strategy: LLMNodeStra
     bound_client.model_name = "gemini-1.5-pro"
 
     # Test constructing step metadata dict through helper logic
-    meta_dict: dict[str, Any] = {}
+    meta_dict: dict[str, JsonValue] = {}
     if isinstance(llm_strategy._engine, SynthesisEngine):
         meta_dict["model_strategy"] = "synthesis"
     else:

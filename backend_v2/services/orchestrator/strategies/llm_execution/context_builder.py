@@ -6,7 +6,6 @@ import copy
 import json
 import logging
 import re
-from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -237,7 +236,7 @@ class ContextBuilder:
     def build(
         cls,
         input_mappings: PromptMappingDTO,
-        state_data: HookState | Mapping[str, Any],
+        state_data: HookState,
         output_profile: Any | None = None,
         schema_map: dict[str, str] | None = None,
         criteria_blocks: list[Any] | None = None,
@@ -247,7 +246,7 @@ class ContextBuilder:
 
         Args:
             input_mappings: The PromptMappingDTO defining what to extract.
-            state_data: The HookState or Mapping holding execution context and inputs.
+            state_data: The HookState holding execution context and inputs.
             output_profile: Optional output profile to filter matrix extensions.
             schema_map: Optional map of step IDs to 'MATRIX' or 'TEXT' to dictate parsing logic.
             criteria_blocks: Optional list of PromptBlocks for spatial slicing.
@@ -267,21 +266,18 @@ class ContextBuilder:
         if schema_map is None:
             schema_map = {}
 
-        if isinstance(state_data, HookState):
-            extracted_metadata = state_data.metadata
-            extracted_raw_inputs = dict(state_data.inputs.raw_inputs)
-            if state_data.inputs.dynamic_inputs:
-                extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_data.inputs.dynamic_inputs))
-        elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
-            state_dict = dict(state_data)
-            if "metadata" in state_dict and isinstance(state_dict["metadata"], ExecutionMetadata):
-                extracted_metadata = state_dict["metadata"]
-            if "raw_inputs" in state_dict and not isinstance(state_dict["raw_inputs"], (str, int, float, bool, list)):
-                state_raw = dict(state_dict["raw_inputs"])
-                if "dynamic_inputs" in state_raw and not isinstance(
-                    state_raw["dynamic_inputs"], (str, int, float, bool, list)
-                ):
-                    extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_raw["dynamic_inputs"]))
+        extracted_metadata = state_data.metadata
+        extracted_raw_inputs = dict(state_data.inputs.raw_inputs)
+        if state_data.inputs.dynamic_inputs:
+            extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_data.inputs.dynamic_inputs))
+        lookup_state = {
+            "inputs": state_data.inputs.raw_inputs,
+            "raw_inputs": state_data.inputs.raw_inputs,
+            "metadata": state_data.metadata,
+            "global_context_vars": state_data.global_context_vars,
+            **state_data.inputs.dynamic_inputs,
+            **state_data.inputs.raw_inputs,
+        }
 
         raw_mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
 
@@ -295,7 +291,10 @@ class ContextBuilder:
                 if clean_path == "steps" or clean_path.startswith("steps."):
                     resolved_value = None
                 else:
-                    resolved_value = resolve_dot_notation(state_data, clean_path)
+                    try:
+                        resolved_value = resolve_dot_notation(lookup_state, clean_path)
+                    except AppException:
+                        resolved_value = resolve_dot_notation(state_data, clean_path)
 
                 if isinstance(resolved_value, str):
                     resolved_value = ContextBuilder.apply_spatial_slicing(resolved_value, criteria_blocks)
@@ -335,15 +334,10 @@ class ContextBuilder:
 
                 if clean_path == "steps":
                     dto_list: list[Any] = []
-                    if isinstance(state_data, HookState):
-                        if "steps" in state_data.inputs.dynamic_inputs:
-                            steps_val = state_data.inputs.dynamic_inputs["steps"]
-                            if isinstance(steps_val, list):
-                                dto_list = steps_val
-                    elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
-                        state_dict = dict(state_data)
-                        if "steps" in state_dict and isinstance(state_dict["steps"], list):
-                            dto_list = state_dict["steps"]
+                    if "steps" in state_data.inputs.dynamic_inputs:
+                        steps_val = state_data.inputs.dynamic_inputs["steps"]
+                        if isinstance(steps_val, list):
+                            dto_list = steps_val
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
                     clean_path == "global_context_vars"
@@ -371,15 +365,10 @@ class ContextBuilder:
                         )
                     step_type = schema_map[step_key]
                     all_steps: list[Any] = []
-                    if isinstance(state_data, HookState):
-                        if "steps" in state_data.inputs.dynamic_inputs:
-                            steps_val = state_data.inputs.dynamic_inputs["steps"]
-                            if isinstance(steps_val, list):
-                                all_steps = steps_val
-                    elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
-                        state_dict = dict(state_data)
-                        if "steps" in state_dict and isinstance(state_dict["steps"], list):
-                            all_steps = state_dict["steps"]
+                    if "steps" in state_data.inputs.dynamic_inputs:
+                        steps_val = state_data.inputs.dynamic_inputs["steps"]
+                        if isinstance(steps_val, list):
+                            all_steps = steps_val
                     dtos = [d for d in all_steps if d.step_id == step_key]
 
                     if len(parts) == 2:

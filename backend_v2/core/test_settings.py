@@ -16,7 +16,7 @@ __all__ = [
     "with_test_settings",
 ]
 
-TEST_SETTINGS_OVERRIDES: dict[str, Any] = {
+TEST_SETTINGS_OVERRIDES: dict[str, int | str] = {
     "environment": "development",
     "dev_max_thinking_budget": 0,
     "matrix_sampling_limit": 1,
@@ -48,8 +48,7 @@ def get_test_settings(**custom_overrides: Any) -> Settings:
     Returns:
         Configured Settings instance for development/testing.
     """
-    merged: dict[str, Any] = {**TEST_SETTINGS_OVERRIDES, **custom_overrides}
-    return Settings(**merged)
+    return Settings(**TEST_SETTINGS_OVERRIDES, **custom_overrides)
 
 
 @contextmanager

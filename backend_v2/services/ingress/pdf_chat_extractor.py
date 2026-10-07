@@ -106,13 +106,15 @@ class PdfBlockSignatureDTO(V2CoreBase):
     y1: float = Field(description="Rounded bottom vertical coordinate")
     text: str = Field(description="Sanitized text content")
 
+type DrawingItemValue = fitz.Rect | tuple[float, ...] | list[float] | float | int | str | bool | None
+
 
 class PdfChatExtractorService:
     """Deterministic extractor for browser-printed and exported chat PDFs."""
 
     @staticmethod
     def _is_user_bubble_drawing(
-        d: Mapping[str, object],
+        d: Mapping[str, DrawingItemValue],
         page_width: float,
         page_height: float,
         table_rects: list[fitz.Rect] | None = None,

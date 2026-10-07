@@ -22,6 +22,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.domain.workflow import Workflow
@@ -63,8 +64,8 @@ def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
     Returns:
         The extracted raw value, or None if not found.
     """
-    raw_inputs: Mapping[str, object] = state.inputs.raw_inputs
-    dynamic_inputs: Mapping[str, object] = state.inputs.dynamic_inputs
+    raw_inputs: Mapping[str, DomainInputValue] = state.inputs.raw_inputs
+    dynamic_inputs: Mapping[str, DomainInputValue] = state.inputs.dynamic_inputs
 
     # 1. Check raw_inputs
     for k, v in raw_inputs.items():

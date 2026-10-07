@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 from backend_v2.core.hook_registry import ExecutionInputsDTO
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.inputs import IngressInputValue
+from backend_v2.models.domain.inputs import DomainInputValue, IngressInputValue
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
 
@@ -20,8 +20,8 @@ __all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]
 
 logger = logging.getLogger(__name__)
 
-_MAPPING_ADAPTER: TypeAdapter[Mapping[str, IngressInputValue | object]] = TypeAdapter(
-    Mapping[str, IngressInputValue | object]
+_MAPPING_ADAPTER: TypeAdapter[Mapping[str, DomainInputValue]] = TypeAdapter(
+    Mapping[str, DomainInputValue]
 )
 
 
@@ -223,7 +223,7 @@ class SourceDocumentPacker:
                 if clean_str:
                     sections.append(clean_str)
             else:
-                dict_payload: Mapping[str, IngressInputValue | object]
+                dict_payload: Mapping[str, DomainInputValue]
                 if isinstance(inputs_payload, ExecutionInputsDTO):
                     dict_payload = {**inputs_payload.raw_inputs, **inputs_payload.dynamic_inputs}
                 else:
@@ -303,7 +303,7 @@ class SourceDocumentPacker:
                     if isinstance(payload, str):
                         text_content = payload.strip()
                     else:
-                        step_dict_payload: Mapping[str, object] | None = None
+                        step_dict_payload: Mapping[str, DomainInputValue] | None = None
                         if isinstance(payload, BaseModel):
                             step_dict_payload = payload.model_dump(mode="json")
                         elif not isinstance(payload, (str, int, float, bool, list)) and payload is not None:

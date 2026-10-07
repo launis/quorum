@@ -1,13 +1,40 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
+from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException, ConfigurationError, TokenLimitExceededError
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.settings import get_settings
+
+
+def _make_hook_state(
+    *,
+    steps: list[StepOutputDTO] | None = None,
+    raw_inputs: dict[str, Any] | None = None,
+    dynamic_inputs: dict[str, Any] | None = None,
+    metadata: ExecutionMetadata | None = None,
+    global_context_vars: GlobalContextVarsDTO | None = None,
+) -> HookState:
+    dyn = dict(dynamic_inputs or {})
+    if steps is not None:
+        dyn["steps"] = steps
+    return HookState(
+        execution_id="exc_test",
+        workflow_id="wf_test",
+        metadata=metadata or ExecutionMetadata(),
+        global_context_vars=global_context_vars or GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs=raw_inputs or {},
+            dynamic_inputs=dyn,
+        ),
+    )
 
 
 def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -23,19 +50,18 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
         "single_raw_step": "$steps.raw_step",
     }
 
-    state_data = {
-        "steps": [
-            StepOutputDTO.model_construct(
-                step_id="eval_step",
-                block_id="blk_invalid",
-                data_type="matrix",
-                payload={"raw_score": "not_a_float", "missing_fields": "yes"},
-            ),
-            StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="unknown", payload=["a", "b", "c"]),
-            StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="text", payload="huge string"),
-            StepOutputDTO(step_id="other_step", block_id="custom", data_type="text", payload="data"),
-        ]
-    }
+    steps = [
+        StepOutputDTO.model_construct(
+            step_id="eval_step",
+            block_id="blk_invalid",
+            data_type="matrix",
+            payload={"raw_score": "not_a_float", "missing_fields": "yes"},
+        ),
+        StepOutputDTO(step_id="atom_step", block_id="atoms", data_type="unknown", payload=["a", "b", "c"]),
+        StepOutputDTO(step_id="raw_step", block_id="history_text", data_type="text", payload="huge string"),
+        StepOutputDTO(step_id="other_step", block_id="custom", data_type="text", payload="data"),
+    ]
+    state_data = _make_hook_state(steps=steps)
 
     # Mock ContextRouter to raise validation error for eval_step
     mock_context_router = MagicMock()
@@ -86,25 +112,25 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
         "trace_field": "$steps.step1",
     }
 
-    state_data = {
-        "document_text": "Sample text",
-        "nested": {"value": 123},
-        "steps": [
-            StepOutputDTO(
-                step_id="step1",
-                block_id="blk_123",
-                data_type="matrix",
-                payload=LightweightMatrixOutput(
-                    raw_score=5.0,
-                    normalized_score=0.8,
-                    level_breakdown=None,
-                    justification="Good",
-                    evaluated_atoms={"atom1": LaxExecutionStatus.PASSED, "atom2": LaxExecutionStatus.FAILED},
-                    extensions={},
-                ),
-            )
-        ],
-    }
+    steps = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id="blk_123",
+            data_type="matrix",
+            payload=LightweightMatrixOutput(
+                raw_score=5.0,
+                normalized_score=0.8,
+                level_breakdown=None,
+                justification="Good",
+                evaluated_atoms={"atom1": LaxExecutionStatus.PASSED, "atom2": LaxExecutionStatus.FAILED},
+                extensions={},
+            ),
+        )
+    ]
+    state_data = _make_hook_state(
+        steps=steps,
+        raw_inputs={"document_text": "Sample text", "nested": {"value": 123}},
+    )
 
     llm_context_data, new_input_mappings = ContextBuilder.build(
         input_mappings=input_mappings,
@@ -137,9 +163,9 @@ def test_context_builder_build_token_limit_exceeded(monkeypatch: pytest.MonkeyPa
     input_mappings = {
         "large_text": "$document_text",
     }
-    state_data = {
-        "document_text": "This is a very large text that exceeds the limit.",
-    }
+    state_data = _make_hook_state(
+        raw_inputs={"document_text": "This is a very large text that exceeds the limit."},
+    )
 
     with pytest.raises(TokenLimitExceededError) as exc_info:
         ContextBuilder.build(
@@ -166,23 +192,22 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
     )
 
     input_mappings = {"trace_field": "$steps.step1"}
-    state_data = {
-        "steps": [
-            StepOutputDTO(
-                step_id="step1",
-                block_id="blk_123",
-                data_type="matrix",
-                payload={
-                    "raw_score": 5.0,
-                    "normalized_score": 0.8,
-                    "level_breakdown": None,
-                    "justification": "Good",
-                    "evaluated_atoms": {"atom1": ExecutionStatus.PASSED, "atom2": ExecutionStatus.FAILED},
-                    "extensions": {},
-                },
-            )
-        ]
-    }
+    steps = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id="blk_123",
+            data_type="matrix",
+            payload={
+                "raw_score": 5.0,
+                "normalized_score": 0.8,
+                "level_breakdown": None,
+                "justification": "Good",
+                "evaluated_atoms": {"atom1": ExecutionStatus.PASSED, "atom2": ExecutionStatus.FAILED},
+                "extensions": {},
+            },
+        )
+    ]
+    state_data = _make_hook_state(steps=steps)
 
     with pytest.raises(AppException) as exc_info:
         ContextBuilder.build(input_mappings, state_data, None, {"step1": "MATRIX", "blk_123": "MATRIX"})
@@ -204,7 +229,7 @@ def test_context_builder_build_token_counting_fails_fast(monkeypatch: pytest.Mon
     )
 
     input_mappings = {"text_field": "$document_text"}
-    state_data = {"document_text": "Sample text"}
+    state_data = _make_hook_state(raw_inputs={"document_text": "Sample text"})
 
     with pytest.raises(AppException) as exc_info:
         ContextBuilder.build(input_mappings, state_data, None)
@@ -223,7 +248,7 @@ def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyP
 
     from typing import Any
 
-    def mock_resolve(data: dict[str, Any], path: str) -> Any:
+    def mock_resolve(data: object, path: str) -> Any:
         raise ValueError("Invalid path syntax")
 
     monkeypatch.setattr(
@@ -232,7 +257,7 @@ def test_context_builder_build_resolution_fails_fast(monkeypatch: pytest.MonkeyP
     )
 
     input_mappings = {"bad_field": "$bad_path"}
-    state_data = {"some": "data"}
+    state_data = _make_hook_state(raw_inputs={"some": "data"})
 
     with pytest.raises(AppException) as exc_info:
         ContextBuilder.build(input_mappings, state_data, None)
@@ -250,10 +275,10 @@ def test_context_builder_propagates_dynamic_inputs(monkeypatch: pytest.MonkeyPat
     )
 
     input_mappings = {"text_field": "$document_text"}
-    state_data = {
-        "document_text": "Sample text",
-        "raw_inputs": {"dynamic_inputs": {"document_date": "2025-10-27T23:31:46+02:00"}},
-    }
+    state_data = _make_hook_state(
+        raw_inputs={"document_text": "Sample text"},
+        dynamic_inputs={"document_date": "2025-10-27T23:31:46+02:00"},
+    )
 
     llm_context_data, _ = ContextBuilder.build(
         input_mappings=input_mappings,
@@ -463,11 +488,10 @@ def test_build_missing_step_schema_fail_fast(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
     input_mappings = {"all_steps": "$steps"}
-    state_data = {
-        "steps": [
-            StepOutputDTO(step_id="unmapped_step", block_id="b1", data_type="text", payload={}),
-        ]
-    }
+    steps = [
+        StepOutputDTO(step_id="unmapped_step", block_id="b1", data_type="text", payload={}),
+    ]
+    state_data = _make_hook_state(steps=steps)
 
     with pytest.raises(AppException) as exc_info:
         ContextBuilder.build(
@@ -483,7 +507,7 @@ def test_build_step_subpaths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
     dto = StepOutputDTO(step_id="step_a", block_id="blk_x", data_type="text", payload="block content")
-    state_data = {"steps": [dto]}
+    state_data = _make_hook_state(steps=[dto])
 
     # 1. Successful 3-part extraction
     mappings = {"single_block": "$steps.step_a.blk_x"}
@@ -528,12 +552,13 @@ def test_build_global_context_vars_with_steps(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
     dto = StepOutputDTO.model_construct(step_id="step1", block_id="b1", data_type="text", payload={"val": 42})
-    state_data = {
-        "global_context_vars": {
-            "steps": [dto],
-            "extra_var": "hello",
-        }
-    }
+    state_data = HookState.model_construct(
+        execution_id="exc_test",
+        workflow_id="wf_test",
+        metadata=ExecutionMetadata(),
+        global_context_vars={"steps": [dto], "extra_var": "hello"},
+        inputs=ExecutionInputsDTO(),
+    )
 
     ctx, _ = ContextBuilder.build(
         input_mappings={"g_vars": "$global_context_vars"},
@@ -565,20 +590,22 @@ def test_project_compressed_base_model_and_lists() -> None:
     assert projected[2] == 123
 
 
-def test_build_with_dict_metadata_and_dynamic_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test build when state_data is a dict containing ExecutionMetadata and dynamic_inputs."""
+def test_build_with_hook_state_metadata_and_dynamic_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test build when state_data is a HookState containing ExecutionMetadata and dynamic_inputs."""
     from backend_v2.models.execution_core import ExecutionMetadata
 
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
     meta = ExecutionMetadata(workflow_version=2)
-    state_data = {
-        "metadata": meta,
-        "raw_inputs": {
-            "dynamic_inputs": {"dyn_key": "dyn_val"},
-        },
-        "user_doc": "Sample doc text",
-    }
+    state_data = HookState(
+        execution_id="exc_test",
+        workflow_id="wf_test",
+        metadata=meta,
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"user_doc": "Sample doc text"},
+            dynamic_inputs={"dyn_key": "dyn_val"},
+        ),
+    )
 
     ctx, _ = ContextBuilder.build(
         input_mappings={"doc": "$user_doc"},
@@ -605,7 +632,7 @@ def test_build_matrix_pruning_with_evaluated_atoms(monkeypatch: pytest.MonkeyPat
     )
 
     dto = StepOutputDTO(step_id="step1", block_id="blk_m", data_type="matrix", payload={"raw_score": 4.0})
-    state_data = {"steps": [dto]}
+    state_data = _make_hook_state(steps=[dto])
 
     ctx, _ = ContextBuilder.build(
         input_mappings={"matrix_step": "$steps.step1"},
