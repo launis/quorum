@@ -533,3 +533,35 @@ def test_audit_dict_eradication_detects_naked_dict_in_test_files(tmp_path: Path)
     report = audit_dict_eradication(test_file)
     assert report.naked_dict_annotations == 2
     assert report.total_violations >= 2
+
+
+def test_audit_dict_eradication_detects_open_json_return_in_test_files(tmp_path: Path) -> None:
+    """Verifies that def _get_base_workflow() -> dict[str, JsonValue] in a test module produces Metric 11 violation."""
+    test_dir = tmp_path / "backend_v2" / "tests" / "unit"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    test_file = test_dir / "test_fixture_open_json.py"
+    test_file.write_text(
+        "from pydantic import JsonValue\n\ndef _get_base_workflow() -> dict[str, JsonValue]:\n    return {}\n",
+        encoding="utf-8",
+    )
+    report = audit_dict_eradication(test_file)
+    assert report.unauthorized_open_json_annotations == 1
+    assert any(
+        v.metric == "unauthorized_open_json_annotations" and "_get_base_workflow" in v.message
+        for v in report.violations
+    )
+
+
+def test_audit_dict_eradication_detects_sequence_mapping_nested_dict(tmp_path: Path) -> None:
+    """Verifies that Sequence[Mapping[str, JsonValue]] produces primitive_obsession_nested_dicts violation."""
+    target_file = tmp_path / "sequence_mapping_module.py"
+    target_file.write_text(
+        "from collections.abc import Sequence, Mapping\nfrom pydantic import JsonValue\n\n"
+        "items: Sequence[Mapping[str, JsonValue]] = []\n"
+        "def process(payloads: Sequence[Mapping[str, JsonValue]]) -> None:\n"
+        "    pass\n",
+        encoding="utf-8",
+    )
+    report = audit_dict_eradication(target_file)
+    assert report.primitive_obsession_nested_dicts == 2
+    assert report.total_violations >= 2

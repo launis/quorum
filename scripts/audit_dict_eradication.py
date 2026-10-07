@@ -35,6 +35,7 @@ if _workspace_root not in sys.path:
 from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
     _find_jsonvalue_dict_subscript,
+    _find_nested_dict_subscript,
     is_boundary_exempt,
     is_open_json_exempt,
 )
@@ -279,58 +280,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
         Returns:
             The offending Subscript node if a nested dict or collection is found, None otherwise.
         """
-        if node is None:
-            return None
-        for sub in ast.walk(node):
-            if not isinstance(sub, ast.Subscript):
-                continue
-
-            # Pattern 1: Outer dict with inner dict or collection of dicts
-            is_outer_dict = False
-            match sub.value:
-                case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
-                    is_outer_dict = True
-                case _:
-                    pass
-            if is_outer_dict:
-                match sub.slice:
-                    case ast.Tuple(elts=elements) if len(elements) == 2:
-                        val_type = elements[1]
-                        for inner in ast.walk(val_type):
-                            if inner is val_type and isinstance(inner, ast.Name) and inner.id in ("dict", "Dict"):
-                                return sub
-                            if isinstance(inner, ast.Subscript):
-                                match inner.value:
-                                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
-                                        return sub
-                                    case _:
-                                        pass
-                    case _:
-                        pass
-
-            # Pattern 2: Outer collection (list, List, Sequence, Iterable, set, Set) containing dict
-            is_outer_collection = False
-            match sub.value:
-                case (
-                    ast.Name(id="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
-                    | ast.Attribute(attr="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
-                ):
-                    is_outer_collection = True
-                case _:
-                    pass
-            if is_outer_collection:
-                for inner in ast.walk(sub.slice):
-                    if isinstance(inner, ast.Subscript):
-                        match inner.value:
-                            case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
-                                return sub
-                            case _:
-                                pass
-                    elif isinstance(inner, ast.Name) and inner.id in ("dict", "Dict"):
-                        return sub
-                    elif isinstance(inner, ast.Attribute) and inner.attr in ("dict", "Dict"):
-                        return sub
-        return None
+        return _find_nested_dict_subscript(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         """Inspects dynamic reflection attribute access like .__dict__.
@@ -495,6 +445,22 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             ),
                         )
                     )
+                # Metric 11: Unauthorized Open-JSON / JsonValue dictionary check in function returns (including test fixtures)
+                jsonvalue_sub = _find_jsonvalue_dict_subscript(node.returns)
+                if jsonvalue_sub is not None and not self.is_open_json_exempt:
+                    if self.is_domain_or_service or self.is_test:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="unauthorized_open_json_annotations",
+                                message=(
+                                    f"Unauthorized Open-JSON `dict[..., JsonValue]` return type annotation in `{node.name}`: "
+                                    f"`{ast.unparse(jsonvalue_sub)}`. Open-JSON fixture returns are banned in test suites. "
+                                    "Encapsulate fixture returns in concrete validated Pydantic V2 DTOs."
+                                ),
+                            )
+                        )
 
             all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
             for arg in all_args:
@@ -562,6 +528,22 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             ),
                         )
                     )
+                # Metric 11: Unauthorized Open-JSON / JsonValue dictionary check in async function returns (including test fixtures)
+                jsonvalue_sub = _find_jsonvalue_dict_subscript(node.returns)
+                if jsonvalue_sub is not None and not self.is_open_json_exempt:
+                    if self.is_domain_or_service or self.is_test:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="unauthorized_open_json_annotations",
+                                message=(
+                                    f"Unauthorized Open-JSON `dict[..., JsonValue]` return type annotation in async `{node.name}`: "
+                                    f"`{ast.unparse(jsonvalue_sub)}`. Open-JSON fixture returns are banned in test suites. "
+                                    "Encapsulate fixture returns in concrete validated Pydantic V2 DTOs."
+                                ),
+                            )
+                        )
 
             all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
             for arg in all_args:

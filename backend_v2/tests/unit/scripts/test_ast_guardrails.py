@@ -1321,6 +1321,15 @@ def test_qgr018_typeadapter_dto_allowed() -> None:
     assert len(qgr018) == 0
 
 
+def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
+    code = "from collections.abc import Mapping\nfrom pydantic import JsonValue, TypeAdapter\nadapter = TypeAdapter(Mapping[str, JsonValue])\n"
+    violations = _scan_snippet(code)
+    qgr018 = [v for v in violations if v.rule_code == "QGR018"]
+    assert len(qgr018) == 1
+    assert qgr018[0].severity == GuardrailSeverity.FATAL
+    assert "TypeAdapter" in qgr018[0].message
+
+
 def test_boundary_exemption_files_preserved() -> None:
     code = "val = getattr(obj, 'k', None)\n"
     for exempt_file in ["tinydb_driver.py", "firestore_driver.py", "provider.py", "logging_config.py"]:

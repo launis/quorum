@@ -30,6 +30,9 @@ __all__ = [
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
+    "_find_jsonvalue_dict_subscript",
+    "_find_nested_dict_subscript",
+    "_is_dict_type_node",
     "_is_repository_identifier",
     "format_violations_table",
     "is_boundary_exempt",
@@ -242,7 +245,7 @@ def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> 
 
 
 def _find_jsonvalue_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:
-    """Finds any dict[..., JsonValue] or container subscript in the AST node."""
+    """Finds any dict[..., JsonValue], Mapping[..., JsonValue], or container subscript in the AST node."""
     if node is None:
         return None
     for sub in ast.walk(node):
@@ -250,7 +253,10 @@ def _find_jsonvalue_dict_subscript(node: ast.AST | None) -> ast.Subscript | None
             continue
         is_dict = False
         match sub.value:
-            case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+            case (
+                ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+            ):
                 is_dict = True
             case _:
                 is_dict = False
@@ -281,9 +287,17 @@ def _is_dict_type_node(node: ast.AST) -> bool:
         True if the node represents a dictionary type, False otherwise.
     """
     match node:
-        case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+        case (
+            ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+            | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+        ):
             return True
-        case ast.Subscript(value=ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict")):
+        case ast.Subscript(
+            value=(
+                ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+            )
+        ):
             return True
         case ast.Subscript(
             value=ast.Name(id="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
@@ -299,6 +313,88 @@ def _is_dict_type_node(node: ast.AST) -> bool:
             return _is_dict_type_node(slice_node)
         case _:
             return False
+
+
+def _find_nested_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:
+    """Finds any nested dictionary or primitive collection obsession annotation in the AST node.
+
+    Args:
+        node: AST node or None to inspect.
+
+    Returns:
+        The offending Subscript node if a nested dict or collection is found, None otherwise.
+    """
+    if node is None:
+        return None
+    for sub in ast.walk(node):
+        if not isinstance(sub, ast.Subscript):
+            continue
+
+        # Pattern 1: Outer dict/Mapping with inner dict/Mapping or collection of dicts/Mappings
+        is_outer_dict = False
+        match sub.value:
+            case (
+                ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+            ):
+                is_outer_dict = True
+            case _:
+                pass
+        if is_outer_dict:
+            match sub.slice:
+                case ast.Tuple(elts=elements) if len(elements) == 2:
+                    val_type = elements[1]
+                    for inner in ast.walk(val_type):
+                        if (
+                            inner is val_type
+                            and isinstance(inner, ast.Name)
+                            and inner.id in ("dict", "Dict", "Mapping", "MutableMapping")
+                        ):
+                            return sub
+                        if (
+                            inner is val_type
+                            and isinstance(inner, ast.Attribute)
+                            and inner.attr in ("dict", "Dict", "Mapping", "MutableMapping")
+                        ):
+                            return sub
+                        if isinstance(inner, ast.Subscript):
+                            match inner.value:
+                                case (
+                                    ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                                    | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+                                ):
+                                    return sub
+                                case _:
+                                    pass
+                case _:
+                    pass
+
+        # Pattern 2: Outer collection (list, List, Sequence, Iterable, set, Set) containing dict/Mapping
+        is_outer_collection = False
+        match sub.value:
+            case (
+                ast.Name(id="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
+                | ast.Attribute(attr="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
+            ):
+                is_outer_collection = True
+            case _:
+                pass
+        if is_outer_collection:
+            for inner in ast.walk(sub.slice):
+                if isinstance(inner, ast.Subscript):
+                    match inner.value:
+                        case (
+                            ast.Name(id="dict" | "Dict" | "Mapping" | "MutableMapping")
+                            | ast.Attribute(attr="dict" | "Dict" | "Mapping" | "MutableMapping")
+                        ):
+                            return sub
+                        case _:
+                            pass
+                elif isinstance(inner, ast.Name) and inner.id in ("dict", "Dict", "Mapping", "MutableMapping"):
+                    return sub
+                elif isinstance(inner, ast.Attribute) and inner.attr in ("dict", "Dict", "Mapping", "MutableMapping"):
+                    return sub
+    return None
 
 
 def _is_field_call(node: ast.AST | None) -> bool:
