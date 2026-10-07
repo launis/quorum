@@ -9,7 +9,10 @@ Enforces static structural compliance across prompt builders and domain models:
 
 import ast
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+
+from pydantic import JsonValue
 
 
 def _load_ast(file_path: str) -> ast.AST:
@@ -460,7 +463,7 @@ REDUNDANT_GLOBAL_MANDATE_BLOCK_IDS = {
 
 
 def find_redundant_criteria_in_steps(
-    steps: list[dict[str, object]],
+    steps: Sequence[Mapping[str, JsonValue]],
     candidate_ids: set[str] = REDUNDANT_GLOBAL_MANDATE_BLOCK_IDS,
 ) -> list[tuple[str, str]]:
     """Scan step definitions for any redundant global mandate block IDs in criteria_block_ids."""
@@ -476,7 +479,7 @@ def find_redundant_criteria_in_steps(
 
 
 def find_escaped_xml_tags_in_prompt_blocks(
-    prompt_blocks: list[dict[str, object]],
+    prompt_blocks: Sequence[Mapping[str, JsonValue]],
 ) -> list[tuple[str, str]]:
     """Scan prompt block descriptions for escaped XML tags like &lt;tag&gt;."""
     violations: list[tuple[str, str]] = []
@@ -516,7 +519,7 @@ def test_seed_prompt_blocks_zero_escaped_xml_tags() -> None:
 
 def test_seed_guardrail_catches_redundant_criteria_in_step_negative() -> None:
     """Anti-happy path: Proves guardrail scanner detects candidate redundant block IDs in mock steps."""
-    mock_steps: list[dict[str, object]] = [
+    mock_steps: Sequence[Mapping[str, JsonValue]] = [
         {
             "id": "mock_step_01",
             "criteria_block_ids": ["blk_valid_01", "blk_bd7c5a9f27504a2c"],
@@ -533,7 +536,7 @@ def test_seed_guardrail_catches_redundant_criteria_in_step_negative() -> None:
 
 def test_seed_guardrail_catches_escaped_html_entity_in_prompt_block_negative() -> None:
     """Anti-happy path: Proves guardrail scanner detects escaped XML tags in mock prompt blocks."""
-    mock_blocks: list[dict[str, object]] = [
+    mock_blocks: Sequence[Mapping[str, JsonValue]] = [
         {
             "id": "mock_block_01",
             "ai_description": "Values provided in &lt;mechanical_anchors&gt; block",

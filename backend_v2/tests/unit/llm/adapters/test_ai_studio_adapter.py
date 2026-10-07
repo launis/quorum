@@ -11,6 +11,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.llm.adapters.ai_studio_adapter import (
     GoogleAIStudioCacheAdapter,
@@ -181,7 +182,7 @@ def test_ai_studio_adapter_prepare_kwargs_thinking_and_cached_content() -> None:
         thinking_budget_tokens=2048,
     )
 
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "cached_content": "cachedContents/ai-studio-cache-123",
         "messages": [
             {"role": "system", "content": "Stray system message"},
@@ -208,7 +209,7 @@ def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
         thinking_budget_tokens=4096,
     )
 
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "model": "gemini/gemini-3.7-flash",
         "temperature": 0.4,
         "top_k": 40,
@@ -238,12 +239,12 @@ def test_ai_studio_adapter_dev_environment_clamping() -> None:
     )
 
     # In development: clamped to 0
-    call_kwargs_dev: dict[str, Any] = {"model": "gemini/gemini-3.7-flash"}
+    call_kwargs_dev: dict[str, JsonValue] = {"model": "gemini/gemini-3.7-flash"}
     res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=config, settings=dev_settings)
     assert res_dev["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 0
 
     # In production: preserved as 4096
-    call_kwargs_prod: dict[str, Any] = {"model": "gemini/gemini-3.7-flash"}
+    call_kwargs_prod: dict[str, JsonValue] = {"model": "gemini/gemini-3.7-flash"}
     res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=config, settings=prod_settings)
     assert res_prod["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
 
@@ -495,7 +496,7 @@ def test_ai_studio_adapter_prepare_kwargs_no_duplicate_oneof_cached_content() ->
         model_name="gemini/gemini-3.7-flash",
     )
 
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "cached_content": "cachedContents/ai-studio-cache-123",
         "messages": [{"role": "user", "content": "User prompt"}],
     }

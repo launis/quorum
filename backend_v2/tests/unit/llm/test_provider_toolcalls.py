@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.llm.provider import LiteLLMProvider
 from backend_v2.models.llm import LLMProviderConfig
@@ -64,10 +65,10 @@ async def test_lite_llm_provider_tool_calls_content_extraction(monkeypatch: pyte
 
     class MockLiteLLMResponse:
         choices = [MockChoice()]
-        model_extra: dict[str, Any] = {}
+        model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, Any]:
+        def model_dump(self) -> dict[str, JsonValue]:
             return {}
 
     provider.router.acompletion.return_value = MockLiteLLMResponse()

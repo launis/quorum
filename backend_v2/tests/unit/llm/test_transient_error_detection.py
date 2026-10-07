@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes, LLMSchemaValidationError
 from backend_v2.llm.provider import LiteLLMProvider, _is_transient_llm_error
@@ -130,10 +131,10 @@ async def test_provider_generate_uses_transient_retries_even_in_fast_mode(monkey
 
     class MockLiteLLMResponse:
         choices = [MockChoice()]
-        model_extra: dict[str, object] = {}
+        model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, object]:
+        def model_dump(self) -> dict[str, JsonValue]:
             return {}
 
     # Mock router to fail with connection disconnect twice, then succeed on 3rd attempt
@@ -223,10 +224,10 @@ async def test_provider_generate_retries_on_upstream_500_in_development_environm
 
     class MockLiteLLMResponse:
         choices = [MockChoice()]
-        model_extra: dict[str, object] = {}
+        model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, object]:
+        def model_dump(self) -> dict[str, JsonValue]:
             return {}
 
     # Upstream fails once with 500 Internal error, then succeeds on retry

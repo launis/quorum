@@ -5,10 +5,12 @@ import hashlib
 import json
 import sys
 import types
+from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.llm.adapters.vertex_adapter import (
     VertexCacheAdapter,
@@ -355,7 +357,7 @@ def test_vertex_adapter_sanitize_messages() -> None:
     """Verify sanitize_messages strips orphaned tool calls and preserves valid ones."""
     adapter = VertexCacheAdapter()
 
-    messages: list[dict[str, Any]] = [
+    messages: list[Mapping[str, JsonValue]] = [
         {"role": "user", "content": "Hello"},
         {
             "role": "assistant",
@@ -410,7 +412,7 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
         rpm_limit=10,
     )
 
-    call_kwargs: dict[str, Any] = {}
+    call_kwargs: dict[str, JsonValue] = {}
     result = adapter.prepare_kwargs(call_kwargs, config=provider_config)
     assert result["vertex_location"] == "europe-west1"
 
@@ -419,7 +421,7 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
         model_name="vertex_ai/gemini-3.7-flash",
         thinking_budget_tokens=1024,
     )
-    call_kwargs_profile: dict[str, Any] = {"vertex_location": "europe-west1"}
+    call_kwargs_profile: dict[str, JsonValue] = {"vertex_location": "europe-west1"}
     result_profile = adapter.prepare_kwargs(call_kwargs_profile, config=profile_config)
     assert result_profile["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
 
@@ -439,12 +441,12 @@ def test_vertex_adapter_dev_environment_clamping() -> None:
     )
 
     # In development: clamped to 0
-    call_kwargs_dev: dict[str, Any] = {"model": "vertex_ai/gemini-3.7-flash"}
+    call_kwargs_dev: dict[str, JsonValue] = {"model": "vertex_ai/gemini-3.7-flash"}
     res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=profile_config, settings=dev_settings)
     assert res_dev["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 0
 
     # In production: preserved as 4096
-    call_kwargs_prod: dict[str, Any] = {"model": "vertex_ai/gemini-3.7-flash"}
+    call_kwargs_prod: dict[str, JsonValue] = {"model": "vertex_ai/gemini-3.7-flash"}
     res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=profile_config, settings=prod_settings)
     assert res_prod["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
 
@@ -453,7 +455,7 @@ def test_vertex_adapter_prepare_kwargs_cached_content_with_tools_bypasses() -> N
     """Verify prepare_kwargs bypasses caching if tools are present in call_kwargs."""
     adapter = VertexCacheAdapter()
 
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "cached_content": "projects/test/locations/europe-north1/cachedContents/123",
         "tools": [{"type": "function"}],
     }
@@ -466,7 +468,7 @@ def test_vertex_adapter_prepare_kwargs_cached_content_scrubs_system_message() ->
     """Verify prepare_kwargs scrubs stray system messages when caching is active."""
     adapter = VertexCacheAdapter()
 
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "cached_content": "projects/test/locations/europe-north1/cachedContents/123",
         "messages": [
             {"role": "system", "content": "Stray system message"},
@@ -813,7 +815,7 @@ def test_vertex_adapter_is_system_turn_and_dict_message_handling() -> None:
     assert _is_system_turn({"other": "no_role"}) is False
 
     adapter = VertexCacheAdapter()
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "model": "gemini-1.5-pro",
         "vertex_location": "us-central1",
         "cached_content": "projects/p/locations/us-central1/cachedContents/c123",

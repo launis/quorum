@@ -1,10 +1,12 @@
 """Unit tests for worker background synthesis tasks and trace extraction."""
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -31,14 +33,14 @@ from backend_v2.workers import VarianceExplanationResult, generate_profile_synth
 
 async def _get_profile_syntheses(
     repo: InMemoryUnifiedWorkflowRepository, exec_id: str = "exec_1234567812345678"
-) -> dict[str, Any] | None:
+) -> dict[str, JsonValue] | None:
     rec = await repo.get_execution(exec_id)
     if rec and rec.profile_syntheses:
         return {k: v.model_dump(mode="json") for k, v in rec.profile_syntheses.items()}
     return None
 
 
-def _get_base_model_registry_dict() -> dict[str, Any]:
+def _get_base_model_registry_dict() -> dict[str, JsonValue]:
     profile = {
         "provider": "mock_llm_99",
         "model_name": "gemini-2.5-pro",
@@ -176,8 +178,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
 async def _setup_mock_repo_for_metrics(
     mock_repo: InMemoryUnifiedWorkflowRepository,
-    trace_content_ling: dict[str, Any] | None,
-    trace_content_det: dict[str, Any] | None,
+    trace_content_ling: Mapping[str, JsonValue] | None,
+    trace_content_det: Mapping[str, JsonValue] | None,
 ) -> None:
     trace_events = []
     if trace_content_ling is not None:
@@ -578,7 +580,7 @@ async def test_worker_synthesis_matrix_layout_directives(
         "3d_matrix": ["blk_1", "blk_2", "blk_3"],
         "text_only": ["blk_1"],
     }
-    prof_dict: dict[str, Any] = {
+    prof_dict: dict[str, JsonValue] = {
         "id": "prof_1111111111111111",
         "slug": "prof_test",
         "name": {"translations": {"en": "Test Profile"}},

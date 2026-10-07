@@ -2,8 +2,11 @@
 
 import json
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+from pydantic import JsonValue
 
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
@@ -285,7 +288,7 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    i18n_records: list[tuple[str, dict[str, Any]]] = []
+    i18n_records: list[tuple[str, Mapping[str, JsonValue]]] = []
 
     def _collect_i18n(obj: Any, path: str = "") -> None:
         if type(obj) is dict:
@@ -309,7 +312,7 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
         assert fi_text, f"I18nText at '{path}' has empty or missing 'fi' translation"
 
     # Anti-happy-path negative verification
-    def _is_valid_bilingual_i18n(rec: dict[str, Any]) -> bool:
+    def _is_valid_bilingual_i18n(rec: Mapping[str, JsonValue]) -> bool:
         if type(rec) is not dict or "translations" not in rec or type(rec["translations"]) is not dict:
             return False
         tr = rec["translations"]
@@ -357,7 +360,7 @@ def test_output_profiles_enums_valid() -> None:
         )
 
     # Anti-happy-path negative verification
-    def validate_profile_enums(profile_dict: dict[str, Any]) -> bool:
+    def validate_profile_enums(profile_dict: Mapping[str, JsonValue]) -> bool:
         if "display_scale" in profile_dict and profile_dict["display_scale"] not in valid_display_scales:
             return False
         if "strictness_level" in profile_dict:
@@ -398,7 +401,7 @@ def test_model_registry_calibrated_limits() -> None:
             )
 
     # Anti-happy-path negative verification
-    def validate_strategy_limits(strat_dict: dict[str, Any]) -> bool:
+    def validate_strategy_limits(strat_dict: Mapping[str, JsonValue]) -> bool:
         tokens = strat_dict["max_tokens"] if "max_tokens" in strat_dict else 0
         return bool(tokens >= 32768)
 
@@ -432,7 +435,7 @@ def test_synthesis_strategy_isolation() -> None:
             )
 
     # Anti-happy-path negative verification
-    def validate_evaluative_isolation(step_dict: dict[str, Any]) -> bool:
+    def validate_evaluative_isolation(step_dict: Mapping[str, JsonValue]) -> bool:
         c = step_dict["category_id"] if "category_id" in step_dict else None
         ie = step_dict["is_evaluative"] if "is_evaluative" in step_dict else False
         strat = step_dict["model_strategy"] if "model_strategy" in step_dict else None

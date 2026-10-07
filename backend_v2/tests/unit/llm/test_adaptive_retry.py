@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import ServiceUnavailableError
 from backend_v2.llm.provider import LiteLLMProvider
@@ -107,10 +108,10 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
 
     class MockLiteLLMResponse:
         choices = [MockChoice()]
-        model_extra: dict[str, object] = {}
+        model_extra: dict[str, JsonValue] = {}
         usage = MockUsage()
 
-        def model_dump(self) -> dict[str, object]:
+        def model_dump(self) -> dict[str, JsonValue]:
             return {}
 
     # Mock acompletion to fail once, then succeed

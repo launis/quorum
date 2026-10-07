@@ -7,11 +7,12 @@ contrastive example pairs, and negative validation boundaries for the 7 stabiliz
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.domain.matrix import ContrastivePairDTO, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
@@ -41,13 +42,13 @@ TARGET_BLOCK_IDS: list[str] = [
 ]
 
 
-def _load_seed_atoms() -> dict[str, dict[str, Any]]:
+def _load_seed_atoms() -> dict[str, Mapping[str, JsonValue]]:
     """Loads raw atom dicts from seed_data.json indexed by tda_id."""
     assert SEED_DATA_PATH.exists(), f"Seed data missing at {SEED_DATA_PATH}"
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
-    atoms: dict[str, dict[str, Any]] = {}
+    atoms: dict[str, Mapping[str, JsonValue]] = {}
     for block in data["prompt_blocks"]:
         if "scales" not in block:
             continue

@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
@@ -36,7 +37,7 @@ class TestAdapterParameterSanitization:
             thinking_budget_tokens=4096,
             max_tokens=32768,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "vertex_ai/gemini-3.7-flash",
             "temperature": 0.2,
             "top_k": 40,
@@ -65,7 +66,7 @@ class TestAdapterParameterSanitization:
             thinking_budget_tokens=2048,
             max_tokens=32768,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "gemini/gemini-3.7-flash",
             "temperature": 0.0,
             "top_k": 20,
@@ -89,7 +90,7 @@ class TestAdapterParameterSanitization:
             thinking_budget_tokens=8192,
             max_tokens=65536,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "claude-3-7-sonnet-20250219",
             "temperature": 0.3,
         }
@@ -109,7 +110,7 @@ class TestAdapterParameterSanitization:
             thinking_budget_tokens=4096,
             max_tokens=65536,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "o3-mini",
             "temperature": 0.7,
             "top_p": 0.9,
@@ -134,7 +135,7 @@ class TestAdapterParameterSanitization:
             temperature=0.4,
             max_tokens=32768,
         )
-        call_kwargs: dict[str, Any] = {
+        call_kwargs: dict[str, JsonValue] = {
             "model": "vertex_ai/gemini-2.5-pro",
             "temperature": 0.4,
             "top_k": 40,

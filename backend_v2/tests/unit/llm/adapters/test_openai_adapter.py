@@ -3,7 +3,7 @@
 from typing import Annotated, Any, Literal
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, JsonValue
 
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter
 from backend_v2.models.domain.system_config import ModelProfile
@@ -118,12 +118,12 @@ def test_openai_adapter_dev_environment_clamping() -> None:
     )
 
     # In development: clamped to "low" regardless of 8192 tokens
-    call_kwargs_dev: dict[str, Any] = {"model": "o3-mini"}
+    call_kwargs_dev: dict[str, JsonValue] = {"model": "o3-mini"}
     res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=config, settings=dev_settings)
     assert res_dev["reasoning_effort"] == "low"
 
     # In production: preserved as "high" for 8192 tokens
-    call_kwargs_prod: dict[str, Any] = {"model": "o3-mini"}
+    call_kwargs_prod: dict[str, JsonValue] = {"model": "o3-mini"}
     res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=config, settings=prod_settings)
     assert res_prod["reasoning_effort"] == "high"
 
@@ -292,7 +292,7 @@ def test_openai_adapter_handles_empty_and_malformed_unions_safely() -> None:
     """ISTQB Partition 4: Verify schema traversal safely handles empty or boundary union nodes without crashing."""
     adapter = OpenAICacheAdapter()
 
-    raw_schema: dict[str, Any] = {
+    raw_schema: dict[str, JsonValue] = {
         "type": "object",
         "properties": {
             "empty_union": {"oneOf": []},
@@ -368,7 +368,7 @@ def test_gpt_5_4_mini_zero_thinking_budget() -> None:
         temperature=0.0,
         thinking_budget_tokens=0,
     )
-    call_kwargs: dict[str, Any] = {
+    call_kwargs: dict[str, JsonValue] = {
         "model": "openai/gpt-5.4-mini",
         "temperature": 0.0,
     }

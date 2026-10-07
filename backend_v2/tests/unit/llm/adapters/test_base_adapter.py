@@ -4,7 +4,7 @@ from typing import Annotated, Any, Literal
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.adapters.base_adapter import (
@@ -14,7 +14,7 @@ from backend_v2.llm.adapters.base_adapter import (
 )
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
 
@@ -23,8 +23,8 @@ class ConcreteAdapter(BaseLLMAdapter):
 
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
-    ) -> tuple[list[LLMMessageDTO] | list[dict[str, Any]], dict[str, Any]]:
-        return compiled_prompt.to_flat_messages(), {}
+    ) -> CachingPayloadResultDTO:
+        return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
     async def teardown_cache(self, workflow_run_id: str) -> None:
         pass
@@ -32,10 +32,10 @@ class ConcreteAdapter(BaseLLMAdapter):
     def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         return usage
 
-    def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
+    def prepare_provider_kwargs(self, model_name: str) -> dict[str, JsonValue]:
         return {}
 
-    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
+    def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, JsonValue] | type[BaseModel]:
         schema = response_model.model_json_schema()
         self._strip_unsupported_constraints(schema)
         return schema

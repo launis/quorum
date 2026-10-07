@@ -6,7 +6,7 @@ Validates polymorphic envelope extraction of step metadata from trace event cont
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
@@ -14,7 +14,7 @@ from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadat
 
 def test_partition_1_polymorphic_sdui_block_with_step_metadata() -> None:
     """Validate extraction of _step_metadata alongside arbitrary SDUI block fields."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "blk_hero_123",
         "block_type": "hero_insight",
         "text": "Key executive finding.",
@@ -36,7 +36,7 @@ def test_partition_1_polymorphic_sdui_block_with_step_metadata() -> None:
 
 def test_partition_2_missing_step_metadata() -> None:
     """Validate that payload without _step_metadata returns None without raising."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "blk_plain_789",
         "block_type": "text_block",
         "content": "Simple message.",
@@ -48,7 +48,7 @@ def test_partition_2_missing_step_metadata() -> None:
 
 def test_partition_3_malformed_step_metadata_fails() -> None:
     """Validate that malformed step_metadata triggers Pydantic ValidationError."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "id": "blk_invalid",
         "step_metadata": "not_a_valid_dictionary_or_model",
     }
@@ -59,7 +59,7 @@ def test_partition_3_malformed_step_metadata_fails() -> None:
 
 def test_partition_4_token_usage_telemetry_extraction() -> None:
     """Validate detailed TokenUsage extraction within StepTraceMetadataDTO."""
-    payload: dict[str, Any] = {
+    payload: dict[str, JsonValue] = {
         "block_id": "blk_scorecard_01",
         "step_metadata": {
             "step_id": "stp_matrix_audit",

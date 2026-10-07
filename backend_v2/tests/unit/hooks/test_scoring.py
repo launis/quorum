@@ -2,11 +2,12 @@
 
 import hashlib
 import json
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -56,7 +57,7 @@ def generate_atom_hash(text: str, mandate: Any = None) -> str:
     return f"tda_{hashlib.md5(text.encode()).hexdigest()[:32]}"
 
 
-def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, Any]:
+def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict[str, JsonValue]:
     """Builds a valid scale dictionary for testing prompt blocks."""
     claims = []
     if micro_atoms is not None:
@@ -83,12 +84,12 @@ def _build_valid_scale(score: Any, micro_atoms: list[str] | None = None) -> dict
 
 def _build_valid_pb_dict(
     pb_id: str,
-    scales: list[dict[str, Any]],
+    scales: Sequence[Mapping[str, JsonValue]],
     pb_type: str = "float",
     category_id: str = PromptBlockCategory.MATRIX.value,
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Builds a valid prompt block dictionary."""
-    pb: dict[str, Any] = {
+    pb: dict[str, JsonValue] = {
         "id": pb_id,
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
@@ -110,7 +111,7 @@ def _build_valid_pb_dict(
     return pb
 
 
-def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
+def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, JsonValue]:
     """Builds a valid step dictionary."""
     return {
         "id": "st_1234567890123456",
@@ -124,7 +125,7 @@ def _build_valid_step_dict(prompt_blocks: list[str]) -> dict[str, Any]:
     }
 
 
-def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") -> dict[str, Any]:
+def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") -> dict[str, JsonValue]:
     """Builds a valid execution record dictionary."""
     from datetime import datetime, timezone
 
@@ -149,7 +150,7 @@ def _build_valid_execution_dict(execution_id: str, strategy: str = "WATERFALL") 
 async def _create_test_scoring_repo(
     *,
     pb_id: str = "pb_1234567890123456",
-    scales: list[dict[str, Any]] | None = None,
+    scales: Sequence[Mapping[str, JsonValue]] | None = None,
     corrupt_scale: bool = False,
     corrupt_step: bool = False,
     corrupt_pb: bool = False,
@@ -160,7 +161,7 @@ async def _create_test_scoring_repo(
     enable_overrides: bool = True,
     strictness_level: int | None = 85,
     allow_contextual_override: bool = True,
-    extra_pbs: list[dict[str, Any]] | None = None,
+    extra_pbs: Sequence[Mapping[str, JsonValue]] | None = None,
     step_blocks: list[str] | None = None,
     profile_id: str = "prof_1111111111111111",
     display_scale: str = "original",
@@ -358,7 +359,7 @@ async def _create_test_scoring_repo(
 
     # 5. Output Profile
     if not omit_profile:
-        prof_dict: dict[str, Any] = {
+        prof_dict: dict[str, JsonValue] = {
             "id": profile_id,
             "slug": "test_slug",
             "workflow_id": workflow_id,
@@ -1508,7 +1509,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     for i in range(1, 6):
         atom_hash = generate_atom_hash(f"atom_{i}", mandate)
         is_hit = True if i != 2 else False
-        evaluation: dict[str, Any] = {
+        evaluation: dict[str, JsonValue] = {
             "tda_id": atom_hash,
             "status": ExecutionStatus.PASSED if is_hit else ExecutionStatus.FAILED,
             "evaluation_reasoning": "Hyväksytty" if is_hit else "Hylätty",
@@ -1666,7 +1667,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_missing_status_key() -> None:
     """Test that matrix_scoring_hook operates robustly even when evaluations omit the 'status' key."""
-    evaluations: list[dict[str, Any]] = [
+    evaluations: list[Mapping[str, JsonValue]] = [
         {
             "evaluation_reasoning": "Valid analytical statement",
             "source_quote": "mock quote",
@@ -2334,7 +2335,7 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
             payload={"step_falsifier": step_falsifier_dto.model_dump(mode="json")},
         ),
     ]
-    inputs: dict[str, Any] = {
+    inputs: dict[str, JsonValue] = {
         "steps": steps,
         "_evaluative_matrices": eval_matrices,
     }
@@ -2365,7 +2366,7 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
 async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
     """Test that apply_scoring_logic_hook records passivity penalty observation token."""
     eval_matrices = {"blk_1": 80.0}
-    inputs: dict[str, Any] = {
+    inputs: dict[str, JsonValue] = {
         "steps": [],
         "_evaluative_matrices": eval_matrices,
         "passivity_detected": True,

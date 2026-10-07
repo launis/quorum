@@ -13,6 +13,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.llm.client import LLMClient
@@ -22,7 +23,7 @@ from backend_v2.models.enums import CognitiveTier, LLMProvider
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
 
-def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, Any]:
+def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, JsonValue]:
     """Load model_registry system config from seed_data.json."""
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)

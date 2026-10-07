@@ -1,5 +1,5 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -45,7 +45,7 @@ from typing import Any
 
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
-    valid_data: dict[str, Any] = {
+    valid_data: dict[str, JsonValue] = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",
@@ -62,7 +62,7 @@ def test_embedded_output_profile_description_parsing() -> None:
     assert profile_success.description.resolve("en") == "A valid description"
 
     # 2. Fail-fast case with invalid description
-    invalid_data: dict[str, Any] = {
+    invalid_data: dict[str, JsonValue] = {
         "id": "prf_1234567890123456",
         "slug": "test-profile",
         "workflow_id": "wf_9d68c573802341db",

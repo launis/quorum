@@ -5,7 +5,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 
-def _get_base_model_registry_dict() -> dict[str, Any]:
+def _get_base_model_registry_dict() -> dict[str, JsonValue]:
     profile = {
         "provider": "mock_llm_99",
         "model_name": "gemini-2.5-pro",
@@ -92,7 +92,7 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
     }
 
 
-def _get_base_workflow_dict() -> dict[str, Any]:
+def _get_base_workflow_dict() -> dict[str, JsonValue]:
     return {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -108,7 +108,7 @@ def _get_base_workflow_dict() -> dict[str, Any]:
     }
 
 
-def _get_base_profile_dict() -> dict[str, Any]:
+def _get_base_profile_dict() -> dict[str, JsonValue]:
     return {
         "id": "prof_1111222233334444",
         "slug": "prof-1",
@@ -190,7 +190,7 @@ async def test_startup() -> None:
             with patch("backend_v2.worker.LLMClient"):
                 with patch("backend_v2.worker.PromptCompilerAdapter"):
                     with patch("backend_v2.worker.DAGExecutor"):
-                        ctx: dict[str, Any] = {}
+                        ctx = {}
                         await startup(ctx)
                         assert "engine" in ctx
                         assert "repository" in ctx
@@ -203,7 +203,7 @@ async def test_execute_workflow_job_not_found() -> None:
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_engine = AsyncMock()
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine}
+    ctx = {"repository": mock_repo, "engine": mock_engine}
 
     res = await execute_workflow_job(ctx, "nonexistent", {})
     assert res.status == "FAILED/DLQ"
@@ -232,7 +232,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
         )
     )
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_missing")
     assert res.status == "FAILED/DLQ"
 
@@ -267,7 +267,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
         )
     )
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
     assert res.status == "FAILED/DLQ"
 
@@ -318,7 +318,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         metadata=ExecutionMetadata(),
     )
     await mock_repo.save_execution(rec)
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
+    ctx = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
     assert res.status == "FAILED/DLQ"
@@ -330,7 +330,7 @@ async def test_execute_workflow_job_cancelled() -> None:
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
     assert res.status == "FAILED/DLQ"
 
@@ -342,7 +342,7 @@ async def test_execute_workflow_job_failure_update_error() -> None:
     mock_repo.inject_fault("get_workflow", RuntimeError("Initial crash"))
     mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
     assert res.status == "FAILED/DLQ"
 
@@ -354,7 +354,7 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
     mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
     mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    ctx = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
     assert res.status == "FAILED/DLQ"
 
@@ -467,7 +467,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
 
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine, "redis": None}
+    ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
 
     res = await execute_workflow_job(
         ctx,
@@ -1061,7 +1061,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     mock_engine.execute_workflow.return_value = mock_exec_record
 
     mock_redis = AsyncMock()
-    ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine, "redis": mock_redis}
+    ctx = {"repository": mock_repo, "engine": mock_engine, "redis": mock_redis}
 
     res = await execute_workflow_job(
         ctx,
@@ -1468,7 +1468,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     mock_storage.read.return_value = offloaded_blob
 
     with patch("backend_v2.workers.execution_worker.get_storage_driver", return_value=mock_storage):
-        ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine, "redis": None}
+        ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
         res = await execute_workflow_job(
             ctx,
             workflow_id="wf_1234567890123456",
@@ -1608,7 +1608,7 @@ async def test_job_wrappers_call_tasks() -> None:
         patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", AsyncMock()) as mock_synth,
         patch("backend_v2.workers.report_worker.generate_pdf_task", AsyncMock()) as mock_pdf,
     ):
-        ctx: dict[str, Any] = {"redis": None}
+        ctx = {"redis": None}
         r1 = await render_profile_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
         assert "Completed" in str(r1)
         mock_synth.assert_called_once_with("exe_123", "fi", "prof_1", None)
