@@ -161,9 +161,9 @@ Specifically and exhaustively, the following patterns and symbols are designated
 | `dict[str, Any]` OpenAPI spec | `@[backend_v2/scripts/generate_openapi.py#L50]` | OPEN-JSON | `dict[str, JsonValue]` | 1 |
 | Naked dict returns (3) | `@[backend_v2/database/repositories/execution.py]` | CLOSED | Typed domain models per `repository_reconstitution_mandate` | 1 |
 | Naked dict return (1) | `@[backend_v2/database/repositories/workflow.py]` | CLOSED | Typed domain models per `repository_reconstitution_mandate` | 1 |
-| `getattr(val.value, 'id', '')` (2) | `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L311-L353]` | DELETE | `match` on typed `ast` node classes | 1 |
-| `raw_extra: dict[str, Any] \| None` on `ProviderMetadataDTO` | `@[backend_v2/models/llm.py#L63-L76]` | OPEN-JSON | `dict[str, JsonValue] \| None` (provider-native payload) | 1 |
-| `model_params: dict[str, Any]` on `AdHocTestRequest` | `@[backend_v2/models/llm.py#L426-L447]` | DROP | INTENTIONALLY DROPPED: 0 producers in `backend_v2/`, 0 `"model_params"` keys in `backend_v2/seed/seed_data.json`, 0 `model_params` / `modelParams` references in `client_app_v2/lib/` (verified 2026-10-05). Any new reference found at execution time triggers STOP and a `PERMISSION GRANTED` request | 1 |
+| `getattr(val.value, 'id', '')` (2) | `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L311-L353]` | [DELETE] | `match` on typed `ast` node classes | 1 |
+| `raw_extra: dict[str, Any] \| None` on `ProviderMetadataDTO` | `@[backend_v2/models/llm.py]` | OPEN-JSON | `dict[str, JsonValue] \| None` (provider-native payload) | 1 |
+| `model_params: dict[str, Any]` on `AdHocTestRequest` | `@[backend_v2/models/llm.py]` | DROP | INTENTIONALLY DROPPED: 0 producers in `backend_v2/`, 0 `"model_params"` keys in `backend_v2/seed/seed_data.json`, 0 `model_params` / `modelParams` references in `client_app_v2/lib/` (verified 2026-10-05). Any new reference found at execution time triggers STOP and a `PERMISSION GRANTED` request | 1 |
 | `trace: dict[str, Any]` (2: L350, L533) | `@[backend_v2/models/dtos/studio.py]` | REUSE | `StepSimulationTraceDTO` (promoted to typed DTO; permissive `dict[str, JsonValue]` strictly banned by `QGR027`) | 1 |
 | `mock_inputs: dict[str, Any]` (2: L384, L482) | `@[backend_v2/models/dtos/studio.py]` | INGRESS | `dict[str, IngressInputValue]`; values proven by origin trace to be upstream step outputs bind to `dict[str, IngressInputValue \| DomainInputValue]` | 1 |
 | `parameters: dict[str, Any]` (JSON Schema) | `@[backend_v2/models/dtos/mcp.py#L54]` | OPEN-JSON | `dict[str, JsonValue]` | 1 |
@@ -175,10 +175,10 @@ Specifically and exhaustively, the following patterns and symbols are designated
 | `input_schema: dict[str, Any]` (JSON Schema) | `@[backend_v2/models/domain/system_config.py#L158]` | OPEN-JSON | `dict[str, JsonValue]` | 1 |
 | `root: dict[str, Any]` | `@[backend_v2/models/domain/validation.py#L38]` | INGRESS | Origin trace binds `IngressInputValue` or `DomainInputValue` | 1 |
 | `meta: dict[str, Any]` | `@[backend_v2/models/domain/validation.py#L98]` | CLOSED | [NEW] `ValidationContextMetadataDTO` when producer key-set is finite; otherwise `dict[str, JsonValue]` | 1 |
-| `data: dict[str, Any] \| None` on `ReportResult` | `@[backend_v2/models/domain/xai.py#L468-L490]` | REUSE | `ReportDataDTO \| None` | 1 |
-| `flat_report: dict[str, Any] \| None` on `XAIOutput` | `@[backend_v2/models/domain/xai.py#L439-L465]` | DROP | INTENTIONALLY DROPPED: field self-documents as legacy `extra='allow'` boundary; sole instantiation `MOCK_XAI_OUTPUT` (`backend_v2/llm/mock_data.py:257`) omits it; 0 `flat_report` keys in `backend_v2/seed/seed_data.json` and `data/db_v2.json`; sole `client_app_v2/lib/` hit is a code comment (`client_app_v2/lib/shared/widgets/result_dashboard.dart:726`). Any new reference found at execution time triggers STOP and a `PERMISSION GRANTED` request | 1 |
+| `data: dict[str, Any] \| None` on `ReportResult` | `@[backend_v2/models/domain/xai.py]` | REUSE | `ReportDataDTO \| None` | 1 |
+| `flat_report: dict[str, Any] \| None` on `XAIOutput` | `@[backend_v2/models/domain/xai.py]` | DROP | INTENTIONALLY DROPPED: field self-documents as legacy `extra='allow'` boundary; sole instantiation `MOCK_XAI_OUTPUT` (`backend_v2/llm/mock_data.py:257`) omits it; 0 `flat_report` keys in `backend_v2/seed/seed_data.json` and `data/db_v2.json`; sole `client_app_v2/lib/` hit is a code comment (`client_app_v2/lib/shared/widgets/result_dashboard.dart:726`). Any new reference found at execution time triggers STOP and a `PERMISSION GRANTED` request | 1 |
 | `context: dict[str, Any] \| None` | `@[backend_v2/models/domain/base.py#L37]` | CLOSED | [NEW] `DomainExecutionContextDTO \| None` when producer key-set is finite; otherwise `dict[str, JsonValue] \| None` | 1 |
-| `provider_metadata: dict[str, Any] \| None` | `@[backend_v2/models/domain/base.py#L40-L128]` | REUSE | `ProviderMetadataDTO \| None` (`backend_v2/models/llm.py:63`) | 1 |
+| `provider_metadata: dict[str, Any] \| None` | `@[backend_v2/models/domain/base.py]` | REUSE | `ProviderMetadataDTO \| None` (`backend_v2/models/llm.py:63`) | 1 |
 | `dynamic_inputs: dict[str, Any]` | `@[backend_v2/models/domain/archivist.py]` | INGRESS | `dict[str, IngressInputValue]` (resolves input values while decoupling import cycle between archivist and inputs) | 1 |
 | `dynamic_inputs: dict[str, Any]` | `@[backend_v2/models/domain/analyst.py]` | INGRESS | `dict[str, IngressInputValue]` (resolves input values while decoupling import cycle between analyst and inputs) | 1 |
 | `evaluated_matrices: list[dict[str, JsonValue]]` | `@[backend_v2/models/dtos/atom_evaluation.py#L50]` | CLOSED | REUSE check against `backend_v2/models/dtos/context_variables.py`; else [NEW] `list[EvaluatedMatrixRefDTO]` | 1 |
@@ -188,9 +188,9 @@ Specifically and exhaustively, the following patterns and symbols are designated
 | `context_data: dict[str, object]` | `@[backend_v2/models/dtos/system.py#L79]` | OPEN-JSON | `dict[str, JsonValue]` (client error dump) | 1 |
 | `root: dict[str, Any]` in `SanitizationInput` | `@[backend_v2/models/domain/security.py]` | INGRESS | `dict[str, IngressInputValue]` (origin trace mandatory) | 1 |
 | `root: dict[str, Any]` in `MetricsInputPayload` | `@[backend_v2/models/domain/metrics.py]` | DOMAIN | Origin trace binds `IngressInputValue` or `DomainInputValue` | 1 |
-| `raw_inputs: dict[str, Any] \| None` | `@[backend_v2/models/domain/integrity.py#L92-L118]` | INGRESS | `dict[str, IngressInputValue] \| None` (docstring: database-boundary envelope) | 1 |
+| `raw_inputs: dict[str, Any] \| None` | `@[backend_v2/models/domain/integrity.py]` | INGRESS | `dict[str, IngressInputValue] \| None` (docstring: database-boundary envelope) | 1 |
 | `metadata: dict[str, Any]` | `@[backend_v2/models/dtos/prompt_context.py#L11-L33]` | CLOSED | [NEW] DTO when producer key-set is finite; otherwise `dict[str, float]` when all values are scores; otherwise `dict[str, JsonValue]` | 1 |
-| `model_validate` override with `extracted: dict[str, Any]` and `_step_metadata` / `step_metadata` dual-key fallback | `@[backend_v2/models/dtos/trace.py#L157-L194]` | DELETE | Override removed; single canonical key. Pre-condition: `Select-String -Path data/db_v2.json -Pattern '"_step_metadata"'` count recorded; non-zero count triggers STOP and a user decision | 1 |
+| `model_validate` override with `extracted: dict[str, Any]` and `_step_metadata` / `step_metadata` dual-key fallback | `@[backend_v2/models/dtos/trace.py#L157-L194]` | [DELETE] | Override removed; single canonical key. Pre-condition: `Select-String -Path data/db_v2.json -Pattern '"_step_metadata"'` count recorded; non-zero count triggers STOP and a user decision | 1 |
 | `details: dict[str, Any] \| None` | `@[backend_v2/exceptions.py]` | OPEN-JSON | `dict[str, JsonValue] \| None` (RFC 7807 extension members); blast radius (scratch mypy probe 2026-10-05) = 32 errors in 5 files: 27 in `backend_v2/exceptions.py` (invariant typed locals `dict[str, str]`, `dict[str, ErrorCodes]`, `dict[str, object]`, `dict[str, str \| None]` inside subclass constructors), 1 in `backend_v2/database/repositories/components/prompt_block.py`, 2 in `backend_v2/services/ingress/smart_ingress_resolver.py`, 1 in `backend_v2/hooks/validation.py`, 1 in `backend_v2/hooks/input_processing.py` | 2 |
 | `def to_problem_detail -> dict[str, Any]` | `@[backend_v2/exceptions.py]` | CLOSED | [NEW] `ProblemDetailDTO` with exhaustive fields `type: str`, `title: str`, `status: int`, `detail: str`, `instance: str \| None`, `extensions: dict[str, JsonValue]`, serialized at the network boundary via `.model_dump(mode="json", exclude_none=True)` to preserve the wire shape consumed by `client_app_v2/lib/core/error/app_exception.dart`; test callers `backend_v2/tests/unit/test_exceptions.py` (2); callers `@[backend_v2/main.py#L314-L342]`, `@[backend_v2/main.py#L441-L470]`, `@[backend_v2/core/rate_limit.py#L21-L50]` | 2 |
 | `dict[str, dict[float, LevelStatsDTO]]`, `dict[str, dict[str, ExecutionStatus]]`, `dict[str, dict[str, list[str]]]` (3 parallel maps) | `@[backend_v2/hooks/scoring/matrix_hook.py#L83-L564]` | CLOSED | [NEW] `dict[str, MatrixAggregationStateDTO]` (one DTO with 3 typed fields) when the 3 outer keys share the matrix-ID domain; otherwise one [NEW] DTO per map | 2 |
@@ -198,40 +198,40 @@ Specifically and exhaustively, the following patterns and symbols are designated
 | Naked dict / PO annotations | `@[backend_v2/hooks/linguistics.py]`, `@[backend_v2/hooks/scoring/passivity_hook.py]`, `@[backend_v2/hooks/source_verification_hook.py]`, `@[backend_v2/llm/client.py]`, `@[backend_v2/llm/ingress_pipeline.py]`, `@[backend_v2/llm/schema_builder.py]`, `@[backend_v2/core/registry.py]`, `@[backend_v2/core/rate_limit.py]` | CLOSED | Classification Gate per annotation; `linguistics.py` binds [NEW] `LinguisticAnalysisDTO` | 2 |
 | `MOCK_REGISTRY: dict[type[Any], Any]` | `@[backend_v2/llm/mock_data.py]` | CLOSED | `dict[type[BaseModel], BaseModel]` | 2 |
 | `def get_fallback_data(key: str) -> dict[str, Any]` | `@[backend_v2/llm/mock_data.py]` | CLOSED | Returns typed `BaseModel` mock instances | 2 |
-| `class DynamicRepoMethod` (`MagicMock` facade) | `@[backend_v2/tests/fakes/in_memory_repositories.py#L1747-L1835]` | DELETE | None (test setup seeds state via typed repository write methods) | 7 |
-| `class InMemoryBlueprintTransformerRepository` (`__getattribute__` / `__setattr__` method synthesis) | `@[backend_v2/tests/fakes/in_memory_repositories.py#L1838-L1889]` | DELETE | `InMemoryUnifiedWorkflowRepository` (`backend_v2/tests/fakes/in_memory_repositories.py:1283`) | 7 |
-| `getattr(self, method_name, None)` in `inject_fault` | `@[backend_v2/tests/fakes/in_memory_repositories.py#L128-L133]` | DELETE | Positive fault registry keyed by the bound method `__name__` | 7 |
-| `def dict_to_obj(d: Any) -> Any` | `@[backend_v2/tests/unit/services/test_blueprint.py#L141-L164]` | DELETE | Typed domain model construction (`Workflow(...)`, `Step(...)`) | 4 |
-| `def mock_repo() -> AsyncMock` | `@[backend_v2/tests/unit/test_epic66_multi_provider.py#L12-L14]` | DELETE | `InMemoryUnifiedWorkflowRepository` | 3 |
-| `def mock_repo() -> AsyncMock` | `@[backend_v2/tests/unit/test_handler.py#L31-L34]` | DELETE | `InMemoryUnifiedWorkflowRepository` | 3 |
-| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/hooks/test_interaction_hook.py#L24-L26]` | DELETE | `InMemorySystemRepository` | 3 |
-| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/test_security.py#L20-L22]` | DELETE | `InMemorySystemRepository` | 4 |
-| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/services/test_chat_parser.py#L20-L23]` | DELETE | `InMemorySystemRepository` | 4 |
-| `def mock_output_profile_repo() -> AsyncMock` | `@[backend_v2/tests/unit/services/studio/test_output_profile_service.py#L18-L20]` | DELETE | `InMemoryOutputProfileRepository` | 4 |
-| `def mock_workflow_repo() -> AsyncMock`, `def mock_output_profile_repo() -> AsyncMock`, `def mock_prompt_block_repo() -> AsyncMock` | `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L42-L44]`, `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L47-L49]`, `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L52-L54]` | DELETE | `InMemoryWorkflowRepository`, `InMemoryOutputProfileRepository`, `InMemoryPromptBlockRepository` (conftest fixtures `fake_workflow_repo`, `fake_output_profile_repo`, `fake_prompt_block_repo`) | 4 |
-| `mock_driver: AsyncMock` driver-level persistence mock | `@[backend_v2/tests/unit/test_repositories_v2.py]` | DELETE | Real `TinyDBDriver(db_client)` (`backend_v2/database/tinydb_driver.py:26`) over a pytest `tmp_path` database | 4 |
-| `def mock_repo() -> MagicMock` | `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_atom_ceiling.py#L20-L22]` | DELETE | `InMemoryUnifiedWorkflowRepository` | 5 |
-| `def mock_repos() -> dict[str, Any]` | `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py#L19-L57]` | DELETE | `InMemoryUnifiedWorkflowRepository` | 5 |
-| 861 `<repo>.<method>.return_value` / `.side_effect` assignments | 49 files enumerated in Phases 3-6 | DELETE | Typed seeding through `IUnifiedWorkflowRepository` write methods; faults through `inject_fault()` | 3-6 |
-| 68 `<repo>.<attr> = AsyncMock(...)` / `MagicMock(...)` / `Mock(...)` attribute replacements (census B) | 12 files enumerated in Phases 3-5 | DELETE | Typed seeding through in-memory fake write methods; faults through `inject_fault()`; the 3 `repo._increment_version = MagicMock(...)` partial mocks in `backend_v2/tests/unit/database/repositories/components/` replaced by version roundtrip assertions over a real `TinyDBDriver` on `tmp_path` | 3-5 |
-| 821 keyword-injected repository mocks `<repo>=AsyncMock(...)` / `MagicMock(...)` / `Mock(...)` (census D) | 32 files enumerated in Phases 3-6 and @[docs/epic/EPIC_157_residual_ledger.md] | DELETE | Conftest in-memory fakes (`fake_workflow_repo`, `fake_prompt_block_repo`, `fake_output_profile_repo`, `fake_system_repo`) and `InMemory*Repository` instances from `backend_v2/tests/fakes/in_memory_repositories.py` passed to `HookDependencies`, `HookContext`, and executor constructors | 3-6 |
-| 50 `patch("<module>.<RepositoryClass>")` mocks (census F) | 6 worker test files enumerated in Phase 6 | DELETE | `patch("<module>.<RepositoryClass>", return_value=<InMemory*Repository instance>)` seeded through typed write methods | 6 |
-| 25 ad-hoc repository classes (census K) and their 792 `cast(Any, ...)` injections | `@[backend_v2/tests/unit/hooks/test_scoring.py]` (15), `@[backend_v2/tests/unit/hooks/test_input_processing.py]` (4), `@[backend_v2/tests/unit/test_input_processing.py]` (2), `@[backend_v2/tests/unit/hooks/test_dlq_guard.py]` (1), `@[backend_v2/tests/unit/hooks/test_metadata.py]` (1), `@[backend_v2/tests/unit/hooks/test_references.py]` (1), `@[backend_v2/tests/unit/hooks/test_security.py]` (1) | DELETE | `InMemory*Repository` fakes typed against the `backend_v2/database/interfaces.py` Protocols; no `cast` | 3 |
-| `[REASON: ...]` authorization of `# noqa: QGR` comments | `@[scripts/audit_dict_eradication.py]` | DELETE | Every `# noqa` comment token is a violation | 9 |
-| `CommentSuppressor` class and `# noqa: QGRxxx [REASON: ...]` parsing | `@[scripts/_ast_guardrails.py#L205-L322]` | DELETE | AST inline suppression eradicated; all QGR rules evaluated unconditionally | 9 |
-| `is_suppressed` filtering in Stage 4 and baseline ledger | `@[scripts/backend_audit_loop.py#L400]`, `@[scripts/audit_warning_baseline.py#L83]` | DELETE | Unsuppressed list equals raw violations list; no suppression filter | 9 |
-| 38 `# noqa: QGR001` / `# noqa: QGR012` comments | `@[backend_v2/llm/provider.py]` (27), `@[backend_v2/llm/adapters/base_adapter.py]` (5), `@[backend_v2/database/firestore_driver.py]` (1), `@[backend_v2/database/tinydb_driver.py]` (1), `@[backend_v2/logging_config.py]` (1), `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py]` (2), `@[backend_v2/tests/fakes/in_memory_repositories.py]` (1) | DELETE | Third-party attribute reads through Pydantic V2 adapter DTOs validated with `model_validate(obj, from_attributes=True)`; SDK exception attributes through `isinstance` on the concrete SDK exception class followed by direct attribute access | 9 |
-| 38 Ruff `# noqa` comments (`E501`, `F401`, `E402`, `F403`) | 23 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md] | DELETE | Line wrapping (`E501`); PEP 484 explicit re-export `from x import Y as Y` (`F401`); top-of-module imports (`E402`); explicit named imports (`F403`) | 9 |
-| `exec_record = cast(Any, exec_record_raw)` and 10 residual test `cast(Any, ...)` calls | `@[backend_v2/services/orchestrator/strategies/llm.py]`, 4 test files enumerated in Phase 9 | DELETE | `ExecutionRecord.model_validate(...)` at the persistence boundary; typed test construction | 9 |
-| 409 `# type: ignore` comments and `[[tool.mypy.overrides]]` with `warn_unused_ignores = false` | 155 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md]; `@[pyproject.toml#L131-L136]` | DELETE | Type-correct code; negative tests build invalid input through `Model.model_validate({...})`; `[[tool.mypy.overrides]]` deleted; `warn_unused_ignores = true` globally; the 20 `[prop-decorator]` sites (`backend_v2/settings.py` 18, `backend_v2/models/domain/overseer.py` 2) resolve through ONE `disable_error_code = ["prop-decorator"]` entry (Section 2.2 item 7) | 10 |
-| 5 dead `per-file-ignores` entries | `@[pyproject.toml#L98-L101]`, `@[pyproject.toml#L116]` | DELETE | Removed from `tool.ruff.lint.per-file-ignores` | 10 |
+| `class DynamicRepoMethod` (`MagicMock` facade) | `@[backend_v2/tests/fakes/in_memory_repositories.py#L1747-L1835]` | [DELETE] | None (test setup seeds state via typed repository write methods) | 7 |
+| `class InMemoryBlueprintTransformerRepository` (`__getattribute__` / `__setattr__` method synthesis) | `@[backend_v2/tests/fakes/in_memory_repositories.py#L1838-L1889]` | [DELETE] | `InMemoryUnifiedWorkflowRepository` (`backend_v2/tests/fakes/in_memory_repositories.py:1283`) | 7 |
+| `getattr(self, method_name, None)` in `inject_fault` | `@[backend_v2/tests/fakes/in_memory_repositories.py#L128-L133]` | [DELETE] | Positive fault registry keyed by the bound method `__name__` | 7 |
+| `def dict_to_obj(d: Any) -> Any` | `@[backend_v2/tests/unit/services/test_blueprint.py#L141-L164]` | [DELETE] | Typed domain model construction (`Workflow(...)`, `Step(...)`) | 4 |
+| `def mock_repo() -> AsyncMock` | `@[backend_v2/tests/unit/test_epic66_multi_provider.py#L12-L14]` | [DELETE] | `InMemoryUnifiedWorkflowRepository` | 3 |
+| `def mock_repo() -> AsyncMock` | `@[backend_v2/tests/unit/test_handler.py#L31-L34]` | [DELETE] | `InMemoryUnifiedWorkflowRepository` | 3 |
+| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/hooks/test_interaction_hook.py#L24-L26]` | [DELETE] | `InMemorySystemRepository` | 3 |
+| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/test_security.py#L20-L22]` | [DELETE] | `InMemorySystemRepository` | 4 |
+| `def mock_repository() -> AsyncMock` | `@[backend_v2/tests/unit/services/test_chat_parser.py#L20-L23]` | [DELETE] | `InMemorySystemRepository` | 4 |
+| `def mock_output_profile_repo() -> AsyncMock` | `@[backend_v2/tests/unit/services/studio/test_output_profile_service.py#L18-L20]` | [DELETE] | `InMemoryOutputProfileRepository` | 4 |
+| `def mock_workflow_repo() -> AsyncMock`, `def mock_output_profile_repo() -> AsyncMock`, `def mock_prompt_block_repo() -> AsyncMock` | `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L42-L44]`, `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L47-L49]`, `@[backend_v2/tests/unit/services/studio/test_workflow_service.py#L52-L54]` | [DELETE] | `InMemoryWorkflowRepository`, `InMemoryOutputProfileRepository`, `InMemoryPromptBlockRepository` (conftest fixtures `fake_workflow_repo`, `fake_output_profile_repo`, `fake_prompt_block_repo`) | 4 |
+| `mock_driver: AsyncMock` driver-level persistence mock | `@[backend_v2/tests/unit/test_repositories_v2.py]` | [DELETE] | Real `TinyDBDriver(db_client)` (`backend_v2/database/tinydb_driver.py:26`) over a pytest `tmp_path` database | 4 |
+| `def mock_repo() -> MagicMock` | `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_atom_ceiling.py#L20-L22]` | [DELETE] | `InMemoryUnifiedWorkflowRepository` | 5 |
+| `def mock_repos() -> dict[str, Any]` | `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py#L19-L57]` | [DELETE] | `InMemoryUnifiedWorkflowRepository` | 5 |
+| 861 `<repo>.<method>.return_value` / `.side_effect` assignments | 49 files enumerated in Phases 3-6 | [DELETE] | Typed seeding through `IUnifiedWorkflowRepository` write methods; faults through `inject_fault()` | 3-6 |
+| 68 `<repo>.<attr> = AsyncMock(...)` / `MagicMock(...)` / `Mock(...)` attribute replacements (census B) | 12 files enumerated in Phases 3-5 | [DELETE] | Typed seeding through in-memory fake write methods; faults through `inject_fault()`; the 3 `repo._increment_version = MagicMock(...)` partial mocks in `backend_v2/tests/unit/database/repositories/components/` replaced by version roundtrip assertions over a real `TinyDBDriver` on `tmp_path` | 3-5 |
+| 821 keyword-injected repository mocks `<repo>=AsyncMock(...)` / `MagicMock(...)` / `Mock(...)` (census D) | 32 files enumerated in Phases 3-6 and @[docs/epic/EPIC_157_residual_ledger.md] | [DELETE] | Conftest in-memory fakes (`fake_workflow_repo`, `fake_prompt_block_repo`, `fake_output_profile_repo`, `fake_system_repo`) and `InMemory*Repository` instances from `backend_v2/tests/fakes/in_memory_repositories.py` passed to `HookDependencies`, `HookContext`, and executor constructors | 3-6 |
+| 50 `patch("<module>.<RepositoryClass>")` mocks (census F) | 6 worker test files enumerated in Phase 6 | [DELETE] | `patch("<module>.<RepositoryClass>", return_value=<InMemory*Repository instance>)` seeded through typed write methods | 6 |
+| 25 ad-hoc repository classes (census K) and their 792 `cast(Any, ...)` injections | `@[backend_v2/tests/unit/hooks/test_scoring.py]` (15), `@[backend_v2/tests/unit/hooks/test_input_processing.py]` (4), `@[backend_v2/tests/unit/test_input_processing.py]` (2), `@[backend_v2/tests/unit/hooks/test_dlq_guard.py]` (1), `@[backend_v2/tests/unit/hooks/test_metadata.py]` (1), `@[backend_v2/tests/unit/hooks/test_references.py]` (1), `@[backend_v2/tests/unit/hooks/test_security.py]` (1) | [DELETE] | `InMemory*Repository` fakes typed against the `backend_v2/database/interfaces.py` Protocols; no `cast` | 3 |
+| `[REASON: ...]` authorization of `# noqa: QGR` comments | `@[scripts/audit_dict_eradication.py]` | [DELETE] | Every `# noqa` comment token is a violation | 9 |
+| `CommentSuppressor` class and `# noqa: QGRxxx [REASON: ...]` parsing | `@[scripts/_ast_guardrails.py#L205-L322]` | [DELETE] | AST inline suppression eradicated; all QGR rules evaluated unconditionally | 9 |
+| `is_suppressed` filtering in Stage 4 and baseline ledger | `@[scripts/backend_audit_loop.py#L400]`, `@[scripts/audit_warning_baseline.py#L83]` | [DELETE] | Unsuppressed list equals raw violations list; no suppression filter | 9 |
+| 38 `# noqa: QGR001` / `# noqa: QGR012` comments | `@[backend_v2/llm/provider.py]` (27), `@[backend_v2/llm/adapters/base_adapter.py]` (5), `@[backend_v2/database/firestore_driver.py]` (1), `@[backend_v2/database/tinydb_driver.py]` (1), `@[backend_v2/logging_config.py]` (1), `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py]` (2), `@[backend_v2/tests/fakes/in_memory_repositories.py]` (1) | [DELETE] | Third-party attribute reads through Pydantic V2 adapter DTOs validated with `model_validate(obj, from_attributes=True)`; SDK exception attributes through `isinstance` on the concrete SDK exception class followed by direct attribute access | 9 |
+| 38 Ruff `# noqa` comments (`E501`, `F401`, `E402`, `F403`) | 23 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md] | [DELETE] | Line wrapping (`E501`); PEP 484 explicit re-export `from x import Y as Y` (`F401`); top-of-module imports (`E402`); explicit named imports (`F403`) | 9 |
+| `exec_record = cast(Any, exec_record_raw)` and 10 residual test `cast(Any, ...)` calls | `@[backend_v2/services/orchestrator/strategies/llm.py]`, 4 test files enumerated in Phase 9 | [DELETE] | `ExecutionRecord.model_validate(...)` at the persistence boundary; typed test construction | 9 |
+| 409 `# type: ignore` comments and `[[tool.mypy.overrides]]` with `warn_unused_ignores = false` | 155 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md]; `@[pyproject.toml#L131-L136]` | [DELETE] | Type-correct code; negative tests build invalid input through `Model.model_validate({...})`; `[[tool.mypy.overrides]]` deleted; `warn_unused_ignores = true` globally; the 20 `[prop-decorator]` sites (`backend_v2/settings.py` 18, `backend_v2/models/domain/overseer.py` 2) resolve through ONE `disable_error_code = ["prop-decorator"]` entry (Section 2.2 item 7) | 10 |
+| 5 dead `per-file-ignores` entries | `@[pyproject.toml#L98-L101]`, `@[pyproject.toml#L116]` | [DELETE] | Removed from `tool.ruff.lint.per-file-ignores` | 10 |
 | 390 `dict[str, Any]` / `dict[str, object]` lines in tests and `scripts/` | 89 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md] | OPEN-JSON / CLOSED | `dict[str, JsonValue]` for JSON payload fixtures; existing domain DTOs for typed fixtures | 11 |
 | `Mapping[str, object]` (7), `HookState \| Mapping[str, Any]` (1), `dict[str, Any]` in a `test_`-named production module (2) | `@[backend_v2/hooks/input_processing.py]` (2), `@[backend_v2/services/orchestrator/strategies/llm.py]` (2), `@[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]` (2), `@[backend_v2/services/ingress/pdf_chat_extractor.py]` (1), `@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]` (1), `@[backend_v2/core/test_settings.py]` (2) | CLOSED / OPEN-JSON | Field Classification Gate per site; `context_builder.py` accepts `HookState` only | 11 |
 | 193 non-codec `Map<String, dynamic>` occurrences | 48 files enumerated in @[docs/epic/EPIC_157_residual_ledger.md] | CLOSED / OPEN-JSON | Freezed DTOs mirroring backend CLOSED models (verified by `scripts/audit_dto_parity.py`); `Map<String, Object?>` for backend OPEN-JSON fields | 12 |
-| 25 hand-written Dart `// ignore:` / `// ignore_for_file:` comments (DGR004) | 23 files in `client_app_v2/lib/` | DELETE | Lint suppressions removed; underlying issues fixed; DGR004 promoted to unconditional FATAL | 12 |
-| 7 unconditional `@pytest.mark.skip` tests | Files `@[backend_v2/tests/architecture/test_boundaries.py]`, `@[backend_v2/tests/unit/test_epic_61_hardening.py]`, `@[backend_v2/tests/unit/test_provider_rate_limit.py]`, `@[backend_v2/tests/unit/llm/test_fallback_caching.py]`; functions `test_aspirational_html_escape` in `@[backend_v2/tests/unit/test_ast_domain_security_guardrails.py]` and `test_all_ok_matrices_have_exactly_three_claims` in `@[backend_v2/tests/unit/test_matrix_data_integrity.py]` | DELETE | INTENTIONALLY DROPPED: permanently skipped tests execute no assertion; their skip reasons cite obsolete legacy architecture or unimplemented features | 1 |
-| 4 `@pytest.mark.xfail` markers | `@[backend_v2/tests/unit/hooks/test_scoring.py]` (`test_scoring_matrix_namespace_isolation`, `test_scoring_regular_tda_path_bypasses_namespace_check`, `test_failed_atom_with_override_does_not_inflate_score`, `test_matrix_scoring_hook_illegal_override_penalty`) | DELETE | Markers removed; the 2 XFAIL tests receive typed `ExecutionInputsDTO.raw_inputs` fixtures. An assertion failure after fixture migration is a production defect and triggers STOP and a `PERMISSION GRANTED` request (behavioral change) | 1 |
-| 7 `patch.object(<repo>, ...)` / `monkeypatch.setattr(<repo>, ...)` calls (census C) | `@[backend_v2/tests/unit/services/studio/test_system_config_service.py]` (5), `@[backend_v2/tests/unit/test_repo_deletion.py]` (1), `@[backend_v2/tests/unit/services/studio/test_prompt_block_service.py]` (1) | DELETE | Absent-entity state expressed by not seeding `InMemorySystemRepository` / `InMemoryPromptBlockRepository`; failures through `inject_fault()` | 4 |
+| 25 hand-written Dart `// ignore:` / `// ignore_for_file:` comments (DGR004) | 23 files in `client_app_v2/lib/` | [DELETE] | Lint suppressions removed; underlying issues fixed; DGR004 promoted to unconditional FATAL | 12 |
+| 7 unconditional `@pytest.mark.skip` tests | Files `@[backend_v2/tests/architecture/test_boundaries.py]`, `@[backend_v2/tests/unit/test_epic_61_hardening.py]`, `@[backend_v2/tests/unit/test_provider_rate_limit.py]`, `@[backend_v2/tests/unit/llm/test_fallback_caching.py]`; functions `test_aspirational_html_escape` in `@[backend_v2/tests/unit/test_ast_domain_security_guardrails.py]` and `test_all_ok_matrices_have_exactly_three_claims` in `@[backend_v2/tests/unit/test_matrix_data_integrity.py]` | [DELETE] | INTENTIONALLY DROPPED: permanently skipped tests execute no assertion; their skip reasons cite obsolete legacy architecture or unimplemented features | 1 |
+| 4 `@pytest.mark.xfail` markers | `@[backend_v2/tests/unit/hooks/test_scoring.py]` (`test_scoring_matrix_namespace_isolation`, `test_scoring_regular_tda_path_bypasses_namespace_check`, `test_failed_atom_with_override_does_not_inflate_score`, `test_matrix_scoring_hook_illegal_override_penalty`) | [DELETE] | Markers removed; the 2 XFAIL tests receive typed `ExecutionInputsDTO.raw_inputs` fixtures. An assertion failure after fixture migration is a production defect and triggers STOP and a `PERMISSION GRANTED` request (behavioral change) | 1 |
+| 7 `patch.object(<repo>, ...)` / `monkeypatch.setattr(<repo>, ...)` calls (census C) | `@[backend_v2/tests/unit/services/studio/test_system_config_service.py]` (5), `@[backend_v2/tests/unit/test_repo_deletion.py]` (1), `@[backend_v2/tests/unit/services/studio/test_prompt_block_service.py]` (1) | [DELETE] | Absent-entity state expressed by not seeding `InMemorySystemRepository` / `InMemoryPromptBlockRepository`; failures through `inject_fault()` | 4 |
 
 ### 2.2 Retained SSOT Invariants (`What We Will RETAIN`)
 Specifically and exhaustively:
@@ -265,7 +265,7 @@ Specifically and exhaustively, the following architectural directives govern the
 Specifically and exhaustively, all changes must comply with:
 1. **The Zero-Compromise Pledge**: 100% Pydantic V2 models configured with `ConfigDict(strict=True, extra="forbid", frozen=True)`.
 2. **Universal Fail-Fast**: If required schema properties are omitted or malformed, the system triggers Fail-Fast `AppException` with RFC 7807 dual logging.
-3. **Field Classification Gate (TRACE UPSTREAM before typing)**: For every retyped field the executing agent records the union of keys written at ALL producer sites (`grep_search` across `backend_v2/`, `backend_v2/seed/seed_data.json`, `client_app_v2/lib/`). Decision procedure: (a) finite key-set → `CLOSED` DTO, reusing an existing model when its fields are a superset; (b) key-set defined by an external open specification (JSON Schema, provider SDK payload, OpenAPI document, RFC 7807 extension members, client error dump) → `OPEN-JSON` `dict[str, JsonValue]` EXCLUSIVELY for files in the frozen `OPEN_JSON_EXEMPTION_FILES` SSOT whitelist; (c) internal simulation traces and models MUST use dedicated Pydantic V2 DTOs (e.g. `StepSimulationTraceDTO` on `PromptBlockSimulationResponse` and `WorkflowSimulationResponse` in `studio.py`); (d) keys are Studio-authored input keys → `INGRESS` (`IngressInputValue`) or `DOMAIN` (`DomainInputValue`), with import cycles between models cleanly decoupled via `IngressInputValue`; (e) zero producers and zero consumers → `DROP` subject to the client/database reference check in the Sunset List. The decision and producer list are recorded in the implementation plan.
+3. **Field Classification Gate (TRACE UPSTREAM before typing)**: For every retyped field the executing agent records the union of keys written at ALL producer sites (`grep_search` across `backend_v2/`, `backend_v2/seed/seed_data.json`, `client_app_v2/lib/`). Decision procedure: (a) finite key-set → `CLOSED` DTO, reusing an existing model when its fields are a superset; (b) key-set defined by an external open specification (JSON Schema, provider SDK payload, OpenAPI document, RFC 7807 extension members, client error dump) → `OPEN-JSON` `dict[str, JsonValue]` EXCLUSIVELY for files in the frozen `OPEN_JSON_EXEMPTION_FILES` SSOT whitelist; (c) internal simulation traces and models MUST use dedicated Pydantic V2 DTOs (specifically `StepSimulationTraceDTO` on `PromptBlockSimulationResponse` and `WorkflowSimulationResponse` in `studio.py`); (d) keys are Studio-authored input keys → `INGRESS` (`IngressInputValue`) or `DOMAIN` (`DomainInputValue`), with import cycles between models cleanly decoupled via `IngressInputValue`; (e) zero producers and zero consumers → `DROP` subject to the client/database reference check in the Sunset List. The decision and producer list are recorded in the implementation plan.
 4. **Hardened QGR014 Enforcement**: Prohibits (a) fixture functions returning `AsyncMock`/`MagicMock`/`Mock`, (b) `.return_value` / `.side_effect` assignments, (c) attribute-replacement assignments `<repo>.<attr> = AsyncMock(...)` / `MagicMock(...)` / `Mock(...)`, (d) `patch.object(<repo>, ...)` / `monkeypatch.setattr(<repo>, ...)` calls on repository identifiers, (e) keyword arguments whose name satisfies `_is_repository_identifier` bound to `AsyncMock(...)` / `MagicMock(...)` / `Mock(...)`, (f) `patch("<module>.<Class>")` where `<Class>` belongs to the positive repository-class set resolved from `backend_v2/database/interfaces.py` and `backend_v2/database/repositories/` and neither `return_value` nor `new` is bound to an instance of a class defined in `backend_v2/tests/fakes/in_memory_repositories.py` (replacing the `"service" in self.filepath` condition and the substring target predicate at `scripts/_ast_guardrails.py:727-747`), and (g) class definitions in test modules outside `backend_v2/tests/fakes/` that define at least one method whose name belongs to the method-name set of the `backend_v2/database/interfaces.py` Protocols. ONE extracted predicate `_is_repository_identifier(name: str) -> bool` is shared by every identifier-based QGR014 detection site (`visit_Call`, `visit_Return`, `visit_Assign`); (f) and (g) use positive sets built once per scan.
 5. **Orchestrator Permission Gate**: Phase 1 modifies `backend_v2/services/orchestrator/matrix_reducer.py`, `backend_v2/services/orchestrator/matrix_explanation_service.py`, and `backend_v2/services/orchestrator/engines/synthesis_engine.py`; Phases 9 and 11 modify `backend_v2/services/orchestrator/strategies/llm.py`, `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py`, and `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`. Per `orchestrator_god_object_fragility`, execution of each of these phases requires the user statement "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem" and a full `backend_v2/` audit loop.
 6. **Full-Duplex Parity**: Synchronization of shared models between `backend_v2/models/` and `client_app_v2/lib/` verified via `scripts/audit_dto_parity.py`.
@@ -317,7 +317,7 @@ Specifically and exhaustively, all changes must comply with:
 
   - `[MODIFY] @[scripts/audit_warning_baseline.py]` (defining `ResidualDebtCeilingsDTO` and ceiling enforcement)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_audit_warning_baseline.py]`
-  - `[MODIFY] @[scripts/backend_audit_loop.py#L282-L477]` (Stage 9/10 wiring)
+  - `[MODIFY] @[scripts/backend_audit_loop.py]` (Stage 9/10 wiring)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]`
@@ -328,7 +328,7 @@ Specifically and exhaustively, all changes must comply with:
   - `[MODIFY] @[backend_v2/seed/run_seed.py]`
   - `[MODIFY] @[backend_v2/database/repositories/execution.py]`
   - `[MODIFY] @[backend_v2/database/repositories/workflow.py]`
-  - `[MODIFY] @[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L311-L353]`
+  - `[MODIFY] @[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py]`
   - `[MODIFY] @[backend_v2/models/domain/base.py]`
   - `[MODIFY] @[backend_v2/models/domain/analyst.py]`
   - `[MODIFY] @[backend_v2/models/domain/archivist.py]`
@@ -344,19 +344,19 @@ Specifically and exhaustively, all changes must comply with:
   - `[MODIFY] @[backend_v2/models/dtos/prompt_context.py]`
   - `[MODIFY] @[backend_v2/models/dtos/studio.py]`
   - `[MODIFY] @[backend_v2/models/dtos/system.py]`
-  - `[MODIFY] @[backend_v2/models/dtos/trace.py#L157-L194]`
+  - `[MODIFY] @[backend_v2/models/dtos/trace.py]`
   - `[MODIFY] @[backend_v2/models/llm.py]`
   - `[MODIFY] @[backend_v2/models/dtos/context_variables.py]`
   - `[MODIFY] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]`
   - `[MODIFY] @[backend_v2/services/orchestrator/matrix_reducer.py]`
   - `[MODIFY] @[backend_v2/services/orchestrator/matrix_explanation_service.py]`
-  - `[MODIFY] @[backend_v2/services/execution/ingress_service.py#L146-L250]`
+  - `[MODIFY] @[backend_v2/services/execution/ingress_service.py]`
   - `[MODIFY] @[backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py]`
   - `[MODIFY] @[backend_v2/tests/unit/models/dtos/test_atom_evaluation.py]`
-  - `[MODIFY] @[backend_v2/tests/unit/services/execution/test_ingress_service.py#L152-L227]`
+  - `[MODIFY] @[backend_v2/tests/unit/services/execution/test_ingress_service.py]`
   - `[MODIFY] @[backend_v2/tests/unit/models/test_trace_envelope.py]`
   - `[MODIFY] @[backend_v2/tests/unit/models/dtos/test_trace.py]`
-  - `[MODIFY] @[backend_v2/tests/unit/seed/test_run_seed.py#L472-L496]`
+  - `[MODIFY] @[backend_v2/tests/unit/seed/test_run_seed.py]`
   - `[DELETE] @[backend_v2/tests/architecture/test_boundaries.py]`
   - `[DELETE] @[backend_v2/tests/unit/test_epic_61_hardening.py]`
   - `[DELETE] @[backend_v2/tests/unit/test_provider_rate_limit.py]`
@@ -375,28 +375,26 @@ Specifically and exhaustively, all changes must comply with:
 - **Objective**: Retype `AppException.details` to `dict[str, JsonValue] | None` (blast radius: 32 mypy errors in 5 files, Section 2.1), introduce `ProblemDetailDTO` with explicit `.model_dump(mode="json", exclude_none=True)` serialization at the FastAPI network boundary (`main.py`, `core/rate_limit.py`), move `prepare_caching_payload` to a `CachingPayloadResultDTO` contract owned by `BaseLLMAdapter`, and eradicate the remaining hook, LLM, and core violations (including dynamic model field dictionary typing in `core/registry.py`).
 - **Target Boundaries**:
   - `[MODIFY] @[backend_v2/exceptions.py]`
-  - `[MODIFY] @[backend_v2/main.py#L314-L342]`
-  - `[MODIFY] @[backend_v2/main.py#L441-L470]`
+  - `[MODIFY] @[backend_v2/main.py]`
   - `[MODIFY] @[backend_v2/core/rate_limit.py]`
-  - `[MODIFY] @[backend_v2/core/registry.py#L477-L908]`
+  - `[MODIFY] @[backend_v2/core/registry.py]`
   - `[MODIFY] @[backend_v2/tests/unit/test_exceptions.py]`
   - `[MODIFY] @[backend_v2/database/repositories/components/prompt_block.py]` (`details` value `list[str]`)
   - `[MODIFY] @[backend_v2/services/ingress/smart_ingress_resolver.py]` (`details` values `dict[str, Sequence[str]]` and `list[str]`)
   - `[MODIFY] @[backend_v2/hooks/validation.py]` (`details` value `list[dict[str, Any]]` warnings)
   - `[MODIFY] @[backend_v2/hooks/input_processing.py]` (`details` value `list[ErrorDetails]` from `ValidationError.errors()`)
-  - `[MODIFY] @[backend_v2/hooks/scoring/matrix_hook.py#L83-L564]`
+  - `[MODIFY] @[backend_v2/hooks/scoring/matrix_hook.py]`
   - `[MODIFY] @[backend_v2/hooks/scoring/passivity_hook.py]`
   - `[MODIFY] @[backend_v2/hooks/linguistics.py]`
   - `[MODIFY] @[backend_v2/hooks/source_verification_hook.py]`
   - `[MODIFY] @[backend_v2/llm/caching_service.py]`
-  - `[MODIFY] @[backend_v2/llm/client.py#L357-L725]` (`run_structured_task` call site of `prepare_caching_payload`)
-  - `[MODIFY] @[backend_v2/llm/client.py#L727-L905]` (`run_chat` call site of `prepare_caching_payload`)
-  - `[MODIFY] @[backend_v2/llm/adapters/base_adapter.py#L151-L166]`
-  - `[MODIFY] @[backend_v2/llm/adapters/ai_studio_adapter.py#L96-L290]`
-  - `[MODIFY] @[backend_v2/llm/adapters/anthropic_adapter.py#L20-L96]`
-  - `[MODIFY] @[backend_v2/llm/adapters/mock_adapter.py#L25-L39]`
-  - `[MODIFY] @[backend_v2/llm/adapters/openai_adapter.py#L25-L43]`
-  - `[MODIFY] @[backend_v2/llm/adapters/vertex_adapter.py#L115-L347]`
+  - `[MODIFY] @[backend_v2/llm/client.py]` (`run_structured_task` and `run_chat` call sites of `prepare_caching_payload`)
+  - `[MODIFY] @[backend_v2/llm/adapters/base_adapter.py]`
+  - `[MODIFY] @[backend_v2/llm/adapters/ai_studio_adapter.py]`
+  - `[MODIFY] @[backend_v2/llm/adapters/anthropic_adapter.py]`
+  - `[MODIFY] @[backend_v2/llm/adapters/mock_adapter.py]`
+  - `[MODIFY] @[backend_v2/llm/adapters/openai_adapter.py]`
+  - `[MODIFY] @[backend_v2/llm/adapters/vertex_adapter.py]`
   - `[MODIFY] @[backend_v2/llm/ingress_pipeline.py]`
   - `[MODIFY] @[backend_v2/llm/schema_builder.py]`
   - `[MODIFY] @[backend_v2/llm/mock_data.py]`
@@ -529,15 +527,10 @@ Specifically and exhaustively, all changes must comply with:
 ### Phase 7: Mock-Emulation Sunset & QGR014 FATAL Hardening
 - **Objective**: Delete `DynamicRepoMethod` and `InMemoryBlueprintTransformerRepository`, replace `inject_fault` reflection with a positive registry, and land the hardened `QGR014` detections (a)-(g) (Section 2.4 item 4) at FATAL severity in the same commit: (a) fixture-return detection in `visit_Return`; (b) `.return_value` / `.side_effect` and (c) `<repo>.<attr> = AsyncMock(...)` / `MagicMock(...)` / `Mock(...)` attribute-replacement detection in `visit_Assign`; (d) `patch.object(<repo>, ...)` / `monkeypatch.setattr(<repo>, ...)`, (e) keyword-injected repository mocks, and (f) string-target repository-class patches without an in-memory fake binding in `visit_Call`; (g) ad-hoc repository classes in `visit_ClassDef`. Identifier-based detections share one `_is_repository_identifier` predicate; (f) and (g) use positive sets resolved from `backend_v2/database/interfaces.py` and `backend_v2/database/repositories/`.
 - **Target Boundaries**:
-  - `[MODIFY] @[backend_v2/tests/fakes/in_memory_repositories.py#L128-L133]` (`inject_fault` reflection removal)
-  - `[MODIFY] @[backend_v2/tests/fakes/in_memory_repositories.py#L1747-L1835]` (delete class `DynamicRepoMethod`)
-  - `[MODIFY] @[backend_v2/tests/fakes/in_memory_repositories.py#L1838-L1889]` (delete class `InMemoryBlueprintTransformerRepository`)
+  - `[MODIFY] @[backend_v2/tests/fakes/in_memory_repositories.py]` (delete `DynamicRepoMethod` and `InMemoryBlueprintTransformerRepository`; `inject_fault` reflection removal)
   - `[MODIFY] @[backend_v2/tests/fakes/__init__.py]`
   - `[MODIFY] @[backend_v2/tests/unit/fakes/test_in_memory_repositories.py]`
-  - `[MODIFY] @[scripts/_ast_guardrails.py#L417-L831]` (`visit_Call` QGR014 `@patch` / `spec=` detection branch and new `patch.object` / `monkeypatch.setattr` repository-target detection)
-  - `[MODIFY] @[scripts/_ast_guardrails.py#L1133-L1137]` (`visit_Return` QGR014 fixture return detection branch)
-  - `[MODIFY] @[scripts/_ast_guardrails.py#L1319-L1360]` (`visit_Assign` QGR014 `repo = AsyncMock()` detection branch and new `<repo>.<attr> = AsyncMock(...)` attribute-replacement detection)
-  - `[MODIFY] @[scripts/_ast_guardrails.py]` (new `visit_ClassDef` QGR014 (g) detection; positive repository-class and interface-method sets built once per scan for (f) and (g))
+  - `[MODIFY] @[scripts/_ast_guardrails.py]` (hardened QGR014 detections (a)-(g); positive repository-class and interface-method sets)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` (negative fixtures for (a)-(g); positive fixtures from Section 2.3)
 - **Verification Gate**:
   - `Select-String -Path backend_v2 -Pattern "DynamicRepoMethod|InMemoryBlueprintTransformerRepository|dict_to_obj" -Recurse` returns 0 matches.
@@ -548,12 +541,12 @@ Specifically and exhaustively, all changes must comply with:
 ### Phase 8: Universal Quality Gate Stage 10 Integration & Full-Duplex Client Parity
 - **Objective**: Wire `scripts/audit_dict_eradication.py backend_v2 --strict` as Stage 10/10 of `scripts/backend_audit_loop.py` and type the Flutter producers/consumers of retyped backend fields (including `StepSimulationTraceDto` alignment on `PromptBlockSimulationResponse`). Knowledge Base synchronization runs in Phase 13.
 - **Target Boundaries**:
-  - `[MODIFY] @[scripts/backend_audit_loop.py#L282-L477]` (`main`: 10-stage pipeline counter and Stage 10/10 invocation)
+  - `[MODIFY] @[scripts/backend_audit_loop.py]` (`main`: 10-stage pipeline counter and Stage 10/10 invocation)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`
   - `[MODIFY] @[scripts/audit_dto_parity.py]`
-  - `[MODIFY] @[client_app_v2/lib/features/studio/models/step_simulation.dart#L60-L70]`
-  - `[MODIFY] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart#L12-L45]`
-  - `[MODIFY] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L14-L22]`
+  - `[MODIFY] @[client_app_v2/lib/features/studio/models/step_simulation.dart]`
+  - `[MODIFY] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`
+  - `[MODIFY] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`
 - **Verification Gate**:
   - `uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` (10/10 stages)
   - `uv run python scripts/audit_dict_eradication.py backend_v2 --strict`
@@ -566,7 +559,7 @@ Specifically and exhaustively, all changes must comply with:
   - `[MODIFY] @[scripts/audit_dict_eradication.py]` (`audit_file_comments`: every `# noqa` comment token is a violation; `visit_Call`: `cast(Any, ...)` detection)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]`
   - `[MODIFY] @[scripts/_ast_guardrails.py]` (remove `CommentSuppressor`, inline `# noqa: QGRxxx [REASON: ...]` parser, and `is_suppressed` field)
-  - `[MODIFY] @[scripts/backend_audit_loop.py#L282-L477]` (remove `v.is_suppressed` filtering in Stage 4)
+  - `[MODIFY] @[scripts/backend_audit_loop.py]` (remove `v.is_suppressed` filtering in Stage 4)
   - `[MODIFY] @[scripts/audit_warning_baseline.py]` (remove `v.is_suppressed` filtering)
   - `[MODIFY] @[backend_v2/llm/provider.py]`
   - `[MODIFY] @[backend_v2/llm/adapters/base_adapter.py]`
