@@ -35,7 +35,7 @@ class ExecutionClient {
       data: request.toJson(),
     );
 
-    return ExecutionRecord.fromJson(response.data as Map<String, dynamic>);
+    return ExecutionRecord.fromJson(response.data);
   }
 
   /// Manually triggers a backend Rehydration for an interrupted/FAILED execution.
@@ -44,13 +44,13 @@ class ExecutionClient {
     final response = await _dio.post(
       '/execution/executions/$executionId/resume',
     );
-    return ExecutionRecord.fromJson(response.data as Map<String, dynamic>);
+    return ExecutionRecord.fromJson(response.data);
   }
 
   /// Retrieves the current status and results of an execution.
   Future<ExecutionRecord> getExecutionStatus(String executionId) async {
     final response = await _dio.get('/execution/executions/$executionId');
-    return ExecutionRecord.fromJson(response.data as Map<String, dynamic>);
+    return ExecutionRecord.fromJson(response.data);
   }
 
   /// Retrieves the dynamically assembled SDUI render blueprint for an execution.
@@ -73,9 +73,9 @@ class ExecutionClient {
 
       final data = response.data;
       if (response.statusCode == 202 ||
-          (data is Map<String, dynamic> &&
+          (data is Map &&
               data['status']?.toString().toLowerCase() == 'pending')) {
-        final msg = data is Map<String, dynamic>
+        final msg = data is Map
             ? data['message'] as String?
             : null;
         onProgress?.call(msg);
@@ -90,7 +90,7 @@ class ExecutionClient {
         continue;
       }
 
-      return ReportDataDto.fromJson(data as Map<String, dynamic>);
+      return ReportDataDto.fromJson(data);
     }
   }
 
@@ -105,7 +105,7 @@ class ExecutionClient {
       data: payload.toJson(),
     );
     return GenericStatusResponseDto.fromJson(
-      response.data as Map<String, dynamic>,
+      response.data,
     );
   }
 }

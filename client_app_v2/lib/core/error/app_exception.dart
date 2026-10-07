@@ -18,7 +18,7 @@ abstract class AppException with _$AppException implements Exception {
     @Default('Unknown error') String detail,
     String? instance,
     @JsonKey(name: 'request_id') String? requestId,
-    @Default(<String, dynamic>{}) Map<String, dynamic> extensions,
+    @Default(<String, Object?>{}) Map<String, Object?> extensions,
   }) = _AppException;
 
   factory AppException.fromJson(Map<String, Object?> json) =>

@@ -47,8 +47,8 @@ class ErrorInterceptor extends Interceptor {
 
     // Check if response contains RFC 7807 Problem Details or FastAPI standard responses
     if (err.response?.data != null &&
-        err.response!.data is Map<String, dynamic>) {
-      final data = err.response!.data as Map<String, dynamic>;
+        err.response!.data is Map<String, Object?>) {
+      final data = err.response!.data as Map<String, Object?>;
 
       // RFC 7807 requires 'type' and 'status' fields
       if (data.containsKey('type') && data.containsKey('status')) {

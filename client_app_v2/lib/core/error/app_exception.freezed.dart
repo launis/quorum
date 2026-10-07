@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppException {
 
- String get type; String get title; int get status; String get detail; String? get instance;@JsonKey(name: 'request_id') String? get requestId; Map<String, dynamic> get extensions;
+ String get type; String get title; int get status; String get detail; String? get instance;@JsonKey(name: 'request_id') String? get requestId; Map<String, Object?> get extensions;
 /// Create a copy of AppException
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $AppExceptionCopyWith<$Res>  {
   factory $AppExceptionCopyWith(AppException value, $Res Function(AppException) _then) = _$AppExceptionCopyWithImpl;
 @useResult
 $Res call({
- String type, String title, int status, String detail, String? instance,@JsonKey(name: 'request_id') String? requestId, Map<String, dynamic> extensions
+ String type, String title, int status, String detail, String? instance,@JsonKey(name: 'request_id') String? requestId, Map<String, Object?> extensions
 });
 
 
@@ -74,7 +74,7 @@ as int,detail: null == detail ? _self.detail : detail // ignore: cast_nullable_t
 as String,instance: freezed == instance ? _self.instance : instance // ignore: cast_nullable_to_non_nullable
 as String?,requestId: freezed == requestId ? _self.requestId : requestId // ignore: cast_nullable_to_non_nullable
 as String?,extensions: null == extensions ? _self.extensions : extensions // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 
@@ -159,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, dynamic> extensions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, Object?> extensions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppException() when $default != null:
 return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,_that.requestId,_that.extensions);case _:
@@ -180,7 +180,7 @@ return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, dynamic> extensions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, Object?> extensions)  $default,) {final _that = this;
 switch (_that) {
 case _AppException():
 return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,_that.requestId,_that.extensions);case _:
@@ -200,7 +200,7 @@ return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, dynamic> extensions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String title,  int status,  String detail,  String? instance, @JsonKey(name: 'request_id')  String? requestId,  Map<String, Object?> extensions)?  $default,) {final _that = this;
 switch (_that) {
 case _AppException() when $default != null:
 return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,_that.requestId,_that.extensions);case _:
@@ -215,7 +215,7 @@ return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,
 @JsonSerializable()
 
 class _AppException extends AppException {
-  const _AppException({this.type = 'about:blank', this.title = 'Error', this.status = 500, this.detail = 'Unknown error', this.instance, @JsonKey(name: 'request_id') this.requestId, final  Map<String, dynamic> extensions = const <String, dynamic>{}}): _extensions = extensions,super._();
+  const _AppException({this.type = 'about:blank', this.title = 'Error', this.status = 500, this.detail = 'Unknown error', this.instance, @JsonKey(name: 'request_id') this.requestId, final  Map<String, Object?> extensions = const <String, Object?>{}}): _extensions = extensions,super._();
   factory _AppException.fromJson(Map<String, dynamic> json) => _$AppExceptionFromJson(json);
 
 @override@JsonKey() final  String type;
@@ -224,8 +224,8 @@ class _AppException extends AppException {
 @override@JsonKey() final  String detail;
 @override final  String? instance;
 @override@JsonKey(name: 'request_id') final  String? requestId;
- final  Map<String, dynamic> _extensions;
-@override@JsonKey() Map<String, dynamic> get extensions {
+ final  Map<String, Object?> _extensions;
+@override@JsonKey() Map<String, Object?> get extensions {
   if (_extensions is EqualUnmodifiableMapView) return _extensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_extensions);
@@ -265,7 +265,7 @@ abstract mixin class _$AppExceptionCopyWith<$Res> implements $AppExceptionCopyWi
   factory _$AppExceptionCopyWith(_AppException value, $Res Function(_AppException) _then) = __$AppExceptionCopyWithImpl;
 @override @useResult
 $Res call({
- String type, String title, int status, String detail, String? instance,@JsonKey(name: 'request_id') String? requestId, Map<String, dynamic> extensions
+ String type, String title, int status, String detail, String? instance,@JsonKey(name: 'request_id') String? requestId, Map<String, Object?> extensions
 });
 
 
@@ -291,7 +291,7 @@ as int,detail: null == detail ? _self.detail : detail // ignore: cast_nullable_t
 as String,instance: freezed == instance ? _self.instance : instance // ignore: cast_nullable_to_non_nullable
 as String?,requestId: freezed == requestId ? _self.requestId : requestId // ignore: cast_nullable_to_non_nullable
 as String?,extensions: null == extensions ? _self._extensions : extensions // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 

@@ -35,14 +35,14 @@ class StudioClient {
     final response = await _dio.get('studio/prompt-blocks');
     final rawList = response.data as List;
     return rawList
-        .map((item) => PromptBlock.fromJson(item as Map<String, dynamic>))
+        .map((item) => PromptBlock.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a specific prompt block by id.
   Future<PromptBlock> getPromptBlock(String id) async {
     final response = await _dio.get('studio/prompt-blocks/$id');
-    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
+    return PromptBlock.fromJson(response.data);
   }
 
   /// Appends or updates a prompt block.
@@ -52,7 +52,7 @@ class StudioClient {
       'studio/prompt-blocks/$id',
       data: data.toJson(),
     );
-    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
+    return PromptBlock.fromJson(response.data);
   }
 
   /// Dry-runs a prompt block or matrix rendering with mock variables.
@@ -66,9 +66,7 @@ class StudioClient {
       'studio/prompt-blocks/simulate',
       data: request.toJson(),
     );
-    return PromptBlockSimulationResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return PromptBlockSimulationResponse.fromJson(response.data);
   }
 
   /// Deletes a prompt block.
@@ -79,13 +77,13 @@ class StudioClient {
   /// Deep clones a prompt block securely via SSOT Service Layer.
   Future<PromptBlock> clonePromptBlock(String id) async {
     final response = await _dio.post('studio/prompt-blocks/$id/clone');
-    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
+    return PromptBlock.fromJson(response.data);
   }
 
   /// Creates a draft prompt block securely via SSOT Service Layer.
   Future<PromptBlock> createPromptBlockDraft() async {
     final response = await _dio.post('studio/prompt-blocks/');
-    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
+    return PromptBlock.fromJson(response.data);
   }
 
   // --- Workflows (DAG definitions) ---
@@ -95,14 +93,14 @@ class StudioClient {
     final response = await _dio.get('studio/workflows');
     final rawList = response.data as List;
     return rawList
-        .map((item) => Workflow.fromJson(item as Map<String, dynamic>))
+        .map((item) => Workflow.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a specific workflow definition by id.
   Future<Workflow> getWorkflow(String id) async {
     final response = await _dio.get('studio/workflows/$id');
-    return Workflow.fromJson(response.data as Map<String, dynamic>);
+    return Workflow.fromJson(response.data);
   }
 
   /// Appends or updates a workflow definition.
@@ -110,7 +108,7 @@ class StudioClient {
     final payload = data.toJson();
     payload.remove('output_profiles');
     final response = await _dio.put('studio/workflows/$id', data: payload);
-    return Workflow.fromJson(response.data as Map<String, dynamic>);
+    return Workflow.fromJson(response.data);
   }
 
   /// Validates a workflow definition using the Pre-Flight Simulator API.
@@ -119,9 +117,7 @@ class StudioClient {
       'studio/workflows/simulate',
       data: data.toJson(),
     );
-    return WorkflowSimulationResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return WorkflowSimulationResponse.fromJson(response.data);
   }
 
   /// Deletes a workflow definition.
@@ -132,13 +128,13 @@ class StudioClient {
   /// Deep clones a workflow definition securely via SSOT Service Layer.
   Future<Workflow> cloneWorkflow(String id) async {
     final response = await _dio.post('studio/workflows/$id/clone');
-    return Workflow.fromJson(response.data as Map<String, dynamic>);
+    return Workflow.fromJson(response.data);
   }
 
   /// Creates a draft workflow definition securely via SSOT Service Layer.
   Future<Workflow> createWorkflowDraft() async {
     final response = await _dio.post('studio/workflows/');
-    return Workflow.fromJson(response.data as Map<String, dynamic>);
+    return Workflow.fromJson(response.data);
   }
 
   /// Retrieves available block-level extensions for a workflow.
@@ -146,7 +142,7 @@ class StudioClient {
     final response = await _dio.get(
       'studio/workflows/$id/available-extensions',
     );
-    final data = response.data as Map<String, dynamic>;
+    final data = response.data as Map<String, Object?>;
     final rawList = data['available_extensions'] as List;
     return rawList.map((e) => e.toString()).toList(growable: false);
   }
@@ -158,20 +154,20 @@ class StudioClient {
     final response = await _dio.get('studio/steps');
     final rawList = response.data as List;
     return rawList
-        .map((item) => NodeStrategy.fromJson(item as Map<String, dynamic>))
+        .map((item) => NodeStrategy.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a specific step by id.
   Future<NodeStrategy> getStep(String id) async {
     final response = await _dio.get('studio/steps/$id');
-    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
+    return NodeStrategy.fromJson(response.data);
   }
 
   /// Appends or updates a step.
   Future<NodeStrategy> saveStep(String id, NodeStrategy data) async {
     final response = await _dio.put('studio/steps/$id', data: data.toJson());
-    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
+    return NodeStrategy.fromJson(response.data);
   }
 
   /// Deletes a step.
@@ -187,21 +183,19 @@ class StudioClient {
       'studio/steps/simulate',
       data: request.toJson(),
     );
-    return StepSimulationResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return StepSimulationResponse.fromJson(response.data);
   }
 
   /// Deep clones a step securely.
   Future<NodeStrategy> cloneStep(String id) async {
     final response = await _dio.post('studio/steps/$id/clone');
-    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
+    return NodeStrategy.fromJson(response.data);
   }
 
   /// Creates a draft step securely via SSOT Service Layer.
   Future<NodeStrategy> createStepDraft() async {
     final response = await _dio.post('studio/steps/');
-    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
+    return NodeStrategy.fromJson(response.data);
   }
 
   // --- Model Registry ---
@@ -211,7 +205,7 @@ class StudioClient {
     String? platform,
     String? location,
   }) async {
-    final queryParameters = <String, dynamic>{};
+    final queryParameters = <String, Object?>{};
     if (platform != null) {
       queryParameters['platform'] = platform;
     }
@@ -232,7 +226,7 @@ class StudioClient {
     final rawList = response.data as List;
     return safeIsolateRun(() {
       return rawList
-          .map((item) => GcpLocation.fromJson(item as Map<String, dynamic>))
+          .map((item) => GcpLocation.fromJson(item))
           .toList(growable: false);
     });
   }
@@ -242,7 +236,7 @@ class StudioClient {
     final response = await _dio.get('studio/model-registry/platforms');
     final rawList = response.data as List;
     return rawList
-        .map((item) => LlmPlatform.fromJson(item as Map<String, dynamic>))
+        .map((item) => LlmPlatform.fromJson(item))
         .toList(growable: false);
   }
 
@@ -251,14 +245,14 @@ class StudioClient {
     final response = await _dio.get('studio/model-registry/');
     final rawList = response.data as List;
     return rawList
-        .map((item) => ModelConfig.fromJson(item as Map<String, dynamic>))
+        .map((item) => ModelConfig.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a system config by ID.
   Future<ModelConfig> getSystemConfig(String id) async {
     final response = await _dio.get('studio/model-registry/$id');
-    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
+    return ModelConfig.fromJson(response.data);
   }
 
   /// Updates a system config.
@@ -267,7 +261,7 @@ class StudioClient {
       'studio/model-registry/$id',
       data: data.toJson(),
     );
-    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
+    return ModelConfig.fromJson(response.data);
   }
 
   /// Deletes a system config.
@@ -278,13 +272,13 @@ class StudioClient {
   /// Deep clones a system config.
   Future<ModelConfig> cloneSystemConfig(String id) async {
     final response = await _dio.post('studio/model-registry/$id/clone');
-    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
+    return ModelConfig.fromJson(response.data);
   }
 
   /// Creates a draft system config securely via SSOT Service Layer.
   Future<ModelConfig> createSystemConfigDraft() async {
     final response = await _dio.post('studio/model-registry/');
-    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
+    return ModelConfig.fromJson(response.data);
   }
 
   // --- MCP Gateways ---
@@ -294,14 +288,14 @@ class StudioClient {
     final response = await _dio.get('studio/mcp-gateways/');
     final rawList = response.data as List;
     return rawList
-        .map((item) => McpGateway.fromJson(item as Map<String, dynamic>))
+        .map((item) => McpGateway.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a specific MCP Gateway by ID.
   Future<McpGateway> getMcpGateway(String id) async {
     final response = await _dio.get('studio/mcp-gateways/$id');
-    return McpGateway.fromJson(response.data as Map<String, dynamic>);
+    return McpGateway.fromJson(response.data);
   }
 
   /// Appends or updates an MCP Gateway.
@@ -310,7 +304,7 @@ class StudioClient {
       'studio/mcp-gateways/$id',
       data: data.toJson(),
     );
-    return McpGateway.fromJson(response.data as Map<String, dynamic>);
+    return McpGateway.fromJson(response.data);
   }
 
   /// Deletes an MCP Gateway.
@@ -321,13 +315,13 @@ class StudioClient {
   /// Deep clones an MCP Gateway.
   Future<McpGateway> cloneMcpGateway(String id) async {
     final response = await _dio.post('studio/mcp-gateways/$id/clone');
-    return McpGateway.fromJson(response.data as Map<String, dynamic>);
+    return McpGateway.fromJson(response.data);
   }
 
   /// Creates a draft MCP Gateway securely via SSOT Service Layer.
   Future<McpGateway> createMcpGatewayDraft() async {
     final response = await _dio.post('studio/mcp-gateways/');
-    return McpGateway.fromJson(response.data as Map<String, dynamic>);
+    return McpGateway.fromJson(response.data);
   }
 
   // --- Output Profiles ---
@@ -337,20 +331,20 @@ class StudioClient {
     final response = await _dio.get('output-profiles/');
     final rawList = response.data as List;
     return rawList
-        .map((item) => OutputProfile.fromJson(item as Map<String, dynamic>))
+        .map((item) => OutputProfile.fromJson(item))
         .toList(growable: false);
   }
 
   /// Retrieves a specific output profile by ID.
   Future<OutputProfile> getOutputProfile(String id) async {
     final response = await _dio.get('output-profiles/$id');
-    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
+    return OutputProfile.fromJson(response.data);
   }
 
   /// Appends or updates an output profile.
   Future<OutputProfile> saveOutputProfile(String id, OutputProfile data) async {
     final response = await _dio.put('output-profiles/$id', data: data.toJson());
-    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
+    return OutputProfile.fromJson(response.data);
   }
 
   /// Deletes an output profile.
@@ -361,12 +355,12 @@ class StudioClient {
   /// Deep clones an output profile.
   Future<OutputProfile> cloneOutputProfile(String id) async {
     final response = await _dio.post('output-profiles/$id/clone');
-    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
+    return OutputProfile.fromJson(response.data);
   }
 
   /// Creates a draft output profile securely via SSOT Service Layer.
   Future<OutputProfile> createOutputProfileDraft() async {
     final response = await _dio.post('output-profiles/');
-    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
+    return OutputProfile.fromJson(response.data);
   }
 }

@@ -31,7 +31,7 @@ class SseClient {
   ///
   /// Yields dynamic maps representing the current execution state or results.
   /// Fails fast if the stream cannot be established.
-  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
     final response = await _dio.get<ResponseBody>(
       '/execution/executions/$executionId/stream',
       options: Options(
@@ -61,9 +61,9 @@ class SseClient {
           try {
             // Mandate 5.3: Concurrency & Performance via safeIsolateRun
             // V3: Refactor to Delta Signal exclusively. Only process lightweight changes.
-            final Map<String, dynamic> payload = await safeIsolateRun(() {
-              final raw = jsonDecode(dataStr) as Map<String, dynamic>;
-              final result = Map<String, dynamic>.from(raw);
+            final Map<String, Object?> payload = await safeIsolateRun(() {
+              final raw = jsonDecode(dataStr) as Map<String, Object?>;
+              final result = Map<String, Object?>.from(raw);
               if (raw.containsKey('frozen_context')) {
                 final fc = raw['frozen_context'];
                 result['frozen_context'] =

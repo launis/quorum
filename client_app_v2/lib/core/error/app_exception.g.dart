@@ -32,7 +32,7 @@ _AppException _$AppExceptionFromJson(Map<String, dynamic> json) =>
         requestId: $checkedConvert('request_id', (v) => v as String?),
         extensions: $checkedConvert(
           'extensions',
-          (v) => v as Map<String, dynamic>? ?? const <String, dynamic>{},
+          (v) => v as Map<String, dynamic>? ?? const <String, Object?>{},
         ),
       );
       return val;

@@ -37,7 +37,7 @@ class ReportsClient {
       },
     );
     return ReportArtifactSummary.fromJson(
-      response.data as Map<String, dynamic>,
+      response.data,
     );
   }
 
@@ -48,7 +48,7 @@ class ReportsClient {
     return list
         .map(
           (item) =>
-              ReportArtifactSummary.fromJson(item as Map<String, dynamic>),
+              ReportArtifactSummary.fromJson(item),
         )
         .toList();
   }
@@ -56,13 +56,13 @@ class ReportsClient {
   /// Fetches the full domain model detail for a report artifact.
   Future<ReportArtifact> getReport(String reportId) async {
     final response = await _dio.get('/reports/$reportId');
-    return ReportArtifact.fromJson(response.data as Map<String, dynamic>);
+    return ReportArtifact.fromJson(response.data);
   }
 
   /// Retrieves the pre-compiled SDUI presentation JSON tree.
   Future<ReportDataDto> getReportSdui(String reportId) async {
     final response = await _dio.get('/reports/$reportId/sdui');
-    return ReportDataDto.fromJson(response.data as Map<String, dynamic>);
+    return ReportDataDto.fromJson(response.data);
   }
 
   /// Retrieves tabular B2B evidence scorecard rows.
@@ -70,7 +70,7 @@ class ReportsClient {
     final response = await _dio.get('/reports/$reportId/rows');
     final list = response.data as List<dynamic>;
     return list
-        .map((item) => ReportRowItem.fromJson(item as Map<String, dynamic>))
+        .map((item) => ReportRowItem.fromJson(item))
         .toList();
   }
 
@@ -78,7 +78,7 @@ class ReportsClient {
   Future<ReportArtifactSummary> regenerateReport(String reportId) async {
     final response = await _dio.post('/reports/$reportId/regenerate');
     return ReportArtifactSummary.fromJson(
-      response.data as Map<String, dynamic>,
+      response.data,
     );
   }
 
