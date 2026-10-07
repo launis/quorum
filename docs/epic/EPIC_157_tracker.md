@@ -174,13 +174,20 @@
   - [x] Step 10.5: Batch 10.2: Test Suites `# type: ignore` Eradication (126 Test Files)
   - [x] Step 10.6: Monotonic Ratchet Update (`t=0`) & Universal Two-Stage Verification Gate
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 10 test contracts across all 25 production files, 3 scripts files, and 126 test files, unit tests (5,090 passed in backend_v2), zero AST violations, Census T=0 (all 396 `# type: ignore` comments eradicated), Census M=9 (ratcheted down from 10), Census P=351, Census D=0, F=51, K=0, X=0, N=0, R=186, S=0, and all 10/10 backend audit loop stages passing with exit code 0.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/10_phase10_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/10_phase10_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
 ### Phase 11: Extended Dict Eradication (Tests, scripts/, Mapping)
 **Plan:** @[docs/epic/tasks_EPIC_157/11_phase11_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=11`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md]`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md] --phase=11`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto`
+  - [ ] Step 11.0: Strategic Alignment Check & Census P/M Baseline Audit
+  - [ ] Step 11.1: Audit Engine Modernization & AST Guardrail Hardening (`scripts/audit_dict_eradication.py`, `scripts/_ast_guardrails.py`, `backend_v2/tests/unit/scripts/test_audit_dict_eradication.py`)
+  - [ ] Step 11.2: Audit Loop Stage 10 Extension (`scripts/backend_audit_loop.py` & `backend_v2/tests/unit/scripts/test_backend_audit_loop.py`)
+  - [ ] Step 11.3: Census M Production Files Eradication (6 files, 9 sites: `test_settings.py`, `input_processing.py`, `pdf_chat_extractor.py`, `llm.py`, `source_document_packer.py`, `context_builder.py`)
+  - [ ] Step 11.4: Census P Scripts Eradication (9 `scripts/` files, 96 lines)
+  - [ ] Step 11.5: Census P Test Suites Eradication (73 test files, 255 lines across Batches A-E)
+  - [ ] Step 11.6: Monotonic Ratchet Update (`p=0`, `m=0` in `scripts/audit_warning_baseline.py`) & Universal Two-Stage Verification Gate
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md]`
 
@@ -292,6 +299,14 @@
   - [x] @[backend_v2/services/pdf_generator.py]
   - [x] @[scripts/audit_matrix_auto_filler.py]
   - [x] @[scripts/audit_matrix_manager.py]
+  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [ ] @[scripts/diff_executions.py]
+  - [ ] @[scripts/sanitize_seed_vault.py]
+  - [ ] @[scripts/audit_database_atoms.py]
+  - [ ] @[scripts/matrix_slice_engine.py]
+  - [ ] @[scripts/reconcile_storage.py]
+  - [ ] @[scripts/matrix_hardening_generator.py]
+  - [ ] @[scripts/migrate_seed_contrastive_pairs.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying created or modified Flutter files.
   - [ ] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
@@ -508,12 +523,22 @@
 - In `RenderExecutionResultDTO`, deleting redundant `__iter__` removed a `# type: ignore` and restored standard Pydantic model iteration; callers destructuring the result must use direct attribute access (`res.content, res.media_type, res.filename`).
 - Direct attribute assignment on frozen models (`model.field = val`) triggers Pydantic `ValidationError` cleanly at runtime without violating `QGR001` (setattr reflection ban).
 - On annotated fields (`Annotated[..., Field(...)]`), adding redundant `= Field(...)` triggers `QGR020`; the default must reside solely inside `Annotated[..., Field(default=...)]`.
-- Untyped method calls in third-party or fake implementations (such as `FakeRedis.execute_command`) can be typed cleanly via `cmd: Any = self.execute_command; await cmd(...)`.
+- Untyped method calls in third-party or fake implementations (specifically `FakeRedis.execute_command`) can be typed cleanly via `cmd: Any = self.execute_command; await cmd(...)`.
 - `TypeAdapter[Mapping[str, IngressInputValue | object]]` prevents unintended regex matches on `Mapping[str, object]`, allowing Census M to be ratcheted from 10 down to 9.
+- Completed and PASSED Tier 8 Red Team Audit for Phase 10 (`@[docs/epic/tasks_EPIC_157/10_phase10_plan.md]`) with 100% mathematical proof across all 5 axes: Census T=0 repo-wide (all 396 `# type: ignore` comments eradicated), Census M=9, global `warn_unused_ignores = true`, centralized `disable_error_code = ["prop-decorator"]`, Config Suppression Ratchet via standard library `tomllib` active in `scripts/audit_dict_eradication.py`, SDUI semantic parity verified (33.72s), and all 10/10 backend audit loop stages passing (5,090 tests, 97.68% total coverage).
+- Created detailed, fully verified implementation plan for Phase 11 (`@[docs/epic/tasks_EPIC_157/11_phase11_plan.md]`) covering Extended Dict Eradication across tests, `scripts/`, and Mapping constructs: audit engine modernization in `audit_dict_eradication.py` (`Mapping`/`MutableMapping` with `Any`/`object` subscript detection, path-based `backend_v2/tests/` test file classification ensuring `test_settings.py` is scanned as production, and annotation checks running across test files), `_ast_guardrails.py` test file path classification fix, Stage 10 extension in `backend_audit_loop.py` to audit `backend_v2 scripts --strict`, Census M eradication across 6 production files (9 sites), Census P eradication across 9 scripts files (96 lines) and 73 test files (255 lines), and monotonic ratchet to `p=0`, `m=0` in `audit_warning_baseline.py`.
+- Completed and PASSED Tier 0 Research & Red-Teaming for Phase 11 (`@[docs/epic/tasks_EPIC_157/11_phase11_plan.md]`):
+  - Verified active baseline ceilings (`D=0`, `F=51`, `K=0`, `X=0`, `N=0`, `T=0`, `P=351`, `M=9`, `R=186`, `S=0`).
+  - Physically audited Census M (9 active occurrences across 6 production files) and Census P (351 active occurrences across 82 files: 9 `scripts/` files with 96 lines, 73 test files with 255 lines; noted 5 test files from ledger already have 0 occurrences).
+  - Resolved ContextBuilder dot-notation architectural invariant: `ContextBuilder.build` strictly accepts `state_data: HookState` (eliminating duck-typing fallbacks and the `HookState | Mapping[str, Any]` union) and constructs a composite `lookup_state = {"inputs": state_data.inputs.raw_inputs, "raw_inputs": state_data.inputs.raw_inputs, **state_data.inputs.dynamic_inputs, **state_data.inputs.raw_inputs}` ensuring unbroken resolution of `$inputs.product_text`, `$raw_inputs.doc`, `$document_text`, and `$metadata.execution_id`.
+  - Identified circular import constraint: `HookState` and `ExecutionInputsDTO` must be imported via `from backend_v2.core.hook_registry import HookState, ExecutionInputsDTO`.
+  - Synchronized 1-hop callers (`llm.py:517`, `test_context_builder.py`, `test_fail_fast_inputs_resolution.py`).
+  - Verified plan markdown boundaries: `scripts/audit_markdown_boundaries.py` passed with 0 findings, 100% table-protocol parity (MBD008), zero ambiguity (MBD001).
 
 ## Remaining
-- Audit Phase 10 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_157/10_phase10_plan.md] @[docs/epic/EPIC_157_tracker.md]`.
-- Execute and Audit Phases 11 through 13.
+- Execute Phase 11 (`@[docs/epic/tasks_EPIC_157/11_phase11_plan.md]`) via `/tier2-execute`.
+- Run Tier 8 Plan Audit for Phase 11 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md]`).
+- Execute and Audit Phases 12 through 13.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_157/10_phase10_plan.md] @[docs/epic/EPIC_157_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_157/11_phase11_plan.md] @[docs/epic/EPIC_157_tracker.md] --full-auto

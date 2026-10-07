@@ -606,7 +606,7 @@ Specifically and exhaustively, all changes must comply with:
   - `[MODIFY] @[scripts/audit_dict_eradication.py]` (`_is_naked_dict_subscript`, `is_test`, test annotation checks)
   - `[MODIFY] @[scripts/_ast_guardrails.py]` (`_is_test_file` path check)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_audit_dict_eradication.py]`
-  - `[MODIFY] @[scripts/backend_audit_loop.py#L282-L477]` (Stage 10 arguments `backend_v2 scripts`)
+  - `[MODIFY] @[scripts/backend_audit_loop.py]` (Stage 10 arguments `backend_v2 scripts`)
   - `[MODIFY] @[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`
   - `[MODIFY] @[backend_v2/core/test_settings.py]`
   - `[MODIFY] @[backend_v2/hooks/input_processing.py]` (`Mapping[str, object]` locals at lines 66-67)
