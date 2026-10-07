@@ -625,23 +625,23 @@
   - Executed Flutter audit loop (`scripts/flutter_audit_loop.py client_app_v2/ --build`): code generation, Dart guardrails (DGR001, DGR004, DGR005 FATAL), format, and analyze clean, exit code 0.
   - Completed Tier 8 Red Team Audit (`@[C:/Users/risto/.gemini/antigravity-ide/brain/d793f8fd-ce7c-4df4-8841-48ca5ebf7fa1/red_team_audit_phase13_plan.md]`) with 100% mathematical conformance.
 - **Post-Implementation Hardening Gates Bypassed**: Tier 2 Hardening (Backend) and Tier 2 Hardening (Frontend) explicitly skipped per user directive; all 13 phases, universal backend audit loop (10/10 stages, 5,103 tests, 97.70% coverage), and flutter audit loop (4/4 stages) verified 100% clean.
+- **Tier 7 Architectural Documentation & KI Synchronization Completed**:
+  - Synchronized Knowledge Item `ki_zero_permissive_typing.md` and its `metadata.json` with the 28-rule FATAL guardrail suite (`QGR000`-`QGR027`), `QGR014` (a)-(g) deceptive persistence mocking ban with stateful in-memory fakes (`BaseInMemoryRepository`, `InMemoryUnifiedWorkflowRepository`), `QGR026` unconditional skip/xfail ban, `QGR027` unauthorized Open-JSON ban, `DGR005` non-codec Dart map ban with unconditional fatal enforcement for `DGR001`, `DGR004`, and `DGR005`, unified 15-path boundary exemption contract (`BOUNDARY_EXEMPTION_FILES`), total suppression eradication (0 `# noqa`, 0 `cast(Any, ...)`, 0 `# type: ignore`), and the mandatory 10-stage universal backend audit loop.
+  - Registered `backend_v2/tests/fakes/` and new audit scripts (`audit_dto_parity.py`, `audit_markdown_boundaries.py`, `audit_matrix_manager.py`) in `.agents/rules/04_directory_reference.md`.
+  - Seamlessly integrated timeless architectural updates into `docs/architecture/01_system_context_and_invariants.md` and `docs/architecture/05_resilience_and_observability.md` with 0 project phases, 0 Epic IDs, 0 dates, 0 historical language, and 0 Law/Enforcement labels.
 
 ## Learned
 - **Static Tuple Comparison Invariance**: Replacing dynamic `getattr` reflection with static tuple collections `(("d", live.d, ceiling.d), ...)` adheres strictly to `QGR001` and eliminates all reflection overhead while preserving full static analysis by MyPy strict.
 - **AST Span Synchronization (MBD004)**: Refactoring function bodies changes AST line spans in source code; planning and tracking documents must be synchronously audited with `scripts/audit_markdown_boundaries.py` to prevent line-span drift.
-- **Census Invariant Lock**: All 10 residual debt metrics are officially ratcheted and locked at their absolute physical floors (D=0, F=51, K=0, X=0, N=0, T=0, P=0, M=0, R=0, S=0) with 0 advisory warnings across backend_v2.
+- **Census Invariant Lock**: All 10 residual debt metrics are officially ratcheted and locked at their absolute physical floors (D=0, F=51, K=0, X=0, N=0, T=0, P=0, m=0, R=0, S=0) with 0 advisory warnings across backend_v2.
 
 ## Remaining
-- **Documentation & Knowledge Item Update (NEXT STEP)**: Run:
-  ```powershell
-  /tier7-describe-architecture @[docs/epic/EPIC_157_tracker.md] @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[ki_zero_permissive_typing.md]
-  ```
-- **Final Epic Audit**: Run:
+- **Final Epic Audit (NEXT STEP)**: Run:
   ```powershell
   /tier8-audit-epic @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md]
   ```
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/epic/EPIC_157_tracker.md] @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md] @[ki_zero_permissive_typing.md]
+/tier8-audit-epic @[docs/epic/EPIC_157_Zero_Permissive_Typing_and_Test_Persistence_Modernization.md]
 ```
