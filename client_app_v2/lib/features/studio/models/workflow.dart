@@ -177,7 +177,7 @@ abstract class Workflow with _$Workflow {
   /// Isolate Mandate: Zero-Latency Illusion requires background parsing
   static Future<Workflow> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      final dynamic decoded = jsonDecode(rawJson);
       return Workflow.fromJson(decoded);
     });
   }
@@ -187,7 +187,7 @@ abstract class Workflow with _$Workflow {
   ) async {
     return safeIsolateRun(() {
       return rawList
-          .map((e) => Workflow.fromJson(e as Map<String, dynamic>))
+          .map((e) => Workflow.fromJson(e))
           .toList();
     });
   }

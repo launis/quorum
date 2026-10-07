@@ -14,7 +14,7 @@ abstract class WorkflowSimulationResponse with _$WorkflowSimulationResponse {
     @Default([]) List<String> errors,
     @JsonKey(name: 'step_status') @Default({}) Map<String, String> stepStatus,
     @JsonKey(name: 'execution_order') @Default([]) List<String> executionOrder,
-    @Default({}) Map<String, dynamic> trace,
+    @Default({}) Map<String, Object?> trace,
   }) = _WorkflowSimulationResponse;
 
   factory WorkflowSimulationResponse.fromJson(Map<String, dynamic> json) =>

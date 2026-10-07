@@ -5,7 +5,7 @@ import 'package:client_app/core/error/app_exception.dart';
 ///
 /// Handles the complex deep-cloning of a Workflow DAG.
 /// Strict compliance with V2 Architecture `Arkkitehtuuristandardi_Tyonkulun_Kloonaus.md`:
-/// 1. Operates entirely on raw `Map<String, dynamic>` payloads (Zero-Deploy SDUI Policy).
+/// 1. Operates entirely on raw `Map<String, Object?>` payloads (Zero-Deploy SDUI Policy).
 /// 2. Implements Fail-Fast security against broken dependencies.
 /// 3. Re-routes explicit data paths instead of doing blind global string replaces.
 class WorkflowCloner {
@@ -16,7 +16,7 @@ class WorkflowCloner {
   /// semantic routing references (`depends_on`, `input_mappings`, `output_profiles`).
   ///
   /// Throws `AppException` if the original workflow contains broken references.
-  static Map<String, dynamic> cloneDeep(Map<String, dynamic> original) {
+  static Map<String, Object?> cloneDeep(Map<String, Object?> original) {
     // 1. Initial deep copy to avoid mutating the original
     final cloned = _deepCopyMap(original);
 
@@ -45,8 +45,8 @@ class WorkflowCloner {
     final Map<String, String> idMap = {};
     for (int i = 0; i < steps.length; i++) {
       final step = steps[i] is Map
-          ? steps[i] as Map<String, dynamic>
-          : <String, dynamic>{};
+          ? steps[i] as Map<String, Object?>
+          : <String, Object?>{};
       final oldId = (step['id'] ?? step['step_id'])?.toString() ?? '';
       if (oldId.isEmpty) continue;
 
@@ -65,8 +65,8 @@ class WorkflowCloner {
     // --- Phase B: Re-routing ---
     for (int i = 0; i < steps.length; i++) {
       final step = steps[i] is Map
-          ? steps[i] as Map<String, dynamic>
-          : <String, dynamic>{};
+          ? steps[i] as Map<String, Object?>
+          : <String, Object?>{};
 
       // 1. Re-route `depends_on`
       final dependsOnRaw = step['depends_on'];
@@ -85,7 +85,7 @@ class WorkflowCloner {
       // e.g., "$steps.old_id.outputs" -> "$steps.new_id.outputs"
       final mappingsRaw = step['input_mappings'];
       final mappings = mappingsRaw is Map ? mappingsRaw : {};
-      final newMappings = <String, dynamic>{};
+      final newMappings = <String, Object?>{};
       for (final entry in mappings.entries) {
         String sourceValue = entry.value.toString();
 
@@ -109,12 +109,12 @@ class WorkflowCloner {
     if (cloned.containsKey('output_profiles')) {
       final blueprintsRaw = cloned['output_profiles'];
       final blueprints = blueprintsRaw is Map ? blueprintsRaw : {};
-      final updatedBlueprints = <String, dynamic>{};
+      final updatedBlueprints = <String, Object?>{};
 
       for (final entry in blueprints.entries) {
         final entryVal = entry.value is Map
-            ? entry.value as Map<String, dynamic>
-            : <String, dynamic>{};
+            ? entry.value as Map<String, Object?>
+            : <String, Object?>{};
         updatedBlueprints[entry.key.toString()] = _reRouteNode(entryVal, idMap);
       }
       cloned['output_profiles'] = updatedBlueprints;
@@ -123,8 +123,8 @@ class WorkflowCloner {
     // --- Phase C: Riski 3 - Fail Fast Validation ---
     for (final step in steps) {
       final stepMap = step is Map
-          ? step as Map<String, dynamic>
-          : <String, dynamic>{};
+          ? step as Map<String, Object?>
+          : <String, Object?>{};
       final depRaw = stepMap['depends_on'];
       final dependsOn = (depRaw is List ? depRaw : [])
           .map((e) => e.toString())
@@ -150,8 +150,8 @@ class WorkflowCloner {
 
   /// Recursively walks a JSON tree and replaces step ID references.
   static dynamic _reRouteNode(dynamic node, Map<String, String> idMap) {
-    if (node is Map<String, dynamic>) {
-      final newMap = <String, dynamic>{};
+    if (node is Map<String, Object?>) {
+      final newMap = <String, Object?>{};
       for (final entry in node.entries) {
         newMap[entry.key] = _reRouteNode(entry.value, idMap);
       }
@@ -181,8 +181,8 @@ class WorkflowCloner {
   }
 
   /// Creates a deep copy of a JSON map.
-  static Map<String, dynamic> _deepCopyMap(Map<String, dynamic> original) {
-    final copy = <String, dynamic>{};
+  static Map<String, Object?> _deepCopyMap(Map<String, Object?> original) {
+    final copy = <String, Object?>{};
     for (final entry in original.entries) {
       copy[entry.key] = _deepCopyDynamic(entry.value);
     }
@@ -190,10 +190,10 @@ class WorkflowCloner {
   }
 
   static dynamic _deepCopyDynamic(dynamic value) {
-    if (value is Map<String, dynamic>) {
+    if (value is Map<String, Object?>) {
       return _deepCopyMap(value);
     } else if (value is Map) {
-      final stringMap = <String, dynamic>{};
+      final stringMap = <String, Object?>{};
       for (final key in value.keys) {
         stringMap[key.toString()] = value[key];
       }

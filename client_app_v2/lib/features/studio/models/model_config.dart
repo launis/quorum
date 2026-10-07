@@ -49,7 +49,7 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'reasoning_effort') String? reasoningEffort,
     @JsonKey(name: 'additional_params')
     @Default({})
-    Map<String, dynamic> additionalParams,
+    Map<String, Object?> additionalParams,
   }) = _LlmModelConfig;
 
   factory LlmModelConfig.fromJson(Map<String, dynamic> json) =>
