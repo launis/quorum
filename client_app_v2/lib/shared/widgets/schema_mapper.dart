@@ -33,8 +33,7 @@ class SchemaMapper {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
         child: DropdownButtonFormField<String>(
-          // ignore: deprecated_member_use
-          initialValue: value?.toString(),
+          value: value?.toString(),
           decoration: InputDecoration(
             labelText: isRequired ? '$title *' : title,
             helperText: helperText,

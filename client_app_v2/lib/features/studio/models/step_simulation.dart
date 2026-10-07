@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 

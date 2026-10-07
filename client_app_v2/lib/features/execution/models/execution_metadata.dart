@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/trace_context_carrier.dart';

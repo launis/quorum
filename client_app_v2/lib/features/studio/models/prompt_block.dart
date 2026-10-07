@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
