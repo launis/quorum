@@ -15,7 +15,7 @@ abstract class DistilledEvaluation with _$DistilledEvaluation {
     required List<String> exactQuotes,
     String? semanticReasoning,
     String? status,
-    Map<String, dynamic>? extensions,
+    Map<String, Object?>? extensions,
   }) = _DistilledEvaluation;
 
   factory DistilledEvaluation.fromJson(Map<String, dynamic> json) =>

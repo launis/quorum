@@ -16,7 +16,7 @@ abstract class WorkflowInputs with _$WorkflowInputs {
     @Default('en') String language,
     @JsonKey(name: 'dynamic_inputs')
     @Default({})
-    Map<String, dynamic> dynamicInputs,
+    Map<String, Object?> dynamicInputs,
   }) = _WorkflowInputs;
 
   /// Instantiates a strictly typed [WorkflowInputs] from raw JSON.

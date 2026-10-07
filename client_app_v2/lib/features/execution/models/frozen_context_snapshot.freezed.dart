@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$FrozenContextSnapshot {
 
-@JsonKey(name: 'version_id') String? get versionId;@JsonKey(name: 'workflow_id') String? get workflowId;@JsonKey(name: 'workflow_name') String? get workflowName;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'user_id') String? get userId;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'compiled_prompts') Map<String, String> get compiledPrompts;@JsonKey(name: 'injected_theory') Map<String, dynamic> get injectedTheory;@JsonKey(name: 'generated_schemas') Map<String, dynamic> get generatedSchemas;@JsonKey(name: 'ui_hints_snapshot') Map<String, dynamic> get uiHintsSnapshot;@JsonKey(name: 'mcp_tool_audit') List<Map<String, dynamic>> get mcpToolAudit;
+@JsonKey(name: 'version_id') String? get versionId;@JsonKey(name: 'workflow_id') String? get workflowId;@JsonKey(name: 'workflow_name') String? get workflowName;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'user_id') String? get userId;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'compiled_prompts') Map<String, String> get compiledPrompts;@JsonKey(name: 'injected_theory') Map<String, Object?> get injectedTheory;@JsonKey(name: 'generated_schemas') Map<String, Object?> get generatedSchemas;@JsonKey(name: 'ui_hints_snapshot') Map<String, Object?> get uiHintsSnapshot;@JsonKey(name: 'mcp_tool_audit') List<Map<String, Object?>> get mcpToolAudit;
 /// Create a copy of FrozenContextSnapshot
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $FrozenContextSnapshotCopyWith<$Res>  {
   factory $FrozenContextSnapshotCopyWith(FrozenContextSnapshot value, $Res Function(FrozenContextSnapshot) _then) = _$FrozenContextSnapshotCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'version_id') String? versionId,@JsonKey(name: 'workflow_id') String? workflowId,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'compiled_prompts') Map<String, String> compiledPrompts,@JsonKey(name: 'injected_theory') Map<String, dynamic> injectedTheory,@JsonKey(name: 'generated_schemas') Map<String, dynamic> generatedSchemas,@JsonKey(name: 'ui_hints_snapshot') Map<String, dynamic> uiHintsSnapshot,@JsonKey(name: 'mcp_tool_audit') List<Map<String, dynamic>> mcpToolAudit
+@JsonKey(name: 'version_id') String? versionId,@JsonKey(name: 'workflow_id') String? workflowId,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'compiled_prompts') Map<String, String> compiledPrompts,@JsonKey(name: 'injected_theory') Map<String, Object?> injectedTheory,@JsonKey(name: 'generated_schemas') Map<String, Object?> generatedSchemas,@JsonKey(name: 'ui_hints_snapshot') Map<String, Object?> uiHintsSnapshot,@JsonKey(name: 'mcp_tool_audit') List<Map<String, Object?>> mcpToolAudit
 });
 
 
@@ -68,10 +68,10 @@ as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nul
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,compiledPrompts: null == compiledPrompts ? _self.compiledPrompts : compiledPrompts // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,injectedTheory: null == injectedTheory ? _self.injectedTheory : injectedTheory // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,generatedSchemas: null == generatedSchemas ? _self.generatedSchemas : generatedSchemas // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,uiHintsSnapshot: null == uiHintsSnapshot ? _self.uiHintsSnapshot : uiHintsSnapshot // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,mcpToolAudit: null == mcpToolAudit ? _self.mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
-as List<Map<String, dynamic>>,
+as Map<String, Object?>,generatedSchemas: null == generatedSchemas ? _self.generatedSchemas : generatedSchemas // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,uiHintsSnapshot: null == uiHintsSnapshot ? _self.uiHintsSnapshot : uiHintsSnapshot // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,mcpToolAudit: null == mcpToolAudit ? _self.mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
+as List<Map<String, Object?>>,
   ));
 }
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, dynamic> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, dynamic> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, dynamic> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, dynamic>> mcpToolAudit)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, Object?> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, Object?> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, Object?> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, Object?>> mcpToolAudit)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FrozenContextSnapshot() when $default != null:
 return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organizationId,_that.userId,_that.createdAt,_that.compiledPrompts,_that.injectedTheory,_that.generatedSchemas,_that.uiHintsSnapshot,_that.mcpToolAudit);case _:
@@ -177,7 +177,7 @@ return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, dynamic> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, dynamic> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, dynamic> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, dynamic>> mcpToolAudit)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, Object?> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, Object?> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, Object?> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, Object?>> mcpToolAudit)  $default,) {final _that = this;
 switch (_that) {
 case _FrozenContextSnapshot():
 return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organizationId,_that.userId,_that.createdAt,_that.compiledPrompts,_that.injectedTheory,_that.generatedSchemas,_that.uiHintsSnapshot,_that.mcpToolAudit);case _:
@@ -197,7 +197,7 @@ return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, dynamic> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, dynamic> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, dynamic> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, dynamic>> mcpToolAudit)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'version_id')  String? versionId, @JsonKey(name: 'workflow_id')  String? workflowId, @JsonKey(name: 'workflow_name')  String? workflowName, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'compiled_prompts')  Map<String, String> compiledPrompts, @JsonKey(name: 'injected_theory')  Map<String, Object?> injectedTheory, @JsonKey(name: 'generated_schemas')  Map<String, Object?> generatedSchemas, @JsonKey(name: 'ui_hints_snapshot')  Map<String, Object?> uiHintsSnapshot, @JsonKey(name: 'mcp_tool_audit')  List<Map<String, Object?>> mcpToolAudit)?  $default,) {final _that = this;
 switch (_that) {
 case _FrozenContextSnapshot() when $default != null:
 return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organizationId,_that.userId,_that.createdAt,_that.compiledPrompts,_that.injectedTheory,_that.generatedSchemas,_that.uiHintsSnapshot,_that.mcpToolAudit);case _:
@@ -212,7 +212,7 @@ return $default(_that.versionId,_that.workflowId,_that.workflowName,_that.organi
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _FrozenContextSnapshot extends FrozenContextSnapshot {
-  const _FrozenContextSnapshot({@JsonKey(name: 'version_id') this.versionId, @JsonKey(name: 'workflow_id') this.workflowId, @JsonKey(name: 'workflow_name') this.workflowName, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'compiled_prompts') final  Map<String, String> compiledPrompts = const {}, @JsonKey(name: 'injected_theory') final  Map<String, dynamic> injectedTheory = const {}, @JsonKey(name: 'generated_schemas') final  Map<String, dynamic> generatedSchemas = const {}, @JsonKey(name: 'ui_hints_snapshot') final  Map<String, dynamic> uiHintsSnapshot = const {}, @JsonKey(name: 'mcp_tool_audit') final  List<Map<String, dynamic>> mcpToolAudit = const []}): _compiledPrompts = compiledPrompts,_injectedTheory = injectedTheory,_generatedSchemas = generatedSchemas,_uiHintsSnapshot = uiHintsSnapshot,_mcpToolAudit = mcpToolAudit,super._();
+  const _FrozenContextSnapshot({@JsonKey(name: 'version_id') this.versionId, @JsonKey(name: 'workflow_id') this.workflowId, @JsonKey(name: 'workflow_name') this.workflowName, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'compiled_prompts') final  Map<String, String> compiledPrompts = const {}, @JsonKey(name: 'injected_theory') final  Map<String, Object?> injectedTheory = const {}, @JsonKey(name: 'generated_schemas') final  Map<String, Object?> generatedSchemas = const {}, @JsonKey(name: 'ui_hints_snapshot') final  Map<String, Object?> uiHintsSnapshot = const {}, @JsonKey(name: 'mcp_tool_audit') final  List<Map<String, Object?>> mcpToolAudit = const []}): _compiledPrompts = compiledPrompts,_injectedTheory = injectedTheory,_generatedSchemas = generatedSchemas,_uiHintsSnapshot = uiHintsSnapshot,_mcpToolAudit = mcpToolAudit,super._();
   factory _FrozenContextSnapshot.fromJson(Map<String, dynamic> json) => _$FrozenContextSnapshotFromJson(json);
 
 @override@JsonKey(name: 'version_id') final  String? versionId;
@@ -228,29 +228,29 @@ class _FrozenContextSnapshot extends FrozenContextSnapshot {
   return EqualUnmodifiableMapView(_compiledPrompts);
 }
 
- final  Map<String, dynamic> _injectedTheory;
-@override@JsonKey(name: 'injected_theory') Map<String, dynamic> get injectedTheory {
+ final  Map<String, Object?> _injectedTheory;
+@override@JsonKey(name: 'injected_theory') Map<String, Object?> get injectedTheory {
   if (_injectedTheory is EqualUnmodifiableMapView) return _injectedTheory;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_injectedTheory);
 }
 
- final  Map<String, dynamic> _generatedSchemas;
-@override@JsonKey(name: 'generated_schemas') Map<String, dynamic> get generatedSchemas {
+ final  Map<String, Object?> _generatedSchemas;
+@override@JsonKey(name: 'generated_schemas') Map<String, Object?> get generatedSchemas {
   if (_generatedSchemas is EqualUnmodifiableMapView) return _generatedSchemas;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_generatedSchemas);
 }
 
- final  Map<String, dynamic> _uiHintsSnapshot;
-@override@JsonKey(name: 'ui_hints_snapshot') Map<String, dynamic> get uiHintsSnapshot {
+ final  Map<String, Object?> _uiHintsSnapshot;
+@override@JsonKey(name: 'ui_hints_snapshot') Map<String, Object?> get uiHintsSnapshot {
   if (_uiHintsSnapshot is EqualUnmodifiableMapView) return _uiHintsSnapshot;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_uiHintsSnapshot);
 }
 
- final  List<Map<String, dynamic>> _mcpToolAudit;
-@override@JsonKey(name: 'mcp_tool_audit') List<Map<String, dynamic>> get mcpToolAudit {
+ final  List<Map<String, Object?>> _mcpToolAudit;
+@override@JsonKey(name: 'mcp_tool_audit') List<Map<String, Object?>> get mcpToolAudit {
   if (_mcpToolAudit is EqualUnmodifiableListView) return _mcpToolAudit;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_mcpToolAudit);
@@ -283,7 +283,7 @@ abstract mixin class _$FrozenContextSnapshotCopyWith<$Res> implements $FrozenCon
   factory _$FrozenContextSnapshotCopyWith(_FrozenContextSnapshot value, $Res Function(_FrozenContextSnapshot) _then) = __$FrozenContextSnapshotCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'version_id') String? versionId,@JsonKey(name: 'workflow_id') String? workflowId,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'compiled_prompts') Map<String, String> compiledPrompts,@JsonKey(name: 'injected_theory') Map<String, dynamic> injectedTheory,@JsonKey(name: 'generated_schemas') Map<String, dynamic> generatedSchemas,@JsonKey(name: 'ui_hints_snapshot') Map<String, dynamic> uiHintsSnapshot,@JsonKey(name: 'mcp_tool_audit') List<Map<String, dynamic>> mcpToolAudit
+@JsonKey(name: 'version_id') String? versionId,@JsonKey(name: 'workflow_id') String? workflowId,@JsonKey(name: 'workflow_name') String? workflowName,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'compiled_prompts') Map<String, String> compiledPrompts,@JsonKey(name: 'injected_theory') Map<String, Object?> injectedTheory,@JsonKey(name: 'generated_schemas') Map<String, Object?> generatedSchemas,@JsonKey(name: 'ui_hints_snapshot') Map<String, Object?> uiHintsSnapshot,@JsonKey(name: 'mcp_tool_audit') List<Map<String, Object?>> mcpToolAudit
 });
 
 
@@ -310,10 +310,10 @@ as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nul
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,compiledPrompts: null == compiledPrompts ? _self._compiledPrompts : compiledPrompts // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,injectedTheory: null == injectedTheory ? _self._injectedTheory : injectedTheory // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,generatedSchemas: null == generatedSchemas ? _self._generatedSchemas : generatedSchemas // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,uiHintsSnapshot: null == uiHintsSnapshot ? _self._uiHintsSnapshot : uiHintsSnapshot // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,mcpToolAudit: null == mcpToolAudit ? _self._mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
-as List<Map<String, dynamic>>,
+as Map<String, Object?>,generatedSchemas: null == generatedSchemas ? _self._generatedSchemas : generatedSchemas // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,uiHintsSnapshot: null == uiHintsSnapshot ? _self._uiHintsSnapshot : uiHintsSnapshot // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,mcpToolAudit: null == mcpToolAudit ? _self._mcpToolAudit : mcpToolAudit // ignore: cast_nullable_to_non_nullable
+as List<Map<String, Object?>>,
   ));
 }
 

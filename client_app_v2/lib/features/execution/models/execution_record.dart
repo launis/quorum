@@ -49,11 +49,11 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,
     @JsonKey(name: 'frozen_context_storage_path')
     String? frozenContextStoragePath,
-    @JsonKey(name: 'context_variables') Map<String, dynamic>? contextVariables,
+    @JsonKey(name: 'context_variables') Map<String, Object?>? contextVariables,
     @JsonKey(name: 'context_variables_storage_path')
     String? contextVariablesStoragePath,
     @JsonKey(name: 'execution_trace')
-    List<Map<String, dynamic>>? executionTrace,
+    List<Map<String, Object?>>? executionTrace,
     @JsonKey(name: 'execution_trace_storage_path')
     String? executionTraceStoragePath,
     @JsonKey(name: 'pdf_report_path') String? pdfReportPath,
@@ -61,7 +61,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     Map<String, String>? sourceIdentityManifest,
     @JsonKey(name: 'steps') @Default([]) List<ExecutionStep> steps,
     @JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,
-    @JsonKey(name: 'profile_syntheses') Map<String, dynamic>? profileSyntheses,
+    @JsonKey(name: 'profile_syntheses') Map<String, Object?>? profileSyntheses,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'status_message') String? statusMessage,
     @JsonKey(name: 'created_at') String? createdAt,
@@ -84,7 +84,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   /// to prevent Main Thread Jank when handling large payloads.
   static Future<ExecutionRecord> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      final dynamic decoded = jsonDecode(rawJson);
       return ExecutionRecord.fromJson(decoded);
     });
   }

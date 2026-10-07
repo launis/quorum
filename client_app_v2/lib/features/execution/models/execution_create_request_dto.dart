@@ -13,7 +13,7 @@ abstract class ExecutionCreateRequestDto with _$ExecutionCreateRequestDto {
   const factory ExecutionCreateRequestDto({
     @JsonKey(name: 'workflow_id') required String workflowId,
     @JsonKey(name: 'target_locale') required String targetLocale,
-    @JsonKey(name: 'raw_inputs') @Default({}) Map<String, dynamic> rawInputs,
+    @JsonKey(name: 'raw_inputs') @Default({}) Map<String, Object?> rawInputs,
     @JsonKey(name: 'profile_id') String? profileId,
     @JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,
   }) = _ExecutionCreateRequestDto;

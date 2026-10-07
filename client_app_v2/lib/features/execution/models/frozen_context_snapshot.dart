@@ -21,16 +21,16 @@ abstract class FrozenContextSnapshot with _$FrozenContextSnapshot {
     Map<String, String> compiledPrompts,
     @JsonKey(name: 'injected_theory')
     @Default({})
-    Map<String, dynamic> injectedTheory,
+    Map<String, Object?> injectedTheory,
     @JsonKey(name: 'generated_schemas')
     @Default({})
-    Map<String, dynamic> generatedSchemas,
+    Map<String, Object?> generatedSchemas,
     @JsonKey(name: 'ui_hints_snapshot')
     @Default({})
-    Map<String, dynamic> uiHintsSnapshot,
+    Map<String, Object?> uiHintsSnapshot,
     @JsonKey(name: 'mcp_tool_audit')
     @Default([])
-    List<Map<String, dynamic>> mcpToolAudit,
+    List<Map<String, Object?>> mcpToolAudit,
   }) = _FrozenContextSnapshot;
 
   /// Instantiates a strictly typed [FrozenContextSnapshot] from raw JSON.

@@ -15,7 +15,7 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     @JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,
     @JsonKey(name: 'workflow_version') @Default(1) int workflowVersion,
     @JsonKey(name: 'global_context_vars')
-    Map<String, dynamic>? globalContextVars,
+    Map<String, Object?>? globalContextVars,
     @JsonKey(name: 'provider_override') LLMProvider? providerOverride,
     @JsonKey(name: 'model_registry_id') String? modelRegistryId,
     @JsonKey(name: 'telemetry') TraceContextCarrier? telemetry,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkflowInputs {
 
-@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'user_id') String? get userId;@JsonKey(name: 'simulation_mode') bool get simulationMode; String get language;@JsonKey(name: 'dynamic_inputs') Map<String, dynamic> get dynamicInputs;
+@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'user_id') String? get userId;@JsonKey(name: 'simulation_mode') bool get simulationMode; String get language;@JsonKey(name: 'dynamic_inputs') Map<String, Object?> get dynamicInputs;
 /// Create a copy of WorkflowInputs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $WorkflowInputsCopyWith<$Res>  {
   factory $WorkflowInputsCopyWith(WorkflowInputs value, $Res Function(WorkflowInputs) _then) = _$WorkflowInputsCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'simulation_mode') bool simulationMode, String language,@JsonKey(name: 'dynamic_inputs') Map<String, dynamic> dynamicInputs
+@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'simulation_mode') bool simulationMode, String language,@JsonKey(name: 'dynamic_inputs') Map<String, Object?> dynamicInputs
 });
 
 
@@ -65,7 +65,7 @@ as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nul
 as String?,simulationMode: null == simulationMode ? _self.simulationMode : simulationMode // ignore: cast_nullable_to_non_nullable
 as bool,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String,dynamicInputs: null == dynamicInputs ? _self.dynamicInputs : dynamicInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 
@@ -150,7 +150,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, dynamic> dynamicInputs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, Object?> dynamicInputs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkflowInputs() when $default != null:
 return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.language,_that.dynamicInputs);case _:
@@ -171,7 +171,7 @@ return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.lan
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, dynamic> dynamicInputs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, Object?> dynamicInputs)  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowInputs():
 return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.language,_that.dynamicInputs);case _:
@@ -191,7 +191,7 @@ return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.lan
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, dynamic> dynamicInputs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'user_id')  String? userId, @JsonKey(name: 'simulation_mode')  bool simulationMode,  String language, @JsonKey(name: 'dynamic_inputs')  Map<String, Object?> dynamicInputs)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkflowInputs() when $default != null:
 return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.language,_that.dynamicInputs);case _:
@@ -206,15 +206,15 @@ return $default(_that.organizationId,_that.userId,_that.simulationMode,_that.lan
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _WorkflowInputs extends WorkflowInputs {
-  const _WorkflowInputs({@JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, @JsonKey(name: 'simulation_mode') this.simulationMode = false, this.language = 'en', @JsonKey(name: 'dynamic_inputs') final  Map<String, dynamic> dynamicInputs = const {}}): _dynamicInputs = dynamicInputs,super._();
+  const _WorkflowInputs({@JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'user_id') this.userId, @JsonKey(name: 'simulation_mode') this.simulationMode = false, this.language = 'en', @JsonKey(name: 'dynamic_inputs') final  Map<String, Object?> dynamicInputs = const {}}): _dynamicInputs = dynamicInputs,super._();
   factory _WorkflowInputs.fromJson(Map<String, dynamic> json) => _$WorkflowInputsFromJson(json);
 
 @override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override@JsonKey(name: 'user_id') final  String? userId;
 @override@JsonKey(name: 'simulation_mode') final  bool simulationMode;
 @override@JsonKey() final  String language;
- final  Map<String, dynamic> _dynamicInputs;
-@override@JsonKey(name: 'dynamic_inputs') Map<String, dynamic> get dynamicInputs {
+ final  Map<String, Object?> _dynamicInputs;
+@override@JsonKey(name: 'dynamic_inputs') Map<String, Object?> get dynamicInputs {
   if (_dynamicInputs is EqualUnmodifiableMapView) return _dynamicInputs;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_dynamicInputs);
@@ -247,7 +247,7 @@ abstract mixin class _$WorkflowInputsCopyWith<$Res> implements $WorkflowInputsCo
   factory _$WorkflowInputsCopyWith(_WorkflowInputs value, $Res Function(_WorkflowInputs) _then) = __$WorkflowInputsCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'simulation_mode') bool simulationMode, String language,@JsonKey(name: 'dynamic_inputs') Map<String, dynamic> dynamicInputs
+@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'user_id') String? userId,@JsonKey(name: 'simulation_mode') bool simulationMode, String language,@JsonKey(name: 'dynamic_inputs') Map<String, Object?> dynamicInputs
 });
 
 
@@ -271,7 +271,7 @@ as String?,userId: freezed == userId ? _self.userId : userId // ignore: cast_nul
 as String?,simulationMode: null == simulationMode ? _self.simulationMode : simulationMode // ignore: cast_nullable_to_non_nullable
 as bool,language: null == language ? _self.language : language // ignore: cast_nullable_to_non_nullable
 as String,dynamicInputs: null == dynamicInputs ? _self._dynamicInputs : dynamicInputs // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, Object?>,
   ));
 }
 

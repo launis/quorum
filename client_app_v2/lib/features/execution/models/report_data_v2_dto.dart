@@ -64,7 +64,7 @@ abstract class ReportDataDto with _$ReportDataDto {
   /// This prevents Main Thread Jank when handling large payloads.
   static Future<ReportDataDto> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
+      final dynamic decoded = jsonDecode(rawJson);
       return ReportDataDto.fromJson(decoded);
     });
   }
