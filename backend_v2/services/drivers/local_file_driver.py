@@ -135,7 +135,7 @@ class LocalFileDriver(FileDriver):
             # On Windows, os.replace throws PermissionError if the file is open by a reader (e.g. UI polling).
             for attempt in range(MAX_REPLACE_RETRIES):
                 try:
-                    os.replace(tmp_path, full_path)
+                    await asyncio.to_thread(os.replace, tmp_path, full_path)
                     break
                 except PermissionError as e:
                     if attempt == MAX_REPLACE_RETRIES - 1:
@@ -247,8 +247,8 @@ class LocalFileDriver(FileDriver):
             raise AppException(message=msg, status_code=404, details={"error_code": ErrorCodes.FILE_NOT_FOUND.value})
 
         try:
-            # Standard os.remove is sync but fast for local FS.
-            os.remove(full_path)
+            # os.remove offloaded to thread to avoid blocking event loop
+            await asyncio.to_thread(os.remove, full_path)
             return True
         except PermissionError as e:
             logger.error("[LocalFileDriver] File is locked: %s", e)

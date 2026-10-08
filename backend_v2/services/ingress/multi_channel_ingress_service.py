@@ -7,6 +7,7 @@ Dispatches conversational input across deterministic channels:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import fitz
@@ -47,6 +48,43 @@ class MultiChannelIngressService:
         self._normalizer = normalizer_service
         self._pdf_extractor = pdf_extractor
 
+    @staticmethod
+    def _extract_pdf_channel_sync(
+        pdf_bytes: bytes,
+        pdf_extractor: type[PdfChatExtractorService] | PdfChatExtractorService,
+        key: str,
+        filename: str | None,
+    ) -> ChatHistoryDTO | str:
+        """Isolated CPU-bound PDF vector geometry and text extraction in background thread.
+
+        Args:
+            pdf_bytes: Raw binary bytes of the PDF document.
+            pdf_extractor: Extractor instance or type for conversation bubbles.
+            key: Input key identifier.
+            filename: Optional source filename.
+
+        Returns:
+            ChatHistoryDTO if speech bubble conversation is detected, or extracted markdown string.
+        """
+        logger.info("[MultiChannelIngress] PDF magic bytes detected for %s (filename: %s)", key, filename)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        try:
+            if pdf_extractor.is_conversation_pdf(doc):
+                logger.info("[MultiChannelIngress] Detected conversation speech bubbles in PDF for %s", key)
+                return pdf_extractor.extract_conversation(doc)
+            logger.info(
+                "[MultiChannelIngress] PDF is not a speech bubble conversation; extracting markdown prose for %s",
+                key,
+            )
+            import pymupdf4llm
+
+            try:
+                return str(pymupdf4llm.to_markdown(doc))
+            finally:
+                pymupdf4llm.use_layout(False)
+        finally:
+            doc.close()
+
     async def process_chat(
         self,
         raw_input: str | bytes,
@@ -85,24 +123,16 @@ class MultiChannelIngressService:
 
         # 1. PDF Vector Geometry Channel
         if isinstance(raw_input, bytes) and raw_input.startswith(b"%PDF"):
-            logger.info("[MultiChannelIngress] PDF magic bytes detected for %s (filename: %s)", key, filename)
-            doc = fitz.open(stream=raw_input, filetype="pdf")
-            try:
-                if self._pdf_extractor.is_conversation_pdf(doc):
-                    logger.info("[MultiChannelIngress] Detected conversation speech bubbles in PDF for %s", key)
-                    return self._pdf_extractor.extract_conversation(doc)
-                logger.info(
-                    "[MultiChannelIngress] PDF is not a speech bubble conversation; extracting markdown prose for %s",
-                    key,
-                )
-                import pymupdf4llm
-
-                try:
-                    raw_text = str(pymupdf4llm.to_markdown(doc))
-                finally:
-                    pymupdf4llm.use_layout(False)
-            finally:
-                doc.close()
+            pdf_result = await asyncio.to_thread(
+                self._extract_pdf_channel_sync,
+                pdf_bytes=raw_input,
+                pdf_extractor=self._pdf_extractor,
+                key=key,
+                filename=filename,
+            )
+            if isinstance(pdf_result, ChatHistoryDTO):
+                return pdf_result
+            raw_text = pdf_result
         elif isinstance(raw_input, bytes):
             try:
                 raw_text = raw_input.decode("utf-8")

@@ -6,8 +6,9 @@ fast-path colon regex, deterministic fluff stripping, and LLM anchor slicing fal
 
 from __future__ import annotations
 
+import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -182,3 +183,32 @@ class TestMultiChannelIngressService:
         assert len(result.conversation) >= 2
         assert any(t.role == "user" for t in result.conversation)
         assert any(t.role == "ai" for t in result.conversation)
+
+    @pytest.mark.asyncio
+    async def test_process_chat_pdf_offloaded_to_thread(self, mock_system_repo: InMemorySystemRepository) -> None:
+        """Verify that _extract_pdf_channel_sync is offloaded via asyncio.to_thread."""
+        mock_pdf_extractor = MagicMock()
+        mock_dto = ChatHistoryDTO(
+            conversation=[ChatMessageDTO(role="user", content="Threaded turn")]
+        )
+        service = MultiChannelIngressService(pdf_extractor=mock_pdf_extractor)
+
+        import fitz
+
+        doc = fitz.open()
+        doc.new_page()
+        pdf_bytes = doc.tobytes()
+        doc.close()
+
+        with patch("asyncio.to_thread", wraps=asyncio.to_thread) as spy_to_thread:
+            with patch.object(service, "_extract_pdf_channel_sync", return_value=mock_dto) as mock_sync_extract:
+                result = await service.process_chat(pdf_bytes, mock_system_repo, key="chat_log")
+
+                assert result == mock_dto
+                spy_to_thread.assert_called_once()
+                mock_sync_extract.assert_called_once_with(
+                    pdf_bytes=pdf_bytes,
+                    pdf_extractor=mock_pdf_extractor,
+                    key="chat_log",
+                    filename=None,
+                )
