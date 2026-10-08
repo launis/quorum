@@ -10,6 +10,7 @@ import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/api/reports_client.dart';
+import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:client_app/router/router.dart';
 
 import 'package:client_app/features/execution/models/execution_record.dart';
@@ -64,7 +65,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           record.outputProfileId ?? record.activeProfileId ?? 'default';
       await reportsClient.createReport(
         executionId: widget.executionId,
-        profileId: profileId,
+        request: CreateReportRequest(profileId: profileId),
       );
       if (!mounted) return;
       setState(() {

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:client_app/core/api/reports_client.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
@@ -202,14 +201,16 @@ void main() {
         when(
           () => mockClient.createReport(
             executionId: testExecutionId,
-            profileId: 'prf_test',
-            locale: 'fi',
+            request: const CreateReportRequest(profileId: 'prf_test'),
           ),
         ).thenAnswer((_) async => testSummary);
 
         final summary = await container
             .read(reportArtifactActionsProvider.notifier)
-            .createReport(executionId: testExecutionId, profileId: 'prf_test');
+            .createReport(
+              executionId: testExecutionId,
+              request: const CreateReportRequest(profileId: 'prf_test'),
+            );
 
         expect(summary, isNotNull);
         expect(summary!.id, equals(testReportId));
@@ -330,8 +331,7 @@ void main() {
         when(
           () => mockClient.createReport(
             executionId: testExecutionId,
-            profileId: 'prf_test',
-            locale: 'fi',
+            request: const CreateReportRequest(profileId: 'prf_test'),
           ),
         ).thenThrow(Exception('Backend 500 error'));
 
@@ -340,7 +340,7 @@ void main() {
               .read(reportArtifactActionsProvider.notifier)
               .createReport(
                 executionId: testExecutionId,
-                profileId: 'prf_test',
+                request: const CreateReportRequest(profileId: 'prf_test'),
               ),
           throwsA(isA<Exception>()),
         );
