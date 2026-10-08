@@ -22,19 +22,11 @@ class ReportsClient {
   /// Initiates compilation of a materialized report artifact for a completed execution.
   Future<ReportArtifactSummary> createReport({
     required String executionId,
-    required String profileId,
-    String locale = 'fi',
-    String? customPrefaceMd,
-    String? modelRegistryId,
+    required CreateReportRequest request,
   }) async {
     final response = await _dio.post(
       '/executions/$executionId/reports',
-      data: {
-        'profile_id': profileId,
-        'locale': locale,
-        'custom_preface_md': ?customPrefaceMd,
-        'model_registry_id': ?modelRegistryId,
-      },
+      data: request.toJson(),
     );
     return ReportArtifactSummary.fromJson(response.data);
   }

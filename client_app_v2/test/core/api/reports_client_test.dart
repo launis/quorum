@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:client_app/core/api/reports_client.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -43,6 +44,7 @@ void main() {
             data: {
               'profile_id': 'prf_default',
               'locale': 'fi',
+              'force_resynthesis': false,
               'custom_preface_md': 'Custom preface',
               'model_registry_id': 'reg_123',
             },
@@ -59,10 +61,13 @@ void main() {
 
         final result = await client.createReport(
           executionId: testExecutionId,
-          profileId: 'prf_default',
-          locale: 'fi',
-          customPrefaceMd: 'Custom preface',
-          modelRegistryId: 'reg_123',
+          request: const CreateReportRequest(
+            profileId: 'prf_default',
+            locale: 'fi',
+            forceResynthesis: false,
+            customPrefaceMd: 'Custom preface',
+            modelRegistryId: 'reg_123',
+          ),
         );
 
         expect(result.id, equals(testReportId));
@@ -74,6 +79,7 @@ void main() {
             data: {
               'profile_id': 'prf_default',
               'locale': 'fi',
+              'force_resynthesis': false,
               'custom_preface_md': 'Custom preface',
               'model_registry_id': 'reg_123',
             },
@@ -108,7 +114,7 @@ void main() {
         expect(
           () => client.createReport(
             executionId: testExecutionId,
-            profileId: 'prf_default',
+            request: const CreateReportRequest(profileId: 'prf_default'),
           ),
           throwsA(isA<DioException>()),
         );
@@ -136,7 +142,7 @@ void main() {
         expect(
           () => client.createReport(
             executionId: testExecutionId,
-            profileId: 'prf_default',
+            request: const CreateReportRequest(profileId: 'prf_default'),
           ),
           throwsA(anything),
         );

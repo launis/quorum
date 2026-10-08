@@ -5269,4 +5269,11 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get tableColumnReasoningQuote => 'Perustelu & Sitaatti';
+
+  @override
+  String get forceResynthesisLabel => 'Generoi tekoälyteksti uudelleen';
+
+  @override
+  String get forceResynthesisSubtitle =>
+      'Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla';
 }

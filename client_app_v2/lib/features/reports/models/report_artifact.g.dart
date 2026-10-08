@@ -326,3 +326,54 @@ Map<String, dynamic> _$ReportArtifactSummaryToJson(
   'created_at': instance.createdAt.toIso8601String(),
   'updated_at': instance.updatedAt.toIso8601String(),
 };
+
+_CreateReportRequest _$CreateReportRequestFromJson(Map<String, dynamic> json) =>
+    $checkedCreate(
+      '_CreateReportRequest',
+      json,
+      ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'profile_id',
+            'locale',
+            'force_resynthesis',
+            'custom_preface_md',
+            'model_registry_id',
+          ],
+        );
+        final val = _CreateReportRequest(
+          profileId: $checkedConvert('profile_id', (v) => v as String),
+          locale: $checkedConvert('locale', (v) => v as String? ?? 'fi'),
+          forceResynthesis: $checkedConvert(
+            'force_resynthesis',
+            (v) => v as bool? ?? false,
+          ),
+          customPrefaceMd: $checkedConvert(
+            'custom_preface_md',
+            (v) => v as String?,
+          ),
+          modelRegistryId: $checkedConvert(
+            'model_registry_id',
+            (v) => v as String?,
+          ),
+        );
+        return val;
+      },
+      fieldKeyMap: const {
+        'profileId': 'profile_id',
+        'forceResynthesis': 'force_resynthesis',
+        'customPrefaceMd': 'custom_preface_md',
+        'modelRegistryId': 'model_registry_id',
+      },
+    );
+
+Map<String, dynamic> _$CreateReportRequestToJson(
+  _CreateReportRequest instance,
+) => <String, dynamic>{
+  'profile_id': instance.profileId,
+  'locale': instance.locale,
+  'force_resynthesis': instance.forceResynthesis,
+  'custom_preface_md': instance.customPrefaceMd,
+  'model_registry_id': instance.modelRegistryId,
+};

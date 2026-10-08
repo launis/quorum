@@ -5,6 +5,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/reports/controllers/report_artifact_controller.dart';
+import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,7 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
 
   String? _selectedProfileId;
   String _selectedLocale = 'fi';
+  bool _forceResynthesis = false;
   List<OutputProfile> _availableProfiles = [];
   bool _isLoadingProfiles = true;
   String? _inlineError;
@@ -64,12 +66,19 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
     super.dispose();
   }
 
+  CreateReportRequest _buildRequest() {
+    return CreateReportRequest(
+      profileId: _selectedProfileId ?? '',
+      locale: _selectedLocale,
+      forceResynthesis: _forceResynthesis,
+      customPrefaceMd: _prefaceController.text.trim().isEmpty
+          ? null
+          : _prefaceController.text.trim(),
+    );
+  }
+
   String _computeStateJson() {
-    return jsonEncode({
-      'profile_id': _selectedProfileId,
-      'locale': _selectedLocale,
-      'preface': _prefaceController.text.trim(),
-    });
+    return jsonEncode(_buildRequest().toJson());
   }
 
   bool _isModelDirty() => _computeStateJson() != _initialStateJson;
@@ -180,11 +189,7 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
           .read(reportArtifactActionsProvider.notifier)
           .createReport(
             executionId: widget.executionId,
-            profileId: _selectedProfileId!,
-            locale: _selectedLocale,
-            customPrefaceMd: _prefaceController.text.trim().isEmpty
-                ? null
-                : _prefaceController.text.trim(),
+            request: _buildRequest(),
           );
 
       if (!mounted) return;
@@ -418,6 +423,26 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                         Icons.format_quote_outlined,
                                       ),
                                     ),
+                                  ),
+                                  AppSpacing.h16,
+
+                                  // Force re-synthesis toggle
+                                  SwitchListTile.adaptive(
+                                    contentPadding: EdgeInsets.zero,
+                                    value: _forceResynthesis,
+                                    title: Text(l10n.forceResynthesisLabel),
+                                    subtitle: Text(
+                                      l10n.forceResynthesisSubtitle,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _forceResynthesis = val;
+                                      });
+                                    },
                                   ),
                                 ],
                               ),

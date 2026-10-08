@@ -9437,6 +9437,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reasoning & Quote'**
   String get tableColumnReasoningQuote;
+
+  /// No description provided for @forceResynthesisLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate AI text'**
+  String get forceResynthesisLabel;
+
+  /// No description provided for @forceResynthesisSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-runs AI synthesis with updated profile tone and citation directives'**
+  String get forceResynthesisSubtitle;
 }
 
 class _AppLocalizationsDelegate

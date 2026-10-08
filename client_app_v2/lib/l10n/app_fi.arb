@@ -1856,5 +1856,7 @@
   "tableColumnCriteriaMetric": "Kriteeri / Metriikka",
   "tableColumnScore": "Pisteet",
   "tableColumnMaxScore": "Maksimi",
-  "tableColumnReasoningQuote": "Perustelu & Sitaatti"
+  "tableColumnReasoningQuote": "Perustelu & Sitaatti",
+  "forceResynthesisLabel": "Generoi tekoälyteksti uudelleen",
+  "forceResynthesisSubtitle": "Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla"
 }

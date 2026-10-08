@@ -114,3 +114,21 @@ abstract class ReportArtifactSummary with _$ReportArtifactSummary {
   factory ReportArtifactSummary.fromJson(Map<String, dynamic> json) =>
       _$ReportArtifactSummaryFromJson(json);
 }
+
+/// Request payload for creating a new materialized report artifact.
+@freezed
+abstract class CreateReportRequest with _$CreateReportRequest {
+  const CreateReportRequest._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory CreateReportRequest({
+    @JsonKey(name: 'profile_id') required String profileId,
+    @Default('fi') String locale,
+    @JsonKey(name: 'force_resynthesis') @Default(false) bool forceResynthesis,
+    @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,
+    @JsonKey(name: 'model_registry_id') String? modelRegistryId,
+  }) = _CreateReportRequest;
+
+  factory CreateReportRequest.fromJson(Map<String, dynamic> json) =>
+      _$CreateReportRequestFromJson(json);
+}

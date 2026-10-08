@@ -5229,4 +5229,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tableColumnReasoningQuote => 'Reasoning & Quote';
+
+  @override
+  String get forceResynthesisLabel => 'Regenerate AI text';
+
+  @override
+  String get forceResynthesisSubtitle =>
+      'Re-runs AI synthesis with updated profile tone and citation directives';
 }

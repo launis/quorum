@@ -30,6 +30,10 @@ void main() {
     name: I18nText(translations: {'fi': 'Testiprofiili', 'en': 'Test Profile'}),
   );
 
+  setUpAll(() {
+    registerFallbackValue(const CreateReportRequest(profileId: 'fallback'));
+  });
+
   setUp(() {
     mockStudioClient = MockStudioClient();
     mockReportsClient = MockReportsClient();
@@ -150,9 +154,7 @@ void main() {
       when(
         () => mockReportsClient.createReport(
           executionId: testExecutionId,
-          profileId: testProfileId,
-          locale: 'fi',
-          customPrefaceMd: any(named: 'customPrefaceMd'),
+          request: any(named: 'request'),
         ),
       ).thenAnswer((_) async => reportSummary);
 
@@ -168,9 +170,66 @@ void main() {
       verify(
         () => mockReportsClient.createReport(
           executionId: testExecutionId,
-          profileId: testProfileId,
-          locale: 'fi',
-          customPrefaceMd: null,
+          request: const CreateReportRequest(
+            profileId: testProfileId,
+            locale: 'fi',
+            forceResynthesis: false,
+            customPrefaceMd: null,
+          ),
+        ),
+      ).called(1);
+    },
+  );
+
+  testWidgets(
+    'CreateReportDialog submits with forceResynthesis=true when switch is toggled',
+    (WidgetTester tester) async {
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => [testProfile]);
+
+      final reportSummary = ReportArtifactSummary(
+        id: 'rep_01b1d71000000001',
+        executionId: testExecutionId,
+        profileId: testProfileId,
+        locale: 'fi',
+        title: 'Uusi Raportti',
+        status: ReportStatus.generating,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      when(
+        () => mockReportsClient.createReport(
+          executionId: testExecutionId,
+          request: any(named: 'request'),
+        ),
+      ).thenAnswer((_) async => reportSummary);
+
+      await tester.pumpWidget(buildTestDialog());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Find and toggle switch
+      final switchFinder = find.byType(Switch);
+      expect(switchFinder, findsOneWidget);
+      await tester.tap(switchFinder);
+      await tester.pump();
+
+      // Tap generate report button
+      await tester.tap(find.text('Generoi tuloste'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      verify(
+        () => mockReportsClient.createReport(
+          executionId: testExecutionId,
+          request: const CreateReportRequest(
+            profileId: testProfileId,
+            locale: 'fi',
+            forceResynthesis: true,
+            customPrefaceMd: null,
+          ),
         ),
       ).called(1);
     },

@@ -2569,6 +2569,8 @@
   "tableColumnCriteriaMetric": "Criterion / Metric",
   "tableColumnScore": "Score",
   "tableColumnMaxScore": "Maximum",
-  "tableColumnReasoningQuote": "Reasoning & Quote"
+  "tableColumnReasoningQuote": "Reasoning & Quote",
+  "forceResynthesisLabel": "Regenerate AI text",
+  "forceResynthesisSubtitle": "Re-runs AI synthesis with updated profile tone and citation directives"
 }
 

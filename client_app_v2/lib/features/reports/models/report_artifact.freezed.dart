@@ -1403,4 +1403,279 @@ as DateTime,
 
 }
 
+
+/// @nodoc
+mixin _$CreateReportRequest {
+
+@JsonKey(name: 'profile_id') String get profileId; String get locale;@JsonKey(name: 'force_resynthesis') bool get forceResynthesis;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'model_registry_id') String? get modelRegistryId;
+/// Create a copy of CreateReportRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CreateReportRequestCopyWith<CreateReportRequest> get copyWith => _$CreateReportRequestCopyWithImpl<CreateReportRequest>(this as CreateReportRequest, _$identity);
+
+  /// Serializes this CreateReportRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateReportRequest&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.forceResynthesis, forceResynthesis) || other.forceResynthesis == forceResynthesis)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd)&&(identical(other.modelRegistryId, modelRegistryId) || other.modelRegistryId == modelRegistryId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,profileId,locale,forceResynthesis,customPrefaceMd,modelRegistryId);
+
+@override
+String toString() {
+  return 'CreateReportRequest(profileId: $profileId, locale: $locale, forceResynthesis: $forceResynthesis, customPrefaceMd: $customPrefaceMd, modelRegistryId: $modelRegistryId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CreateReportRequestCopyWith<$Res>  {
+  factory $CreateReportRequestCopyWith(CreateReportRequest value, $Res Function(CreateReportRequest) _then) = _$CreateReportRequestCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
+});
+
+
+
+
+}
+/// @nodoc
+class _$CreateReportRequestCopyWithImpl<$Res>
+    implements $CreateReportRequestCopyWith<$Res> {
+  _$CreateReportRequestCopyWithImpl(this._self, this._then);
+
+  final CreateReportRequest _self;
+  final $Res Function(CreateReportRequest) _then;
+
+/// Create a copy of CreateReportRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? profileId = null,Object? locale = null,Object? forceResynthesis = null,Object? customPrefaceMd = freezed,Object? modelRegistryId = freezed,}) {
+  return _then(_self.copyWith(
+profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
+as String,locale: null == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
+as String,forceResynthesis: null == forceResynthesis ? _self.forceResynthesis : forceResynthesis // ignore: cast_nullable_to_non_nullable
+as bool,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,modelRegistryId: freezed == modelRegistryId ? _self.modelRegistryId : modelRegistryId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CreateReportRequest].
+extension CreateReportRequestPatterns on CreateReportRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CreateReportRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CreateReportRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CreateReportRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _CreateReportRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CreateReportRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CreateReportRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CreateReportRequest() when $default != null:
+return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)  $default,) {final _that = this;
+switch (_that) {
+case _CreateReportRequest():
+return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,) {final _that = this;
+switch (_that) {
+case _CreateReportRequest() when $default != null:
+return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _CreateReportRequest extends CreateReportRequest {
+  const _CreateReportRequest({@JsonKey(name: 'profile_id') required this.profileId, this.locale = 'fi', @JsonKey(name: 'force_resynthesis') this.forceResynthesis = false, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'model_registry_id') this.modelRegistryId}): super._();
+  factory _CreateReportRequest.fromJson(Map<String, dynamic> json) => _$CreateReportRequestFromJson(json);
+
+@override@JsonKey(name: 'profile_id') final  String profileId;
+@override@JsonKey() final  String locale;
+@override@JsonKey(name: 'force_resynthesis') final  bool forceResynthesis;
+@override@JsonKey(name: 'custom_preface_md') final  String? customPrefaceMd;
+@override@JsonKey(name: 'model_registry_id') final  String? modelRegistryId;
+
+/// Create a copy of CreateReportRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CreateReportRequestCopyWith<_CreateReportRequest> get copyWith => __$CreateReportRequestCopyWithImpl<_CreateReportRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CreateReportRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateReportRequest&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.forceResynthesis, forceResynthesis) || other.forceResynthesis == forceResynthesis)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd)&&(identical(other.modelRegistryId, modelRegistryId) || other.modelRegistryId == modelRegistryId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,profileId,locale,forceResynthesis,customPrefaceMd,modelRegistryId);
+
+@override
+String toString() {
+  return 'CreateReportRequest(profileId: $profileId, locale: $locale, forceResynthesis: $forceResynthesis, customPrefaceMd: $customPrefaceMd, modelRegistryId: $modelRegistryId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CreateReportRequestCopyWith<$Res> implements $CreateReportRequestCopyWith<$Res> {
+  factory _$CreateReportRequestCopyWith(_CreateReportRequest value, $Res Function(_CreateReportRequest) _then) = __$CreateReportRequestCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
+});
+
+
+
+
+}
+/// @nodoc
+class __$CreateReportRequestCopyWithImpl<$Res>
+    implements _$CreateReportRequestCopyWith<$Res> {
+  __$CreateReportRequestCopyWithImpl(this._self, this._then);
+
+  final _CreateReportRequest _self;
+  final $Res Function(_CreateReportRequest) _then;
+
+/// Create a copy of CreateReportRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? profileId = null,Object? locale = null,Object? forceResynthesis = null,Object? customPrefaceMd = freezed,Object? modelRegistryId = freezed,}) {
+  return _then(_CreateReportRequest(
+profileId: null == profileId ? _self.profileId : profileId // ignore: cast_nullable_to_non_nullable
+as String,locale: null == locale ? _self.locale : locale // ignore: cast_nullable_to_non_nullable
+as String,forceResynthesis: null == forceResynthesis ? _self.forceResynthesis : forceResynthesis // ignore: cast_nullable_to_non_nullable
+as bool,customPrefaceMd: freezed == customPrefaceMd ? _self.customPrefaceMd : customPrefaceMd // ignore: cast_nullable_to_non_nullable
+as String?,modelRegistryId: freezed == modelRegistryId ? _self.modelRegistryId : modelRegistryId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
 // dart format on

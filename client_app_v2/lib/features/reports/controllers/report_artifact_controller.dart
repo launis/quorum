@@ -76,20 +76,14 @@ class ReportArtifactActions extends _$ReportArtifactActions {
 
   Future<ReportArtifactSummary?> createReport({
     required String executionId,
-    required String profileId,
-    String locale = 'fi',
-    String? customPrefaceMd,
-    String? modelRegistryId,
+    required CreateReportRequest request,
   }) async {
     state = const AsyncValue.loading();
     try {
       final client = ref.read(reportsClientProvider);
       final summary = await client.createReport(
         executionId: executionId,
-        profileId: profileId,
-        locale: locale,
-        customPrefaceMd: customPrefaceMd,
-        modelRegistryId: modelRegistryId,
+        request: request,
       );
       if (ref.mounted) {
         ref.invalidate(executionReportsProvider(executionId));
