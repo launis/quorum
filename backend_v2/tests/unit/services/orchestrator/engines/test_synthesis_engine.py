@@ -96,8 +96,6 @@ def base_request() -> EngineExecutionRequest:
         context=context,
         global_source_text="Test source text.",
         target_locale="en",
-        semaphore=None,
-        running_event=None,
         progress_callback=None,
         trace_callback=None,
         prompt_compiler=None,

@@ -193,13 +193,11 @@ class NodeExecutor:
         workflow_id: str,
         metadata: ExecutionMetadata,
         projector: StateProjector,
-        semaphore: asyncio.Semaphore,
         expected_inputs: list[Any] | None = None,
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
         strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
-        running_event: asyncio.Event | None = None,
         context_variables: ContextVariablesDTO | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
@@ -216,13 +214,11 @@ class NodeExecutor:
             workflow_id: Primary database record workflow key.
             metadata: Operational contexts such as organization identity maps.
             projector: Transient state snapshot delta computer context.
-            semaphore: Concurrency barrier constraints control instance.
             expected_inputs: Type list schema limits.
             frozen_ctx: Frozen context snapshot.
             trace: Trace events history.
             strictness_level: Strictness level numeric value.
             arq_pool: Async Arq pool context.
-            running_event: Event trigger notification mechanism.
             context_variables: Global state context dictionary or DTO.
             progress_callback: Progress observer async invocation handler.
             step_def: Underlying definition specification if eager loaded.
@@ -728,7 +724,6 @@ class DAGExecutor:
                 ]
                 exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
-        semaphore = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
         _update_lock = asyncio.Lock()
         _commit_lock = asyncio.Lock()
 
@@ -815,39 +810,15 @@ class DAGExecutor:
                         ) from e
 
                 async with _update_lock:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.QUEUED})
+                    new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.RUNNING})
                     new_states = {**exec_record.step_states, step_id: new_state}
                     new_steps = [
-                        s.model_copy(update={"status": ExecutionStatus.QUEUED}) if s.id == step_id else s
+                        s.model_copy(update={"status": ExecutionStatus.RUNNING}) if s.id == step_id else s
                         for s in exec_record.steps
                     ]
                     exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
                 await _safe_commit()
-
-                running_event = asyncio.Event()
-
-                async def watch_running() -> None:
-                    nonlocal exec_record
-                    await running_event.wait()
-                    needs_commit = False
-                    async with _update_lock:
-                        if exec_record.step_states[step_id].status == ExecutionStatus.QUEUED:
-                            new_state = exec_record.step_states[step_id].model_copy(
-                                update={"status": ExecutionStatus.RUNNING}
-                            )
-                            new_states = {**exec_record.step_states, step_id: new_state}
-                            new_steps = [
-                                s.model_copy(update={"status": ExecutionStatus.RUNNING}) if s.id == step_id else s
-                                for s in exec_record.steps
-                            ]
-                            exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
-                            needs_commit = True
-
-                    if needs_commit:
-                        await _safe_commit()
-
-                watcher_task = asyncio.create_task(watch_running())
 
                 async def progress_callback(completed: int, total: int) -> None:
                     nonlocal exec_record
@@ -888,45 +859,40 @@ class DAGExecutor:
                 if step_obj.task_blueprint is not None and step_obj.task_blueprint in step_definitions:
                     node_step_def = step_definitions[step_obj.task_blueprint]
 
-                try:
-                    settings = get_settings()
-                    async for attempt in AsyncRetrying(
-                        stop=stop_after_attempt(settings.llm_max_transient_retries),
-                        wait=wait_exponential(
-                            multiplier=settings.llm_retry_multiplier,
-                            min=settings.llm_retry_min_seconds,
-                            max=settings.llm_retry_max_seconds,
-                        ),
-                        retry=retry_if_exception(_is_transient_llm_error),
-                        reraise=True,
-                        before_sleep=before_sleep_log(logger, logging.WARNING),
-                    ):
-                        with attempt:
-                            events = await self.node_executor.execute(
-                                step=step_obj,
-                                execution_id=execution_id,
-                                workflow_id=workflow.id,
-                                metadata=exec_record.metadata
-                                or ExecutionMetadata(
-                                    workflow_version=workflow.version, model_registry_id=workflow.model_registry_id
-                                ),
-                                target_locale=exec_record.target_locale,
-                                output_profile_id=exec_record.output_profile_id,
-                                organization_id=exec_record.organization_id,
-                                projector=projector,
-                                expected_inputs=workflow.expected_inputs,
-                                frozen_ctx=exec_record.frozen_context,
-                                trace=exec_record.execution_trace,
-                                strictness_level=strictness_level,
-                                semaphore=semaphore,
-                                running_event=running_event,
-                                context_variables=exec_record.context_variables,
-                                progress_callback=progress_callback,
-                                step_def=node_step_def,
-                                global_context_vars=global_context_vars,
-                            )
-                finally:
-                    watcher_task.cancel()
+                settings = get_settings()
+                async for attempt in AsyncRetrying(
+                    stop=stop_after_attempt(settings.llm_max_transient_retries),
+                    wait=wait_exponential(
+                        multiplier=settings.llm_retry_multiplier,
+                        min=settings.llm_retry_min_seconds,
+                        max=settings.llm_retry_max_seconds,
+                    ),
+                    retry=retry_if_exception(_is_transient_llm_error),
+                    reraise=True,
+                    before_sleep=before_sleep_log(logger, logging.WARNING),
+                ):
+                    with attempt:
+                        events = await self.node_executor.execute(
+                            step=step_obj,
+                            execution_id=execution_id,
+                            workflow_id=workflow.id,
+                            metadata=exec_record.metadata
+                            or ExecutionMetadata(
+                                workflow_version=workflow.version, model_registry_id=workflow.model_registry_id
+                            ),
+                            target_locale=exec_record.target_locale,
+                            output_profile_id=exec_record.output_profile_id,
+                            organization_id=exec_record.organization_id,
+                            projector=projector,
+                            expected_inputs=workflow.expected_inputs,
+                            frozen_ctx=exec_record.frozen_context,
+                            trace=exec_record.execution_trace,
+                            strictness_level=strictness_level,
+                            context_variables=exec_record.context_variables,
+                            progress_callback=progress_callback,
+                            step_def=node_step_def,
+                            global_context_vars=global_context_vars,
+                        )
 
                 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
                 async with _update_lock:

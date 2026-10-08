@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -190,7 +189,8 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_compiler: Any) -> None:
+async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock_compiler: Any) -> None:
+    """Verify NodeExecutor.execute call_kwargs contains neither semaphore nor running_event."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -253,10 +253,8 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
 
         mock_node_execute.assert_called_once()
         _, call_kwargs = mock_node_execute.call_args
-        assert "semaphore" in call_kwargs
-        import asyncio
-
-        assert isinstance(call_kwargs["semaphore"], asyncio.Semaphore)
+        assert "semaphore" not in call_kwargs
+        assert "running_event" not in call_kwargs
 
 
 @pytest.mark.asyncio
@@ -346,8 +344,6 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
 @pytest.mark.asyncio
 async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compiler: Any) -> None:
     """Verify NodeExecutor injects SynthesisEngine when criteria or strategy is synthesis."""
-    import asyncio
-
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.domain.step import StepRule
@@ -402,8 +398,6 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     )
     projector = MagicMock()
     projector.snapshot = {}
-    semaphore = asyncio.Semaphore(1)
-
     with (
         patch("backend_v2.services.orchestrator.engines.synthesis_engine.SynthesisEngine") as mock_engine_class,
         patch(
@@ -419,7 +413,6 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
             metadata={},
             expected_inputs=[],
             projector=projector,
-            semaphore=semaphore,
             context_variables={},
         )
 
@@ -429,8 +422,6 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
 @pytest.mark.asyncio
 async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor fails fast when step has no task_blueprint."""
-    import asyncio
-
     from backend_v2.exceptions import ErrorCodes
     from backend_v2.models.domain.step import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
@@ -451,8 +442,6 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
     step = StepRule.model_construct(id="stp_1111222233334444", task_blueprint="", expected_sdui_type="markdown")
     projector = MagicMock()
     projector.snapshot = []
-    semaphore = asyncio.Semaphore(1)
-
     with pytest.raises(AppException) as exc_info:
         await executor.execute(
             execution_id="exe_1111222233334444",
@@ -460,7 +449,6 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
             step=step,
             metadata={},
             projector=projector,
-            semaphore=semaphore,
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
 
@@ -468,8 +456,6 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
 @pytest.mark.asyncio
 async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor fails fast when step definition is not found in repository."""
-    import asyncio
-
     from backend_v2.exceptions import ErrorCodes
     from backend_v2.models.domain.step import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
@@ -491,8 +477,6 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
     step = StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444", expected_sdui_type="markdown")
     projector = MagicMock()
     projector.snapshot = []
-    semaphore = asyncio.Semaphore(1)
-
     with pytest.raises(AppException) as exc_info:
         await executor.execute(
             execution_id="exe_1111222233334444",
@@ -500,7 +484,6 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
             step=step,
             metadata={},
             projector=projector,
-            semaphore=semaphore,
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
 
@@ -591,8 +574,6 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     mock_repo: Any, mock_compiler: Any
 ) -> None:
     """Test NodeExecutor input_mappings normalization and error trace event returning on generic exception."""
-    import asyncio
-
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.domain.step import StepRule
@@ -645,8 +626,6 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     projector.snapshot = [
         StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text_field": "hello"})
     ]
-    semaphore = asyncio.Semaphore(1)
-
     with patch(
         "backend_v2.services.orchestrator.strategies.registry.NodeStrategyFactory.create_strategy"
     ) as mock_factory:
@@ -660,7 +639,6 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
             step=step,
             metadata={"organization_id": "org_1111222233334444"},
             projector=projector,
-            semaphore=semaphore,
         )
         assert len(events) == 1
         assert isinstance(events[0], ErrorTraceEvent)
@@ -846,8 +824,6 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
             if "progress_callback" in kwargs and kwargs["progress_callback"]:
                 await kwargs["progress_callback"](1, 2)
-            if "running_event" in kwargs and kwargs["running_event"]:
-                kwargs["running_event"].set()
             return [event_with_mcp]
 
         mock_node_execute.side_effect = fake_node_execute
@@ -1187,8 +1163,6 @@ def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> N
 @pytest.mark.asyncio
 async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncMock, mock_compiler: AsyncMock) -> None:
     """Test that NodeExecutor.execute collects criteria, role, protocol, and persona block IDs."""
-    import asyncio
-
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.domain.step import Step, StepRule
     from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
@@ -1259,7 +1233,6 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
             workflow_id="wf_1",
             metadata=ExecutionMetadata(),
             projector=StateProjector(),
-            semaphore=asyncio.Semaphore(1),
             step_def=step_def,
         )
 
@@ -1722,8 +1695,8 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_watch_running_event_transitions_queued_step(mock_repo: Any, mock_compiler: Any) -> None:
-    """Verify running_event triggers watch_running to update step status from QUEUED to RUNNING."""
+async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_repo: Any, mock_compiler: Any) -> None:
+    """Verify step transitions to RUNNING on dispatch with one commit, and QUEUED is never emitted."""
     from backend_v2.models.state import TraceEvent
 
     step1 = StepRule(id="stp_5555666677778888", task_blueprint="bp_5555666677778888")
@@ -1765,25 +1738,22 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
         prompt_compiler=mock_compiler,
     )
 
-    observed_statuses: list[ExecutionStatus] = []
+    dispatch_step_status: list[ExecutionStatus] = []
+    committed_step_statuses: list[ExecutionStatus] = []
+
+    async def mock_commit_trace(**kwargs: Any) -> None:
+        if "step_states" in kwargs and "stp_5555666677778888" in kwargs["step_states"]:
+            committed_step_statuses.append(kwargs["step_states"]["stp_5555666677778888"].status)
 
     async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
-        if "running_event" in kwargs and kwargs["running_event"]:
-            kwargs["running_event"].set()
-            # Allow watcher task to run and commit
-            await asyncio.sleep(0.05)
-            # Record current status from commit_trace calls
-            for call in executor.committer.commit_trace.call_args_list:
-                if "step_states" in call.kwargs:
-                    step_states_arg = call.kwargs["step_states"]
-                    if "stp_5555666677778888" in step_states_arg:
-                        observed_statuses.append(step_states_arg["stp_5555666677778888"].status)
+        if len(committed_step_statuses) > 0:
+            dispatch_step_status.append(committed_step_statuses[-1])
         return [TraceEvent(step_name=step.id, event_type="output", content={"ok": True})]
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
-        patch.object(executor.committer, "commit_trace", new_callable=AsyncMock) as mock_commit,
+        patch.object(executor.committer, "commit_trace", side_effect=mock_commit_trace),
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
@@ -1792,8 +1762,16 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
 
-    # Watcher task should have set status to RUNNING during execution
-    assert ExecutionStatus.RUNNING in observed_statuses or mock_commit.call_count >= 2
+    # Step status committed prior to node execution was RUNNING
+    assert dispatch_step_status == [ExecutionStatus.RUNNING]
+    # QUEUED was never emitted for this step
+    assert ExecutionStatus.QUEUED not in committed_step_statuses
+    # Exactly one dispatch commit occurred before node execution, followed by step completion and workflow finalization
+    assert committed_step_statuses == [
+        ExecutionStatus.RUNNING,
+        ExecutionStatus.PASSED,
+        ExecutionStatus.PASSED,
+    ]
     assert record.step_states["stp_5555666677778888"].status == ExecutionStatus.PASSED
 
 
@@ -1928,7 +1906,6 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
             workflow_id="wf_7777888899990000",
             metadata=meta,
             projector=StateProjector(),
-            semaphore=asyncio.Semaphore(1),
             step_def=step_def,
             arq_pool=mock_pool,
         )

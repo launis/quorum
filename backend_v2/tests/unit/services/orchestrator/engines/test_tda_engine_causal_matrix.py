@@ -49,8 +49,6 @@ def base_engine_request(mock_compiler: MagicMock) -> EngineExecutionRequest:
         ),
         global_source_text="Test source text",
         target_locale="fi",
-        semaphore=None,
-        running_event=None,
         progress_callback=AsyncMock(),
         trace_callback=AsyncMock(),
         prompt_compiler=mock_compiler,

@@ -5,7 +5,6 @@ Provides the strict Pydantic V2 schemas for engine execution.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -61,7 +60,7 @@ class MatrixEvaluationContext(BaseModel):
 class EngineExecutionRequest(BaseModel):
     """Request DTO for execution engines.
 
-    Carries all required context, rules, and telemetry hooks for engine evaluation.
+    Carries all required context and rules for engine evaluation.
 
     Attributes:
         bound_client: The initialized LLM client.
@@ -72,8 +71,6 @@ class EngineExecutionRequest(BaseModel):
         context: Immutable strategy context.
         global_source_text: The full source document text.
         target_locale: The target locale for the evaluation.
-        semaphore: Concurrency limiter.
-        running_event: Cancellation trigger.
         progress_callback: Progress reporting callback.
         trace_callback: Live telemetry flush callback.
         prompt_compiler: The prompt compiler instance.
@@ -97,8 +94,6 @@ class EngineExecutionRequest(BaseModel):
     target_locale: Annotated[str | None, Field(default=None, description="The target locale for the evaluation.")] = (
         None
     )
-    semaphore: Annotated[asyncio.Semaphore | None, Field(default=None, description="Concurrency limiter.")] = None
-    running_event: Annotated[asyncio.Event | None, Field(default=None, description="Cancellation trigger.")] = None
     progress_callback: Annotated[
         Callable[[int, int], Awaitable[None]] | None, Field(default=None, description="Progress reporting callback.")
     ] = None
@@ -119,17 +114,6 @@ class EngineExecutionRequest(BaseModel):
     ] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
-
-    @property
-    def semaphore_cm(self) -> Any:
-        """Context manager safely wrapping nullable semaphore with nullcontext.
-
-        Returns:
-            The semaphore or a nullcontext context manager.
-        """
-        import contextlib
-
-        return self.semaphore if self.semaphore is not None else contextlib.nullcontext()
 
 
 class EngineExecutionResult(BaseModel):

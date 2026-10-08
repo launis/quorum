@@ -250,6 +250,7 @@ async def test_concurrency_fuzzer_peak_limit_stage_a(
 
 
 test_concurrency_fuzzer_peak_limit = test_concurrency_fuzzer_peak_limit_stage_a
+test_concurrency_fuzzer_peak_limit_stage_b = test_concurrency_fuzzer_peak_limit_stage_a
 
 
 @pytest.mark.asyncio
