@@ -17,7 +17,7 @@ import fitz
 import pytest
 import requests
 
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, ReportStatus
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +226,7 @@ async def test_real_llm_pdf_execution() -> None:
         logger.info("Requesting report generation via canonical reports endpoint...")
         create_report_res = requests.post(
             f"http://127.0.0.1:8000/api/v2/executions/{execution_id}/reports",
-            json={"output_profile_id": None},
+            json={"profile_id": "prf_5d6e7f8091a2b3c4"},
             headers=headers,
             timeout=30,
         )
@@ -249,13 +249,13 @@ async def test_real_llm_pdf_execution() -> None:
                 f"Failed to fetch report status: {status_res.status_code} - {status_res.text}"
             )
             current_status = status_res.json()["status"]
-            if current_status == "READY":
+            if current_status == ReportStatus.READY.value:
                 logger.info("Report generation completed successfully (READY).")
                 pdf_ready = True
                 break
-            elif current_status == "FAILED":
+            elif current_status == ReportStatus.FAILED.value:
                 pytest.fail(f"Report generation failed for report_id={report_id}: {status_res.text}")
-            elif current_status in ("PENDING", "GENERATING"):
+            elif current_status in (ReportStatus.PENDING.value, ReportStatus.GENERATING.value):
                 logger.info("Report generation in progress (%s)...", current_status)
             else:
                 logger.warning("Unexpected report status: %s", current_status)

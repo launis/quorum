@@ -75,25 +75,25 @@
 ### Phase 5: DTO Purification & Macro Orchestrator Simplification
 **Plan:** @[docs/epic/tasks_EPIC_155/05_phase5_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-  - [ ] Step 5.1: Purge Concurrency Primitives from EngineExecutionRequest
-  - [ ] Step 5.2: Harmonize EngineExecutionResult Status
-  - [ ] Step 5.3: Simplify DAGExecutor run_step_wrapper
-  - [ ] Step 5.4: Purge Semaphore Construction in DAGExecutor __init__
-  - [ ] Step 5.5: Purge Concurrency Arguments from Orchestrator Unit Tests
-  - [ ] Step 5.6: Harmonize fake_node_execute Fixtures
-  - [ ] Step 5.7: Rebase test_concurrency_fuzzer.py Stage B Test Suite
-- [ ] **[NOK] Test Coverage Assertions:** Verified 100% of Phase 5 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+  - [x] Step 5.1: Purify EngineExecutionRequest DTO
+  - [x] Step 5.2: Update Engine DTO Unit Tests
+  - [x] Step 5.3: Purify NodeExecutor & Simplify DAGExecutor
+  - [x] Step 5.4: Update DAG Executor Watcher Test
+  - [x] Step 5.5: Update DAG Executor Semaphore Tests
+  - [x] Step 5.6: Modernize AST Concurrency Guardrails
+  - [x] Step 5.7: Rebase Concurrency Fuzzer Stage B
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 5 test contracts, unit tests passing, zero AST violations, and clean backend audit loop (5,085 passed, 97.77% coverage).
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`
 
 ### Phase 6: Comprehensive Quality Gates & Regression Verification
 **Plan:** @[docs/epic/tasks_EPIC_155/06_phase6_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-  - [ ] Step 6.1: Verify Full Test Suite Zero Regressions
-  - [ ] Step 6.2: Run Stage A Concurrency Fuzzer Regression
-  - [ ] Step 6.3: Execute Backend Audit Loop with Strict AST
-- [ ] **[NOK] Test Coverage Assertions:** Verified 100% of Phase 6 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+  - [x] Step 6.1: Execute Global Quality Gate (Localized & Concurrency Fuzzer, Global Backend & Flutter Completion Gate)
+  - [x] Step 6.2: Execute Markdown Boundaries Audit (Reconcile AST Line Bounds in Epic)
+  - [x] Step 6.3: Execute Mandatory Live E2E Verification
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 6 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
 
 ### Phase 7: Knowledge Base & Architecture Synchronization
@@ -112,6 +112,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Execute audit loop for each modified production file:
   - [ ] @[backend_v2/models/dtos/context_variables.py]
   - [ ] @[backend_v2/models/dtos/node_execution.py]
+  - [ ] @[backend_v2/models/dtos/engine.py]
   - [ ] @[backend_v2/services/orchestrator/engines/base.py]
   - [ ] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
   - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
@@ -188,16 +189,16 @@
 | Harmonize LLM Node Strategy | strategies/llm.py | Phase 4, Step 4.3 | uv run pytest backend_v2/tests/unit/services/orchestrator/strategies/test_llm.py | [OK] |
 | Harmonize Node Executor Strategy Dispatch | dag_executor.py | Phase 4, Step 4.4 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [OK] |
 | Update Strategy Unit Tests | test_logic.py, test_llm.py, test_llm_cost_tracking.py | Phase 4, Step 4.5 | uv run pytest backend_v2/tests/unit/services/orchestrator/strategies/ -v | [OK] |
-| Purge Primitives from Request DTO | node_execution.py | Phase 5, Step 5.1 | uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/node_execution.py --test --ast-strict | [NOK] |
-| Harmonize EngineExecutionResult Status | base.py, engines | Phase 5, Step 5.2 | uv run pytest backend_v2/tests/unit/services/orchestrator/engines/ | [NOK] |
-| Simplify DAGExecutor run_step_wrapper | dag_executor.py | Phase 5, Step 5.3 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [NOK] |
-| Purge Semaphore Construction in DAGExecutor | dag_executor.py | Phase 5, Step 5.4 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [NOK] |
-| Purge Concurrency Arguments from Orchestrator Tests | test_dag_executor.py | Phase 5, Step 5.5 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [NOK] |
-| Harmonize fake_node_execute Fixtures | test_dag_executor.py | Phase 5, Step 5.6 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [NOK] |
-| Rebase test_concurrency_fuzzer Stage B | test_concurrency_fuzzer.py | Phase 5, Step 5.7 | uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -k "stage_b" | [NOK] |
-| Full Test Suite Zero Regressions | backend_v2/tests/ | Phase 6, Step 6.1 | uv run pytest backend_v2/tests/ -v | [NOK] |
-| Stage A Concurrency Fuzzer Regression | test_stage_a_concurrency_fuzzer.py | Phase 6, Step 6.2 | uv run pytest backend_v2/tests/integration/test_stage_a_concurrency_fuzzer.py -v | [NOK] |
-| Backend Audit Loop with Strict AST | backend_v2/ | Phase 6, Step 6.3 | uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict | [NOK] |
+| Purge Primitives from Request DTO | Purge semaphore and running_event primitives from EngineExecutionRequest DTO in engine.py | Phase 5, Step 5.1 | uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/engine.py --test --ast-strict | [OK] |
+| Harmonize Engine DTO Unit Tests | test_engine.py | Phase 5, Step 5.2 | uv run pytest backend_v2/tests/unit/models/dtos/test_engine.py | [OK] |
+| Purify NodeExecutor & Simplify DAGExecutor | dag_executor.py | Phase 5, Step 5.3 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [OK] |
+| Update DAG Executor Watcher Test | test_dag_executor.py | Phase 5, Step 5.4 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [OK] |
+| Update DAG Executor Semaphore Tests | test_dag_executor.py | Phase 5, Step 5.5 | uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py | [OK] |
+| Modernize AST Concurrency Guardrails | test_ast_concurrency_guardrails.py | Phase 5, Step 5.6 | uv run pytest backend_v2/tests/unit/test_ast_concurrency_guardrails.py | [OK] |
+| Rebase test_concurrency_fuzzer Stage B | test_concurrency_fuzzer.py | Phase 5, Step 5.7 | uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -k "stage_b" | [OK] |
+| Execute Global Quality Gate | backend_v2/, client_app_v2/, test_concurrency_fuzzer.py | Phase 6, Step 6.1 | uv run python scripts/backend_audit_loop.py backend_v2/ --test ; uv run python scripts/flutter_audit_loop.py client_app_v2/ --build ; uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -v | [OK] |
+| Execute Markdown Boundaries Audit | docs/epic/EPIC_155_Engine_Concurrency_Decoupling.md | Phase 6, Step 6.2 | uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_155_Engine_Concurrency_Decoupling.md | [OK] |
+| Execute Mandatory Live E2E Verification | backend_v2/tests/integration/test_integration_real_llm.py | Phase 6, Step 6.3 | $env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -v | [OK] |
 | Synchronize Knowledge Item Protocol | ki_execution_engine_protocol.md | Phase 7, Step 7.1 | Manual review and verification against physical codebase | [NOK] |
 | Synchronize Directory Reference | 04_directory_reference.md | Phase 7, Step 7.2 | Manual review and verification against physical codebase | [NOK] |
 | As-Built Architecture Documentation Sync | docs/architecture/ | Phase 7, Step 7.3 | /tier7-describe-architecture execution | [NOK] |
@@ -235,8 +236,34 @@
 - Passed full global completion gate: 5,078 tests passed, 0 failures, 97.76% total codebase coverage across 353 backend modules, and clean Flutter audit loop.
 - Executed Tier 8 Plan Audit for Phase 4 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_155/04_phase4_plan.md] @[docs/epic/EPIC_155_tracker.md]`): 100% mathematical pass, 0 orphan requirements, 0 destructive remnants, 4 negative test contracts verified.
 - Executed Tier 0 Research Plan for Phase 5 (`05_phase5_plan.md`): completed Five-Axis System 2 deconstruction, Panel of Experts audit, and Red-Teaming falsification. Verified physical AST boundaries and updated plan with 0 boundary audit findings. Added Step 5.7 to establish bidirectional parity with test_concurrency_fuzzer.py Stage B test suite.
+- Executed 100% of Phase 5 implementation steps:
+  * Purified `EngineExecutionRequest` DTO by deleting `semaphore`, `running_event`, `@property semaphore_cm`, and unused `import asyncio` in `backend_v2/models/dtos/engine.py`.
+  * Added positive and negative test contracts in `test_engine.py` verifying `EngineExecutionRequest` rejects `semaphore` and `running_event` kwargs with `ValidationError`.
+  * Purified `NodeExecutor.execute` signature in `dag_executor.py`, removing `semaphore` and `running_event`.
+  * Simplified `DAGExecutor`: removed top-level `semaphore = asyncio.Semaphore(...)`, eradicated `watcher_task = asyncio.create_task(watch_running())` and `watcher_task.cancel()`, and replaced the `QUEUED` two-commit transition with an atomic synchronous `RUNNING` transition upon step dispatch with exactly one commit.
+  * Refactored `test_dag_executor.py`: updated `fake_node_execute`, refactored watcher test to `test_dag_executor_synchronous_running_dispatch_transitions_step`, refactored semaphore hoist test to `test_dag_executor_pure_dispatch_without_semaphore`, and purged all dead semaphore parameters across test cases.
+  * Harmonized downstream engine test fixtures: purged obsolete `semaphore=None` and `running_event=None` kwargs from `test_prompt_engine.py`, `test_synthesis_engine.py`, `test_tda_engine.py`, and `test_tda_engine_causal_matrix.py`.
+  * Modernized `test_ast_concurrency_guardrails.py`: extended `ConcurrencyVisitor` with `found_event` tracking, asserted zero `semaphore` and zero `event` in 11 decoupled modules, asserted `res["semaphore"] is False` in `dag_executor.py`, and retained `res["semaphore"] is True` in `provider.py`.
+  * Rebased `test_concurrency_fuzzer.py` Stage B test alias asserting peak concurrency against provider SSOT across closed set [1, 2, 5, 10].
+- Passed full Phase 5 validation gate: 10/10 stages passed, 94% coverage on `dag_executor.py`, 100% on `engine.py`.
+- Executed Tier 8 Plan Audit for Phase 5 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`): 100% mathematical pass, 0 orphan requirements, 0 destructive remnants, E501 line length resolved, 67 focused tests and 5,085 global tests passing.
+- Executed Tier 0 Research Plan for Phase 6 (`06_phase6_plan.md`): completed Five-Axis System 2 deconstruction, Panel of Experts audit, and Red-Teaming falsification.
+- Harmonized 5-Column Directives Table and execution protocol across 5 architectural scopes with 100% Table-Protocol parity (MBD008).
+- Identified and categorized 142 MBD004 shifted line boundaries in `EPIC_155_Engine_Concurrency_Decoupling.md` resulting from Phases 1-5 deletions/additions, establishing explicit reconciliation directives in Step 6.2.
+- Verified test PDF fixtures exist in `docs/jwdatat/` and clarified live E2E real LLM test execution prerequisites ($env:RUN_LIVE_E2E="true").
+- Synchronized Requirements Traceability Matrix and Phase 6 status in `EPIC_155_tracker.md`.
+- Executed 100% of Phase 6 implementation steps:
+  * Stage 1 localized quality-loop passed cleanly on all 7 target modules with strict AST guardrails.
+  * Verified Stage A and Stage B concurrency fuzzer test suites (22/22 tests passed in 9.12s).
+  * Stage 2 global completion gate: 5,085 backend tests passed in 411.47s with 97.77% coverage across 85,923 statements; Flutter client audit loop passed with 0 errors.
+  * Reconciled all physical AST line boundaries in `EPIC_155_Engine_Concurrency_Decoupling.md`, achieving exit code 0 and 0 findings from `scripts/audit_markdown_boundaries.py`.
+  * Verified test fixtures and executed live real LLM end-to-end integration test (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -v`), passing end-to-end workflow execution, atom graph evaluation, report generation, and PDF download in 305.23s.
 
 ## Learned
+- **ReportStatus Lowercase Enum Contract**: `ReportStatus` uses lowercase string values (`pending`, `generating`, `ready`, `failed`). Client tests must compare against `ReportStatus.READY.value` rather than uppercase strings to prevent timeout loops.
+- **Markdown Boundary Drift Post-Refactoring**: As architectural refactoring eliminates dead code and adds strict typing across earlier phases, line spans of classes and functions naturally shift. Auditing markdown boundaries in Phase 6 provides an automated mechanism to reconcile documentation against physical AST reality before final epic completion.
+- **Live Real LLM E2E Bootstrap Independence**: `test_integration_real_llm.py` provides self-contained daemon lifecycle management (TcpFakeServer for Redis on port 6379, uvicorn FastAPI backend on port 8000, Arq run_worker), enabling deterministic end-to-end verification without external infrastructure dependencies.
+- **Table-Protocol Parity SSOT**: Rule MBD008 requires exact bidirectional parity between `@[path]` declarations in Column 1 of the Directives Table and actionable `<action>` tags within `<execution_protocol>`, preventing orphan directives and untracked scopes.
 - **Dead Import Elimination (Ruff F401)**: In `backend_v2/services/orchestrator/dag_executor.py`, removing `semaphore = asyncio.Semaphore(...)` renders `from backend_v2.settings import get_settings` at L66 unused. In `backend_v2/models/dtos/engine.py`, deleting `semaphore` and `running_event` renders `import asyncio` at L8 unused. Both must be removed during execution to satisfy strict AST and Ruff gates.
 - **DAG Executor Concurrency Isolation**: `DAGExecutor` already relies on LiteLLM provider semaphore pools for rate limiting. Removing `self.semaphore` and `running_event` eliminates 317 lines of dead synchronization code across `run_step_wrapper` and `__init__`, without altering topological sequencing or status emission.
 - **AST Boundaries Alignment**: Target class and method spans verified via AST audit: `NodeExecutor.execute` (`L189-L370`), `DAGExecutor` (`L373-L1349`), `run_step_wrapper` (`L750-L1067`), `test_ast_semaphore_guardrail` (`L80-L92`), `test_concurrency_fuzzer_peak_limit_stage_a` (`L217-L249`).
@@ -259,11 +286,17 @@
 - **Strategy Concurrency Decoupling**: In `base.py`, `logic.py`, and `llm.py`, `import asyncio` was used exclusively for `semaphore` and `running_event` in `execute` signatures. Removing these parameters and premature `running_event.set()` triggers enabled complete elimination of `import asyncio` without collateral effects.
 - **EngineExecutionRequest Defaults**: `EngineExecutionRequest` defines `semaphore: asyncio.Semaphore | None = None` and `running_event: asyncio.Event | None = None`. Omitting these arguments during `LLMNodeStrategy` construction seamlessly defaults them to `None` without triggering Pydantic validation errors ahead of Phase 5.
 - **NodeExecutor Caller Quarantine**: Retaining `semaphore` and `running_event` in `NodeExecutor.execute` while omitting them only when forwarding to `strategy_impl.execute` perfectly quarantines Phase 4 from `run_step_wrapper`, ensuring 100% intra-file caller stability until Phase 5.
+- **Global Settings Import Mandate**: `from backend_v2.settings import get_settings` at `dag_executor.py:66` must remain imported because it is consumed at line 892 inside `_run_step_wrapper` for transient retry configurations (`AsyncRetrying`). Removing it triggers Ruff F821 / NameError.
+- **Pydantic V2.11 Deprecation**: Accessing `.model_fields` on instances (`req.model_fields`) triggers `PydanticDeprecatedSince211`. Accessing `EngineExecutionRequest.model_fields` directly on the class resolves the warning cleanly without violating QGR001 (which bans `hasattr`/`getattr`).
+- **Commit Sequence Alignment**: In `test_dag_executor_synchronous_running_dispatch_transitions_step`, `committed_step_statuses` records 3 total commits: 1 for step dispatch (`RUNNING`), 1 for step completion (`PASSED`), and 1 for overall workflow completion (`PASSED`). The dispatch status snapshot asserted prior to node execution confirms exactly 1 dispatch commit occurred.
+- **Engine Test Fixture Harmonization**: Purifying `EngineExecutionRequest` with `ConfigDict(strict=True, extra="forbid")` requires purging `semaphore=None` and `running_event=None` from all downstream test fixtures (`test_prompt_engine.py`, `test_synthesis_engine.py`, `test_tda_engine.py`, `test_tda_engine_causal_matrix.py`), verifying strict schema enforcement.
 
 ## Remaining
-- Execute Phase 5 through Phase 7 sequentially.
+- Execute Phase 6 Tier 8 Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`.
+- Execute Phase 7 (Knowledge Base & Architecture Synchronization): `/tier0-research-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`.
+- Post-Implementation Gates: `/tier2-hardening-backend`, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier2-execute @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]
 ```
