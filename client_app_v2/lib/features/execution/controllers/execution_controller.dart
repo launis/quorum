@@ -150,45 +150,6 @@ class ExecutionController extends _$ExecutionController {
     }
   }
 
-  /// Extracts the heavy blueprint JSON and deserializes it off-thread.
-  Future<void> _performHeavyFetch(String executionId) async {
-    try {
-      final client = ref.read(executionClientProvider);
-      final reportData = await client.renderExecution(executionId);
-
-      // Guard: Provider may have been disposed during the network call
-      if (!ref.mounted) return;
-
-      if (state.hasValue && state.value != null) {
-        ExecutionRecord merged = state.value!.copyWith(reportData: reportData);
-
-        // DEFENSIVE MERGE (Tier 4 Bugfix): If we successfully downloaded and parsed
-        // the final Heavy payload, the execution is mathematically guaranteed to be
-        // passed (otherwise /render would have returned 202 Pending or 400).
-        if (merged.status.toLowerCase() !=
-            ExecutionStatus.failed.name.toLowerCase()) {
-          merged = merged.copyWith(
-            status: ExecutionStatus.passed.name.toUpperCase(),
-          );
-        }
-
-        state = AsyncValue.data(merged);
-      }
-    } catch (e, stack) {
-      // Guard: Don't try to log via ref if provider is disposed
-      if (!ref.mounted) return;
-      ref
-          .read(loggerServiceProvider)
-          .warning(
-            'ExecutionController',
-            'HEAVY_FETCH_FAILED: Failed to download heavy payload',
-            e,
-            stack,
-          );
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
   void _connectToStream(String executionId) {
     _sseSubscription?.cancel();
     final sseClient = ref.read(sseClientProvider);
@@ -199,7 +160,6 @@ class ExecutionController extends _$ExecutionController {
           (update) {
             _retryCount = 0;
             final currentState = state.value;
-            bool needsHeavyFetch = false;
 
             // Phase 2 Step 2.1 & 2.2: SSE Error Defense
             final hasExplicitErrorCode =
@@ -268,35 +228,7 @@ class ExecutionController extends _$ExecutionController {
               return;
             }
 
-            if (currentState != null) {
-              // Preserve heavy fetched properties that SSE payload dropped
-              if (currentState.reportData != null &&
-                  newRecord.reportData == null) {
-                newRecord = newRecord.copyWith(
-                  reportData: currentState.reportData,
-                );
-              }
-
-              // Detect completion
-              final oldStatus = currentState.status.toLowerCase();
-              final newStatus = newRecord.status.toLowerCase();
-              if (newStatus == ExecutionStatus.passed.name.toLowerCase() &&
-                  oldStatus != ExecutionStatus.passed.name.toLowerCase()) {
-                needsHeavyFetch = true;
-              }
-            } else {
-              // Bootstrapping initial stream state
-              final newStatus = newRecord.status.toLowerCase();
-              if (newStatus == ExecutionStatus.passed.name.toLowerCase()) {
-                needsHeavyFetch = true;
-              }
-            }
-
             state = AsyncValue.data(newRecord);
-
-            if (needsHeavyFetch) {
-              _performHeavyFetch(executionId);
-            }
 
             final status = newRecord.status.toLowerCase();
             if (status == ExecutionStatus.passed.name.toLowerCase() ||

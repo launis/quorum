@@ -36,8 +36,8 @@ def test_worker_settings_functions_registered() -> None:
     registered_fn_names = [f.__name__ for f in WorkerSettings.functions]
     assert "execute_workflow_job" in registered_fn_names
     assert "generate_report_artifact_job" in registered_fn_names
-    assert "render_profile_job" in registered_fn_names
-    assert "generate_pdf_job" in registered_fn_names
+    assert "render_profile_job" not in registered_fn_names
+    assert "generate_pdf_job" not in registered_fn_names
 
 
 def test_run_worker_imports_worker_settings() -> None:

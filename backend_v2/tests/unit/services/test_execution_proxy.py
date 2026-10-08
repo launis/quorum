@@ -1,4 +1,4 @@
-"""Unit tests for execution service proxy module verifying PEP 484 re-exports."""
+import importlib.util
 
 import backend_v2.services.execution as exec_pkg
 from backend_v2.services.execution import (
@@ -15,7 +15,6 @@ def test_execution_pkg_exports_all_symbols() -> None:
         "ExecutionContextService",
         "ExecutionCreate",
         "ExecutionIngressService",
-        "ExecutionLegacyRenderService",
         "ExecutionLifecycleService",
         "ExecutionOverrideService",
         "ExecutionRecord",
@@ -33,6 +32,7 @@ def test_execution_pkg_exports_all_symbols() -> None:
     banned_borrowed_symbols = [
         "BlueprintTransformer",
         "DocumentExtractionService",
+        "ExecutionLegacyRenderService",
         "ExportService",
         "FlatFileService",
         "OutputProfile",
@@ -46,6 +46,9 @@ def test_execution_pkg_exports_all_symbols() -> None:
     ]
     for banned in banned_borrowed_symbols:
         assert banned not in exec_pkg.__all__
+
+    assert importlib.util.find_spec("backend_v2.services.execution.legacy_render_service") is None
+    assert importlib.util.find_spec("backend_v2.models.dtos.render") is None
 
 
 def test_execution_service_facade_instantiation() -> None:

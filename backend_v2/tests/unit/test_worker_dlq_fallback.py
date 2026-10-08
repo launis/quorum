@@ -1,31 +1,30 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import ServiceUnavailableError
-from backend_v2.workers import render_profile_job
+from backend_v2.workers import generate_report_artifact_job
 
 
 @pytest.mark.asyncio
-async def test_render_profile_job_catches_service_unavailable_error() -> None:
-    """Test that render_profile_job catches ServiceUnavailableError (e.g. from 429 RateLimitError)
+async def test_generate_report_artifact_job_catches_service_unavailable_error() -> None:
+    """Test that generate_report_artifact_job catches ServiceUnavailableError (e.g. from 429 RateLimitError)
     and returns a DLQ dictionary as mandated by dlq_arq_fallback_routing,
     instead of bubbling the exception up and crashing the Arq worker.
     """
     ctx = {"redis": AsyncMock()}
-    execution_id = "exe_123"
-    accept_language = "fi"
-    profile_id = "prof_456"
+    report_id = "rep_1234567890abcdef"
 
-    with patch(
-        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock
-    ) as mock_generate:
-        # Simulate the TaskGroup crash from Vertex AI rate limits
-        mock_generate.side_effect = ServiceUnavailableError("Model provider rate limit exceeded")
+    mock_service = MagicMock()
+    mock_service.process_artifact_compilation = AsyncMock(
+        side_effect=ServiceUnavailableError("Model provider rate limit exceeded")
+    )
 
-        # Call the Arq job
-        result = await render_profile_job(ctx, execution_id, accept_language, profile_id)
+    with (
+        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
+        patch("backend_v2.workers.report_worker.report_service_mod.ReportService", return_value=mock_service),
+    ):
+        result = await generate_report_artifact_job(ctx, report_id)
 
-        # According to rule dlq_arq_fallback_routing, it MUST yield/return {"_dlq_status": "FAILED/DLQ"}
         assert type(result) is dict
         assert result["_dlq_status"] == "FAILED/DLQ"

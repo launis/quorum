@@ -101,36 +101,6 @@ void main() {
     });
 
     test(
-      'renderExecution returns ReportDataDto when server completes synthesis',
-      () async {
-        final sduiJson = {
-          'execution_id': testExecutionId,
-          'workflow_id': testWorkflowId,
-          'profile_id': 'prf_default',
-        };
-
-        when(
-          () => mockDio.get(
-            '/execution/executions/$testExecutionId/render',
-            queryParameters: any(named: 'queryParameters'),
-          ),
-        ).thenAnswer(
-          (_) async => Response(
-            requestOptions: RequestOptions(
-              path: '/execution/executions/$testExecutionId/render',
-            ),
-            data: sduiJson,
-            statusCode: 200,
-          ),
-        );
-
-        final result = await client.renderExecution(testExecutionId);
-        expect(result.executionId, equals(testExecutionId));
-        expect(result.profileId, equals('prf_default'));
-      },
-    );
-
-    test(
       'overrideAtom patches override endpoint and returns GenericStatusResponseDto',
       () async {
         final overrideResponseJson = {

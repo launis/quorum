@@ -1,37 +1,30 @@
 """Execution API Routers.
 
 Provides the endpoints for managing asynchronous workflow executions,
-including starting, resuming, tracking, and rendering results.
+including starting, resuming, and tracking execution lifecycle.
 """
 
 from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Query, Request, status
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi import APIRouter, status
+from fastapi.responses import Response, StreamingResponse
 
 from backend_v2.api.dependencies import (
     ArqPoolDep,
     CurrentUserDep,
     DocumentExtractionServiceDep,
     ExecutionServiceDep,
-    ReportServiceDep,
 )
 from backend_v2.api.routers.execution.reports import execution_reports_subrouter
 from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
     ExecutionCreate,
     ExecutionRecord,
-    JobAcceptedDTO,
 )
 from backend_v2.models.dtos.base import GenericStatusResponseDTO
-from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
-from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
-from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import ReportStatus
-from backend_v2.models.view.sdui import ReportView
 
 __all__ = ["router"]
 
@@ -215,229 +208,6 @@ async def download_frozen_context(
     )
 
 
-@router.get("/{execution_id}/export")
-async def download_execution_export(
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-) -> Response:
-    """Download the forensic execution export as an Excel file.
-
-    Args:
-        execution_id: The unique identifier of the execution.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
-
-    Returns:
-        A Response containing the Excel file.
-
-    Raises:
-        AppException: If the file is not found or permission is denied.
-    """
-    content, filename = await execution_service.get_execution_export_bytes(
-        initiator=current_user, execution_id=execution_id
-    )
-    return Response(
-        content=content,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
-
-
-@router.get("/{execution_id}/report", response_model=ReportDataDTO)
-async def get_execution_report(
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-) -> ReportDataDTO:
-    """Get the clean, UI-agnostic ReportDataDto for machine integrations (B2B Headless).
-
-    Args:
-        execution_id: The unique identifier of the execution.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
-
-    Returns:
-        The headless ReportDataDTO.
-
-    Raises:
-        AppException: If execution is not found or permission is denied.
-    """
-    return await execution_service.get_report_dto(initiator=current_user, execution_id=execution_id)
-
-
-@router.get("/{execution_id}/sdui", response_model=ReportView)
-async def get_execution_sdui(
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-) -> ReportView:
-    """Get the Server-Driven UI component tree for rendering.
-
-    Args:
-        execution_id: The unique identifier of the execution.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
-
-    Returns:
-        The SDUI ReportView dictionary.
-
-    Raises:
-        AppException: If execution is not found or permission is denied.
-    """
-    return await execution_service.get_sdui_view(initiator=current_user, execution_id=execution_id)
-
-
-@router.get("/{execution_id}/render")
-async def render_execution(
-    request: Request,
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-    report_service: ReportServiceDep,
-    arq_pool: ArqPoolDep,
-    format: str = Query("json", description="Output format: json, pdf, or flat"),
-    profile_id: str | None = Query(None, description="The output profile to render"),
-    custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
-    local_time_str: str | None = Query(None, description="Localized time string"),
-) -> Response:
-    """Omni-channel render endpoint for an execution.
-
-    Args:
-        request: The FastAPI request object.
-        execution_id: The unique identifier of the execution.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
-        report_service: The report domain service for transparent pre-compiled artifact resolution.
-        arq_pool: The Arq Redis connection pool.
-        format: The desired output format (e.g., json, pdf, flat).
-        profile_id: The identifier of the output profile to use.
-        custom_preface_md: Optional custom preface content in Markdown.
-        local_time_str: Optional localized time string for rendering.
-
-    Returns:
-        A Response object appropriately typed based on the format requested.
-
-    Raises:
-        AppException: If rendering fails, format is unsupported, or permission denied.
-    """
-    accept_language = request.headers.get("accept-language")
-
-    # Transparent resolution: check if a pre-compiled ReportArtifact is ready
-    existing_reports = await report_service.list_reports_for_execution(execution_id)
-    matching_report: ReportArtifactSummaryDTO | None = None
-    for r in existing_reports:
-        if r.status == ReportStatus.READY:
-            if profile_id is not None and r.profile_id == profile_id:
-                matching_report = r
-                break
-            elif profile_id is None:
-                matching_report = r
-                break
-
-    if matching_report is not None and custom_preface_md is None:
-        fmt = format.lower()
-        if fmt == "pdf":
-            pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
-            return Response(
-                content=pdf_bytes,
-                media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-            )
-        elif fmt == "json":
-            sdui_dto = await report_service.get_report_sdui(matching_report.id)
-            return JSONResponse(content=sdui_dto.model_dump(mode="json"))
-        elif fmt == "excel":
-            excel_bytes, report_filename = await report_service.get_report_excel_bytes(matching_report.id)
-            return Response(
-                content=excel_bytes,
-                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-            )
-        elif fmt == "csv":
-            csv_bytes, report_filename = await report_service.get_report_csv_bytes(matching_report.id)
-            return Response(
-                content=csv_bytes,
-                media_type="text/csv",
-                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-            )
-
-    render_res = await execution_service.render_execution(
-        initiator=current_user,
-        execution_id=execution_id,
-        format_type=format,
-        profile_id=profile_id,
-        accept_language=accept_language,
-        arq_pool=arq_pool,
-        custom_preface_md=custom_preface_md,
-        local_time_str=local_time_str,
-    )
-
-    headers = {}
-    if render_res.filename:
-        headers["Content-Disposition"] = f'attachment; filename="{render_res.filename}"'
-
-    match render_res.content:
-        case JobAcceptedDTO() as job_dto:
-            return JSONResponse(content=job_dto.model_dump(mode="json"), status_code=status.HTTP_202_ACCEPTED)
-        case ReportDataDTO() as rep_dto:
-            return JSONResponse(content=rep_dto.model_dump(mode="json"))
-        case FlatExecutionRecordDTO() as flat_rec:
-            return JSONResponse(content=flat_rec.model_dump(mode="json"))
-        case bytes() as byte_content:
-            return Response(content=byte_content, media_type=render_res.media_type, headers=headers)
-        case str() as str_content:
-            return Response(content=str_content, media_type=render_res.media_type, headers=headers)
-
-
-@router.post("/{execution_id}/render_pdf", response_model=JobAcceptedDTO, status_code=status.HTTP_202_ACCEPTED)
-async def generate_pdf_async(
-    request: Request,
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-    arq_pool: ArqPoolDep,
-    profile_id: str | None = Query(None),
-    custom_preface_md: str | None = Query(None, description="Custom preface markdown"),
-    local_time_str: str | None = Query(None, description="Localized time string"),
-) -> JobAcceptedDTO:
-    """Omni-channel render endpoint for asynchronous PDF Generation via BackgroundWorker.
-
-    Args:
-        request: The FastAPI request object.
-        execution_id: The unique identifier of the execution.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
-        arq_pool: The Arq Redis connection pool.
-        profile_id: The identifier of the output profile.
-        custom_preface_md: Optional custom preface content in Markdown.
-        local_time_str: Optional localized time string.
-
-    Returns:
-        A JobAcceptedDTO indicating the PDF generation has been queued.
-
-    Raises:
-        AppException: If queuing fails or permission is denied.
-    """
-    accept_language = request.headers.get("accept-language")
-    if profile_id is not None:
-        prof_id = profile_id
-    else:
-        prof_id = "default"
-
-    await execution_service.enqueue_pdf_generation(
-        initiator=current_user,
-        execution_id=execution_id,
-        accept_language=accept_language,
-        profile_id=prof_id,
-        arq_pool=arq_pool,
-        custom_preface_md=custom_preface_md,
-        local_time_str=local_time_str,
-    )
-
-    return JobAcceptedDTO(status="Accepted", message="PDF Generation queued", execution_id=execution_id)
-
-
 @router.delete("/{execution_id}/profiles/{profile_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_profile_synthesis(
     execution_id: str,
@@ -446,8 +216,6 @@ async def delete_profile_synthesis(
     execution_service: ExecutionServiceDep,
 ) -> None:
     """Clears the cached synthesis state for a specific profile.
-
-    This forces the next render request to dispatch On-Demand Rendering.
 
     Args:
         execution_id: The unique identifier of the execution.

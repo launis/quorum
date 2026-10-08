@@ -68,7 +68,7 @@ class ResidualDebtCeilingsDTO(V2CoreBase):
 # Configured baseline ceilings (EPIC 157 Phase 13 final lock)
 CURRENT_RESIDUAL_CEILINGS = ResidualDebtCeilingsDTO(
     d=0,
-    f=51,
+    f=44,
     k=0,
     x=0,
     n=0,

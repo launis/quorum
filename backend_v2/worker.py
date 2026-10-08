@@ -28,9 +28,7 @@ from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightS
 from backend_v2.settings import get_settings
 from backend_v2.workers import (
     execute_workflow_job,
-    generate_pdf_job,
     generate_report_artifact_job,
-    render_profile_job,
 )
 
 __all__ = [
@@ -116,8 +114,6 @@ class WorkerSettings:
     functions: Sequence[WorkerCoroutine | Function] = (
         health_check,
         execute_workflow_job,
-        generate_pdf_job,
-        render_profile_job,
         generate_report_artifact_job,
     )
     cron_jobs: Sequence[Any] | None = None

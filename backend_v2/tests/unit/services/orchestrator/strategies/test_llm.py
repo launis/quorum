@@ -2783,9 +2783,7 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         context_variables=ContextVariablesDTO(
-            global_atom_blackboard=GlobalAtomBlackboard(
-                atoms_by_input={"doc_gvar": DraftAtomList(atoms=[])}
-            )
+            global_atom_blackboard=GlobalAtomBlackboard(atoms_by_input={"doc_gvar": DraftAtomList(atoms=[])})
         ),
     )
     context_meta = llm_strategy._extract_step_context_metadata(hook_state, context)
@@ -2975,7 +2973,7 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
         patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2990,4 +2988,3 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
         )
 
     assert result is not None
-

@@ -5,7 +5,6 @@ import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:client_app/features/execution/models/execution_summary_snapshot.dart';
 import 'package:client_app/features/execution/models/frozen_context_snapshot.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -15,7 +14,6 @@ part 'execution_record.g.dart';
 String _statusFromJson(String status) => status.toUpperCase();
 
 /// Represents the status and metadata of an execution.
-/// Contains strictly typed fields and an explicit reference to the [ReportDataDto].
 @Freezed(equal: false)
 abstract class ExecutionRecord with _$ExecutionRecord {
   const ExecutionRecord._();
@@ -69,11 +67,6 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'completed_at') String? completedAt,
     @JsonKey(name: 'created_by') String? createdBy,
     @JsonKey(name: 'organization_id') String? organizationId,
-
-    /// The strictly typed DTO containing the presentation flat data.
-    /// Replaces the legacy `results` Map.
-    @JsonKey(includeFromJson: false, includeToJson: false)
-    ReportDataDto? reportData,
   }) = _ExecutionRecord;
 
   /// Instantiates a strictly typed [ExecutionRecord] from raw JSON.

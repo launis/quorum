@@ -18,15 +18,12 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import get_current_user_from_header, get_execution_service
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
-    ReportView,
     SduiQuoteCard,
     SduiWarningCard,
 )
@@ -296,47 +293,6 @@ class TestPhase3SduiModels:
 
 
 # ===========================================================================
-
-
-class TestPhase3SduiEndpoint:
-    """Phase 3.7: GET /{execution_id}/sdui returns SDUI ReportView."""
-
-    def test_sdui_returns_200_with_view_shape(self, override_dependencies: Any, mock_execution_service: Any) -> None:
-        """SDUI endpoint returns a ReportView structure."""
-        client = TestClient(app)
-        mock_view = ReportView(
-            view_id="exe_test_sdui",
-            title="SDUI Report",
-            status_theme=VisualIntent.SUCCESS,
-            inner_sdui_blocks=[],
-            metrics=None,
-            system_notification=None,
-            references=[],
-        )
-        mock_execution_service.get_sdui_view.return_value = mock_view
-
-        response = client.get("/api/v2/execution/executions/exe_test_sdui/sdui")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["view_id"] == "exe_test_sdui"
-        assert "inner_sdui_blocks" in data
-        assert "title" in data
-
-    def test_sdui_endpoint_delegates_to_service(self, override_dependencies: Any, mock_execution_service: Any) -> None:
-        """Anemic router pattern: endpoint delegates to service, no logic."""
-        client = TestClient(app)
-        mock_execution_service.get_sdui_view.return_value = ReportView(
-            view_id="x",
-            title="T",
-            status_theme=VisualIntent.SUCCESS,
-            inner_sdui_blocks=[],
-            metrics=None,
-            system_notification=None,
-            references=[],
-        )
-        client.get("/api/v2/execution/executions/some_id/sdui")
-        mock_execution_service.get_sdui_view.assert_called_once()
 
 
 # ===========================================================================

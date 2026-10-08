@@ -223,32 +223,56 @@ async def test_real_llm_pdf_execution() -> None:
 
         assert completed, f"Execution {execution_id} timed out after {WAIT_TIMEOUT} seconds."
 
-        logger.info("Requesting PDF rendering via omni-channel render endpoint...")
+        logger.info("Requesting report generation via canonical reports endpoint...")
+        create_report_res = requests.post(
+            f"http://127.0.0.1:8000/api/v2/executions/{execution_id}/reports",
+            json={"output_profile_id": None},
+            headers=headers,
+            timeout=30,
+        )
+        assert create_report_res.status_code == 202, (
+            f"Failed to create report: {create_report_res.status_code} - {create_report_res.text}"
+        )
+        report_data = create_report_res.json()
+        report_id = report_data["id"]
+        logger.info("Report creation accepted, report_id=%s. Polling for READY status...", report_id)
+
         render_start = time.time()
         pdf_ready = False
         while time.time() - render_start < 120:
-            render_res = requests.get(
-                f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}/render?format=pdf",
+            status_res = requests.get(
+                f"http://127.0.0.1:8000/api/v2/reports/{report_id}",
                 headers=headers,
                 timeout=30,
             )
-            if render_res.status_code == 200 and render_res.headers.get("content-type") == "application/pdf":
-                logger.info("PDF rendering completed successfully via render endpoint.")
+            assert status_res.status_code == 200, (
+                f"Failed to fetch report status: {status_res.status_code} - {status_res.text}"
+            )
+            current_status = status_res.json()["status"]
+            if current_status == "READY":
+                logger.info("Report generation completed successfully (READY).")
                 pdf_ready = True
                 break
-            elif render_res.status_code == 202:
-                logger.info("PDF rendering in progress (202 Accepted)...")
+            elif current_status == "FAILED":
+                pytest.fail(f"Report generation failed for report_id={report_id}: {status_res.text}")
+            elif current_status in ("PENDING", "GENERATING"):
+                logger.info("Report generation in progress (%s)...", current_status)
             else:
-                logger.warning("Unexpected render response: %s - %s", render_res.status_code, render_res.text)
+                logger.warning("Unexpected report status: %s", current_status)
             time.sleep(3)
 
-        assert pdf_ready, f"PDF rendering timed out for {execution_id}"
+        assert pdf_ready, f"Report generation timed out for {report_id}"
 
-        logger.info("Verifying generated PDF for SDUI parity...")
-        pdf_path = os.path.join(WORKSPACE_ROOT, "data", "files", "executions", execution_id, "report.pdf")
-        assert os.path.exists(pdf_path), f"PDF report not found at {pdf_path}"
+        logger.info("Verifying generated PDF via canonical reports PDF endpoint...")
+        pdf_res = requests.get(
+            f"http://127.0.0.1:8000/api/v2/reports/{report_id}/pdf",
+            headers=headers,
+            timeout=30,
+        )
+        assert pdf_res.status_code == 200, f"Failed to download PDF: {pdf_res.status_code} - {pdf_res.text}"
+        assert pdf_res.headers["content-type"] == "application/pdf"
 
-        doc = fitz.open(pdf_path)
+        doc = fitz.open(stream=pdf_res.content, filetype="pdf")
         full_text = ""
         for page in doc:
             full_text += page.get_text()

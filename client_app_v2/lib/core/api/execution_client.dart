@@ -1,12 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_client.g.dart';
@@ -51,45 +48,6 @@ class ExecutionClient {
   Future<ExecutionRecord> getExecutionStatus(String executionId) async {
     final response = await _dio.get('/execution/executions/$executionId');
     return ExecutionRecord.fromJson(response.data);
-  }
-
-  /// Retrieves the dynamically assembled SDUI render blueprint for an execution.
-  ///
-  /// Automatically polls when synthesis is pending (HTTP 202).
-  Future<ReportDataDto> renderExecution(
-    String executionId, {
-    String lang = 'fi',
-    String variant = 'default',
-    void Function(String? message)? onProgress,
-  }) async {
-    int attempts = 0;
-    final maxAttempts = SystemConcurrency.pollingMaxAttempts.value;
-
-    while (true) {
-      final response = await _dio.get(
-        '/execution/executions/$executionId/render',
-        queryParameters: {'lang': lang, 'profile_id': variant},
-      );
-
-      final data = response.data;
-      if (response.statusCode == 202 ||
-          (data is Map &&
-              data['status']?.toString().toLowerCase() == 'pending')) {
-        final msg = data is Map ? data['message'] as String? : null;
-        onProgress?.call(msg);
-
-        attempts++;
-        if (attempts >= maxAttempts) {
-          throw AppException.network(
-            'Timeout waiting for synthesis to complete.',
-          ).copyWith(extensions: const {'error_code': 'UPSTREAM_TIMEOUT'});
-        }
-        await Future.delayed(const Duration(seconds: 2));
-        continue;
-      }
-
-      return ReportDataDto.fromJson(data);
-    }
   }
 
   /// Manually overrides an atom's score and logic.

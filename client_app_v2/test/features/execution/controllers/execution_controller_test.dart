@@ -8,7 +8,6 @@ import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 class MockExecutionClient implements ExecutionClient {
@@ -32,28 +31,6 @@ class MockExecutionClient implements ExecutionClient {
       targetLocale: 'fi',
       status: 'RUNNING',
     );
-  }
-
-  @override
-  Future<ReportDataDto> renderExecution(
-    String executionId, {
-    String lang = 'fi',
-    String variant = 'default',
-    void Function(String? message)? onProgress,
-  }) async {
-    return ReportDataDto.fromJson({
-      'execution_id': executionId,
-      'workflow_id': 'test_wf',
-      'profile_id': 'prof_123',
-      'global_metrics': <String, dynamic>{
-        'total_atoms': 5,
-        'evaluated': 5,
-        'short_circuited_na': 0,
-        'duration_ms': 100,
-      },
-      'results': <dynamic>[],
-      'hydrated_references': <String, dynamic>{},
-    });
   }
 
   @override
@@ -185,7 +162,7 @@ void main() {
 
       await controller.startExecution('test_wf', {});
 
-      // Wait for the stream update and heavy fetch
+      // Wait for the stream update to complete
       await Future.delayed(const Duration(milliseconds: 200));
 
       final state = container.read(executionControllerProvider);
@@ -197,7 +174,6 @@ void main() {
       // Wait, state.value is an ExecutionRecord.
       expect(state.value?.id, 'test_exec');
       expect(state.value?.status, 'PASSED');
-      expect(state.value?.reportData != null, true);
 
       sub.close();
     },

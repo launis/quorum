@@ -20,9 +20,6 @@ from backend_v2.services.execution.ingress_service import (
 from backend_v2.services.execution.ingress_service import (
     create_execution_record as create_execution_record,
 )
-from backend_v2.services.execution.legacy_render_service import (
-    ExecutionLegacyRenderService as ExecutionLegacyRenderService,
-)
 from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService as ExecutionLifecycleService
 from backend_v2.services.execution.override_service import ExecutionOverrideService as ExecutionOverrideService
 from backend_v2.services.execution.resumption_service import (
@@ -34,7 +31,6 @@ __all__ = [
     "ExecutionContextService",
     "ExecutionCreate",
     "ExecutionIngressService",
-    "ExecutionLegacyRenderService",
     "ExecutionLifecycleService",
     "ExecutionOverrideService",
     "ExecutionRecord",

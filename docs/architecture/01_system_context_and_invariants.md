@@ -86,7 +86,7 @@ Report artifacts provide enterprise-grade tabular row delivery via `ReportRowIte
 #### SRP & CQRS Decomposition of Workers and Services
 Monolithic worker and execution structures are decomposed into Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) subpackages:
 - **Workers Subpackage:** Separates execution workers (heavy DAG execution) from report workers (synthesis and presentation artifact compilation), while the worker daemon entrypoint serves exclusively as the pure Arq daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`).
-- **Execution Services Subpackage:** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`, `legacy_render_service.py`) unified by a sovereign `ExecutionService` facade, with external service bridges decoupled and purged from the package entrypoint.
+- **Execution Services Subpackage:** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade, with external service bridges decoupled and purged from the package entrypoint.
 - **Dedicated Export & Report Services:** `ReportService` manages full report artifact lifecycle and CRUD operations, while `ExportService` compiles multi-tab Excel and flat-file data anchored directly to backend `I18nText` SSOT.
 
 ### 2.16. Evidence Extraction Invariants, Provenance Sovereignty, & Anti-Pattern Falsification

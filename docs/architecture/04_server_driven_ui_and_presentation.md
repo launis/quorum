@@ -71,7 +71,7 @@ The assembly sequence of SDUI blocks is 100% database-driven via `OutputProfile.
 - **Comprehensive Lifecycle Operations**: Creates, retrieves, lists, regenerates, and deletes report artifacts. Artifacts compile and persist pre-rendered SDUI JSON, vector PDF documents, multi-tab Excel files, and flat-file CSVs.
 - **Idempotent Ingress Guard**: Simultaneous requests to generate identical reports for the same execution and profile return HTTP 409 Conflict, preventing duplicate background worker storms.
 - **Cascade Deletion**: Deleting an execution run triggers synchronous cascade deletion of all associated report records and physical disk storage blobs.
-- **Public REST API**: Exposed at `/api/v2/executions/{execution_id}/reports/` with granular format streaming endpoints (`/sdui`, `/pdf`, `/excel`, `/csv`, `/rows`).
+- **Public REST API**: Report artifacts are created via `POST /api/v2/executions/{execution_id}/reports` and listed at `GET /api/v2/executions/{execution_id}/reports`. Individual report status, lifecycle management, and format streaming endpoints (`/sdui`, `/pdf`, `/excel`, `/csv`, `/rows`) are served canonically at `/api/v2/reports/{report_id}/...`.
 
 #### Dedicated Tabular & Multi-Format Export Service (`ExportService`)
 `ExportService` assembles structured tabular exports for corporate ingestion and audit compliance:

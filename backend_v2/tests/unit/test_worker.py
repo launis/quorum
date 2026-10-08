@@ -20,7 +20,7 @@ from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
-    test_render_profile_job_catches_service_unavailable_error,
+    test_generate_report_artifact_job_catches_service_unavailable_error,
 )
 from backend_v2.tests.unit.test_worker_synthesis import (
     test_worker_extracts_synthesis_from_trace,
@@ -44,14 +44,11 @@ from backend_v2.worker import (
 from backend_v2.workers import (
     VarianceExplanationResult,
     execute_workflow_job,
-    generate_pdf_job,
-    generate_pdf_task,
     generate_profile_synthesis_and_pdf_task,
-    render_profile_job,
 )
 
 __all__ = [
-    "test_render_profile_job_catches_service_unavailable_error",
+    "test_generate_report_artifact_job_catches_service_unavailable_error",
     "test_worker_extracts_synthesis_from_trace",
     "test_worker_synthesis_disabled_layout_omits_section_instruction",
     "test_worker_synthesis_empty_sections_not_set_in_cache",
@@ -173,8 +170,9 @@ def test_worker_settings() -> None:
     """Verify WorkerSettings contains mandatory configuration and registered functions."""
     assert health_check in WorkerSettings.functions
     assert execute_workflow_job in WorkerSettings.functions
-    assert generate_pdf_job in WorkerSettings.functions
-    assert render_profile_job in WorkerSettings.functions
+    registered_names = {f.__name__ for f in WorkerSettings.functions}
+    assert "generate_pdf_job" not in registered_names
+    assert "render_profile_job" not in registered_names
     assert WorkerSettings.on_startup == startup
     assert WorkerSettings.on_shutdown == shutdown
 
@@ -488,161 +486,6 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     updated_rec = await mock_repo.get_execution("exe_1234567890123456")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_job_success() -> None:
-    """Verify generate_pdf_job calls task and returns success string."""
-    with patch("backend_v2.workers.report_worker.generate_pdf_task", new_callable=AsyncMock) as mock_task:
-        res = await generate_pdf_job({}, "exe_1234567890123456", "en-US", "prof_1111222233334444")
-        assert res == "PDF Generated for exe_1234567890123456"
-        mock_task.assert_called_once_with("exe_1234567890123456", "en-US", "prof_1111222233334444")
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_job_cancelled() -> None:
-    """Negative test: verify generate_pdf_job returns DLQ dictionary on cancellation."""
-    with patch("backend_v2.workers.report_worker.generate_pdf_task", side_effect=asyncio.CancelledError):
-        res = await generate_pdf_job({}, "exe_1234567890123456")
-        assert res == {"_dlq_status": "FAILED/DLQ"}
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_job_exception() -> None:
-    """Negative test: verify generate_pdf_job catches generic exception and routes to DLQ."""
-    with patch("backend_v2.workers.report_worker.generate_pdf_task", side_effect=RuntimeError("PDF engine crash")):
-        res = await generate_pdf_job({}, "exe_1234567890123456")
-        assert res == {"_dlq_status": "FAILED/DLQ"}
-
-
-@pytest.mark.asyncio
-async def test_render_profile_job_success() -> None:
-    """Verify render_profile_job calls generate_profile_synthesis_and_pdf_task and returns success string."""
-    with patch(
-        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock
-    ) as mock_task:
-        ctx = {"redis": AsyncMock()}
-        res = await render_profile_job(ctx, "exe_1234567890123456", "en-US", "prof_1111222233334444")
-        assert res == "Render Job Completed for exe_1234567890123456"
-        mock_task.assert_called_once_with("exe_1234567890123456", "en-US", "prof_1111222233334444", ctx["redis"])
-
-
-@pytest.mark.asyncio
-async def test_render_profile_job_cancelled() -> None:
-    """Negative test: verify render_profile_job handles cancellation gracefully with DLQ."""
-    with patch(
-        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=asyncio.CancelledError
-    ):
-        res = await render_profile_job({}, "exe_1234567890123456")
-        assert res == {"_dlq_status": "FAILED/DLQ"}
-
-
-@pytest.mark.asyncio
-async def test_render_profile_job_exception() -> None:
-    """Negative test: verify render_profile_job routes generic exception to DLQ."""
-    with patch(
-        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task",
-        side_effect=ValueError("Invalid profile"),
-    ):
-        res = await render_profile_job({}, "exe_1234567890123456")
-        assert res == {"_dlq_status": "FAILED/DLQ"}
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_task_execution_not_found() -> None:
-    """Verify generate_pdf_task skips processing when execution does not exist in repo."""
-    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await generate_pdf_task("exe_1234567890123456")
-            assert (await mock_repo.get_execution("exe_1234567890123456")) is None
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_task_success_path() -> None:
-    """Verify generate_pdf_task happy path: builds DTO, creates PDF, saves to storage, updates execution."""
-    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="fi",
-                    metadata=ExecutionMetadata(),
-                    steps=[
-                        ExecutionStep(
-                            id="sys_render_prof_1111222233334444", label="Rendering", status=ExecutionStatus.RUNNING
-                        )
-                    ],
-                    step_states={
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": ExecutionStatus.RUNNING,
-                        }
-                    },
-                )
-            )
-
-            mock_artifact = MagicMock()
-            mock_artifact.id = "rep_1234567890123456"
-
-            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
-                mock_service = AsyncMock()
-                mock_service_class.return_value = mock_service
-                mock_service.get_or_create_default_artifact.return_value = mock_artifact
-
-                await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
-                mock_service.get_or_create_default_artifact.assert_called_once_with(
-                    execution_id="exe_1234567890123456",
-                    profile_id="prof_1111222233334444",
-                    locale=None,
-                )
-                mock_service.process_artifact_compilation.assert_called_once_with(mock_artifact.id)
-
-
-@pytest.mark.asyncio
-async def test_generate_pdf_task_exception_handling() -> None:
-    """Negative test: verify generate_pdf_task catches failure and updates execution status to FAILED."""
-    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="en",
-                    metadata=ExecutionMetadata(),
-                    steps=[
-                        ExecutionStep(
-                            id="sys_render_prof_1111222233334444", label="Rendering", status=ExecutionStatus.RUNNING
-                        )
-                    ],
-                    step_states={
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": ExecutionStatus.RUNNING,
-                        }
-                    },
-                )
-            )
-
-            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
-                mock_service = AsyncMock()
-                mock_service_class.return_value = mock_service
-                mock_service.get_or_create_default_artifact.side_effect = RuntimeError("Transformer error")
-                with pytest.raises(RuntimeError):
-                    await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
-                assert mock_repo.get_call_count("update_execution") >= 1
-                rec = await mock_repo.get_execution("exe_1234567890123456")
-                assert rec is not None
-                assert rec.step_states["sys_render_prof_1111222233334444"].status == ExecutionStatus.FAILED
 
 
 @pytest.mark.asyncio
@@ -1007,7 +850,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
 
 @pytest.mark.asyncio
 async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
-    """Verify execute_workflow_job enqueues render_profile_job and updates status to RUNNING when redis is present."""
+    """Verify execute_workflow_job completes without enqueuing background render jobs and marks execution PASSED."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_workflow(
         Workflow.model_validate(
@@ -1285,44 +1128,6 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
 
 
 @pytest.mark.asyncio
-async def test_generate_pdf_task_app_exception_handling() -> None:
-    """Negative test: verify generate_pdf_task catches AppException and re-raises with execution update."""
-    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
-        mock_repo = InMemoryUnifiedWorkflowRepository()
-        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await mock_repo.save_execution(
-                ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
-                    status=ExecutionStatus.RUNNING,
-                    target_locale="en",
-                    metadata=ExecutionMetadata(),
-                    step_states={
-                        "sys_render_prof_1": {
-                            "id": "sys_render_prof_1",
-                            "label": "Rendering",
-                            "status": ExecutionStatus.RUNNING,
-                        }
-                    },
-                )
-            )
-
-            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
-                mock_service = AsyncMock()
-                mock_service_class.return_value = mock_service
-                mock_service.get_or_create_default_artifact.side_effect = AppException(
-                    message="Blueprint render error",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
-                )
-
-                with pytest.raises(AppException):
-                    await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
-                assert mock_repo.get_call_count("update_execution") >= 1
-
-
-@pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
     mock_worker_report_service: MagicMock,
 ) -> None:
@@ -1505,7 +1310,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
-    """Verify render_profile_job recovers DAG telemetry from blob if dag_cost_usd is 0."""
+    """Verify synthesis task recovers DAG telemetry from blob if dag_cost_usd is 0."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_workflow(
         Workflow.model_validate(
@@ -1605,23 +1410,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     assert updated_exec.cached_tokens == 50
     assert updated_exec.reasoning_tokens == 20
     assert updated_exec.cost_estimate >= 0.15
-
-
-@pytest.mark.asyncio
-async def test_job_wrappers_call_tasks() -> None:
-    """Verify render_profile_job and generate_pdf_job invoke underlying tasks."""
-    with (
-        patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", AsyncMock()) as mock_synth,
-        patch("backend_v2.workers.report_worker.generate_pdf_task", AsyncMock()) as mock_pdf,
-    ):
-        ctx = {"redis": None}
-        r1 = await render_profile_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
-        assert "Completed" in str(r1)
-        mock_synth.assert_called_once_with("exe_123", "fi", "prof_1", None)
-
-        r2 = await generate_pdf_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
-        assert "PDF Generated" in str(r2)
-        mock_pdf.assert_called_once_with("exe_123", "fi", "prof_1")
 
 
 @pytest.mark.asyncio

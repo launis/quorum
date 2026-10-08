@@ -13,7 +13,6 @@ enum SystemConcurrency {
   llmDefaultTimeoutSeconds(120),
 
   // Frontend specific overrides
-  pollingMaxAttempts(300), // 10 minutes max for Riverpod report polling
   dashboardRefreshRateSeconds(10),
   sseTimeoutSeconds(600),
   rehydrationDelayMs(500);

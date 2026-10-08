@@ -10,11 +10,8 @@ from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputsIngress
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
-from backend_v2.models.dtos.render import RenderExecutionResultDTO
-from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.execution.facade import ExecutionService, create_execution_record
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
@@ -46,7 +43,6 @@ def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
         "override": MagicMock(),
         "stream": MagicMock(),
         "context": MagicMock(),
-        "renderer": MagicMock(),
     }
 
     service._lifecycle = subservices["lifecycle"]
@@ -55,7 +51,6 @@ def mock_execution_service() -> tuple[ExecutionService, dict[str, MagicMock]]:
     service._override = subservices["override"]
     service._stream = subservices["stream"]
     service._context = subservices["context"]
-    service._renderer = subservices["renderer"]
 
     return service, subservices
 
@@ -68,7 +63,6 @@ def test_execution_service_init_with_defaults() -> None:
     assert service.exec_repo is exec_repo
     assert service.workflow_repo is workflow_repo
     assert service.comp_repo is None
-    assert service.export_service is not None
     assert service.storage is not None
     assert callable(create_execution_record)
 
@@ -77,7 +71,6 @@ def test_execution_service_init_with_custom_deps() -> None:
     """Verify ExecutionService initializes correctly with custom injected dependencies."""
     exec_repo = InMemoryExecutionRepository()
     workflow_repo = InMemoryWorkflowRepository()
-    custom_export = MagicMock()
     custom_storage = MagicMock()
     custom_usage = MagicMock()
     custom_executor = MagicMock()
@@ -87,10 +80,8 @@ def test_execution_service_init_with_custom_deps() -> None:
         workflow_repo=workflow_repo,
         usage_service=custom_usage,
         executor=custom_executor,
-        export_service=custom_export,
         storage_driver=custom_storage,
     )
-    assert service.export_service is custom_export
     assert service.storage is custom_storage
     assert service.usage_service is custom_usage
     assert service.executor is custom_executor
@@ -265,94 +256,3 @@ async def test_get_frozen_context_bytes(
     result = await service.get_frozen_context_bytes(initiator, "exe_123")
     assert result == expected
     subs["context"].get_frozen_context_bytes.assert_awaited_once_with(initiator, "exe_123")
-
-
-@pytest.mark.asyncio
-async def test_get_execution_export_bytes(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]], initiator: TokenData
-) -> None:
-    """Verify get_execution_export_bytes delegates to _renderer.get_execution_export_bytes."""
-    service, subs = mock_execution_service
-    expected = (b"excel_bytes", "report.xlsx")
-    subs["renderer"].get_execution_export_bytes = AsyncMock(return_value=expected)
-
-    result = await service.get_execution_export_bytes(initiator, "exe_123")
-    assert result == expected
-    subs["renderer"].get_execution_export_bytes.assert_awaited_once_with(initiator, "exe_123")
-
-
-@pytest.mark.asyncio
-async def test_render_execution(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]], initiator: TokenData
-) -> None:
-    """Verify render_execution delegates to _renderer.render_execution."""
-    service, subs = mock_execution_service
-    expected = MagicMock(spec=RenderExecutionResultDTO)
-    subs["renderer"].render_execution = AsyncMock(return_value=expected)
-
-    arq_pool = AsyncMock()
-    result = await service.render_execution(
-        initiator=initiator,
-        execution_id="exe_123",
-        format_type="sdui",
-        profile_id="prf_123",
-        accept_language="fi",
-        arq_pool=arq_pool,
-        custom_preface_md="# Preface",
-        local_time_str="2026-09-21 12:00",
-    )
-    assert result == expected
-    subs["renderer"].render_execution.assert_awaited_once_with(
-        initiator, "exe_123", "sdui", "prf_123", "fi", arq_pool, "# Preface", "2026-09-21 12:00"
-    )
-
-
-@pytest.mark.asyncio
-async def test_get_report_dto(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]], initiator: TokenData
-) -> None:
-    """Verify get_report_dto delegates to _renderer.get_report_dto."""
-    service, subs = mock_execution_service
-    expected = MagicMock(spec=ReportDataDTO)
-    subs["renderer"].get_report_dto = AsyncMock(return_value=expected)
-
-    result = await service.get_report_dto(initiator, "exe_123")
-    assert result == expected
-    subs["renderer"].get_report_dto.assert_awaited_once_with(initiator, "exe_123")
-
-
-@pytest.mark.asyncio
-async def test_get_sdui_view(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]], initiator: TokenData
-) -> None:
-    """Verify get_sdui_view delegates to _renderer.get_sdui_view."""
-    service, subs = mock_execution_service
-    expected = MagicMock(spec=ReportView)
-    subs["renderer"].get_sdui_view = AsyncMock(return_value=expected)
-
-    result = await service.get_sdui_view(initiator, "exe_123")
-    assert result == expected
-    subs["renderer"].get_sdui_view.assert_awaited_once_with(initiator, "exe_123")
-
-
-@pytest.mark.asyncio
-async def test_enqueue_pdf_generation(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]], initiator: TokenData
-) -> None:
-    """Verify enqueue_pdf_generation delegates to _renderer.enqueue_pdf_generation."""
-    service, subs = mock_execution_service
-    subs["renderer"].enqueue_pdf_generation = AsyncMock()
-
-    arq_pool = AsyncMock()
-    await service.enqueue_pdf_generation(
-        initiator=initiator,
-        execution_id="exe_123",
-        accept_language="en",
-        profile_id="prf_123",
-        arq_pool=arq_pool,
-        custom_preface_md="# Preface",
-        local_time_str="2026-09-21 12:00",
-    )
-    subs["renderer"].enqueue_pdf_generation.assert_awaited_once_with(
-        initiator, "exe_123", "en", "prf_123", arq_pool, "# Preface", "2026-09-21 12:00"
-    )
