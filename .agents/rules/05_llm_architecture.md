@@ -31,7 +31,7 @@ trigger: always_on
     </rule_block>
 
     <rule_block id="system_concurrency_ssot">
-        <mandate>NEVER hardcode parallel task limits or share the same Semaphore instance recursively. All global limits MUST reference `settings.py` SSOT. Enforce Two-Tier Semaphore Architecture: Macro-level workers use a dedicated Job Semaphore (`settings.max_concurrent_jobs`), while `LLMClient` natively manages its own isolated Request Semaphore (`settings.max_concurrent_llm_steps`).</mandate>
+        <mandate>NEVER hardcode parallel task limits or share the same Semaphore instance recursively. All global limits MUST reference `settings.py` SSOT. Enforce Two-Tier Concurrency Architecture: Macro-level workflow concurrency is governed in the Arq worker daemon by `settings.max_concurrent_workflows`, micro-level LLM request concurrency is dynamically managed within `LiteLLMProvider` using its internal dynamic semaphore pool (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`), Phase 2 parallel synthesis fan-out is governed by `settings.max_concurrent_llm_steps`, and `ExecutionEngine` implementations operate as 100% pure computational pipelines with zero semaphore or event dependencies.</mandate>
     </rule_block>
 
     <rule_block id="native_language_system_prompts">

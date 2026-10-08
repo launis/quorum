@@ -94,16 +94,16 @@
   - [x] Step 6.2: Execute Markdown Boundaries Audit (Reconcile AST Line Bounds in Epic)
   - [x] Step 6.3: Execute Mandatory Live E2E Verification
 - [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 6 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`
 
 ### Phase 7: Knowledge Base & Architecture Synchronization
 **Plan:** @[docs/epic/tasks_EPIC_155/07_phase7_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`
-  - [ ] Step 7.1: Synchronize Knowledge Item Execution Engine Protocol
-  - [ ] Step 7.2: Synchronize Directory Reference
-  - [ ] Step 7.3: As-Built Architecture Documentation Synchronization
-- [ ] **[NOK] Test Coverage Assertions:** Verified 100% of Phase 7 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`
+  - [x] Step 7.1: Synchronize Knowledge Item Execution Engine Protocol
+  - [x] Step 7.2: Synchronize Directory Reference
+  - [x] Step 7.3: As-Built Architecture Documentation Synchronization
+- [x] **[OK] Test Coverage Assertions:** Verified 100% of Phase 7 test contracts, unit tests passing, zero AST violations, and clean backend audit loop.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`
 
 ---
@@ -199,9 +199,9 @@
 | Execute Global Quality Gate | backend_v2/, client_app_v2/, test_concurrency_fuzzer.py | Phase 6, Step 6.1 | uv run python scripts/backend_audit_loop.py backend_v2/ --test ; uv run python scripts/flutter_audit_loop.py client_app_v2/ --build ; uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -v | [OK] |
 | Execute Markdown Boundaries Audit | docs/epic/EPIC_155_Engine_Concurrency_Decoupling.md | Phase 6, Step 6.2 | uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_155_Engine_Concurrency_Decoupling.md | [OK] |
 | Execute Mandatory Live E2E Verification | backend_v2/tests/integration/test_integration_real_llm.py | Phase 6, Step 6.3 | $env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -v | [OK] |
-| Synchronize Knowledge Item Protocol | ki_execution_engine_protocol.md | Phase 7, Step 7.1 | Manual review and verification against physical codebase | [NOK] |
-| Synchronize Directory Reference | 04_directory_reference.md | Phase 7, Step 7.2 | Manual review and verification against physical codebase | [NOK] |
-| As-Built Architecture Documentation Sync | docs/architecture/ | Phase 7, Step 7.3 | /tier7-describe-architecture execution | [NOK] |
+| Synchronize Knowledge Item Protocol | ki_execution_engine_protocol.md | Phase 7, Step 7.1 | Manual review and verification against physical codebase | [OK] |
+| Synchronize Directory Reference | 04_directory_reference.md | Phase 7, Step 7.2 | Manual review and verification against physical codebase | [OK] |
+| As-Built Architecture Documentation Sync | docs/architecture/ | Phase 7, Step 7.3 | /tier7-describe-architecture execution | [OK] |
 
 ---
 
@@ -248,55 +248,35 @@
 - Passed full Phase 5 validation gate: 10/10 stages passed, 94% coverage on `dag_executor.py`, 100% on `engine.py`.
 - Executed Tier 8 Plan Audit for Phase 5 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_155/05_phase5_plan.md] @[docs/epic/EPIC_155_tracker.md]`): 100% mathematical pass, 0 orphan requirements, 0 destructive remnants, E501 line length resolved, 67 focused tests and 5,085 global tests passing.
 - Executed Tier 0 Research Plan for Phase 6 (`06_phase6_plan.md`): completed Five-Axis System 2 deconstruction, Panel of Experts audit, and Red-Teaming falsification.
-- Harmonized 5-Column Directives Table and execution protocol across 5 architectural scopes with 100% Table-Protocol parity (MBD008).
-- Identified and categorized 142 MBD004 shifted line boundaries in `EPIC_155_Engine_Concurrency_Decoupling.md` resulting from Phases 1-5 deletions/additions, establishing explicit reconciliation directives in Step 6.2.
-- Verified test PDF fixtures exist in `docs/jwdatat/` and clarified live E2E real LLM test execution prerequisites ($env:RUN_LIVE_E2E="true").
-- Synchronized Requirements Traceability Matrix and Phase 6 status in `EPIC_155_tracker.md`.
 - Executed 100% of Phase 6 implementation steps:
   * Stage 1 localized quality-loop passed cleanly on all 7 target modules with strict AST guardrails.
   * Verified Stage A and Stage B concurrency fuzzer test suites (22/22 tests passed in 9.12s).
   * Stage 2 global completion gate: 5,085 backend tests passed in 411.47s with 97.77% coverage across 85,923 statements; Flutter client audit loop passed with 0 errors.
   * Reconciled all physical AST line boundaries in `EPIC_155_Engine_Concurrency_Decoupling.md`, achieving exit code 0 and 0 findings from `scripts/audit_markdown_boundaries.py`.
   * Verified test fixtures and executed live real LLM end-to-end integration test (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -v`), passing end-to-end workflow execution, atom graph evaluation, report generation, and PDF download in 305.23s.
+- Executed Tier 8 Plan Audit for Phase 6 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`): 100% mathematical pass, 0 orphan requirements, 0 destructive remnants, 142 markdown boundaries reconciled, 22 fuzzer/guardrail tests passing, 146 localized tests passing (95% coverage), Flutter client build passing with 0 analyzer issues.
+- Executed Tier 0 Research Plan for Phase 7 (`07_phase7_plan.md`): completed Five-Axis System 2 deconstruction, Panel of Experts audit, and Red-Teaming falsification.
+- Executed 100% of Phase 7 implementation steps:
+  * Synchronized `ki_execution_engine_protocol.md` and `metadata.json`: codified Pure Compute Engine Law for execution engines (`PromptEngine`, `SynthesisEngine`, `TDAEngine`) and sub-executors (`TwoPassAtomizer`, `EnrichedDagExecutor`, `SlidingWindowLinker`), purged deprecated semaphore and `running_event` mandates.
+  * Synchronized `ki_python_314_concurrency_strictness.md` and `metadata.json`: codified Two-Tier Concurrency Architecture SSOT (macro Arq worker limits via `max_concurrent_workflows`, micro provider throttling via `LiteLLMProvider` dynamic semaphore pool, synthesis fan-out via `max_concurrent_llm_steps`).
+  * Updated `.agents/rules/04_directory_reference.md`: resolved ambiguous phrasing (MBD001), registered decoupled pure compute engines, strategies, and pure DTO contracts (`models/dtos/engine.py`), passing boundary audit with 0 findings.
+  * Updated architecture pillar manifests (`docs/architecture/03_cognitive_orchestration_engine.md` and `docs/architecture/05_resilience_and_observability.md`) in timeless present tense with zero historical stage names.
+  * Updated `system_concurrency_ssot` rule block in `.agents/rules/01-python-backend.md` and `.agents/rules/05_llm_architecture.md` with explicit user approval.
+  * Verified 100% of Phase 7 test contracts (boundary audits on `04_directory_reference.md` and `07_phase7_plan.md`, 6 AST concurrency guardrail tests, 4 system concurrency compliance tests all passing with 0 errors).
 
 ## Learned
-- **ReportStatus Lowercase Enum Contract**: `ReportStatus` uses lowercase string values (`pending`, `generating`, `ready`, `failed`). Client tests must compare against `ReportStatus.READY.value` rather than uppercase strings to prevent timeout loops.
-- **Markdown Boundary Drift Post-Refactoring**: As architectural refactoring eliminates dead code and adds strict typing across earlier phases, line spans of classes and functions naturally shift. Auditing markdown boundaries in Phase 6 provides an automated mechanism to reconcile documentation against physical AST reality before final epic completion.
-- **Live Real LLM E2E Bootstrap Independence**: `test_integration_real_llm.py` provides self-contained daemon lifecycle management (TcpFakeServer for Redis on port 6379, uvicorn FastAPI backend on port 8000, Arq run_worker), enabling deterministic end-to-end verification without external infrastructure dependencies.
-- **Table-Protocol Parity SSOT**: Rule MBD008 requires exact bidirectional parity between `@[path]` declarations in Column 1 of the Directives Table and actionable `<action>` tags within `<execution_protocol>`, preventing orphan directives and untracked scopes.
-- **Dead Import Elimination (Ruff F401)**: In `backend_v2/services/orchestrator/dag_executor.py`, removing `semaphore = asyncio.Semaphore(...)` renders `from backend_v2.settings import get_settings` at L66 unused. In `backend_v2/models/dtos/engine.py`, deleting `semaphore` and `running_event` renders `import asyncio` at L8 unused. Both must be removed during execution to satisfy strict AST and Ruff gates.
-- **DAG Executor Concurrency Isolation**: `DAGExecutor` already relies on LiteLLM provider semaphore pools for rate limiting. Removing `self.semaphore` and `running_event` eliminates 317 lines of dead synchronization code across `run_step_wrapper` and `__init__`, without altering topological sequencing or status emission.
-- **AST Boundaries Alignment**: Target class and method spans verified via AST audit: `NodeExecutor.execute` (`L189-L370`), `DAGExecutor` (`L373-L1349`), `run_step_wrapper` (`L750-L1067`), `test_ast_semaphore_guardrail` (`L80-L92`), `test_concurrency_fuzzer_peak_limit_stage_a` (`L217-L249`).
-- **Error Masking Root Cause**: In `SynthesisEngine.execute`, generic `ValueError` at L159 and L215 was previously caught by the catch-all `except Exception` block and converted to `SYNTHESIS_ENGINE_ERROR`, masking validation failures and bypassing RFC 7807 dual-reporting. Replacing with structured `AppException(ErrorCodes.VALIDATION_FAILED)` ensures exact error code dispatch.
-- **AliasEngine Consumption**: `from backend_v2.utils.alias_engine import AliasEngine` at L29 of `synthesis_engine.py` is consumed at L235 (`alias_engine = AliasEngine()`) and must be strictly preserved to prevent `NameError` / Ruff F821.
-- **ContextVariablesDTO SSOT**: `ContextVariablesDTO` uses `AliasChoices` for `__GLOBAL_ATOM_BLACKBOARD__` and `__MATRIX_REDUCER_OUTPUT__` at ingress, rendering downstream dictionary subscript fallbacks (`if blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in ctx:`) completely redundant anti-patterns.
-- **AST Guardrail Anchoring**: Using `assert filepath.exists()` anchored to `Path(__file__).resolve().parents[2]` in `test_ast_concurrency_guardrails.py` permanently eliminates vacuous passes caused by cwd mismatches.
-- **AST Guardrail QGR016**: Banned inline ternary expressions (`x if cond else y`) in domain code; explicit `if/else` statements must be used in Python domain modules.
-- **Engine Protocol Auditing**: `backend_audit_loop.py` requires a matching `test_base.py` test suite for `base.py` to assert protocol runtime checkability and achieve 100% coverage on protocol declarations.
-- **Engine AST Spans Evolution**: Purifying `PromptEngine`, `SynthesisEngine`, and `TDAEngine` evolved exact ClassDef spans (`PromptEngine` -> `L19-L72`, `SynthesisEngine` -> `L37-L296`, `TDAEngine` -> `L35-L234`), validated by `scripts/audit_markdown_boundaries.py`.
-- **Dual Telemetry Redundancy**: `LLMNodeStrategy.execute()` already sets `running_event.set()` at L245 prior to engine dispatch. Removing redundant `request.running_event.set()` in leaf engines does not break the DAG watcher loop, setting the foundation for single-transition status dispatch in Phase 5.
-- **Dynamic Semaphore Decoupling**: Concurrency throttling is cleanly delegated to `LiteLLMProvider` dynamic semaphore pool. Stage A upper bound proof demonstrates peak concurrency never exceeds configured semaphore limits across [1, 2, 5, 10] partitions.
-- **Pytest Module Basename Isolation**: Pytest default prepend import mode collides if two test files share identical basenames across subtrees (specifically `repositories/test_base.py` and `engines/test_base.py`). Running with `-o import_mode=importlib` or configuring `--import-mode=importlib` isolates module namespaces.
-- **Contract Freeze Grounding**: Planning artifacts must never invent speculative return types (specifically `list[OntologyNode]` or `list[FlattenedAtom]`); they must strictly preserve physical SSOT types (`tuple[GlobalOntologyMap, TokenUsage]`, `tuple[list[ExtractedAtom], TokenUsage]`, `tuple[dict[str, AtomExecutionState], TokenUsage]`).
-- **SlidingWindowLinker Sequential Purity**: `SlidingWindowLinker` processes sliding windows sequentially in a standard loop; acquiring an internal semaphore created on-the-fly (`sem = asyncio.Semaphore(...)`) was pure dead locking overhead. Purging it renders `import asyncio` at L9 completely dead.
-- **Helper Coupling Atomicity**: `_extract_drafts_from_chunk_with_retry` takes 8 positional arguments in `test_dag_executor_dlq_routing.py`. Removing `sem` from production helpers without synchronously updating `test_dag_executor_dlq_routing.py` in the same commit immediately causes test breakage.
-- **Negative Kwarg Tests & Census T**: Using `# type: ignore[call-arg]` in test files triggers Census T (`type-ignore tokens ceiling`), which has a strict zero ceiling. Passing unexpected test kwargs via unpacked dictionaries (`**{"semaphore": dummy_sem}`) satisfies both Python runtime `TypeError` assertion and `mypy --strict` without requiring `# type: ignore` comments.
-- **QGR012 Duck-Typing Gate in Tests**: Asserting `assert isinstance(result, dict)` in test functions triggers fatal AST guardrail QGR012 (banned duck-typing). Direct assertion against value (`assert result == {}`) preserves strict typed validation without AST violations.
-- **Global Gate Completion Parity**: The full backend completion gate runs 5,070 tests across 353 modules in under 10 minutes with 97.76% coverage, mathematically verifying zero regression across all decoupled sub-executors.
-- **Strategy Concurrency Decoupling**: In `base.py`, `logic.py`, and `llm.py`, `import asyncio` was used exclusively for `semaphore` and `running_event` in `execute` signatures. Removing these parameters and premature `running_event.set()` triggers enabled complete elimination of `import asyncio` without collateral effects.
-- **EngineExecutionRequest Defaults**: `EngineExecutionRequest` defines `semaphore: asyncio.Semaphore | None = None` and `running_event: asyncio.Event | None = None`. Omitting these arguments during `LLMNodeStrategy` construction seamlessly defaults them to `None` without triggering Pydantic validation errors ahead of Phase 5.
-- **NodeExecutor Caller Quarantine**: Retaining `semaphore` and `running_event` in `NodeExecutor.execute` while omitting them only when forwarding to `strategy_impl.execute` perfectly quarantines Phase 4 from `run_step_wrapper`, ensuring 100% intra-file caller stability until Phase 5.
-- **Global Settings Import Mandate**: `from backend_v2.settings import get_settings` at `dag_executor.py:66` must remain imported because it is consumed at line 892 inside `_run_step_wrapper` for transient retry configurations (`AsyncRetrying`). Removing it triggers Ruff F821 / NameError.
-- **Pydantic V2.11 Deprecation**: Accessing `.model_fields` on instances (`req.model_fields`) triggers `PydanticDeprecatedSince211`. Accessing `EngineExecutionRequest.model_fields` directly on the class resolves the warning cleanly without violating QGR001 (which bans `hasattr`/`getattr`).
-- **Commit Sequence Alignment**: In `test_dag_executor_synchronous_running_dispatch_transitions_step`, `committed_step_statuses` records 3 total commits: 1 for step dispatch (`RUNNING`), 1 for step completion (`PASSED`), and 1 for overall workflow completion (`PASSED`). The dispatch status snapshot asserted prior to node execution confirms exactly 1 dispatch commit occurred.
-- **Engine Test Fixture Harmonization**: Purifying `EngineExecutionRequest` with `ConfigDict(strict=True, extra="forbid")` requires purging `semaphore=None` and `running_event=None` from all downstream test fixtures (`test_prompt_engine.py`, `test_synthesis_engine.py`, `test_tda_engine.py`, `test_tda_engine_causal_matrix.py`), verifying strict schema enforcement.
+- **Pure Compute Engine Invariant**: `ExecutionEngine` implementations and sub-executors are 100% pure computational pipelines with zero semaphore or event dependencies.
+- **Two-Tier Concurrency Architecture SSOT**: Macro workflow concurrency is managed by Arq (`max_concurrent_workflows`), micro request throttling is managed by `LiteLLMProvider`, and Phase 2 synthesis fan-out is bounded by `max_concurrent_llm_steps`.
+- **MBD001 Ambiguous Language Elimination**: In `.agents/rules/04_directory_reference.md`, replacing open-ended words (specifically `e.g.` and `such as`) with programmatic `specifically` ensures 100% compliance with `audit_markdown_boundaries.py` (MBD001).
+- **Rule Governance via ask_question**: Explicit user approval for modifying primary AI directives (`.agents/rules/01-python-backend.md`, `.agents/rules/05_llm_architecture.md`) is safely acquired through `ask_question`, respecting the catastrophic ban on drive-by rule mutations.
 
 ## Remaining
-- Execute Phase 6 Tier 8 Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]`.
-- Execute Phase 7 (Knowledge Base & Architecture Synchronization): `/tier0-research-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`.
+- Execute Tier 8 Plan Audit for Phase 7: `/tier8-audit-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]`.
 - Post-Implementation Gates: `/tier2-hardening-backend`, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_155/06_phase6_plan.md] @[docs/epic/EPIC_155_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_155/07_phase7_plan.md] @[docs/epic/EPIC_155_tracker.md]
 ```
+
+

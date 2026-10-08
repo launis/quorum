@@ -335,7 +335,7 @@
     </rule_block>
 
     <rule_block id="system_concurrency_ssot">
-        <mandate>Parallel async LLM steps MUST use `asyncio.TaskGroup` constrained by `asyncio.Semaphore(SystemConcurrency.MAX_CONCURRENT_LLM_STEPS)`.</mandate>
+        <mandate>All execution concurrency MUST strictly reference `settings.py` SSOT across decoupled boundaries: macro-level workflow jobs are governed in the Arq worker daemon by `settings.max_concurrent_workflows`, micro-level LLM request concurrency is governed dynamically within `LiteLLMProvider` (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`), Phase 2 parallel synthesis fan-out is governed by `settings.max_concurrent_llm_steps`, and `ExecutionEngine` implementations operate as 100% pure computational pipelines with zero semaphore or event dependencies.</mandate>
     </rule_block>
 
     <rule_block id="strict_physical_anchoring_mandate">

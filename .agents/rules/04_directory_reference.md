@@ -7,15 +7,15 @@
 
 <catastrophic_system_bans>
     <rule_block id="backend_router_vs_service_separation">
-        <mandate>NEVER write business logic, Pydantic data transformations, database querying, or LLM orchestration directly inside `api/routers/`. FastAPI routers MUST ONLY contain HTTP parsing, payload validation mapping, and immediate delegation to `services/` (e.g. `studio.py`, `execution.py`).</mandate>
+        <mandate>NEVER write business logic, Pydantic data transformations, database querying, or LLM orchestration directly inside `api/routers/`. FastAPI routers MUST ONLY contain HTTP parsing, payload validation mapping, and immediate delegation to `services/` (specifically `studio.py`, `execution.py`).</mandate>
     </rule_block>
 
     <rule_block id="strict_model_location">
-        <mandate>NEVER define Pydantic classes or local Enums organically inside service files/routers, or re-create monolithic legacy facades (such as eradicated `v2_core.py`, permanently banned under QGR017). ALL SSOT data structures MUST be placed in `backend_v2/models/`: pure business models in `domain/` (raw dicts from DB hydrated in Service layer, NO ORM shapes), API payloads in `dtos/`, and static LLM instructions in `prompts/`.</mandate>
+        <mandate>NEVER define Pydantic classes or local Enums organically inside service files/routers, or re-create monolithic legacy facades (specifically eradicated `v2_core.py`, permanently banned under QGR017). ALL SSOT data structures MUST be placed in `backend_v2/models/`: pure business models in `domain/` (raw dicts from DB hydrated in Service layer, NO ORM shapes), API payloads in `dtos/`, and static LLM instructions in `prompts/`.</mandate>
     </rule_block>
 
     <rule_block id="frontend_feature_isolation">
-        <mandate>NEVER mix feature UI code (e.g. Studio Canvas) or feature-specific SDUI Freezed models into `lib/core/` or `lib/shared/`, or cross-import deep between features. Flutter code MUST adhere to Feature-First isolation in `client_app_v2/lib/features/` (e.g., `execution/models/`, `execution/providers/`). Shared abstract logic belongs in `core/` or `shared/`.</mandate>
+        <mandate>NEVER mix feature UI code (specifically Studio Canvas) or feature-specific SDUI Freezed models into `lib/core/` or `lib/shared/`, or cross-import deep between features. Flutter code MUST adhere to Feature-First isolation in `client_app_v2/lib/features/` (specifically `execution/models/`, `execution/providers/`). Shared abstract logic belongs in `core/` or `shared/`.</mandate>
     </rule_block>
 
     <rule_block id="ephemeral_storage_mandate">
@@ -41,7 +41,7 @@
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py, factories/ (output_profile_factory.py)
-          - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
+          - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/ [pure compute pipelines: prompt_engine.py, synthesis_engine.py, tda_engine.py], strategies/ [node strategies: base.py, llm.py, logic.py], prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
           - Pillar 4 (SDUI & Presentation): report_service.py, export_service.py, blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (base_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience & Observability): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, flat_record.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py, workflow_schema.py, trace.py, step_output.py), view/ (SDUI Blocks), state.py, enums.py
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, flat_record.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py), view/ (SDUI Blocks), state.py, enums.py
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)

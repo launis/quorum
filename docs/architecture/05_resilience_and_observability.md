@@ -22,11 +22,12 @@ To prevent premature failure of long-running evaluations, tasks encountering tra
 ### 2.3. Structured Concurrency & Failure Isolation
 All asynchronous routines are orchestrated through structured task groups, eliminating detached background tasks and silent zombie coroutines. When a subtask within a task group fails with an unhandled exception, the task group automatically cancels all remaining sibling coroutines, preventing leaked memory, lingering database locks, and runaway model invocation costs. Parallel exceptions are collected into typed exception groups and evaluated using native split-exception handling.
 
-Concurrency limits are governed by a two-tier semaphore architecture:
-- **Macro-Level Job Limiter:** Regulates global worker throughput and background job scheduling.
-- **Micro-Level Request Limiter:** Governs concurrent model invocations and external network requests.
+Concurrency limits are governed across decoupled operational tiers:
+- **Macro-Level Workflow Limiter:** Regulates global worker throughput in the Arq background daemon (`settings.max_concurrent_workflows`).
+- **Micro-Level Provider Throttling Pool:** Governs concurrent outbound model invocations within `LiteLLMProvider` via a dynamic semaphore pool configured from provider RPM settings, dynamically shielding external provider APIs from rate limits.
+- **Synthesis Fan-Out Limiter:** Restricts parallel synthesis sub-task execution (`settings.max_concurrent_llm_steps`).
 
-Isolating macro and micro limiters prevents recursive lock acquisition and eliminates thread deadlocks. Concurrency limiters incorporate null-context fallbacks to enable unconstrained execution in test environments without raising runtime attribute errors. Task lifecycle telemetry marks tasks as actively running only after the concurrency limiter is acquired, ensuring queue wait times do not falsely inflate execution latency metrics.
+Isolating macro and micro limiters prevents recursive lock acquisition and eliminates thread deadlocks. Computational execution engines operate with pure stateless execution decoupled from runtime concurrency primitives. Task lifecycle telemetry updates step status to running synchronously upon dispatch, ensuring execution telemetry accurately reflects active computation.
 
 Concurrency stress test suites verify memory lock atomicity and zero lock starvation under high-concurrency TaskGroup workloads. Coroutines acquire bounded update locks (`_update_lock`) exclusively for shallow dictionary updates and event signaling, never holding update locks across asynchronous I/O, database commits, or network requests.
 

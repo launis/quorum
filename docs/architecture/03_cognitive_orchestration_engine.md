@@ -28,11 +28,12 @@ Domain services do not hardcode specific model strings, provider SDKs, or vendor
 - **Observability & GenAI Semantic Conventions**: Outbound model executions automatically trace under OpenTelemetry and Logfire semantic conventions, preserving active trace context across provider adapters, capturing unit token usage and latency metrics, recording explicit context cache hit indicators on active spans, and instrumenting external Model Context Protocol (MCP) tool calls.
 - **Zero Silent Fallback Guarantee**: If an API call fails, credentials are missing, or retry limits are exhausted, the engine halts immediately with an explicit `AppException` rather than silently substituting an alternate model, preserving longitudinal consistency and audit baselines.
 
-### 2.4. Two-Tier Semaphore Architecture & Concurrency Isolation
-Parallel execution enforces strict concurrency bounds without recursive deadlocks:
-- **Macro-Level Worker Concurrency**: Background workers acquire an isolated job semaphore governing simultaneous execution tasks.
-- **Micro-Level Request Concurrency**: The LLM client manages an independent request semaphore governing outbound model requests.
-This two-tier separation prevents parent pipeline tasks and nested model calls from competing for the same semaphore slots, eliminating priority inversions and thread starvation under peak loads.
+### 2.4. Two-Tier Concurrency Architecture & Micro-Throttling Isolation
+Parallel execution enforces strict concurrency bounds across decoupled tiers:
+- **Macro-Level Workflow Concurrency**: Background workers in the Arq daemon govern simultaneous workflow execution jobs (`settings.max_concurrent_workflows`).
+- **Micro-Level Provider Dynamic Throttling**: The foundational model provider (`LiteLLMProvider`) manages an internal dynamic semaphore pool (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`) based on provider RPM tiers, dynamically protecting external model APIs from rate-limit exhaustion.
+- **Synthesis Fan-Out**: Phase 2 parallel synthesis fan-out is governed by central limits (`settings.max_concurrent_llm_steps`).
+- **Pure Stateless Computation**: Execution engines (`PromptEngine`, `SynthesisEngine`, `TDAEngine`) and sub-executors operate as pure computational pipelines with zero semaphore or event primitives, eliminating recursive locks, lock starvation, and priority inversions under peak loads.
 
 ### 2.5. Data Ingestion & Context Preflight
 External inputs (documents, web resources, uploaded files, and chat transcripts) are processed through dedicated ingestion providers that extract, sanitize, and flatten raw text. Before model execution, context preflight validates token consumption against window constraints, applying deterministic pagination and chunking where required to ensure that model input limits are never exceeded.
@@ -100,7 +101,8 @@ DAG node execution decouples macro-level routing from micro-level execution pipe
   - `TDAEngine`: Evaluates matrix assertions and extractive sensor rules.
   - `SynthesisEngine`: Generates structured profile syntheses and qualitative narratives.
   - `PromptEngine`: Executes standard non-matrix structured steps.
-- **Orthogonal Strategy Decoupling**: Node dispatch resolves via a static strategy registry based on step type, while model tier resolution (`fast`, `reasoning`, `deep`) is handled orthogonally by the model router. Any execution engine can run with any model strategy tier without altering underlying dispatch logic. All engines communicate via strict immutable request and result DTOs with isolated concurrency controls.
+- **Pure Compute Engine Model**: Execution engines and sub-executors are 100% pure computational pipelines with zero semaphore or event dependencies. Step dispatch transitions lifecycle status (`ExecutionStatus.RUNNING`) synchronously upon node dispatch, while concurrency limits are isolated exclusively to worker and provider layers.
+- **Orthogonal Strategy Decoupling**: Node dispatch resolves via a static strategy registry based on step type, while model tier resolution (`fast`, `reasoning`, `deep`) is handled orthogonally by the model router. Any execution engine can run with any model strategy tier without altering underlying dispatch logic. All engines communicate via strict immutable request and result DTOs (`EngineExecutionRequest` and `EngineExecutionResult`) with zero permissive typing.
 
 ### 2.15. Tripartite Prompt Architecture & Four-Layer Clean Stack
 All system prompts are constructed through standardized prompt builders and static prompt modules organized into three decoupled functional tiers:
