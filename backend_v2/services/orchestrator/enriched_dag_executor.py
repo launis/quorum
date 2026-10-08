@@ -55,7 +55,6 @@ class EnrichedDagExecutor:
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         execution_id: str = "default_run",
         step_id: str | None = None,
-        semaphore: asyncio.Semaphore | None = None,
         matrix_context: MatrixEvaluationContext | None = None,
     ) -> tuple[dict[str, AtomExecutionState], TokenUsage]:
         """Executes the complete DAG of atoms.
@@ -67,7 +66,6 @@ class EnrichedDagExecutor:
             progress_callback: Optional progress reporter callback function.
             execution_id: Execution identifier path.
             step_id: Optional step identifier for telemetry and logging.
-            semaphore: Concurrency limiter semaphore.
             matrix_context: Optional Matrix evaluation context.
 
         Returns:
@@ -112,19 +110,17 @@ class EnrichedDagExecutor:
                             await progress_callback(completed_atoms, total_atoms)
                     return pre_flight_results
 
-                sem = semaphore if semaphore is not None else asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
-                async with sem:
-                    llm_results, chunk_usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
-                        nodes=undecided_nodes,
-                        executor=self._llm_executor,
-                        client=self._llm_client,
-                        context_text=source_text,
-                        target_locale=locale,
-                        matrix_context=matrix_context,
-                        current_states=current_states,
-                        execution_id=execution_id,
-                        step_id=step_id,
-                    )
+                llm_results, chunk_usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+                    nodes=undecided_nodes,
+                    executor=self._llm_executor,
+                    client=self._llm_client,
+                    context_text=source_text,
+                    target_locale=locale,
+                    matrix_context=matrix_context,
+                    current_states=current_states,
+                    execution_id=execution_id,
+                    step_id=step_id,
+                )
                 accumulated_usage = accumulated_usage + chunk_usage
                 res = {**pre_flight_results, **llm_results}
                 if progress_callback:

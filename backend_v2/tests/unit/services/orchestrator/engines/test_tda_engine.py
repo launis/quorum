@@ -4,7 +4,6 @@ Tests the standalone TDA strategy engine extraction,
 including progress routing, Exception ACL, and Fail-Fast validation.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -23,6 +22,7 @@ from backend_v2.models.dtos.engine import (
 )
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
@@ -67,8 +67,8 @@ def engine_request(mock_compiler: MagicMock, base_shuffled_atoms: list[Flattened
         ),
         global_source_text="Test source text",
         target_locale="fi",
-        semaphore=asyncio.Semaphore(1),
-        running_event=asyncio.Event(),
+        semaphore=None,
+        running_event=None,
         progress_callback=AsyncMock(),
         trace_callback=AsyncMock(),
         prompt_compiler=mock_compiler,
@@ -130,10 +130,6 @@ async def test_tda_engine_execute_success(
     assert engine_request.progress_callback.call_count == 2
     engine_request.progress_callback.assert_any_call(30, 100)
     engine_request.progress_callback.assert_any_call(100, 100)
-
-    # Verify running event is set
-    assert engine_request.running_event is not None
-    assert engine_request.running_event.is_set()
 
 
 @pytest.mark.asyncio
@@ -411,3 +407,10 @@ async def test_tda_engine_execute_with_matrix_context(
     assert passed_matrix_context is not None
     assert passed_matrix_context.matrix_objective == "Objective test"
     assert passed_matrix_context.matrix_assertions == req.shuffled_atoms
+
+
+def test_tda_engine_implements_protocol(mock_compiler: MagicMock) -> None:
+    """Verify TDAEngine implements ExecutionEngine protocol."""
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    assert issubclass(TDAEngine, ExecutionEngine)
+    assert isinstance(engine, ExecutionEngine)

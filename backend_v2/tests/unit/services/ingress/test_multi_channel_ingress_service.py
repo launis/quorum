@@ -188,9 +188,7 @@ class TestMultiChannelIngressService:
     async def test_process_chat_pdf_offloaded_to_thread(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify that _extract_pdf_channel_sync is offloaded via asyncio.to_thread."""
         mock_pdf_extractor = MagicMock()
-        mock_dto = ChatHistoryDTO(
-            conversation=[ChatMessageDTO(role="user", content="Threaded turn")]
-        )
+        mock_dto = ChatHistoryDTO(conversation=[ChatMessageDTO(role="user", content="Threaded turn")])
         service = MultiChannelIngressService(pdf_extractor=mock_pdf_extractor)
 
         import fitz

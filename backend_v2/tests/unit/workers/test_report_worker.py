@@ -20,14 +20,12 @@ async def test_generate_report_artifact_job_delegates_to_service() -> None:
         patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
         patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
     ):
-        result = await generate_report_artifact_job(
+        _ = await generate_report_artifact_job(
             ctx={},
             report_id="rep_0123456789abcdef",
         )
 
-    mock_service.process_artifact_compilation.assert_awaited_once_with(
-        "rep_0123456789abcdef", force_resynthesis=False
-    )
+    mock_service.process_artifact_compilation.assert_awaited_once_with("rep_0123456789abcdef", force_resynthesis=False)
 
 
 @pytest.mark.asyncio
@@ -46,9 +44,7 @@ async def test_generate_report_artifact_job_forwards_force_resynthesis() -> None
             force_resynthesis=True,
         )
 
-    mock_service.process_artifact_compilation.assert_awaited_once_with(
-        "rep_0123456789abcdef", force_resynthesis=True
-    )
+    mock_service.process_artifact_compilation.assert_awaited_once_with("rep_0123456789abcdef", force_resynthesis=True)
 
 
 @pytest.mark.asyncio

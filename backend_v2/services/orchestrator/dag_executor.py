@@ -352,8 +352,6 @@ class NodeExecutor:
                     context=context,
                     frozen_ctx=frozen_ctx,
                     trace=trace,
-                    semaphore=semaphore,
-                    running_event=running_event,
                     progress_callback=progress_callback,
                 )
 

@@ -1,6 +1,5 @@
 """Unit tests for SynthesisEngine."""
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,6 +20,7 @@ from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TokenUsage
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
@@ -96,7 +96,7 @@ def base_request() -> EngineExecutionRequest:
         context=context,
         global_source_text="Test source text.",
         target_locale="en",
-        semaphore=asyncio.Semaphore(1),
+        semaphore=None,
         running_event=None,
         progress_callback=None,
         trace_callback=None,
@@ -491,3 +491,10 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
     messages = call_kwargs["messages"]
     user_msg = messages[-1]
     assert "<raw_xai_extensions>" in user_msg.content
+
+
+def test_synthesis_engine_implements_protocol(mock_executor: AsyncMock) -> None:
+    """Verify SynthesisEngine implements ExecutionEngine protocol."""
+    engine = SynthesisEngine(llm_executor=mock_executor)
+    assert issubclass(SynthesisEngine, ExecutionEngine)
+    assert isinstance(engine, ExecutionEngine)

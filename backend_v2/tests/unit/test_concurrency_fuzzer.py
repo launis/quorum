@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.core_base import I18nText
@@ -17,7 +18,7 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -38,6 +39,28 @@ def clear_litellm_provider_caches() -> Generator[None]:
 @pytest.fixture(autouse=True)
 def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+
+
+def _configure_repo_model_registry(repo: InMemoryUnifiedWorkflowRepository, rpm_limit: int = 1000) -> None:
+    """Configure model registry on the mock repo with the specified rpm_limit."""
+    model_reg = SystemConfigModelRegistry.model_validate(
+        {
+            "id": "sys_e26807f3bfa3454d",
+            "name": "Default Stack",
+            "tier_definitions": {
+                tier: {
+                    "provider": "openai",
+                    "model_name": "gpt-4o-mini",
+                    "tpm_limit": 100000,
+                    "rpm_limit": rpm_limit,
+                    "max_tokens": 4096,
+                    "temperature": 0.0,
+                }
+                for tier in ("fast", "balanced", "deep", "reasoning")
+            },
+        }
+    )
+    repo.set_model_registry(model_reg)
 
 
 @pytest.fixture
@@ -106,24 +129,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         ]
     )
     repo.set_workflow(_create_workflow(10))
-    model_reg = SystemConfigModelRegistry.model_validate(
-        {
-            "id": "sys_e26807f3bfa3454d",
-            "name": "Default Stack",
-            "tier_definitions": {
-                tier: {
-                    "provider": "openai",
-                    "model_name": "gpt-4o-mini",
-                    "tpm_limit": 100000,
-                    "rpm_limit": 1000,
-                    "max_tokens": 4096,
-                    "temperature": 0.0,
-                }
-                for tier in ("fast", "balanced", "deep", "reasoning")
-            },
-        }
-    )
-    repo.set_model_registry(model_reg)
+    _configure_repo_model_registry(repo, rpm_limit=1000)
     return repo
 
 
@@ -155,31 +161,11 @@ def _create_workflow(num_steps: int) -> Workflow:
     )
 
 
-@pytest.mark.parametrize("concurrency", [1, 2, 5, 10, 50])
-@pytest.mark.asyncio
-async def test_concurrency_fuzzer_peak_limit(
-    concurrency: int, mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Test that DAGExecutor limits concurrent LLM requests to max_concurrent_llm_steps."""
-    mock_settings = get_settings().model_copy(update={"max_concurrent_llm_steps": concurrency})
-    monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
-    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
-
-    executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=mock_repo,
-        output_profile_repo=mock_repo,
-        identity_repo=mock_repo,
-        audit_repo=mock_repo,
-        system_repo=mock_repo,
-        prompt_compiler=mock_compiler,
-    )
-
-    workflow = _create_workflow(10)
-
+async def _execute_and_measure_peak_concurrency(
+    executor: DAGExecutor,
+    workflow: Workflow,
+) -> int:
+    """Execute workflow while measuring peak concurrent LLM invocations."""
     current_concurrent = 0
     peak_concurrent = 0
     lock = asyncio.Lock()
@@ -225,16 +211,56 @@ async def test_concurrency_fuzzer_peak_limit(
                 raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
             )
 
+    return peak_concurrent
+
+
+@pytest.mark.parametrize("concurrency", [1, 2, 5, 10])
+@pytest.mark.asyncio
+async def test_concurrency_fuzzer_peak_limit_stage_a(
+    concurrency: int,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    mock_compiler: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Stage A: Peak concurrency proven against provider SSOT across closed set [1, 2, 5, 10]."""
+    _configure_repo_model_registry(mock_repo, rpm_limit=1000)
+    mock_settings = get_settings().model_copy(
+        update={"semaphore_max_concurrency": concurrency, "max_concurrent_llm_steps": 100}
+    )
+    monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    workflow = _create_workflow(10)
+
+    peak_concurrent = await _execute_and_measure_peak_concurrency(executor, workflow)
     assert peak_concurrent <= concurrency
     assert peak_concurrent > 0
 
 
+test_concurrency_fuzzer_peak_limit = test_concurrency_fuzzer_peak_limit_stage_a
+
+
 @pytest.mark.asyncio
-async def test_concurrency_fuzzer_zero_concurrency(
-    mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+async def test_concurrency_fuzzer_low_rpm_limit_stage_a(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    mock_compiler: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Boundary - Zero Concurrency: Should block forever, wait_for raises TimeoutError."""
-    mock_settings = get_settings().model_copy(update={"max_concurrent_llm_steps": 0})
+    """Stage A: Peak concurrency proven against semaphore_low_rpm_limit under low rpm_limit=20."""
+    _configure_repo_model_registry(mock_repo, rpm_limit=20)
+    mock_settings = get_settings().model_copy(update={"semaphore_max_concurrency": 10, "max_concurrent_llm_steps": 100})
     monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
 
@@ -250,100 +276,48 @@ async def test_concurrency_fuzzer_zero_concurrency(
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
     )
-
-    workflow = _create_workflow(1)
-
-    with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(
-                success=True,
-                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
-            )
-        )
-
-        with pytest.raises(asyncio.TimeoutError):
-            await asyncio.wait_for(
-                executor.execute_workflow(
-                    execution_id="exe_1111222233334444",
-                    workflow=workflow,
-                    raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
-                ),
-                timeout=0.2,
-            )
-
-
-@pytest.mark.asyncio
-async def test_concurrency_fuzzer_exceeding_physical_limit(
-    mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Boundary - Exceeding Physical Limit: Large max_concurrent_llm_steps means no delay."""
-    mock_settings = get_settings().model_copy(update={"max_concurrent_llm_steps": 100})
-    monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
-    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
-
-    executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=mock_repo,
-        output_profile_repo=mock_repo,
-        identity_repo=mock_repo,
-        audit_repo=mock_repo,
-        system_repo=mock_repo,
-        prompt_compiler=mock_compiler,
-    )
-
     workflow = _create_workflow(10)
 
-    current_concurrent = 0
-    peak_concurrent = 0
-    lock = asyncio.Lock()
+    peak_concurrent = await _execute_and_measure_peak_concurrency(executor, workflow)
+    assert peak_concurrent <= mock_settings.semaphore_low_rpm_limit
+    assert peak_concurrent > 0
 
-    async def mock_acompletion(*args: Any, **kwargs: Any) -> Any:
-        nonlocal current_concurrent, peak_concurrent
-        async with lock:
-            current_concurrent += 1
-            if current_concurrent > peak_concurrent:
-                peak_concurrent = current_concurrent
 
-        await asyncio.sleep(0.05)
+def test_concurrency_settings_reject_zero_limits() -> None:
+    """Verify Settings rejects semaphore_max_concurrency=0 via Pydantic ValidationError without bypass."""
+    with pytest.raises(ValidationError):
+        Settings(semaphore_max_concurrency=0)
 
-        async with lock:
-            current_concurrent -= 1
 
-        class MockChoice:
-            message = type("MockMessage", (), {"content": '{"atoms": []}', "tool_calls": []})
-            finish_reason = "stop"
+@pytest.mark.parametrize("rpm_limit,expected_bound", [(30, 3), (20, 2)])
+@pytest.mark.asyncio
+async def test_concurrency_fuzzer_exceeding_physical_limit(
+    rpm_limit: int,
+    expected_bound: int,
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    mock_compiler: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Boundary - Exceeding Physical Limit: Provider semaphore bounds execution under constrained RPM."""
+    _configure_repo_model_registry(mock_repo, rpm_limit=rpm_limit)
+    mock_settings = get_settings().model_copy(update={"semaphore_max_concurrency": 10, "max_concurrent_llm_steps": 100})
+    monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
 
-        return type(
-            "MockResponse",
-            (),
-            {
-                "choices": [MockChoice],
-                "model": "mock-model",
-                "usage": type("MockUsage", (), {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20}),
-            },
-        )
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    workflow = _create_workflow(10)
 
-    with patch("litellm.Router.acompletion", side_effect=mock_acompletion):
-        with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-            mock_hooks.execute = AsyncMock(
-                return_value=HookResult(
-                    success=True,
-                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
-                )
-            )
-
-            await asyncio.wait_for(
-                executor.execute_workflow(
-                    execution_id="exe_1111222233334444",
-                    workflow=workflow,
-                    raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
-                ),
-                timeout=5.0,
-            )
-
-    # With max=100 and 10 steps, they should all execute concurrently in one 0.05s window.
-    # Therefore peak concurrent should equal the number of tasks.
-    assert peak_concurrent == 10
+    peak_concurrent = await _execute_and_measure_peak_concurrency(executor, workflow)
+    assert peak_concurrent <= expected_bound
+    assert peak_concurrent > 0

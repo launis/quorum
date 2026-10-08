@@ -1,4 +1,3 @@
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -45,11 +44,10 @@ async def test_two_pass_atomizer_dlq_routing(mock_llm_executor: MagicMock, mock_
     from backend_v2.models.prompt import CompiledPrompt
 
     chunk = "[B99] This chunk has some text but not the fake quote."
-    sem = asyncio.Semaphore(1)
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
 
     result, usage = await atomizer._extract_drafts_from_chunk_with_retry(
-        mock_client, compiled_prompt, "B0", "B99", ["B99"], 1, chunk, sem
+        mock_client, compiled_prompt, "B0", "B99", ["B99"], 1, chunk
     )
 
     assert len(result.atoms) == 2

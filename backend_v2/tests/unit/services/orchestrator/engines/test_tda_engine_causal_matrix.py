@@ -8,7 +8,6 @@ Covers all 5 ISTQB Equivalence Partitions:
 5. Negative - Multi-Parent Conflicting Dependencies: 1 passed parent + 1 failed parent -> N_A.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -50,8 +49,8 @@ def base_engine_request(mock_compiler: MagicMock) -> EngineExecutionRequest:
         ),
         global_source_text="Test source text",
         target_locale="fi",
-        semaphore=asyncio.Semaphore(1),
-        running_event=asyncio.Event(),
+        semaphore=None,
+        running_event=None,
         progress_callback=AsyncMock(),
         trace_callback=AsyncMock(),
         prompt_compiler=mock_compiler,

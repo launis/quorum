@@ -9,6 +9,7 @@ import contextlib
 import json
 import logging
 from enum import Enum
+from typing import override
 
 import opentelemetry.trace as trace
 from pydantic import BaseModel, ValidationError
@@ -24,6 +25,7 @@ from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
@@ -32,7 +34,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["SynthesisEngine"]
 
 
-class SynthesisEngine:
+class SynthesisEngine(ExecutionEngine):
     """Execution engine for LLM-driven synthesis.
 
     Generates unstructured text and schema-bound UI layouts (SDUI) using pre-compiled
@@ -47,6 +49,7 @@ class SynthesisEngine:
         """
         self._executor = llm_executor
 
+    @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Executes the synthesis generation pipeline.
 
@@ -221,14 +224,13 @@ class SynthesisEngine:
             if request.progress_callback:
                 await request.progress_callback(10, 100)
 
-            # Delegate to LLM executor under semaphore
-            async with request.semaphore_cm:
-                validated_model, usage = await self._executor.execute_structured_task(
-                    client=request.bound_client,
-                    messages=local_messages,
-                    response_model=request.compiled_schema,
-                    validation_context={"strictness_level": request.context.strictness_level},
-                )
+            # Delegate to LLM executor
+            validated_model, usage = await self._executor.execute_structured_task(
+                client=request.bound_client,
+                messages=local_messages,
+                response_model=request.compiled_schema,
+                validation_context={"strictness_level": request.context.strictness_level},
+            )
 
             if request.progress_callback:
                 await request.progress_callback(90, 100)

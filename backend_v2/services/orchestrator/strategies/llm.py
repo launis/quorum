@@ -6,7 +6,6 @@ chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 import json
 import logging
@@ -214,10 +213,8 @@ class LLMNodeStrategy(NodeStrategy):
         step: StepRule,
         projector: StateProjector,
         context: StrategyContext,
-        frozen_ctx: FrozenContext | None,
-        trace: list[TraceEvent] | None,
-        semaphore: asyncio.Semaphore,
-        running_event: asyncio.Event | None = None,
+        frozen_ctx: FrozenContext | None = None,
+        trace: list[TraceEvent] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes the node's workflow sequence matching system rules.
@@ -228,8 +225,6 @@ class LLMNodeStrategy(NodeStrategy):
             context: Strategy configuration parameters (model, metadata, strictness).
             frozen_ctx: Accumulator state matching prompt caches and MCP traces.
             trace: List of chronological events.
-            semaphore: Concurrency limiter for model executions.
-            running_event: Cancellation trigger for async processes.
             progress_callback: Optional async callback reporting processed and total item progress.
 
         Returns:
@@ -240,9 +235,6 @@ class LLMNodeStrategy(NodeStrategy):
             ConfigurationError: Triggered upon incorrect configuration schemas.
         """
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
-
-        if running_event:
-            running_event.set()
 
         inputs_unwrapped: object = inputs_payload
         if "inputs" in inputs_payload:
@@ -783,8 +775,6 @@ class LLMNodeStrategy(NodeStrategy):
                     context=context,
                     global_source_text=global_source_text,
                     target_locale=target_locale,
-                    semaphore=semaphore,
-                    running_event=running_event,
                     progress_callback=progress_callback,
                     trace_callback=None,
                     prompt_compiler=self.compiler,
@@ -827,8 +817,6 @@ class LLMNodeStrategy(NodeStrategy):
                     context=context,
                     global_source_text=global_source_text,
                     target_locale=target_locale,
-                    semaphore=semaphore,
-                    running_event=running_event,
                     progress_callback=progress_callback,
                     trace_callback=None,
                     prompt_compiler=self.compiler,
@@ -846,8 +834,6 @@ class LLMNodeStrategy(NodeStrategy):
                     context=context,
                     global_source_text=global_source_text,
                     target_locale=target_locale,
-                    semaphore=semaphore,
-                    running_event=running_event,
                     progress_callback=progress_callback,
                     trace_callback=None,
                     prompt_compiler=self.compiler,

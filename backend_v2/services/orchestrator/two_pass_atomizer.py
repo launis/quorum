@@ -81,7 +81,6 @@ class TwoPassAtomizer:
         client: LLMClient,
         hydrated_text: str,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        semaphore: asyncio.Semaphore | None = None,
     ) -> tuple[GlobalOntologyMap, TokenUsage]:
         """Extracts and merges GlobalOntologyMap from all chunks.
 
@@ -89,7 +88,6 @@ class TwoPassAtomizer:
             client: The LLM client to use.
             hydrated_text: Globally hydrated text with block IDs.
             progress_callback: Optional async callback reporting progress (completed, total).
-            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of merged GlobalOntologyMap and aggregated TokenUsage.
@@ -118,14 +116,13 @@ class TwoPassAtomizer:
         )
 
         try:
-            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks: list[asyncio.Task[tuple[GlobalOntologyMap, TokenUsage]]] = []
                 completed = 0
 
                 async def track_task(start_b: str, end_b: str) -> tuple[GlobalOntologyMap, TokenUsage]:
                     nonlocal completed
-                    res = await self._extract_ontology_from_chunk(client, compiled_prompt, start_b, end_b, sem)
+                    res = await self._extract_ontology_from_chunk(client, compiled_prompt, start_b, end_b)
                     completed += 1
                     if progress_callback:
                         await progress_callback(completed, len(packets))
@@ -148,7 +145,7 @@ class TwoPassAtomizer:
         return GlobalOntologyMap(entities=list(all_entities.values()), macro_rules=list(all_rules)), total_usage
 
     async def _extract_ontology_from_chunk(
-        self, client: LLMClient, compiled_prompt: CompiledPrompt, start_b: str, end_b: str, sem: asyncio.Semaphore
+        self, client: LLMClient, compiled_prompt: CompiledPrompt, start_b: str, end_b: str
     ) -> tuple[GlobalOntologyMap, TokenUsage]:
         """Extract ontology elements from a single text packet.
 
@@ -157,25 +154,23 @@ class TwoPassAtomizer:
             compiled_prompt: Compiled prompt template with source text.
             start_b: Starting block ID for chunk.
             end_b: Ending block ID for chunk.
-            sem: Semaphore for concurrency limiting.
 
         Returns:
             Tuple of GlobalOntologyMap and TokenUsage for the chunk.
         """
-        async with sem:
-            dynamic_instruction = TemplateProcessor.render_prompt(
-                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-            )
-            chunk_prompt = CompiledPrompt(
-                static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-            )
-            result, usage = await self.executor.execute_structured_task(
-                client=client,
-                messages=chunk_prompt,
-                response_model=GlobalOntologyMap,
-            )
-            return result, usage
+        dynamic_instruction = TemplateProcessor.render_prompt(
+            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
+        )
+        chunk_prompt = CompiledPrompt(
+            static_messages=compiled_prompt.static_messages,
+            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
+        )
+        result, usage = await self.executor.execute_structured_task(
+            client=client,
+            messages=chunk_prompt,
+            response_model=GlobalOntologyMap,
+        )
+        return result, usage
 
     async def execute_phase_1(
         self,
@@ -183,7 +178,6 @@ class TwoPassAtomizer:
         hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        semaphore: asyncio.Semaphore | None = None,
     ) -> tuple[list[ExtractedAtom], TokenUsage]:
         """Extracts atomic claims from chunks utilizing the global ontology.
 
@@ -192,7 +186,6 @@ class TwoPassAtomizer:
             hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
             progress_callback: Optional async callback reporting progress (completed, total).
-            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of ExtractedAtom objects with fully hydrated Opaque Stripe IDs and aggregated TokenUsage.
@@ -222,7 +215,6 @@ class TwoPassAtomizer:
 
         all_atoms: list[ExtractedAtom] = []
         try:
-            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks: list[asyncio.Task[tuple[list[ExtractedAtom], TokenUsage]]] = []
                 completed = 0
@@ -232,7 +224,7 @@ class TwoPassAtomizer:
                 ) -> tuple[list[ExtractedAtom], TokenUsage]:
                     nonlocal completed
                     res = await self._extract_atoms_from_chunk(
-                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
+                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text
                     )
                     completed += 1
                     if progress_callback:
@@ -263,7 +255,6 @@ class TwoPassAtomizer:
         packet_keys: list[str],
         chunk_index: int,
         hydrated_text: str,
-        sem: asyncio.Semaphore,
     ) -> tuple[list[ExtractedAtom], TokenUsage]:
         """Extract resolved atoms from a single text packet.
 
@@ -275,7 +266,6 @@ class TwoPassAtomizer:
             packet_keys: List of valid block IDs in this packet.
             chunk_index: Numerical index of the packet.
             hydrated_text: Complete hydrated document string for alias mapping.
-            sem: Semaphore for concurrency limiting.
 
         Returns:
             Tuple of list of ExtractedAtom and chunk TokenUsage.
@@ -283,77 +273,74 @@ class TwoPassAtomizer:
         Raises:
             ValueError: If a non-deductive atom refers to a block ID outside packet bounds.
         """
-        async with sem:
-            dynamic_instruction = TemplateProcessor.render_prompt(
-                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-            )
-            chunk_prompt = CompiledPrompt(
-                static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-            )
+        dynamic_instruction = TemplateProcessor.render_prompt(
+            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
+        )
+        chunk_prompt = CompiledPrompt(
+            static_messages=compiled_prompt.static_messages,
+            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
+        )
 
-            draft_result, usage = await self.executor.execute_structured_task(
-                client=client,
-                messages=chunk_prompt,
-                response_model=LLMDraftAtomList,
-            )
+        draft_result, usage = await self.executor.execute_structured_task(
+            client=client,
+            messages=chunk_prompt,
+            response_model=LLMDraftAtomList,
+        )
 
-            local_alias_map: dict[str, str] = {}
-            for line in hydrated_text.split("\n\n"):
-                if line.startswith("[") and "] " in line:
-                    b_id = line[1 : line.find("]")]
-                    text = line[line.find("]") + 2 :]
-                    local_alias_map[b_id] = text
-            alias_engine = AliasEngine(alias_map=local_alias_map)
+        local_alias_map: dict[str, str] = {}
+        for line in hydrated_text.split("\n\n"):
+            if line.startswith("[") and "] " in line:
+                b_id = line[1 : line.find("]")]
+                text = line[line.find("]") + 2 :]
+                local_alias_map[b_id] = text
+        alias_engine = AliasEngine(alias_map=local_alias_map)
 
-            final_atoms: list[ExtractedAtom] = []
-            for draft in draft_result.atoms:
-                tda_id = f"tda_{uuid.uuid4().hex[:8]}"
-                exact_quote = None
+        final_atoms: list[ExtractedAtom] = []
+        for draft in draft_result.atoms:
+            tda_id = f"tda_{uuid.uuid4().hex[:8]}"
+            exact_quote = None
 
-                if not draft.is_logical_deduction:
-                    if not draft.source_block_id:
-                        logger.warning("corrupted_atom_dropped: missing_source_block_id on %s", tda_id)
-                        continue
-                    clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
-                    if clean_id not in packet_keys:
-                        logger.error(
-                            "Packet boundary violation: %s not in packet [%s, %s]",
-                            clean_id,
-                            start_b,
-                            end_b,
-                            extra={"error_code": "PACKET_BOUNDARY_VIOLATION"},
-                        )
-                        raise ValueError(
-                            f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!"
-                        )
-
-                    exact_quote = None
-                    if clean_id in alias_engine.alias_map:
-                        exact_quote = alias_engine.alias_map[clean_id]
-                    else:
-                        logger.warning("AliasEngine hallucination detected for %s: %s", tda_id, clean_id)
-
-                    if not exact_quote:
-                        logger.warning(
-                            "Anchor Hydration failed for %s. LLM hallucinated block ID: %s",
-                            tda_id,
-                            draft.source_block_id,
-                        )
-                        continue
-
-                final_atoms.append(
-                    ExtractedAtom(
-                        reasoning=draft.reasoning,
-                        resolved_claim=draft.resolved_claim,
-                        is_logical_deduction=draft.is_logical_deduction,
-                        source_quote=exact_quote,
-                        tda_id=tda_id,
-                        source_id=f"chunk_{chunk_index}",
-                        source_sequence_index=chunk_index,
+            if not draft.is_logical_deduction:
+                if not draft.source_block_id:
+                    logger.warning("corrupted_atom_dropped: missing_source_block_id on %s", tda_id)
+                    continue
+                clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
+                if clean_id not in packet_keys:
+                    logger.error(
+                        "Packet boundary violation: %s not in packet [%s, %s]",
+                        clean_id,
+                        start_b,
+                        end_b,
+                        extra={"error_code": "PACKET_BOUNDARY_VIOLATION"},
                     )
+                    raise ValueError(f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!")
+
+                exact_quote = None
+                if clean_id in alias_engine.alias_map:
+                    exact_quote = alias_engine.alias_map[clean_id]
+                else:
+                    logger.warning("AliasEngine hallucination detected for %s: %s", tda_id, clean_id)
+
+                if not exact_quote:
+                    logger.warning(
+                        "Anchor Hydration failed for %s. LLM hallucinated block ID: %s",
+                        tda_id,
+                        draft.source_block_id,
+                    )
+                    continue
+
+            final_atoms.append(
+                ExtractedAtom(
+                    reasoning=draft.reasoning,
+                    resolved_claim=draft.resolved_claim,
+                    is_logical_deduction=draft.is_logical_deduction,
+                    source_quote=exact_quote,
+                    tda_id=tda_id,
+                    source_id=f"chunk_{chunk_index}",
+                    source_sequence_index=chunk_index,
                 )
-            return final_atoms, usage
+            )
+        return final_atoms, usage
 
     async def execute_phase_1_drafts(
         self,
@@ -361,7 +348,6 @@ class TwoPassAtomizer:
         hydrated_text: str,
         ontology: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        semaphore: asyncio.Semaphore | None = None,
     ) -> tuple[DraftAtomList, TokenUsage]:
         """Extracts atomic claims from chunks returning raw drafts and handling DLQ routing.
 
@@ -370,7 +356,6 @@ class TwoPassAtomizer:
             hydrated_text: Globally hydrated text with block IDs.
             ontology: The ontology map generated in Phase 0.
             progress_callback: Optional async callback reporting progress (completed, total).
-            semaphore: Optional concurrency limiter for async requests.
 
         Returns:
             A tuple of DraftAtomList containing DraftExtractedAtom instances and aggregated TokenUsage.
@@ -401,7 +386,6 @@ class TwoPassAtomizer:
         all_atoms: list[DraftExtractedAtom] = []
         has_dlq = False
         try:
-            sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
                 tasks: list[asyncio.Task[tuple[DraftAtomList, TokenUsage]]] = []
                 completed = 0
@@ -411,7 +395,7 @@ class TwoPassAtomizer:
                 ) -> tuple[DraftAtomList, TokenUsage]:
                     nonlocal completed
                     res = await self._extract_drafts_from_chunk(
-                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text, sem
+                        client, compiled_prompt, start_b, end_b, packet_keys, idx, hydrated_text
                     )
                     completed += 1
                     if progress_callback:
@@ -453,7 +437,6 @@ class TwoPassAtomizer:
         packet_keys: list[str],
         chunk_index: int,
         hydrated_text: str,
-        sem: asyncio.Semaphore,
     ) -> tuple[DraftAtomList, TokenUsage]:
         """Extract draft atoms from a single chunk with retry policy.
 
@@ -465,87 +448,85 @@ class TwoPassAtomizer:
             packet_keys: List of valid block IDs in this packet.
             chunk_index: Numerical index of the packet.
             hydrated_text: Complete hydrated document string for alias mapping.
-            sem: Semaphore for concurrency limiting.
 
         Returns:
             Tuple of DraftAtomList and chunk TokenUsage.
         """
-        async with sem:
-            dynamic_instruction = TemplateProcessor.render_prompt(
-                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
-            )
-            chunk_prompt = CompiledPrompt(
-                static_messages=compiled_prompt.static_messages,
-                dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
-            )
+        dynamic_instruction = TemplateProcessor.render_prompt(
+            t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
+        )
+        chunk_prompt = CompiledPrompt(
+            static_messages=compiled_prompt.static_messages,
+            dynamic_messages=[LLMMessageDTO(role="user", content=dynamic_instruction)],
+        )
 
-            draft_result, usage = await self.executor.execute_structured_task(
-                client=client,
-                messages=chunk_prompt,
-                response_model=LLMDraftAtomList,
-            )
+        draft_result, usage = await self.executor.execute_structured_task(
+            client=client,
+            messages=chunk_prompt,
+            response_model=LLMDraftAtomList,
+        )
 
-            local_alias_map: dict[str, str] = {}
-            for line in hydrated_text.split("\n\n"):
-                if line.startswith("[") and "] " in line:
-                    b_id = line[1 : line.find("]")]
-                    text = line[line.find("]") + 2 :]
-                    local_alias_map[b_id] = text
-            alias_engine = AliasEngine(alias_map=local_alias_map)
+        local_alias_map: dict[str, str] = {}
+        for line in hydrated_text.split("\n\n"):
+            if line.startswith("[") and "] " in line:
+                b_id = line[1 : line.find("]")]
+                text = line[line.find("]") + 2 :]
+                local_alias_map[b_id] = text
+        alias_engine = AliasEngine(alias_map=local_alias_map)
 
-            final_drafts: list[DraftExtractedAtom] = []
-            for draft in draft_result.atoms:
-                if draft.is_logical_deduction:
-                    final_drafts.append(
-                        DraftExtractedAtom(
-                            reasoning=draft.reasoning,
-                            resolved_claim=draft.resolved_claim,
-                            is_logical_deduction=True,
-                            source_quote=None,
-                            draft_id=draft.draft_id,
-                            source_sequence_index=chunk_index,
-                        )
-                    )
-                    continue
-
-                if not draft.source_block_id:
-                    logger.warning("corrupted_atom_dropped", extra={"reason": "missing_block_id_on_non_deduction"})
-                    continue
-
-                clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
-                if clean_id not in packet_keys:
-                    logger.warning(
-                        "corrupted_atom_dropped",
-                        extra={
-                            "reason": "block_id_outside_packet_boundary",
-                            "block_id": clean_id,
-                            "packet": f"{start_b}-{end_b}",
-                        },
-                    )
-                    continue
-
-                exact_quote = None
-                if clean_id in alias_engine.alias_map:
-                    exact_quote = alias_engine.alias_map[clean_id]
-                else:
-                    logger.warning("AliasEngine hallucination detected for %s: %s", clean_id, clean_id)
-
-                if not exact_quote:
-                    logger.warning("corrupted_atom_dropped", extra={"reason": "hallucinated_block_id_not_found"})
-                    continue
-
+        final_drafts: list[DraftExtractedAtom] = []
+        for draft in draft_result.atoms:
+            if draft.is_logical_deduction:
                 final_drafts.append(
                     DraftExtractedAtom(
                         reasoning=draft.reasoning,
                         resolved_claim=draft.resolved_claim,
-                        is_logical_deduction=False,
-                        source_quote=exact_quote,
+                        is_logical_deduction=True,
+                        source_quote=None,
                         draft_id=draft.draft_id,
                         source_sequence_index=chunk_index,
                     )
                 )
+                continue
 
-            return DraftAtomList(atoms=final_drafts), usage
+            if not draft.source_block_id:
+                logger.warning("corrupted_atom_dropped", extra={"reason": "missing_block_id_on_non_deduction"})
+                continue
+
+            clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
+            if clean_id not in packet_keys:
+                logger.warning(
+                    "corrupted_atom_dropped",
+                    extra={
+                        "reason": "block_id_outside_packet_boundary",
+                        "block_id": clean_id,
+                        "packet": f"{start_b}-{end_b}",
+                    },
+                )
+                continue
+
+            exact_quote = None
+            if clean_id in alias_engine.alias_map:
+                exact_quote = alias_engine.alias_map[clean_id]
+            else:
+                logger.warning("AliasEngine hallucination detected for %s: %s", clean_id, clean_id)
+
+            if not exact_quote:
+                logger.warning("corrupted_atom_dropped", extra={"reason": "hallucinated_block_id_not_found"})
+                continue
+
+            final_drafts.append(
+                DraftExtractedAtom(
+                    reasoning=draft.reasoning,
+                    resolved_claim=draft.resolved_claim,
+                    is_logical_deduction=False,
+                    source_quote=exact_quote,
+                    draft_id=draft.draft_id,
+                    source_sequence_index=chunk_index,
+                )
+            )
+
+        return DraftAtomList(atoms=final_drafts), usage
 
     async def _extract_drafts_from_chunk(
         self,
@@ -556,7 +537,6 @@ class TwoPassAtomizer:
         packet_keys: list[str],
         chunk_index: int,
         hydrated_text: str,
-        sem: asyncio.Semaphore,
     ) -> tuple[DraftAtomList, TokenUsage]:
         """Execute chunk extraction trapping fatal failures into DLQ.
 
@@ -568,14 +548,13 @@ class TwoPassAtomizer:
             packet_keys: List of valid block IDs in this packet.
             chunk_index: Numerical index of the packet.
             hydrated_text: Complete hydrated document string for alias mapping.
-            sem: Semaphore for concurrency limiting.
 
         Returns:
             Tuple of DraftAtomList and TokenUsage.
         """
         try:
             return await self._extract_drafts_from_chunk_with_retry(
-                client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
+                client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text
             )
         except (ValidationError, AppException, OSError, RuntimeError, ValueError, RetryError) as e:
             return self._dispatch_dlq_failure(e)

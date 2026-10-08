@@ -5,9 +5,9 @@
 **Source:** @[docs/epic/EPIC_155_Engine_Concurrency_Decoupling.md#L76-L108] Phase 2: Concrete Engine Purity & Protocol Harmonization
 
 **Target Files:**
-- `[MODIFY]` @[backend_v2/services/orchestrator/engines/prompt_engine.py#L18-L74]
-- `[MODIFY]` @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]
-- `[MODIFY]` @[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]
+- `[MODIFY]` @[backend_v2/services/orchestrator/engines/prompt_engine.py#L19-L72]
+- `[MODIFY]` @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]
+- `[MODIFY]` @[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py]
@@ -18,17 +18,19 @@
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L18-L74]` (`PromptEngine`) | `async with request.semaphore_cm:`, `request.running_event.set()`, and missing PEP 698 `@override`. | Direct invocation of `self.task_executor.execute_structured_task` at root function scope; explicit `@override` decorator. | Pruned redundant semaphore wrapping and telemetry event mutation inside leaf engine. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py -v`. Protocol subclass/isinstance assertions pass 100%. |
-| `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]` (`SynthesisEngine`) | Duck-typing bare class (`class SynthesisEngine:`), missing `@override`, and `async with request.semaphore_cm:`. | Formal protocol inheritance `class SynthesisEngine(ExecutionEngine):`, PEP 698 `@override`, direct execution without semaphore locks. | Pruned redundant top-level semaphore acquisition; formal protocol contract enforcement. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py -v`. |
-| `@[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]` (`TDAEngine`) | Missing `@override`, `request.running_event.set()`, passing `semaphore=request.semaphore` to sub-executors (`TwoPassAtomizer`, `EnrichedDagExecutor`). | PEP 698 `@override` on `execute()`, direct compute pipeline delegating concurrency to `LiteLLMProvider`. | Eradicated multi-hop semaphore parameter drilling into child executors. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py -v`. Protocol inheritance and clean execution assertions pass. |
+| `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L19-L72]` (`PromptEngine`) | `async with request.semaphore_cm:`, `request.running_event.set()`, and missing PEP 698 `@override`. | Direct invocation of `self.task_executor.execute_structured_task` at root function scope; explicit `@override` decorator. | Pruned redundant semaphore wrapping and telemetry event mutation inside leaf engine. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py -v`. Protocol subclass/isinstance assertions pass 100%. |
+| `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]` (`SynthesisEngine`) | Duck-typing bare class (`class SynthesisEngine:`), missing `@override`, and `async with request.semaphore_cm:`. | Formal protocol inheritance `class SynthesisEngine(ExecutionEngine):`, PEP 698 `@override`, direct execution without semaphore locks. | Pruned redundant top-level semaphore acquisition; formal protocol contract enforcement. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py -v`. Protocol subclass/isinstance assertions pass 100%. |
+| `@[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]` (`TDAEngine`) | Missing `@override`, `request.running_event.set()`, passing `semaphore=request.semaphore` to sub-executors (`TwoPassAtomizer`, `EnrichedDagExecutor`). | PEP 698 `@override` on `execute()`, direct compute pipeline delegating concurrency to `LiteLLMProvider`. | Eradicated multi-hop semaphore parameter drilling into child executors. | `uv run pytest backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py -v`. Protocol inheritance and clean execution assertions pass. |
 | `@[backend_v2/tests/unit/test_concurrency_fuzzer.py]` (Provider Concurrency Proof) | DAG-level `max_concurrent_llm_steps` peak assertions and a deadlock-timeout boundary test bound to a semaphore that ceases to exist. | Peak concurrency proven against the provider SSOT across three ISTQB partitions in Stage A (`peak_concurrent <= expected_limit`). Parametrized `semaphore_max_concurrency` over closed set [1, 2, 5, 10]. | Zero new test infrastructure; existing fixtures and the `mock_acompletion` peak counter are reused. | `uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -v`. |
 
 ## Pre-Implementation Cleanups
 
 1. `[CLEANUP]` Ensure Phase 1 cleanups are committed and passing before beginning Phase 2.
 2. `[CLEANUP]` Delete obsolete test `test_prompt_engine_respects_semaphore` in `test_prompt_engine.py` (L127-L140).
-3. `[CLEANUP]` Remove `null_concurrency_guards` and event-signaling fixtures from `test_synthesis_engine.py`.
-4. `[CLEANUP]` Remove `semaphore` and `running_event` fixtures from `test_tda_engine.py` and `test_tda_engine_causal_matrix.py`.
+3. `[CLEANUP]` Remove `running_event` assertions from `test_prompt_engine_executes_successfully` in `test_prompt_engine.py`.
+4. `[CLEANUP]` Remove explicit `asyncio.Semaphore(1)` instantiation from `base_request` fixture in `test_synthesis_engine.py`.
+5. `[CLEANUP]` Remove `running_event` assertions (L134-136) from `test_tda_engine_execute_success` and clean `engine_request` fixture in `test_tda_engine.py`.
+6. `[CLEANUP]` Remove explicit `semaphore` and `running_event` instantiations from `base_request` fixture in `test_tda_engine_causal_matrix.py` (L53-54).
 
 ```xml
 <execution_protocol>
@@ -113,24 +115,24 @@
   </test_contracts>
 
   <step id="2.1" name="PURIFY_AND_HARMONIZE_PROMPT_ENGINE">
-    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L18-L74]`, import `override` from `typing` and decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L18-L74]`, remove `if request.running_event: request.running_event.set()` at L59-L60.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L18-L74]`, remove `async with request.semaphore_cm:` block at L62 and invoke `self.task_executor.execute_structured_task` directly at root function indentation.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L19-L72]`, import `override` from `typing` and decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L19-L72]`, remove `if request.running_event: request.running_event.set()` at L59-L60.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/prompt_engine.py#L19-L72]`, remove `async with request.semaphore_cm:` block at L62 and invoke `self.task_executor.execute_structured_task` directly at root function indentation.</action>
   </step>
 
   <step id="2.2" name="PURIFY_AND_HARMONIZE_SYNTHESIS_ENGINE">
-    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]`, import `override` from `typing` and import `ExecutionEngine` from `backend_v2.services.orchestrator.engines.base`.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]`, update class definition to `class SynthesisEngine(ExecutionEngine):`.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]`, decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]`, remove `async with request.semaphore_cm:` block at L221 and invoke `self._executor.execute_structured_task` directly.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L36-L292]`, ensure zero `running_event` references exist.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]`, import `override` from `typing` and import `ExecutionEngine` from `backend_v2.services.orchestrator.engines.base`.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]`, update class definition to `class SynthesisEngine(ExecutionEngine):`.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]`, decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]`, remove `async with request.semaphore_cm:` block at L225 and invoke `self._executor.execute_structured_task` directly.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L37-L296]`, ensure zero `running_event` references exist.</action>
   </step>
 
   <step id="2.3" name="PURIFY_AND_HARMONIZE_TDA_ENGINE">
-    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]`, import `override` from `typing` and decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]`, remove `if request.running_event: request.running_event.set()` at L67-L68.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]`, remove `semaphore=request.semaphore` from `atomizer.execute_phase_0` call at L195.</action>
-    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L37-L271]`, remove `semaphore=request.semaphore` from `dag_executor.execute_graph` call at L230.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]`, import `override` from `typing` and decorate `async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:` with `@override`.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]`, remove `if request.running_event: request.running_event.set()` at L65-L66.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]`, remove `semaphore=request.semaphore` from `atomizer.execute_phase_0` call at L162.</action>
+    <action>In `@[backend_v2/services/orchestrator/engines/tda_engine.py#L35-L234]`, remove `semaphore=request.semaphore` from `dag_executor.execute_graph` call at L197.</action>
   </step>
 
   <step id="2.4" name="UPDATE_ORCHESTRATOR_ENGINE_UNIT_TESTS">
@@ -138,9 +140,9 @@
     <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py]`, import `ExecutionEngine` from `backend_v2.services.orchestrator.engines.base` and add `test_prompt_engine_implements_protocol()` asserting `issubclass(PromptEngine, ExecutionEngine)` and `isinstance(engine, ExecutionEngine)`.</action>
     <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py]`, remove all `semaphore` and `running_event` fixtures and tests verifying `null_concurrency_guards` or event signaling.</action>
     <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_synthesis_engine.py]`, import `ExecutionEngine` from `backend_v2.services.orchestrator.engines.base` and add `test_synthesis_engine_implements_protocol()` asserting `issubclass(SynthesisEngine, ExecutionEngine)` and `isinstance(engine, ExecutionEngine)`.</action>
-    <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py]`, remove `running_event` assertions and `semaphore` fixtures (fixture L67-L68; assertions L132-L133).</action>
+    <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py]`, remove `running_event` assertions and `semaphore` fixtures (fixture L70-L71; assertions L134-L136).</action>
     <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine.py]`, import `ExecutionEngine` from `backend_v2.services.orchestrator.engines.base` and add `test_tda_engine_implements_protocol()` asserting `issubclass(TDAEngine, ExecutionEngine)` and `isinstance(engine, ExecutionEngine)`.</action>
-    <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine_causal_matrix.py]`, remove `semaphore` and `running_event` instantiation (L51-L52).</action>
+    <action>In `@[backend_v2/tests/unit/services/orchestrator/engines/test_tda_engine_causal_matrix.py]`, remove `semaphore` and `running_event` instantiation (L53-L54).</action>
   </step>
 
   <step id="2.5" name="REBASE_CONCURRENCY_FUZZER_ON_PROVIDER_SSOT">
@@ -157,4 +159,5 @@
     <action>Assert issubclass(TDAEngine, ExecutionEngine) is True</action>
   </validation_gate>
 </execution_protocol>
+
 ```

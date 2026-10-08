@@ -159,7 +159,6 @@ async def test_extract_drafts_from_chunk_dlq_fallback(mock_executor, mock_client
     mock_executor.execute_structured_task.side_effect = RuntimeError("Crash in LLM task")
 
     compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
-    sem = asyncio.Semaphore(1)
 
     result, usage = await atomizer._extract_drafts_from_chunk(
         client=mock_client,
@@ -169,7 +168,6 @@ async def test_extract_drafts_from_chunk_dlq_fallback(mock_executor, mock_client
         packet_keys=["B0"],
         chunk_index=0,
         hydrated_text="[B0] text",
-        sem=sem,
     )
 
     assert result.dlq_status == "FAILED/DLQ"
@@ -254,7 +252,6 @@ async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, moc
         mock_draft_list,
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
-    sem = asyncio.Semaphore(1)
     with pytest.raises(ValueError, match="outside the assigned packet"):
         await atomizer._extract_atoms_from_chunk(
             client=mock_client,
@@ -264,7 +261,6 @@ async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, moc
             packet_keys=["B0", "B1"],
             chunk_index=0,
             hydrated_text="[B0] text\n\n[B1] text2",
-            sem=sem,
         )
 
 
@@ -287,7 +283,6 @@ async def test_extract_atoms_from_chunk_alias_not_found(mock_executor, mock_clie
         mock_draft_list,
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
-    sem = asyncio.Semaphore(1)
     atoms, _ = await atomizer._extract_atoms_from_chunk(
         client=mock_client,
         compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
@@ -296,7 +291,6 @@ async def test_extract_atoms_from_chunk_alias_not_found(mock_executor, mock_clie
         packet_keys=["B0", "B1"],
         chunk_index=0,
         hydrated_text="[B0] text",
-        sem=sem,
     )
     assert len(atoms) == 0
 
@@ -341,7 +335,6 @@ async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client,
         mock_draft_list,
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
-    sem = asyncio.Semaphore(1)
     result, _ = await atomizer._extract_drafts_from_chunk(
         client=mock_client,
         compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
@@ -350,6 +343,93 @@ async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client,
         packet_keys=["B0", "B1"],
         chunk_index=0,
         hydrated_text="[B0] text",
-        sem=sem,
     )
     assert len(result.atoms) == 0
+
+
+@pytest.mark.asyncio
+async def test_two_pass_atomizer_execute_phase_0_without_semaphore(mock_executor, mock_client, settings_mock):
+    """Phase 3 Test Contract: execute_phase_0 without semaphore returns GlobalOntologyMap and TokenUsage."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_ontology = GlobalOntologyMap(
+        entities=[OntologyEntity(name="ContractEntity", description="Contract Desc")],
+        macro_rules=["ContractRule"],
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_ontology,
+        TokenUsage(prompt_tokens=40, completion_tokens=10, total_tokens=50),
+    )
+
+    result, usage = await atomizer.execute_phase_0(client=mock_client, hydrated_text="[B0] Contract text")
+    assert isinstance(result, GlobalOntologyMap)
+    assert len(result.entities) == 1
+    assert result.entities[0].name == "ContractEntity"
+    assert usage.total_tokens == 50
+
+
+@pytest.mark.asyncio
+async def test_two_pass_atomizer_execute_phase_1_without_semaphore(mock_executor, mock_client, settings_mock):
+    """Phase 3 Test Contract: execute_phase_1 without semaphore returns list[ExtractedAtom] and TokenUsage."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="ContractReason",
+                resolved_claim="ContractClaim",
+                source_block_id="B0",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=60, completion_tokens=15, total_tokens=75),
+    )
+
+    result, usage = await atomizer.execute_phase_1(
+        client=mock_client, hydrated_text="[B0] Contract chunk", ontology=mock_ontology
+    )
+    assert len(result) == 1
+    assert isinstance(result[0], ExtractedAtom)
+    assert result[0].resolved_claim == "ContractClaim"
+    assert usage.total_tokens == 75
+
+
+@pytest.mark.asyncio
+async def test_two_pass_atomizer_helpers_reject_unexpected_semaphore_kwarg(mock_executor, mock_client, settings_mock):
+    """Phase 3 Test Contract: verify helpers and phase methods reject unexpected sem / semaphore kwargs."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+    dummy_sem = asyncio.Semaphore(1)
+    sem_kwarg = {"sem": dummy_sem}
+    semaphore_kwarg = {"semaphore": dummy_sem}
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'sem'"):
+        await atomizer._extract_ontology_from_chunk(
+            client=mock_client,
+            compiled_prompt=compiled_prompt,
+            start_b="B0",
+            end_b="B1",
+            **sem_kwarg,
+        )
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'sem'"):
+        await atomizer._extract_atoms_from_chunk(
+            client=mock_client,
+            compiled_prompt=compiled_prompt,
+            start_b="B0",
+            end_b="B1",
+            packet_keys=["B0", "B1"],
+            chunk_index=0,
+            hydrated_text="[B0] text",
+            **sem_kwarg,
+        )
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
+        await atomizer.execute_phase_0(
+            client=mock_client,
+            hydrated_text="[B0] text",
+            **semaphore_kwarg,
+        )

@@ -6,7 +6,7 @@ Strategy engine executing Kahn-based causal wave graphs over propositional asser
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
@@ -48,6 +48,7 @@ class TDAEngine(ExecutionEngine):
         """
         self._compiler = prompt_compiler
 
+    @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Executes the TDA pipeline for matrix evaluations.
 
@@ -62,9 +63,6 @@ class TDAEngine(ExecutionEngine):
                 (ErrorCodes.VALIDATION_FAILED), or if execution fails catastrophically
                 (ErrorCodes.AGENT_EXECUTION_CRITICAL).
         """
-        if request.running_event:
-            request.running_event.set()
-
         # Fail-Fast: Zero-Fallback mandate. TDAEngine strictly requires pre-compiled matrix assertions.
         if not request.shuffled_atoms:
             logger.error(
@@ -159,7 +157,6 @@ class TDAEngine(ExecutionEngine):
                     request.bound_client,
                     hydrated_text,
                     progress_callback=phase_0_progress_matrix,
-                    semaphore=request.semaphore,
                 )
 
             evaluation_context = TemplateProcessor.render_prompt(
@@ -194,7 +191,6 @@ class TDAEngine(ExecutionEngine):
                     progress_callback=dag_progress_matrix,
                     execution_id=request.context.execution_id,
                     step_id=request.step.id,
-                    semaphore=request.semaphore,
                     matrix_context=matrix_context,
                 )
             total_usage = usage_p0 + usage_dag

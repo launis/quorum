@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -186,7 +185,6 @@ async def test_execute_fails_fast_if_no_blueprint(llm_strategy: LLMNodeStrategy)
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert exc_info.value.status_code == 500
@@ -216,7 +214,6 @@ async def test_execute_fails_fast_if_blueprint_not_found(llm_strategy: LLMNodeSt
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert exc_info.value.status_code == 500
@@ -271,7 +268,6 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
@@ -337,7 +333,6 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.status_code == 500
@@ -444,7 +439,6 @@ async def test_execute_success_path_structured_output(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -555,7 +549,6 @@ async def test_llm_strategy_missing_atoms_crash(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.status_code == 500
@@ -795,7 +788,6 @@ async def test_execute_with_role_and_persona_and_protocol(
             context=context,
             frozen_ctx=FrozenContext(),
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -921,7 +913,6 @@ async def test_execute_synthesis_engine_path(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -1040,7 +1031,6 @@ async def test_execute_anomaly_retry_flow(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -1092,7 +1082,6 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "Role Block 'blk_1111111111111111' not found" in exc_info.value.message
@@ -1155,7 +1144,6 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "Execution Persona Block 'blk_2222222222222222' not found" in exc_info.value.message
@@ -1228,7 +1216,6 @@ async def test_execute_fails_fast_on_missing_output_profile(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
@@ -1315,7 +1302,6 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
@@ -1535,7 +1521,6 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "missing mandatory 'target_locale'" in exc_info.value.message
@@ -1610,7 +1595,6 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert exc_info.value.status_code == 404
@@ -1764,7 +1748,6 @@ async def test_execute_matrix_chunking_flow(
             context=context,
             frozen_ctx=FrozenContext(),
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -1857,7 +1840,6 @@ async def test_execute_anomaly_retry_exceeded_limit(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1
@@ -1909,7 +1891,6 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "Malformed PromptBlock in DB" in exc_info.value.message
@@ -1996,17 +1977,16 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "Strict Fail-Fast Enforced: 'shuffled_atoms' is empty" in exc_info.value.message
 
 
 @pytest.mark.asyncio
-async def test_execute_sets_running_event_and_handles_string_inputs(
+async def test_llm_node_strategy_execute_without_concurrency(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
-    """Test that execute triggers running_event and unwraps string inputs."""
+    """Test that execute unwraps string inputs without concurrency parameters."""
     from unittest.mock import AsyncMock, patch
 
     from backend_v2.models.state import StepOutputDTO
@@ -2076,8 +2056,6 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
         global_context_vars=GlobalContextVarsDTO(),
     )
 
-    running_evt = asyncio.Event()
-
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
@@ -2096,12 +2074,16 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
-            running_event=running_evt,
         )
 
-    assert running_evt.is_set() is True
     assert len(traces) == 1
+
+
+@pytest.mark.asyncio
+async def test_execute_handles_string_inputs(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    await test_llm_node_strategy_execute_without_concurrency(llm_strategy, mock_repo, mock_compiler)
 
 
 @pytest.mark.asyncio
@@ -2175,7 +2157,6 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "cognitive_tier" in str(exc_info.value)
@@ -2314,7 +2295,6 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
         assert len(traces) == 1
@@ -2463,7 +2443,6 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
         req_call = mock_req.call_args
@@ -2500,7 +2479,6 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
         req_call = mock_req.call_args
@@ -2533,7 +2511,6 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
         req_call = mock_req.call_args
@@ -2599,7 +2576,6 @@ async def test_execute_fails_fast_on_missing_protocol_block(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "Extraction Protocol Block 'blk_573802341db9d68c' not found" in exc_info.value.message
@@ -2685,7 +2661,6 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
                 context=context,
                 frozen_ctx=None,
                 trace=[],
-                semaphore=asyncio.Semaphore(2),
             )
 
     assert "has no cognitive_tier defined" in exc_info.value.message
@@ -2984,7 +2959,24 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_llm_strategy_rejects_semaphore_argument(llm_strategy: LLMNodeStrategy) -> None:
+    step = MagicMock()
+    projector = MagicMock()
+    context = MagicMock()
+    with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
+        await llm_strategy.execute(step, projector, context, **{"semaphore": MagicMock()})
+
+
+@pytest.mark.asyncio
+async def test_llm_strategy_rejects_running_event_argument(llm_strategy: LLMNodeStrategy) -> None:
+    step = MagicMock()
+    projector = MagicMock()
+    context = MagicMock()
+    with pytest.raises(TypeError, match="unexpected keyword argument 'running_event'"):
+        await llm_strategy.execute(step, projector, context, **{"running_event": MagicMock()})

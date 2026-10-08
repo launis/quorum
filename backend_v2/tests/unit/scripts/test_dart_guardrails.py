@@ -306,7 +306,6 @@ def test_dgr005_object_map_allowed() -> None:
     assert len(dgr005) == 0
 
 
-
 # ==============================================================================
 # Partition 6: DGR006 Banned Anonymous Map Literals in HTTP Payloads
 # ==============================================================================

@@ -7,9 +7,9 @@
 **Target Files:**
 - `[MODIFY]` @[backend_v2/models/dtos/engine.py#L61-L132]
 - `[MODIFY]` @[backend_v2/tests/unit/models/dtos/test_engine.py#L101-L148]
-- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L189-L372]
-- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]
-- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L752-L1069]
+- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L189-L370]
+- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L373-L1349]
+- `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L750-L1067]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L192-L259]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L346-L426]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L429-L465]
@@ -20,22 +20,26 @@
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L1187-L1266]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L1724-L1797]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py#L1870-L1940]
-- `[MODIFY]` @[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L70-L81]
+- `[MODIFY]` @[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L80-L92]
+- `[MODIFY]` @[backend_v2/tests/unit/test_concurrency_fuzzer.py#L217-L249]
 
 ## 5-Column Architectural Directives Table
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| `@[backend_v2/models/dtos/engine.py#L61-L132]` (`EngineExecutionRequest`) | Concurrency primitives (`asyncio.Semaphore`, `asyncio.Event`) and nullcontext wrapper property (`@property def semaphore_cm`) residing inside a domain DTO. | Pure execution DTO configured with `ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)`. In-memory runtime handles safely encapsulated without serialization impedance. | Pruned 3 dead/concurrency fields (`semaphore`, `running_event`, `semaphore_cm`). Eradicated multi-hop plumbing across 6 layers. | `uv run pytest backend_v2/tests/unit/models/dtos/test_engine.py -v`. Direct attribute access asserts absence of `semaphore` and `semaphore_cm`. |
-| `@[backend_v2/services/orchestrator/dag_executor.py#L189-L372]`, `@[backend_v2/services/orchestrator/dag_executor.py#L752-L1069]` (`NodeExecutor`, `DAGExecutor`) | Macro-semaphore `asyncio.Semaphore(max_concurrent_llm_steps)`, `running_event = asyncio.Event()`, `watch_running()` background task, and `watcher_task.cancel()`. | The existing `QUEUED` transition block (L819-L828) is REPLACED in place by a single `ExecutionStatus.RUNNING` transition: state mutation inside `_update_lock`, exactly one `_safe_commit()` awaited AFTER lock release (`async_io_lock_isolation_mandate`), immediately prior to dispatching `NodeExecutor.execute`. | Pruned 22 lines of complex background event watching; eliminated unmanaged background tasks evading `TaskGroup`. | `uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py -v`. Atomic transition to `RUNNING` verified upon dispatch. |
-| `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L70-L81]` | Obsolete AST assertion requiring `asyncio.Semaphore` in `dag_executor.py` (L81). | Modernized AST guardrail asserting `res["semaphore"] is False` and `res["event"] is False` in the 11 decoupled modules, `res["semaphore"] is False` in `dag_executor.py`, while retaining `res["semaphore"] is True` in `provider.py`. | Pruned obsolete AST concurrency assertion, vacuous missing-file passes, and unguarded `asyncio.Event` regressions. | `uv run pytest backend_v2/tests/unit/test_ast_concurrency_guardrails.py -v`; asserts `res["semaphore"] is False` and `res["event"] is False` for the 11 modules, with `assert filepath.exists()` in `scan_file_for_concurrency` (L63-L67). |
+| `@[backend_v2/models/dtos/engine.py#L61-L132]` (`EngineExecutionRequest`) | Concurrency primitives (`asyncio.Semaphore`, `asyncio.Event`) and nullcontext wrapper property (`@property def semaphore_cm`) residing inside a domain DTO. | Pure execution DTO configured with `ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)`. In-memory runtime handles safely encapsulated without serialization impedance. | Pruned 3 dead/concurrency fields (`semaphore`, `running_event`, `semaphore_cm`) and unused `import asyncio`. Eradicated multi-hop plumbing across 6 layers. | `uv run pytest backend_v2/tests/unit/models/dtos/test_engine.py -v`. Direct attribute access asserts absence of `semaphore` and `semaphore_cm`. |
+| `@[backend_v2/services/orchestrator/dag_executor.py#L189-L370]`, `@[backend_v2/services/orchestrator/dag_executor.py#L373-L1349]`, `@[backend_v2/services/orchestrator/dag_executor.py#L750-L1067]` (`NodeExecutor`, `DAGExecutor`) | Macro-semaphore `asyncio.Semaphore(max_concurrent_llm_steps)` at L731, `running_event = asyncio.Event()`, `watch_running()` background task, and `watcher_task.cancel()`. | The existing `QUEUED` transition block is REPLACED in place by a single `ExecutionStatus.RUNNING` transition: state mutation inside `_update_lock`, exactly one `_safe_commit()` awaited AFTER lock release (`async_io_lock_isolation_mandate`), immediately prior to dispatching `NodeExecutor.execute`. | Pruned 22 lines of complex background event watching; eliminated unmanaged background tasks evading `TaskGroup`; pruned unused `from backend_v2.settings import get_settings` at L66. | `uv run pytest backend_v2/tests/unit/services/orchestrator/test_dag_executor.py -v`. Atomic transition to `RUNNING` verified upon dispatch. |
+| `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L80-L92]` | Obsolete AST assertion requiring `asyncio.Semaphore` in `dag_executor.py` (L92). | Modernized AST guardrail asserting `res["semaphore"] is False` and `res["event"] is False` in the 11 decoupled modules, `res["semaphore"] is False` in `dag_executor.py`, while retaining `res["semaphore"] is True` in `provider.py`. | Pruned obsolete AST concurrency assertion, vacuous missing-file passes, and unguarded `asyncio.Event` regressions. | `uv run pytest backend_v2/tests/unit/test_ast_concurrency_guardrails.py -v`; asserts `res["semaphore"] is False` and `res["event"] is False` for the 11 modules, with `assert filepath.exists()` in `scan_file_for_concurrency` (L73-L77). |
+| `@[backend_v2/tests/unit/test_concurrency_fuzzer.py#L217-L249]` | Unbound concurrency verification missing explicit Stage B test alias for exact peak equality verification. | Explicit Stage B proof contract (`test_concurrency_fuzzer_peak_limit_stage_b = test_concurrency_fuzzer_peak_limit_stage_a`) asserting peak concurrency against provider SSOT across closed set [1, 2, 5, 10]. | Reuses existing fuzzer infrastructure and `_execute_and_measure_peak_concurrency` fixture without creating shadow test fixtures. | `uv run pytest backend_v2/tests/unit/test_concurrency_fuzzer.py -v`. |
 
 ## Pre-Implementation Cleanups
 
 1. `[CLEANUP]` Ensure Phase 4 strategy layer harmonization is committed and passing.
-2. `[CLEANUP]` Delete `watcher_task` and `running_event` references from `dag_executor.py` (L830-L852, L931).
-3. `[CLEANUP]` Delete `if "running_event" in kwargs` from `fake_node_execute` in `test_dag_executor.py#L849-L850`.
-4. `[CLEANUP]` Refactor `test_dag_executor_hoists_and_passes_semaphore` into `test_dag_executor_pure_dispatch_without_semaphore`.
+2. `[CLEANUP]` Delete `watcher_task` and `running_event` references from `dag_executor.py` (L830-L852, L929).
+3. `[CLEANUP]` Delete unused `from backend_v2.settings import get_settings` import at `dag_executor.py#L66` (Ruff F401).
+4. `[CLEANUP]` Delete unused `import asyncio` at `backend_v2/models/dtos/engine.py#L8` (Ruff F401).
+5. `[CLEANUP]` Delete `if "running_event" in kwargs` from `fake_node_execute` in `test_dag_executor.py#L849-L850`.
+6. `[CLEANUP]` Refactor `test_dag_executor_hoists_and_passes_semaphore` into `test_dag_executor_pure_dispatch_without_semaphore`.
 
 ```xml
 <execution_protocol>
@@ -85,6 +89,7 @@
   <touched_artifacts>
     <backend>@[backend_v2/models/dtos/engine.py]</backend>
     <backend>@[backend_v2/services/orchestrator/dag_executor.py]</backend>
+    <backend>@[backend_v2/tests/unit/test_concurrency_fuzzer.py]</backend>
   </touched_artifacts>
 
   <contract_freeze>
@@ -136,12 +141,12 @@
   </step>
 
   <step id="5.3" name="PURIFY_NODE_EXECUTOR_AND_SIMPLIFY_DAG_EXECUTOR">
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L189-L372]`, remove `semaphore: asyncio.Semaphore` and `running_event: asyncio.Event | None = None` from `NodeExecutor.execute` signature.</action>
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]`, remove top-level `semaphore = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)` initialization at L733.</action>
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]`, eradicate `running_event = asyncio.Event()`, `watch_running()` function, and `watcher_task = asyncio.create_task(watch_running())` at L830-L852.</action>
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]`, REPLACE the `ExecutionStatus.QUEUED` assignment block at L819-L828 with a direct `ExecutionStatus.RUNNING` assignment inside `_update_lock` immediately prior to dispatching `node_executor.execute`, followed by exactly ONE `_safe_commit()` call executed AFTER the lock is released. No second status commit is permitted. The `ExecutionStatus.QUEUED` enum member is RETAINED (persisted records and the Flutter client reference it) but is no longer emitted by `DAGExecutor`.</action>
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]`, remove `semaphore=semaphore` and `running_event=running_event` from `node_executor.execute` call at L923-L924.</action>
-    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L375-L1351]`, remove `watcher_task.cancel()` in the `finally:` block at L931.</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L189-L370]`, remove `semaphore: asyncio.Semaphore` and `running_event: asyncio.Event | None = None` from `NodeExecutor.execute` signature and docstring.</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L373-L1349]`, remove top-level `semaphore = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)` initialization at L731. Delete unused `from backend_v2.settings import get_settings` at L66 (Ruff F401).</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L373-L1349]`, eradicate `running_event = asyncio.Event()`, `watch_running()` function, and `watcher_task = asyncio.create_task(watch_running())` at L828-L850.</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L750-L1067]`, REPLACE the `ExecutionStatus.QUEUED` assignment block at L817-L826 with a direct `ExecutionStatus.RUNNING` assignment inside `_update_lock` immediately prior to dispatching `node_executor.execute`, followed by exactly ONE `_safe_commit()` call executed AFTER the lock is released. No second status commit is permitted. The `ExecutionStatus.QUEUED` enum member is RETAINED (persisted records and the Flutter client reference it) but is no longer emitted by `DAGExecutor`.</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L750-L1067]`, remove `semaphore=semaphore` and `running_event=running_event` from `node_executor.execute` call at L921-L922.</action>
+    <action>In `@[backend_v2/services/orchestrator/dag_executor.py#L750-L1067]`, remove `watcher_task.cancel()` in the `finally:` block at L928-L929.</action>
   </step>
 
   <step id="5.4" name="UPDATE_DAG_EXECUTOR_WATCHER_TEST">
@@ -161,9 +166,13 @@
   </step>
 
   <step id="5.6" name="UPDATE_AST_CONCURRENCY_GUARDRAILS">
-    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L70-L81]`, update `test_ast_semaphore_guardrail` to assert `res["semaphore"] is False` for `dag_executor.py` (`assert res["semaphore"] is False, f"Leaky asyncio.Semaphore found in {dag_executor_path}"`), proving pure compute decoupling while retaining `res["semaphore"] is True` for `provider.py`.</action>
-    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L70-L81]`, extend the `res["semaphore"] is False` assertion to the closed set of 11 modules (specifically and exhaustively: `backend_v2/models/dtos/engine.py`, `backend_v2/services/orchestrator/engines/base.py`, `backend_v2/services/orchestrator/engines/prompt_engine.py`, `backend_v2/services/orchestrator/engines/synthesis_engine.py`, `backend_v2/services/orchestrator/engines/tda_engine.py`, `backend_v2/services/orchestrator/two_pass_atomizer.py`, `backend_v2/services/orchestrator/enriched_dag_executor.py`, `backend_v2/services/orchestrator/sliding_window_linker.py`, `backend_v2/services/orchestrator/strategies/base.py`, `backend_v2/services/orchestrator/strategies/logic.py`, `backend_v2/services/orchestrator/strategies/llm.py`), each guarded by `assert path.exists()` per Step 1.5 so that a moved file fails loudly instead of passing vacuously.</action>
-    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py]`, add `found_event` detection to `ConcurrencyVisitor` (detecting `asyncio.Event` attribute and `from asyncio import Event` alias, mirroring L21-L33), and assert `res["event"] is False` for the closed set of 11 decoupled modules (specifically excluding `dag_executor.py`, which legitimately retains `asyncio.Event` for internal DAG step coordination at L722). Add negative unit tests mirroring L108-L129 proving `asyncio.Event` is detected and blocked.</action>
+    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L80-L92]`, update `test_ast_semaphore_guardrail` to assert `res["semaphore"] is False` for `dag_executor.py` (`assert res["semaphore"] is False, f"Leaky asyncio.Semaphore found in {dag_executor_path}"`), proving pure compute decoupling while retaining `res["semaphore"] is True` for `provider.py`.</action>
+    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L80-L92]`, extend the `res["semaphore"] is False` assertion to the closed set of 11 modules (specifically and exhaustively: `backend_v2/models/dtos/engine.py`, `backend_v2/services/orchestrator/engines/base.py`, `backend_v2/services/orchestrator/engines/prompt_engine.py`, `backend_v2/services/orchestrator/engines/synthesis_engine.py`, `backend_v2/services/orchestrator/engines/tda_engine.py`, `backend_v2/services/orchestrator/two_pass_atomizer.py`, `backend_v2/services/orchestrator/enriched_dag_executor.py`, `backend_v2/services/orchestrator/sliding_window_linker.py`, `backend_v2/services/orchestrator/strategies/base.py`, `backend_v2/services/orchestrator/strategies/logic.py`, `backend_v2/services/orchestrator/strategies/llm.py`), each guarded by `assert path.exists()` per Step 1.5 so that a moved file fails loudly instead of passing vacuously.</action>
+    <action>In `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py]`, add `found_event` detection to `ConcurrencyVisitor` (detecting `asyncio.Event` attribute and `from asyncio import Event` alias, mirroring L21-L33), and assert `res["event"] is False` for the closed set of 11 decoupled modules (specifically excluding `dag_executor.py`, which legitimately retains `asyncio.Event` for internal DAG step coordination at L720). Add negative unit tests mirroring L121-L144 proving `asyncio.Event` is detected and blocked.</action>
+  </step>
+
+  <step id="5.7" name="UPDATE_CONCURRENCY_FUZZER_TEST">
+    <action>In `@[backend_v2/tests/unit/test_concurrency_fuzzer.py#L217-L249]`, establish the Stage B proof contract by defining `test_concurrency_fuzzer_peak_limit_stage_b = test_concurrency_fuzzer_peak_limit_stage_a`, asserting peak concurrency against provider SSOT across closed set [1, 2, 5, 10] without macro-semaphore gating.</action>
   </step>
 
   <validation_gate>

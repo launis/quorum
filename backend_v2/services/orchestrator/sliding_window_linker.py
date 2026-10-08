@@ -6,7 +6,6 @@ Uses a sliding window approach over extracted atoms to resolve cross-chunk causa
 dependencies without exceeding LLM context windows or losing attention on middle chunks.
 """
 
-import asyncio
 import logging
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
@@ -199,7 +198,6 @@ class SlidingWindowLinker:
         atoms: list[ExtractedAtom],
         ontology_map: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        semaphore: asyncio.Semaphore | None = None,
     ) -> tuple[list[LinkedAtomGraph], TokenUsage]:
         """Link atoms together into a causal graph.
 
@@ -209,7 +207,6 @@ class SlidingWindowLinker:
             atoms: Flat list of extracted atoms.
             ontology_map: The global ontology map for anaphora resolution.
             progress_callback: Optional asynchronous callback for reporting progress.
-            semaphore: Optional concurrency limiter.
 
         Returns:
             A tuple of list[LinkedAtomGraph] objects with populated depends_on and aggregated TokenUsage.
@@ -274,16 +271,13 @@ class SlidingWindowLinker:
             )
 
             try:
-                sem = semaphore
-                if sem is None:
-                    sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
-                async with sem:
-                    response, usage = await executor.execute_structured_task(
-                        client=client,
-                        messages=compiled_prompt,
-                        response_model=LinkerResponseDTO,
-                    )
-                    total_usage = total_usage + usage
+                # Phase 3, Step 3.3: Direct task execution delegating rate limiting to LiteLLMProvider
+                response, usage = await executor.execute_structured_task(
+                    client=client,
+                    messages=compiled_prompt,
+                    response_model=LinkerResponseDTO,
+                )
+                total_usage = total_usage + usage
             except Exception as e:
                 # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
                 msg = f"Failed to link graph window: {str(e)}"

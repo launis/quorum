@@ -1886,4 +1886,3 @@ def legacy_override(record):
     violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 0
-

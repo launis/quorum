@@ -160,7 +160,7 @@ async def test_save_string_data() -> None:
         patch("pathlib.Path.is_dir", return_value=True),
         patch.object(LocalFileDriver, "_validate_path") as mock_validate,
         patch("aiofiles.open") as mock_aiofiles_open,
-        patch("os.replace") as mock_os_replace,
+        patch("os.replace"),
     ):
         mock_path = MagicMock()
         mock_tmp_path = MagicMock()

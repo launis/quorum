@@ -4,7 +4,6 @@ Proves that TDAEngine and LLMStrategy currently fail to aggregate and propagate
 TokenUsage and cost_usd from internal LLM executions into TraceEvent._step_metadata.
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -124,8 +123,6 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         ),
         global_source_text="Test source text",
         target_locale="fi",
-        semaphore=asyncio.Semaphore(1),
-        running_event=asyncio.Event(),
         progress_callback=AsyncMock(),
         trace_callback=AsyncMock(),
         prompt_compiler=mock_compiler,
@@ -267,7 +264,6 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
             context=context,
             frozen_ctx=None,
             trace=[],
-            semaphore=asyncio.Semaphore(2),
         )
 
     assert len(traces) == 1

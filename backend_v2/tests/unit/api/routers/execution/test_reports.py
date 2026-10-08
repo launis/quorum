@@ -147,9 +147,7 @@ def test_post_create_report_with_force_resynthesis_true(
     response = client.post(f"/api/v2/executions/{MOCK_EXE_ID}/reports", json=payload)
 
     assert response.status_code == 202
-    mock_report_service.compile_and_persist_artifact.assert_called_once_with(
-        MOCK_REP_ID, ANY, force_resynthesis=True
-    )
+    mock_report_service.compile_and_persist_artifact.assert_called_once_with(MOCK_REP_ID, ANY, force_resynthesis=True)
 
 
 def test_post_create_report_defaults_force_resynthesis_false(
@@ -180,9 +178,7 @@ def test_post_create_report_defaults_force_resynthesis_false(
     response = client.post(f"/api/v2/executions/{MOCK_EXE_ID}/reports", json=payload)
 
     assert response.status_code == 202
-    mock_report_service.compile_and_persist_artifact.assert_called_once_with(
-        MOCK_REP_ID, ANY, force_resynthesis=False
-    )
+    mock_report_service.compile_and_persist_artifact.assert_called_once_with(MOCK_REP_ID, ANY, force_resynthesis=False)
 
 
 def test_post_create_report_invalid_force_resynthesis_422(

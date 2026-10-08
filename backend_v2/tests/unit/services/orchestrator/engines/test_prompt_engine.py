@@ -1,6 +1,5 @@
 """Unit tests for PromptEngine execution and fail-fast validation."""
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -13,6 +12,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
@@ -73,20 +73,16 @@ async def test_prompt_engine_executes_successfully(
     expected_usage = TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
     mock_executor.execute_structured_task.return_value = (expected_output, expected_usage)
 
-    running_event = asyncio.Event()
-    request = base_request.model_copy(update={"running_event": running_event})
-
     engine = PromptEngine(task_executor=mock_executor)
-    result = await engine.execute(request)
+    result = await engine.execute(base_request)
 
-    assert running_event.is_set()
     assert result.synthesis_output == expected_output
     assert result.usage == expected_usage
     assert result.results == []
     assert result.hydrated_references == {}
     mock_executor.execute_structured_task.assert_called_once_with(
-        client=request.bound_client,
-        messages=request.hydrated_messages,
+        client=base_request.bound_client,
+        messages=base_request.hydrated_messages,
         response_model=MockResponseModel,
     )
 
@@ -123,21 +119,11 @@ async def test_prompt_engine_fails_fast_when_messages_empty(
     assert "empty hydrated_messages" in exc_info.value.message
 
 
-@pytest.mark.asyncio
-async def test_prompt_engine_respects_semaphore(mock_executor: MagicMock, base_request: EngineExecutionRequest) -> None:
-    """Verify PromptEngine acquires semaphore during execution."""
-    expected_output = MockResponseModel(summary="Semaphore test")
-    expected_usage = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
-    mock_executor.execute_structured_task.return_value = (expected_output, expected_usage)
-
-    semaphore = asyncio.Semaphore(1)
-    request = base_request.model_copy(update={"semaphore": semaphore})
-
+def test_prompt_engine_implements_protocol(mock_executor: MagicMock) -> None:
+    """Verify PromptEngine implements ExecutionEngine protocol."""
     engine = PromptEngine(task_executor=mock_executor)
-    result = await engine.execute(request)
-
-    assert result.synthesis_output == expected_output
-    assert semaphore._value == 1
+    assert issubclass(PromptEngine, ExecutionEngine)
+    assert isinstance(engine, ExecutionEngine)
 
 
 def test_engines_exports_all_symbols() -> None:

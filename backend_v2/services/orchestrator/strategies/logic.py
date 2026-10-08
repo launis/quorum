@@ -1,6 +1,5 @@
 """Logic node strategy module."""
 
-import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -45,10 +44,8 @@ class LogicNodeStrategy(NodeStrategy):
         step: StepRule,
         projector: StateProjector,
         context: StrategyContext,
-        frozen_ctx: FrozenContext | None,
-        trace: list[TraceEvent] | None,
-        semaphore: asyncio.Semaphore,
-        running_event: asyncio.Event | None = None,
+        frozen_ctx: FrozenContext | None = None,
+        trace: list[TraceEvent] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes a Native/Logic Step, delegating CPU-bound work to the Hook Registry.
@@ -59,8 +56,6 @@ class LogicNodeStrategy(NodeStrategy):
             context: The immutable Pydantic wrapper for execution context limits.
             frozen_ctx: Read-only context containing parsed external inputs.
             trace: Optional current execution trace lineage.
-            semaphore: Asyncio semaphore for concurrency limits.
-            running_event: Optional event to track if the execution is still running.
             progress_callback: Optional async callback reporting execution progress.
 
         Returns:
@@ -71,8 +66,6 @@ class LogicNodeStrategy(NodeStrategy):
             AppException: With VALIDATION_FAILED if the step definition has no native hook configured.
             AppException: With AGENT_EXECUTION_CRITICAL if hook execution returns failure.
         """
-        if running_event is not None:
-            running_event.set()
         # 1. State Extraction
         snapshot_data = projector.snapshot
         current_steps: list[Any] = []

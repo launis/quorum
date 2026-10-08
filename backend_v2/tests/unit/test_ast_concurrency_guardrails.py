@@ -1,9 +1,14 @@
+"""AST guardrails for verifying concurrency patterns in key modules."""
+
 import ast
 from pathlib import Path
 
 
 class ConcurrencyVisitor(ast.NodeVisitor):
+    """AST visitor scanning for concurrency constructs."""
+
     def __init__(self) -> None:
+        """Initialize tracking sets and flags."""
         self.semaphore_aliases: set[str] = set()
         self.taskgroup_aliases: set[str] = set()
         self.asyncio_aliases: set[str] = {"asyncio"}
@@ -13,12 +18,14 @@ class ConcurrencyVisitor(ast.NodeVisitor):
         self.found_enqueue_job = False
 
     def visit_Import(self, node: ast.Import) -> None:
+        """Visit import statements to track asyncio aliases."""
         for alias in node.names:
             if alias.name == "asyncio":
                 self.asyncio_aliases.add(alias.asname or "asyncio")
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Visit from-import statements to track concurrency aliases."""
         if node.module == "asyncio":
             for alias in node.names:
                 if alias.name == "Semaphore":
@@ -28,6 +35,7 @@ class ConcurrencyVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Visit attribute nodes to detect semaphore and taskgroup usages."""
         if isinstance(node.value, ast.Name) and node.value.id in self.asyncio_aliases:
             if node.attr == "Semaphore":
                 self.found_semaphore = True
@@ -40,6 +48,7 @@ class ConcurrencyVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
+        """Visit name nodes to detect imported concurrency aliases."""
         if node.id in self.semaphore_aliases:
             self.found_semaphore = True
         if node.id in self.taskgroup_aliases:
@@ -50,6 +59,7 @@ class ConcurrencyVisitor(ast.NodeVisitor):
 
 
 def scan_code_for_concurrency(code: str) -> dict[str, bool]:
+    """Scan Python source code string for concurrency constructs."""
     tree = ast.parse(code)
     visitor = ConcurrencyVisitor()
     visitor.visit(tree)
@@ -61,12 +71,14 @@ def scan_code_for_concurrency(code: str) -> dict[str, bool]:
 
 
 def scan_file_for_concurrency(filepath: Path) -> dict[str, bool]:
+    """Scan Python file for concurrency constructs, asserting existence."""
     assert filepath.exists(), f"Guardrail target missing: {filepath}"
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_concurrency(code)
 
 
 def test_ast_semaphore_guardrail() -> None:
+    """Verify that semaphore usage is present in required modules."""
     base = Path(__file__).resolve().parents[2]
     provider_path = base / "llm" / "provider.py"
     dag_executor_path = base / "services" / "orchestrator" / "dag_executor.py"
@@ -81,6 +93,7 @@ def test_ast_semaphore_guardrail() -> None:
 
 
 def test_ast_taskgroup_guardrail() -> None:
+    """Verify that TaskGroup usage is present in required modules."""
     base = Path(__file__).resolve().parents[2]
     files = [
         base / "services" / "orchestrator" / "dag_executor.py",
@@ -93,6 +106,7 @@ def test_ast_taskgroup_guardrail() -> None:
 
 
 def test_ast_enqueue_job_guardrail() -> None:
+    """Verify that enqueue_job usage is present in required modules."""
     base = Path(__file__).resolve().parents[2]
     files = [
         base / "services" / "report_service.py",
@@ -105,6 +119,7 @@ def test_ast_enqueue_job_guardrail() -> None:
 
 
 def test_negative_missing_construct_detection() -> None:
+    """Verify that missing constructs return False."""
     code = """
 import asyncio
 async def task():
@@ -116,6 +131,7 @@ async def task():
 
 
 def test_negative_false_positive_prevention() -> None:
+    """Verify that string literals do not trigger false positive detections."""
     code = """
 def test():
     a = "asyncio.Semaphore"

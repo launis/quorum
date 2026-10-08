@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
@@ -187,10 +186,8 @@ class NodeStrategy(ABC):
         step: StepRule,
         projector: StateProjector,
         context: StrategyContext,
-        frozen_ctx: FrozenContext | None,
-        trace: list[TraceEvent] | None,
-        semaphore: asyncio.Semaphore,
-        running_event: asyncio.Event | None = None,
+        frozen_ctx: FrozenContext | None = None,
+        trace: list[TraceEvent] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
     ) -> list[TraceEvent]:
         """Executes the specific strategy implementation cleanly.
@@ -201,8 +198,6 @@ class NodeStrategy(ABC):
             context: The immutable Pydantic wrapper for execution context limits.
             frozen_ctx: Read-only context containing parsed external inputs.
             trace: Optional current execution trace lineage.
-            semaphore: Asyncio semaphore for concurrency limits.
-            running_event: Optional event to track if the execution is still running.
             progress_callback: Optional progress callback.
 
         Returns:

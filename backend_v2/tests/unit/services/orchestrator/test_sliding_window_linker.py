@@ -366,3 +366,66 @@ def test_sliding_window_linker_dtos_extra_fields_forbidden() -> None:
 
     with pytest.raises(ValidationError):
         WindowCausalEdgesDTO.model_validate({"extra_field": "bad"})
+
+
+@pytest.mark.asyncio
+async def test_sliding_window_linker_link_graph_without_semaphore() -> None:
+    """Test that link_graph executes successfully without semaphore arguments."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap, LinkedAtomGraph
+    from backend_v2.services.orchestrator.sliding_window_linker import LinkerResponseDTO
+
+    linker = SlidingWindowLinker(window_size=2, overlap=1)
+    atoms = [
+        ExtractedAtom(
+            tda_id="tda_00000000",
+            resolved_claim="claim 0",
+            reasoning="r0",
+            source_quote="q0",
+            source_sequence_index=0,
+        )
+    ]
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    mock_executor = AsyncMock()
+    mock_executor.execute_structured_task.return_value = (
+        LinkerResponseDTO(dependencies=[]),
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    mock_client = AsyncMock()
+
+    results, usage = await linker.link_graph(
+        executor=mock_executor,
+        client=mock_client,
+        atoms=atoms,
+        ontology_map=ontology,
+    )
+
+    assert len(results) == 1
+    assert isinstance(results[0], LinkedAtomGraph)
+    assert usage.total_tokens == 15
+
+
+@pytest.mark.asyncio
+async def test_sliding_window_linker_link_graph_rejects_unexpected_semaphore_kwarg() -> None:
+    """Test that link_graph rejects deprecated semaphore keyword argument fail-fast."""
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
+
+    linker = SlidingWindowLinker()
+    mock_executor = AsyncMock()
+    mock_client = AsyncMock()
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    unexpected_kwargs = {"semaphore": asyncio.Semaphore(1)}
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
+        await linker.link_graph(
+            executor=mock_executor,
+            client=mock_client,
+            atoms=[],
+            ontology_map=ontology,
+            **unexpected_kwargs,
+        )

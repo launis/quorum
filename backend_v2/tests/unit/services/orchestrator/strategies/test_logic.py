@@ -1,4 +1,3 @@
-import asyncio
 from typing import cast
 from unittest.mock import AsyncMock, patch
 
@@ -38,10 +37,9 @@ async def test_execute_no_blueprint(logic_strategy: LogicNodeStrategy) -> None:
     step = StepRule.model_construct(id="step_1", task_blueprint="")
     projector = StateProjector()
     context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
-    semaphore = asyncio.Semaphore(1)
 
     with pytest.raises(AppException) as exc:
-        await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        await logic_strategy.execute(step, projector, context)
 
     assert "has no task_blueprint" in str(exc.value)
     assert exc.value.status_code == 500
@@ -52,10 +50,9 @@ async def test_execute_blueprint_not_found(logic_strategy: LogicNodeStrategy) ->
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_missing_123")
     projector = StateProjector()
     context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
-    semaphore = asyncio.Semaphore(1)
 
     with pytest.raises(AppException) as exc:
-        await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        await logic_strategy.execute(step, projector, context)
 
     assert "not found" in str(exc.value)
     assert exc.value.status_code == 500
@@ -73,7 +70,6 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
         metadata=ExecutionMetadata(),
         global_context_vars={"language": "fi"},
     )
-    semaphore = asyncio.Semaphore(1)
 
     from backend_v2.models.enums import StepType
 
@@ -94,7 +90,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
         mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
-        await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        await logic_strategy.execute(step, projector, context)
 
         # Assert the hook was called with the global_context_vars
         mock_execute.assert_called_once()
@@ -104,7 +100,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
 
 
 @pytest.mark.asyncio
-async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy: LogicNodeStrategy) -> None:
+async def test_logic_strategy_execute_without_concurrency(logic_strategy: LogicNodeStrategy) -> None:
     from backend_v2.core.hook_registry import HookDeltaDTO
 
     step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
@@ -114,8 +110,6 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
         workflow_id="w1",
         metadata=ExecutionMetadata(),
     )
-    semaphore = asyncio.Semaphore(1)
-    running_event = asyncio.Event()
 
     from backend_v2.models.enums import StepType
 
@@ -139,14 +133,16 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
             state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"test_key": "test_val"})),
         )
 
-        traces = await logic_strategy.execute(
-            step, projector, context, None, None, semaphore, running_event=running_event
-        )
+        traces = await logic_strategy.execute(step, projector, context)
 
-        assert running_event.is_set()
         assert len(traces) == 1
         assert traces[0].event_type == "output"
         assert traces[0].content["dynamic_inputs"]["test_key"] == "test_val"
+
+
+@pytest.mark.asyncio
+async def test_execute_merges_state_delta(logic_strategy: LogicNodeStrategy) -> None:
+    await test_logic_strategy_execute_without_concurrency(logic_strategy)
 
 
 @pytest.mark.asyncio
@@ -158,7 +154,6 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
         workflow_id="w1",
         metadata=ExecutionMetadata(),
     )
-    semaphore = asyncio.Semaphore(1)
 
     from backend_v2.models.enums import StepType
 
@@ -180,7 +175,7 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
         mock_execute.return_value = HookResult(success=False, state_delta=None)
 
         with pytest.raises(AppException) as exc_info:
-            await logic_strategy.execute(step, projector, context, None, None, semaphore)
+            await logic_strategy.execute(step, projector, context)
 
         assert exc_info.value.status_code == 500
         assert "returned success=False" in exc_info.value.message
@@ -195,7 +190,6 @@ async def test_execute_missing_hook_raises_app_exception(logic_strategy: LogicNo
         workflow_id="w1",
         metadata=ExecutionMetadata(),
     )
-    semaphore = asyncio.Semaphore(1)
 
     from backend_v2.models.enums import StepType
 
@@ -212,7 +206,7 @@ async def test_execute_missing_hook_raises_app_exception(logic_strategy: LogicNo
     cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
 
     with pytest.raises(AppException) as exc_info:
-        await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        await logic_strategy.execute(step, projector, context)
 
     assert exc_info.value.status_code == 500
     assert "has no native hook defined" in exc_info.value.message
@@ -231,7 +225,6 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
         workflow_id="w1",
         metadata=ExecutionMetadata(),
     )
-    semaphore = asyncio.Semaphore(1)
 
     step_def = {
         "id": "stp_1234567890abcdef",
@@ -248,7 +241,7 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
         mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=delta_instance))
 
-        traces = await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        traces = await logic_strategy.execute(step, projector, context)
 
         assert len(traces) == 1
         assert traces[0].event_type == "output"
@@ -305,7 +298,6 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
         workflow_id="w1",
         metadata=ExecutionMetadata(),
     )
-    semaphore = asyncio.Semaphore(1)
 
     step_def = {
         "id": "stp_0123456789abcdef",
@@ -320,7 +312,7 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
         mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=None))
 
-        traces = await logic_strategy.execute(step, projector, context, None, None, semaphore)
+        traces = await logic_strategy.execute(step, projector, context)
 
         assert len(traces) == 1
         assert traces[0].event_type == "output"
@@ -329,3 +321,37 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
         assert hook_name == "apply_scoring_logic"
         assert isinstance(hook_state.inputs, ExecutionInputsDTO)
         assert "steps" in hook_state.inputs.dynamic_inputs
+
+
+@pytest.mark.asyncio
+async def test_logic_strategy_rejects_semaphore_argument(logic_strategy: LogicNodeStrategy) -> None:
+    from unittest.mock import MagicMock
+
+    step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
+    projector = StateProjector()
+    context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
+        await logic_strategy.execute(step, projector, context, **{"semaphore": MagicMock()})
+
+
+@pytest.mark.asyncio
+async def test_logic_strategy_rejects_running_event_argument(logic_strategy: LogicNodeStrategy) -> None:
+    from unittest.mock import MagicMock
+
+    step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
+    projector = StateProjector()
+    context = StrategyContext.model_construct(execution_id="e1", workflow_id="w1", metadata=ExecutionMetadata())
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'running_event'"):
+        await logic_strategy.execute(step, projector, context, **{"running_event": MagicMock()})
+
+
+@pytest.mark.asyncio
+async def test_strategy_rejects_semaphore_argument(logic_strategy: LogicNodeStrategy) -> None:
+    await test_logic_strategy_rejects_semaphore_argument(logic_strategy)
+
+
+@pytest.mark.asyncio
+async def test_strategy_rejects_running_event_argument(logic_strategy: LogicNodeStrategy) -> None:
+    await test_logic_strategy_rejects_running_event_argument(logic_strategy)

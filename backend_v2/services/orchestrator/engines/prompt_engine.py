@@ -4,6 +4,7 @@ Implements the ExecutionEngine protocol for structured non-matrix LLM prompt tas
 """
 
 import logging
+from typing import override
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
@@ -26,6 +27,7 @@ class PromptEngine(ExecutionEngine):
         """
         self.task_executor = task_executor
 
+    @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Execute structured LLM prompt task with Fail-Fast validations.
 
@@ -56,15 +58,11 @@ class PromptEngine(ExecutionEngine):
                 details={"error_code": ErrorCodes.PROMPT_ENGINE_ERROR.value, "step_id": request.step.id},
             )
 
-        if request.running_event:
-            request.running_event.set()
-
-        async with request.semaphore_cm:
-            synthesis_output, usage = await self.task_executor.execute_structured_task(
-                client=request.bound_client,
-                messages=request.hydrated_messages,
-                response_model=request.compiled_schema,
-            )
+        synthesis_output, usage = await self.task_executor.execute_structured_task(
+            client=request.bound_client,
+            messages=request.hydrated_messages,
+            response_model=request.compiled_schema,
+        )
 
         return EngineExecutionResult(
             results=[],

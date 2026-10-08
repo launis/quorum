@@ -307,3 +307,35 @@ async def test_execute_graph_invalid_locale_fails_fast(
     assert exc_info.value.status_code == 400
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
     assert "Target locale is required for DAG execution" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_enriched_dag_executor_execute_graph_without_semaphore(
+    mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
+) -> None:
+    """Phase 3 Test Contract: execute_graph without semaphore returns dict[str, AtomExecutionState] and TokenUsage."""
+    executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+
+    result, usage = await executor.execute_graph(nodes=[], source_text="test text", locale="en")
+    assert result == {}
+    assert usage.total_tokens == 0
+
+
+@pytest.mark.asyncio
+async def test_enriched_dag_executor_execute_graph_rejects_unexpected_semaphore_kwarg(
+    mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
+) -> None:
+    """Phase 3 Test Contract: execute_graph raises TypeError if caller passes semaphore kwarg."""
+    import asyncio
+
+    executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+    dummy_sem = asyncio.Semaphore(1)
+    unexpected_kwargs = {"semaphore": dummy_sem}
+
+    with pytest.raises(TypeError, match="unexpected keyword argument 'semaphore'"):
+        await executor.execute_graph(
+            nodes=[],
+            source_text="test text",
+            locale="en",
+            **unexpected_kwargs,
+        )
