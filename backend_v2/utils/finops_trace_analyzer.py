@@ -11,6 +11,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.dtos.finops import FinOpsFinalizeSummaryDTO, FinOpsMonitorSummaryDTO
+from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 
 __all__ = [
     "MonitorState",
@@ -181,39 +182,62 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
     seen_mcps: set[str] = set()
 
     if trace_file.exists():
-        trace_steps = TypeAdapter(list[TraceStepRecord]).validate_json(trace_file.read_text(encoding="utf-8"))
+        trace_steps = TypeAdapter(list[TraceStepRecord | ErrorTraceEvent | TraceEvent]).validate_json(
+            trace_file.read_text(encoding="utf-8")
+        )
         for step in trace_steps:
+            if isinstance(step, TraceStepRecord):
+                step_id = step.step_id
+                error_code = step.error_code
+                strategy = step.strategy
+                schema_target = step.schema_target
+                output = step.output
+                mcp_queries = [t.query for t in step.mcp_traces if t.query]
+            else:
+                step_id = step.step_name
+                error_code = None
+                if isinstance(step, ErrorTraceEvent):
+                    error_code = step.error_code
+                strategy = None
+                schema_target = None
+                output = None
+                if step.event_type == "output":
+                    output = step.content
+                mcp_traces_list = step.mcp_audit_traces
+                if not mcp_traces_list:
+                    mcp_traces_list = step.metadata.mcp_audit_traces
+                mcp_queries = [t.query for t in mcp_traces_list if t.query]
+
             # 1. Healing Cost
-            if step.error_code == "SchemaValidationError":
+            if error_code == "SchemaValidationError":
                 healing_cost_events += 1
                 continue
 
             # 2. Structural Redundancy (DAG)
-            if step.strategy and step.schema_target:
-                combo = f"{step.strategy} -> {step.schema_target}"
+            if strategy and schema_target:
+                combo = f"{strategy} -> {schema_target}"
                 if combo in seen_strategies:
                     structural_warnings.append(f"Pipeline Duplication Alert: {combo}")
                 else:
                     seen_strategies.add(combo)
 
             # 3. Payload Hashing
-            if step.output is not None:
-                payload_str = json.dumps(step.output, sort_keys=True)
+            if output is not None:
+                payload_str = json.dumps(output, sort_keys=True, default=str)
                 payload_hash = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
                 if payload_hash in seen_hashes:
                     hashing_warnings.append(
-                        f"Double Work Alert: {step.step_id} produced identical payload to an earlier step."
+                        f"Double Work Alert: {step_id} produced identical payload to an earlier step."
                     )
                 else:
-                    seen_hashes[payload_hash] = step.step_id
+                    seen_hashes[payload_hash] = step_id
 
             # 4. Duplicate MCP Traces
-            for trace_entry in step.mcp_traces:
-                if trace_entry.query:
-                    if trace_entry.query in seen_mcps:
-                        mcp_warnings.append(f"Duplicate MCP Trace: '{trace_entry.query}'")
-                    else:
-                        seen_mcps.add(trace_entry.query)
+            for query in mcp_queries:
+                if query in seen_mcps:
+                    mcp_warnings.append(f"Duplicate MCP Trace: '{query}'")
+                else:
+                    seen_mcps.add(query)
 
     if telemetry_file.exists():
         lines = telemetry_file.read_text(encoding="utf-8").splitlines()

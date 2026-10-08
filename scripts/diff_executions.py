@@ -28,7 +28,7 @@ import re
 import subprocess
 import sys
 import unicodedata
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
 from typing import Any

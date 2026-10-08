@@ -42,6 +42,7 @@ from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
+    SYNTHESIS_NO_CITATION_RULES,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SYSTEM_PROMPT,
     build_linguistic_parameters,
@@ -274,8 +275,18 @@ async def generate_profile_synthesis_and_pdf_task(
             else:
                 is_synthesis_expected = False
 
+        has_sources_block = active_profile_dto is not None and any(
+            t
+            in (
+                TargetBlockType.PRINTABLE_SOURCES_BLOCK,
+                TargetBlockType.PRINTABLE_SOURCES_BLOCK.value,
+            )
+            for t in active_profile_dto.target_block_order
+        )
+        citation_rules = SYNTHESIS_CITATION_RULES_HARVARD if has_sources_block else SYNTHESIS_NO_CITATION_RULES
+
         base_dynamic_parts: list[str] = [
-            SYNTHESIS_CITATION_RULES_HARVARD,
+            citation_rules,
             build_linguistic_parameters(source_language="Unknown", target_locale=accept_language),
         ]
         if active_profile_dto and active_profile_dto.synthesis_length_constraint:

@@ -219,7 +219,15 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
         # 2. Run Coverage Report filtered strictly to this target file
         if result.returncode == 0:
             if cov_filter_name:
-                coverage_cmd = ["uv", "run", "coverage", "report", f"--include=*{cov_filter_name}", "--fail-under=90", "-m"]
+                coverage_cmd = [
+                    "uv",
+                    "run",
+                    "coverage",
+                    "report",
+                    f"--include=*{cov_filter_name}",
+                    "--fail-under=90",
+                    "-m",
+                ]
             else:
                 coverage_cmd = ["uv", "run", "coverage", "report", "--fail-under=0", "-m"]
             result = subprocess.run(coverage_cmd)

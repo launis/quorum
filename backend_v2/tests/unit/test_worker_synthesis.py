@@ -735,6 +735,8 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
                 for m in messages
             )
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
+    assert "NO IN-TEXT CITATIONS MANDATE:" in all_user_content
+    assert "HARVARD CITATION STANDARD MANDATE:" not in all_user_content
 
 
 @pytest.mark.asyncio
@@ -762,7 +764,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
                 "tone_instruction": "Professional",
                 "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:",
                 "matrix_synthesis_groups": [],
-                "target_block_order": ["executive_summary_block"],
+                "target_block_order": ["executive_summary_block", "printable_sources_block"],
             }
         ]
     )
@@ -811,6 +813,8 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
             )
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
     assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
+    assert "HARVARD CITATION STANDARD MANDATE:" in all_user_content
+    assert "NO IN-TEXT CITATIONS MANDATE:" not in all_user_content
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None

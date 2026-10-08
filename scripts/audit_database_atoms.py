@@ -57,7 +57,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import ConfigDict, Field, JsonValue, ValidationError
+from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.output_profile import OutputProfile

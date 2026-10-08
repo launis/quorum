@@ -181,7 +181,7 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
                     for tok in tokens:
                         if tok.type == tokenize.COMMENT and "# noqa" in tok.string.lower():
                             n_count += 1
-                except (tokenize.TokenError, SyntaxError):
+                except tokenize.TokenError, SyntaxError:
                     pass
 
     # Census R: Non-codec Map<String, dynamic> in Dart
