@@ -306,6 +306,44 @@ def test_dgr005_object_map_allowed() -> None:
     assert len(dgr005) == 0
 
 
+
+# ==============================================================================
+# Partition 6: DGR006 Banned Anonymous Map Literals in HTTP Payloads
+# ==============================================================================
+
+
+def test_dgr006_anonymous_map_in_data_triggers_fatal() -> None:
+    code = 'final res = await dio.post("/api/v2/auth", data: {"token": "xyz"});\n'
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/auth/data/auth_repository.dart")
+    dgr006 = [v for v in violations if v.rule_code == "DGR006"]
+    assert len(dgr006) == 1
+    assert dgr006[0].severity == GuardrailSeverity.FATAL
+    assert "anonymous Map literal" in dgr006[0].message
+    assert "request.toJson()" in dgr006[0].remediation
+
+
+def test_dgr006_anonymous_map_in_query_parameters_triggers_fatal() -> None:
+    code = 'final res = await dio.get("/api/v2/reports", queryParameters: {"status": "all"});\n'
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/api/reports_client.dart")
+    dgr006 = [v for v in violations if v.rule_code == "DGR006"]
+    assert len(dgr006) == 1
+    assert dgr006[0].severity == GuardrailSeverity.FATAL
+
+
+def test_dgr006_freezed_to_json_allowed() -> None:
+    code = 'final res = await dio.post("/api/v2/reports", data: request.toJson());\n'
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/api/reports_client.dart")
+    dgr006 = [v for v in violations if v.rule_code == "DGR006"]
+    assert len(dgr006) == 0
+
+
+def test_dgr006_test_file_exempt() -> None:
+    code = 'when(() => dio.post(any(), data: {"token": "test"}));\n'
+    violations = _scan_snippet(code, filepath="client_app_v2/test/features/auth/auth_repository_test.dart")
+    dgr006 = [v for v in violations if v.rule_code == "DGR006"]
+    assert len(dgr006) == 0
+
+
 # ==============================================================================
 # Partition 7: File I/O, CLI & Formatting Verification
 # ==============================================================================

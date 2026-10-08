@@ -1,7 +1,7 @@
-"""Automated Dart Codebase Guardrails Engine (DGR001-DGR005).
+"""Automated Dart Codebase Guardrails Engine (DGR001-DGR006).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
-Scans handwritten client code for loose Map types, UI error concealment, unlocalized strings, and lint suppressions.
+Scans handwritten client code for loose Map types, anonymous HTTP payloads, UI error concealment, unlocalized strings, and lint suppressions.
 Guarantees 100% false-positive immunity for generated files (*.freezed.dart, *.g.dart, .dart_tool/, build/).
 """
 
@@ -87,6 +87,9 @@ DGR005_PATTERN = re.compile(r"Map<\s*String\s*,\s*dynamic\s*>")
 DGR005_CODEC_EXEMPT_PATTERN = re.compile(
     r"fromJson\(\s*Map<\s*String\s*,\s*dynamic\s*>\s+\w+\s*\)|Map<\s*String\s*,\s*dynamic\s*>\s+toJson\("
 )
+
+# DGR006: Anonymous Map literals in HTTP request payloads
+DGR006_PATTERN = re.compile(r"\b(?:data|queryParameters):\s*\{")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9]*$")
@@ -255,6 +258,23 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                     is_suppressed=False,
                 )
             )
+
+        # DGR006: Banned anonymous Map literals in HTTP request payloads (Unconditional FATAL outside test scope)
+        if "test" not in path_parts:
+            dgr006_match = DGR006_PATTERN.search(line)
+            if dgr006_match:
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=dgr006_match.start(),
+                        rule_code="DGR006",
+                        message="Banned anonymous Map literal in HTTP request payload `data: { ... }` or `queryParameters: { ... }`.",
+                        remediation="Serialize a strongly typed Freezed DTO via `request.toJson()` instead of passing an inline Map literal.",
+                        severity=GuardrailSeverity.FATAL,
+                        is_suppressed=False,
+                    )
+                )
 
     return violations
 

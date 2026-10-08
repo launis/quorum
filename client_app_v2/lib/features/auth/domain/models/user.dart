@@ -69,3 +69,18 @@ abstract class User with _$User {
   /// **Helper**: Checks if the user has Admin privileges.
   bool get isAdmin => role == UserRole.root || role == UserRole.admin;
 }
+
+/// **Verify Token Request DTO**
+///
+/// Request payload for token verification endpoint `/api/v1/auth/verify`.
+@freezed
+abstract class VerifyTokenRequest with _$VerifyTokenRequest {
+  const VerifyTokenRequest._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory VerifyTokenRequest({required String token}) =
+      _VerifyTokenRequest;
+
+  factory VerifyTokenRequest.fromJson(Map<String, dynamic> json) =>
+      _$VerifyTokenRequestFromJson(json);
+}

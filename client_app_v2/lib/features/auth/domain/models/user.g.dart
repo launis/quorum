@@ -86,3 +86,15 @@ const _$UserRoleEnumMap = {
   UserRole.viewer: 'VIEWER',
   UserRole.unknown: 'UNKNOWN',
 };
+
+_VerifyTokenRequest _$VerifyTokenRequestFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('_VerifyTokenRequest', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['token']);
+      final val = _VerifyTokenRequest(
+        token: $checkedConvert('token', (v) => v as String),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$VerifyTokenRequestToJson(_VerifyTokenRequest instance) =>
+    <String, dynamic>{'token': instance.token};

@@ -50,7 +50,7 @@ class AuthRepository {
       // 3. Verify with Backend to get full profile (Role, OrgID)
       final response = await _client.post(
         '/iam/auth/verify',
-        data: {'token': token},
+        data: VerifyTokenRequest(token: token ?? '').toJson(),
       );
 
       if (response.data == null || response.data['user'] == null) {
@@ -104,7 +104,7 @@ class AuthRepository {
       // 1. Verify with Backend (using special mock-token prefix logic)
       final response = await _client.post(
         '/iam/auth/verify',
-        data: {'token': 'mock-token:$id'},
+        data: VerifyTokenRequest(token: 'mock-token:$id').toJson(),
       );
 
       if (response.data == null || response.data['user'] == null) {

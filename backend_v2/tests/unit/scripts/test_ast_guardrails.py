@@ -1811,3 +1811,79 @@ class ProviderPayload(BaseModel):
     violations = _scan_snippet(code, filepath="backend_v2/llm/provider.py")
     qgr027 = [v for v in violations if v.rule_code == "QGR027"]
     assert len(qgr027) == 0
+
+
+# ==============================================================================
+# Partition 28: QGR028 Redundant Model Reconstitution & Domain State Dict-Casting
+# ==============================================================================
+
+
+def test_qgr028_redundant_model_validate_on_tracked_repo_var_triggers_fatal() -> None:
+    """QGR028: Model.model_validate() on variable assigned from repository call triggers FATAL."""
+    code = """
+async def get_execution_record(self, execution_id: str):
+    exec_dict = await self.repo.get_execution(execution_id)
+    return ExecutionRecord.model_validate(exec_dict)
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+    assert len(qgr028) == 1
+    assert qgr028[0].severity == GuardrailSeverity.FATAL
+    assert "redundant repository model reconstitution" in qgr028[0].message
+    assert "Consume the typed domain model returned directly" in qgr028[0].remediation
+
+
+def test_qgr028_redundant_model_validate_on_direct_repo_call_triggers_fatal() -> None:
+    """QGR028: Model.model_validate() directly wrapping repository call triggers FATAL."""
+    code = """
+async def fetch_workflow(self, workflow_id: str):
+    return Workflow.model_validate(await self.repo.get_workflow(workflow_id))
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+    assert len(qgr028) == 1
+    assert qgr028[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr028_domain_state_dict_cast_triggers_fatal() -> None:
+    """QGR028: dict(execution.step_states) or dict(execution.profile_syntheses) triggers FATAL."""
+    code = """
+def update_state(execution, step_id, profile_id):
+    step_states = dict(execution.step_states)
+    syntheses = dict(execution.profile_syntheses)
+    return step_states, syntheses
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+    assert len(qgr028) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr028)
+    assert "domain state dictionary conversion" in qgr028[0].message
+    assert "with_step_passed" in qgr028[0].remediation
+
+
+def test_qgr028_direct_model_consumption_and_domain_methods_allowed() -> None:
+    """QGR028: Directly using typed repository returns and pure immutable domain methods emits zero violations."""
+    code = """
+async def compile_artifact(self, execution_id: str, profile_id: str, step_id: str):
+    execution = await self.repo.get_execution(execution_id)
+    if execution is not None:
+        execution = execution.without_profile_synthesis(profile_id)
+        execution = execution.with_step_passed(step_id, "Report Render")
+    return execution
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+    assert len(qgr028) == 0
+
+
+def test_qgr028_residual_future_phase_exemption() -> None:
+    """QGR028: Files in RESIDUAL_FUTURE_PHASE_QGR028_FILES emit zero violations."""
+    code = """
+def legacy_override(record):
+    new_states = dict(record.step_states)
+    return new_states
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
+    qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+    assert len(qgr028) == 0
+

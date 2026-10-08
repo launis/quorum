@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR027).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR028).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -30,6 +30,7 @@ __all__ = [
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
+    "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
     "_is_dict_type_node",
@@ -74,23 +75,25 @@ class GuardrailViolation(BaseModel):
     severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
 
 
-BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset({
-    "backend_v2/database/tinydb_driver.py",
-    "backend_v2/database/firestore_driver.py",
-    "backend_v2/database/driver.py",
-    "backend_v2/database/wrapper.py",
-    "backend_v2/llm/provider.py",
-    "backend_v2/llm/handler.py",
-    "backend_v2/logging_config.py",
-    "backend_v2/core/telemetry.py",
-    "backend_v2/llm/adapters/base_adapter.py",
-    "backend_v2/llm/adapters/vertex_adapter.py",
-    "backend_v2/llm/adapters/ai_studio_adapter.py",
-    "backend_v2/llm/adapters/openai_adapter.py",
-    "backend_v2/llm/adapters/anthropic_adapter.py",
-    "backend_v2/llm/adapters/deepseek_adapter.py",
-    "backend_v2/llm/adapters/mock_adapter.py",
-})
+BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/database/tinydb_driver.py",
+        "backend_v2/database/firestore_driver.py",
+        "backend_v2/database/driver.py",
+        "backend_v2/database/wrapper.py",
+        "backend_v2/llm/provider.py",
+        "backend_v2/llm/handler.py",
+        "backend_v2/logging_config.py",
+        "backend_v2/core/telemetry.py",
+        "backend_v2/llm/adapters/base_adapter.py",
+        "backend_v2/llm/adapters/vertex_adapter.py",
+        "backend_v2/llm/adapters/ai_studio_adapter.py",
+        "backend_v2/llm/adapters/openai_adapter.py",
+        "backend_v2/llm/adapters/anthropic_adapter.py",
+        "backend_v2/llm/adapters/deepseek_adapter.py",
+        "backend_v2/llm/adapters/mock_adapter.py",
+    }
+)
 
 
 def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
@@ -100,61 +103,78 @@ def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> b
     try:
         rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
         return rel_posix in BOUNDARY_EXEMPTION_FILES
-    except (ValueError, RuntimeError):
+    except ValueError, RuntimeError:
         posix_str = p.as_posix()
         return any(posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES)
 
 
-OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset({
-    "backend_v2/exceptions.py",
-    "backend_v2/models/domain/mcp.py",
-    "backend_v2/models/dtos/mcp.py",
-    "backend_v2/models/domain/system_config.py",
-    "backend_v2/models/domain/validation.py",
-    "backend_v2/models/domain/base.py",
-    "backend_v2/models/llm.py",
-    "backend_v2/scripts/generate_openapi.py",
-})
+OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/exceptions.py",
+        "backend_v2/models/domain/mcp.py",
+        "backend_v2/models/dtos/mcp.py",
+        "backend_v2/models/domain/system_config.py",
+        "backend_v2/models/domain/validation.py",
+        "backend_v2/models/domain/base.py",
+        "backend_v2/models/llm.py",
+        "backend_v2/scripts/generate_openapi.py",
+    }
+)
 
-RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset({
-    # Phase 2 (Hooks, LLM, Ingress)
-    "backend_v2/hooks/scoring/matrix_hook.py",
-    "backend_v2/llm/client.py",
-    "backend_v2/llm/ingress_pipeline.py",
-    "backend_v2/llm/mock_data.py",
-    "backend_v2/services/llm_task_executor.py",
-    # Phase 4 (Services & Tools)
-    "backend_v2/services/mcp/mcp_tool_loop.py",
-    # Phase 5 (Orchestrator & DAG)
-    "backend_v2/services/orchestrator/context_router.py",
-    "backend_v2/services/orchestrator/dag_executor.py",
-    "backend_v2/services/orchestrator/matrix_reducer.py",
-    "backend_v2/services/orchestrator/result_projector.py",
-    "backend_v2/services/orchestrator/strategies/logic.py",
-    "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
-    # Residual Models (Phases 2, 4, 11)
-    "backend_v2/models/domain/synthesis.py",
-    "backend_v2/models/dtos/atom_evaluation.py",
-    "backend_v2/models/dtos/hook_delta.py",
-    "backend_v2/models/dtos/lightweight_matrix.py",
-    "backend_v2/models/dtos/node_execution.py",
-    "backend_v2/models/dtos/prompt.py",
-    "backend_v2/models/dtos/prompt_context.py",
-    "backend_v2/models/dtos/schema_manifest.py",
-    "backend_v2/models/dtos/state.py",
-    "backend_v2/models/dtos/system.py",
-    "backend_v2/models/dtos/trace.py",
-    "backend_v2/models/state.py",
-})
+RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
+    {
+        # Phase 2 (Hooks, LLM, Ingress)
+        "backend_v2/hooks/scoring/matrix_hook.py",
+        "backend_v2/llm/client.py",
+        "backend_v2/llm/ingress_pipeline.py",
+        "backend_v2/llm/mock_data.py",
+        "backend_v2/services/llm_task_executor.py",
+        # Phase 4 (Services & Tools)
+        "backend_v2/services/mcp/mcp_tool_loop.py",
+        # Phase 5 (Orchestrator & DAG)
+        "backend_v2/services/orchestrator/context_router.py",
+        "backend_v2/services/orchestrator/dag_executor.py",
+        "backend_v2/services/orchestrator/matrix_reducer.py",
+        "backend_v2/services/orchestrator/result_projector.py",
+        "backend_v2/services/orchestrator/strategies/logic.py",
+        "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
+        # Residual Models (Phases 2, 4, 11)
+        "backend_v2/models/domain/synthesis.py",
+        "backend_v2/models/dtos/atom_evaluation.py",
+        "backend_v2/models/dtos/hook_delta.py",
+        "backend_v2/models/dtos/lightweight_matrix.py",
+        "backend_v2/models/dtos/node_execution.py",
+        "backend_v2/models/dtos/prompt.py",
+        "backend_v2/models/dtos/prompt_context.py",
+        "backend_v2/models/dtos/schema_manifest.py",
+        "backend_v2/models/dtos/state.py",
+        "backend_v2/models/dtos/system.py",
+        "backend_v2/models/dtos/trace.py",
+        "backend_v2/models/state.py",
+    }
+)
+
+RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/services/auth.py",
+        "backend_v2/services/execution/ingress_service.py",
+        "backend_v2/services/execution/override_service.py",
+        "backend_v2/services/execution/resumption_service.py",
+        "backend_v2/services/orchestrator/dag_executor.py",
+        "backend_v2/services/orchestrator/strategies/logic.py",
+        "backend_v2/services/orchestrator/strategies/llm.py",
+        "backend_v2/services/orchestrator/synthesis_distiller.py",
+        "backend_v2/services/studio/workflow_service.py",
+    }
+)
 
 
 def _is_repository_identifier(name: str) -> bool:
     """Determine whether an identifier name refers to a repository."""
     name_lower = name.lower()
     return (
-        ("_repo" in name_lower or "repo_" in name_lower or name_lower.endswith("repo") or name_lower == "repo")
-        and not ("report" in name_lower or "response" in name_lower)
-    )
+        "_repo" in name_lower or "repo_" in name_lower or name_lower.endswith("repo") or name_lower == "repo"
+    ) and not ("report" in name_lower or "response" in name_lower)
 
 
 def _resolve_positive_repository_classes() -> frozenset[str]:
@@ -180,7 +200,7 @@ def _resolve_positive_repository_classes() -> frozenset[str]:
                         classes.add(node.name)
                     elif file_path.name == "interfaces.py":
                         classes.add(node.name)
-        except (OSError, UnicodeDecodeError, SyntaxError):
+        except OSError, UnicodeDecodeError, SyntaxError:
             pass
     return frozenset(classes)
 
@@ -199,7 +219,7 @@ def _resolve_interface_repository_methods() -> frozenset[str]:
                     if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if not item.name.startswith("_"):
                             methods.add(item.name)
-    except (OSError, UnicodeDecodeError, SyntaxError):
+    except OSError, UnicodeDecodeError, SyntaxError:
         pass
     return frozenset(methods)
 
@@ -240,7 +260,7 @@ def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> 
     try:
         rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
         return rel_posix in OPEN_JSON_EXEMPTION_FILES or rel_posix in RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
-    except (ValueError, RuntimeError):
+    except ValueError, RuntimeError:
         posix_str = p.as_posix()
         all_allowed = OPEN_JSON_EXEMPTION_FILES | RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES
         return any(posix_str == target or posix_str.endswith("/" + target) for target in all_allowed)
@@ -493,10 +513,10 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.violations: list[GuardrailViolation] = []
         normalized_path = filepath.replace("\\", "/")
         path_parts = set(normalized_path.strip("/").split("/"))
+        self._normalized_path = normalized_path
+        self._path_parts = path_parts
         self._is_test_file = "backend_v2/tests/" in normalized_path or "tests" in path_parts
-        self._is_domain_code = not (
-            self._is_test_file or "scripts" in path_parts
-        )
+        self._is_domain_code = not (self._is_test_file or "scripts" in path_parts)
         self._is_boundary_exempt = is_boundary_exempt(filepath)
         self._is_open_json_exempt = is_open_json_exempt(filepath)
         self._pydantic_base_classes_in_file: set[str] = set()
@@ -506,6 +526,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._function_depth: int = 0
         self._in_finally: bool = False
         self._in_update_lock: bool = False
+        self._repo_result_vars: set[str] = set()
 
     def _is_pytest_skip_or_xfail(self, expr: ast.AST) -> bool:
         """Helper checking if an AST node is a pytest.mark.skip or pytest.mark.xfail."""
@@ -514,9 +535,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 if isinstance(expr.value.value, ast.Name) and expr.value.value.id == "pytest":
                     return True
         elif (
-            isinstance(expr, ast.Call)
-            and isinstance(expr.func, ast.Attribute)
-            and expr.func.attr in ("skip", "xfail")
+            isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute) and expr.func.attr in ("skip", "xfail")
         ):
             if isinstance(expr.func.value, ast.Attribute) and expr.func.value.attr == "mark":
                 if isinstance(expr.func.value.value, ast.Name) and expr.func.value.value.id == "pytest":
@@ -565,14 +584,6 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 node, (ast.expr, ast.stmt, ast.ExceptHandler, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
             )
             else 0
-        )
-        end_lineno = (
-            node.end_lineno
-            if isinstance(
-                node, (ast.expr, ast.stmt, ast.ExceptHandler, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
-            )
-            and node.end_lineno is not None
-            else lineno
         )
 
         self.violations.append(
@@ -831,7 +842,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
-        if not self._is_boundary_exempt and isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
+        if (
+            not self._is_boundary_exempt
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "isinstance"
+            and len(node.args) >= 2
+        ):
             types_arg = node.args[1]
 
             def _check_isinstance_target(t_node: ast.AST) -> tuple[bool, bool]:
@@ -903,14 +919,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     if kw.arg in ("spec", "spec_set"):
                         match kw.value:
                             case ast.Name(id=name) if (
-                                (name.startswith("I") and name.endswith("Repository"))
-                                or name in POSITIVE_REPOSITORY_CLASSES
-                            ):
+                                name.startswith("I") and name.endswith("Repository")
+                            ) or name in POSITIVE_REPOSITORY_CLASSES:
                                 is_repo_mock = True
                             case ast.Attribute(attr=attr_name) if (
-                                (attr_name.startswith("I") and attr_name.endswith("Repository"))
-                                or attr_name in POSITIVE_REPOSITORY_CLASSES
-                            ):
+                                attr_name.startswith("I") and attr_name.endswith("Repository")
+                            ) or attr_name in POSITIVE_REPOSITORY_CLASSES:
                                 is_repo_mock = True
                             case _:
                                 pass
@@ -1060,6 +1074,81 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             ),
                             severity=GuardrailSeverity.FATAL,
                         )
+
+        # QGR028: Redundant repository model reconstitution and domain state dictionary conversions in services
+        is_services_scope = (
+            ("backend_v2/services/" in self._normalized_path or "services" in self._path_parts)
+            and not self._is_test_file
+            and not self._is_boundary_exempt
+            and self._normalized_path not in RESIDUAL_FUTURE_PHASE_QGR028_FILES
+        )
+
+        if is_services_scope:
+            # Part A: Redundant repository model reconstitution
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "model_validate":
+                if len(node.args) >= 1:
+                    first_arg = node.args[0]
+                    is_redundant_repo_arg = False
+
+                    if isinstance(first_arg, ast.Name):
+                        if (
+                            first_arg.id in self._repo_result_vars
+                            or first_arg.id
+                            in {
+                                "exec_dict",
+                                "exec_refreshed",
+                                "profile_dict",
+                                "wf_dict",
+                                "raw_exec",
+                                "raw_record",
+                                "exec_data",
+                                "raw_workflow_data",
+                                "raw_exec_data",
+                            }
+                            or (
+                                first_arg.id.endswith(("_dict", "_refreshed", "_raw"))
+                                and any(p in first_arg.id for p in ("exec", "profile", "wf", "workflow", "repo"))
+                            )
+                        ):
+                            is_redundant_repo_arg = True
+                    elif isinstance(first_arg, (ast.Await, ast.Call)):
+                        inner_call = first_arg.value if isinstance(first_arg, ast.Await) else first_arg
+                        if isinstance(inner_call, ast.Call) and isinstance(inner_call.func, ast.Attribute):
+                            root_r = _get_root_identifier(inner_call.func.value)
+                            if root_r and (_is_repository_identifier(root_r) or root_r in ("repo", "self")):
+                                if (
+                                    inner_call.func.attr in INTERFACE_REPOSITORY_METHODS
+                                    or inner_call.func.attr.startswith(("get_", "fetch_", "find_"))
+                                ):
+                                    is_redundant_repo_arg = True
+
+                    if is_redundant_repo_arg:
+                        self._add_violation(
+                            node,
+                            "QGR028",
+                            f"Banned redundant repository model reconstitution: `{ast.unparse(node)}`. Repository methods return strongly typed domain models natively.",
+                            "Consume the typed domain model returned directly by the repository without re-validating via `Model.model_validate(...)`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
+            # Part B: Domain state dictionary conversion
+            elif isinstance(node.func, ast.Name) and node.func.id == "dict":
+                if len(node.args) >= 1:
+                    dict_arg = node.args[0]
+                    if isinstance(dict_arg, ast.Attribute):
+                        root_attr_name = dict_arg.attr
+                        root_recv = _get_root_identifier(dict_arg.value)
+                        if root_attr_name in {"step_states", "profile_syntheses"} or (
+                            root_recv in {"execution", "record", "exec_obj", "exec_record", "self"}
+                            and root_attr_name in {"step_states", "profile_syntheses"}
+                        ):
+                            self._add_violation(
+                                node,
+                                "QGR028",
+                                f"Banned domain state dictionary conversion: `{ast.unparse(node)}` for in-place mutation.",
+                                "Use pure immutable domain state transition methods (e.g. `record.with_step_passed(...)` or `record.without_profile_synthesis(...)`) instead of converting domain collections with `dict(...)`.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
 
         self.generic_visit(node)
 
@@ -1532,7 +1621,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._check_function_annotations(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
+        saved_repo_vars = set(self._repo_result_vars)
         self.generic_visit(node)
+        self._repo_result_vars = saved_repo_vars
         self._function_stack.pop()
         self._function_depth -= 1
 
@@ -1541,7 +1632,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._check_function_annotations(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
+        saved_repo_vars = set(self._repo_result_vars)
         self.generic_visit(node)
+        self._repo_result_vars = saved_repo_vars
         self._function_stack.pop()
         self._function_depth -= 1
 
@@ -1663,6 +1756,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
                         severity=GuardrailSeverity.FATAL,
                     )
+
+        # QGR028: Track repository return variables for redundant model reconstitution detection in services
+        val = node.value.value if isinstance(node.value, ast.Await) else node.value
+        if isinstance(val, ast.Call) and isinstance(val.func, ast.Attribute):
+            root_receiver = _get_root_identifier(val.func.value)
+            if root_receiver and (_is_repository_identifier(root_receiver) or root_receiver in ("repo", "self")):
+                method_name = val.func.attr
+                if method_name in INTERFACE_REPOSITORY_METHODS or method_name.startswith(("get_", "fetch_", "find_")):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            self._repo_result_vars.add(target.id)
+
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
