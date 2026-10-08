@@ -201,7 +201,9 @@ async def test_compile_and_persist_artifact() -> None:
     updated_rep = await repo.get_report_artifact(report.id)
     assert updated_rep is not None
     assert updated_rep.status == ReportStatus.GENERATING
-    arq_pool.enqueue_job.assert_called_once_with("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
+    arq_pool.enqueue_job.assert_called_once_with(
+        "generate_report_artifact_job", report_id=report.id, force_resynthesis=False, _job_id=job_key
+    )
 
 
 @pytest.mark.asyncio
@@ -413,7 +415,9 @@ async def test_regenerate_report_artifact_clears_stale_arq_result() -> None:
 
     job_key = f"compile_report_{report.id}"
     arq.delete.assert_awaited_once_with(f"arq:result:{job_key}")
-    arq.enqueue_job.assert_awaited_once_with("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
+    arq.enqueue_job.assert_awaited_once_with(
+        "generate_report_artifact_job", report_id=report.id, force_resynthesis=True, _job_id=job_key
+    )
 
 
 @pytest.mark.asyncio
@@ -639,3 +643,169 @@ async def test_process_artifact_compilation_idempotent_when_ready() -> None:
     assert persisted is not None
     assert persisted.status == ReportStatus.READY
     storage.exists.assert_awaited_once_with("artifacts/reports/rep_123/report.pdf")
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_false_retains_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=False retains cached profile synthesis without calling runner."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
+    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    from backend_v2.services import blueprint
+
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+    synthesis_runner = AsyncMock()
+
+    service = ReportService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=synthesis_runner,
+    )
+    await service.process_artifact_compilation(report.id, force_resynthesis=False)
+
+    synthesis_runner.assert_not_called()
+    execution = await repo.get_execution(report.execution_id)
+    assert execution is not None
+    assert report.profile_id in execution.profile_syntheses
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_true_invalidates_cache_and_invokes_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=True prunes cache and triggers synthesis_runner."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
+    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    from backend_v2.services import blueprint
+
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    async def mock_runner(execution_id: str, accept_language: str, profile_id: str) -> None:
+        exec_record = await repo.get_execution(execution_id)
+        if exec_record:
+            from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+            from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+
+            new_syntheses = {
+                **exec_record.profile_syntheses,
+                profile_id: RenderedSynthesisCache(variance_explanation="Fresh re-synthesized text"),
+            }
+            await repo.update_execution(execution_id, ExecutionUpdateDTO(profile_syntheses=new_syntheses))
+
+    synthesis_runner = AsyncMock(side_effect=mock_runner)
+
+    service = ReportService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=synthesis_runner,
+    )
+    await service.process_artifact_compilation(report.id, force_resynthesis=True)
+
+    synthesis_runner.assert_awaited_once_with(
+        execution_id=report.execution_id,
+        accept_language=report.locale,
+        profile_id=report.profile_id,
+    )
+    execution = await repo.get_execution(report.execution_id)
+    assert execution is not None
+    assert report.profile_id in execution.profile_syntheses
+    assert execution.profile_syntheses[report.profile_id].variance_explanation == "Fresh re-synthesized text"
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_idempotency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=True does not early-return on READY status with existing files."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    storage = AsyncMock()
+    storage.exists.return_value = True
+    storage.save.side_effect = lambda path, data: path
+
+    paths = ReportStoragePathsDTO(pdf_path="artifacts/reports/rep_123/report.pdf")
+    report = _create_dummy_report(status=ReportStatus.READY)
+    report = report.model_copy(update={"storage_paths": paths})
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
+    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    from backend_v2.services import blueprint
+
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    async def mock_runner(execution_id: str, accept_language: str, profile_id: str) -> None:
+        exec_record = await repo.get_execution(execution_id)
+        if exec_record:
+            from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+            from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+
+            new_syntheses = {
+                **exec_record.profile_syntheses,
+                profile_id: RenderedSynthesisCache(variance_explanation="Regenerated text"),
+            }
+            await repo.update_execution(execution_id, ExecutionUpdateDTO(profile_syntheses=new_syntheses))
+
+    synthesis_runner = AsyncMock(side_effect=mock_runner)
+
+    service = ReportService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=synthesis_runner,
+    )
+    await service.process_artifact_compilation(report.id, force_resynthesis=True)
+
+    assert storage.save.call_count == 4

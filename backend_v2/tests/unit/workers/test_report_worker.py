@@ -25,8 +25,30 @@ async def test_generate_report_artifact_job_delegates_to_service() -> None:
             report_id="rep_0123456789abcdef",
         )
 
-    assert result == "Report Artifact Generated: rep_0123456789abcdef"
-    mock_service.process_artifact_compilation.assert_awaited_once_with("rep_0123456789abcdef")
+    mock_service.process_artifact_compilation.assert_awaited_once_with(
+        "rep_0123456789abcdef", force_resynthesis=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_generate_report_artifact_job_forwards_force_resynthesis() -> None:
+    """Verify that generate_report_artifact_job forwards force_resynthesis=True to ReportService."""
+    mock_service = MagicMock()
+    mock_service.process_artifact_compilation = AsyncMock()
+
+    with (
+        patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
+        patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
+    ):
+        await generate_report_artifact_job(
+            ctx={},
+            report_id="rep_0123456789abcdef",
+            force_resynthesis=True,
+        )
+
+    mock_service.process_artifact_compilation.assert_awaited_once_with(
+        "rep_0123456789abcdef", force_resynthesis=True
+    )
 
 
 @pytest.mark.asyncio

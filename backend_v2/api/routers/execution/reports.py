@@ -12,20 +12,19 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Response, status
-from pydantic import ConfigDict, Field
 
 from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, ExecutionServiceDep, ReportServiceDep
 from backend_v2.exceptions import AppException, ConflictError, ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.dtos.report_artifact import (
+    CreateReportRequestDTO,
     PublicReportDTO,
     ReportArtifactCreateDTO,
     ReportArtifactSummaryDTO,
     ReportRowItemDTO,
 )
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import LLMProvider, ReportStatus
+from backend_v2.models.enums import ReportStatus
 
 logger = logging.getLogger(__name__)
 
@@ -34,27 +33,6 @@ __all__ = ["CreateReportRequestDTO", "execution_reports_subrouter", "external_ro
 router = APIRouter(tags=["Reports"])
 external_router = APIRouter(prefix="/external", tags=["External Reports"])
 execution_reports_subrouter = APIRouter(tags=["Reports"])
-
-
-class CreateReportRequestDTO(V2CoreBase):
-    """Payload for requesting report compilation for an execution."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    profile_id: Annotated[str, Field(description="Presentation OutputProfile ID.")]
-    locale: Annotated[str, Field(default="fi", description="Target output locale code ('fi' or 'en').")] = "fi"
-    execution_id: Annotated[str | None, Field(default=None, description="Optional execution ID matching URL path.")] = (
-        None
-    )
-    custom_preface_md: Annotated[
-        str | None, Field(default=None, description="Optional custom preface Markdown text.")
-    ] = None
-    model_registry_id: Annotated[
-        str | None, Field(default=None, description="Optional override model registry ID.")
-    ] = None
-    provider_override: Annotated[
-        LLMProvider | None, Field(default=None, description="Optional LLM provider override.")
-    ] = None
 
 
 @router.post(
@@ -116,12 +94,15 @@ async def create_execution_report(
         execution_id=execution_id,
         profile_id=payload.profile_id,
         locale=payload.locale,
+        force_resynthesis=payload.force_resynthesis,
         custom_preface_md=payload.custom_preface_md,
         model_registry_id=payload.model_registry_id,
         provider_override=payload.provider_override,
     )
     artifact = await report_service.create_report_artifact(create_dto)
-    await report_service.compile_and_persist_artifact(artifact.id, arq_pool)
+    await report_service.compile_and_persist_artifact(
+        artifact.id, arq_pool, force_resynthesis=payload.force_resynthesis
+    )
 
     return ReportArtifactSummaryDTO(
         id=artifact.id,

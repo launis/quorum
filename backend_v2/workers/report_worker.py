@@ -41,22 +41,29 @@ def _format_dlq_failure() -> dict[str, str]:
     return {"_dlq_status": "FAILED/DLQ"}
 
 
-async def generate_report_artifact_job(ctx: Any, report_id: str) -> str | dict[str, str]:
+async def generate_report_artifact_job(
+    ctx: Any, report_id: str, force_resynthesis: bool = False
+) -> str | dict[str, str]:
     """Invoked by Arq Worker to compile a Materialized Report Artifact in background.
 
     Args:
         ctx: Arq worker context.
         report_id: Canonical Opaque Stripe ID of the report artifact (rep_...).
+        force_resynthesis: Whether to invalidate synthesis cache and force re-running LLM Phase 2 synthesis.
 
     Returns:
         Status message string upon completion, or DLQ dict on failure.
     """
-    logger.info("[Worker] Starting generate_report_artifact_job for report: %s", report_id)
+    logger.info(
+        "[Worker] Starting generate_report_artifact_job for report: %s (force_resynthesis=%s)",
+        report_id,
+        force_resynthesis,
+    )
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
         service = report_service_mod.ReportService(repo, synthesis_runner=generate_profile_synthesis_and_pdf_task)
-        await service.process_artifact_compilation(report_id)
+        await service.process_artifact_compilation(report_id, force_resynthesis=force_resynthesis)
         return f"Report Artifact Generated: {report_id}"
     except asyncio.CancelledError:
         logger.warning("[Worker] generate_report_artifact_job cancelled for %s", report_id)

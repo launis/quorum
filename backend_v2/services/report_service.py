@@ -13,10 +13,7 @@ if TYPE_CHECKING:
 from backend_v2.database.interfaces import IUnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ExecutionNotReadyError, ResourceNotFoundError
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
-from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.report_artifact import ReportArtifact
-from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import (
     PublicReportDTO,
     ReportArtifactCreateDTO,
@@ -129,8 +126,8 @@ class ReportService:
             ResourceNotFoundError: If execution or profile does not exist.
             ExecutionNotReadyError: If execution is not in PASSED state.
         """
-        exec_dict = await self.repo.get_execution(payload.execution_id)
-        if not exec_dict:
+        execution = await self.repo.get_execution(payload.execution_id)
+        if not execution:
             logger.error(
                 "[ReportService] %s: Execution '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -139,14 +136,13 @@ class ReportService:
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=payload.execution_id)
 
-        execution = ExecutionRecord.model_validate(exec_dict, strict=False)
         if execution.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in PASSED state. Current status: {execution.status.value}"
             logger.error("[ReportService] %s: %s", ErrorCodes.EXECUTION_NOT_READY.name, msg)
             raise ExecutionNotReadyError(execution_id=execution.id, current_status=execution.status.value)
 
-        profile_dict = await self.repo.get_output_profile_by_id(payload.profile_id)
-        if not profile_dict:
+        profile = await self.repo.get_output_profile_by_id(payload.profile_id)
+        if not profile:
             logger.error(
                 "[ReportService] %s: Output profile '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -154,8 +150,6 @@ class ReportService:
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": payload.profile_id},
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=payload.profile_id)
-
-        profile = OutputProfile.model_validate(profile_dict, strict=False)
         if profile.workflow_id != execution.workflow_id:
             logger.error(
                 "[ReportService] %s: Profile '%s' belongs to workflow '%s', not execution workflow '%s'.",
@@ -215,8 +209,8 @@ class ReportService:
             ResourceNotFoundError: If execution or target workflow/profile does not exist.
             AppException: If execution is not ready or profile mismatch occurs.
         """
-        exec_dict = await self.repo.get_execution(execution_id)
-        if not exec_dict:
+        execution = await self.repo.get_execution(execution_id)
+        if not execution:
             logger.error(
                 "[ReportService] %s: Execution '%s' not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -225,7 +219,6 @@ class ReportService:
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
-        execution = ExecutionRecord.model_validate(exec_dict, strict=False)
         resolved_locale = locale.strip() if locale and locale.strip() else execution.target_locale
 
         target_profile_id: str | None = profile_id
@@ -235,8 +228,8 @@ class ReportService:
             elif execution.active_profile_id:
                 target_profile_id = execution.active_profile_id
             else:
-                wf_dict = await self.repo.get_workflow(execution.workflow_id)
-                if not wf_dict:
+                workflow = await self.repo.get_workflow(execution.workflow_id)
+                if not workflow:
                     logger.error(
                         "[ReportService] %s: Workflow '%s' not found for execution '%s'.",
                         ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -245,7 +238,6 @@ class ReportService:
                         extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": execution.workflow_id},
                     )
                     raise ResourceNotFoundError(resource_type="workflow", resource_id=execution.workflow_id)
-                workflow = Workflow.model_validate(wf_dict, strict=False)
                 if workflow.default_profile_id:
                     target_profile_id = workflow.default_profile_id
                 else:
@@ -276,18 +268,26 @@ class ReportService:
         )
         return await self.create_report_artifact(create_dto)
 
-    async def compile_and_persist_artifact(self, report_id: str, arq_pool: ArqRedis) -> None:
+    async def compile_and_persist_artifact(
+        self, report_id: str, arq_pool: ArqRedis, force_resynthesis: bool = False
+    ) -> None:
         """Sets status to GENERATING and enqueues background artifact compilation.
 
         Args:
             report_id: Canonical ID of the report artifact.
             arq_pool: Redis worker connection pool for job enqueuing.
+            force_resynthesis: Whether to invalidate synthesis cache and force re-running LLM Phase 2 synthesis.
         """
         report = await self.get_report(report_id)
         job_key = f"compile_report_{report.id}"
         await arq_pool.delete(f"arq:result:{job_key}")
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
-        job = await arq_pool.enqueue_job("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
+        job = await arq_pool.enqueue_job(
+            "generate_report_artifact_job",
+            report_id=report.id,
+            force_resynthesis=force_resynthesis,
+            _job_id=job_key,
+        )
         if job is None:
             logger.warning(
                 "[ReportService] Compilation job '%s' deduplicated by Arq for report '%s'",
@@ -296,11 +296,12 @@ class ReportService:
                 extra={"report_id": report.id, "job_key": job_key},
             )
 
-    async def process_artifact_compilation(self, report_id: str) -> None:
+    async def process_artifact_compilation(self, report_id: str, force_resynthesis: bool = False) -> None:
         """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage.
 
         Args:
             report_id: Canonical ID of the report artifact to compile.
+            force_resynthesis: Whether to invalidate synthesis cache and force re-running LLM Phase 2 synthesis.
 
         Raises:
             ResourceNotFoundError: If report or execution does not exist.
@@ -316,7 +317,7 @@ class ReportService:
             raise ResourceNotFoundError(resource_type="report_artifact", resource_id=report_id)
 
         # Idempotency check: If already ready and files exist, skip redundant compilation
-        if report.status == ReportStatus.READY and report.storage_paths is not None:
+        if not force_resynthesis and report.status == ReportStatus.READY and report.storage_paths is not None:
             pdf_path = report.storage_paths.pdf_path
             if pdf_path and await self.storage.exists(pdf_path):
                 logger.info(
@@ -327,8 +328,8 @@ class ReportService:
 
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
         try:
-            exec_dict = await self.repo.get_execution(report.execution_id)
-            if not exec_dict:
+            execution = await self.repo.get_execution(report.execution_id)
+            if not execution:
                 logger.error(
                     "[ReportService] %s: Execution '%s' not found for report '%s'.",
                     ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -338,8 +339,20 @@ class ReportService:
                 )
                 raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
 
-            execution = ExecutionRecord.model_validate(exec_dict, strict=False)
             set_language(report.locale)
+
+            if force_resynthesis and report.profile_id in execution.profile_syntheses:
+                logger.info(
+                    "[ReportService] Invalidating cached synthesis for profile '%s' in execution '%s' (force_resynthesis=True).",
+                    report.profile_id,
+                    execution.id,
+                    extra={"profile_id": report.profile_id, "execution_id": execution.id},
+                )
+                execution = execution.without_profile_synthesis(report.profile_id)
+                await self.repo.update_execution(
+                    execution.id,
+                    ExecutionUpdateDTO(profile_syntheses=execution.profile_syntheses),
+                )
 
             if report.profile_id not in execution.profile_syntheses:
                 if self.synthesis_runner is not None:
@@ -350,7 +363,7 @@ class ReportService:
                     )
                     refreshed = await self.repo.get_execution(report.execution_id)
                     if refreshed:
-                        execution = ExecutionRecord.model_validate(refreshed, strict=False)
+                        execution = refreshed
                 else:
                     msg = (
                         f"Profile '{report.profile_id}' has not been synthesized for execution '{report.execution_id}'."
@@ -424,29 +437,9 @@ class ReportService:
             step_states = None
             steps = None
             if exec_refreshed:
-                exec_obj = ExecutionRecord.model_validate(exec_refreshed, strict=False)
-                new_states = dict(exec_obj.step_states)
-                if v_step_id in new_states:
-                    old_step = new_states[v_step_id]
-                    new_states[v_step_id] = old_step.model_copy(
-                        update={"status": ExecutionStatus.PASSED, "progress": 100}
-                    )
-                else:
-                    new_states[v_step_id] = ExecutionStep(
-                        id=v_step_id,
-                        label="Report Render",
-                        status=ExecutionStatus.PASSED,
-                        progress=100,
-                        has_warning=False,
-                    )
-                new_steps = [
-                    s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == v_step_id else s
-                    for s in exec_obj.steps
-                ]
-                if not any(s.id == v_step_id for s in exec_obj.steps):
-                    new_steps.append(new_states[v_step_id])
-                step_states = new_states
-                steps = new_steps
+                exec_obj = exec_refreshed.with_step_passed(v_step_id, label="Report Render")
+                step_states = exec_obj.step_states
+                steps = exec_obj.steps
 
             await self.repo.update_execution(
                 report.execution_id,
@@ -679,7 +672,7 @@ class ReportService:
             report_id: Canonical ID of the report artifact to regenerate.
             arq_pool: Redis worker connection pool for job enqueuing.
         """
-        await self.compile_and_persist_artifact(report_id, arq_pool)
+        await self.compile_and_persist_artifact(report_id, arq_pool, force_resynthesis=True)
 
     async def get_public_report(self, report_id: str) -> PublicReportDTO:
         """Produces a sanitized public read-only B2B report DTO.
@@ -694,8 +687,8 @@ class ReportService:
             ResourceNotFoundError: If execution does not exist.
         """
         report = await self.get_report(report_id)
-        exec_dict = await self.repo.get_execution(report.execution_id)
-        if not exec_dict:
+        execution = await self.repo.get_execution(report.execution_id)
+        if not execution:
             logger.error(
                 "[ReportService] %s: Execution '%s' not found for report '%s'.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -705,7 +698,6 @@ class ReportService:
             )
             raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
 
-        execution = ExecutionRecord.model_validate(exec_dict, strict=False)
         report_dto = await self.get_report_sdui(report_id)
         hydrated_refs = report_dto.hydrated_references
         metrics: dict[str, float] = {}

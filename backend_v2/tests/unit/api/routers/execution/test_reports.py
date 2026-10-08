@@ -17,7 +17,7 @@ Covers all 11 endpoints and ISTQB failure partitions per Step 8 and Step 10:
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -116,6 +116,90 @@ def test_post_create_report_success(
     assert data["status"] == ReportStatus.GENERATING.value
     mock_report_service.create_report_artifact.assert_called_once()
     mock_report_service.compile_and_persist_artifact.assert_called_once()
+
+
+def test_post_create_report_with_force_resynthesis_true(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test POST /api/v2/executions/{id}/reports forwards force_resynthesis=True to service."""
+    client = TestClient(app)
+    now = datetime.now(timezone.utc)
+    mock_report_service.list_reports_for_execution.return_value = []
+    mock_report_service.create_report_artifact.return_value = ReportArtifact(
+        id=MOCK_REP_ID,
+        execution_id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        profile_id=MOCK_PRF_ID,
+        locale="fi",
+        title="Executive Summary",
+        status=ReportStatus.PENDING,
+        created_at=now,
+        updated_at=now,
+    )
+    mock_report_service.compile_and_persist_artifact.return_value = None
+
+    payload = {
+        "profile_id": MOCK_PRF_ID,
+        "locale": "fi",
+        "force_resynthesis": True,
+    }
+    response = client.post(f"/api/v2/executions/{MOCK_EXE_ID}/reports", json=payload)
+
+    assert response.status_code == 202
+    mock_report_service.compile_and_persist_artifact.assert_called_once_with(
+        MOCK_REP_ID, ANY, force_resynthesis=True
+    )
+
+
+def test_post_create_report_defaults_force_resynthesis_false(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test POST /api/v2/executions/{id}/reports defaults force_resynthesis=False when omitted."""
+    client = TestClient(app)
+    now = datetime.now(timezone.utc)
+    mock_report_service.list_reports_for_execution.return_value = []
+    mock_report_service.create_report_artifact.return_value = ReportArtifact(
+        id=MOCK_REP_ID,
+        execution_id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        profile_id=MOCK_PRF_ID,
+        locale="fi",
+        title="Executive Summary",
+        status=ReportStatus.PENDING,
+        created_at=now,
+        updated_at=now,
+    )
+    mock_report_service.compile_and_persist_artifact.return_value = None
+
+    payload = {
+        "profile_id": MOCK_PRF_ID,
+        "locale": "fi",
+    }
+    response = client.post(f"/api/v2/executions/{MOCK_EXE_ID}/reports", json=payload)
+
+    assert response.status_code == 202
+    mock_report_service.compile_and_persist_artifact.assert_called_once_with(
+        MOCK_REP_ID, ANY, force_resynthesis=False
+    )
+
+
+def test_post_create_report_invalid_force_resynthesis_422(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test POST /api/v2/executions/{id}/reports rejects non-boolean force_resynthesis with 422."""
+    client = TestClient(app)
+
+    payload = {
+        "profile_id": MOCK_PRF_ID,
+        "locale": "fi",
+        "force_resynthesis": "invalid_non_bool",
+    }
+    response = client.post(f"/api/v2/executions/{MOCK_EXE_ID}/reports", json=payload)
+
+    assert response.status_code == 422
 
 
 def test_post_create_report_execution_not_ready_409(

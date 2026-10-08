@@ -13,6 +13,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import CognitiveTier, LLMProvider, ReportStatus
 
 __all__ = [
+    "CreateReportRequestDTO",
     "PublicReportDTO",
     "ReportArtifactCreateDTO",
     "ReportArtifactSummaryDTO",
@@ -101,6 +102,30 @@ class PublicReportDTO(V2CoreBase):
     ]
 
 
+class CreateReportRequestDTO(V2CoreBase):
+    """Payload for requesting report compilation for an execution."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    profile_id: Annotated[StrictStr, Field(description="Presentation OutputProfile ID.")]
+    locale: Annotated[StrictStr, Field(default="fi", description="Target output locale code ('fi' or 'en').")] = "fi"
+    execution_id: Annotated[
+        StrictStr | None, Field(default=None, description="Optional execution ID matching URL path.")
+    ] = None
+    force_resynthesis: Annotated[
+        bool, Field(default=False, description="Forces re-running LLM Phase 2 synthesis for profile.")
+    ] = False
+    custom_preface_md: Annotated[
+        str | None, Field(default=None, description="Optional custom preface Markdown text.")
+    ] = None
+    model_registry_id: Annotated[
+        str | None, Field(default=None, description="Optional override model registry ID.")
+    ] = None
+    provider_override: Annotated[
+        LLMProvider | None, Field(default=None, description="Optional LLM provider override.")
+    ] = None
+
+
 class ReportArtifactCreateDTO(V2CoreBase):
     """Payload for creating a new materialized report artifact."""
 
@@ -109,6 +134,9 @@ class ReportArtifactCreateDTO(V2CoreBase):
     execution_id: Annotated[StrictStr, Field(description="Target analytical execution ID.")]
     profile_id: Annotated[StrictStr, Field(description="Presentation OutputProfile ID.")]
     locale: Annotated[StrictStr, Field(default="fi", description="Target output locale code ('fi' or 'en').")] = "fi"
+    force_resynthesis: Annotated[
+        bool, Field(default=False, description="Forces re-running LLM Phase 2 synthesis for profile.")
+    ] = False
     custom_preface_md: Annotated[
         str | None, Field(default=None, description="Optional custom preface Markdown text.")
     ] = None

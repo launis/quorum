@@ -265,6 +265,52 @@ class ExecutionRecord(ExecutionCoreFields):
     created_by: str | None = Field(default=None, description="ID of the user who started the execution")
     organization_id: str | None = Field(default=None, description="ID of the organization for this execution")
 
+    def without_profile_synthesis(self, profile_id: str) -> ExecutionRecord:
+        """Return an immutable copy with the specified profile synthesis removed.
+
+        Args:
+            profile_id: Identifier of the presentation profile to invalidate.
+
+        Returns:
+            ExecutionRecord: Cloned execution record without the cached profile synthesis.
+        """
+        if profile_id not in self.profile_syntheses:
+            return self
+        updated_syntheses = {k: v for k, v in self.profile_syntheses.items() if k != profile_id}
+        return self.model_copy(update={"profile_syntheses": updated_syntheses})
+
+    def with_step_passed(self, step_id: str, label: str = "Report Render") -> ExecutionRecord:
+        """Return an immutable copy with the designated step marked PASSED at 100%.
+
+        Args:
+            step_id: Canonical identifier of the execution step.
+            label: Human-readable display label for the step.
+
+        Returns:
+            ExecutionRecord: Cloned execution record with updated steps and step_states.
+        """
+        new_step_states = {**self.step_states}
+        if step_id in new_step_states:
+            step_item = new_step_states[step_id].model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
+        else:
+            step_item = ExecutionStep(
+                id=step_id,
+                label=label,
+                status=ExecutionStatus.PASSED,
+                progress=100,
+                has_warning=False,
+            )
+        new_step_states[step_id] = step_item
+
+        new_steps = [
+            s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == step_id else s
+            for s in self.steps
+        ]
+        if not any(s.id == step_id for s in self.steps):
+            new_steps.append(step_item)
+
+        return self.model_copy(update={"step_states": new_step_states, "steps": new_steps})
+
 
 class JobAcceptedDTO(V2CoreBase):
     """Omni-channel render endpoint accepted response."""
