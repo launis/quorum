@@ -588,7 +588,9 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
 
     inv_row = raw_df[raw_df["Kriteeri (UI)"] == "Fallacy absence claim"].iloc[0]
     assert inv_row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
-    assert inv_row["Tulos (Status)"] == "Puhdas"
+    assert inv_row["Tulos (Status)"] == 1
+    assert "Falsifiointi" not in raw_df.columns
+    assert "Sisäistetty sääntö" not in raw_df.columns
 
 
 @pytest.mark.asyncio
@@ -653,7 +655,7 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
     row = raw_df.iloc[0]
     assert row["Matriisi"] == "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)"
     assert row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
-    assert row["Tulos (Status)"] == "Puhdas"
+    assert row["Tulos (Status)"] == 1
     assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
 
 

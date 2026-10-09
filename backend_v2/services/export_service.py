@@ -37,19 +37,16 @@ _EXCEL_KEYS = (
     ("excelHeaderCriterion", "Kriteeri (UI)", "Criterion Name (UI)"),
     ("excelHeaderClaimType", "Väitetyyppi", "Claim Type"),
     ("excelHeaderAiRule", "AI-s\u00e4\u00e4nt\u00f6", "AI Rule"),
-    ("excelHeaderInternalizedRule", "Sis\u00e4istetty s\u00e4\u00e4nt\u00f6", "Internalized Rule"),
     ("excelHeaderResultStatus", "Tulos (Status)", "Result (Status)"),
     ("excelHeaderConfidence", "Luottamusarvio", "Confidence Estimate"),
     ("excelHeaderReasoningLength", "Perustelun pituus", "Reasoning Length"),
     ("excelHeaderFoundQuotes", "L\u00f6ydetyt sitaatit", "Found Quotes"),
     ("excelHeaderUsedSources", "K\u00e4ytetyt l\u00e4hteet", "Used Sources"),
     ("excelHeaderAiReasoning", "AI-perustelu", "AI Reasoning"),
-    ("excelHeaderFalsification", "Falsifiointi", "Falsification"),
     ("excelSheetSummary", "Yhteenveto", "Summary"),
     ("excelSheetRawData", "Raakadata", "Raw Data"),
     ("excelClaimTypePositive", "Positiivinen kyvykkyys", "Positive Competence"),
     ("excelClaimTypeInverse", "Virhedetektori / Anti-pattern", "Error Detector / Anti-pattern"),
-    ("excelStatusClean", "Puhdas", "Clean"),
 )
 _EXCEL_HEADERS_FI: dict[str, str] = {k: fi for k, fi, _ in _EXCEL_KEYS}
 _EXCEL_HEADERS_EN: dict[str, str] = {k: en for k, _, en in _EXCEL_KEYS}
@@ -224,18 +221,8 @@ class ExportService:
             is_inverse_claim = atom.is_inverse_evidence or (
                 atom.tda_id in atom_is_inverse and atom_is_inverse[atom.tda_id]
             )
-            if is_inverse_claim:
-                claim_type = h["excelClaimTypeInverse"]
-                if atom.status == ExecutionStatus.PASSED:
-                    result_status: int | str = h["excelStatusClean"]
-                else:
-                    result_status = 0
-            else:
-                claim_type = h["excelClaimTypePositive"]
-                if atom.status == ExecutionStatus.PASSED:
-                    result_status = 1
-                else:
-                    result_status = 0
+            claim_type = h["excelClaimTypeInverse"] if is_inverse_claim else h["excelClaimTypePositive"]
+            result_status: int = 1 if atom.status == ExecutionStatus.PASSED else 0
 
             reasoning = atom.evaluation_reasoning
             if reasoning is None:
@@ -250,10 +237,6 @@ class ExportService:
             elif ref.source_quote is not None:
                 quote_str = ref.source_quote
 
-            internalized_rule_val = ""
-            if "internalized_rule" in atom.extensions:
-                internalized_rule_val = atom.extensions["internalized_rule"]
-
             confidence_val = None
             if "confidence" in atom.extensions:
                 confidence_val = atom.extensions["confidence"]
@@ -262,24 +245,18 @@ class ExportService:
             if "source_id" in atom.extensions:
                 source_id_val = atom.extensions["source_id"]
 
-            falsification_val = ""
-            if "falsification" in atom.extensions:
-                falsification_val = atom.extensions["falsification"]
-
             rows.append(
                 {
                     h["excelHeaderMatrix"]: matrix_label,
                     h["excelHeaderCriterion"]: criterion,
                     h["excelHeaderClaimType"]: claim_type,
                     h["excelHeaderAiRule"]: rule_text,
-                    h["excelHeaderInternalizedRule"]: internalized_rule_val,
                     h["excelHeaderResultStatus"]: result_status,
                     h["excelHeaderConfidence"]: confidence_val,
                     h["excelHeaderReasoningLength"]: w_count,
                     h["excelHeaderFoundQuotes"]: quote_str,
                     h["excelHeaderUsedSources"]: source_id_val,
                     h["excelHeaderAiReasoning"]: reasoning,
-                    h["excelHeaderFalsification"]: falsification_val,
                 }
             )
 
