@@ -61,7 +61,7 @@ class ReportService:
         self.repo = repo
         self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
         self.export_service: ExportService = (
-            export_service if export_service is not None else ExportService(comp_repo=repo)
+            export_service if export_service is not None else ExportService(prompt_block_repo=repo)
         )
         self.pdf_service: PdfReportService = pdf_service if pdf_service is not None else PdfReportService()
         self.synthesis_runner = synthesis_runner

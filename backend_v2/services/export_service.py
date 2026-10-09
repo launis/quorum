@@ -11,7 +11,7 @@ import csv
 import io
 import logging
 
-from backend_v2.database.interfaces import IComponentRepository
+from backend_v2.database.interfaces import IPromptBlockRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.prompt_blocks import (
@@ -80,13 +80,13 @@ def _extract_claim_rule(block: AnyPromptBlock | None) -> str:
 class ExportService:
     """Domain service for generating forensic Excel and flat CSV exports."""
 
-    def __init__(self, comp_repo: IComponentRepository | None = None) -> None:
-        """Initialize the ExportService with an optional component repository.
+    def __init__(self, prompt_block_repo: IPromptBlockRepository | None = None) -> None:
+        """Initialize the ExportService with an optional prompt block repository.
 
         Args:
-            comp_repo: Optional repository for resolving prompt block component descriptions.
+            prompt_block_repo: Optional repository for resolving prompt blocks and matrix definitions.
         """
-        self.comp_repo = comp_repo
+        self.prompt_block_repo = prompt_block_repo
 
     async def export_excel(
         self,
@@ -111,7 +111,7 @@ class ExportService:
             Tuple of the Excel file bytes and the suggested filename.
 
         Raises:
-            AppException: If execution is not in PASSED state, has no scoreable atoms, matrices is empty, or Excel generation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: If execution is not in PASSED state, has no scoreable atoms, matrices is empty, matrix block is not found, or Excel generation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.RESOURCE_NOT_FOUND, ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         if execution.status != ExecutionStatus.PASSED:
             msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
@@ -164,8 +164,8 @@ class ExportService:
         blocks_by_id: dict[str, AnyPromptBlock] = {}
         if components is not None:
             blocks_by_id = {b.id: b for b in components}
-        elif self.comp_repo is not None:
-            comp_list = await self.comp_repo.get_all_components("prompt_block")
+        elif self.prompt_block_repo is not None:
+            comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
             blocks_by_id = {b.id: b for b in comp_list}
 
         atom_is_inverse: dict[str, bool] = {}
@@ -187,7 +187,29 @@ class ExportService:
                     blk = blocks_by_id[atom.matrix_id]
                     matrix_label = blk.label.resolve(target_locale=locale)
                 else:
-                    matrix_label = atom.matrix_id
+                    msg = (
+                        f"Strict Fail-Fast: Matrix block '{atom.matrix_id}' for atom '{atom.tda_id}' "
+                        "not found in matrices or prompt block repository."
+                    )
+                    logger.error(
+                        "[ExportService] %s: %s",
+                        ErrorCodes.RESOURCE_NOT_FOUND.name,
+                        msg,
+                        extra={
+                            "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                            "matrix_id": atom.matrix_id,
+                            "tda_id": atom.tda_id,
+                        },
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=404,
+                        details={
+                            "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                            "matrix_id": atom.matrix_id,
+                            "tda_id": atom.tda_id,
+                        },
+                    )
 
             ref = hydrated_refs[atom.tda_id]
             criterion = ref.resolved_claim

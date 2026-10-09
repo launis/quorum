@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import io
 from unittest.mock import patch
 
+import pandas as pd
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
-from backend_v2.models.domain.matrix import MatrixScale
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -22,7 +24,10 @@ from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService, _extract_claim_rule
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryComponentRepository
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryComponentRepository,
+    InMemoryPromptBlockRepository,
+)
 
 
 def _build_sample_execution(
@@ -179,8 +184,8 @@ async def test_export_excel_success_fi() -> None:
 
 
 @pytest.mark.asyncio
-async def test_export_excel_success_en_with_comp_repo() -> None:
-    comp_repo = InMemoryComponentRepository()
+async def test_export_excel_success_en_with_prompt_block_repo() -> None:
+    prompt_block_repo = InMemoryPromptBlockRepository()
     lbl = I18nText(translations={"fi": "L", "en": "L"})
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
@@ -192,9 +197,9 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
         scales=[scale],
         ai_description="English operational rule",
     )
-    await comp_repo.create_component(matrix_block)
+    await prompt_block_repo.create_prompt_block(matrix_block)
 
-    service = ExportService(comp_repo=comp_repo)
+    service = ExportService(prompt_block_repo=prompt_block_repo)
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
 
@@ -207,7 +212,7 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.xlsx"
     assert len(bytes_out) > 0
-    assert comp_repo._call_counts["get_all_components"] == 1
+    assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
 
 
 @pytest.mark.asyncio
@@ -255,11 +260,20 @@ async def test_export_excel_writer_error() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
+    matching_matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Axis 1",
+        label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
+        score=4.5,
+        scale_max=5.0,
+        row_explanation="Explanation for row 1",
+        is_evaluative=True,
+    )
 
     with patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk failure")):
         with pytest.raises(AppException) as exc_info:
             await service.export_excel(
-                execution=exec_record, report_dto=report_dto, matrices=_build_sample_matrix_rows(1)
+                execution=exec_record, report_dto=report_dto, matrices=[matching_matrix]
             )
 
     assert exc_info.value.status_code == 500
@@ -403,6 +417,13 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         description=I18nText(translations={"fi": "D", "en": "D"}),
         instruction_text="TDA matched instruction",
     )
+    unmatched_block = SystemRulePromptBlock(
+        id="blk_0000000000000000",
+        slug="unmatched_slug",
+        label=I18nText(translations={"fi": "Tuntematon", "en": "Unknown"}),
+        description=I18nText(translations={"fi": "D", "en": "D"}),
+        instruction_text="Unmatched instruction",
+    )
 
     atom_with_comp_matrix = AtomResultDTO(
         tda_id="tda_eeeeeeeeeeeeeeee",
@@ -449,7 +470,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         report_dto=report_dto,
         matrices=[axis_custom],
         locale="en",
-        components=[component_block, tda_matched_block],
+        components=[component_block, tda_matched_block, unmatched_block],
         execution_id="exe_custom_export_123",
     )
 
@@ -568,3 +589,191 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
     inv_row = raw_df[raw_df["Kriteeri (UI)"] == "Fallacy absence claim"].iloc[0]
     assert inv_row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
     assert inv_row["Tulos (Status)"] == "Puhdas"
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inverse_claims_positive() -> None:
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    lbl = I18nText(
+        translations={
+            "fi": "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)",
+            "en": "Active Steering (Performativity and Goodhart's Law)",
+        }
+    )
+    desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
+    scale = MatrixScale(score=1, ai_label="L1", claims=[])
+    matrix_block = MatrixPromptBlock(
+        id="blk_53f32679aa514fcb",
+        slug="active_steering",
+        label=lbl,
+        description=desc,
+        scales=[scale],
+        ai_description="Operational rule for active steering",
+    )
+    await prompt_block_repo.create_prompt_block(matrix_block)
+
+    service = ExportService(prompt_block_repo=prompt_block_repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    matrices = _build_sample_matrix_rows(1)
+
+    atom_inv = AtomResultDTO(
+        tda_id="tda_53f32679aa514fcb0000000000000000",
+        matrix_id="blk_53f32679aa514fcb",
+        status=ExecutionStatus.PASSED,
+        source_quote=None,
+        evaluation_reasoning="No performativity error detected in leadership steering.",
+        is_inverse_evidence=True,
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_inv],
+        hydrated_references={
+            "tda_53f32679aa514fcb0000000000000000": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Goodhartin laki vältetty",
+            )
+        },
+    )
+
+    bytes_out, _ = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+
+    raw_df = pd.read_excel(io.BytesIO(bytes_out), sheet_name="Raakadata")
+    assert len(raw_df) == 1
+    row = raw_df.iloc[0]
+    assert row["Matriisi"] == "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)"
+    assert row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
+    assert row["Tulos (Status)"] == "Puhdas"
+    assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative() -> None:
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    tda_id = "tda_99999999aaaaaaaa0000000000000000"
+    tda = TDAAssertion(
+        tda_id=tda_id,
+        inverse_evidence=True,
+        aggregation_mode="EXISTS",
+        concept_description="Detect steering error or performative bias",
+    )
+    claim = MatrixClaim(
+        label=I18nText(translations={"fi": "Virhevapaa ohjaus", "en": "Error-free steering"}),
+        tda_assertions=[tda],
+    )
+    scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
+    matrix_block = MatrixPromptBlock(
+        id="blk_0000000000000001",
+        slug="matrix_0001",
+        label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
+        description=I18nText(translations={"fi": "Kuvaus 1", "en": "Desc 1"}),
+        scales=[scale],
+        ai_description="Operational rule for matrix 1",
+    )
+    await prompt_block_repo.create_prompt_block(matrix_block)
+
+    service = ExportService(prompt_block_repo=prompt_block_repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0000000000000001",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Row explanation 1",
+            is_evaluative=True,
+        )
+    ]
+
+    atom_failed = AtomResultDTO(
+        tda_id=tda_id,
+        matrix_id="blk_0000000000000001",
+        status=ExecutionStatus.FAILED,
+        source_quote=None,
+        evaluation_reasoning="Performative bias was detected in steering.",
+        is_inverse_evidence=False,
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_failed],
+        hydrated_references={
+            tda_id: HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Virhevapaa ohjaus",
+            )
+        },
+    )
+
+    bytes_out, _ = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+
+    raw_df = pd.read_excel(io.BytesIO(bytes_out), sheet_name="Raakadata")
+    assert len(raw_df) == 1
+    row = raw_df.iloc[0]
+    assert row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
+    assert row["Tulos (Status)"] == 0
+
+
+@pytest.mark.asyncio
+async def test_export_excel_missing_matrix_in_repo_raises_fail_fast_negative() -> None:
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    service = ExportService(prompt_block_repo=prompt_block_repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    matrices = _build_sample_matrix_rows(1)
+
+    unknown_atom = AtomResultDTO(
+        tda_id="tda_0123456789abcdef0000000000000000",
+        matrix_id="blk_unknown_99999999",
+        status=ExecutionStatus.PASSED,
+        source_quote="Some valid quote",
+        evaluation_reasoning="Evaluation succeeded.",
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[unknown_atom],
+        hydrated_references={
+            "tda_0123456789abcdef0000000000000000": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Some claim",
+            )
+        },
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await service.export_excel(
+            execution=exec_record,
+            report_dto=report_dto,
+            matrices=matrices,
+            locale="fi",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert "Strict Fail-Fast: Matrix block 'blk_unknown_99999999'" in exc_info.value.message

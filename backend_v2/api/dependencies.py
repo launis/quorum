@@ -460,17 +460,17 @@ ExecutionServiceDep = Annotated[ExecutionService, Depends(get_execution_service)
 
 
 async def get_export_service(
-    comp_repo: ComponentRepoDep,
+    prompt_block_repo: PromptBlockRepoDep,
 ) -> ExportService:
     """Instantiate the export service.
 
     Args:
-        comp_repo: Component repository.
+        prompt_block_repo: Prompt block repository.
 
     Returns:
         Export service instance.
     """
-    return ExportService(comp_repo=comp_repo)
+    return ExportService(prompt_block_repo=prompt_block_repo)
 
 
 ExportServiceDep = Annotated[ExportService, Depends(get_export_service)]
@@ -478,19 +478,19 @@ ExportServiceDep = Annotated[ExportService, Depends(get_export_service)]
 
 async def get_report_service(
     driver: DriverDep,
-    comp_repo: ComponentRepoDep,
+    prompt_block_repo: PromptBlockRepoDep,
 ) -> ReportService:
     """Instantiate the report artifact service.
 
     Args:
         driver: Storage driver.
-        comp_repo: Component repository.
+        prompt_block_repo: Prompt block repository.
 
     Returns:
         Report service instance.
     """
     repo = UnifiedWorkflowRepository(driver)
-    export_service = ExportService(comp_repo=comp_repo)
+    export_service = ExportService(prompt_block_repo=prompt_block_repo)
     return ReportService(repo=repo, export_service=export_service)
 
 

@@ -14,6 +14,7 @@ from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAto
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.dag_models import AtomExecutionState
 from backend_v2.models.dtos.engine import (
     EngineExecutionRequest,
     EngineExecutionResult,
@@ -21,6 +22,7 @@ from backend_v2.models.dtos.engine import (
     MatrixEvaluationContext,
 )
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -412,3 +414,149 @@ def test_tda_engine_implements_protocol(mock_compiler: MagicMock) -> None:
     engine = TDAEngine(prompt_compiler=mock_compiler)
     assert issubclass(TDAEngine, ExecutionEngine)
     assert isinstance(engine, ExecutionEngine)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+async def test_execute_propagates_is_inverse_to_extracted_atom_positive(
+    mock_dag_executor: MagicMock,
+    mock_atomizer: MagicMock,
+    mock_task_executor: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test Contract 1: Verify is_inverse=True propagates to ExtractedAtom and yields is_inverse_evidence=True."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_dag_executor_instance = mock_dag_executor.return_value
+
+    mock_atomizer_instance.execute_phase_0 = AsyncMock(
+        return_value=("mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+    )
+    mock_dag_executor_instance.execute_graph = AsyncMock(
+        return_value=(
+            {
+                "tda_1111222233334444": AtomExecutionState(
+                    tda_id="tda_1111222233334444",
+                    status=ExecutionStatus.PASSED,
+                    evaluation_reasoning="Inverse claim verified clean.",
+                    short_circuit_reason_tda_ids=[],
+                    extensions={},
+                )
+            },
+            TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+    )
+
+    inv_atom = FlattenedAtom(
+        atom_id="tda_1111222233334444",
+        question="Should not perform ungrounded actions",
+        is_inverse=True,
+    )
+    req = engine_request.model_copy(update={"shuffled_atoms": [inv_atom]})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    assert len(result.results) == 1
+    dto = result.results[0]
+    assert dto.tda_id == "tda_1111222233334444"
+    assert dto.is_inverse_evidence is True
+    assert dto.contextual_override is False
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+async def test_execute_propagates_is_inverse_false_to_extracted_atom_boundary(
+    mock_dag_executor: MagicMock,
+    mock_atomizer: MagicMock,
+    mock_task_executor: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test Contract 2: Verify is_inverse=False propagates to ExtractedAtom and yields is_inverse_evidence=False."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_dag_executor_instance = mock_dag_executor.return_value
+
+    mock_atomizer_instance.execute_phase_0 = AsyncMock(
+        return_value=("mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+    )
+    mock_dag_executor_instance.execute_graph = AsyncMock(
+        return_value=(
+            {
+                "tda_5555666677778888": AtomExecutionState(
+                    tda_id="tda_5555666677778888",
+                    status=ExecutionStatus.PASSED,
+                    evaluation_reasoning="Standard claim verified without quote.",
+                    short_circuit_reason_tda_ids=[],
+                    extensions={},
+                )
+            },
+            TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+    )
+
+    std_atom = FlattenedAtom(
+        atom_id="tda_5555666677778888",
+        question="Standard positive ability",
+        is_inverse=False,
+    )
+    req = engine_request.model_copy(update={"shuffled_atoms": [std_atom]})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    assert len(result.results) == 1
+    dto = result.results[0]
+    assert dto.tda_id == "tda_5555666677778888"
+    assert dto.is_inverse_evidence is False
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+async def test_execute_starvation_propagates_is_inverse_flag_error_path(
+    mock_atomizer: MagicMock,
+    mock_projector: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test Contract 3: Verify data starvation preserves is_inverse on ExtractedAtom across mixed atoms."""
+    atom_inv = FlattenedAtom(atom_id="tda_1111222233334444", question="Inverse assertion", is_inverse=True)
+    atom_std = FlattenedAtom(atom_id="tda_5555666677778888", question="Standard assertion", is_inverse=False)
+
+    req = engine_request.model_copy(
+        update={
+            "shuffled_atoms": [atom_inv, atom_std],
+            "context": engine_request.context.model_copy(
+                update={
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={},
+                            is_data_starved=True,
+                        )
+                    )
+                }
+            ),
+        }
+    )
+
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    mock_projector.project.assert_called_once()
+    nodes_arg, _ = mock_projector.project.call_args[0][:2]
+    assert len(nodes_arg) == 2
+    assert nodes_arg[0].atom.tda_id == "tda_1111222233334444"
+    assert nodes_arg[0].atom.is_inverse is True
+    assert nodes_arg[1].atom.tda_id == "tda_5555666677778888"
+    assert nodes_arg[1].atom.is_inverse is False
+

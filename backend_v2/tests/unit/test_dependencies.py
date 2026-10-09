@@ -173,11 +173,13 @@ async def test_service_factory_dependencies() -> None:
     usage_svc = get_usage_service(identity_repo=fake_repo, audit_repo=fake_repo)
     assert usage_svc is not None
 
-    export_svc = await get_export_service(comp_repo=fake_repo)
+    export_svc = await get_export_service(prompt_block_repo=fake_repo)
     assert export_svc is not None
+    assert export_svc.prompt_block_repo is fake_repo
 
-    report_svc = await get_report_service(driver=mock_driver, comp_repo=fake_repo)
+    report_svc = await get_report_service(driver=mock_driver, prompt_block_repo=fake_repo)
     assert report_svc is not None
+    assert report_svc.export_service.prompt_block_repo is fake_repo
 
     wf_svc = await get_studio_workflow_service(
         workflow_repo=fake_repo,
