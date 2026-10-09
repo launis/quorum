@@ -801,7 +801,7 @@ Quorum resolves this paradox through a parallel, single-pass **Best-of-Three (Bo
 ### 5.2 Best-of-Three Parallel Execution Mechanics
 Parallel ensemble evaluation executes under strict structural concurrency:
 * **TaskGroup Encapsulation:** All three branches are dispatched simultaneously within an asynchronous structured task group (`asyncio.TaskGroup`), guaranteeing zero orphaned background coroutines.
-* **Global Router Concurrency:** Individual branches do not manage local semaphores. Outbound calls are throttled natively by the foundational model router request semaphore (`settings.max_concurrent_llm_steps`), preventing API quota exhaustion.
+* **Global Router Concurrency:** Individual branches do not manage local semaphores. Outbound calls are throttled natively by the dynamic provider semaphore pool in `LiteLLMProvider`, preventing API quota exhaustion.
 * **Majority Quorum Threshold:** A status must achieve a strict majority vote (`count >= settings.ensemble_min_consensus`, canonical value = 2) across valid returns to be elected.
 
 ```mermaid
@@ -943,11 +943,12 @@ Financial token accounting and sustainability reporting require exact, auditable
 Provider adapters extract unit costs directly from this central registry to calculate `cost_usd`, input/output token expenditures, and cache-induced savings (`estimated_savings_usd`) in real time, guaranteeing zero drift between billing statements and system telemetry.
 
 ### 7.4 Two-Tier Concurrency Architecture
-High-volume pipeline execution requires strict isolation between macro-level workflow scheduling and micro-level API transmission. Quorum enforces a Two-Tier Semaphore Architecture:
-1. **Job Concurrency Tier:** Macro-level background workers acquire a distributed job semaphore (`settings.max_concurrent_jobs`), governing how many asynchronous workflows can execute concurrently across worker nodes.
-2. **Request Concurrency Tier:** The foundational model client router maintains an independent, isolated request semaphore (`settings.max_concurrent_llm_steps`), governing concurrent outbound HTTP connections to model provider endpoints.
+High-volume pipeline execution requires strict isolation between macro-level workflow scheduling and micro-level API transmission. Quorum enforces a Two-Tier Concurrency Architecture:
+1. **Macro-Level Workflow Concurrency:** Background workers in the Arq daemon govern simultaneous workflow execution jobs (`settings.max_concurrent_workflows`).
+2. **Micro-Level Provider Dynamic Throttling:** The foundational model provider (`LiteLLMProvider`) manages an internal dynamic semaphore pool (`semaphore_low_rpm_threshold`, `semaphore_low_rpm_limit`, `semaphore_max_concurrency`, `semaphore_rpm_divisor`) based on provider RPM tiers, dynamically shielding external model APIs from rate-limit exhaustion.
+3. **Synthesis Fan-Out:** Parallel synthesis sub-task fan-out is governed by central limits (`settings.max_concurrent_llm_steps`).
 
-Decoupling these semaphores prevents priority inversion and eliminates deadlock states where background workers starve API channels.
+Decoupling workflow scheduling from provider throttling prevents priority inversion, eliminates recursive deadlocks, and guarantees that computational execution engines (`PromptEngine`, `SynthesisEngine`, `TDAEngine`) and sub-executors operate as pure stateless pipelines without concurrency primitives.
 
 ### 7.5 Provider Adapter Encapsulation & Lazy Dependency Loading
 * All vendor-specific behaviors (such as Google Vertex AI location parameters, Anthropic prompt-caching headers, and OpenAI function calling formats) are strictly encapsulated inside concrete provider adapters.
