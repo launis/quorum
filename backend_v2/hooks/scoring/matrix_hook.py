@@ -342,6 +342,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                         message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                     ) from err
 
+        block_penalties: dict[str, list[float]] = {}
         for pb_id, pb_model in matrix_blocks:
             scales = pb_model.scales
             block_scale_stats: dict[float, LevelStatsDTO] = {}
@@ -349,6 +350,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             block_evaluated_atoms: dict[str, ExecutionStatus] = {}
             block_atom_quotes: list[QuoteEvidenceDTO] = []
             block_matrix_extensions: dict[str, list[str]] = {}
+            block_penalties_detected: list[float] = []
 
             for scale in scales:
                 s_val = float(scale.score)
@@ -456,21 +458,33 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                             # Record the logic outcomes
                             cur_stat = block_scale_stats[s_val]
-                            if final_state == "DLQ":
-                                block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
-                                block_scale_stats[s_val] = cur_stat.model_copy(
-                                    update={"total": cur_stat.total + 1, "dlqs": cur_stat.dlqs + 1}
-                                )
-                                block_missing_atoms.append(f"{text} (DLQ - Unscorable)")
-                            elif final_state == "TRUE":
-                                block_evaluated_atoms[aid] = ExecutionStatus.PASSED
-                                block_scale_stats[s_val] = cur_stat.model_copy(
-                                    update={"total": cur_stat.total + 1, "hits": cur_stat.hits + 1}
-                                )
+                            is_inverse_claim = bool(tda.inverse_evidence)
+                            if is_inverse_claim:
+                                # Two-Factor Orthogonal Scoring: inverse assertions are error detectors
+                                if final_state == "DLQ":
+                                    block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
+                                elif final_state == "TRUE":
+                                    block_evaluated_atoms[aid] = ExecutionStatus.PASSED
+                                else:
+                                    block_evaluated_atoms[aid] = ExecutionStatus.FAILED
+                                    block_penalties_detected.append(0.05)
+                                    block_missing_atoms.append(text)
                             else:
-                                block_evaluated_atoms[aid] = ExecutionStatus.FAILED
-                                block_scale_stats[s_val] = cur_stat.model_copy(update={"total": cur_stat.total + 1})
-                                block_missing_atoms.append(text)
+                                if final_state == "DLQ":
+                                    block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
+                                    block_scale_stats[s_val] = cur_stat.model_copy(
+                                        update={"total": cur_stat.total + 1, "dlqs": cur_stat.dlqs + 1}
+                                    )
+                                    block_missing_atoms.append(f"{text} (DLQ - Unscorable)")
+                                elif final_state == "TRUE":
+                                    block_evaluated_atoms[aid] = ExecutionStatus.PASSED
+                                    block_scale_stats[s_val] = cur_stat.model_copy(
+                                        update={"total": cur_stat.total + 1, "hits": cur_stat.hits + 1}
+                                    )
+                                else:
+                                    block_evaluated_atoms[aid] = ExecutionStatus.FAILED
+                                    block_scale_stats[s_val] = cur_stat.model_copy(update={"total": cur_stat.total + 1})
+                                    block_missing_atoms.append(text)
 
             aggregation_states[pb_id] = MatrixAggregationStateDTO(
                 scale_stats=block_scale_stats,
@@ -479,6 +493,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 missing_atoms=block_missing_atoms,
                 atom_quotes=block_atom_quotes,
             )
+            block_penalties[pb_id] = block_penalties_detected
 
         # 3. Calculation via UnifiedScoringEngine
         matrix_outputs: dict[str, LightweightMatrixOutput] = {}
@@ -513,6 +528,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     math_min=math_min,
                     math_max=math_max,
                     strictness_level=strictness_level,
+                    penalties_detected=block_penalties[pb_id],
                 )
                 raw_score = scoring_result.score
                 xai_log = scoring_result.xai_log

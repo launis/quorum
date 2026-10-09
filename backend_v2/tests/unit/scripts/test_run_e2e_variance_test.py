@@ -475,8 +475,8 @@ class TestWorkflowMatrixTelemetry:
 
         assert telemetry["total_matrices"] == 4
         assert telemetry["total_scales"] == 17
-        assert telemetry["total_atoms"] == 85
-        assert telemetry["total_high_entropy_atoms"] == 85
+        assert telemetry["total_atoms"] == 88
+        assert telemetry["total_high_entropy_atoms"] == 88
 
         steps = {s["step_rule_id"]: s for s in telemetry["steps"]}
         assert len(steps) == 7

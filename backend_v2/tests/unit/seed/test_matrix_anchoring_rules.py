@@ -282,9 +282,9 @@ def test_negative_tda_assertion_missing_required_fields() -> None:
 
 
 def test_all_matrix_atoms_have_high_entropy_activated() -> None:
-    """Verify 100% Best-of-3 coverage: all 305 matrix atoms have high_entropy activated."""
+    """Verify 100% Best-of-3 coverage: all 320 matrix atoms have high_entropy activated."""
     atoms = _load_seed_atoms()
-    assert len(atoms) == 305, f"Expected 305 matrix atoms in seed_data.json, found {len(atoms)}"
+    assert len(atoms) == 320, f"Expected 320 matrix atoms in seed_data.json, found {len(atoms)}"
 
     disabled_atoms: list[str] = [tda_id for tda_id, atom in atoms.items() if atom.high_entropy is not True]
 

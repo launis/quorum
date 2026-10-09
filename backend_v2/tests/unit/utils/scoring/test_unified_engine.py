@@ -264,5 +264,55 @@ def test_unified_scoring_engine_xai_debug_trace_mathematical_precision() -> None
     assert any("Weighted Points: 11.0 / 28.0" in line for line in trace["log_trace"])
     assert any("Linear: 39%" in line for line in trace["log_trace"])
     assert any("Curved: 31%" in line for line in trace["log_trace"])
+    assert any("Final: 31%" in line for line in trace["log_trace"])
     assert any("Level 1.0 (Weight x1.0): 5/8 hits" in line for line in trace["log_trace"])
     assert any("Level 2.0 (Weight x2.0): 3/10 hits" in line for line in trace["log_trace"])
+
+
+def test_unified_scoring_engine_two_factor_orthogonal_malus() -> None:
+    """Verify that detected penalties apply a multiplicative malus to the curved score."""
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=10, total=10, dlqs=0),
+        2.0: LevelStatsDTO(hits=10, total=10, dlqs=0),
+    }
+    # Base score without penalties (100% positive competence) -> 5.0
+    res_base = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
+    assert abs(res_base.score - 5.0) < 1e-6
+    assert res_base.xai_log.engine_debug_trace["penalty_multiplier"] == 1.0
+
+    # With 2 detected penalties of 0.05 (e.g. 2 fallacies committed)
+    # multiplier = (1.0 - 0.05) * (1.0 - 0.05) = 0.9025
+    # score = 1.0 + (1.0**1.25 * 0.9025) * 4.0 = 1.0 + 3.61 = 4.61
+    res_malus = engine.calculate(
+        stats=stats,
+        math_min=1.0,
+        math_max=5.0,
+        strictness_level=50,
+        penalties_detected=[0.05, 0.05],
+    )
+    expected_mult = 0.95 * 0.95
+    assert abs(res_malus.xai_log.engine_debug_trace["penalty_multiplier"] - expected_mult) < 1e-6
+    expected_score = 1.0 + expected_mult * 4.0
+    assert abs(res_malus.score - expected_score) < 1e-6
+    assert any("Final: 90%" in line for line in res_malus.xai_log.engine_debug_trace["log_trace"])
+
+
+def test_unified_scoring_engine_malus_clamping_at_max_ratio() -> None:
+    """Verify that multiple detected penalties clamp at MAX_TOTAL_PENALTY_RATIO (0.40)."""
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=10, total=10, dlqs=0),
+    }
+    # Pass 20 penalties of 0.05: product is 0.95^20 ≈ 0.3585 < 0.60
+    # Must clamp at 1.0 - 0.40 = 0.60
+    res_clamped = engine.calculate(
+        stats=stats,
+        math_min=1.0,
+        math_max=5.0,
+        strictness_level=50,
+        penalties_detected=[0.05] * 20,
+    )
+    assert abs(res_clamped.xai_log.engine_debug_trace["penalty_multiplier"] - 0.60) < 1e-6
+    expected_score = 1.0 + 0.60 * 4.0  # 3.40
+    assert abs(res_clamped.score - expected_score) < 1e-6

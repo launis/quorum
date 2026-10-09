@@ -10,7 +10,6 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from typing import Any
 
 from backend_v2.database.interfaces import IComponentRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -22,14 +21,9 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.view.sdui import (
-    SduiMatrixTableBlock,
-    SduiMetrics1DBlock,
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
-)
 from backend_v2.services.flattener import FlatFileService
 
 logger = logging.getLogger(__name__)
@@ -41,6 +35,7 @@ _EXCEL_KEYS = (
     ("excelHeaderGrade", "Arvosana", "Grade"),
     ("excelHeaderMaxScore", "Maksimi", "Max Score"),
     ("excelHeaderCriterion", "Kriteeri (UI)", "Criterion Name (UI)"),
+    ("excelHeaderClaimType", "Väitetyyppi", "Claim Type"),
     ("excelHeaderAiRule", "AI-s\u00e4\u00e4nt\u00f6", "AI Rule"),
     ("excelHeaderInternalizedRule", "Sis\u00e4istetty s\u00e4\u00e4nt\u00f6", "Internalized Rule"),
     ("excelHeaderResultStatus", "Tulos (Status)", "Result (Status)"),
@@ -52,6 +47,9 @@ _EXCEL_KEYS = (
     ("excelHeaderFalsification", "Falsifiointi", "Falsification"),
     ("excelSheetSummary", "Yhteenveto", "Summary"),
     ("excelSheetRawData", "Raakadata", "Raw Data"),
+    ("excelClaimTypePositive", "Positiivinen kyvykkyys", "Positive Competence"),
+    ("excelClaimTypeInverse", "Virhedetektori / Anti-pattern", "Error Detector / Anti-pattern"),
+    ("excelStatusClean", "Puhdas", "Clean"),
 )
 _EXCEL_HEADERS_FI: dict[str, str] = {k: fi for k, fi, _ in _EXCEL_KEYS}
 _EXCEL_HEADERS_EN: dict[str, str] = {k: en for k, _, en in _EXCEL_KEYS}
@@ -94,6 +92,7 @@ class ExportService:
         self,
         execution: ExecutionRecord,
         report_dto: ReportDataDTO | None,
+        matrices: list[MatrixScorecardRowDTO],
         locale: str = "fi",
         components: list[AnyPromptBlock] | None = None,
         execution_id: str | None = None,
@@ -103,6 +102,7 @@ class ExportService:
         Args:
             execution: ExecutionRecord containing evaluation data.
             report_dto: Optional ReportDataDTO containing presentation metrics.
+            matrices: List of authoritative MatrixScorecardRowDTO instances to emit 1:1.
             locale: Target localization code ('fi' or 'en').
             components: Optional pre-fetched prompt blocks for rule text resolution.
             execution_id: Optional explicit execution ID for the export filename.
@@ -111,7 +111,7 @@ class ExportService:
             Tuple of the Excel file bytes and the suggested filename.
 
         Raises:
-            AppException: If execution is not in PASSED state, has no scoreable atoms, or Excel generation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: If execution is not in PASSED state, has no scoreable atoms, matrices is empty, or Excel generation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         if execution.status != ExecutionStatus.PASSED:
             msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
@@ -133,6 +133,16 @@ class ExportService:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
+        if not matrices:
+            msg = "Strict Fail-Fast: Execution has no evaluative matrices for Excel export."
+            logger.error(
+                "[ExportService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
         if locale.lower().startswith("fi"):
             h = _EXCEL_HEADERS_FI
         else:
@@ -140,29 +150,16 @@ class ExportService:
 
         summary_rows = []
         matrix_title_lookup: dict[str, str] = {}
-        if report_dto.inner_sdui_blocks is not None:
-            matrices: list[Any] = []
-            for block in report_dto.inner_sdui_blocks:
-                match block:
-                    case (
-                        SduiRadarChartBlock(axes=axes)
-                        | SduiScatterPlotBlock(axes=axes)
-                        | SduiMatrixTableBlock(axes=axes)
-                        | SduiMetrics1DBlock(axes=axes)
-                    ):
-                        matrices.extend(axes)
-                    case _:
-                        pass
-            for m in matrices:
-                lbl = m.label_i18n.resolve()
-                matrix_title_lookup[m.block_id] = lbl
-                summary_rows.append(
-                    {
-                        h["excelHeaderMatrix"]: lbl,
-                        h["excelHeaderGrade"]: m.score,
-                        h["excelHeaderMaxScore"]: m.scale_max,
-                    }
-                )
+        for m in matrices:
+            lbl = m.label_i18n.resolve(target_locale=locale)
+            matrix_title_lookup[m.block_id] = lbl
+            summary_rows.append(
+                {
+                    h["excelHeaderMatrix"]: lbl,
+                    h["excelHeaderGrade"]: m.score,
+                    h["excelHeaderMaxScore"]: m.scale_max,
+                }
+            )
 
         blocks_by_id: dict[str, AnyPromptBlock] = {}
         if components is not None:
@@ -170,6 +167,14 @@ class ExportService:
         elif self.comp_repo is not None:
             comp_list = await self.comp_repo.get_all_components("prompt_block")
             blocks_by_id = {b.id: b for b in comp_list}
+
+        atom_is_inverse: dict[str, bool] = {}
+        for b in blocks_by_id.values():
+            if isinstance(b, MatrixPromptBlock) and b.scales:
+                for scale in b.scales:
+                    for claim in scale.claims:
+                        for tda in claim.tda_assertions:
+                            atom_is_inverse[tda.tda_id] = bool(tda.inverse_evidence)
 
         rows = []
         hydrated_refs = report_dto.hydrated_references
@@ -180,7 +185,7 @@ class ExportService:
                     matrix_label = matrix_title_lookup[atom.matrix_id]
                 elif atom.matrix_id in blocks_by_id:
                     blk = blocks_by_id[atom.matrix_id]
-                    matrix_label = blk.label.resolve()
+                    matrix_label = blk.label.resolve(target_locale=locale)
                 else:
                     matrix_label = atom.matrix_id
 
@@ -193,6 +198,22 @@ class ExportService:
             elif atom.tda_id in blocks_by_id:
                 target_block = blocks_by_id[atom.tda_id]
             rule_text = _extract_claim_rule(target_block)
+
+            is_inverse_claim = atom.is_inverse_evidence or (
+                atom.tda_id in atom_is_inverse and atom_is_inverse[atom.tda_id]
+            )
+            if is_inverse_claim:
+                claim_type = h["excelClaimTypeInverse"]
+                if atom.status == ExecutionStatus.PASSED:
+                    result_status: int | str = h["excelStatusClean"]
+                else:
+                    result_status = 0
+            else:
+                claim_type = h["excelClaimTypePositive"]
+                if atom.status == ExecutionStatus.PASSED:
+                    result_status = 1
+                else:
+                    result_status = 0
 
             reasoning = atom.evaluation_reasoning
             if reasoning is None:
@@ -223,15 +244,11 @@ class ExportService:
             if "falsification" in atom.extensions:
                 falsification_val = atom.extensions["falsification"]
 
-            if atom.status == ExecutionStatus.PASSED:
-                result_status = 1
-            else:
-                result_status = 0
-
             rows.append(
                 {
                     h["excelHeaderMatrix"]: matrix_label,
                     h["excelHeaderCriterion"]: criterion,
+                    h["excelHeaderClaimType"]: claim_type,
                     h["excelHeaderAiRule"]: rule_text,
                     h["excelHeaderInternalizedRule"]: internalized_rule_val,
                     h["excelHeaderResultStatus"]: result_status,

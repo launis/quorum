@@ -150,6 +150,12 @@ async def test_create_executive_summary_task_happy_path() -> None:
     )
     assert res == expected_result
     mock_client.run_structured_task.assert_called_once()
+    call_args = mock_client.run_structured_task.call_args
+    messages = call_args.kwargs["messages"]
+    user_content = messages[1].content
+    assert "LENGTH BUDGET MANDATE" in user_content
+    assert "<section_budget>200</section_budget>" in user_content
+    assert "CRITICAL BREVITY MANDATE" not in user_content
 
 
 @pytest.mark.asyncio

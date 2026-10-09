@@ -22,7 +22,9 @@ from backend_v2.hooks.scoring.matrix_hook import (
     MatrixAggregationStateDTO,
     matrix_scoring_hook,
 )
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
@@ -825,3 +827,93 @@ def test_matrix_aggregation_state_dto_rejects_unknown_attribute() -> None:
     """Test that MatrixAggregationStateDTO rejects undeclared attributes under extra='forbid'."""
     with pytest.raises(ValidationError):
         MatrixAggregationStateDTO.model_validate({"scale_stats": {}, "evaluated_atoms": {}, "extra_key": 123})
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_blank_page_and_inverse_penalties(matrix_setup: MatrixSetupDTO) -> None:
+    """Test Blank Page Fallacy eradication (0 positive hits) and inverse penalty recordings."""
+    deps = matrix_setup.deps
+    pb_id = matrix_setup.pb_id
+
+    # Build matrix block with 10 inverse claims across 5 levels (2 per level)
+    scales = []
+    inv_tda_ids = []
+    counter = 1
+    for lvl in range(1, 6):
+        claims = []
+        for c_idx in range(1, 3):
+            tda_id = f"tda_{counter:032x}"
+            counter += 1
+            inv_tda_ids.append(tda_id)
+            claims.append(
+                MatrixClaim(
+                    label=I18nText(translations={"en": f"Inverse claim {lvl}.{c_idx}"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_id,
+                            concept_description=f"Inverse defect detector {lvl}.{c_idx}",
+                            inverse_evidence=True,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                )
+            )
+        scales.append(MatrixScale(score=lvl, ai_label=f"Level {lvl}", claims=claims))
+
+    pb = _build_test_matrix_block(pb_id, inv_tda_ids[0]).model_copy(update={"scales": scales})
+    await deps.prompt_block_repo.update_prompt_block(pb_id, pb)
+
+    # 1. Pure Blank Page: all 10 inverse assertions passed (no errors committed, but 0 positive competence)
+    pure_inv_evals = [
+        AtomResultDTO(
+            tda_id=tid,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning=f"No defect for {tid}",
+            is_inverse_evidence=True,
+        )
+        for tid in inv_tda_ids
+    ]
+    state_blank = HookState(
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": pure_inv_evals}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    res_blank = await matrix_scoring_hook(state_blank, deps)
+    assert res_blank.success is True
+    delta_blank = res_blank.state_delta.delta
+    assert delta_blank is not None
+    # Blank Page Fallacy eradicated: 0 positive hits yields math_min (1.0)
+    assert delta_blank.matrix_outputs[pb_id].raw_score == 1.0
+    assert delta_blank.matrix_outputs[pb_id].level_breakdown is not None
+    for s_dto in delta_blank.matrix_outputs[pb_id].level_breakdown.values():
+        assert s_dto.total == 0
+        assert s_dto.hits == 0
+
+    # 2. 2 failed inverse claims record 2 penalties (0.05 deductions)
+    inv_evals_with_failures = [
+        AtomResultDTO(
+            tda_id=tid,
+            status=ExecutionStatus.FAILED if idx < 2 else ExecutionStatus.PASSED,
+            evaluation_reasoning=f"Reasoning for {tid}",
+            is_inverse_evidence=False if idx < 2 else True,
+        )
+        for idx, tid in enumerate(inv_tda_ids)
+    ]
+    state_fail = HookState(
+        execution_id=matrix_setup.execution_id,
+        workflow_id=matrix_setup.workflow_id,
+        step_id=matrix_setup.step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": inv_evals_with_failures}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    res_fail = await matrix_scoring_hook(state_fail, deps)
+    assert res_fail.success is True
+    delta_fail = res_fail.state_delta.delta
+    assert delta_fail is not None
+    assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[0]] == ExecutionStatus.FAILED
+    assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[1]] == ExecutionStatus.FAILED
+    assert delta_fail.matrix_outputs[pb_id].evaluated_atoms[inv_tda_ids[2]] == ExecutionStatus.PASSED

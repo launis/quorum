@@ -961,6 +961,7 @@ class LLMNodeStrategy(NodeStrategy):
             if "token_usage" not in meta_dict:
                 meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
         final_dict["_step_metadata"] = meta_dict
+        final_dict["step_metadata"] = meta_dict
 
         generated_schema = None
         if dynamic_schema is not None:

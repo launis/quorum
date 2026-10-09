@@ -87,6 +87,22 @@ def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     )
 
 
+def _build_sample_matrix_rows(n: int = 1) -> list[MatrixScorecardRowDTO]:
+    """Helper to construct valid MatrixScorecardRowDTO test instances."""
+    return [
+        MatrixScorecardRowDTO(
+            block_id=f"blk_matrix_{i:04d}",
+            name=f"Matrix {i}",
+            label_i18n=I18nText(translations={"fi": f"Matriisi {i}", "en": f"Matrix {i}"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation=f"Row explanation {i}",
+            is_evaluative=True,
+        )
+        for i in range(1, n + 1)
+    ]
+
+
 def test_extract_claim_rule() -> None:
     lbl = I18nText(translations={"fi": "L", "en": "L"})
     desc = I18nText(translations={"fi": "D", "en": "D"})
@@ -152,6 +168,7 @@ async def test_export_excel_success_fi() -> None:
     bytes_out, filename = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=_build_sample_matrix_rows(1),
         locale="fi",
         components=[matrix_block],
     )
@@ -184,6 +201,7 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
     bytes_out, filename = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=_build_sample_matrix_rows(1),
         locale="en",
     )
 
@@ -198,7 +216,7 @@ async def test_export_excel_fails_non_passed_status() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.FAILED)
 
     with pytest.raises(AppException) as exc_info:
-        await service.export_excel(execution=exec_record, report_dto=None)
+        await service.export_excel(execution=exec_record, report_dto=None, matrices=_build_sample_matrix_rows(1))
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -211,7 +229,7 @@ async def test_export_excel_fails_no_scoreable_atoms() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
 
     with pytest.raises(AppException) as exc_info:
-        await service.export_excel(execution=exec_record, report_dto=None)
+        await service.export_excel(execution=exec_record, report_dto=None, matrices=_build_sample_matrix_rows(1))
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -225,7 +243,7 @@ async def test_export_excel_fails_when_report_dto_has_no_atoms() -> None:
     report_dto = _build_sample_report_dto(has_atoms=False)
 
     with pytest.raises(AppException) as exc_info:
-        await service.export_excel(execution=exec_record, report_dto=report_dto)
+        await service.export_excel(execution=exec_record, report_dto=report_dto, matrices=_build_sample_matrix_rows(1))
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -240,7 +258,9 @@ async def test_export_excel_writer_error() -> None:
 
     with patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk failure")):
         with pytest.raises(AppException) as exc_info:
-            await service.export_excel(execution=exec_record, report_dto=report_dto)
+            await service.export_excel(
+                execution=exec_record, report_dto=report_dto, matrices=_build_sample_matrix_rows(1)
+            )
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
@@ -316,6 +336,7 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
     excel_bytes, filename = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=[axis],
         locale="fi",
     )
 
@@ -426,6 +447,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     excel_bytes, filename = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=[axis_custom],
         locale="en",
         components=[component_block, tda_matched_block],
         execution_id="exe_custom_export_123",
@@ -448,3 +470,101 @@ def test_export_flat_csv_default_execution_id() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.csv"
     assert len(csv_bytes) > 0
+
+
+@pytest.mark.asyncio
+async def test_export_excel_fails_when_matrices_empty() -> None:
+    """Test that empty matrices list triggers Fail-Fast AppException(400, VALIDATION_FAILED)."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+
+    with pytest.raises(AppException) as exc_info:
+        await service.export_excel(
+            execution=exec_record,
+            report_dto=report_dto,
+            matrices=[],
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Execution has no evaluative matrices for Excel export." in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications() -> None:
+    """Test that export_excel emits exactly 9 matrix summary rows and explicit claim classifications."""
+    import io
+
+    import pandas as pd
+
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+
+    matrices = _build_sample_matrix_rows(9)
+
+    atom_positive = AtomResultDTO(
+        tda_id="tda_pos_001",
+        matrix_id="blk_matrix_0001",
+        status=ExecutionStatus.PASSED,
+        source_quote="Positive quote",
+        evaluation_reasoning="Demonstrated positive competence.",
+        is_inverse_evidence=False,
+    )
+    atom_inverse = AtomResultDTO(
+        tda_id="tda_inv_001",
+        matrix_id="blk_matrix_0002",
+        status=ExecutionStatus.PASSED,
+        source_quote=None,
+        evaluation_reasoning="No fallacy detected.",
+        is_inverse_evidence=True,
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_positive, atom_inverse],
+        hydrated_references={
+            "tda_pos_001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Competence claim",
+            ),
+            "tda_inv_001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Fallacy absence claim",
+            ),
+        },
+    )
+
+    excel_bytes, _ = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+
+    excel_file = io.BytesIO(excel_bytes)
+    summary_df = pd.read_excel(excel_file, sheet_name="Yhteenveto")
+    raw_df = pd.read_excel(excel_file, sheet_name="Raakadata")
+
+    assert len(summary_df) == 9
+    for i, row in enumerate(summary_df.itertuples(), 1):
+        assert row.Matriisi == f"Matriisi {i}"
+        assert row.Arvosana == 4.0
+        assert row.Maksimi == 5.0
+
+    assert len(raw_df) == 2
+    assert "Väitetyyppi" in raw_df.columns
+    assert "Tulos (Status)" in raw_df.columns
+
+    pos_row = raw_df[raw_df["Kriteeri (UI)"] == "Competence claim"].iloc[0]
+    assert pos_row["Väitetyyppi"] == "Positiivinen kyvykkyys"
+    assert pos_row["Tulos (Status)"] == 1
+
+    inv_row = raw_df[raw_df["Kriteeri (UI)"] == "Fallacy absence claim"].iloc[0]
+    assert inv_row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
+    assert inv_row["Tulos (Status)"] == "Puhdas"

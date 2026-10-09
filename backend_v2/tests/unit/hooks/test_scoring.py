@@ -223,6 +223,19 @@ async def _create_test_scoring_repo(
                             ai_label=f"Level {i}",
                             claims=[
                                 MatrixClaim(
+                                    label=I18nText(
+                                        translations={"en": f"Positive Claim {i}", "fi": f"Positiivinen väite {i}"}
+                                    ),
+                                    tda_assertions=[
+                                        TDAAssertion(
+                                            tda_id=generate_atom_hash(f"pos_atom_{i}", mandate),
+                                            concept_description=f"Positive assertion {i} for testing purposes",
+                                            inverse_evidence=False,
+                                            aggregation_mode="ALL_MUST_COMPLY",
+                                        )
+                                    ],
+                                ),
+                                MatrixClaim(
                                     label=I18nText(translations={"en": f"Claim {i}", "fi": f"Väite {i}"}),
                                     tda_assertions=[
                                         TDAAssertion(
@@ -232,7 +245,7 @@ async def _create_test_scoring_repo(
                                             aggregation_mode="EXISTS",
                                         )
                                     ],
-                                )
+                                ),
                             ],
                         )
                         for i in range(1, 6)
@@ -1328,6 +1341,15 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
 
     evaluations = [
         {
+            "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"Positive competence {i}",
+            "source_quote": "clean text",
+            "contextual_override": False,
+        }
+        for i in range(1, 6)
+    ] + [
+        {
             "tda_id": generate_atom_hash(f"atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"No penalty {i}",
@@ -1362,24 +1384,37 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
     """Verifies that inverse_evidence=True with status=FAILED correctly blocks the level."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
-    evaluations = [
-        {
-            "tda_id": generate_atom_hash("atom_1", mandate),
-            "status": ExecutionStatus.FAILED,
-            "evaluation_reasoning": "Penalty detected",
-            "source_quote": None,
-            "contextual_override": False,
-        }
-    ] + [
-        {
-            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-            "status": ExecutionStatus.PASSED,
-            "evaluation_reasoning": f"No penalty {i}",
-            "source_quote": "clean text",
-            "contextual_override": False,
-        }
-        for i in range(2, 6)
-    ]
+    evaluations = (
+        [
+            {
+                "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": f"Positive competence {i}",
+                "source_quote": "clean text",
+                "contextual_override": False,
+            }
+            for i in range(1, 6)
+        ]
+        + [
+            {
+                "tda_id": generate_atom_hash("atom_1", mandate),
+                "status": ExecutionStatus.FAILED,
+                "evaluation_reasoning": "Penalty detected",
+                "source_quote": None,
+                "contextual_override": False,
+            }
+        ]
+        + [
+            {
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": f"No penalty {i}",
+                "source_quote": "clean text",
+                "contextual_override": False,
+            }
+            for i in range(2, 6)
+        ]
+    )
 
     state = HookState(
         execution_id="ex_5555666677778888",
@@ -1407,6 +1442,15 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
     evaluations = [
+        {
+            "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"Positive competence {i}",
+            "source_quote": "clean text",
+            "contextual_override": False,
+        }
+        for i in range(1, 6)
+    ] + [
         {
             "tda_id": generate_atom_hash(f"atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
@@ -1489,26 +1533,39 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
     """Verifies that an inverse assertion with status=FAILED resolves to FALSE even with enable_contextual_overrides=True."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
-    evaluations = [
-        {
-            "tda_id": generate_atom_hash("atom_1", mandate),
-            "status": ExecutionStatus.FAILED,
-            "evaluation_reasoning": "Negative condition detected in text",
-            "source_quote": None,
-            "contextual_override": False,
-            "is_inverse_evidence": False,
-        }
-    ] + [
-        {
-            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
-            "status": ExecutionStatus.PASSED,
-            "evaluation_reasoning": f"No violation {i}",
-            "source_quote": None,
-            "contextual_override": False,
-            "is_inverse_evidence": True,
-        }
-        for i in range(2, 6)
-    ]
+    evaluations = (
+        [
+            {
+                "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": f"Positive competence {i}",
+                "source_quote": "clean text",
+                "contextual_override": False,
+            }
+            for i in range(1, 6)
+        ]
+        + [
+            {
+                "tda_id": generate_atom_hash("atom_1", mandate),
+                "status": ExecutionStatus.FAILED,
+                "evaluation_reasoning": "Negative condition detected in text",
+                "source_quote": None,
+                "contextual_override": False,
+                "is_inverse_evidence": False,
+            }
+        ]
+        + [
+            {
+                "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                "status": ExecutionStatus.PASSED,
+                "evaluation_reasoning": f"No violation {i}",
+                "source_quote": None,
+                "contextual_override": False,
+                "is_inverse_evidence": True,
+            }
+            for i in range(2, 6)
+        ]
+    )
 
     state = HookState(
         execution_id="ex_3333444455556666",
@@ -1528,6 +1585,68 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
     assert delta is not None
     # Level 1 failed, so waterfall ceiling caps raw_score < 5.0
     assert delta.matrix_outputs["pb_1234567890123456"].raw_score < 5.0
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_pure_inverse_without_positive_competence_yields_math_min() -> None:
+    """Verifies that an absence of errors with zero positive competence yields math_min (1.0)."""
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+
+    # Scales with ONLY inverse atoms (no positive competence)
+    scales = [
+        MatrixScale(
+            score=i,
+            ai_label=f"Level {i}",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": f"Inverse Claim {i}", "fi": f"Käänteinen väite {i}"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=generate_atom_hash(f"pure_inv_{i}", mandate),
+                            concept_description=f"Inverse assertion {i}",
+                            inverse_evidence=True,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                ),
+            ],
+        )
+        for i in range(1, 6)
+    ]
+
+    evaluations = [
+        {
+            "tda_id": generate_atom_hash(f"pure_inv_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"No defect {i}",
+            "source_quote": None,
+            "contextual_override": False,
+            "is_inverse_evidence": True,
+        }
+        for i in range(1, 6)
+    ]
+
+    state = HookState(
+        execution_id="ex_1234567890abcdef",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    repo = await _create_test_scoring_repo(scales=scales, mandate=mandate)
+    deps = _build_test_scoring_deps(repo)
+
+    result = await matrix_scoring_hook(state, deps)
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    # Blank Page Fallacy eradication: zero positive competence yields math_min (1.0)
+    assert delta.matrix_outputs["pb_1234567890123456"].raw_score == 1.0
+    for i in range(1, 6):
+        aid = generate_atom_hash(f"pure_inv_{i}", mandate)
+        assert delta.matrix_outputs["pb_1234567890123456"].evaluated_atoms[aid] == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio

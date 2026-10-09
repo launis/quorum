@@ -366,31 +366,40 @@ async def recalculate(
         math_max = max(scale_values)
 
         atom_to_scale: dict[str, float] = {}
+        atom_to_inverse: dict[str, bool] = {}
         for scale in scales:
             s_val = float(scale.score)
             for claim in scale.claims:
                 if claim.tda_assertions:
                     for tda in claim.tda_assertions:
                         atom_to_scale[tda.tda_id] = s_val
+                        atom_to_inverse[tda.tda_id] = bool(tda.inverse_evidence)
 
         raw_stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
+        penalties_detected: list[float] = []
 
         evaluated_atoms = existing_matrix.evaluated_atoms
         for atom_id, status in evaluated_atoms.items():
             if atom_id not in atom_to_scale:
                 continue
             s_val = atom_to_scale[atom_id]
-            raw_stats[s_val]["total"] += 1
+            is_inverse = atom_to_inverse[atom_id]
 
             effective_status = status
 
             if effective_status == ExecutionStatus.N_A:
                 continue
 
-            if effective_status == ExecutionStatus.SYSTEM_ERROR:
-                raw_stats[s_val]["dlqs"] += 1
-            elif effective_status == ExecutionStatus.PASSED:
-                raw_stats[s_val]["hits"] += 1
+            if is_inverse:
+                # Two-Factor Orthogonal Scoring: inverse assertions are error detectors
+                if effective_status == ExecutionStatus.FAILED:
+                    penalties_detected.append(0.05)
+            else:
+                raw_stats[s_val]["total"] += 1
+                if effective_status == ExecutionStatus.SYSTEM_ERROR:
+                    raw_stats[s_val]["dlqs"] += 1
+                elif effective_status == ExecutionStatus.PASSED:
+                    raw_stats[s_val]["hits"] += 1
 
         global_total = sum(level_data["total"] for level_data in raw_stats.values())
         global_hits = sum(level_data["hits"] for level_data in raw_stats.values())
@@ -421,6 +430,7 @@ async def recalculate(
                 math_min=math_min,
                 math_max=math_max,
                 strictness_level=strictness_level,
+                penalties_detected=penalties_detected,
             )
             raw_score = scoring_result.score
             xai_log = scoring_result.xai_log

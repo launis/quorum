@@ -1890,12 +1890,20 @@ def run_variance_test(
             print("Timeout waiting for execution!")
             sys.exit(1)
 
-        # Persist execution_trace to disk if available on target_exec
+        # Persist execution_trace to disk if available on target_exec and not already stored by StorageDriver
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
         trace_file.parent.mkdir(parents=True, exist_ok=True)
-        if "execution_trace" in target_exec:
-            with trace_file.open("w", encoding="utf-8") as tf:
-                json.dump(target_exec["execution_trace"], tf, indent=2)
+        if not (trace_file.exists() and trace_file.stat().st_size > 100):
+            storage_path = target_exec.get("execution_trace_storage_path")
+            if (
+                storage_path
+                and Path(f"data/files/{storage_path}").exists()
+                and Path(f"data/files/{storage_path}").stat().st_size > 100
+            ):
+                pass
+            elif "execution_trace" in target_exec and target_exec["execution_trace"]:
+                with trace_file.open("w", encoding="utf-8") as tf:
+                    json.dump(target_exec["execution_trace"], tf, indent=2)
 
         # Validate kelvollisuus (Data Starvation & Sufficiency Check)
         is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
@@ -1962,7 +1970,8 @@ def main(argv: list[str] | None = None) -> list[str]:
             "  # Run 2 consecutive variance iterations on a specific input file:\n"
             "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --num-runs 2\n\n"
             "  # Run fast development mode with custom profile and locale:\n"
-            "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --dev --profile prof_board_brief --locale fi\n\n"
+            "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt "
+            "--dev --profile prof_board_brief --locale fi\n\n"
             "  # Compare two model registry stacks side-by-side:\n"
             "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --compare-registries google openai"
         ),

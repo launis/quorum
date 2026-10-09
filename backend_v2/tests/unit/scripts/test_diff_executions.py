@@ -427,24 +427,24 @@ class TestWorkflowProvenance:
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
-        # wf_01: AI Driving License (65 atoms)
+        # wf_01: AI Driving License (68 atoms)
         wf_01 = extract_workflow_provenance(seed, "wf_01a1d71000000001")
         assert wf_01 is not None
         assert isinstance(wf_01, WorkflowProvenanceDTO)
         assert wf_01.workflow_id == "wf_01a1d71000000001"
-        assert wf_01.total_workflow_atoms == 65
+        assert wf_01.total_workflow_atoms == 68
         assert wf_01.total_active_steps == 6
         assert wf_01.version == 1
 
-        # wf_02: Strategic Leadership (110 atoms)
+        # wf_02: Strategic Leadership (113 atoms)
         wf_02 = extract_workflow_provenance(seed, "wf_02a1d71000000002")
         assert wf_02 is not None
-        assert wf_02.total_workflow_atoms == 110
+        assert wf_02.total_workflow_atoms == 113
 
-        # wf_03: Deep Problem Solving (85 atoms)
+        # wf_03: Deep Problem Solving (88 atoms)
         wf_03 = extract_workflow_provenance(seed, "wf_03a1d71000000003")
         assert wf_03 is not None
-        assert wf_03.total_workflow_atoms == 85
+        assert wf_03.total_workflow_atoms == 88
 
     def test_extract_workflow_provenance_empty_and_unknown(self) -> None:
         """Negative: Empty seed returns None, unknown workflow ID falls back to first available workflow."""

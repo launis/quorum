@@ -223,28 +223,17 @@ async def execute_workflow_job(
             )
 
             if exec_id:
-
-                def _has_step_metadata(evt: ErrorTraceEvent | TombstoneEvent | TraceEvent) -> bool:
-                    if not evt.content:
-                        return False
-                    if isinstance(evt.content, TraceEventMetadataEnvelope):
-                        return evt.content.step_metadata is not None
-                    if type(evt.content) is dict:
-                        return "_step_metadata" in evt.content or "step_metadata" in evt.content
-                    return False
-
                 trace_events = list(updated_exec_record.execution_trace)
-                if (
-                    not any(_has_step_metadata(e) for e in trace_events)
-                    and updated_exec_record.execution_trace_storage_path
-                ):
+                if updated_exec_record.execution_trace_storage_path:
                     try:
                         storage_driver = get_storage_driver()
                         blob_data = await storage_driver.read(updated_exec_record.execution_trace_storage_path)
                         if blob_data:
-                            trace_events = TypeAdapter(
+                            offloaded_events = TypeAdapter(
                                 list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
                             ).validate_json(blob_data)
+                            if len(offloaded_events) >= len(trace_events):
+                                trace_events = offloaded_events
                     except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
                         trace_path = updated_exec_record.execution_trace_storage_path
                         msg = f"Failed to hydrate offloaded trace from '{trace_path}' for telemetry: {err}"
@@ -285,22 +274,26 @@ async def execute_workflow_job(
                     step_meta: StepTraceMetadataDTO | None = None
                     if isinstance(event.content, TraceEventMetadataEnvelope):
                         step_meta = event.content.step_metadata
-                    elif type(event.content) is dict and (
-                        "_step_metadata" in event.content or "step_metadata" in event.content
-                    ):
-                        try:
-                            step_meta = TraceEventMetadataEnvelope.model_validate(event.content).step_metadata
-                        except (ValidationError, ValueError) as err:
-                            logger.error(
-                                "[Worker] Corrupted TraceEventMetadataEnvelope in execution trace: %s",
-                                err,
-                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
-                            raise AppException(
-                                message=f"Corrupted TraceEventMetadataEnvelope in execution trace: {err}",
-                                status_code=500,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                            ) from err
+                    elif type(event.content) is dict:
+                        meta_payload = None
+                        if "step_metadata" in event.content:
+                            meta_payload = event.content["step_metadata"]
+                        elif "_step_metadata" in event.content:
+                            meta_payload = event.content["_step_metadata"]
+                        if meta_payload is not None:
+                            try:
+                                step_meta = StepTraceMetadataDTO.model_validate(meta_payload)
+                            except (ValidationError, ValueError) as err:
+                                logger.error(
+                                    "[Worker] Corrupted StepTraceMetadataDTO in execution trace: %s",
+                                    err,
+                                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                )
+                                raise AppException(
+                                    message=f"Corrupted StepTraceMetadataDTO in execution trace: {err}",
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                ) from err
                     if step_meta is None:
                         continue
                     usage = step_meta.token_usage

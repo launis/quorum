@@ -47,8 +47,8 @@ SYNTHESIS_XAI_CURATION: str = (
 SYNTHESIS_SECTION_RULES_PREFIX: str = (
     "<section_rules>\n"
     "## Section-Level Synthesis\n"
-    "- CRITICAL BREVITY MANDATE: Limit every section summary to an absolute maximum of 2-3 "
-    "short sentences.\n"
+    "- LENGTH BUDGET MANDATE: Adhere strictly to the target character budget provided in <section_budget> if present. "
+    "Provide a focused, evidence-grounded summary tailored to the section directive without exceeding the budget.\n"
     "- You MUST ALSO provide targeted synthesized summaries for the following distinct "
     "sections as an array in `section_syntheses`.\n\n"
 )
@@ -56,8 +56,9 @@ SYNTHESIS_SECTION_RULES_PREFIX: str = (
 EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX: str = (
     "<section_rules>\n"
     "## Executive Summary Synthesis\n"
-    "- CRITICAL BREVITY MANDATE: Limit the summary to an absolute maximum of 2-3 "
-    "short sentences.\n"
+    "- LENGTH BUDGET MANDATE: Adhere to the target character budget provided in <section_budget> "
+    "(or <global_length_constraint_chars>). Structure the narrative into coherent, substantive paragraphs "
+    "that fully address the strategic executive directive within the budgeted length.\n"
     "- You MUST provide structured SDUI content blocks representing the executive summary "
     "narrative in `executive_summary`.\n"
     "- Follow the specific directive below for the executive summary narrative:\n\n"

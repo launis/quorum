@@ -19,6 +19,7 @@ class ScoringEngineProtocol(Protocol):
         math_min: float,
         math_max: float,
         strictness_level: int = 50,
+        penalties_detected: list[float] | None = None,
     ) -> ScoringResultDTO:
         """Calculates the final score and generates XAI justification log.
 
@@ -27,6 +28,7 @@ class ScoringEngineProtocol(Protocol):
             math_min: The minimum possible score in the calculation matrix.
             math_max: The maximum possible score in the calculation matrix.
             strictness_level: The user strictness input mapped on 0-100 range (defaults to 50).
+            penalties_detected: Optional list of penalty deductions (malus) for detected cognitive violations.
 
         Returns:
             Strictly typed, immutable ScoringResultDTO containing score, XAI log, and breakdown.

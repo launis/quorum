@@ -53,3 +53,19 @@ def test_factory_default_directives_are_valid_strings() -> None:
     for d in directives:
         assert isinstance(d, str)
         assert len(d.strip()) > 0
+
+
+def test_length_budget_mandate_presence_and_brevity_mandate_absence() -> None:
+    """Verify LENGTH BUDGET MANDATE is present and CRITICAL BREVITY MANDATE is eradicated."""
+    from backend_v2.models.prompts.synthesis.synthesis_directives import (
+        EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX,
+        SYNTHESIS_SECTION_RULES_PREFIX,
+    )
+
+    assert "LENGTH BUDGET MANDATE" in SYNTHESIS_SECTION_RULES_PREFIX
+    assert "CRITICAL BREVITY MANDATE" not in SYNTHESIS_SECTION_RULES_PREFIX
+    assert "2-3 short sentences" not in SYNTHESIS_SECTION_RULES_PREFIX
+
+    assert "LENGTH BUDGET MANDATE" in EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX
+    assert "CRITICAL BREVITY MANDATE" not in EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX
+    assert "2-3 short sentences" not in EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX

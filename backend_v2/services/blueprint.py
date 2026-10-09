@@ -23,6 +23,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
@@ -90,6 +91,7 @@ class BlueprintTransformer:
         self.output_profile_repo = output_profile_repo
         self.identity_repo = identity_repo
         self.system_repo = system_repo
+        self.last_evaluative_matrices: list[MatrixScorecardRowDTO] = []
 
         self._target_block_hydrators: dict[TargetBlockType, Callable[[AdapterContext], list[AnySduiBlock]]] = {
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
@@ -376,6 +378,7 @@ class BlueprintTransformer:
             expected_inputs_map=expected_inputs_map,
         )
         evaluative_matrices = parsed_result.evaluative_matrices
+        self.last_evaluative_matrices = evaluative_matrices
         all_parsed_matrices = parsed_result.all_parsed_matrices
 
         p_tokens = int(execution.prompt_tokens)

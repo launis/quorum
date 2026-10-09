@@ -401,7 +401,11 @@ class ReportService:
             await self.storage.save(pdf_path, pdf_bytes)
 
             excel_bytes, _ = await self.export_service.export_excel(
-                execution=execution, report_dto=report_dto, locale=report.locale, execution_id=report.execution_id
+                execution=execution,
+                report_dto=report_dto,
+                matrices=transformer.last_evaluative_matrices,
+                locale=report.locale,
+                execution_id=report.execution_id,
             )
             await self.storage.save(excel_path, excel_bytes)
             csv_bytes, _ = self.export_service.export_flat_csv(
