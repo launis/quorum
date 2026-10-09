@@ -2303,11 +2303,11 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
         global_source_text = req_call.kwargs["global_source_text"]
         assert global_source_text is not None
         assert (
-            '<ai_context_directive document="chat_log">Dialogue between coach and user.</ai_context_directive>'
+            '<ai_context_directive document="chat_log">\nDialogue between coach and user.\n</ai_context_directive>'
             in global_source_text
         )
         assert (
-            '<ai_context_directive document="product_text">Candidate final deliverable.</ai_context_directive>'
+            '<ai_context_directive document="product_text">\nCandidate final deliverable.\n</ai_context_directive>'
             in global_source_text
         )
 

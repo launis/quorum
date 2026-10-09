@@ -208,11 +208,10 @@ class SourceDocumentPacker:
             include_inputs = True
 
         if inputs_payload and include_inputs:
-            meta_map: dict[str, str] = {}
-            if expected_inputs:
-                for ei in expected_inputs:
-                    if ei.ai_description and ei.ai_description.strip():
-                        meta_map[ei.input_key] = ei.ai_description.strip()
+            expected_input_map: dict[str, ExpectedInput] = {}
+            if expected_inputs is not None:
+                for exp_inp in expected_inputs:
+                    expected_input_map[exp_inp.input_key] = exp_inp
 
             if isinstance(inputs_payload, str):
                 clean_str = inputs_payload.strip()
@@ -246,9 +245,24 @@ class SourceDocumentPacker:
                     if not isinstance(value, str) or not value.strip():
                         continue
                     clean_value = value.strip()
-                    if key in meta_map:
-                        directive = meta_map[key]
-                        dir_tag = f'<ai_context_directive document="{key}">{directive}</ai_context_directive>'
+                    ei: ExpectedInput | None = None
+                    if expected_input_map and key in expected_input_map:
+                        ei = expected_input_map[key]
+
+                    directive_lines: list[str] = []
+                    if ei is not None and ei.is_endorsed_deliverable:
+                        directive_lines.append("<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>")
+                    if ei is not None and ei.is_assignment:
+                        directive_lines.append("<document_modality>ASSIGNMENT_CONTEXT</document_modality>")
+                    if ei is not None and ei.ai_description and ei.ai_description.strip():
+                        normalized_desc = "\n".join(
+                            line.strip() for line in ei.ai_description.strip().splitlines() if line.strip()
+                        )
+                        directive_lines.append(normalized_desc)
+
+                    if directive_lines:
+                        dir_body = "\n".join(directive_lines)
+                        dir_tag = f'<ai_context_directive document="{key}">\n{dir_body}\n</ai_context_directive>'
                         sections.append(f"{dir_tag}\n\n{clean_value}")
                     else:
                         sections.append(clean_value)

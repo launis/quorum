@@ -18366,6 +18366,7 @@
           },
           "required": false,
           "is_chat_history": false,
+          "is_endorsed_deliverable": true,
           "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
@@ -20599,7 +20600,7 @@
           "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n- **Oivalluskyky**: Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n- **Logiikka ja päättely**: Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n- **Luotettavuus**: Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun."
         }
       },
-      "tone_instruction": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
+      "tone_instruction": "Act as a Practical Workplace Coach. Write in clear, straightforward, and engaging plain language suitable for everyday office professionals. Use simple sentence structures, avoid academic jargon or corporate buzzwords, and focus on concrete, actionable takeaways. Explain complex ideas with relatable workplace examples and practical tips rather than theoretical or academic literature.",
       "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.",
       "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.",
       "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.",

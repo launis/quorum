@@ -65,6 +65,8 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "primary analytical input datasets/variables" in prompt
     assert "DOCUMENT METADATA DISQUALIFICATION:" in prompt
     assert "Document metadata headers, distribution lists, recipient designations" in prompt
+    assert "DYNAMIC DOCUMENT DIRECTIVE PRIMACY:" in prompt
+    assert "EPISTEMIC PROTECTION SHIELD:" in prompt
     assert "INVERSE RULE NULL HYPOTHESIS:" in prompt
 
 

@@ -43,13 +43,13 @@ def test_source_document_packer_multi_document_with_metadata() -> None:
     packed = SourceDocumentPacker.pack(inputs, expected_inputs)
 
     assert (
-        '<ai_context_directive document="chat_log">'
-        "Dialogue between executive coach and candidate.</ai_context_directive>" in packed
+        '<ai_context_directive document="chat_log">\n'
+        "Dialogue between executive coach and candidate.\n</ai_context_directive>" in packed
     )
     assert "User: Hello\nCoach: Welcome to the session." in packed
     assert (
-        '<ai_context_directive document="product_text">'
-        "Final deliverable document written by candidate.</ai_context_directive>" in packed
+        '<ai_context_directive document="product_text">\n'
+        "Final deliverable document written by candidate.\n</ai_context_directive>" in packed
     )
     assert "Executive summary and strategic recommendations." in packed
 
@@ -481,3 +481,161 @@ def test_source_document_packer_extended_coverage() -> None:
     with pytest.raises(AppException) as exc_info:
         SourceDocumentPacker.pack(step_outputs=[invalid_step])
     assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
+
+
+def test_source_document_packer_endorsed_deliverable_provenance() -> None:
+    """Verify endorsed deliverable emits <document_provenance> and preserves TDA paragraph invariants."""
+    inputs = {
+        "product_text": "# Executive Report\n\nDetailed recommendations.",
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="product_text",
+            label=I18nText(translations={"en": "Product Text"}),
+            required=True,
+            is_endorsed_deliverable=True,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Final deliverable"}),
+            ai_description="Final deliverable document written by candidate.",
+        )
+    ]
+
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs)
+
+    assert '<ai_context_directive document="product_text">' in packed
+    assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in packed
+    assert "<document_modality>" not in packed
+    assert "Final deliverable document written by candidate." in packed
+
+    paragraphs = [p.strip() for p in packed.split("\n\n") if p.strip()]
+    assert len(paragraphs) == 3
+
+    directive_paragraph = paragraphs[0]
+    assert directive_paragraph.startswith('<ai_context_directive document="product_text">')
+    assert directive_paragraph.endswith("</ai_context_directive>")
+    assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in directive_paragraph
+
+    assert paragraphs[1] == "# Executive Report"
+    assert paragraphs[2] == "Detailed recommendations."
+    for p in paragraphs[1:]:
+        assert "<" not in p
+
+
+def test_source_document_packer_endorsed_reflection_provenance() -> None:
+    """Verify reflection document with is_endorsed_deliverable emits provenance tag."""
+    inputs = {
+        "reflection_text": "# Self Reflection\n\nI set boundaries and challenged AI.",
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="reflection_text",
+            label=I18nText(translations={"en": "Reflection"}),
+            required=False,
+            is_endorsed_deliverable=True,
+            input_modes=["file", "paste"],
+            description=I18nText(translations={"en": "Self reflection"}),
+            ai_description="Metacognitive reflection on the process.",
+        )
+    ]
+
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs)
+
+    assert '<ai_context_directive document="reflection_text">' in packed
+    assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in packed
+    assert "Metacognitive reflection on the process." in packed
+    assert "I set boundaries and challenged AI." in packed
+
+
+def test_source_document_packer_assignment_modality() -> None:
+    """Verify document with assignment modality emits <document_modality>ASSIGNMENT_CONTEXT</document_modality>."""
+    inputs = {
+        "task_brief": "# Assignment Brief\n\nComplete the following analysis.",
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="task_brief",
+            label=I18nText(translations={"en": "Task Brief"}),
+            required=True,
+            is_endorsed_deliverable=False,
+            input_modes=["assignment"],
+            description=I18nText(translations={"en": "Task Brief"}),
+            ai_description="Task rubric and assessment instructions.",
+        )
+    ]
+
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs)
+
+    assert '<ai_context_directive document="task_brief">' in packed
+    assert "<document_modality>ASSIGNMENT_CONTEXT</document_modality>" in packed
+    assert "<document_provenance>" not in packed
+    assert "Task rubric and assessment instructions." in packed
+    assert "Complete the following analysis." in packed
+
+
+def test_source_document_packer_unendorsed_deliverable_omits_provenance() -> None:
+    """Verify unendorsed inputs omit <document_provenance> and unassigned inputs omit <document_modality>."""
+    inputs = {
+        "notes": "Raw scratch notes.",
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="notes",
+            label=I18nText(translations={"en": "Notes"}),
+            required=False,
+            is_endorsed_deliverable=False,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Notes"}),
+            ai_description="User notes.",
+        )
+    ]
+
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs)
+
+    assert '<ai_context_directive document="notes">' in packed
+    assert "User notes." in packed
+    assert "<document_provenance>" not in packed
+    assert "<document_modality>" not in packed
+    assert "Raw scratch notes." in packed
+
+
+def test_source_document_packer_multiline_description_paragraph_split() -> None:
+    r"""Verify multiline ai_description is collapsed to single lines to prevent fracturing TDA split('\\n\\n')."""
+    inputs = {
+        "doc_with_multiline_desc": "Paragraph 1 of content.\n\nParagraph 2 of content.",
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="doc_with_multiline_desc",
+            label=I18nText(translations={"en": "Doc"}),
+            required=True,
+            is_endorsed_deliverable=True,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Doc"}),
+            ai_description="Line 1 of description.\n\nLine 2 of description.\n\nLine 3 of description.",
+        )
+    ]
+
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs)
+
+    paragraphs = [p.strip() for p in packed.split("\n\n") if p.strip()]
+    assert len(paragraphs) == 3
+
+    directive = paragraphs[0]
+    assert directive.startswith('<ai_context_directive document="doc_with_multiline_desc">')
+    assert directive.endswith("</ai_context_directive>")
+    assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in directive
+    assert "Line 1 of description." in directive
+    assert "Line 2 of description." in directive
+    assert "Line 3 of description." in directive
+
+    assert paragraphs[1] == "Paragraph 1 of content."
+    assert paragraphs[2] == "Paragraph 2 of content."
+
+
+def test_source_document_packer_unconfigured_document() -> None:
+    """Verify document not in expected_inputs passes through cleanly without directive or crash."""
+    inputs = {"unconfigured_doc": "Raw text."}
+    packed = SourceDocumentPacker.pack(inputs, [])
+    assert packed == "Raw text."
+    assert "<ai_context_directive" not in packed
+    assert "<document_provenance>" not in packed
