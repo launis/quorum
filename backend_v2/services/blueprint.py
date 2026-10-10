@@ -92,6 +92,7 @@ class BlueprintTransformer:
         self.identity_repo = identity_repo
         self.system_repo = system_repo
         self.last_evaluative_matrices: list[MatrixScorecardRowDTO] = []
+        self.last_all_matrices: list[MatrixScorecardRowDTO] = []
 
         self._target_block_hydrators: dict[TargetBlockType, Callable[[AdapterContext], list[AnySduiBlock]]] = {
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
@@ -380,6 +381,7 @@ class BlueprintTransformer:
         evaluative_matrices = parsed_result.evaluative_matrices
         self.last_evaluative_matrices = evaluative_matrices
         all_parsed_matrices = parsed_result.all_parsed_matrices
+        self.last_all_matrices = list(all_parsed_matrices.values())
 
         p_tokens = int(execution.prompt_tokens)
         c_tokens = int(execution.completion_tokens)

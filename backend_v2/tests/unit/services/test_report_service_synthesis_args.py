@@ -7,7 +7,7 @@ Validates that generate_profile_synthesis_and_pdf_task is invoked with:
 and NOT with profile_id and locale swapped.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -67,12 +67,10 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()

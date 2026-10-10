@@ -361,7 +361,7 @@ async def test_mathematical_dumb_painter_invariance() -> None:
         assert row[status_col_idx] in (0, 1), f"Status {row[status_col_idx]} is not strictly 0 or 1"
 
     # 2. Test CSV Invariance
-    csv_payload = service.export_flat_csv(
+    csv_payload = await service.export_flat_csv(
         execution=execution,
         report_dto=report_dto,
         matrices=matrices,

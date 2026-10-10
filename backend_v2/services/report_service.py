@@ -400,20 +400,25 @@ class ReportService:
             )
             await self.storage.save(pdf_path, pdf_bytes)
 
+            all_matrices = (
+                transformer.last_all_matrices if transformer.last_all_matrices else transformer.last_evaluative_matrices
+            )
             excel_payload = await self.export_service.export_excel(
                 execution=execution,
                 report_dto=report_dto,
-                matrices=transformer.last_evaluative_matrices,
+                matrices=all_matrices,
                 locale=report.locale,
                 execution_id=report.execution_id,
+                all_matrices=all_matrices,
             )
             await self.storage.save(excel_path, excel_payload.content_bytes)
-            csv_payload = self.export_service.export_flat_csv(
+            csv_payload = await self.export_service.export_flat_csv(
                 execution=execution,
                 report_dto=report_dto,
-                matrices=transformer.last_evaluative_matrices,
+                matrices=all_matrices,
                 locale=report.locale,
                 execution_id=report.execution_id,
+                all_matrices=all_matrices,
             )
             await self.storage.save(csv_path, csv_payload.content_bytes)
 

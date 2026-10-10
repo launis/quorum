@@ -29,7 +29,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService
-from backend_v2.services.localization import ReportHeaderResolver
+from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryPromptBlockRepository,
 )
@@ -238,7 +238,8 @@ async def test_export_excel_writer_error() -> None:
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
 
 
-def test_export_flat_csv_success() -> None:
+@pytest.mark.asyncio
+async def test_export_flat_csv_success() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
@@ -253,7 +254,7 @@ def test_export_flat_csv_success() -> None:
     )
     matrices = [matching_matrix]
 
-    payload = service.export_flat_csv(
+    payload = await service.export_flat_csv(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
@@ -451,7 +452,8 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     assert len(payload.content_bytes) > 0
 
 
-def test_export_flat_csv_default_execution_id() -> None:
+@pytest.mark.asyncio
+async def test_export_flat_csv_default_execution_id() -> None:
     """Test flat CSV export without explicit execution_id."""
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
@@ -467,7 +469,7 @@ def test_export_flat_csv_default_execution_id() -> None:
     )
     matrices = [matching_matrix]
 
-    payload = service.export_flat_csv(
+    payload = await service.export_flat_csv(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
@@ -845,21 +847,23 @@ async def test_export_excel_tab2_ssot_localization() -> None:
             assert status_val in (0, 1)
 
 
-def test_export_flat_csv_fails_non_passed_status() -> None:
+@pytest.mark.asyncio
+async def test_export_flat_csv_fails_non_passed_status() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.FAILED)
     with pytest.raises(AppException) as exc_info:
-        service.export_flat_csv(execution=exec_record, report_dto=None, matrices=[])
+        await service.export_flat_csv(execution=exec_record, report_dto=None, matrices=[])
     assert exc_info.value.status_code == 400
     assert "Execution must be in PASSED state" in exc_info.value.message
 
 
-def test_export_flat_csv_fails_when_no_atoms() -> None:
+@pytest.mark.asyncio
+async def test_export_flat_csv_fails_when_no_atoms() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
     report_dto = _build_sample_report_dto(has_atoms=False)
     with pytest.raises(AppException) as exc_info:
-        service.export_flat_csv(execution=exec_record, report_dto=report_dto, matrices=[])
+        await service.export_flat_csv(execution=exec_record, report_dto=report_dto, matrices=[])
     assert exc_info.value.status_code == 400
     assert "Execution has no scoreable atoms" in exc_info.value.message
 
@@ -999,3 +1003,253 @@ async def test_export_excel_atom_missing_matrix_id_and_parent_fails_fast() -> No
         )
     assert exc_info.value.status_code == 404
     assert "Strict Fail-Fast: Matrix block for atom 'tda_orphan_999' not found" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
+    """Regression test: export_flat_csv must resolve matrix blocks from prompt_block_repo.
+
+    When an atom belongs to an informational or secondary matrix block not included
+    in the evaluative 'matrices' list (e.g. blk_53f32679aa514fcb), export_flat_csv
+    must resolve the matrix metadata instead of crashing with 404 RESOURCE_NOT_FOUND.
+    """
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    lbl = I18nText(translations={"fi": "Aktiivinen ohjaus", "en": "Active Control"})
+    tda_assertion = TDAAssertion(
+        tda_id="tda_135ee4d2f4e28b3305cbae57482e34b0",
+        inverse_evidence=False,
+        aggregation_mode="ALL_MUST_COMPLY",
+        concept_description="Active steering assertion",
+    )
+    claim = MatrixClaim(
+        label=I18nText(translations={"fi": "Väite 1", "en": "Claim 1"}),
+        tda_assertions=[tda_assertion],
+    )
+    scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
+    desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
+    informational_block = MatrixPromptBlock(
+        id="blk_53f32679aa514fcb",
+        slug="m_slug",
+        label=lbl,
+        description=desc,
+        scales=[scale],
+        ai_description="English operational rule",
+        is_evaluative=False,
+    )
+    await prompt_block_repo.create_prompt_block(informational_block)
+    service = ExportService(prompt_block_repo=prompt_block_repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    atom_result = AtomResultDTO(
+        tda_id="tda_135ee4d2f4e28b3305cbae57482e34b0",
+        matrix_id="blk_53f32679aa514fcb",
+        status=ExecutionStatus.PASSED,
+        source_quote="Verbatim quote",
+        evaluation_reasoning="Evaluation reasoning",
+    )
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_result],
+        hydrated_references={
+            "tda_135ee4d2f4e28b3305cbae57482e34b0": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Väite 1",
+            )
+        },
+    )
+    evaluative_matrix = MatrixScorecardRowDTO(
+        block_id="blk_eval_0001",
+        name="Evaluative Matrix",
+        label_i18n=I18nText(translations={"fi": "Arvioiva", "en": "Evaluative"}),
+        score=4.0,
+        scale_max=5.0,
+        row_explanation="Explanation",
+        is_evaluative=True,
+    )
+    payload = await service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=[evaluative_matrix],
+        locale="fi",
+    )
+    assert payload is not None
+    csv_text = payload.content_bytes.decode("utf-8-sig")
+    assert "Aktiivinen ohjaus" in csv_text
+    assert "L1" in csv_text
+
+
+@pytest.mark.asyncio
+async def test_informational_matrix_parity_excel_and_csv() -> None:
+    """Verify informational matrices (is_evaluative=False) have complete parity in Excel and CSV.
+
+    Scores, levels, level names, and atom rows are computed and exported identically,
+    while global_score average remains driven solely by evaluative matrices.
+    """
+    prompt_block_repo = InMemoryPromptBlockRepository()
+    info_block = MatrixPromptBlock(
+        id="blk_1111222233334444",
+        slug="info_slug",
+        label=I18nText(translations={"fi": "Informaatiomatriisi", "en": "Informational Matrix"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Desc"}),
+        scales=[
+            MatrixScale(
+                score=3,
+                ai_label="Taso 3",
+                name=I18nText(translations={"fi": "Taso 3 Nimi", "en": "Level 3 Name"}),
+                claims=[],
+            )
+        ],
+        ai_description="Info rule",
+        is_evaluative=False,
+    )
+    await prompt_block_repo.create_prompt_block(info_block)
+
+    service = ExportService(prompt_block_repo=prompt_block_repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+
+    info_scorecard_atom = ScorecardAtomDTO(
+        atom_id="tda_1111222233334444",
+        claim_label="Informaatioväite",
+        level=3,
+        level_name="Taso 3 Nimi",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="Premise",
+            step_2_scan_source="Scan",
+            step_3_evaluate_anti_patterns="Anti-pattern",
+            step_4_final_conclusion="Conclusion",
+        ),
+        status=ExecutionStatus.PASSED,
+        semantic_reasoning="Reasoning for info atom",
+        contextual_override=False,
+        chart_display_label="Chart label",
+        visual_intent=VisualIntent.NEUTRAL,
+    )
+
+    eval_scorecard_atom = ScorecardAtomDTO(
+        atom_id="tda_5555666677778888",
+        claim_label="Arviointiväite",
+        level=5,
+        level_name="Taso 5 Nimi",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="Premise",
+            step_2_scan_source="Scan",
+            step_3_evaluate_anti_patterns="Anti-pattern",
+            step_4_final_conclusion="Conclusion",
+        ),
+        status=ExecutionStatus.PASSED,
+        semantic_reasoning="Reasoning for eval atom",
+        contextual_override=False,
+        chart_display_label="Chart label",
+        visual_intent=VisualIntent.NEUTRAL,
+    )
+
+    eval_matrix = MatrixScorecardRowDTO(
+        block_id="blk_5555666677778888",
+        name="Eval Matrix",
+        label_i18n=I18nText(translations={"fi": "Arvioiva Matriisi", "en": "Evaluative Matrix"}),
+        score=5.0,
+        scale_max=5.0,
+        normalized_score=100.0,
+        level_breakdown={"L5": "1"},
+        row_explanation="Evaluative explanation",
+        evaluated_atoms=[eval_scorecard_atom],
+        is_evaluative=True,
+    )
+
+    info_matrix = MatrixScorecardRowDTO(
+        block_id="blk_1111222233334444",
+        name="Info Matrix",
+        label_i18n=I18nText(translations={"fi": "Informaatiomatriisi", "en": "Informational Matrix"}),
+        score=3.0,
+        scale_max=5.0,
+        normalized_score=60.0,
+        level_breakdown={"L3": "1"},
+        row_explanation="Informational explanation",
+        evaluated_atoms=[info_scorecard_atom],
+        is_evaluative=False,
+    )
+
+    atom_eval = AtomResultDTO(
+        tda_id="tda_5555666677778888",
+        matrix_id="blk_5555666677778888",
+        status=ExecutionStatus.PASSED,
+        source_quote="Eval quote",
+        evaluation_reasoning="Eval reasoning",
+    )
+    atom_info = AtomResultDTO(
+        tda_id="tda_1111222233334444",
+        matrix_id="blk_1111222233334444",
+        status=ExecutionStatus.PASSED,
+        source_quote="Info quote",
+        evaluation_reasoning="Info reasoning",
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=5.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_eval, atom_info],
+        hydrated_references={
+            "tda_5555666677778888": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Arviointiväite",
+            ),
+            "tda_1111222233334444": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Informaatioväite",
+            ),
+        },
+    )
+
+    all_matrices = [eval_matrix, info_matrix]
+
+    excel_payload = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=all_matrices,
+        locale="fi",
+        all_matrices=all_matrices,
+    )
+    import openpyxl
+
+    wb = openpyxl.load_workbook(io.BytesIO(excel_payload.content_bytes))
+    sheet1 = wb[LocalizationService.translate("export_sheet_summary", "fi")]
+    sheet1_rows = list(sheet1.iter_rows(values_only=True))
+    assert len(sheet1_rows) == 3
+    matrix_names = [row[0] for row in sheet1_rows[1:]]
+    assert "Arvioiva Matriisi" in matrix_names
+    assert "Informaatiomatriisi" in matrix_names
+
+    sheet2 = wb[LocalizationService.translate("export_sheet_raw_data", "fi")]
+    sheet2_rows = list(sheet2.iter_rows(values_only=True))
+    assert len(sheet2_rows) == 3
+    raw_levels = [row[2] for row in sheet2_rows[1:]]
+    assert 5 in raw_levels
+    assert 3 in raw_levels
+    raw_level_names = [row[3] for row in sheet2_rows[1:]]
+    assert "Taso 5 Nimi" in raw_level_names
+    assert "Taso 3 Nimi" in raw_level_names
+
+    csv_payload = await service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=all_matrices,
+        locale="fi",
+        all_matrices=all_matrices,
+    )
+    csv_text = csv_payload.content_bytes.decode("utf-8-sig")
+    assert "Arvioiva Matriisi" in csv_text
+    assert "Informaatiomatriisi" in csv_text
+    assert "Taso 5 Nimi" in csv_text
+    assert "Taso 3 Nimi" in csv_text

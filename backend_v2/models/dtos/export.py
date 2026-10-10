@@ -14,10 +14,23 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 
 __all__ = [
+    "AtomScaleMetadataDTO",
     "ExportForensicAtomDTO",
     "ExportMatrixSummaryRowDTO",
     "ExportPayloadDTO",
 ]
+
+
+class AtomScaleMetadataDTO(V2CoreBase):
+    """Metadata resolved from prompt block scale definitions for an atom."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    matrix_id: Annotated[str, Field(description="ID of the parent matrix block")]
+    level: Annotated[int, Field(description="Scale score level")]
+    level_name: Annotated[str, Field(description="Localized scale level name")]
+    criterion: Annotated[str, Field(description="Localized claim label or description")]
+    is_inverse: Annotated[bool, Field(default=False, description="Whether the assertion requires inverse evidence")]
 
 
 class ExportForensicAtomDTO(V2CoreBase):

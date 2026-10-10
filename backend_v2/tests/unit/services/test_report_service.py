@@ -4,7 +4,7 @@ Enforces Tripartite Phase Isolation, Four-Tier Pydantic V2 Invariants, and failu
 """
 
 import logging
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -241,12 +241,10 @@ async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPa
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()
@@ -511,12 +509,10 @@ async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: 
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()
@@ -685,12 +681,10 @@ async def test_process_artifact_compilation_force_resynthesis_false_retains_cach
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()
@@ -740,12 +734,10 @@ async def test_process_artifact_compilation_force_resynthesis_true_invalidates_c
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()
@@ -816,12 +808,10 @@ async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_ide
         filename="report.xlsx",
         mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    export_service.export_flat_csv = MagicMock(
-        return_value=ExportPayloadDTO(
-            content_bytes=b"csv_bytes",
-            filename="report.csv",
-            mime_type="text/csv",
-        )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
     )
 
     pdf_service = AsyncMock()

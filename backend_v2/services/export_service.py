@@ -19,6 +19,7 @@ from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
 )
 from backend_v2.models.dtos.export import (
+    AtomScaleMetadataDTO,
     ExportForensicAtomDTO,
     ExportMatrixSummaryRowDTO,
     ExportPayloadDTO,
@@ -56,6 +57,7 @@ class ExportService:
         locale: str,
         blocks_by_id: dict[str, AnyPromptBlock],
         matrix_title_lookup: dict[str, str],
+        all_matrices: list[MatrixScorecardRowDTO] | None = None,
     ) -> list[ExportForensicAtomDTO]:
         """Constructs tabular raw data rows containing complete atom details with binary results.
 
@@ -65,6 +67,7 @@ class ExportService:
             locale: Target localization code ('fi' or 'en').
             blocks_by_id: Pre-indexed prompt blocks dictionary.
             matrix_title_lookup: Pre-computed matrix titles by block ID.
+            all_matrices: Optional comprehensive list of all matrix scorecard rows.
 
         Returns:
             List of strictly validated ExportForensicAtomDTO instances.
@@ -72,25 +75,37 @@ class ExportService:
         Raises:
             AppException: If matrix block for an atom is not found in matrices or blocks_by_id.
         """
+        effective_matrices = all_matrices if all_matrices is not None else matrices
         atom_to_matrix: dict[str, MatrixScorecardRowDTO] = {}
         atom_to_scorecard: dict[str, ScorecardAtomDTO] = {}
-        for m in matrices:
+        for m in effective_matrices:
             for s_atom in m.evaluated_atoms:
                 atom_to_matrix[s_atom.atom_id] = m
                 atom_to_scorecard[s_atom.atom_id] = s_atom
 
-        atom_is_inverse: dict[str, bool] = {}
+        atom_scale_meta: dict[str, AtomScaleMetadataDTO] = {}
         for b in blocks_by_id.values():
             if isinstance(b, MatrixPromptBlock) and b.scales:
                 for scale in b.scales:
+                    scale_lvl = scale.score
+                    scale_name = scale.ai_label
+                    if scale.name is not None:
+                        scale_name = scale.name.resolve(target_locale=locale)
                     for claim in scale.claims:
+                        claim_desc = claim.label.resolve(target_locale=locale)
                         for tda in claim.tda_assertions:
-                            atom_is_inverse[tda.tda_id] = bool(tda.inverse_evidence)
+                            atom_scale_meta[tda.tda_id] = AtomScaleMetadataDTO(
+                                matrix_id=b.id,
+                                level=scale_lvl,
+                                level_name=scale_name,
+                                criterion=claim_desc,
+                                is_inverse=bool(tda.inverse_evidence),
+                            )
 
         atom_rows: list[ExportForensicAtomDTO] = []
         hydrated_refs = report_dto.hydrated_references
         for atom in report_dto.results:
-            parent_m = None
+            parent_m: MatrixScorecardRowDTO | None = None
             if atom.tda_id in atom_to_matrix:
                 parent_m = atom_to_matrix[atom.tda_id]
 
@@ -133,6 +148,35 @@ class ExportService:
                 matrix_label = parent_m.label_i18n.resolve(target_locale=locale)
                 if not matrix_label:
                     matrix_label = parent_m.name
+            elif atom.tda_id in atom_scale_meta:
+                meta = atom_scale_meta[atom.tda_id]
+                if meta.matrix_id in matrix_title_lookup:
+                    matrix_label = matrix_title_lookup[meta.matrix_id]
+                elif meta.matrix_id in blocks_by_id:
+                    blk = blocks_by_id[meta.matrix_id]
+                    matrix_label = blk.label.resolve(target_locale=locale)
+                else:
+                    msg = (
+                        f"Strict Fail-Fast: Matrix block for atom '{atom.tda_id}' "
+                        "not found in matrices or prompt block repository."
+                    )
+                    logger.error(
+                        "[ExportService] %s: %s",
+                        ErrorCodes.RESOURCE_NOT_FOUND.name,
+                        msg,
+                        extra={
+                            "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                            "tda_id": atom.tda_id,
+                        },
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=404,
+                        details={
+                            "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                            "tda_id": atom.tda_id,
+                        },
+                    )
             else:
                 msg = (
                     f"Strict Fail-Fast: Matrix block for atom '{atom.tda_id}' "
@@ -172,6 +216,10 @@ class ExportService:
             if scorecard_atom is not None:
                 level = scorecard_atom.level
                 level_name = scorecard_atom.level_name
+            elif atom.tda_id in atom_scale_meta:
+                meta = atom_scale_meta[atom.tda_id]
+                level = meta.level
+                level_name = meta.level_name
 
             ref = None
             if hydrated_refs and atom.tda_id in hydrated_refs:
@@ -182,9 +230,11 @@ class ExportService:
                 criterion = ref.resolved_claim
             elif scorecard_atom and scorecard_atom.claim_label:
                 criterion = scorecard_atom.claim_label
+            elif atom.tda_id in atom_scale_meta:
+                criterion = atom_scale_meta[atom.tda_id].criterion
 
             is_inverse_claim = atom.is_inverse_evidence or (
-                atom.tda_id in atom_is_inverse and atom_is_inverse[atom.tda_id]
+                atom.tda_id in atom_scale_meta and atom_scale_meta[atom.tda_id].is_inverse
             )
             claim_type = (
                 LocalizationService.translate("export_claim_inverse", locale)
@@ -227,6 +277,7 @@ class ExportService:
         locale: str = "fi",
         components: list[AnyPromptBlock] | None = None,
         execution_id: str | None = None,
+        all_matrices: list[MatrixScorecardRowDTO] | None = None,
     ) -> ExportPayloadDTO:
         """Generate an Excel export for the execution including Summary and Raw Data tabs.
 
@@ -237,6 +288,7 @@ class ExportService:
             locale: Target localization code ('fi' or 'en').
             components: Optional pre-fetched prompt blocks for rule text resolution.
             execution_id: Optional explicit execution ID for the export filename.
+            all_matrices: Optional comprehensive list of all matrix scorecard rows.
 
         Returns:
             ExportPayloadDTO containing the Excel file bytes and canonical filename.
@@ -275,9 +327,10 @@ class ExportService:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
+        effective_matrices = all_matrices if all_matrices is not None else matrices
         matrix_title_lookup: dict[str, str] = {}
         summary_dtos: list[ExportMatrixSummaryRowDTO] = []
-        for m in matrices:
+        for m in effective_matrices:
             lbl = m.label_i18n.resolve(target_locale=locale)
             if not lbl:
                 lbl = m.name
@@ -368,6 +421,7 @@ class ExportService:
             locale=locale,
             blocks_by_id=blocks_by_id,
             matrix_title_lookup=matrix_title_lookup,
+            all_matrices=all_matrices,
         )
 
         atom_headers = {col: ReportHeaderResolver.get_atom_column_header(col, locale) for col in ReportAtomColumn}
@@ -418,13 +472,15 @@ class ExportService:
             mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
-    def export_flat_csv(
+    async def export_flat_csv(
         self,
         execution: ExecutionRecord,
         report_dto: ReportDataDTO | None = None,
         matrices: list[MatrixScorecardRowDTO] | None = None,
         locale: str = "fi",
+        components: list[AnyPromptBlock] | None = None,
         execution_id: str | None = None,
+        all_matrices: list[MatrixScorecardRowDTO] | None = None,
     ) -> ExportPayloadDTO:
         """Generate a flat tabular CSV export for the execution raw atoms.
 
@@ -433,7 +489,9 @@ class ExportService:
             report_dto: Optional ReportDataDTO containing presentation metrics.
             matrices: Optional list of authoritative MatrixScorecardRowDTO instances.
             locale: Target localization code ('fi' or 'en').
+            components: Optional pre-fetched prompt blocks for rule text resolution.
             execution_id: Optional explicit execution ID for the export filename.
+            all_matrices: Optional comprehensive list of all matrix scorecard rows.
 
         Returns:
             ExportPayloadDTO containing CSV bytes and filename.
@@ -464,20 +522,29 @@ class ExportService:
         eval_matrices: list[MatrixScorecardRowDTO] = []
         if matrices is not None:
             eval_matrices = matrices
+        effective_matrices = all_matrices if all_matrices is not None else eval_matrices
 
         matrix_title_lookup: dict[str, str] = {}
-        for m in eval_matrices:
+        for m in effective_matrices:
             title = m.label_i18n.resolve(target_locale=locale)
             if not title:
                 title = m.name
             matrix_title_lookup[m.block_id] = title
 
+        blocks_by_id: dict[str, AnyPromptBlock] = {}
+        if components is not None:
+            blocks_by_id = {b.id: b for b in components}
+        elif self.prompt_block_repo is not None:
+            comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
+            blocks_by_id = {b.id: b for b in comp_list}
+
         atom_dtos = self._build_atom_rows(
             report_dto=report_dto,
-            matrices=eval_matrices,
+            matrices=effective_matrices,
             locale=locale,
-            blocks_by_id={},
+            blocks_by_id=blocks_by_id,
             matrix_title_lookup=matrix_title_lookup,
+            all_matrices=all_matrices,
         )
 
         atom_headers = ReportHeaderResolver.get_all_atom_headers(locale)
