@@ -11,11 +11,12 @@ import logging
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.sdui_rules import MatrixSummaryAestheticsDTO, MatrixSummaryRuleItemDTO
+from backend_v2.models.enums import ReportMatrixColumn
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     SduiMatrixTableBlock,
 )
-from backend_v2.services.localization import LocalizationService
+from backend_v2.services.localization import ReportHeaderResolver
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 __all__ = ["MATRIX_SUMMARY_RULES", "STANDARD_COLUMNS", "MatrixSummaryTableAdapter"]
@@ -32,17 +33,7 @@ MATRIX_SUMMARY_RULES: MatrixSummaryAestheticsDTO = MatrixSummaryAestheticsDTO(
     }
 )
 
-STANDARD_COLUMNS: list[str] = [
-    "label",
-    "context_target",
-    "distribution",
-    "row_explanation",
-    "criteria",
-    "quotes",
-    "source",
-    "normalized_score",
-    "score",
-]
+STANDARD_COLUMNS: list[str] = [c.value for c in ReportMatrixColumn]
 
 
 # ============================================================================
@@ -80,11 +71,11 @@ class MatrixSummaryTableAdapter:
 
         col_labels: dict[str, I18nText] = {}
         for col in visible_columns:
-            key = f"matrix_col_{col}"
+            col_enum = ReportMatrixColumn(col)
             col_labels[col] = I18nText(
                 translations={
-                    "fi": LocalizationService.translate(key, "fi"),
-                    "en": LocalizationService.translate(key, "en"),
+                    "fi": ReportHeaderResolver.get_matrix_column_header(col_enum, "fi"),
+                    "en": ReportHeaderResolver.get_matrix_column_header(col_enum, "en"),
                 }
             )
 

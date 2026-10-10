@@ -13,6 +13,10 @@ from backend_v2.models.enums import (
     LaxHistoricalContextMode,
     LaxStepType,
     LaxXaiExtensionType,
+    ReportAtomColumn,
+    ReportMatrixColumn,
+    ReportSheetKey,
+    ReportStatus,
     RoleClassification,
     SDUIComponentType,
     StepType,
@@ -126,3 +130,12 @@ def test_enum_l10n_properties() -> None:
 
     assert TitleKey.TITLE_TIMELINE.l10n_key == "titleTimeline"
     assert TitleKey.SECURITY.l10n_key == ""
+
+    assert ReportStatus.PENDING.l10n_key == "reportStatusPending"
+    assert ReportStatus.GENERATING.l10n_key == "reportStatusGenerating"
+    assert ReportStatus.READY.l10n_key == "reportStatusReady"
+    assert ReportStatus.FAILED.l10n_key == "reportStatusFailed"
+
+    assert ReportMatrixColumn.LABEL.l10n_key == "matrix_col_label"
+    assert ReportAtomColumn.MATRIX.l10n_key == "export_col_matrix"
+    assert ReportSheetKey.SUMMARY.l10n_key == "export_sheet_summary"

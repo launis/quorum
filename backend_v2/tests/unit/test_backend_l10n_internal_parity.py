@@ -124,6 +124,8 @@ def test_backend_json_has_no_dead_unreferenced_keys() -> None:
     dynamic_prefixes = (
         "matrix_col_",
         "matrix_target_",
+        "export_col_",
+        "export_sheet_",
         "col_",
         "xai_ext_",
         "xai",

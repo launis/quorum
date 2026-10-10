@@ -80,6 +80,9 @@ __all__ = [
     "PromptBlockCategory",
     "PromptCacheStatus",
     "ReferenceTitle",
+    "ReportAtomColumn",
+    "ReportMatrixColumn",
+    "ReportSheetKey",
     "ReportStatus",
     "RiskLevel",
     "RoleClassification",
@@ -895,3 +898,53 @@ class TargetSpeaker(StrEnum):
 
     USER = "USER"
     AI = "AI"
+
+
+class ReportMatrixColumn(StrEnum):
+    """Columns for standard matrix summary table projections."""
+
+    LABEL = "label"
+    CONTEXT_TARGET = "context_target"
+    DISTRIBUTION = "distribution"
+    ROW_EXPLANATION = "row_explanation"
+    CRITERIA = "criteria"
+    QUOTES = "quotes"
+    SOURCE = "source"
+    NORMALIZED_SCORE = "normalized_score"
+    SCORE = "score"
+
+    @property
+    def l10n_key(self) -> str:
+        """Returns the localization key in backend translation files."""
+        return f"matrix_col_{self.value}"
+
+
+class ReportAtomColumn(StrEnum):
+    """Columns for evaluated atom forensic export tables."""
+
+    MATRIX = "matrix"
+    CONTEXT_TARGET = "context_target"
+    LEVEL = "level"
+    LEVEL_NAME = "level_name"
+    CRITERION = "criterion"
+    CLAIM_TYPE = "claim_type"
+    RESULT_STATUS = "result_status"
+    QUOTES = "quotes"
+    AI_REASONING = "ai_reasoning"
+
+    @property
+    def l10n_key(self) -> str:
+        """Returns the localization key in backend translation files."""
+        return f"export_col_{self.value}"
+
+
+class ReportSheetKey(StrEnum):
+    """Sheet names for workbook spreadsheet exports."""
+
+    SUMMARY = "summary"
+    RAW_DATA = "raw_data"
+
+    @property
+    def l10n_key(self) -> str:
+        """Returns the localization key in backend translation files."""
+        return f"export_sheet_{self.value}"

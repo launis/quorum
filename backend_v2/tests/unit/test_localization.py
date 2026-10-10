@@ -8,9 +8,11 @@ from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import ReportAtomColumn, ReportMatrixColumn, ReportSheetKey
 from backend_v2.services.localization import (
     LocaleTranslationsDTO,
     LocalizationService,
+    ReportHeaderResolver,
     get_language,
     set_language,
 )
@@ -248,3 +250,22 @@ def test_localization_service_get_translations() -> None:
 
     none_dto = LocalizationService.get_translations("non_existent_lang")
     assert none_dto is None
+
+
+def test_report_header_resolver() -> None:
+    """Test ReportHeaderResolver methods for resolving column and sheet headers."""
+    LocalizationService.L10N_DIR = Path(__file__).parent.parent.parent / "l10n"
+    LocalizationService.load_if_needed()
+
+    assert ReportHeaderResolver.get_matrix_column_header(ReportMatrixColumn.LABEL, "en") == "Logic Matrix"
+    assert ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.MATRIX, "en") == "Matrix"
+
+    matrix_headers = ReportHeaderResolver.get_all_matrix_headers("en")
+    assert len(matrix_headers) == len(ReportMatrixColumn)
+    assert matrix_headers[ReportMatrixColumn.LABEL] == "Logic Matrix"
+
+    atom_headers = ReportHeaderResolver.get_all_atom_headers("en")
+    assert len(atom_headers) == len(ReportAtomColumn)
+    assert atom_headers[0] == "Matrix"
+
+    assert ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "en") == "Summary"

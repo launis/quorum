@@ -63,7 +63,7 @@ Worker responsibilities follow strict Single Responsibility Principle (SRP) and 
 - **Worker Daemon Entrypoint:** Serves strictly as the pure Arq daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`). All worker coroutines are imported directly from their sovereign modules.
 
 #### Sovereign Execution Services Subpackage
-Execution services follow single responsibility partitions (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade. External service bridges (storage, blueprint, flattener, pdf generator) are decoupled and purged from the package entrypoint, ensuring that execution services interact directly with canonical external services.
+Execution services follow single responsibility partitions (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade. External service bridges (storage, blueprint, pdf generator) are decoupled and purged from the package entrypoint, ensuring that execution services interact directly with canonical external services.
 
 ### 2.8. Sensor Caching Parity & Enriched Context Caching
 The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.

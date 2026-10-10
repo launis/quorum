@@ -118,5 +118,21 @@
   "penalty_post_hoc_title": "Post-hoc-rationalisointi",
   "penalty_post_hoc_description": "Havaittu jälkikäteinen selittely tai päätösten tekaistu oikeutus.",
   "penalty_passivity_title": "Passiivisuusrangaistus",
-  "penalty_passivity_description": "Arviointidimensiossa havaittu alhaisin mahdollinen laatutaso tai passiivisuus."
+  "penalty_passivity_description": "Arviointidimensiossa havaittu alhaisin mahdollinen laatutaso tai passiivisuus.",
+  "export_col_matrix": "Matriisi",
+  "export_col_context_target": "Arvioinnin kohde",
+  "export_col_level": "Taso",
+  "export_col_level_name": "Tason nimi",
+  "export_col_criterion": "Arviointikriteeri",
+  "export_col_claim_type": "Väitetyyppi",
+  "export_col_result_status": "Tulos (Status)",
+  "export_col_quotes": "Tekstin havainto",
+  "export_col_ai_reasoning": "AI-perustelu",
+  "export_sheet_summary": "Yhteenveto",
+  "export_sheet_raw_data": "Raakadata",
+  "export_claim_positive": "Positiivinen kyvykkyys",
+  "export_claim_inverse": "Virhedetektori / Anti-pattern",
+  "metadata_date": "Päivämäärä",
+  "metadata_cost": "Kustannukset",
+  "metadata_tokens": "Tokenit"
 }

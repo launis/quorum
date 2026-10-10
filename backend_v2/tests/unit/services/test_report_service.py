@@ -18,6 +18,7 @@ from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.export import ExportPayloadDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.report_artifact import (
     ReportArtifactCreateDTO,
@@ -235,8 +236,18 @@ async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPa
     storage.save.side_effect = lambda path, data: path
 
     export_service = AsyncMock()
-    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
-    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv = MagicMock(
+        return_value=ExportPayloadDTO(
+            content_bytes=b"csv_bytes",
+            filename="report.csv",
+            mime_type="text/csv",
+        )
+    )
 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
@@ -495,8 +506,18 @@ async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: 
     storage.save.side_effect = lambda path, data: path
 
     export_service = AsyncMock()
-    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
-    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv = MagicMock(
+        return_value=ExportPayloadDTO(
+            content_bytes=b"csv_bytes",
+            filename="report.csv",
+            mime_type="text/csv",
+        )
+    )
 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
@@ -659,8 +680,18 @@ async def test_process_artifact_compilation_force_resynthesis_false_retains_cach
     storage.save.side_effect = lambda path, data: path
 
     export_service = AsyncMock()
-    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
-    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv = MagicMock(
+        return_value=ExportPayloadDTO(
+            content_bytes=b"csv_bytes",
+            filename="report.csv",
+            mime_type="text/csv",
+        )
+    )
 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
@@ -704,8 +735,18 @@ async def test_process_artifact_compilation_force_resynthesis_true_invalidates_c
     storage.save.side_effect = lambda path, data: path
 
     export_service = AsyncMock()
-    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
-    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv = MagicMock(
+        return_value=ExportPayloadDTO(
+            content_bytes=b"csv_bytes",
+            filename="report.csv",
+            mime_type="text/csv",
+        )
+    )
 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
@@ -770,8 +811,18 @@ async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_ide
     await repo.save_execution(_create_dummy_execution())
 
     export_service = AsyncMock()
-    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
-    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv = MagicMock(
+        return_value=ExportPayloadDTO(
+            content_bytes=b"csv_bytes",
+            filename="report.csv",
+            mime_type="text/csv",
+        )
+    )
 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"

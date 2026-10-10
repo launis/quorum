@@ -13,10 +13,12 @@ from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import ReportAtomColumn, ReportMatrixColumn, ReportSheetKey
 
 __all__ = [
     "LocaleTranslationsDTO",
     "LocalizationService",
+    "ReportHeaderResolver",
     "get_language",
     "set_language",
 ]
@@ -375,3 +377,70 @@ class LocalizationService:
         if lang_simple == "fi":
             return f"{formatted} $"
         return f"${formatted}"
+
+
+class ReportHeaderResolver:
+    """Centralized resolver for localized report and export column headers and sheet names."""
+
+    @classmethod
+    def get_matrix_column_header(cls, col: ReportMatrixColumn, locale: str = "en") -> str:
+        """Resolves localized header for a ReportMatrixColumn member.
+
+        Args:
+            col: Target ReportMatrixColumn enum member.
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Translated column header string.
+        """
+        return LocalizationService.translate(col.l10n_key, locale)
+
+    @classmethod
+    def get_atom_column_header(cls, col: ReportAtomColumn, locale: str = "en") -> str:
+        """Resolves localized header for a ReportAtomColumn member.
+
+        Args:
+            col: Target ReportAtomColumn enum member.
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Translated column header string.
+        """
+        return LocalizationService.translate(col.l10n_key, locale)
+
+    @classmethod
+    def get_all_matrix_headers(cls, locale: str = "en") -> dict[ReportMatrixColumn, str]:
+        """Resolves all ReportMatrixColumn headers for the given locale.
+
+        Args:
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Dictionary mapping each ReportMatrixColumn to its translated header string.
+        """
+        return {col: cls.get_matrix_column_header(col, locale) for col in ReportMatrixColumn}
+
+    @classmethod
+    def get_all_atom_headers(cls, locale: str = "en") -> list[str]:
+        """Resolves all ReportAtomColumn headers for the given locale in canonical enumeration order.
+
+        Args:
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Ordered list of translated column header strings matching ReportAtomColumn.
+        """
+        return [cls.get_atom_column_header(col, locale) for col in ReportAtomColumn]
+
+    @classmethod
+    def get_sheet_name(cls, sheet: ReportSheetKey, locale: str = "en") -> str:
+        """Resolves localized sheet name for a ReportSheetKey member.
+
+        Args:
+            sheet: Target ReportSheetKey enum member.
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Translated sheet name string.
+        """
+        return LocalizationService.translate(sheet.l10n_key, locale)

@@ -14,18 +14,23 @@ from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepSta
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
-    PersonaPromptBlock,
-    ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
-from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType
+from backend_v2.models.enums import (
+    ExecutionStatus,
+    LaxSDUIComponentType,
+    ReportAtomColumn,
+    ReportSheetKey,
+    VisualIntent,
+)
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
-from backend_v2.services.export_service import ExportService, _extract_claim_rule
+from backend_v2.services.export_service import ExportService
+from backend_v2.services.localization import ReportHeaderResolver
 from backend_v2.tests.fakes.in_memory_repositories import (
-    InMemoryComponentRepository,
     InMemoryPromptBlockRepository,
 )
 
@@ -108,51 +113,6 @@ def _build_sample_matrix_rows(n: int = 1) -> list[MatrixScorecardRowDTO]:
     ]
 
 
-def test_extract_claim_rule() -> None:
-    lbl = I18nText(translations={"fi": "L", "en": "L"})
-    desc = I18nText(translations={"fi": "D", "en": "D"})
-    scale = MatrixScale(score=1, ai_label="L1", claims=[])
-
-    matrix_block = MatrixPromptBlock(
-        id="blk_1111111111111111",
-        slug="matrix_slug",
-        label=lbl,
-        description=desc,
-        scales=[scale],
-        ai_description="Matrix rule",
-    )
-    assert _extract_claim_rule(matrix_block) == "Matrix rule"
-
-    rule_block = SystemRulePromptBlock(
-        id="blk_2222222222222222",
-        slug="rule_slug",
-        label=lbl,
-        description=desc,
-        instruction_text="Rule text",
-    )
-    assert _extract_claim_rule(rule_block) == "Rule text"
-
-    persona_block = PersonaPromptBlock(
-        id="blk_3333333333333333",
-        slug="persona_slug",
-        label=lbl,
-        description=desc,
-        role_enforcement="Persona text",
-    )
-    assert _extract_claim_rule(persona_block) == "Persona text"
-
-    protocol_block = ProtocolPromptBlock(
-        id="blk_4444444444444444",
-        slug="proto_slug",
-        label=lbl,
-        description=desc,
-        protocol_instructions="Protocol text",
-    )
-    assert _extract_claim_rule(protocol_block) == "Protocol text"
-
-    assert _extract_claim_rule(None) == ""
-
-
 @pytest.mark.asyncio
 async def test_export_excel_success_fi() -> None:
     service = ExportService()
@@ -170,7 +130,7 @@ async def test_export_excel_success_fi() -> None:
         scales=[scale],
         ai_description="Operational rule",
     )
-    bytes_out, filename = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=_build_sample_matrix_rows(1),
@@ -178,9 +138,9 @@ async def test_export_excel_success_fi() -> None:
         components=[matrix_block],
     )
 
-    assert filename == "execution_export_exe_0123456789abcdef.xlsx"
-    assert len(bytes_out) > 0
-    assert bytes_out.startswith(b"PK")
+    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert len(payload.content_bytes) > 0
+    assert payload.content_bytes.startswith(b"PK")
 
 
 @pytest.mark.asyncio
@@ -203,15 +163,15 @@ async def test_export_excel_success_en_with_prompt_block_repo() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
 
-    bytes_out, filename = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=_build_sample_matrix_rows(1),
         locale="en",
     )
 
-    assert filename == "execution_export_exe_0123456789abcdef.xlsx"
-    assert len(bytes_out) > 0
+    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert len(payload.content_bytes) > 0
     assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
 
 
@@ -272,9 +232,7 @@ async def test_export_excel_writer_error() -> None:
 
     with patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk failure")):
         with pytest.raises(AppException) as exc_info:
-            await service.export_excel(
-                execution=exec_record, report_dto=report_dto, matrices=[matching_matrix]
-            )
+            await service.export_excel(execution=exec_record, report_dto=report_dto, matrices=[matching_matrix])
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
@@ -284,17 +242,32 @@ def test_export_flat_csv_success() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
+    matching_matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Axis 1",
+        label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
+        score=4.5,
+        scale_max=5.0,
+        row_explanation="Explanation for row 1",
+        is_evaluative=True,
+    )
+    matrices = [matching_matrix]
 
-    csv_bytes, filename = service.export_flat_csv(
+    payload = service.export_flat_csv(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
         execution_id="exe_custom_999",
     )
 
-    assert filename == "execution_export_exe_custom_999.csv"
-    assert len(csv_bytes) > 0
-    csv_text = csv_bytes.decode("utf-8")
-    assert "execution_id" in csv_text or "status" in csv_text
+    assert payload.filename == "execution_export_exe_custom_999.csv"
+    assert len(payload.content_bytes) > 0
+    csv_text = payload.content_bytes.decode("utf-8-sig")
+    assert "Matriisi" in csv_text
+    assert "Arviointikriteeri" in csv_text
+    lines = [ln for ln in csv_text.strip().splitlines() if ln]
+    assert len(lines) - 1 == len(report_dto.results)
 
 
 @pytest.mark.asyncio
@@ -347,15 +320,15 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
         hydrated_references={"tda_0123456789abcdef": hydrated_ref},
     )
 
-    excel_bytes, filename = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=[axis],
         locale="fi",
     )
 
-    assert filename == "execution_export_exe_0123456789abcdef.xlsx"
-    assert len(excel_bytes) > 0
+    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert len(payload.content_bytes) > 0
 
 
 @pytest.mark.asyncio
@@ -465,7 +438,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         },
     )
 
-    excel_bytes, filename = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=[axis_custom],
@@ -474,8 +447,8 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         execution_id="exe_custom_export_123",
     )
 
-    assert filename == "execution_export_exe_custom_export_123.xlsx"
-    assert len(excel_bytes) > 0
+    assert payload.filename == "execution_export_exe_custom_export_123.xlsx"
+    assert len(payload.content_bytes) > 0
 
 
 def test_export_flat_csv_default_execution_id() -> None:
@@ -483,14 +456,28 @@ def test_export_flat_csv_default_execution_id() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
+    matching_matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Axis 1",
+        label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
+        score=4.5,
+        scale_max=5.0,
+        row_explanation="Explanation for row 1",
+        is_evaluative=True,
+    )
+    matrices = [matching_matrix]
 
-    csv_bytes, filename = service.export_flat_csv(
+    payload = service.export_flat_csv(
         execution=exec_record,
         report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
     )
 
-    assert filename == "execution_export_exe_0123456789abcdef.csv"
-    assert len(csv_bytes) > 0
+    assert payload.filename == "execution_export_exe_0123456789abcdef.csv"
+    assert len(payload.content_bytes) > 0
+    csv_text = payload.content_bytes.decode("utf-8-sig")
+    assert "Matriisi" in csv_text
 
 
 @pytest.mark.asyncio
@@ -561,32 +548,34 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
         },
     )
 
-    excel_bytes, _ = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
         locale="fi",
     )
 
-    excel_file = io.BytesIO(excel_bytes)
+    excel_file = io.BytesIO(payload.content_bytes)
     summary_df = pd.read_excel(excel_file, sheet_name="Yhteenveto")
     raw_df = pd.read_excel(excel_file, sheet_name="Raakadata")
 
     assert len(summary_df) == 9
-    for i, row in enumerate(summary_df.itertuples(), 1):
-        assert row.Matriisi == f"Matriisi {i}"
-        assert row.Arvosana == 4.0
-        assert row.Maksimi == 5.0
+    assert len(summary_df) == len(matrices)
+    for i in range(len(summary_df)):
+        assert summary_df["Logiikkamatriisi"].iloc[i] == f"Matriisi {i + 1}"
+        assert summary_df["Pisteet"].iloc[i] == "4.0 / 5.0"
 
     assert len(raw_df) == 2
+    assert len(raw_df) == len(report_dto.results)
     assert "Väitetyyppi" in raw_df.columns
     assert "Tulos (Status)" in raw_df.columns
+    assert "Arviointikriteeri" in raw_df.columns
 
-    pos_row = raw_df[raw_df["Kriteeri (UI)"] == "Competence claim"].iloc[0]
+    pos_row = raw_df[raw_df["Arviointikriteeri"] == "Competence claim"].iloc[0]
     assert pos_row["Väitetyyppi"] == "Positiivinen kyvykkyys"
     assert pos_row["Tulos (Status)"] == 1
 
-    inv_row = raw_df[raw_df["Kriteeri (UI)"] == "Fallacy absence claim"].iloc[0]
+    inv_row = raw_df[raw_df["Arviointikriteeri"] == "Fallacy absence claim"].iloc[0]
     assert inv_row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
     assert inv_row["Tulos (Status)"] == 1
     assert "Falsifiointi" not in raw_df.columns
@@ -643,14 +632,14 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
         },
     )
 
-    bytes_out, _ = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
         locale="fi",
     )
 
-    raw_df = pd.read_excel(io.BytesIO(bytes_out), sheet_name="Raakadata")
+    raw_df = pd.read_excel(io.BytesIO(payload.content_bytes), sheet_name="Raakadata")
     assert len(raw_df) == 1
     row = raw_df.iloc[0]
     assert row["Matriisi"] == "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)"
@@ -723,14 +712,14 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
         },
     )
 
-    bytes_out, _ = await service.export_excel(
+    payload = await service.export_excel(
         execution=exec_record,
         report_dto=report_dto,
         matrices=matrices,
         locale="fi",
     )
 
-    raw_df = pd.read_excel(io.BytesIO(bytes_out), sheet_name="Raakadata")
+    raw_df = pd.read_excel(io.BytesIO(payload.content_bytes), sheet_name="Raakadata")
     assert len(raw_df) == 1
     row = raw_df.iloc[0]
     assert row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
@@ -779,3 +768,234 @@ async def test_export_excel_missing_matrix_in_repo_raises_fail_fast_negative() -
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
     assert "Strict Fail-Fast: Matrix block 'blk_unknown_99999999'" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_export_excel_tab1_ssot_localization() -> None:
+    """Verify Tab 1 columns match ReportHeaderResolver SSOT headers in both fi and en."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Axis 1",
+            label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
+            score=4.5,
+            scale_max=5.0,
+            row_explanation="Explanation for row 1",
+            is_evaluative=True,
+        ),
+        MatrixScorecardRowDTO(
+            block_id="blk_matrix_0002",
+            name="Matrix 2",
+            label_i18n=I18nText(translations={"fi": "Matriisi 2", "en": "Matrix 2"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Explanation for row 2",
+            is_evaluative=True,
+        ),
+    ]
+
+    for locale in ["fi", "en"]:
+        payload = await service.export_excel(
+            execution=exec_record,
+            report_dto=report_dto,
+            matrices=matrices,
+            locale=locale,
+        )
+        sheet_name = ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, locale=locale)
+        df = pd.read_excel(io.BytesIO(payload.content_bytes), sheet_name=sheet_name)
+        expected_headers = list(ReportHeaderResolver.get_all_matrix_headers(locale=locale).values())
+        assert list(df.columns) == expected_headers
+        assert len(df) == len(matrices)
+
+
+@pytest.mark.asyncio
+async def test_export_excel_tab2_ssot_localization() -> None:
+    """Verify Tab 2 headers match ReportAtomColumn SSOT headers and result_status is strictly binary."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matching_matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Axis 1",
+        label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
+        score=4.5,
+        scale_max=5.0,
+        row_explanation="Explanation for row 1",
+        is_evaluative=True,
+    )
+    matrices = [matching_matrix]
+
+    for locale in ["fi", "en"]:
+        payload = await service.export_excel(
+            execution=exec_record,
+            report_dto=report_dto,
+            matrices=matrices,
+            locale=locale,
+        )
+        sheet_name = ReportHeaderResolver.get_sheet_name(ReportSheetKey.RAW_DATA, locale=locale)
+        df = pd.read_excel(io.BytesIO(payload.content_bytes), sheet_name=sheet_name)
+        expected_headers = ReportHeaderResolver.get_all_atom_headers(locale=locale)
+        assert list(df.columns) == expected_headers
+        assert len(df) == len(report_dto.results)
+        status_header = ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.RESULT_STATUS, locale=locale)
+        for status_val in df[status_header]:
+            assert status_val in (0, 1)
+
+
+def test_export_flat_csv_fails_non_passed_status() -> None:
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.FAILED)
+    with pytest.raises(AppException) as exc_info:
+        service.export_flat_csv(execution=exec_record, report_dto=None, matrices=[])
+    assert exc_info.value.status_code == 400
+    assert "Execution must be in PASSED state" in exc_info.value.message
+
+
+def test_export_flat_csv_fails_when_no_atoms() -> None:
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
+    report_dto = _build_sample_report_dto(has_atoms=False)
+    with pytest.raises(AppException) as exc_info:
+        service.export_flat_csv(execution=exec_record, report_dto=report_dto, matrices=[])
+    assert exc_info.value.status_code == 400
+    assert "Execution has no scoreable atoms" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_scorecard_atoms_and_rich_matrix_metadata() -> None:
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+
+    scorecard_atom = ScorecardAtomDTO(
+        atom_id="tda_eval_001",
+        claim_label="Claim label from scorecard",
+        level=2,
+        level_name="Level Two",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="Premise",
+            step_2_scan_source="Scan",
+            step_3_evaluate_anti_patterns="Anti-pattern",
+            step_4_final_conclusion="Conclusion",
+        ),
+        status=ExecutionStatus.PASSED,
+        semantic_reasoning="Semantic reason",
+        contextual_override=False,
+        chart_display_label="Chart display label",
+        visual_intent=VisualIntent.NEUTRAL,
+    )
+    rich_matrix = MatrixScorecardRowDTO(
+        block_id="blk_rich_0001",
+        name="Rich Matrix",
+        label_i18n=I18nText(translations={"fi": "Rikas matriisi", "en": "Rich Matrix"}),
+        context_target="ctx_tgt_plain",
+        context_target_label=I18nText(translations={"fi": "Kohteen nimike", "en": "Target title"}),
+        score=3.5,
+        scale_max=None,
+        normalized_score=70.0,
+        level_breakdown={"L1": "1", "L2": "2"},
+        true_atoms=3,
+        total_atoms=4,
+        cited_text_quote="Direct citation quote from matrix",
+        cited_source_title="Source Title Doc",
+        cited_source_id="src_doc_01",
+        row_explanation="Explanation for rich matrix",
+        evaluated_atoms=[scorecard_atom],
+        is_evaluative=True,
+    )
+
+    atom_without_matrix_id = AtomResultDTO(
+        tda_id="tda_eval_001",
+        matrix_id=None,
+        status=ExecutionStatus.PASSED,
+        source_quote="Verbatim quote for atom without matrix_id",
+        evaluation_reasoning="Reasoning for atom without matrix_id",
+    )
+    atom_with_ref_quote = AtomResultDTO(
+        tda_id="tda_eval_002",
+        matrix_id="blk_rich_0001",
+        status=ExecutionStatus.PASSED,
+        source_quote=None,
+        evaluation_reasoning="Reasoning with ref quote fallback",
+        is_inverse_evidence=True,
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=3.5,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_without_matrix_id, atom_with_ref_quote],
+        hydrated_references={
+            "tda_eval_001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim for eval 1",
+            ),
+            "tda_eval_002": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim for eval 2",
+                source_quote="Hydrated fallback quote",
+            ),
+        },
+    )
+
+    payload = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=[rich_matrix],
+        locale="fi",
+    )
+    assert len(payload.content_bytes) > 0
+
+
+@pytest.mark.asyncio
+async def test_export_excel_atom_missing_matrix_id_and_parent_fails_fast() -> None:
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    orphan_atom = AtomResultDTO(
+        tda_id="tda_orphan_999",
+        matrix_id=None,
+        status=ExecutionStatus.PASSED,
+        source_quote="Quote",
+        evaluation_reasoning="Reason",
+    )
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=3.5,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[orphan_atom],
+        hydrated_references={
+            "tda_orphan_999": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Orphan claim",
+            )
+        },
+    )
+    rich_matrix = MatrixScorecardRowDTO(
+        block_id="blk_rich_0001",
+        name="Rich Matrix",
+        label_i18n=I18nText(translations={"fi": "Rikas matriisi", "en": "Rich Matrix"}),
+        score=3.5,
+        scale_max=5.0,
+        row_explanation="Explanation",
+        evaluated_atoms=[],
+        is_evaluative=True,
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.export_excel(
+            execution=exec_record,
+            report_dto=report_dto,
+            matrices=[rich_matrix],
+            locale="fi",
+        )
+    assert exc_info.value.status_code == 404
+    assert "Strict Fail-Fast: Matrix block for atom 'tda_orphan_999' not found" in exc_info.value.message

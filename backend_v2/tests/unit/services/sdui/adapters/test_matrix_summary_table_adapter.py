@@ -96,13 +96,13 @@ def test_matrix_summary_table_adapter_success() -> None:
     assert blocks[0].matrix_column_labels["label"].resolve("en") == "Logic Matrix"
     assert blocks[0].matrix_column_labels["label"].resolve("fi") == "Logiikkamatriisi"
     assert "criteria" in blocks[0].matrix_column_labels
-    assert blocks[0].matrix_column_labels["criteria"].resolve("en") == "Criterion"
+    assert blocks[0].matrix_column_labels["criteria"].resolve("en") == "Criteria"
     assert blocks[0].matrix_column_labels["criteria"].resolve("fi") == "Kriteeri"
     assert "quotes" in blocks[0].matrix_column_labels
     assert blocks[0].matrix_column_labels["quotes"].resolve("en") == "Text Observation"
     assert blocks[0].matrix_column_labels["quotes"].resolve("fi") == "Tekstin havainto"
     assert "source" in blocks[0].matrix_column_labels
-    assert blocks[0].matrix_column_labels["source"].resolve("en") == "Citation"
+    assert blocks[0].matrix_column_labels["source"].resolve("en") == "Source Citation"
     assert blocks[0].matrix_column_labels["source"].resolve("fi") == "Lähdeviite"
 
 

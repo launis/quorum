@@ -559,4 +559,3 @@ async def test_execute_starvation_propagates_is_inverse_flag_error_path(
     assert nodes_arg[0].atom.is_inverse is True
     assert nodes_arg[1].atom.tda_id == "tda_5555666677778888"
     assert nodes_arg[1].atom.is_inverse is False
-

@@ -87,7 +87,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
                               (axis.isEvaluative ? ' *' : '') +
                               (axis.allowContextualOverride ? ' **' : ''),
                           style: const TextStyle(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
                         ),
                         if (targetLabel != null && targetLabel.isNotEmpty)
                           Padding(
@@ -114,7 +113,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                         context,
                                       ).colorScheme.onSurfaceVariant,
                                     ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -130,7 +128,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                       context,
                                     ).colorScheme.onSurfaceVariant,
                                   ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                       ],
@@ -149,7 +146,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   );
                   break;
@@ -170,7 +166,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                         fontSize: 12,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   );
                   break;
@@ -318,9 +313,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           : colKey == 'context_target'
                           ? 140
                           : colKey == 'distribution'
-                          ? 180
+                          ? 200
                           : colKey == 'row_explanation'
-                          ? 260
+                          ? 280
                           : colKey == 'criteria'
                           ? 260
                           : colKey == 'quotes'
@@ -433,7 +428,6 @@ class _MatrixSummaryCriteriaCell extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
               AppSpacing.h4,
               ...lvlAtoms.map((atom) {
@@ -452,7 +446,6 @@ class _MatrixSummaryCriteriaCell extends StatelessWidget {
                           : FontWeight.normal,
                       fontSize: 11,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                 );
               }),
@@ -523,7 +516,6 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                   AppSpacing.h4,
                   ...lvlAtoms
@@ -556,7 +548,6 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                         fontSize: 10,
                                       ),
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ...atom.exactQuotes.map((q) {
@@ -685,7 +676,6 @@ class _MatrixSummaryDistributionCell extends StatelessWidget {
           return Text(
             '$numStr - $name: $hitStr',
             style: const TextStyle(fontSize: 12),
-            overflow: TextOverflow.ellipsis,
           );
         }).toList(),
       ),
