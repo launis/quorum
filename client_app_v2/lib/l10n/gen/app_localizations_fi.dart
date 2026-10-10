@@ -2995,16 +2995,16 @@ class AppLocalizationsFi extends AppLocalizations {
       'XAI Ulostulolaajennukset (Proaktiivinen Valmentaja ja Raporttikentät)';
 
   @override
-  String get xaiJustification => 'Perustelut';
+  String get xaiJustification => 'Perustelu';
 
   @override
   String get xaiGlobalExtensionsHeader => 'Tekoälyn havainnot';
 
   @override
-  String get xaiCoachingTip => 'Valmennusvinkki';
+  String get xaiCoachingTip => 'Valmennus';
 
   @override
-  String get xaiDevilsAdvocate => 'Paholaisen asianajaja';
+  String get xaiDevilsAdvocate => 'Falsifikaatio';
 
   @override
   String get xaiMissingContext => 'Puuttuva konteksti';
@@ -3016,22 +3016,22 @@ class AppLocalizationsFi extends AppLocalizations {
   String get xaiRemediation => 'Korjaustoimenpiteet';
 
   @override
-  String get xaiSentiment => 'Sävy';
+  String get xaiSentiment => 'Emotionaalinen sävy';
 
   @override
-  String get xaiTheoryLink => 'Teoriayhteys';
+  String get xaiTheoryLink => 'Teorialinkitys';
 
   @override
-  String get xaiConfidence => 'AI:n Varmuus';
+  String get xaiConfidence => 'Luottamus';
 
   @override
-  String get xaiSourceCitation => 'Lähdeviite';
+  String get xaiSourceCitation => 'Sitaatti';
 
   @override
-  String get xaiContextualOverride => 'Kontekstuaalinen ohitus';
+  String get xaiContextualOverride => 'Kontekstuaalinen yliajo';
 
   @override
-  String get xaiSourceId => 'Lähde-ID';
+  String get xaiSourceId => 'Lähdetunniste';
 
   @override
   String get theoryGroundingTitle => 'Teorian Maadoitus (RAG)';
@@ -3793,25 +3793,25 @@ class AppLocalizationsFi extends AppLocalizations {
   String get identityMetadataTitle => 'Kannen metatiedot (Identity Metadata)';
 
   @override
-  String get metaDate => 'Päivämäärä (date)';
+  String get metaDate => 'Päivämäärä';
 
   @override
-  String get metaOrganization => 'Organisaatio (organization)';
+  String get metaOrganization => 'Organisaatio';
 
   @override
-  String get metaUser => 'Käyttäjä (user)';
+  String get metaUser => 'Käyttäjä';
 
   @override
-  String get metaScoringEngine => 'Arviointimoottori (scoring_engine)';
+  String get metaScoringEngine => 'Arviointimoottori';
 
   @override
-  String get metaStrictness => 'Ankaruustaso (strictness)';
+  String get metaStrictness => 'Tiukkuusaste';
 
   @override
-  String get metaCost => 'Hinta-arvio (cost)';
+  String get metaCost => 'Kustannukset';
 
   @override
-  String get metaTokens => 'Kognitiivinen työ (tokens)';
+  String get metaTokens => 'Tokenit';
 
   @override
   String get maxExtensionItemsLabel => 'Max Extension Items';
@@ -4014,7 +4014,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get blockMatrixSummaryTitle => 'Matriisiyhteenvetotaulukko';
 
   @override
-  String get studioMatrixColLabel => 'Ulottuvuus';
+  String get studioMatrixColLabel => 'Logiikkamatriisi';
 
   @override
   String get studioMatrixColContextTarget => 'Arvioinnin kohde';
@@ -4023,7 +4023,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioMatrixColDistribution => 'Jakauma';
 
   @override
-  String get studioMatrixColRowExplanation => 'Rivisyy / Peruste';
+  String get studioMatrixColRowExplanation => 'Selitys';
 
   @override
   String get studioMatrixColCriteria => 'Kriteeri';
@@ -4035,10 +4035,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioMatrixColSource => 'Lähdeviite';
 
   @override
-  String get studioMatrixColNormalized => 'Normitettu';
+  String get studioMatrixColNormalized => 'Normalisoitu pisteytys';
 
   @override
-  String get studioMatrixColScore => 'Pistemäärä';
+  String get studioMatrixColScore => 'Pisteet';
 
   @override
   String get studioMatrixVisibleColumnsTitle => 'Näytettävät sarakkeet:';

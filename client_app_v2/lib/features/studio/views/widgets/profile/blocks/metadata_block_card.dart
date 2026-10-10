@@ -22,6 +22,28 @@ class MetadataBlockCard extends StatelessWidget {
     'tokens',
   ];
 
+  static String getFieldLabel(BuildContext context, String field) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (field) {
+      case 'date':
+        return l10n.metaDate;
+      case 'organization':
+        return l10n.metaOrganization;
+      case 'user':
+        return l10n.metaUser;
+      case 'scoring_engine':
+        return l10n.metaScoringEngine;
+      case 'strictness':
+        return l10n.metaStrictness;
+      case 'cost':
+        return l10n.metaCost;
+      case 'tokens':
+        return l10n.metaTokens;
+      default:
+        return field;
+    }
+  }
+
   const MetadataBlockCard({
     super.key,
     required this.payload,
@@ -70,7 +92,7 @@ class MetadataBlockCard extends StatelessWidget {
             children: availableMetadataFields.map((field) {
               final isSelected = payload.visibleMetadata.contains(field);
               return FilterChip(
-                label: Text(field),
+                label: Text(getFieldLabel(context, field)),
                 selected: isSelected,
                 onSelected: (selected) {
                   final newFields = List<String>.from(payload.visibleMetadata);

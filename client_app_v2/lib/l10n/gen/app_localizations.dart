@@ -5483,13 +5483,13 @@ abstract class AppLocalizations {
   /// No description provided for @xaiCoachingTip.
   ///
   /// In en, this message translates to:
-  /// **'Coaching Tip'**
+  /// **'Coaching'**
   String get xaiCoachingTip;
 
   /// No description provided for @xaiDevilsAdvocate.
   ///
   /// In en, this message translates to:
-  /// **'Devil\'s Advocate'**
+  /// **'Falsification'**
   String get xaiDevilsAdvocate;
 
   /// No description provided for @xaiMissingContext.
@@ -5507,13 +5507,13 @@ abstract class AppLocalizations {
   /// No description provided for @xaiRemediation.
   ///
   /// In en, this message translates to:
-  /// **'Remediation'**
+  /// **'Remediation Steps'**
   String get xaiRemediation;
 
   /// No description provided for @xaiSentiment.
   ///
   /// In en, this message translates to:
-  /// **'Sentiment'**
+  /// **'Emotional Sentiment'**
   String get xaiSentiment;
 
   /// No description provided for @xaiTheoryLink.
@@ -5525,13 +5525,13 @@ abstract class AppLocalizations {
   /// No description provided for @xaiConfidence.
   ///
   /// In en, this message translates to:
-  /// **'AI Confidence'**
+  /// **'Confidence'**
   String get xaiConfidence;
 
   /// No description provided for @xaiSourceCitation.
   ///
   /// In en, this message translates to:
-  /// **'Source Citation'**
+  /// **'Citation'**
   String get xaiSourceCitation;
 
   /// No description provided for @xaiContextualOverride.
@@ -6861,43 +6861,43 @@ abstract class AppLocalizations {
   /// No description provided for @metaDate.
   ///
   /// In en, this message translates to:
-  /// **'Date (date)'**
+  /// **'Date'**
   String get metaDate;
 
   /// No description provided for @metaOrganization.
   ///
   /// In en, this message translates to:
-  /// **'Organization (organization)'**
+  /// **'Organization'**
   String get metaOrganization;
 
   /// No description provided for @metaUser.
   ///
   /// In en, this message translates to:
-  /// **'User (user)'**
+  /// **'User'**
   String get metaUser;
 
   /// No description provided for @metaScoringEngine.
   ///
   /// In en, this message translates to:
-  /// **'Scoring Engine (scoring_engine)'**
+  /// **'Scoring Engine'**
   String get metaScoringEngine;
 
   /// No description provided for @metaStrictness.
   ///
   /// In en, this message translates to:
-  /// **'Strictness Level (strictness)'**
+  /// **'Strictness'**
   String get metaStrictness;
 
   /// No description provided for @metaCost.
   ///
   /// In en, this message translates to:
-  /// **'Cost Estimate (cost)'**
+  /// **'Cost'**
   String get metaCost;
 
   /// No description provided for @metaTokens.
   ///
   /// In en, this message translates to:
-  /// **'Cognitive Load (tokens)'**
+  /// **'Tokens'**
   String get metaTokens;
 
   /// No description provided for @maxExtensionItemsLabel.
@@ -7281,7 +7281,7 @@ abstract class AppLocalizations {
   /// No description provided for @studioMatrixColLabel.
   ///
   /// In en, this message translates to:
-  /// **'Dimension'**
+  /// **'Logic Matrix'**
   String get studioMatrixColLabel;
 
   /// No description provided for @studioMatrixColContextTarget.
@@ -7299,13 +7299,13 @@ abstract class AppLocalizations {
   /// No description provided for @studioMatrixColRowExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Row Explanation'**
+  /// **'Explanation'**
   String get studioMatrixColRowExplanation;
 
   /// No description provided for @studioMatrixColCriteria.
   ///
   /// In en, this message translates to:
-  /// **'Criterion'**
+  /// **'Criteria'**
   String get studioMatrixColCriteria;
 
   /// No description provided for @studioMatrixColQuotes.
@@ -7317,13 +7317,13 @@ abstract class AppLocalizations {
   /// No description provided for @studioMatrixColSource.
   ///
   /// In en, this message translates to:
-  /// **'Citation'**
+  /// **'Source Citation'**
   String get studioMatrixColSource;
 
   /// No description provided for @studioMatrixColNormalized.
   ///
   /// In en, this message translates to:
-  /// **'Normalized'**
+  /// **'Normalized Score'**
   String get studioMatrixColNormalized;
 
   /// No description provided for @studioMatrixColScore.

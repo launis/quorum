@@ -2981,10 +2981,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xaiGlobalExtensionsHeader => 'AI Observations';
 
   @override
-  String get xaiCoachingTip => 'Coaching Tip';
+  String get xaiCoachingTip => 'Coaching';
 
   @override
-  String get xaiDevilsAdvocate => 'Devil\'s Advocate';
+  String get xaiDevilsAdvocate => 'Falsification';
 
   @override
   String get xaiMissingContext => 'Missing Context';
@@ -2993,19 +2993,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get xaiRiskFlag => 'Risk Flag';
 
   @override
-  String get xaiRemediation => 'Remediation';
+  String get xaiRemediation => 'Remediation Steps';
 
   @override
-  String get xaiSentiment => 'Sentiment';
+  String get xaiSentiment => 'Emotional Sentiment';
 
   @override
   String get xaiTheoryLink => 'Theory Link';
 
   @override
-  String get xaiConfidence => 'AI Confidence';
+  String get xaiConfidence => 'Confidence';
 
   @override
-  String get xaiSourceCitation => 'Source Citation';
+  String get xaiSourceCitation => 'Citation';
 
   @override
   String get xaiContextualOverride => 'Contextual Override';
@@ -3763,25 +3763,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get identityMetadataTitle => 'Identity Metadata';
 
   @override
-  String get metaDate => 'Date (date)';
+  String get metaDate => 'Date';
 
   @override
-  String get metaOrganization => 'Organization (organization)';
+  String get metaOrganization => 'Organization';
 
   @override
-  String get metaUser => 'User (user)';
+  String get metaUser => 'User';
 
   @override
-  String get metaScoringEngine => 'Scoring Engine (scoring_engine)';
+  String get metaScoringEngine => 'Scoring Engine';
 
   @override
-  String get metaStrictness => 'Strictness Level (strictness)';
+  String get metaStrictness => 'Strictness';
 
   @override
-  String get metaCost => 'Cost Estimate (cost)';
+  String get metaCost => 'Cost';
 
   @override
-  String get metaTokens => 'Cognitive Load (tokens)';
+  String get metaTokens => 'Tokens';
 
   @override
   String get maxExtensionItemsLabel => 'Max Extension Items';
@@ -3986,7 +3986,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blockMatrixSummaryTitle => 'Matrix Summary Table';
 
   @override
-  String get studioMatrixColLabel => 'Dimension';
+  String get studioMatrixColLabel => 'Logic Matrix';
 
   @override
   String get studioMatrixColContextTarget => 'Evaluation Target';
@@ -3995,19 +3995,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioMatrixColDistribution => 'Distribution';
 
   @override
-  String get studioMatrixColRowExplanation => 'Row Explanation';
+  String get studioMatrixColRowExplanation => 'Explanation';
 
   @override
-  String get studioMatrixColCriteria => 'Criterion';
+  String get studioMatrixColCriteria => 'Criteria';
 
   @override
   String get studioMatrixColQuotes => 'Text Observation';
 
   @override
-  String get studioMatrixColSource => 'Citation';
+  String get studioMatrixColSource => 'Source Citation';
 
   @override
-  String get studioMatrixColNormalized => 'Normalized';
+  String get studioMatrixColNormalized => 'Normalized Score';
 
   @override
   String get studioMatrixColScore => 'Score';

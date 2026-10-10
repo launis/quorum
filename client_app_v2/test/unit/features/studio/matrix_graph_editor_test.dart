@@ -95,10 +95,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Matrix 1 (blk_mat_1)'), findsOneWidget);
-        expect(find.text('Matrix 2 (blk_mat_2)'), findsOneWidget);
-        expect(find.text('Matrix 3 (blk_mat_3)'), findsOneWidget);
-        expect(find.text('Rule 1 (blk_rule_1)'), findsNothing);
+        expect(find.text('Matrix 1'), findsOneWidget);
+        expect(find.text('Matrix 2'), findsOneWidget);
+        expect(find.text('Matrix 3'), findsOneWidget);
+        expect(find.byTooltip('blk_mat_1'), findsOneWidget);
+        expect(find.byTooltip('blk_mat_2'), findsOneWidget);
+        expect(find.byTooltip('blk_mat_3'), findsOneWidget);
+        expect(find.text('Rule 1'), findsNothing);
+        expect(find.byTooltip('blk_rule_1'), findsNothing);
       },
     );
 
@@ -124,7 +128,7 @@ void main() {
       expect(find.text('1 / 1 valittu'), findsOneWidget);
 
       // Selecting a different matrix in 1D replaces the choice
-      await tester.tap(find.text('Matrix 2 (blk_mat_2)'));
+      await tester.tap(find.text('Matrix 2'));
       await tester.pumpAndSettle();
 
       expect(currentGroup.targetBlocks, ['blk_mat_2']);
@@ -150,7 +154,7 @@ void main() {
       expect(find.text('1 / 2 valittu'), findsOneWidget);
 
       // Add 2nd block
-      await tester.tap(find.text('Matrix 2 (blk_mat_2)'));
+      await tester.tap(find.text('Matrix 2'));
       await tester.pumpAndSettle();
 
       expect(currentGroup.targetBlocks, ['blk_mat_1', 'blk_mat_2']);
@@ -206,10 +210,7 @@ void main() {
         expect(find.text('2 / 2 valittu'), findsOneWidget);
 
         // Verify Matrix 3 FilterChip is disabled (onSelected is null)
-        final chipFinder = find.widgetWithText(
-          FilterChip,
-          'Matrix 3 (blk_mat_3)',
-        );
+        final chipFinder = find.widgetWithText(FilterChip, 'Matrix 3');
         expect(chipFinder, findsOneWidget);
         final FilterChip chipWidget = tester.widget(chipFinder);
         expect(chipWidget.onSelected, isNull);

@@ -72,7 +72,7 @@ class WorkflowStepCard extends StatelessWidget {
       );
       if (bp.id.isNotEmpty) {
         final label = bp.name.get(locale);
-        return label.isNotEmpty ? label : bp.slug;
+        return label;
       }
       return stepId;
     }

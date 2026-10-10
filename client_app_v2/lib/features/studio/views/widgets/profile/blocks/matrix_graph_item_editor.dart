@@ -75,9 +75,10 @@ class MatrixGraphItemEditor extends StatelessWidget {
           child: Text('${index + 1}', style: const TextStyle(fontSize: 11)),
         ),
         title: Text(
-          group.title.translations['en'] ??
-              group.title.translations.values.firstOrNull ??
-              'Group ${index + 1}',
+          group.title.get(
+            Localizations.localeOf(context).languageCode,
+            fallback: 'en',
+          ),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         trailing: Row(
@@ -103,7 +104,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
               ),
               onPressed: onDelete,
             ),
-            if (dragHandle != null) dragHandle!,
+            ?dragHandle,
           ],
         ),
         childrenPadding: AppSpacing.p12,
@@ -243,8 +244,10 @@ class MatrixGraphItemEditor extends StatelessWidget {
                     children: matrixBlocks.map((block) {
                       final isSelected = targetBlocks.contains(block.id);
                       final canSelectMore = targetBlocks.length < maxSlots;
-                      final label =
-                          block.label.translations['en'] ?? block.slug;
+                      final localeCode = Localizations.localeOf(
+                        context,
+                      ).languageCode;
+                      final label = block.label.get(localeCode, fallback: 'en');
 
                       final onSelectedCallback =
                           (isSelected || canSelectMore || maxSlots == 1)
@@ -269,7 +272,8 @@ class MatrixGraphItemEditor extends StatelessWidget {
                           : null;
 
                       return FilterChip(
-                        label: Text('$label (${block.id})'),
+                        label: Text(label),
+                        tooltip: block.id,
                         selected: isSelected,
                         onSelected: onSelectedCallback,
                       );
