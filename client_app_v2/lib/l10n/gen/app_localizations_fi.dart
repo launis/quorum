@@ -5259,16 +5259,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get noTableRowsAvailable => 'Ei taulukkorivejä saatavilla.';
 
   @override
-  String get tableColumnCriteriaMetric => 'Kriteeri / Metriikka';
+  String get tableColumnCriteriaMetric => 'Kriteeri';
 
   @override
   String get tableColumnScore => 'Pisteet';
 
   @override
-  String get tableColumnMaxScore => 'Maksimi';
-
-  @override
-  String get tableColumnReasoningQuote => 'Perustelu & Sitaatti';
+  String get tableColumnReasoningQuote => 'Selitys';
 
   @override
   String get forceResynthesisLabel => 'Generoi tekoälyteksti uudelleen';

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import io
 from unittest.mock import patch
 
@@ -263,12 +264,12 @@ async def test_export_flat_csv_success() -> None:
     )
 
     assert payload.filename == "execution_export_exe_custom_999.csv"
-    assert len(payload.content_bytes) > 0
     csv_text = payload.content_bytes.decode("utf-8-sig")
-    assert "Matriisi" in csv_text
-    assert "Arviointikriteeri" in csv_text
-    lines = [ln for ln in csv_text.strip().splitlines() if ln]
-    assert len(lines) - 1 == len(report_dto.results)
+    reader = list(csv.reader(io.StringIO(csv_text)))
+    assert len(reader[0]) == 17
+    assert len(reader) - 1 == len(report_dto.results)
+    assert "Logiikkamatriisi" in reader[0]
+    assert "Arviointikriteeri" in reader[0]
 
 
 @pytest.mark.asyncio
@@ -479,7 +480,7 @@ async def test_export_flat_csv_default_execution_id() -> None:
     assert payload.filename == "execution_export_exe_0123456789abcdef.csv"
     assert len(payload.content_bytes) > 0
     csv_text = payload.content_bytes.decode("utf-8-sig")
-    assert "Matriisi" in csv_text
+    assert "Logiikkamatriisi" in csv_text
 
 
 @pytest.mark.asyncio
@@ -565,7 +566,8 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
     assert len(summary_df) == len(matrices)
     for i in range(len(summary_df)):
         assert summary_df["Logiikkamatriisi"].iloc[i] == f"Matriisi {i + 1}"
-        assert summary_df["Pisteet"].iloc[i] == "4.0 / 5.0"
+        assert summary_df["Pisteet (raaka)"].iloc[i] == 4.0
+        assert summary_df["Asteikon maksimi"].iloc[i] == 5.0
 
     assert len(raw_df) == 2
     assert len(raw_df) == len(report_dto.results)
@@ -1227,7 +1229,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     sheet1 = wb[LocalizationService.translate("export_sheet_summary", "fi")]
     sheet1_rows = list(sheet1.iter_rows(values_only=True))
     assert len(sheet1_rows) == 3
-    matrix_names = [row[0] for row in sheet1_rows[1:]]
+    matrix_names = [row[1] for row in sheet1_rows[1:]]
     assert "Arvioiva Matriisi" in matrix_names
     assert "Informaatiomatriisi" in matrix_names
 

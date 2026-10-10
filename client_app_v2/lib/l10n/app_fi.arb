@@ -1853,10 +1853,9 @@
   "retryReportGenerationLabel": "Yritä uudelleen",
   "noProfilesForWorkflow": "Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.",
   "noTableRowsAvailable": "Ei taulukkorivejä saatavilla.",
-  "tableColumnCriteriaMetric": "Kriteeri / Metriikka",
+  "tableColumnCriteriaMetric": "Kriteeri",
   "tableColumnScore": "Pisteet",
-  "tableColumnMaxScore": "Maksimi",
-  "tableColumnReasoningQuote": "Perustelu & Sitaatti",
+  "tableColumnReasoningQuote": "Selitys",
   "forceResynthesisLabel": "Generoi tekoälyteksti uudelleen",
   "forceResynthesisSubtitle": "Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla"
 }

@@ -874,7 +874,6 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                       columns: [
                         DataColumn(label: Text(l10n.tableColumnCriteriaMetric)),
                         DataColumn(label: Text(l10n.tableColumnScore)),
-                        DataColumn(label: Text(l10n.tableColumnMaxScore)),
                         DataColumn(label: Text(l10n.tableColumnReasoningQuote)),
                       ],
                       rows: value.map((row) {
@@ -892,15 +891,14 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                                 ),
                               ),
                             ),
-                            DataCell(Text(row.score.toStringAsFixed(1))),
-                            DataCell(Text(row.maxScale.toStringAsFixed(1))),
+                            DataCell(Text('${row.score.toInt()}')),
                             DataCell(
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
                                   maxWidth: 400,
                                 ),
                                 child: Text(
-                                  row.reasoning ?? row.quote ?? '-',
+                                  row.reasoning ?? '-',
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),

@@ -45,7 +45,7 @@ def get_dummy_profile(
         custom_scale_max=custom_scale_max,
         matrix_visible_columns=matrix_visible_columns
         if matrix_visible_columns is not None
-        else ["label", "category", "target", "score", "level_breakdown"],
+        else ["label", "distribution", "raw_score"],
         target_block_order=[],
     )
 

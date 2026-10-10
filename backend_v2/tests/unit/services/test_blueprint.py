@@ -41,9 +41,7 @@ def fix_mock_dict(d: Any) -> Any:
     if isinstance(d, OutputProfile):
         updates = {}
         if d.matrix_visible_columns is None:
-            updates["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
-        elif "row_explanation" in d.matrix_visible_columns and len(d.matrix_visible_columns) == 5:
-            updates["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
+            updates["matrix_visible_columns"] = ["label", "distribution", "raw_score"]
         if (
             TargetBlockType.MATRIX_GRAPHS_BLOCK in d.target_block_order
             or "matrix_graphs_block" in [str(t) for t in d.target_block_order]
@@ -65,7 +63,7 @@ def fix_mock_dict(d: Any) -> Any:
 
         if "workflow_id" in d and "id" in d:
             if "matrix_visible_columns" not in d:
-                d["matrix_visible_columns"] = ["label", "score", "distribution", "quotes"]
+                d["matrix_visible_columns"] = ["label", "distribution", "raw_score"]
             if "matrix_synthesis_groups" not in d or not d["matrix_synthesis_groups"]:
                 d["matrix_synthesis_groups"] = [
                     {
@@ -200,7 +198,7 @@ def mock_repo_transformer() -> Any:
                         XaiExtensionType.RISK_FLAG,
                     ],
                     max_extension_items=2,
-                    matrix_visible_columns=["label", "score", "distribution", "quotes"],
+                    matrix_visible_columns=["label", "distribution", "raw_score"],
                 )
             ]
         )
@@ -359,7 +357,7 @@ def mock_repo_microcot() -> Any:
                     "max_extension_items": 2,
                     "visible_metadata": [],
                     "custom_preface": None,
-                    "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
+                    "matrix_visible_columns": ["label", "distribution", "raw_score"],
                 }
             ]
         )
@@ -504,7 +502,7 @@ def mock_repo_sdui() -> Any:
                     "max_extension_items": 2,
                     "visible_metadata": [],
                     "custom_preface": None,
-                    "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
+                    "matrix_visible_columns": ["label", "distribution", "raw_score"],
                 }
             ]
         )
@@ -1217,7 +1215,7 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
             )
         ],
         visible_block_extensions=[XaiExtensionType.REMEDIATION_STEPS, XaiExtensionType.FALSIFICATION],
-        matrix_visible_columns=["label", "distribution", "quotes", "score"],
+        matrix_visible_columns=["label", "distribution", "raw_score"],
     )
     mock_repo_transformer.set_output_profiles(fix_mock_dict([profile_mock]))
 
@@ -1311,7 +1309,7 @@ async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transforme
             )
         ],
         visible_block_extensions=[XaiExtensionType.COACHING],
-        matrix_visible_columns=["label", "distribution", "quotes", "score"],
+        matrix_visible_columns=["label", "distribution", "raw_score"],
     )
     mock_repo_transformer.set_output_profiles(fix_mock_dict([profile_mock]))
 
@@ -3099,7 +3097,7 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         slug="profile-override",
         workflow_id="wf_0000000000000002",
         name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),
-        matrix_visible_columns=["label", "score", "distribution", "quotes"],
+        matrix_visible_columns=["label", "distribution", "raw_score"],
         target_block_order=[TargetBlockType.METADATA_BLOCK],
     )
 

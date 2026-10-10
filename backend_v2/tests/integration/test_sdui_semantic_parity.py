@@ -60,7 +60,7 @@ class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     results: list[AtomResultDTO] = []
     hydrated_references: dict[str, HydratedAtomDTO] = {}
     mcp_tool_audit: list[MCPAuditTrace] = []
-    matrix_visible_columns: list[str] = ["label", "score", "distribution", "row_explanation"]
+    matrix_visible_columns: list[str] = ["label", "raw_score", "distribution", "row_explanation"]
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
@@ -150,10 +150,10 @@ async def test_sdui_semantic_parity() -> None:
                         table.model_copy(
                             update={
                                 "axes": axes,
-                                "matrix_visible_columns": ["label", "quotes"],
+                                "matrix_visible_columns": ["label", "raw_score"],
                                 "matrix_column_labels": {
                                     "label": I18nText(translations={"en": "Dimension"}),
-                                    "quotes": I18nText(translations={"en": "Text Observation"}),
+                                    "raw_score": I18nText(translations={"en": "Raw Score"}),
                                 },
                                 "extension_labels": {},
                             }
@@ -206,10 +206,10 @@ async def test_sdui_semantic_parity() -> None:
         )
         parity_matrix_block = SduiMatrixTableBlock(
             title=I18nText(translations={"en": "Parity Matrix Table"}),
-            matrix_visible_columns=["label", "quotes"],
+            matrix_visible_columns=["label", "raw_score"],
             matrix_column_labels={
                 "label": I18nText(translations={"en": "Dimension"}),
-                "quotes": I18nText(translations={"en": "Text Observation"}),
+                "raw_score": I18nText(translations={"en": "Raw Score"}),
             },
             axes=[override_axis],
         )

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
@@ -21,6 +21,7 @@ from backend_v2.models.enums import (
     LaxSystemLocale,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    ReportMatrixColumn,
     SourcesDisplayMode,
     TargetBlockType,
     XaiExtensionType,
@@ -94,9 +95,8 @@ class OutputProfile(V2CoreBase):
             "label",
             "distribution",
             "row_explanation",
-            "quotes",
             "normalized_score",
-            "score",
+            "raw_score",
         ],
         description="List of column keys visible in the matrix summary table.",
     )
@@ -282,9 +282,16 @@ class OutputProfile(V2CoreBase):
                     f"OutputProfile '{self.id}': custom_scale_max ({self.custom_scale_max}) "
                     f"must be strictly greater than custom_scale_min ({self.custom_scale_min})."
                 )
-                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         return self
+
+    @field_validator("matrix_visible_columns")
+    @classmethod
+    def validate_matrix_visible_columns(cls, v: list[str]) -> list[str]:
+        """Enforces that all visible columns match valid ReportMatrixColumn members Fail-Fast."""
+        for col in v:
+            ReportMatrixColumn(col)
+        return v
 
     @property
     def requires_executive_synthesis(self) -> bool:

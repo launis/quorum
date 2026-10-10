@@ -351,7 +351,7 @@
                                 {% if 'quotes' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700; width: 14%;">{{ (col_labels['quotes'].resolve(lang_code) if col_labels and 'quotes' in col_labels else l10n.matrix_col_quotes) }}</th>{% endif %}
                                 {% if 'source' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['source'].resolve(lang_code) if col_labels and 'source' in col_labels else l10n.matrix_col_source) }}</th>{% endif %}
                                 {% if 'normalized_score' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['normalized_score'].resolve(lang_code) if col_labels and 'normalized_score' in col_labels else l10n.matrix_col_normalized_score) }}</th>{% endif %}
-                                {% if 'score' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['score'].resolve(lang_code) if col_labels and 'score' in col_labels else l10n.matrix_col_score) }}</th>{% endif %}
+                                {% if 'raw_score' in visible_cols or 'score' in visible_cols %}<th style="padding: 12px 10px; color: #333; font-weight: 700;">{{ (col_labels['raw_score'].resolve(lang_code) if col_labels and 'raw_score' in col_labels else (col_labels['score'].resolve(lang_code) if col_labels and 'score' in col_labels else l10n.matrix_col_raw_score)) }}</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -530,7 +530,7 @@
                                     {% endif %}
                                 </td>
                                 {% endif %}
-                                {% if 'score' in visible_cols %}
+                                {% if 'raw_score' in visible_cols or 'score' in visible_cols %}
                                 <td style="padding: 10px; vertical-align: top; white-space: nowrap;">
                                     {% if axis.score_display_label and axis.score_display_label != '-' %}
                                         <div style="background-color: #e3f2fd; border: 1px solid #bbdefb; color: #1565c0; font-weight: bold; padding: 4px 8px; border-radius: 4px; display: inline-block; font-size: 11px;">

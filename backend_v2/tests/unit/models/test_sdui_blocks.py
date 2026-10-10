@@ -58,12 +58,12 @@ def test_sdui_matrix_table_roundtrip():
     """Positive serialization roundtrip test for SduiMatrixTableBlock."""
     data = {
         "block_type": "matrix_summary",
-        "matrix_column_labels": {"score": {"translations": {"en": "Score"}}},
-        "matrix_visible_columns": ["score"],
+        "matrix_column_labels": {"raw_score": {"translations": {"en": "Raw Score"}}},
+        "matrix_visible_columns": ["raw_score"],
     }
     block = SduiMatrixTableBlock.model_validate(data)
     assert block.block_type == "matrix_summary"
-    assert block.matrix_visible_columns == ["score"]
+    assert block.matrix_visible_columns == ["raw_score"]
 
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)

@@ -5219,16 +5219,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noTableRowsAvailable => 'No table rows available.';
 
   @override
-  String get tableColumnCriteriaMetric => 'Criterion / Metric';
+  String get tableColumnCriteriaMetric => 'Criteria';
 
   @override
   String get tableColumnScore => 'Score';
 
   @override
-  String get tableColumnMaxScore => 'Maximum';
-
-  @override
-  String get tableColumnReasoningQuote => 'Reasoning & Quote';
+  String get tableColumnReasoningQuote => 'Explanation';
 
   @override
   String get forceResynthesisLabel => 'Regenerate AI text';

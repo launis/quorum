@@ -296,7 +296,7 @@ async def test_pdf_generator_filters_and_matrix_summary() -> None:
         score_display_label="85%",
     )
     block = SduiMatrixTableBlock(
-        matrix_visible_columns=["label", "distribution", "row_explanation", "quotes", "normalized_score", "score"],
+        matrix_visible_columns=["label", "distribution", "row_explanation", "normalized_score", "raw_score"],
         axes=[axis],
     )
     meta_block = SduiMetadataBlock(

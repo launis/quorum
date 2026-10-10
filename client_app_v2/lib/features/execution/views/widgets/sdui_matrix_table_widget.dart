@@ -293,6 +293,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     isNormalized: true,
                   );
                   break;
+                case 'raw_score':
                 case 'score':
                   cellContent = _MatrixSummaryScoreCell(
                     scoreLabel: axis.scoreDisplayLabel,
@@ -322,6 +323,8 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           ? 260
                           : colKey == 'source'
                           ? 220
+                          : colKey == 'raw_score' || colKey == 'score'
+                          ? 120
                           : null,
                       child: cellContent,
                     ),

@@ -614,12 +614,19 @@ class MatrixDomainParser:
             elif evidence_type == "NO_EVIDENCE":
                 validated_evidence_type = "NO_EVIDENCE"
 
+            raw_score_float: float | None = None
+            if raw_score is not None:
+                raw_score_float = float(raw_score)
+
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
                 label_i18n=pb_meta.label,
                 description=axis_description,
                 score=score_float,
+                raw_score=raw_score_float,
+                raw_scale_min=math_min,
+                raw_scale_max=math_max,
                 score_display_label=score_display_label,
                 scale_min=display_scale_min,
                 scale_max=display_scale_max,

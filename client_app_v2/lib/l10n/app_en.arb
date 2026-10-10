@@ -2566,10 +2566,9 @@
   "retryReportGenerationLabel": "Retry",
   "noProfilesForWorkflow": "No matching output profiles found for this workflow.",
   "noTableRowsAvailable": "No table rows available.",
-  "tableColumnCriteriaMetric": "Criterion / Metric",
+  "tableColumnCriteriaMetric": "Criteria",
   "tableColumnScore": "Score",
-  "tableColumnMaxScore": "Maximum",
-  "tableColumnReasoningQuote": "Reasoning & Quote",
+  "tableColumnReasoningQuote": "Explanation",
   "forceResynthesisLabel": "Regenerate AI text",
   "forceResynthesisSubtitle": "Re-runs AI synthesis with updated profile tone and citation directives"
 }

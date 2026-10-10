@@ -64,10 +64,7 @@ class MatrixSummaryTableAdapter:
 
         axes = list(context.parsed_matrices.values())
 
-        raw_columns = STANDARD_COLUMNS
-        if context.profile.matrix_visible_columns:
-            raw_columns = context.profile.matrix_visible_columns
-        visible_columns = [col for col in raw_columns if col in STANDARD_COLUMNS]
+        visible_columns = context.profile.matrix_visible_columns or STANDARD_COLUMNS
 
         col_labels: dict[str, I18nText] = {}
         for col in visible_columns:

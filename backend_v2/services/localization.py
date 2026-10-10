@@ -409,6 +409,18 @@ class ReportHeaderResolver:
         return LocalizationService.translate(col.l10n_key, locale)
 
     @classmethod
+    def resolve_matrix_headers(cls, locale: str = "en") -> dict[ReportMatrixColumn, str]:
+        """Resolves all ReportMatrixColumn headers for the given locale.
+
+        Args:
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Dictionary mapping each ReportMatrixColumn to its translated header string.
+        """
+        return cls.get_all_matrix_headers(locale)
+
+    @classmethod
     def get_all_matrix_headers(cls, locale: str = "en") -> dict[ReportMatrixColumn, str]:
         """Resolves all ReportMatrixColumn headers for the given locale.
 
@@ -431,6 +443,36 @@ class ReportHeaderResolver:
             Ordered list of translated column header strings matching ReportAtomColumn.
         """
         return [cls.get_atom_column_header(col, locale) for col in ReportAtomColumn]
+
+    @classmethod
+    def get_all_denormalized_csv_headers(cls, locale: str = "en") -> list[str]:
+        """Resolves all 17 denormalized CSV headers for the given locale in canonical order.
+
+        Args:
+            locale: Language locale code (e.g. 'fi' or 'en').
+
+        Returns:
+            Ordered list of 17 translated column header strings.
+        """
+        return [
+            LocalizationService.translate("export_col_execution_id", locale),
+            LocalizationService.translate("matrix_col_label", locale),
+            LocalizationService.translate("matrix_col_context_target", locale),
+            LocalizationService.translate("matrix_col_distribution", locale),
+            LocalizationService.translate("matrix_col_hits", locale),
+            LocalizationService.translate("matrix_col_total_atoms", locale),
+            LocalizationService.translate("matrix_col_hit_ratio", locale),
+            LocalizationService.translate("matrix_col_raw_score", locale),
+            LocalizationService.translate("matrix_col_scale_max", locale),
+            LocalizationService.translate("matrix_col_normalized_score", locale),
+            LocalizationService.translate("export_col_level", locale),
+            LocalizationService.translate("export_col_level_name", locale),
+            LocalizationService.translate("export_col_criterion", locale),
+            LocalizationService.translate("export_col_claim_type", locale),
+            LocalizationService.translate("export_col_result_status", locale),
+            LocalizationService.translate("export_col_quotes", locale),
+            LocalizationService.translate("export_col_ai_reasoning", locale),
+        ]
 
     @classmethod
     def get_sheet_name(cls, sheet: ReportSheetKey, locale: str = "en") -> str:

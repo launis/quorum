@@ -27,6 +27,7 @@ from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus, ReportStatus
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.export_evidence_formatter import format_ai_reasoning
 from backend_v2.services.export_service import ExportService
 from backend_v2.services.file_driver import FileDriver
 from backend_v2.services.localization import set_language
@@ -616,6 +617,7 @@ class ReportService:
             score = 0.0
             if atom.status == ExecutionStatus.PASSED:
                 score = 1.0
+            reasoning_val = format_ai_reasoning(atom.evaluation_reasoning)
             rows.append(
                 ReportRowItemDTO(
                     execution_id=report.execution_id,
@@ -625,7 +627,7 @@ class ReportService:
                     score=score,
                     max_scale=1.0,
                     weight=1.0,
-                    reasoning=atom.evaluation_reasoning,
+                    reasoning=reasoning_val,
                     quote=atom.source_quote,
                 )
             )

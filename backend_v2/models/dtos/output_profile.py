@@ -6,7 +6,7 @@ These models handle the ingestion and output formats for the Output Profile REST
 import logging
 from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
@@ -19,6 +19,7 @@ from backend_v2.models.enums import (
     LaxSystemLocale,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    ReportMatrixColumn,
     SourcesDisplayMode,
     TargetBlockType,
 )
@@ -122,9 +123,8 @@ class OutputProfileCreateDTO(V2CoreBase):
                 "label",
                 "distribution",
                 "row_explanation",
-                "quotes",
                 "normalized_score",
-                "score",
+                "raw_score",
             ],
             description="List of column keys visible in the matrix summary table.",
         ),
@@ -258,6 +258,14 @@ class OutputProfileCreateDTO(V2CoreBase):
                 logger.error("[DTO] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         return self
+
+    @field_validator("matrix_visible_columns")
+    @classmethod
+    def validate_matrix_visible_columns(cls, v: list[str]) -> list[str]:
+        """Enforces that all visible columns match valid ReportMatrixColumn members Fail-Fast."""
+        for col in v:
+            ReportMatrixColumn(col)
+        return v
 
 
 class OutputProfileUpdateDTO(V2CoreBase):
@@ -474,6 +482,15 @@ class OutputProfileUpdateDTO(V2CoreBase):
                     raise ValueError(msg)
         return self
 
+    @field_validator("matrix_visible_columns")
+    @classmethod
+    def validate_matrix_visible_columns(cls, v: list[str] | None) -> list[str] | None:
+        """Enforces that all visible columns match valid ReportMatrixColumn members Fail-Fast."""
+        if v is not None:
+            for col in v:
+                ReportMatrixColumn(col)
+        return v
+
 
 class OutputProfileResponseDTO(BaseResponseDTO):
     """DTO for returning an Output Profile.
@@ -561,9 +578,8 @@ class OutputProfileResponseDTO(BaseResponseDTO):
                 "label",
                 "distribution",
                 "row_explanation",
-                "quotes",
                 "normalized_score",
-                "score",
+                "raw_score",
             ]
         ),
     ]
@@ -619,3 +635,11 @@ class OutputProfileResponseDTO(BaseResponseDTO):
             description="PromptBlock ID providing evaluated score for user role classification.",
         ),
     ] = None
+
+    @field_validator("matrix_visible_columns")
+    @classmethod
+    def validate_matrix_visible_columns(cls, v: list[str]) -> list[str]:
+        """Enforces that all visible columns match valid ReportMatrixColumn members Fail-Fast."""
+        for col in v:
+            ReportMatrixColumn(col)
+        return v

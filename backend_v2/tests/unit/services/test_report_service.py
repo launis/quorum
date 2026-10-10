@@ -338,6 +338,8 @@ async def test_get_report_rows() -> None:
     assert rows[0].metric_key == "blk_0123456789abcdef"
     assert rows[0].metric_label == "Strategic Claim"
     assert rows[0].score == 1.0
+    assert rows[0].max_scale == 1.0
+    assert rows[0].reasoning == "Sound reasoning."
 
 
 @pytest.mark.asyncio

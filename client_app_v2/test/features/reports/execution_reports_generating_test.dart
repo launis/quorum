@@ -334,6 +334,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(DataTable), findsOneWidget);
+      expect(find.text('Kriteeri'), findsOneWidget);
+      expect(find.text('Pisteet'), findsOneWidget);
+      expect(find.text('Selitys'), findsOneWidget);
+      expect(find.text('Maksimi'), findsNothing);
+
       final horizontalScroll = find.ancestor(
         of: find.byType(DataTable),
         matching: find.byWidgetPredicate(

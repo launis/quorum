@@ -194,6 +194,9 @@ class MatrixScorecardRowDTO(V2CoreBase):
         label_i18n: Full I18n translations dictionary for the UI.
         description: Detailed instructions or prompt context behind this axis.
         score: Raw scaled score.
+        raw_score: Unscaled matrix raw score.
+        raw_scale_min: Unscaled matrix raw scale minimum.
+        raw_scale_max: Unscaled matrix raw scale maximum.
         score_display_label: Human-readable score display label.
         scale_min: Minimum possible score.
         scale_max: Maximum possible score.
@@ -239,6 +242,9 @@ class MatrixScorecardRowDTO(V2CoreBase):
     ]
 
     score: Annotated[float | None, Field(default=None, description="Raw scaled score.")]
+    raw_score: Annotated[float | None, Field(default=None, description="Unscaled matrix raw score.")]
+    raw_scale_min: Annotated[float | None, Field(default=None, description="Unscaled matrix raw scale minimum.")]
+    raw_scale_max: Annotated[float | None, Field(default=None, description="Unscaled matrix raw scale maximum.")]
     score_display_label: Annotated[str | None, Field(default=None, description="Human-readable score display label.")]
     scale_min: Annotated[float | None, Field(default=None, description="Minimum possible score.")]
     scale_max: Annotated[float | None, Field(default=None, description="Maximum possible score.")]

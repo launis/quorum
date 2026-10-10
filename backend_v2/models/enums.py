@@ -903,15 +903,19 @@ class TargetSpeaker(StrEnum):
 class ReportMatrixColumn(StrEnum):
     """Columns for standard matrix summary table projections."""
 
+    EXECUTION_ID = "execution_id"
     LABEL = "label"
     CONTEXT_TARGET = "context_target"
     DISTRIBUTION = "distribution"
+    HITS = "hits"
+    TOTAL_ATOMS = "total_atoms"
+    HIT_RATIO = "hit_ratio"
+    RAW_SCORE = "raw_score"
+    SCALE_MAX = "scale_max"
+    NORMALIZED_SCORE = "normalized_score"
     ROW_EXPLANATION = "row_explanation"
     CRITERIA = "criteria"
-    QUOTES = "quotes"
     SOURCE = "source"
-    NORMALIZED_SCORE = "normalized_score"
-    SCORE = "score"
 
     @property
     def l10n_key(self) -> str:

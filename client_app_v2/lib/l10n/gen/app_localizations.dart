@@ -9417,7 +9417,7 @@ abstract class AppLocalizations {
   /// No description provided for @tableColumnCriteriaMetric.
   ///
   /// In en, this message translates to:
-  /// **'Criterion / Metric'**
+  /// **'Criteria'**
   String get tableColumnCriteriaMetric;
 
   /// No description provided for @tableColumnScore.
@@ -9426,16 +9426,10 @@ abstract class AppLocalizations {
   /// **'Score'**
   String get tableColumnScore;
 
-  /// No description provided for @tableColumnMaxScore.
-  ///
-  /// In en, this message translates to:
-  /// **'Maximum'**
-  String get tableColumnMaxScore;
-
   /// No description provided for @tableColumnReasoningQuote.
   ///
   /// In en, this message translates to:
-  /// **'Reasoning & Quote'**
+  /// **'Explanation'**
   String get tableColumnReasoningQuote;
 
   /// No description provided for @forceResynthesisLabel.

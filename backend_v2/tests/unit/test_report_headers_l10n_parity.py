@@ -153,8 +153,8 @@ def test_cross_surface_header_parity() -> None:
         matrix_headers = ReportHeaderResolver.get_all_matrix_headers(locale=locale)
         atom_headers = ReportHeaderResolver.get_all_atom_headers(locale=locale)
 
-        assert len(matrix_headers) == 9
-        assert len(atom_headers) == 9
+        assert len(matrix_headers) == len(ReportMatrixColumn) == 13
+        assert len(atom_headers) == len(ReportAtomColumn) == 9
 
         for col in ReportMatrixColumn:
             assert matrix_headers[col] == ReportHeaderResolver.get_matrix_column_header(col, locale=locale)
@@ -207,15 +207,19 @@ def test_pydantic_strict_extra_forbid_gate() -> None:
     with pytest.raises(ValidationError):
         ExportMatrixSummaryRowDTO.model_validate(
             {
+                "execution_id": "exe_123",
                 "label": "L",
                 "context_target": "C",
                 "distribution": "D",
+                "hits": 1,
+                "total_atoms": 1,
+                "hit_ratio": 1.0,
+                "raw_score": 1.0,
+                "scale_max": 5.0,
+                "normalized_score": 20.0,
                 "row_explanation": "E",
                 "criteria": "1/1",
-                "quotes": "Q",
                 "source": "S",
-                "normalized_score": 1.0,
-                "score": 1.0,
                 "phantom_column": "forbidden",
             }
         )
@@ -348,12 +352,12 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     sheet1 = wb[LocalizationService.translate("export_sheet_summary", "fi")]
     sheet1_rows = list(sheet1.iter_rows(values_only=True))
     assert len(sheet1_rows) == len(matrices) + 1  # 1 header row + N data rows
-    assert len(sheet1_rows[0]) == 9  # exactly 9 columns
+    assert len(sheet1_rows[0]) == len(ReportMatrixColumn) == 13
 
     sheet2 = wb[LocalizationService.translate("export_sheet_raw_data", "fi")]
     sheet2_rows = list(sheet2.iter_rows(values_only=True))
     assert len(sheet2_rows) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(sheet2_rows[0]) == 9  # exactly 9 columns
+    assert len(sheet2_rows[0]) == len(ReportAtomColumn) == 9
 
     # Verify binary integer status on Tab 2
     status_col_idx = 6  # ReportAtomColumn.RESULT_STATUS index
@@ -372,8 +376,27 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     reader = list(csv.reader(io.StringIO(csv_text)))
 
     assert len(reader) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(reader[0]) == 9  # exactly 9 columns
+    assert len(reader[0]) == 17
 
     # Verify binary integer status on CSV
+    csv_status_col_idx = 14
     for row in reader[1:]:
-        assert row[status_col_idx] in ("0", "1"), f"CSV status {row[status_col_idx]} is not strictly 0 or 1"
+        assert row[csv_status_col_idx] in ("0", "1"), f"CSV status {row[csv_status_col_idx]} is not strictly 0 or 1"
+
+
+def test_tabular_rows_tab_arb_and_backend_parity() -> None:
+    """Assert 1:1 cross-platform parity between Flutter UI table column keys and Backend SSOT keys."""
+    tabular_mappings: list[tuple[str, str]] = [
+        ("tableColumnCriteriaMetric", "matrix_col_criteria"),
+        ("tableColumnScore", "matrix_col_score"),
+        ("tableColumnReasoningQuote", "matrix_col_row_explanation"),
+    ]
+    for locale in ["fi", "en"]:
+        json_l10n = _load_json_l10n(locale)
+        arb_l10n = _load_flutter_arb(locale)
+        for arb_key, json_key in tabular_mappings:
+            assert arb_key in arb_l10n, f"Missing ARB key {arb_key} in app_{locale}.arb"
+            assert json_key in json_l10n, f"Missing JSON key {json_key} in {locale}.json"
+            assert arb_l10n[arb_key] == json_l10n[json_key], (
+                f"Mismatch for {arb_key} vs {json_key} in {locale}: '{arb_l10n[arb_key]}' != '{json_l10n[json_key]}'"
+            )

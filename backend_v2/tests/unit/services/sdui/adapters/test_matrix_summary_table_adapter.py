@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
@@ -49,10 +52,9 @@ def test_matrix_summary_table_adapter_success() -> None:
             "distribution",
             "row_explanation",
             "criteria",
-            "quotes",
             "source",
             "normalized_score",
-            "score",
+            "raw_score",
         ],
     )
     context = AdapterContext(
@@ -98,9 +100,6 @@ def test_matrix_summary_table_adapter_success() -> None:
     assert "criteria" in blocks[0].matrix_column_labels
     assert blocks[0].matrix_column_labels["criteria"].resolve("en") == "Criteria"
     assert blocks[0].matrix_column_labels["criteria"].resolve("fi") == "Kriteeri"
-    assert "quotes" in blocks[0].matrix_column_labels
-    assert blocks[0].matrix_column_labels["quotes"].resolve("en") == "Text Observation"
-    assert blocks[0].matrix_column_labels["quotes"].resolve("fi") == "Tekstin havainto"
     assert "source" in blocks[0].matrix_column_labels
     assert blocks[0].matrix_column_labels["source"].resolve("en") == "Source Citation"
     assert blocks[0].matrix_column_labels["source"].resolve("fi") == "Lähdeviite"
@@ -147,7 +146,26 @@ def test_matrix_summary_table_adapter_starved() -> None:
     assert blocks == []
 
 
-def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
+def test_output_profile_rejects_unsupported_matrix_columns_fail_fast() -> None:
+    with pytest.raises(ValidationError) as exc_info:
+        OutputProfile(
+            id="prf_1234567890abcdef",
+            slug="test",
+            workflow_id="wf_123",
+            name=I18nText(translations={"en": "test"}),
+            target_block_order=[],
+            matrix_visible_columns=[
+                "label",
+                "remediation_steps",
+                "coaching",
+                "falsification",
+                "raw_score",
+            ],
+        )
+    assert "is not a valid ReportMatrixColumn" in str(exc_info.value)
+
+
+def test_matrix_summary_table_adapter_straightforward_visible_columns() -> None:
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",
@@ -156,10 +174,7 @@ def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
         target_block_order=[],
         matrix_visible_columns=[
             "label",
-            "remediation_steps",
-            "coaching",
-            "falsification",
-            "score",
+            "raw_score",
         ],
     )
     context = AdapterContext(
@@ -188,8 +203,8 @@ def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
     blocks = MatrixSummaryTableAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], SduiMatrixTableBlock)
-    assert blocks[0].matrix_visible_columns == ["label", "score"]
-    assert set(blocks[0].matrix_column_labels.keys()) == {"label", "score"}
+    assert blocks[0].matrix_visible_columns == ["label", "raw_score"]
+    assert set(blocks[0].matrix_column_labels.keys()) == {"label", "raw_score"}
 
 
 def test_matrix_summary_rules_and_columns() -> None:
@@ -197,5 +212,5 @@ def test_matrix_summary_rules_and_columns() -> None:
     assert isinstance(MATRIX_SUMMARY_RULES, MatrixSummaryAestheticsDTO)
     assert MATRIX_SUMMARY_RULES["matrix_summary"].min_axes == 1
     assert "label" in STANDARD_COLUMNS
-    assert "score" in STANDARD_COLUMNS
-    assert len(STANDARD_COLUMNS) == 9
+    assert "raw_score" in STANDARD_COLUMNS
+    assert len(STANDARD_COLUMNS) == 13

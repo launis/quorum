@@ -18,10 +18,9 @@ class MatrixSummaryTableCard extends StatelessWidget {
     'distribution',
     'row_explanation',
     'criteria',
-    'quotes',
     'source',
     'normalized_score',
-    'score',
+    'raw_score',
   ];
 
   static String getColumnLabel(BuildContext context, String key) {
@@ -37,13 +36,11 @@ class MatrixSummaryTableCard extends StatelessWidget {
         return l10n.studioMatrixColRowExplanation;
       case 'criteria':
         return l10n.studioMatrixColCriteria;
-      case 'quotes':
-        return l10n.studioMatrixColQuotes;
       case 'source':
         return l10n.studioMatrixColSource;
       case 'normalized_score':
         return l10n.studioMatrixColNormalized;
-      case 'score':
+      case 'raw_score':
         return l10n.studioMatrixColScore;
       default:
         return key;

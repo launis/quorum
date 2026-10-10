@@ -52,7 +52,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
             )
         ],
         visible_metadata=["user", "organization", "date", "cost", "tokens"],
-        matrix_visible_columns=["label", "score", "distribution", "quotes"],
+        matrix_visible_columns=["label", "raw_score", "distribution", "row_explanation"],
     )
 
     workflow = Workflow(

@@ -153,9 +153,8 @@ _OutputProfile _$OutputProfileFromJson(
               'label',
               'distribution',
               'row_explanation',
-              'quotes',
               'normalized_score',
-              'score',
+              'raw_score',
             ],
       ),
       visibleBlockExtensions: $checkedConvert(

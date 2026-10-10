@@ -139,7 +139,7 @@ def test_output_profile_matrix_group_ids_unique() -> None:
 def test_output_profile_synthesis_properties() -> None:
     profile = _make_base_profile(
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value],
-        matrix_visible_columns=["label", "score"],
+        matrix_visible_columns=["label", "raw_score"],
     )
     assert profile.requires_executive_synthesis is True
     assert profile.requires_row_explanations is False

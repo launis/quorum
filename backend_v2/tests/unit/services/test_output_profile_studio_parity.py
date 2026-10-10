@@ -71,11 +71,11 @@ def test_output_profile_dto_put_save_with_id() -> None:
         "slug": "exec_summary",
         "workflow_id": "wf_1234567890abcdef",
         "name": {"translations": {"en": "Executive Summary"}},
-        "matrix_visible_columns": ["label", "distribution", "score"],
+        "matrix_visible_columns": ["label", "distribution", "raw_score"],
     }
     update_dto = OutputProfileUpdateDTO.model_validate(update_data)
     assert update_dto.id == "prf_1234567890abcdef"
-    assert update_dto.matrix_visible_columns == ["label", "distribution", "score"]
+    assert update_dto.matrix_visible_columns == ["label", "distribution", "raw_score"]
 
     # Create DTO forbids id (per AST guardrail QGR011)
     from pydantic import ValidationError
@@ -262,7 +262,7 @@ def test_matrix_summary_table_adapter_respects_visible_columns() -> None:
             row_explanation="expl 1",
         )
     }
-    custom_cols = ["label", "score"]
+    custom_cols = ["label", "raw_score"]
     profile = OutputProfile(
         id="prf_5555555555555555",
         slug="test_cols",
