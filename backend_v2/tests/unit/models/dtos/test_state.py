@@ -20,3 +20,18 @@ def test_i18n_state_payload_strictness() -> None:
 
     with pytest.raises(ValidationError):
         I18nStatePayload.model_validate({"language": "fi", "extra_field": "fail"})
+
+
+def test_translation_response_dto_typing() -> None:
+    from backend_v2.models.dtos.state import TranslationResponseDTO
+
+    dto = TranslationResponseDTO(translated_data={"key1": "value1", "key2": "value2"})
+    assert dto.translated_data["key1"] == "value1"
+
+    # Negative boundary: non-string value triggers ValidationError
+    with pytest.raises(ValidationError):
+        TranslationResponseDTO.model_validate({"translated_data": {"key": 12345}})
+
+    with pytest.raises(ValidationError):
+        TranslationResponseDTO.model_validate({"translated_data": {"key": ["nested", "list"]}})
+

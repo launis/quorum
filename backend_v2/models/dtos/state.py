@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -52,6 +52,6 @@ class TranslationResponseDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     translated_data: Annotated[
-        dict[str, JsonValue],
+        dict[str, str],
         Field(description="Fully translated dictionary representing localized dynamic key-value pairs."),
     ]

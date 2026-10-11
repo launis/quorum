@@ -248,3 +248,45 @@ def test_distilled_matrix_payload_dto_valid_and_boundaries() -> None:
     # Negative boundary: extra fields forbidden
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         DistilledMatrixPayloadDTO.model_validate({"results": [{"atom_id": "atm_1"}], "unauthorized_extra": "forbidden"})
+
+
+def test_synthesis_metadata_dto_typed_execution_summary_and_step_metrics() -> None:
+    from backend_v2.models.domain.execution import ExecutionSummarySnapshot
+    from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
+
+    summary = ExecutionSummarySnapshot(strictness_level=80, is_ensemble_run=False, is_degraded=False)
+    metrics = {
+        "stp_1234567890abcdef": StepTelemetryEntryDTO(
+            model_strategy="fast",
+            prompt_tokens=100,
+            completion_tokens=20,
+            cost_usd=0.001,
+        )
+    }
+    model = SynthesisMetadataDTO(
+        target_locale="en",
+        execution_summary=summary,
+        step_metrics=metrics,
+    )
+    assert model.execution_summary is not None
+    assert model.execution_summary.strictness_level == 80
+    assert model.step_metrics is not None
+    assert model.step_metrics["stp_1234567890abcdef"].cost_usd == 0.001
+
+    # Negative boundary: untyped invalid payload raises ValidationError
+    with pytest.raises(ValidationError):
+        SynthesisMetadataDTO.model_validate(
+            {
+                "target_locale": "en",
+                "execution_summary": "invalid_string_instead_of_snapshot",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        SynthesisMetadataDTO.model_validate(
+            {
+                "target_locale": "en",
+                "step_metrics": {"stp_1": "invalid_entry_not_dto"},
+            }
+        )
+

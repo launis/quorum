@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from backend_v2.models.dtos.base import DataStarvationEvent
     from backend_v2.models.view.sdui import AnySduiBlock
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
@@ -218,7 +218,9 @@ class RenderedSynthesisCache(V2CoreBase):
 
 
 # Import StepExecutionEnvelope and StepOutputDTO after RenderedSynthesisCache to break circular dependency with state.py
+from backend_v2.models.domain.execution import ExecutionSummarySnapshot
 from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
 from backend_v2.models.state import StepExecutionEnvelope
 
 
@@ -256,10 +258,12 @@ class SynthesisMetadataDTO(V2CoreBase):
     global_context_vars: Annotated[
         GlobalContextVarsDTO | None, Field(default=None, description="Global context variables")
     ] = None
-    execution_summary: Annotated[dict[str, JsonValue] | None, Field(default=None, description="Execution summary")] = (
-        None
-    )
-    step_metrics: Annotated[dict[str, JsonValue] | None, Field(default=None, description="Step metrics")] = None
+    execution_summary: Annotated[
+        ExecutionSummarySnapshot | None, Field(default=None, description="Execution summary")
+    ] = None
+    step_metrics: Annotated[
+        dict[str, StepTelemetryEntryDTO] | None, Field(default=None, description="Step metrics")
+    ] = None
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
