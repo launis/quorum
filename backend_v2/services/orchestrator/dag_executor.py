@@ -676,9 +676,6 @@ class DAGExecutor:
                     message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400
                 ) from e
 
-        steps_by_id = {step.id: step for step in workflow.steps}
-        step_events: dict[str, asyncio.Event] = {step.id: asyncio.Event() for step in workflow.steps}
-
         try:
             import litellm.exceptions as _litellm_exc
 
@@ -712,18 +709,14 @@ class DAGExecutor:
 
         failed_previous_steps = []
         for step_id, s_state in exec_record.step_states.items():
-            if s_state.status == ExecutionStatus.PASSED:
-                step_events[step_id].set()
-            elif s_state.status == ExecutionStatus.FAILED:
+            if s_state.status == ExecutionStatus.FAILED:
                 failed_previous_steps.append(step_id)
-                new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.PENDING})
-                new_states = {**exec_record.step_states, step_id: new_state}
-                new_steps = [
-                    s.model_copy(update={"status": ExecutionStatus.PENDING}) if s.id == step_id else s
-                    for s in exec_record.steps
-                ]
-                exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
+                exec_record = exec_record.transition_step(
+                    step_id=step_id,
+                    status=ExecutionStatus.PENDING,
+                )
 
+        steps_by_id = {step.id: step for step in workflow.steps}
         _update_lock = asyncio.Lock()
         _commit_lock = asyncio.Lock()
 
@@ -758,21 +751,17 @@ class DAGExecutor:
 
             try:
                 for dep in step_obj.depends_on:
-                    await step_events[dep].wait()
-                    if exec_record.step_states[dep].status == ExecutionStatus.FAILED:
+                    if dep in exec_record.step_states and exec_record.step_states[dep].status != ExecutionStatus.PASSED:
                         async with _update_lock:
-                            new_state = exec_record.step_states[step_id].model_copy(
-                                update={"status": ExecutionStatus.FAILED}
+                            exec_record = exec_record.transition_step(
+                                step_id=step_id,
+                                status=ExecutionStatus.BLOCKED,
+                                last_error=f"Dependency {dep} did not pass",
+                                has_warning=True,
                             )
-                            new_states = {**exec_record.step_states, step_id: new_state}
-                            new_steps = [
-                                s.model_copy(update={"status": ExecutionStatus.FAILED}) if s.id == step_id else s
-                                for s in exec_record.steps
-                            ]
-                            exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                         await _safe_commit()
                         logger.warning(
-                            "[DAGExecutor] Cascading failure: Step %s failed because dependency %s failed.",
+                            "[DAGExecutor] Cascading failure: Step %s blocked because dependency %s did not pass.",
                             step_id,
                             dep,
                         )
@@ -810,13 +799,10 @@ class DAGExecutor:
                         ) from e
 
                 async with _update_lock:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.RUNNING})
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    new_steps = [
-                        s.model_copy(update={"status": ExecutionStatus.RUNNING}) if s.id == step_id else s
-                        for s in exec_record.steps
-                    ]
-                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
+                    exec_record = exec_record.transition_step(
+                        step_id=step_id,
+                        status=ExecutionStatus.RUNNING,
+                    )
 
                 await _safe_commit()
 
@@ -833,18 +819,14 @@ class DAGExecutor:
                         label = f"Evaluating batch {completed}/{total}..."
 
                     async with _update_lock:
-                        new_state = exec_record.step_states[step_id].model_copy(
-                            update={"label": label, "progress": prog}
+                        exec_record = exec_record.transition_step(
+                            step_id=step_id,
+                            status=exec_record.step_states[step_id].status,
+                            progress=prog,
+                            label=label,
                         )
-                        new_states = {**exec_record.step_states, step_id: new_state}
-                        new_steps = [
-                            s.model_copy(update={"label": label, "progress": prog}) if s.id == step_id else s
-                            for s in exec_record.steps
-                        ]
                         exec_record = exec_record.model_copy(
                             update={
-                                "step_states": new_states,
-                                "steps": new_steps,
                                 "progress": prog,
                                 "status_message": label,
                             }
@@ -947,16 +929,13 @@ class DAGExecutor:
 
                     step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
                     step_prog = 100 if step_status == ExecutionStatus.PASSED else None
-                    new_state = exec_record.step_states[step_id].model_copy(
-                        update={"status": step_status, "progress": step_prog}
+                    if updates:
+                        exec_record = exec_record.model_copy(update=updates)
+                    exec_record = exec_record.transition_step(
+                        step_id=step_id,
+                        status=step_status,
+                        progress=step_prog,
                     )
-                    updates["step_states"] = {**exec_record.step_states, step_id: new_state}
-                    updates["steps"] = [
-                        s.model_copy(update={"status": step_status, "progress": step_prog}) if s.id == step_id else s
-                        for s in exec_record.steps
-                    ]
-
-                    exec_record = exec_record.model_copy(update=updates)
 
                 if has_error_evt:
                     err_msg = [evt.error_message for evt in events if isinstance(evt, ErrorTraceEvent)][0]
@@ -989,28 +968,12 @@ class DAGExecutor:
                             err_code = code_val
 
                 async with _update_lock:
-                    new_state = exec_record.step_states[step_id].model_copy(
-                        update={
-                            "status": ExecutionStatus.FAILED,
-                            "last_error": str(e),
-                            "progress": None,
-                            "has_warning": True,
-                        }
+                    exec_record = exec_record.transition_step(
+                        step_id=step_id,
+                        status=ExecutionStatus.FAILED,
+                        last_error=str(e),
+                        has_warning=True,
                     )
-                    new_states = {**exec_record.step_states, step_id: new_state}
-                    new_steps = [
-                        s.model_copy(
-                            update={
-                                "status": ExecutionStatus.FAILED,
-                                "last_error": str(e),
-                                "progress": None,
-                                "has_warning": True,
-                            }
-                        )
-                        if s.id == step_id
-                        else s
-                        for s in exec_record.steps
-                    ]
                     error_evt = ErrorTraceEvent(
                         step_name=step_id,
                         error_code=err_code,
@@ -1019,18 +982,24 @@ class DAGExecutor:
                     )
                     exec_record.execution_trace.append(error_evt)
                     projector.apply_delta(error_evt)
-                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                 self._dlq_record_step_failure(step_id, err_code, e)
+                raise
             except Exception as e:
                 node_span.record_exception(e)
                 node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
+                async with _update_lock:
+                    exec_record = exec_record.transition_step(
+                        step_id=step_id,
+                        status=ExecutionStatus.FAILED,
+                        last_error=str(e),
+                        has_warning=True,
+                    )
+                await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
+                self._dlq_record_step_failure(step_id, "UNEXPECTED_STEP_EXCEPTION", e)
                 raise
             finally:
-                try:
-                    step_events[step_id].set()
-                finally:
-                    node_stack.close()
+                node_stack.close()
 
         tracer = get_tracer(__name__)
         orch_stack = contextlib.ExitStack()
@@ -1054,16 +1023,13 @@ class DAGExecutor:
                 virtual_step_id = f"sys_rag_{uuid.uuid4().hex[:16]}"
 
                 async with _update_lock:
-                    new_state = ExecutionStepState(
-                        id=virtual_step_id,
-                        label="system.rag.preflight",
+                    exec_record = exec_record.transition_step(
+                        step_id=virtual_step_id,
                         status=ExecutionStatus.RUNNING,
                         progress=0,
+                        label="system.rag.preflight",
                         has_warning=False,
                     )
-                    new_states = {**exec_record.step_states, virtual_step_id: new_state}
-                    new_steps = [s for s in exec_record.steps if s.id != virtual_step_id] + [new_state]
-                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
                 await _safe_commit()
 
@@ -1077,20 +1043,14 @@ class DAGExecutor:
                     async with _update_lock:
                         exec_record.execution_trace.append(evt)
                         projector.apply_delta(evt)
-                        new_state = exec_record.step_states[virtual_step_id].model_copy(
-                            update={"progress": pct, "label": f"system.rag.preflight: {message}"}
+                        exec_record = exec_record.transition_step(
+                            step_id=virtual_step_id,
+                            status=ExecutionStatus.RUNNING,
+                            progress=pct,
+                            label=f"system.rag.preflight: {message}",
                         )
-                        new_states = {**exec_record.step_states, virtual_step_id: new_state}
-                        new_steps = [
-                            s.model_copy(update={"progress": pct, "label": f"system.rag.preflight: {message}"})
-                            if s.id == virtual_step_id
-                            else s
-                            for s in exec_record.steps
-                        ]
                         exec_record = exec_record.model_copy(
                             update={
-                                "step_states": new_states,
-                                "steps": new_steps,
                                 "progress": pct,
                                 "status_message": f"Preflight: {message}",
                             }
@@ -1109,62 +1069,109 @@ class DAGExecutor:
                     )
 
                     async with _update_lock:
-                        pass_state = exec_record.step_states[virtual_step_id].model_copy(
-                            update={"status": ExecutionStatus.PASSED, "progress": 100}
+                        exec_record = exec_record.transition_step(
+                            step_id=virtual_step_id,
+                            status=ExecutionStatus.PASSED,
+                            progress=100,
                         )
-                        new_states = {**exec_record.step_states, virtual_step_id: pass_state}
-                        new_steps = [
-                            s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
-                            if s.id == virtual_step_id
-                            else s
-                            for s in exec_record.steps
-                        ]
                         new_cv = exec_record.context_variables.with_update(
                             __GLOBAL_ATOM_BLACKBOARD__=blackboard_payload
                         )
                         exec_record = exec_record.model_copy(
                             update={
-                                "step_states": new_states,
-                                "steps": new_steps,
                                 "context_variables": new_cv,
                             }
                         )
                     await _safe_commit()
                 except Exception as e:
                     async with _update_lock:
-                        fail_state = exec_record.step_states[virtual_step_id].model_copy(
-                            update={
-                                "status": ExecutionStatus.FAILED,
-                                "last_error": str(e),
-                                "progress": None,
-                                "has_warning": True,
-                            }
+                        exec_record = exec_record.transition_step(
+                            step_id=virtual_step_id,
+                            status=ExecutionStatus.FAILED,
+                            last_error=str(e),
+                            has_warning=True,
                         )
-                        new_states = {**exec_record.step_states, virtual_step_id: fail_state}
-                        new_steps = [
-                            s.model_copy(
-                                update={
-                                    "status": ExecutionStatus.FAILED,
-                                    "last_error": str(e),
-                                    "progress": None,
-                                    "has_warning": True,
-                                }
-                            )
-                            if s.id == virtual_step_id
-                            else s
-                            for s in exec_record.steps
-                        ]
-                        exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                     await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                     raise WorkflowExecutionError(
                         step_id=virtual_step_id, task_key="system.rag.preflight", original_error=e
                     ) from e
 
-            async with asyncio.TaskGroup() as tg:
-                for step in workflow.steps:
-                    tg.create_task(run_step_wrapper(step.id))
+            waves = DAGCompilerService.compute_topological_waves(workflow.steps)
+            for wave_idx, wave in enumerate(waves):
+                steps_to_run = [s for s in wave if exec_record.step_states[s.id].status != ExecutionStatus.PASSED]
+                if not steps_to_run:
+                    continue
 
-            if any(state.status == ExecutionStatus.FAILED for state in exec_record.step_states.values()):
+                try:
+                    async with asyncio.TaskGroup() as tg:
+                        for step_rule in steps_to_run:
+                            tg.create_task(run_step_wrapper(step_rule.id))
+                except* BaseException as eg:
+                    primary_err = eg.exceptions[0]
+                    logger.error("[DAGExecutor] Wave %d execution failed: %s", wave_idx, eg, exc_info=True)
+
+                    async with _update_lock:
+                        for step_rule in wave:
+                            curr_st = exec_record.step_states[step_rule.id]
+                            if curr_st.status in (ExecutionStatus.RUNNING, ExecutionStatus.PENDING):
+                                exec_record = exec_record.transition_step(
+                                    step_id=step_rule.id,
+                                    status=ExecutionStatus.FAILED,
+                                    last_error=str(primary_err),
+                                    has_warning=True,
+                                )
+                                self._dlq_record_step_failure(step_rule.id, "WAVE_TASKGROUP_CANCELLED", primary_err)
+
+                        for remaining_wave in waves[wave_idx + 1 :]:
+                            for downstream_step in remaining_wave:
+                                if exec_record.step_states[downstream_step.id].status == ExecutionStatus.PENDING:
+                                    exec_record = exec_record.transition_step(
+                                        step_id=downstream_step.id,
+                                        status=ExecutionStatus.BLOCKED,
+                                        last_error=f"Blocked due to wave {wave_idx} failure: {primary_err}",
+                                        has_warning=True,
+                                    )
+                                    self._dlq_record_step_failure(
+                                        downstream_step.id,
+                                        "DOWNSTREAM_WAVE_BLOCKED",
+                                        primary_err,
+                                    )
+
+                        exec_record = exec_record.model_copy(
+                            update={
+                                "status": ExecutionStatus.FAILED,
+                                "error": str(primary_err),
+                            }
+                        )
+
+                    await self.committer.commit_trace(
+                        trace=exec_record.execution_trace,
+                        status=exec_record.status,
+                        step_states=exec_record.step_states,
+                        error=exec_record.error,
+                        context_variables=exec_record.context_variables,
+                        steps=exec_record.steps,
+                    )
+
+                    if isinstance(primary_err, AppException):
+                        orch_span.record_exception(primary_err)
+                        orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
+                        raise primary_err from eg
+
+                    msg = f"Workflow failed: {primary_err}"
+                    logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
+                    orch_span.record_exception(primary_err)
+                    orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+                    ) from eg
+
+            if any(
+                state.status in (ExecutionStatus.FAILED, ExecutionStatus.BLOCKED)
+                for state in exec_record.step_states.values()
+            ):
                 exec_record = exec_record.model_copy(update={"status": ExecutionStatus.FAILED})
                 await self.committer.commit_trace(
                     trace=exec_record.execution_trace,
@@ -1191,103 +1198,22 @@ class DAGExecutor:
 
             return exec_record
 
-        except ExceptionGroup as eg:
-            primary_err = eg.exceptions[0]
-
-            new_states = dict(exec_record.step_states)
-            for state_id, state in new_states.items():
-                if state.status == ExecutionStatus.RUNNING:
-                    new_states[state_id] = state.model_copy(
-                        update={
-                            "status": ExecutionStatus.FAILED,
-                            "last_error": str(primary_err),
-                            "progress": None,
-                            "has_warning": True,
-                        }
-                    )
-
-            new_steps = [
-                s.model_copy(
-                    update={
-                        "status": ExecutionStatus.FAILED,
-                        "last_error": str(primary_err),
-                        "progress": None,
-                        "has_warning": True,
-                    }
-                )
-                if s.status == ExecutionStatus.RUNNING
-                else s
-                for s in exec_record.steps
-            ]
-
-            exec_record = exec_record.model_copy(
-                update={
-                    "step_states": new_states,
-                    "steps": new_steps,
-                    "status": ExecutionStatus.FAILED,
-                    "error": str(primary_err),
-                }
-            )
-
-            await self.committer.commit_trace(
-                trace=exec_record.execution_trace,
-                status=exec_record.status,
-                step_states=exec_record.step_states,
-                error=exec_record.error,
-                context_variables=exec_record.context_variables,
-                steps=exec_record.steps,
-            )
-
-            if isinstance(primary_err, AppException):
-                orch_span.record_exception(primary_err)
-                orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
-                raise primary_err from eg
-
-            msg = f"Workflow failed: {primary_err}"
-            logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
-            orch_span.record_exception(primary_err)
-            orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
-            raise AppException(
-                message=msg,
-                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
-                status_code=500,
-            ) from primary_err
-
         except Exception as unexpected_err:
-            new_states = dict(exec_record.step_states)
-            for state_id, state in new_states.items():
-                if state.status == ExecutionStatus.RUNNING:
-                    new_states[state_id] = state.model_copy(
-                        update={
-                            "status": ExecutionStatus.FAILED,
-                            "last_error": str(unexpected_err),
-                            "progress": None,
-                            "has_warning": True,
-                        }
-                    )
-
-            new_steps = [
-                s.model_copy(
+            async with _update_lock:
+                for s in exec_record.steps:
+                    if s.status == ExecutionStatus.RUNNING:
+                        exec_record = exec_record.transition_step(
+                            step_id=s.id,
+                            status=ExecutionStatus.FAILED,
+                            last_error=str(unexpected_err),
+                            has_warning=True,
+                        )
+                exec_record = exec_record.model_copy(
                     update={
                         "status": ExecutionStatus.FAILED,
-                        "last_error": str(unexpected_err),
-                        "progress": None,
-                        "has_warning": True,
+                        "error": str(unexpected_err),
                     }
                 )
-                if s.status == ExecutionStatus.RUNNING
-                else s
-                for s in exec_record.steps
-            ]
-
-            exec_record = exec_record.model_copy(
-                update={
-                    "step_states": new_states,
-                    "steps": new_steps,
-                    "status": ExecutionStatus.FAILED,
-                    "error": str(unexpected_err),
-                }
-            )
 
             await self.committer.commit_trace(
                 trace=exec_record.execution_trace,

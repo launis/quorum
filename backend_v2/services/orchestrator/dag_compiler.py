@@ -144,16 +144,15 @@ class DAGCompilerService:
                     raise WorkflowCompilationError(step_id=step.id, message=msg)
 
     @staticmethod
-    def _get_topological_order(steps: list[StepRule]) -> list[StepRule]:
-        """Returns the DAG Steps sorted topologically.
-
-        Since _ensure_acyclic guarantees no cycles, this Kahn's iteration will always cleanly drain.
+    def compute_topological_waves(steps: list[StepRule]) -> list[list[StepRule]]:
+        """Computes Kahn's topological waves for workflow steps.
 
         Args:
-            steps: The list of workflow steps to sort.
+            steps: The list of workflow steps to partition into concurrent waves.
 
         Returns:
-            The topologically sorted list of steps.
+            The ordered list of waves, where each wave is a list of steps that
+            can be safely executed concurrently.
 
         Raises:
             WorkflowCompilationError: If a declared dependency does not exist in the workflow.
@@ -169,23 +168,39 @@ class DAGCompilerService:
                     adj_list[dep_id].append(step.id)
                     in_degree[step.id] += 1
                 else:
-                    # Depends on a step that doesn't exist? That's a syntax error.
                     msg = f"Step '{step.id}' declares dependency on '{dep_id}' which does not exist in the workflow."
                     logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                     raise WorkflowCompilationError(step_id=step.id, message=msg)
 
-        # Start queue with nodes having no dependencies
-        queue = [step_id for step_id, degree in in_degree.items() if degree == 0]
-        ordered_ids = []
+        current_wave_ids = [step_id for step_id, degree in in_degree.items() if degree == 0]
+        waves: list[list[StepRule]] = []
 
-        while queue:
-            current = queue.pop(0)
-            ordered_ids.append(current)
+        while current_wave_ids:
+            waves.append([step_map[s_id] for s_id in current_wave_ids])
+            next_wave_ids: list[str] = []
+            for s_id in current_wave_ids:
+                for neighbor in adj_list[s_id]:
+                    in_degree[neighbor] -= 1
+                    if in_degree[neighbor] == 0:
+                        next_wave_ids.append(neighbor)
+            current_wave_ids = next_wave_ids
 
-            for neighbor in adj_list[current]:
-                in_degree[neighbor] -= 1
-                if in_degree[neighbor] == 0:
-                    queue.append(neighbor)
+        return waves
 
-        # Return them ordered
-        return [step_map[step_id] for step_id in ordered_ids]
+    @staticmethod
+    def _get_topological_order(steps: list[StepRule]) -> list[StepRule]:
+        """Returns the DAG Steps sorted topologically.
+
+        Since _ensure_acyclic guarantees no cycles, this Kahn's iteration will always cleanly drain.
+
+        Args:
+            steps: The list of workflow steps to sort.
+
+        Returns:
+            The topologically sorted list of steps.
+
+        Raises:
+            WorkflowCompilationError: If a declared dependency does not exist in the workflow.
+        """
+        waves = DAGCompilerService.compute_topological_waves(steps)
+        return [step for wave in waves for step in wave]

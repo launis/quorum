@@ -28,7 +28,7 @@
   - [x] Step 2: Add Invariant Validation to StepPanelDTO
   - [x] Step 3: Unify FlattenedAtom Base Hierarchy
   - [x] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
-  - [ ] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
+  - [x] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
   - [ ] Step 7: Harden TopologicalEvaluator Wave Crash Recovery
   - [ ] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
   - [ ] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
@@ -125,9 +125,9 @@
 | REQ-004 | Implement atomic `ExecutionRecord.transition_step` synchronizing `steps` list and `step_states` dict | Step 4 | [x] Completed |
 | REQ-005 | Add strongly typed fields to `GlobalContextVarsDTO` for cognitive deltas and delete `_EvaluativeMatricesWrapperDTO` | Step 5 | [x] Completed |
 | REQ-006 | Refactor `state_reducer.py` to execute pure Pydantic DTO updates (zero dict wrappers, zero `d[k]=v`) | Step 5 | [x] Completed |
-| REQ-007 | Compute Kahn's topological waves and execute steps via wave-based `asyncio.TaskGroup` in `dag_executor.py` | Step 6 | [ ] Pending |
-| REQ-008 | Wrap wave execution with PEP 758 `except*` handlers and commit unreached steps to DLQ | Step 6 | [ ] Pending |
-| REQ-009 | Delegate all 11 state mutations in `dag_executor.py` to `exec_record.transition_step(...)` with `_update_lock` | Step 6 | [ ] Pending |
+| REQ-007 | Compute Kahn's topological waves and execute steps via wave-based `asyncio.TaskGroup` in `dag_executor.py` | Step 6 | [x] Completed |
+| REQ-008 | Wrap wave execution with PEP 758 `except*` handlers and commit unreached steps to DLQ | Step 6 | [x] Completed |
+| REQ-009 | Delegate all 11 state mutations in `dag_executor.py` to `exec_record.transition_step(...)` with `_update_lock` | Step 6 | [x] Completed |
 | REQ-010 | Harden `TopologicalEvaluator` callback handling to catch `BaseException` and fail fast without orphan nodes | Step 7 | [ ] Pending |
 | REQ-011 | Seal unwrapped string branches for `is_chat_history` inside `<chat_history>` in `prompt_compiler.py` | Step 8 | [ ] Pending |
 | REQ-012 | Eradicate fallback for unknown `$source_path` inputs in `prompt_compiler.py` (fail fast on unmapped prefixes) | Step 8 | [ ] Pending |

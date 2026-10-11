@@ -1915,3 +1915,113 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
         assert len(captured_context) == 1
         assert captured_context[0].global_context_vars == GlobalContextVarsDTO(language="fi")
         assert captured_context[0].model_registry_id == "cfg_special_reg"
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Verify Scenario NEG-04: TaskGroup wave crash transitions siblings to FAILED and downstream to BLOCKED."""
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.services.execution import create_execution_record
+
+    step1 = StepRule(id="stp_1111111111111111", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
+    step2 = StepRule(id="stp_2222222222222222", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
+    step3 = StepRule(id="stp_3333333333333333", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=["stp_1111111111111111"])
+
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_9999888877776666",
+        slug="wf_wave_crash_test",
+        status="active",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
+        name=I18nText(translations={"en": "Wave Crash Test", "fi": "Aaltotesti"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        steps=[step1, step2, step3],
+    )
+
+    initial_record = create_execution_record(
+        execution_id="exe_1234567890123456",
+        workflow_id=workflow.id,
+        raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "test"}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        status=ExecutionStatus.PENDING,
+        steps=[],
+        step_states={},
+    )
+    await mock_repo.save_execution(initial_record)
+
+    dlq_records: list[tuple[str, str, Any]] = []
+    original_dlq = executor._dlq_record_step_failure
+
+    def track_dlq(step_id: str, error_type: str, err: Any) -> None:
+        dlq_records.append((step_id, error_type, err))
+        original_dlq(step_id, error_type, err)
+
+    executor._dlq_record_step_failure = track_dlq
+
+    async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
+        current_step = kwargs["step"]
+        if current_step.id == "stp_1111111111111111":
+            raise RuntimeError("Fatal Wave 0 step 1 crash")
+        # Step 2 sleeps so it gets cancelled by TaskGroup when step 1 raises
+        await asyncio.sleep(1.0)
+        return []
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={"doc": "test"})),
+            )
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            await executor.execute_workflow(
+                execution_id="exe_1234567890123456",
+                workflow=workflow,
+                raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "test"}),
+            )
+
+        assert exc_info.value.status_code == 500
+        assert "Fatal Wave 0 step 1 crash" in exc_info.value.message
+
+    persisted = await mock_repo.get_execution("exe_1234567890123456")
+    assert persisted is not None
+    assert persisted.status == ExecutionStatus.FAILED
+
+    # Check step states
+    assert persisted.step_states["stp_1111111111111111"].status == ExecutionStatus.FAILED
+    assert persisted.step_states["stp_2222222222222222"].status == ExecutionStatus.FAILED
+    assert persisted.step_states["stp_3333333333333333"].status == ExecutionStatus.BLOCKED
+
+    # Zero steps remain in PENDING or RUNNING
+    for s_id, s_state in persisted.step_states.items():
+        assert s_state.status not in (ExecutionStatus.PENDING, ExecutionStatus.RUNNING), f"Step {s_id} is {s_state.status}"
+
+    # Verify DLQ calls recorded all 3 steps
+    dlq_step_ids = {r[0] for r in dlq_records}
+    assert "stp_1111111111111111" in dlq_step_ids
+    assert "stp_2222222222222222" in dlq_step_ids
+    assert "stp_3333333333333333" in dlq_step_ids
