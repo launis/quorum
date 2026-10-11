@@ -104,6 +104,7 @@ class BarsMatrixBuilder extends StatelessWidget {
     AppLocalizations l10n,
     MatrixScale scale,
   ) {
+    final theme = Theme.of(context);
     final gradeName = scale.name != null
         ? scale.name!.get(Localizations.localeOf(context).languageCode)
         : '';
@@ -111,10 +112,10 @@ class BarsMatrixBuilder extends StatelessWidget {
     return Card(
       margin: AppSpacing.p8,
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: InkWell(
         onTap: () => _editScale(context, scale),
@@ -134,9 +135,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                         scale.score.toString(),
                         gradeName.isNotEmpty ? "- $gradeName" : "",
                       ),
-                      style: const TextStyle(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -146,7 +146,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                     icon: Icon(
                       Icons.edit,
                       size: 20,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: theme.colorScheme.primary,
                     ),
                     onPressed: () => _editScale(context, scale),
                     padding: EdgeInsets.zero,
@@ -157,7 +157,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                     icon: Icon(
                       Icons.delete,
                       size: 20,
-                      color: Theme.of(context).colorScheme.error,
+                      color: theme.colorScheme.error,
                     ),
                     onPressed: () => _deleteScale(scale),
                     padding: EdgeInsets.zero,
@@ -168,11 +168,10 @@ class BarsMatrixBuilder extends StatelessWidget {
               const Divider(),
               if (scale.aiLabel.isNotEmpty) ...[
                 Text(
-                  "AI: ${scale.aiLabel}",
-                  style: TextStyle(
-                    fontSize: 12,
+                  l10n.barsMatrixAiPrefix(scale.aiLabel),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -192,7 +191,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                   return Container(
                     padding: AppSpacing.p8,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Column(
@@ -200,7 +199,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                       children: [
                         Text(
                           labelTrans,
-                          style: const TextStyle(fontSize: 13),
+                          style: theme.textTheme.bodyMedium,
                           maxLines: 4,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -208,12 +207,9 @@ class BarsMatrixBuilder extends StatelessWidget {
                           AppSpacing.h4,
                           Text(
                             claim.tdaAssertions.first.conceptDescription,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
+                            style: theme.textTheme.labelSmall?.copyWith(
                               fontStyle: FontStyle.italic,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -233,12 +229,10 @@ class BarsMatrixBuilder extends StatelessWidget {
                                       ),
                                       decoration: BoxDecoration(
                                         color: atom.inverseEvidence
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.errorContainer
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.tertiaryContainer,
+                                            ? theme.colorScheme.errorContainer
+                                            : theme
+                                                  .colorScheme
+                                                  .tertiaryContainer,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Tooltip(
@@ -251,16 +245,16 @@ class BarsMatrixBuilder extends StatelessWidget {
                                             atom.conceptDescription,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 9,
-                                              color: atom.inverseEvidence
-                                                  ? Theme.of(context)
-                                                        .colorScheme
-                                                        .onErrorContainer
-                                                  : Theme.of(context)
-                                                        .colorScheme
-                                                        .onTertiaryContainer,
-                                            ),
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: atom.inverseEvidence
+                                                      ? theme
+                                                            .colorScheme
+                                                            .onErrorContainer
+                                                      : theme
+                                                            .colorScheme
+                                                            .onTertiaryContainer,
+                                                ),
                                           ),
                                         ),
                                       ),
@@ -273,20 +267,17 @@ class BarsMatrixBuilder extends StatelessWidget {
                                     vertical: AppSpacing.s2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
+                                    color: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     l10n.barsMatrixMoreAssertions(
                                       claim.tdaAssertions.length - 3,
                                     ),
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ),

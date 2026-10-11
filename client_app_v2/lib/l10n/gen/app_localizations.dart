@@ -9443,6 +9443,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Re-runs AI synthesis with updated profile tone and citation directives'**
   String get forceResynthesisSubtitle;
+
+  /// AI label prefix in bars matrix builder
+  ///
+  /// In en, this message translates to:
+  /// **'AI: {label}'**
+  String barsMatrixAiPrefix(String label);
+
+  /// No description provided for @scorecardNormalizedScoreSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'100 %: '**
+  String get scorecardNormalizedScoreSuffix;
+
+  /// Scorecard level prefix with count
+  ///
+  /// In en, this message translates to:
+  /// **'L{level} - {name} ({count})'**
+  String scorecardLevelPrefix(String level, String name, String count);
+
+  /// No description provided for @reportTitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'REPORT'**
+  String get reportTitleFallback;
+
+  /// Report printed timestamp
+  ///
+  /// In en, this message translates to:
+  /// **'Printed: {timestamp}'**
+  String printedAtTimestamp(String timestamp);
+
+  /// No description provided for @recommendationToJudgeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendation to the Evaluator'**
+  String get recommendationToJudgeTitle;
 }
 
 class _AppLocalizationsDelegate

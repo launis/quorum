@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/theme/app_colors.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widget.dart';
@@ -38,12 +39,14 @@ class SduiBlocksRenderer extends StatelessWidget {
 
   Widget? _renderBlock(BuildContext context, SduiBlockDTO block) {
     return switch (block) {
-      SduiAccordionBlock() => _buildAccordion(context, block),
+      SduiAccordionBlock() => AppErrorBoundary(
+        child: _buildAccordion(context, block),
+      ),
       SduiMetadataBlock() => _buildMetadata(context, block),
       SduiScoreCardBlock() => _buildScoreCard(context, block),
       SduiAuditTrailBlock() => _buildAuditTrail(context, block),
       SduiAlertBoxBlock() => SduiAlertBoxWidget(block: block),
-      SduiGridBlock() => SduiGridWidget(block: block),
+      SduiGridBlock() => AppErrorBoundary(child: SduiGridWidget(block: block)),
       SduiMarkdownBlock() =>
         block.text.isNotEmpty
             ? Padding(
@@ -58,27 +61,33 @@ class SduiBlocksRenderer extends StatelessWidget {
                 child: OutputRenderer(markdownContent: block.text),
               )
             : null,
-      SduiRadarChartBlock() => _buildChartWithTitle(
-        context,
-        block.title,
-        LogicRadarChart(axes: block.axes),
-      ),
-      SduiScatterPlotBlock() => _buildChartWithTitle(
-        context,
-        block.title,
-        LogicMatrixChart(
-          xAxis: block.axes[0],
-          yAxis: block.axes[1],
-          zAxis: block.axes.length > 2 ? block.axes[2] : null,
+      SduiRadarChartBlock() => AppErrorBoundary(
+        child: _buildChartWithTitle(
+          context,
+          block.title,
+          LogicRadarChart(axes: block.axes),
         ),
       ),
-      SduiQuadrantMatrixBlock() => _buildChartWithTitle(
-        context,
-        block.title,
-        QuadrantMatrixChart(
-          xAxis: block.axes[0],
-          yAxis: block.axes[1],
-          zAxis: block.axes.length > 2 ? block.axes[2] : null,
+      SduiScatterPlotBlock() => AppErrorBoundary(
+        child: _buildChartWithTitle(
+          context,
+          block.title,
+          LogicMatrixChart(
+            xAxis: block.axes[0],
+            yAxis: block.axes[1],
+            zAxis: block.axes.length > 2 ? block.axes[2] : null,
+          ),
+        ),
+      ),
+      SduiQuadrantMatrixBlock() => AppErrorBoundary(
+        child: _buildChartWithTitle(
+          context,
+          block.title,
+          QuadrantMatrixChart(
+            xAxis: block.axes[0],
+            yAxis: block.axes[1],
+            zAxis: block.axes.length > 2 ? block.axes[2] : null,
+          ),
         ),
       ),
       SduiMetrics1DBlock() => _buildChartWithTitle(
@@ -90,7 +99,9 @@ class SduiBlocksRenderer extends StatelessWidget {
               .toList(),
         ),
       ),
-      SduiMatrixTableBlock() => SduiMatrixTableWidget(block: block),
+      SduiMatrixTableBlock() => AppErrorBoundary(
+        child: SduiMatrixTableWidget(block: block),
+      ),
       SduiBulletListBlock() => _buildBulletList(context, block),
       SduiHeroInsightBlock() => _buildHeroInsight(context, block),
       SduiQuoteCardBlock() => _buildQuoteCard(context, block),
@@ -259,17 +270,15 @@ class SduiBlocksRenderer extends StatelessWidget {
   Widget? _buildWarningCard(BuildContext context, SduiWarningCardBlock block) {
     if (block.message.isEmpty) return null;
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
-        color: AppColors.intentWarning.withValues(alpha: 0.1),
+        color: semantic.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.s8),
         border: Border(
-          left: BorderSide(
-            color: AppColors.intentWarning,
-            width: AppSpacing.s4,
-          ),
+          left: BorderSide(color: semantic.warning, width: AppSpacing.s4),
         ),
       ),
       child: Column(
@@ -278,9 +287,9 @@ class SduiBlocksRenderer extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
+              Icon(
                 Icons.warning_amber_rounded,
-                color: AppColors.intentWarning,
+                color: semantic.warning,
                 size: 24,
               ),
               AppSpacing.w8,
@@ -295,7 +304,7 @@ class SduiBlocksRenderer extends StatelessWidget {
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(AppSpacing.s4),
                 border: Border.all(
-                  color: AppColors.intentWarning.withValues(alpha: 0.3),
+                  color: semantic.warning.withValues(alpha: 0.3),
                 ),
               ),
               child: Text(
@@ -311,29 +320,23 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildNACard(BuildContext context, SduiNACardBlock block) {
+  Widget? _buildNACard(BuildContext context, SduiNACardBlock block) {
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
-        color: AppColors.intentNeutral.withValues(alpha: 0.1),
+        color: semantic.neutral.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.s8),
         border: Border(
-          left: BorderSide(
-            color: AppColors.intentNeutral,
-            width: AppSpacing.s4,
-          ),
+          left: BorderSide(color: semantic.neutral, width: AppSpacing.s4),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline,
-            color: AppColors.intentNeutral,
-            size: 24,
-          ),
+          Icon(Icons.info_outline, color: semantic.neutral, size: 24),
           AppSpacing.w8,
           Expanded(
             child: Column(
@@ -371,30 +374,31 @@ class SduiBlocksRenderer extends StatelessWidget {
 
   Widget _buildAccordion(BuildContext context, SduiAccordionBlock block) {
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
     Color headerColor;
     Color bgColor;
     IconData? icon;
 
     switch (block.severity) {
       case 'success':
-        headerColor = AppColors.intentSuccess;
-        bgColor = AppColors.intentSuccess.withValues(alpha: 0.1);
+        headerColor = semantic.success;
+        bgColor = semantic.success.withValues(alpha: 0.1);
         icon = Icons.build;
         break;
       case 'warning':
-        headerColor = AppColors.intentWarning;
-        bgColor = AppColors.intentWarning.withValues(alpha: 0.1);
+        headerColor = semantic.warning;
+        bgColor = semantic.warning.withValues(alpha: 0.1);
         icon = Icons.warning;
         break;
       case 'error':
-        headerColor = theme.colorScheme.error;
+        headerColor = semantic.criticalOverride;
         bgColor = theme.colorScheme.errorContainer;
         icon = Icons.error;
         break;
       case 'info':
       default:
-        headerColor = AppColors.intentInfo;
-        bgColor = AppColors.intentInfo.withValues(alpha: 0.1);
+        headerColor = semantic.info;
+        bgColor = semantic.info.withValues(alpha: 0.1);
         icon = Icons.info;
         break;
     }
@@ -438,7 +442,10 @@ class SduiBlocksRenderer extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.s12),
-        side: BorderSide(color: AppColors.intentSuccess, width: AppSpacing.s2),
+        side: BorderSide(
+          color: theme.colorScheme.primary,
+          width: AppSpacing.s2,
+        ),
       ),
       color: theme.colorScheme.surfaceContainerLowest,
       child: Padding(
@@ -543,7 +550,7 @@ class SduiBlocksRenderer extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   border: Border.all(
-                    color: AppColors.intentInfo,
+                    color: theme.colorScheme.secondary,
                     width: AppSpacing.s2,
                   ),
                   borderRadius: BorderRadius.circular(AppSpacing.s8),
@@ -597,7 +604,10 @@ class SduiBlocksRenderer extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSpacing.s12),
-        side: BorderSide(color: AppColors.intentInfo, width: AppSpacing.s2),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.secondary,
+          width: AppSpacing.s2,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s16),
@@ -608,7 +618,7 @@ class SduiBlocksRenderer extends StatelessWidget {
               l10n.systemAuditTrailLabel,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.intentInfo,
+                color: Theme.of(context).colorScheme.secondary,
               ),
             ),
             AppSpacing.h12,

@@ -5273,4 +5273,28 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get forceResynthesisSubtitle =>
       'Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla';
+
+  @override
+  String barsMatrixAiPrefix(String label) {
+    return 'Tekoäly: $label';
+  }
+
+  @override
+  String get scorecardNormalizedScoreSuffix => '100 %: ';
+
+  @override
+  String scorecardLevelPrefix(String level, String name, String count) {
+    return 'T$level - $name ($count)';
+  }
+
+  @override
+  String get reportTitleFallback => 'RAPORTTI';
+
+  @override
+  String printedAtTimestamp(String timestamp) {
+    return 'Tulostettu: $timestamp';
+  }
+
+  @override
+  String get recommendationToJudgeTitle => 'Suositus Tuomarille';
 }

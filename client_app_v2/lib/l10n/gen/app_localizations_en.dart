@@ -5233,4 +5233,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get forceResynthesisSubtitle =>
       'Re-runs AI synthesis with updated profile tone and citation directives';
+
+  @override
+  String barsMatrixAiPrefix(String label) {
+    return 'AI: $label';
+  }
+
+  @override
+  String get scorecardNormalizedScoreSuffix => '100 %: ';
+
+  @override
+  String scorecardLevelPrefix(String level, String name, String count) {
+    return 'L$level - $name ($count)';
+  }
+
+  @override
+  String get reportTitleFallback => 'REPORT';
+
+  @override
+  String printedAtTimestamp(String timestamp) {
+    return 'Printed: $timestamp';
+  }
+
+  @override
+  String get recommendationToJudgeTitle => 'Recommendation to the Evaluator';
 }

@@ -198,9 +198,8 @@ class ResultDashboard extends StatelessWidget {
                 const SizedBox(width: 8.0),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16.0,
                   ),
                 ),
               ],
@@ -222,9 +221,8 @@ class ResultDashboard extends StatelessWidget {
                       (refTitle != null && refTitle.isNotEmpty)
                           ? '$refId - $refTitle'
                           : refId,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        fontSize: 14.0,
                         height: 1.4,
                       ),
                     ),
@@ -232,8 +230,7 @@ class ResultDashboard extends StatelessWidget {
                       const SizedBox(height: 6.0),
                       Text(
                         refSnippet,
-                        style: TextStyle(
-                          fontSize: 13.0,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurface,
                           height: 1.5,
                         ),
@@ -249,11 +246,11 @@ class ResultDashboard extends StatelessWidget {
                         },
                         child: Text(
                           refUrl,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            decoration: TextDecoration.underline,
-                            fontSize: 12.0,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
                           softWrap: true,
                           overflow: TextOverflow.visible,
                         ),
@@ -286,7 +283,7 @@ class ResultDashboard extends StatelessWidget {
         : Theme.of(context).colorScheme.error;
     final textColor = isDanger
         ? Theme.of(context).colorScheme.error
-        : Colors.deepOrange[900];
+        : Theme.of(context).colorScheme.onErrorContainer;
 
     return Container(
       decoration: BoxDecoration(
@@ -399,11 +396,13 @@ class ResultDashboard extends StatelessWidget {
     final intent = view['intent']?.toString();
     Color statusColor = Theme.of(context).colorScheme.onSurfaceVariant;
     if (intent == 'success')
-      statusColor = Color(0xFF2E7D32);
+      statusColor = Theme.of(context).colorScheme.primary;
     else if (intent == 'warning')
       statusColor = Theme.of(context).colorScheme.error;
     else if (intent == 'danger')
       statusColor = Theme.of(context).colorScheme.error;
+
+    final l10n = AppLocalizations.of(context);
 
     return Card(
       elevation: 4,
@@ -416,7 +415,8 @@ class ResultDashboard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              view['title']?.toString().toUpperCase() ?? 'RAPORTTI',
+              view['title']?.toString().toUpperCase() ??
+                  (l10n != null ? l10n.reportTitleFallback : 'REPORT'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
@@ -424,9 +424,11 @@ class ResultDashboard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Tulostettu: ${_formatDateTime(DateTime.now())}',
+              l10n != null
+                  ? l10n.printedAtTimestamp(_formatDateTime(DateTime.now()))
+                  : 'Printed: ${_formatDateTime(DateTime.now())}',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
@@ -499,14 +501,17 @@ class ResultDashboard extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Color(0xFF2E7D32),
+                    Theme.of(context).colorScheme.primary,
                     Theme.of(context).colorScheme.secondary,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                ),
               ),
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -517,7 +522,7 @@ class ResultDashboard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2E7D32),
+                          color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -535,14 +540,14 @@ class ResultDashboard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2E7D32),
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Divider(color: const Color(0xFF2E7D32)),
+                  Divider(color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 16),
                   OutputRenderer(markdownContent: content),
                 ],
@@ -596,7 +601,9 @@ class ResultDashboard extends StatelessWidget {
                   title: Text(
                     itemObj['source']?.toString() ??
                         AppLocalizations.of(context)!.lblSource,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4.0),
@@ -642,8 +649,10 @@ class ResultDashboard extends StatelessWidget {
       // Convert snake_case to PascalCase
       final parts = key.split('_');
       final pascalKey = parts
-          .where((p) => p.isNotEmpty)
-          .map((p) => p[0].toUpperCase() + p.substring(1))
+          .map((p) {
+            if (p.isEmpty) return p;
+            return p[0].toUpperCase() + p.substring(1);
+          })
           .join('');
 
       // Avoid redundant prefixes (e.g. StepJudgeJudgeScore -> StepJudgeScore)
@@ -712,11 +721,13 @@ class ResultDashboard extends StatelessWidget {
     const encoder = JsonEncoder.withIndent('  ');
     final jsonString = encoder.convert(dataToShow);
 
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SelectableText(
         jsonString,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+        style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
       ),
     );
   }
@@ -730,11 +741,13 @@ class ResultDashboard extends StatelessWidget {
     const encoder = JsonEncoder.withIndent('  ');
     final jsonString = encoder.convert(dataToShow);
 
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: SelectableText(
         jsonString,
-        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+        style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
       ),
     );
   }

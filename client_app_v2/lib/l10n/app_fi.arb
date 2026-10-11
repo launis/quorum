@@ -1857,5 +1857,41 @@
   "tableColumnScore": "Pisteet",
   "tableColumnReasoningQuote": "Selitys",
   "forceResynthesisLabel": "Generoi tekoälyteksti uudelleen",
-  "forceResynthesisSubtitle": "Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla"
+  "forceResynthesisSubtitle": "Ajaa tekoälysynteesin uudelleen profiilin päivitetyillä sävy- ja viiteohjeilla",
+  "barsMatrixAiPrefix": "Tekoäly: {label}",
+  "@barsMatrixAiPrefix": {
+    "description": "Tekoälyn otsikon etuliite palkkimatriisissa",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "scorecardNormalizedScoreSuffix": "100 %: ",
+  "scorecardLevelPrefix": "T{level} - {name} ({count})",
+  "@scorecardLevelPrefix": {
+    "description": "Pistekortin tason etuliite määrällä",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "reportTitleFallback": "RAPORTTI",
+  "printedAtTimestamp": "Tulostettu: {timestamp}",
+  "@printedAtTimestamp": {
+    "description": "Raportin tulostusaika",
+    "placeholders": {
+      "timestamp": {
+        "type": "String"
+      }
+    }
+  },
+  "recommendationToJudgeTitle": "Suositus Tuomarille"
 }

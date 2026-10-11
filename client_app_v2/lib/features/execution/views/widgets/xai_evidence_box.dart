@@ -64,6 +64,7 @@ class XAIEvidenceBox extends ConsumerWidget {
   ) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
 
     try {
       return Padding(
@@ -121,16 +122,16 @@ class XAIEvidenceBox extends ConsumerWidget {
                         ),
                         margin: const EdgeInsets.only(bottom: AppSpacing.s4),
                         decoration: BoxDecoration(
-                          color: AppColors.intentInfo.withValues(alpha: 0.1),
+                          color: semantic.info.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppSpacing.s4),
                           border: Border.all(
-                            color: AppColors.intentInfo.withValues(alpha: 0.3),
+                            color: semantic.info.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
                           audit.toolId,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.intentInfo,
+                            color: semantic.info,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
                           ),
@@ -223,10 +224,10 @@ class XAIEvidenceBox extends ConsumerWidget {
                     vertical: AppSpacing.s6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.intentSuccess.withValues(alpha: 0.1),
+                    color: semantic.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.s6),
                     border: Border.all(
-                      color: AppColors.intentSuccess.withValues(alpha: 0.3),
+                      color: semantic.success.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -235,7 +236,7 @@ class XAIEvidenceBox extends ConsumerWidget {
                       Icon(
                         Icons.auto_awesome,
                         size: AppSpacing.s12,
-                        color: AppColors.intentSuccess,
+                        color: semantic.success,
                       ),
                       const SizedBox(width: AppSpacing.s6),
                       Expanded(
@@ -246,13 +247,13 @@ class XAIEvidenceBox extends ConsumerWidget {
                                 text: '${l10n.xaiEvidenceImpactedAxes} ',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.intentSuccess,
+                                  color: semantic.success,
                                 ),
                               ),
                               TextSpan(
                                 text: audit.impactedAxisNames.join(', '),
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  color: AppColors.intentSuccess,
+                                  color: semantic.success,
                                 ),
                               ),
                             ],
@@ -293,21 +294,19 @@ class XAIEvidenceBox extends ConsumerWidget {
                       avatar: Icon(
                         Icons.link,
                         size: AppSpacing.s12,
-                        color: AppColors.intentInfo,
+                        color: semantic.info,
                       ),
                       label: Text(
                         _truncateUrl(url),
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.intentInfo,
+                          color: semantic.info,
                         ),
                       ),
                       onPressed: () => _launchUrl(url, ref),
-                      backgroundColor: AppColors.intentInfo.withValues(
-                        alpha: 0.08,
-                      ),
+                      backgroundColor: semantic.info.withValues(alpha: 0.08),
                       side: BorderSide(
-                        color: AppColors.intentInfo.withValues(alpha: 0.2),
+                        color: semantic.info.withValues(alpha: 0.2),
                       ),
                     );
                   }).toList(),

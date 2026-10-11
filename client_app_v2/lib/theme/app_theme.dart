@@ -1,3 +1,4 @@
+import 'package:client_app/theme/app_colors.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,6 +25,7 @@ class AppTheme {
       scheme: _scheme,
       useMaterial3: true,
       textTheme: GoogleFonts.interTextTheme(),
+      extensions: const <ThemeExtension<dynamic>>[AppSemanticColors.light],
       // Add any specific sub-theme overrides here if needed
       subThemesData: const FlexSubThemesData(
         inputDecoratorBorderType: FlexInputBorderType.outline,
@@ -38,6 +40,7 @@ class AppTheme {
       scheme: _scheme,
       useMaterial3: true,
       textTheme: GoogleFonts.interTextTheme(),
+      extensions: const <ThemeExtension<dynamic>>[AppSemanticColors.dark],
       // Add any specific sub-theme overrides here if needed
       subThemesData: const FlexSubThemesData(
         inputDecoratorBorderType: FlexInputBorderType.outline,

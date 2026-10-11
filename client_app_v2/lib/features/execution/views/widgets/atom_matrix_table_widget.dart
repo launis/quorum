@@ -107,7 +107,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 3,
                   child: Text(
                     l10n.lblLogicMatrix,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (visibleColumns.contains('distribution') ||
@@ -116,7 +118,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 3,
                   child: Text(
                     l10n.atomicBreakdownTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (visibleColumns.contains('row_explanation'))
@@ -124,7 +128,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 3,
                   child: Text(
                     l10n.rowExplanationTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (visibleColumns.contains('quotes'))
@@ -132,7 +138,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 3,
                   child: Text(
                     l10n.humanOverrideQuotesTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (visibleColumns.contains('normalized_score'))
@@ -140,7 +148,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 1,
                   child: Text(
                     l10n.normalizedScore,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (visibleColumns.contains('score'))
@@ -148,7 +158,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   flex: 1,
                   child: Text(
                     l10n.score,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
             ],
@@ -186,7 +198,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                       ) +
                                       (m.isEvaluative ? ' *' : '') +
                                       (m.allowContextualOverride ? ' **' : ''),
-                                  style: const TextStyle(
+                                  style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -198,8 +210,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                 padding: const EdgeInsets.only(top: 4.0),
                                 child: Text(
                                   m.description!,
-                                  style: TextStyle(
-                                    fontSize: 10,
+                                  style: theme.textTheme.labelSmall?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -217,13 +228,18 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: sortedLevels.map((lvl) {
                             final display = levelMap[lvl]!;
-                            final name = levelNames[lvl] ?? 'T$lvl';
-                            final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
+                            final name = levelNames[lvl] ?? lvl;
+                            final numLvl =
+                                double.tryParse(lvl)?.toInt().toString() ?? lvl;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 2.0),
                               child: Text(
-                                '$numLvl - $name: $display',
-                                style: const TextStyle(fontSize: 12),
+                                l10n.scorecardLevelPrefix(
+                                  numLvl,
+                                  name,
+                                  display,
+                                ),
+                                style: theme.textTheme.bodySmall,
                               ),
                             );
                           }).toList(),
@@ -234,8 +250,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         flex: 3,
                         child: Text(
                           m.rowExplanation,
-                          style: const TextStyle(
-                            fontSize: 13,
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -264,11 +279,13 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                   ),
                                   child: Text(
                                     '${m.normalizedScore!.toStringAsFixed(1)} %',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          theme.colorScheme.onTertiaryContainer,
-                                    ),
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme
+                                              .colorScheme
+                                              .onTertiaryContainer,
+                                        ),
                                   ),
                                 )
                               : const Text('-'),
@@ -279,7 +296,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         flex: 1,
                         child: Text(
                           m.scoreDisplayLabel ?? '-',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
@@ -322,7 +341,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         ) +
                         (m.isEvaluative ? ' *' : '') +
                         (m.allowContextualOverride ? ' **' : ''),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -331,8 +352,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     m.description!,
-                    style: TextStyle(
-                      fontSize: 10,
+                    style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
@@ -355,7 +375,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.s4),
                   child: Row(
                     children: [
-                      const Text('100 %: '),
+                      Text(l10n.scorecardNormalizedScoreSuffix),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.s8,
@@ -367,7 +387,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         ),
                         child: Text(
                           '${m.normalizedScore!.toStringAsFixed(1)} %',
-                          style: TextStyle(
+                          style: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.onTertiaryContainer,
                           ),
@@ -381,8 +401,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     m.rowExplanation,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -399,9 +418,14 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   visibleColumns.contains('atomic_breakdown'))
               ? sortedLevels.map((lvl) {
                   final display = m.levelBreakdown![lvl]!;
-                  final name = m.levelNames?[lvl] ?? 'T$lvl';
-                  final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
-                  final levelTitle = '$numLvl - $name: $display';
+                  final name = m.levelNames?[lvl] ?? lvl;
+                  final numLvl =
+                      double.tryParse(lvl)?.toInt().toString() ?? lvl;
+                  final levelTitle = l10n.scorecardLevelPrefix(
+                    numLvl,
+                    name,
+                    display,
+                  );
                   return ListTile(dense: true, title: Text(levelTitle));
                 }).toList()
               : [],
@@ -416,11 +440,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     MatrixScorecardRowDto m,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     if (m.atomsByLevel.isEmpty) {
       return Text(
         '-',
-        style: TextStyle(
-          fontSize: 13,
+        style: theme.textTheme.bodySmall?.copyWith(
           fontStyle: FontStyle.italic,
           color: theme.colorScheme.onSurfaceVariant,
         ),
@@ -439,10 +463,13 @@ class AtomMatrixTableWidget extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$level - ${m.levelNames?['$level'] ?? 'T$level'}',
-                  style: const TextStyle(
+                  l10n.scorecardLevelPrefix(
+                    level.toString(),
+                    m.levelNames?['$level'] ?? 'T$level',
+                    (m.atomsByLevel[level]?.length ?? 0).toString(),
+                  ),
+                  style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -472,12 +499,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('- ', style: TextStyle(fontSize: 13)),
+              Text('- ', style: theme.textTheme.bodyMedium),
               Expanded(
                 child: Text(
                   '-',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     fontStyle: FontStyle.italic,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -546,10 +572,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     AppLocalizations.of(
                       context,
                     )!.humanOverrideHumanDecisionBadge,
-                    style: TextStyle(
+                    style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onTertiaryContainer,
-                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -560,10 +585,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
               AppLocalizations.of(
                 context,
               )!.humanOverrideReasonPrefix(atom.humanOverride!.reason),
-              style: TextStyle(
+              style: theme.textTheme.labelSmall?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: theme.colorScheme.onTertiaryContainer,
-                fontSize: 12,
               ),
             ),
             if (humanQuotes.isNotEmpty)
@@ -584,7 +608,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('- ', style: TextStyle(fontSize: 13)),
+          Text('- ', style: theme.textTheme.bodyMedium),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,12 +619,14 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         atom.chartDisplayLabel,
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: isPass
                               ? FontWeight.bold
                               : FontWeight.normal,
-                          color: AppColors.fromIntent(atom.visualIntent),
+                          color: AppColors.fromIntent(
+                            atom.visualIntent,
+                            theme.colorScheme,
+                          ),
                         ),
                       ),
                     ),
@@ -619,8 +645,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
                       '${AppLocalizations.of(context)!.lblReasoning}: ${atom.semanticReasoning}',
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: theme.textTheme.bodySmall?.copyWith(
                         fontStyle: FontStyle.italic,
                         color: hasOverride
                             ? theme.colorScheme.onSurfaceVariant.withValues(
@@ -677,8 +702,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
           padding: const EdgeInsets.only(top: 4.0),
           child: RichText(
             text: TextSpan(
-              style: TextStyle(
-                fontSize: 13,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: isFaded
                     ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
                     : theme.colorScheme.onSurface,
@@ -711,8 +735,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                       ),
                       child: Text(
                         disp.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
+                        style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isFaded
                               ? theme.colorScheme.onSurfaceVariant
@@ -725,7 +748,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 TextSpan(
                   text: q.quote,
                   style: isPass && !isFaded
-                      ? const TextStyle(fontWeight: FontWeight.bold)
+                      ? theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )
                       : null,
                 ),
               ],

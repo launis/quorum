@@ -2570,6 +2570,42 @@
   "tableColumnScore": "Score",
   "tableColumnReasoningQuote": "Explanation",
   "forceResynthesisLabel": "Regenerate AI text",
-  "forceResynthesisSubtitle": "Re-runs AI synthesis with updated profile tone and citation directives"
+  "forceResynthesisSubtitle": "Re-runs AI synthesis with updated profile tone and citation directives",
+  "barsMatrixAiPrefix": "AI: {label}",
+  "@barsMatrixAiPrefix": {
+    "description": "AI label prefix in bars matrix builder",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "scorecardNormalizedScoreSuffix": "100 %: ",
+  "scorecardLevelPrefix": "L{level} - {name} ({count})",
+  "@scorecardLevelPrefix": {
+    "description": "Scorecard level prefix with count",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "reportTitleFallback": "REPORT",
+  "printedAtTimestamp": "Printed: {timestamp}",
+  "@printedAtTimestamp": {
+    "description": "Report printed timestamp",
+    "placeholders": {
+      "timestamp": {
+        "type": "String"
+      }
+    }
+  },
+  "recommendationToJudgeTitle": "Recommendation to the Evaluator"
 }
 

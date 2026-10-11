@@ -13,19 +13,20 @@ class SduiAlertBoxWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
     Color borderColor;
     Color bgColor;
     IconData icon;
 
     switch (block.severity) {
       case AlertSeverity.success:
-        borderColor = AppColors.intentSuccess;
-        bgColor = AppColors.intentSuccess.withValues(alpha: 0.1);
+        borderColor = semantic.success;
+        bgColor = semantic.success.withValues(alpha: 0.1);
         icon = Icons.check_circle_outline;
         break;
       case AlertSeverity.warning:
-        borderColor = AppColors.intentWarning;
-        bgColor = AppColors.intentWarning.withValues(alpha: 0.1);
+        borderColor = semantic.warning;
+        bgColor = semantic.warning.withValues(alpha: 0.1);
         icon = Icons.warning_amber_rounded;
         break;
       case AlertSeverity.criticalOverride:
@@ -35,8 +36,8 @@ class SduiAlertBoxWidget extends StatelessWidget {
         icon = Icons.error_outline;
         break;
       case AlertSeverity.info:
-        borderColor = AppColors.intentInfo;
-        bgColor = AppColors.intentInfo.withValues(alpha: 0.1);
+        borderColor = semantic.info;
+        bgColor = semantic.info.withValues(alpha: 0.1);
         icon = Icons.info_outline;
         break;
     }

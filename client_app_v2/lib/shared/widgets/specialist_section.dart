@@ -460,7 +460,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     l10n.logicMatrixQ1Desc,
                     isStrongToulmin && isHighBloom,
                     strat,
-                    const Color(0xFF2E7D32),
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -823,7 +823,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     else if (rColorStr == 'orange')
       riskColor = Theme.of(context).colorScheme.error;
     else if (rColorStr == 'green')
-      riskColor = Color(0xFF2E7D32);
+      riskColor = Theme.of(context).colorScheme.primary;
     else
       riskColor = Theme.of(context).colorScheme.onSurfaceVariant;
 
@@ -833,7 +833,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       riskIcon = Icons.gpp_bad;
     else if (riskColor == Theme.of(context).colorScheme.error)
       riskIcon = Icons.warning_amber;
-    else if (riskColor == Color(0xFF2E7D32))
+    else if (riskColor == Theme.of(context).colorScheme.primary)
       riskIcon = Icons.check_circle;
 
     // Anonymized
@@ -859,7 +859,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               label: threatLabel,
               color: threat
                   ? Theme.of(context).colorScheme.error
-                  : Color(0xFF2E7D32),
+                  : Theme.of(context).colorScheme.primary,
               icon: threat ? Icons.warning : Icons.check,
             ),
             _buildStatusChip(
@@ -1000,10 +1000,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                 fidelity['post_hoc_rationalization_suspected'] == true
                     ? AppLocalizations.of(context)!.lblPostHocWarning
                     : AppLocalizations.of(context)!.lblNoRationalization,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: fidelity['post_hoc_rationalization_suspected'] == true
                       ? Theme.of(context).colorScheme.error
-                      : const Color(0xFF2E7D32),
+                      : Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1030,7 +1030,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         return Card(
           margin: EdgeInsets.only(bottom: 8),
           color: passed
-              ? Color(0xFF2E7D32)
+              ? Theme.of(context).colorScheme.primary
               : Theme.of(context).colorScheme.error,
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -1326,12 +1326,12 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final autoBiasLabel = widget.data['automation_bias_label']?.toString();
     final autoBiasColor = widget.data['automation_bias_color'] == 'red'
         ? Theme.of(context).colorScheme.error
-        : const Color(0xFF2E7D32);
+        : Theme.of(context).colorScheme.primary;
 
     final sayDoLabel = widget.data['say_do_gap_label']?.toString();
     final sayDoColor = widget.data['say_do_gap_color'] == 'red'
         ? Theme.of(context).colorScheme.error
-        : Color(0xFF2E7D32);
+        : Theme.of(context).colorScheme.primary;
 
     if (autoBiasLabel != null || sayDoLabel != null) {
       leftChildren.add(const SizedBox(height: 16));
@@ -1486,7 +1486,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
 
           if (resultKey == 'VER_VERIFIED') {
             i = Icons.check_circle;
-            c = Color(0xFF2E7D32);
+            c = Theme.of(context).colorScheme.primary;
           } else if (resultKey == 'VER_DEBUNKED') {
             i = Icons.cancel;
             c = Theme.of(context).colorScheme.error;
@@ -1646,16 +1646,15 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               size: 16,
               color: raised
                   ? Theme.of(context).colorScheme.error
-                  : Color(0xFF2E7D32),
+                  : Theme.of(context).colorScheme.primary,
             ),
             backgroundColor: raised
-                ? Theme.of(context).colorScheme.error
-                : Color(0xFF2E7D32),
-            labelStyle: TextStyle(
-              fontSize: 12,
+                ? Theme.of(context).colorScheme.errorContainer
+                : Theme.of(context).colorScheme.primaryContainer,
+            labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: raised
-                  ? Theme.of(context).colorScheme.error
-                  : Color(0xFF2E7D32),
+                  ? Theme.of(context).colorScheme.onErrorContainer
+                  : Theme.of(context).colorScheme.onPrimaryContainer,
             ),
           );
         }).toList(),
@@ -1958,10 +1957,15 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2d2d2d),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: SelectableText(jsonStr, style: const TextStyle()),
+      child: SelectableText(
+        jsonStr,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+      ),
     );
   }
 
@@ -2273,22 +2277,25 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E7D32),
+            color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF2E7D32)),
+            border: Border.all(color: Theme.of(context).colorScheme.primary),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: const [
-                  Icon(Icons.recommend, color: const Color(0xFF2E7D32)),
-                  SizedBox(width: 8),
+                children: [
+                  Icon(
+                    Icons.recommend,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    "Suositus Tuomarille",
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.recommendationToJudgeTitle,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2E7D32),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -2296,7 +2303,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               const SizedBox(height: 8),
               Text(
                 widget.data['suositus_tuomarille']?.toString() ?? "",
-                style: const TextStyle(fontSize: 14),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
