@@ -19,7 +19,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
     </rule_block>
     <rule_block id="anti_premature_execution_hallucination">
       <banned_pattern>Writing instructions in the tracker that claim execution is authorized without prior research analysis approval, or stating that the project is in the "IMPLEMENTATION" phase when it has only just been planned.</banned_pattern>
-      <mandatory_pattern>You are at Tier 1 (Planning). If the plan is newly created and unresearched, the phase immediately following this is Tier 0 (Research & Analysis) via `/tier0-research-plan`. If the plan is already approved/researched, the next phase is `/tier2-execute`. Your generated `# Session Handover Context` MUST accurately reflect whether `/tier0-research-plan` or `/tier2-execute` is the required next command.</mandatory_pattern>
+      <mandatory_pattern>You are at Tier 1 (Planning). If the plan is newly created and unresearched, the phase immediately following this is Tier 0 (Research & Analysis) via `/tier0-research-plan`. If the plan is already approved/researched, the next phase is `/tier2-execute --full-auto`. Your generated `# Session Handover Context` MUST accurately reflect whether `/tier0-research-plan` or `/tier2-execute --full-auto` is the required next command.</mandatory_pattern>
       <catastrophic_reason>Writing premature execution commands in an unverified plan's tracker bypasses the mandatory Tier 0 analysis gate, violating strict execution pipelines.</catastrophic_reason>
     </rule_block>
     <rule_block id="knowledge_base_mandate">
@@ -61,7 +61,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
         - **Header Metadata**: Include title `# Tracker: [Plan Name]` and `@-reference` link to target plan (`@[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md]`). Immediately below this, inject the identical `<required_context_rules>` XML block from the plan file.
         - **`## Step Execution Status`**:
           1. Immediately below the header, write `**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md]`.
-          2. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
+          2. Add `- [ ] **[NOK] Execution:** \`/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
           3. Indent and list EVERY single `<step id>` from the plan's `<execution_protocol>` XML block as individual `- [ ] Step X: [Name]` child checkboxes under the Execution command.
           4. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
         - **`### Post-Implementation Gates`**:

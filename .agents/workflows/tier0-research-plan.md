@@ -108,11 +108,11 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
       </constraint>
       <action name="MANDATORY_TRACKER_HANDOVER_SYNC">
         DUAL-MODE HANDOVER SYNCHRONIZATION:
-        1) If an Epic Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST unconditionally update its `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to `/tier2-execute @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the target plan and the tracker file).
-        2) If NO Tracker document exists (Standalone Plan), provide the execution command directly in the final response (`/tier2-execute @[implementation_plan.md]`).
+        1) If an Epic Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST unconditionally update its `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to `/tier2-execute --full-auto @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the target plan and the tracker file).
+        2) If NO Tracker document exists (Standalone Plan), provide the execution command directly in the final response (`/tier2-execute --full-auto @[implementation_plan.md]`).
       </action>
       <action>ARTIFACT-FIRST: Point user directly to updated plan artifact. Close `<thinking_process>`.</action>
-      <constraint name="CONTEXT AMNESIA PREVENTION">Mandate user start a fresh chat session and execute `/tier2-execute` from there.</constraint>
+      <constraint name="CONTEXT AMNESIA PREVENTION">Mandate user start a fresh chat session and execute `/tier2-execute --full-auto` from there.</constraint>
     </step>
   </execution_protocol>
 </system_prompt>

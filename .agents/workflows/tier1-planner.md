@@ -206,7 +206,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
         - `## Learned`: Provide an accurate Baseline State Snapshot, architectural discoveries, identified technical debt, and invariants locked for the upcoming phases.
         - `## Remaining`: State the exact remaining phases, deferred planning milestones, or upcoming workflows.
         - `## Resume Command`: MUST provide the exact copy-pasteable slash command for the immediate next step (e.g. `/tier0-research-plan @[docs\epic\tasks_EPIC_XXX\01_phase1_plan.md] @[docs\epic\EPIC_XXX_tracker.md]`), referencing both the plan and the tracker.
-      Additionally, all downstream execution and analysis commands (`/tier0-research-plan`, `/tier2-execute`, `/tier8-audit-plan`) MUST pass BOTH the target plan file AND the Epic Tracker file as arguments.</mandatory_pattern>
+      Additionally, all downstream execution and analysis commands (`/tier0-research-plan`, `/tier2-execute --full-auto`, `/tier8-audit-plan`) MUST pass BOTH the target plan file AND the Epic Tracker file as arguments.</mandatory_pattern>
       <catastrophic_reason>Without an automatically updated tracker and razor-sharp `# Session Handover Context`, downstream agents suffer from Context Amnesia, miss deferred phase requirements, and execute without verified architectural memory.</catastrophic_reason>
     </rule_block>
     
@@ -402,7 +402,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
           1. Immediately below the Phase header, write `**Plan:** @[path_to_plan.md]`.
           2. **CRITICAL CONDITIONAL:** If an implementation plan could NOT be created for this phase during Tier 1 Planning (deferred phase), add `- [ ] **[NOK] Create Plan:** \`/tier0-create-plan @[docs\epic\EPIC_XXX.md] @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md] --phase=N\``.
           3. Add `- [ ] **[NOK] Red-Teaming:** \`/tier0-research-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
-          4. Add `- [ ] **[NOK] Execution:** \`/tier2-execute @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
+          4. Add `- [ ] **[NOK] Execution:** \`/tier2-execute --full-auto @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
           5. Indent and list every single `<step id>` from the XML plan as individual `- [ ] Step X:` child checkboxes UNDER the Execution command.
           6. Add `- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.`
           7. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[path_to_plan.md] @[docs\epic\EPIC_XXX_tracker.md]\``.
@@ -437,7 +437,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
           - **RESUME COMMAND SYNCHRONIZATION:** When all implementation and hardening phases are complete and the tracker advances to the Documentation & KI gate, the `## Resume Command` in `# Session Handover Context` MUST output this EXACT parameterized `/tier7-describe-architecture` command, immediately followed by the `### Directives for Tier 7 Agent:` block.
         - **`### Final Epic Audit`**:
           - `- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run \`/tier8-audit-epic @[docs\epic\EPIC_XXX.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.`
-        - **`## Instructions for the Execution Agent`**: Specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule, and the mandatory workflow loop (`[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan -> /tier2-hardening-backend -> /tier2-hardening-frontend -> parameterized /tier7-describe-architecture (with target KIs and directives) -> /tier8-audit-epic`).
+        - **`## Instructions for the Execution Agent`**: Specify: Atomic commit mandates, seeding environment commands (`uv run python backend_v2/seed/run_seed.py local`), `@-reference` syntax rule, and the mandatory workflow loop (`[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute --full-auto -> /tier8-audit-plan -> /tier2-hardening-backend -> /tier2-hardening-frontend -> parameterized /tier7-describe-architecture (with target KIs and directives) -> /tier8-audit-epic`).
         - **`## Requirements Traceability Matrix`**: Break down the Epic into highly granular, micro-level logical requirements. Extract every single technical detail from the Epic into a separate row and map each requirement to the specific `<step id>` in the XML plan.
         - **`# Session Handover Context`**: Format EXACTLY at the bottom with `## Achieved`, `## Learned`, `## Remaining`, and `## Resume Command`.
       </constraint>
@@ -468,7 +468,7 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
     <action>Look backward: Read the actual codebase state left by the previous phase. Verify it serves the Epic's goal.</action>
     <action>Look forward: Verify if the current plan's assumptions still hold true.</action>
     <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
-    <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize architectural corrections back into the Epic. If a Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST update its `# Session Handover Context` and set `Resume Command` to `/tier2-execute @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the plan file and the tracker file).</directive>
+    <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document and synchronize architectural corrections back into the Epic. If a Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST update its `# Session Handover Context` and set `Resume Command` to `/tier2-execute --full-auto @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the plan file and the tracker file).</directive>
   </step>
 
   <dod_checklist>

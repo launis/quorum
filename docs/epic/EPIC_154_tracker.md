@@ -36,8 +36,8 @@
 
 ### Phase 1: Pre-Implementation Technical Debt Cleanups (Scoped Boy Scout)
 **Plan:** @[docs/epic/tasks_EPIC_154/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 1.1: Verify ChunkPacketDTO in dag_models.py and TwoPassAtomizer
   - [ ] Step 1.2: SlidingWindowLinker constructor parameter defaults isolation
   - [ ] Step 1.3: Step consistency validation enum modernization
@@ -51,7 +51,7 @@
 ### Phase 2: Configuration, DTOs, Studio Foundation & Parity
 **Plan:** @[docs/epic/tasks_EPIC_154/02_phase2_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 2.1: Settings configuration
   - [ ] Step 2.2: Enums and ErrorCodes synchronization
   - [ ] Step 2.3: Step consistency, strategy registry, and fusion schema extension
@@ -63,7 +63,7 @@
 ### Phase 3: Autonomous Causal Discovery Engine Implementation & Tests
 **Plan:** @[docs/epic/tasks_EPIC_154/03_phase3_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 3.1: Pre-flight ingress and AliasEngine initialization
   - [ ] Step 3.2: Four-Layer Clean Stack prompt compilation
   - [ ] Step 3.3: Two-pass atomization and lexical anchoring
@@ -76,7 +76,7 @@
 ### Phase 4: DAG Router & Optional Chained Fusion Integration
 **Plan:** @[docs/epic/tasks_EPIC_154/04_phase4_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 4.1: Register CausalDiscoveryEngine in ENGINE_REGISTRY
   - [ ] Step 4.2: Wave-based TaskGroup execution integration
   - [ ] Step 4.3: Transform causal nodes to atoms and inject global context
@@ -89,7 +89,7 @@
 ### Phase 5: Atomic SDUI Presentation Parity & Theme Sovereignty
 **Plan:** @[docs/epic/tasks_EPIC_154/05_phase5_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 5.1: SDUI model definition and Dart Freezed parity
   - [ ] Step 5.2: AdapterContext extension and CausalGraphAdapter
   - [ ] Step 5.3: Executive Summary integration and Blueprint wiring
@@ -102,7 +102,7 @@
 ### Phase 6: Tabular Export & Rectangular Flat CSV Parity
 **Plan:** @[docs/epic/tasks_EPIC_154/06_phase6_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 6.1: Enum and localization keys registration
   - [ ] Step 6.2: ReportHeaderResolver expansion
   - [ ] Step 6.3: Export DTO schema extension
@@ -114,7 +114,7 @@
 ### Phase 7: Global Quality Gate & Final Verification
 **Plan:** @[docs/epic/tasks_EPIC_154/07_phase7_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
   - [ ] Step 7.1: Backend audit execution
   - [ ] Step 7.2: Flutter audit execution
   - [ ] Step 7.3: Theme Sovereignty verification
@@ -254,23 +254,25 @@
 # Session Handover Context
 
 ## Achieved
-- Initialized Tier 1 planning for EPIC 154: Dynamic Causal Discovery Engine.
-- Evaluated all governing rules, parent Epic, pre-flight audit report, and relevant Knowledge Items.
-- Decomposed parent Epic into 7 micro-chunked, sequentially named implementation plans in `docs/epic/tasks_EPIC_154/` (Phases 1 through 7).
-- Executed fidelity audit via `scripts/audit_planner_output.py` verifying 100% target file coverage (122 targets), Python AST node line bounds, XML codeblocks, and deterministic KI inheritance (all 20 KIs).
-- Generated comprehensive Epic Tracker `docs/epic/EPIC_154_tracker.md` with full traceability matrix mapping all 40 discrete steps.
+- Completed Tier 0 Research & Analysis (`/tier0-research-plan`) on `docs/epic/tasks_EPIC_154/01_phase1_plan.md`.
+- Conducted Five-Axis System 2 Deconstruction (Scope, Duct-Tape, Best Practice, Over-Engineering, Proof Anchor) across all Phase 1 targets and 1-hop callers.
+- Verified physical codebase state: `ChunkPacketDTO` in `backend_v2/models/dtos/dag_models.py#L273-L286` is already completed and consumed in `two_pass_atomizer.py#L50-L77`.
+- Confirmed `SlidingWindowLinker` constructor parameter defaults (`window_size=4, overlap=2`) must remain untouched to prevent parameter contamination.
+- Verified `Step.validate_step_consistency` in `step.py#L92-L119` must be modernized to `StepType.LLM` and `StepType.LOGIC` enum checks with `AppException(ErrorCodes.VALIDATION_FAILED)`.
+- Audited `EngineType` enum definition across `enums.py` and `enums.dart`, establishing `LaxEngineType = Annotated[EngineType, Field(strict=False)]` requirement for `step.py` under `strict=True` models to safely deserialize strings from JSON seeds without crashing.
+- Identified client-side crash vector: `workflow.dart` enforces `disallowUnrecognizedKeys: true` on `NodeStrategy.llm` and `logic`, requiring synchronous Dart Freezed update before running studio queries.
+- Hardened 5-Column Directives Table and execution protocol in `01_phase1_plan.md` with exact AST line spans (#Lnn-Lmm), passing `audit_markdown_boundaries.py` with zero MBD008 parity issues.
 
 ## Learned
-- Pre-existing technical debt: `ChunkPacketDTO` in `backend_v2/models/dtos/dag_models.py#L273-L287` is already completed in the codebase and consumed in `two_pass_atomizer.py#L50-L77`.
-- `_resolve_execution_engine` in `dag_executor.py` currently relies on `"atom_flattening_hook" in step_def.pre_hooks` heuristic string parsing, which is quarantined into Phase 1 to be replaced with typed `ENGINE_REGISTRY`.
-- In Phase 6, expanding `ReportAtomColumn` by 3 causal columns (`CAUSAL_STATUS`, `BLAME_PARENT_ID`, `DEPENDENT_COUNT`) expands CSV headers from 17 to 20, requiring synchronous updates to `test_report_headers_l10n_parity.py` (`assert len(atom_headers) == 12`, `assert len(reader[0]) == 20`), `test_localization.py`, and `models/test_enums.py`.
-- Zero New Output Profiles Invariant: `SduiCausalGraphBlock` is automatically assembled and injected into `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK` by `ExecutiveSummaryAdapter` whenever `context.causal_result` is present, requiring zero new output profiles or layout block mutations.
+- `Step` model uses `model_config = ConfigDict(strict=True)`. String values deserialized from JSON or database without `strict=False` on `EngineType` field will fail validation. Must declare `engine_type: Annotated[EngineType, Field(default=EngineType.PROMPT, strict=False)]` with `LaxEngineType`.
+- `NodeStrategy.llm` and `NodeStrategy.logic` in `client_app_v2/lib/features/studio/models/workflow.dart` enforce `disallowUnrecognizedKeys: true`. Adding `engine_type` to backend serialized step payloads requires synchronous Flutter Freezed model generation via `flutter_audit_loop.py client_app_v2/lib/features/studio/models/workflow.dart --build`.
+- `test_node_executor_injects_tda_and_prompt_engines` in `test_dag_executor.py` constructs a matrix step without `engine_type`; with O(1) registry resolution, the fixture must explicitly set `engine_type=EngineType.TDA`.
 
 ## Remaining
-- Execute Tier 0 Research & Analysis on Phase 1 plan: `docs/epic/tasks_EPIC_154/01_phase1_plan.md`.
+- Execute Tier 2 implementation on Phase 1: `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
 - Execute subsequent phases 1 through 7 step-by-step with localized tests, audits, and atomic commits.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
