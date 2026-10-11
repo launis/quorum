@@ -544,7 +544,6 @@ class LLMNodeStrategy(NodeStrategy):
         )
 
         user_payload = prompt_payload.user_payload
-        base_system_prompt = prompt_payload.base_system_prompt
 
         if output_profile:
             exec_params = ["\n<execution_parameters>"]
@@ -568,7 +567,7 @@ class LLMNodeStrategy(NodeStrategy):
             exec_params.append("</execution_parameters>")
 
             if len(exec_params) > 2:
-                base_system_prompt += "\n".join(exec_params)
+                user_payload += "\n" + "\n".join(exec_params)
 
         chunks_list: list[Any] = []
 

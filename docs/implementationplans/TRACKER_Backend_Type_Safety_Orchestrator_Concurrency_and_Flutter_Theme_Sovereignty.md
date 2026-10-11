@@ -33,7 +33,7 @@
   - [x] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
   - [x] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
   - [x] Step 10: Enforce Fail-Fast Purity Scanning in caching_service.py
-  - [ ] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
+  - [x] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
   - [ ] Step 12: Harden SDUI Adapters, Dumb Painter Boundaries and Relocate SduiMapperService
   - [ ] Step 13: Enforce Theme Sovereignty, Strict Boundary Validation, and Flutter UI Hardening
   - [ ] Step 14: Implement Targeted QGR029 AST Guardrail, Polyfactory Suite Expansion and Test Fixture Hardening
@@ -134,7 +134,7 @@
 | REQ-013 | Eradicate regex prompt scraping (`<execution_parameters>`) in `prompt_compiler_adapter.py` | Step 9 | [x] Completed |
 | REQ-014 | Remove silent message-popping shims (`last_msg = static_msgs.pop()`) in `prompt_compiler_adapter.py` | Step 9 | [x] Completed |
 | REQ-015 | Upgrade passive purity logging to Fail-Fast `AppException` in `caching_service.py` | Step 10 | [x] Completed |
-| REQ-016 | Purge dynamic output profile injection from `base_system_prompt` and move to `user_payload` in `strategies/llm.py` | Step 11 | [ ] Pending |
+| REQ-016 | Purge dynamic output profile injection from `base_system_prompt` and move to `user_payload` in `strategies/llm.py` | Step 11 | [x] Completed |
 | REQ-017 | Eradicate heuristic axis count guessing fallbacks and ad-hoc `MarkdownBlock` headers in `matrix_graphs_adapter.py` | Step 12 | [ ] Pending |
 | REQ-018 | Eradicate manual string concatenations and punctuation surgery in `penalties_adapter.py` | Step 12 | [ ] Pending |
 | REQ-019 | Eliminate `or STANDARD_COLUMNS` lazy code fallback in `matrix_summary_table_adapter.py` | Step 12 | [ ] Pending |
