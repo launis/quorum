@@ -81,6 +81,12 @@
         <mandatory_pattern>ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandatory_pattern>
         <catastrophic_reason>Hardcoding credentials in source code creates severe security vulnerabilities, leaks private keys into version control, breaks multi-tenant and multi-environment isolation, and violates enterprise compliance and security audits.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="localhost_endpoint_hardcoding_ban">
+        <banned_pattern>Hardcoding local hostnames, loopback IPs, or test URLs (such as `http://localhost:8000`, `http://127.0.0.1:8000`, or arbitrary port numbers) directly in application source code (.py, .dart), repositories, client services, or tests.</banned_pattern>
+        <mandatory_pattern>ALL service URLs, ports, base endpoints, and WebSocket addresses MUST be resolved strictly through centralized environment configuration (`settings.py` / `Settings` in Python, or Riverpod environment providers in Flutter). Hardcoding localhost endpoints in source files is STRICTLY PROHIBITED.</mandatory_pattern>
+        <catastrophic_reason>Hardcoded local endpoints break multi-environment deployments, cause silent cross-container communication failures, and leak staging or local developer ports into production artifacts.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

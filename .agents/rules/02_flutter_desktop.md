@@ -48,6 +48,10 @@
         <mandate>NEVER use immutable collections packages for list state or deeply check massive arrays manually. ALWAYS use native Dart `List<T>` combined explicitly with `@Freezed(equal: false)` to bypass O(N^2) deep equality hits on Master Views.</mandate>
     </rule_block>
 
+    <rule_block id="localhost_endpoint_hardcoding_ban">
+        <mandate>NEVER hardcode `http://localhost:8000`, `http://127.0.0.1`, or explicit port numbers in Flutter widgets, repositories, or services. ALL API base URLs and WebSocket endpoints MUST be injected via Riverpod environment configuration providers or compile-time environment variables (`String.fromEnvironment`).</mandate>
+    </rule_block>
+
     <rule_block id="riverpod_read_vs_watch_ban">
         <mandate>NEVER use `ref.read` inside `build()`, and NEVER use `ref.watch` inside callbacks. Inside `build()`, use ONLY `ref.watch(provider)`. `ref.read` is strictly reserved for one-time execution inside event callbacks (`onPressed`).</mandate>
     </rule_block>

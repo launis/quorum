@@ -107,6 +107,12 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     </step>
 
     <step id="5" name="TASK MANAGEMENT, CONTINUOUS LOOP &amp; STATE RECOVERY">
+      <gate name="PRE-COMMIT DIFF INTEGRITY AUDIT">Before executing ANY git commit, you MUST run `git diff` via `run_command` and audit changes against 3 critical AI defect patterns:
+        1) SILENT CUTS: Verify existing error handling, Logfire spans, telemetry attributes, or boundary validations were not silently deleted or truncated.
+        2) STUBS &amp; PLACEHOLDERS: Confirm zero `TODO`, `pass` (in non-abstract methods), `...`, or placeholder fallbacks returning empty arrays or default objects in new code.
+        3) TAUTOLOGICAL MOCKS: Confirm that newly added tests actually exercise real domain logic and branch transitions, rather than merely asserting mock return values.
+        If any unjustified line, stub, or silent cut is detected, fix it before staging and committing.
+      </gate>
       <action>When a milestone is successfully completed and verified, you MUST create an atomic commit using `run_command` (e.g., `git add [files]` and `git commit -m "feat: complete milestone X"`). Then perform Dual-Mode Tracking:
         1) If an Epic Tracker exists (e.g. `docs/epic/EPIC_XXX_tracker.md`): Update the Tracker document, marking completed steps with `[x]`.
         2) If NO Epic Tracker exists (Standalone Plan): Update the local `task.md` file dynamically as you complete each part of the implementation plan, marking them with `[x]`.</action>

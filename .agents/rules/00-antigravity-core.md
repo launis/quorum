@@ -139,6 +139,9 @@ trigger: always_on
     <rule_block id="credential_hardcoding_ban">
         <mandate>NEVER hardcode API keys, bearer tokens, service account keys, secrets, or provider credentials (such as Google Vertex AI, Google AI Studio, OpenAI, Anthropic) directly in source code (.py, .dart), configuration dictionaries, test mocks, seed files, or git commits. ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandate>
     </rule_block>
+    <rule_block id="localhost_endpoint_hardcoding_ban">
+        <mandate>NEVER hardcode local hostnames, loopback IPs, or test URLs (such as `http://localhost:8000`, `http://127.0.0.1:8000`, or arbitrary port numbers) directly in application code, repositories, client services, or tests. ALL service URLs, ports, and external endpoints MUST be resolved strictly through centralized configuration (`settings.py` / `Settings` in Python, or Riverpod environment configurations in Flutter). Hardcoding localhost endpoints in source files is strictly prohibited.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -216,5 +219,11 @@ trigger: always_on
     </rule_block>
     <rule_block id="preflight_schema_assertion_mandate">
         <mandate>Persistence unit and integration tests MUST assert that all stored and reconstituted documents pass root Pydantic V2 model validation without empty strings, missing foreign keys, or un-prefixed IDs. All entity IDs MUST strictly conform to `OPAQUE_STRIPE_ID_REGEX` and `EntityPrefix`. Tests asserting mock persistence MUST validate that the underlying payload matches the strict domain schema with `extra="forbid"` before accepting repository writes.</mandate>
+    </rule_block>
+    <rule_block id="tautological_mocking_ban">
+        <mandate>NEVER write self-validating, tautological unit tests that merely mock a dependency's return value and immediately assert that exact mocked return value without exercising real business logic, state mutations, or parameter transformations (e.g. `mock.execute.return_value = X; res = await service.execute(); assert res == X`). Tests MUST verify real computational side-effects, state transitions, domain invariants, schema validations, or use real pure compute engines (Pure Compute Engine Law). Zero tolerance for theater mocks that manufacture artificial 100% test passes.</mandate>
+    </rule_block>
+    <rule_block id="diff_silent_cut_and_stub_mandate">
+        <mandate>Before ANY git commit, you MUST physically review `git diff` against two catastrophic AI failure modes: 1) Silent Cuts (Vanished Logic): verify that existing error handling, Logfire telemetry spans, initialization routines, or schema validations were NOT silently wiped out to accommodate new snippets. 2) Stubs & Placeholders: ensure zero `TODO`, `pass` (in non-abstract methods), `...`, or placeholder fallbacks returning empty structures. If any line in the diff cannot be justified with an explicit failure mode, DO NOT commit.</mandate>
     </rule_block>
 </universal_quality_gate>

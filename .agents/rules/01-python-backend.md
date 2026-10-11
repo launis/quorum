@@ -64,6 +64,18 @@
         <mandate>NEVER hardcode API keys, bearer tokens, service account keys, secrets, or provider credentials (such as Google Vertex AI, Google AI Studio, OpenAI, Anthropic) directly in source code (.py), configuration dictionaries, test mocks, seed files, or git commits. ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandate>
     </rule_block>
 
+    <rule_block id="unbounded_io_timeout_mandate">
+        <mandate>NEVER initiate unbounded network requests, database sessions, HTTP client calls (`httpx.AsyncClient`), Redis connections, or asynchronous subprocesses without an explicit timeout and context manager. ALL I/O calls MUST: 1) Specify an explicit timeout resolved strictly from `settings.py` (e.g. `timeout=settings.http_client_timeout_seconds`), 2) Be wrapped within an asynchronous context manager (`async with`) to guarantee deterministic connection cleanup, 3) Catch transient transport exceptions and translate them to typed `AppException`. Unbounded I/O and dangling client handles are strictly prohibited.</mandate>
+    </rule_block>
+
+    <rule_block id="tautological_mocking_ban">
+        <mandate>NEVER write self-validating, tautological unit tests that merely mock a dependency's return value and immediately assert that exact mocked return value without exercising real business logic, state mutations, or parameter transformations (e.g. `mock.execute.return_value = X; res = await service.execute(); assert res == X`). Tests MUST verify real computational side-effects, state transitions, domain invariants, schema validations, or use real pure compute engines (Pure Compute Engine Law). Zero tolerance for theater mocks that manufacture artificial 100% test passes.</mandate>
+    </rule_block>
+
+    <rule_block id="localhost_endpoint_hardcoding_ban">
+        <mandate>NEVER hardcode local hostnames, loopback IPs, or test URLs (such as `http://localhost:8000`, `http://127.0.0.1:8000`, or arbitrary port numbers) directly in application code, repositories, client services, or tests. ALL service URLs, ports, and external endpoints MUST be resolved strictly through centralized configuration (`settings.py` / `Settings`). Hardcoding localhost endpoints in source files is strictly prohibited.</mandate>
+    </rule_block>
+
     <rule_block id="de_generator_mandate_no_xml">
         <mandate>NEVER use XML tags (`<system_directive>`, `<role>`, `<objective>`) inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`). ALWAYS write pure business logic using Markdown headings (`ROLE:`, `OBJECTIVE:`); `prompt_factory.py` automatically injects required XML wrappers.</mandate>
     </rule_block>
