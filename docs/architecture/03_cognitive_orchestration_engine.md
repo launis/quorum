@@ -50,6 +50,10 @@ Macro step execution within `DAGExecutor` organizes workflow steps into Kahn's t
 #### Atomic Step Transitions & Lock-Guarded State Synchronization
 All DAG step state transitions are centralized in the atomic `ExecutionRecord.transition_step(step_id, status, progress, label, last_error, has_warning)` method. `DAGExecutor` acquires `async with self._update_lock:` to atomically synchronize both the `step_states` mapping and the `steps` list representation in an immutable model copy without in-place mutation, eliminating split-brain desynchronization and lock starvation without holding update locks across network requests or database commits.
 
+#### Pure State Reduction, Event-Sourced Context Updates & Wave Propagation
+Post-hook cognitive updates and pipeline deltas are processed through pure functional state reduction (`state_reducer.py`). Hook deltas (specifically `MatrixHookResultDTO` and `PassivityDetectionResultDTO`) map directly into typed fields on `GlobalContextVarsDTO` (including `evaluative_matrices` and `passivity_detected`) and merge into `ExecutionInputsDTO` without untyped dictionary accumulators or wrapper classes. When cognitive state is updated, the reducer emits a decision `TraceEvent` carrying `metadata.is_context_update = True`.
+Within `DAGExecutor`, the atomic `_update_lock` processes these events, validates the incoming payload using `GlobalContextVarsDTO.model_validate`, updates the in-memory global context variables, and commits them to `ExecutionRecord.metadata.global_context_vars`. Subsequent topological waves inherit this cumulative global context on their step `HookState`, ensuring deterministic, typed transit across wave boundaries. In `LLMStrategy`, post-hook matrix scorecard outputs and evaluative matrices are preserved in the execution result to guarantee uninterrupted delivery to downstream domain parsers and state projectors.
+
 #### TopologicalEvaluator Wave Crash Recovery
 Micro-level graph evaluation within `TopologicalEvaluator` shields batch evaluation callbacks against unhandled exceptions. Catching `BaseException` (including `ExceptionGroup`, `AppException`, and runtime cancellations) during batch execution marks all pending nodes in that wave and all unreached downstream children as `ExecutionStatus.SYSTEM_ERROR` or `ExecutionStatus.BLOCKED` with explicit crash reasoning, guaranteeing that graph evaluation never halts in an unrecoverable corrupted zombie state. Nodes marked `N_A`, `BLOCKED`, or `SYSTEM_ERROR` are completely pruned from subsequent batch dispatch.
 
@@ -152,12 +156,13 @@ Evaluation rigor across matrix models flows through a unified scoring engine par
 - **Piecewise Power-Curve Exponent**: Modulates the ratio using a continuous piecewise exponent curve ($e=1.00$ at 0% Free, $e=1.25$ at 50% Normal, $e=1.70$ at 85% Strict, and $e=2.20$ at 100% Absolute Zero-Trust), anchoring scoring to mathematical extrema derived dynamically from prompt block scales.
 - **Typed Return Contract**: Returns an immutable `ScoringResultDTO` containing the normalized score, structured XAI audit trace, and per-level breakdown mapped to `dict[str, LevelStatsDTO]`, eliminating anonymous tuple passing and primitive obsession dictionaries.
 
-### 2.20. Automated Score Deduction Penalties & Execution Hook Lifecycle
-Automated score deduction percentages are execution-tier parameters defined on `Workflow` entities and evaluated deterministically inside the scoring logic hook (`apply_scoring_logic_hook`):
+### 2.20. Automated Score Deduction Penalties & Holistic Scoring Engine
+Holistic evaluation scores and automated score deduction percentages are execution-tier parameters defined on `Workflow` entities and evaluated deterministically inside the scoring logic hook (`apply_scoring_logic_hook`):
+- **Holistic Score Aggregation**: The scoring engine aggregates evaluative matrix scores directly from `state.global_context_vars.evaluative_matrices`, calculating the commensurate base average across all completed matrices. If matrix evaluations are absent without an explicit indeterminate justification, strict fail-fast validation halts execution to protect report integrity.
 - **Automated Penalty Modalities**:
-  - *Security Penalty (`security_penalty`)*: Deducted when prompt injection, jailbreak attempts, or unauthorized role escape patterns are detected in inputs.
-  - *Post-Hoc Penalty (`post_hoc_penalty`)*: Deducted when post-hoc rationalization, retrospective excuses, or confabulated causality patterns are identified.
-  - *Passivity Penalty (`passivity_penalty`)*: Deducted when evasive, non-responsive, or passive avoidance behaviors are detected in candidate deliverables.
+  - *Security Penalty (`security_penalty`)*: Deducted when prompt injection, jailbreak attempts, or unauthorized role escape patterns are detected in inputs or `state.global_context_vars.sanitization.threat_detected`.
+  - *Post-Hoc Penalty (`post_hoc_penalty`)*: Deducted when post-hoc rationalization, retrospective excuses, or confabulated causality patterns are identified in falsifier analysis.
+  - *Passivity Penalty (`passivity_penalty`)*: Deducted when evasive, non-responsive, or passive avoidance behaviors are detected in candidate deliverables via `state.global_context_vars.passivity_detected`.
 - **Cumulative Clamping & Safety Bounds**: Cumulative penalty percentages are capped at `MAX_TOTAL_PENALTY_RATIO = 0.40` (40% maximum deduction). The finalized score is computed as `final_score = round(max(0.0, average_score * (1.0 - effective_penalty)), 1)`.
 - **Token Formatting & Audit Trail**: Active penalties are formatted as tokens (`PENALTY_<TYPE>:<PERCENTAGE>`) and stored in `scoring_result.penalties_applied` within `TraceScoringPayloadDTO`, locking the evaluation score permanently upon execution completion.
 

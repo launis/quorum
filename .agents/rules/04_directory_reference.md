@@ -87,7 +87,7 @@
 
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1/3)</responsibility>
-        <key_domains>scoring.py, interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
+        <key_domains>scoring/ (falsifier_hook.py, matrix_hook.py, normalization_hook.py, passivity_hook.py), interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
     </module>
 
     <module path="backend_v2/llm/">
