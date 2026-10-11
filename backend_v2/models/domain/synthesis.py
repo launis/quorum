@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Self
 
 if TYPE_CHECKING:
     from backend_v2.models.dtos.base import DataStarvationEvent
+    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
     from backend_v2.models.view.sdui import AnySduiBlock
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -22,7 +23,6 @@ from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2Core
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
-from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
@@ -221,7 +221,7 @@ class RenderedSynthesisCache(V2CoreBase):
 from backend_v2.models.domain.execution import ExecutionSummarySnapshot
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
-from backend_v2.models.state import StepExecutionEnvelope
+from backend_v2.models.execution_envelope import StepExecutionEnvelope
 
 
 class SynthesisMetadataDTO(V2CoreBase):

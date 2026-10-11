@@ -23,35 +23,14 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 
 
-class StepExecutionEnvelope(V2CoreBase):
-    """Base envelope for execution traces to prevent repetition and enforce DRY architecture.
-
-    Attributes:
-        execution_id: Unique execution identifier.
-        workflow_id: Workflow definition identifier.
-        step_id: Step definition identifier.
-        initiator_id: Initiator user or system identifier.
-        timestamp_isot: ISO timestamp string.
-        unix_time: Unix epoch time.
-        v2_engine: Engine flag indicator.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    execution_id: Annotated[str | None, Field(default=None)] = None
-    workflow_id: Annotated[str | None, Field(default=None)] = None
-    step_id: Annotated[str | None, Field(default=None)] = None
-    initiator_id: Annotated[str | None, Field(default=None)] = None
-    timestamp_isot: Annotated[str | None, Field(default=None)] = None
-    unix_time: Annotated[int | None, Field(default=None)] = None
-    v2_engine: Annotated[bool | None, Field(default=None)] = None
+from backend_v2.models.execution_envelope import StepExecutionEnvelope
 
 
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
@@ -303,6 +282,7 @@ _state_localns = {
     "ExecutionSummarySnapshot": ExecutionSummarySnapshot,
     "FrozenContext": FrozenContext,
     "RenderedSynthesisCache": RenderedSynthesisCache,
+    "GlobalContextVarsDTO": GlobalContextVarsDTO,
     "ScorecardAtomDTO": ScorecardAtomDTO,
     "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
 }
@@ -631,6 +611,8 @@ class StateProjector:
         self._trace_length += 1
 
         if event.event_type in ["output", "input"]:
+            from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+
             content = event.content
             if isinstance(content, StepOutputContentDTO):
                 self._snapshot[event.step_name] = content

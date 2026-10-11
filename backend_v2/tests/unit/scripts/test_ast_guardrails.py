@@ -1886,3 +1886,76 @@ def legacy_override(record):
     violations = _scan_snippet(code, filepath="backend_v2/services/execution/override_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 0
+
+
+# ==============================================================================
+# Partition 29: QGR029 Banned Untyped Dict Return in Test Fixtures
+# ==============================================================================
+
+
+def test_qgr029_fixture_untyped_dict_return_annotation_triggers_fatal() -> None:
+    """Scenario NEG-19: @pytest.fixture with dict return annotation triggers FATAL QGR029."""
+    code = (
+        "@pytest.fixture\n"
+        "def sample_data() -> dict" + "[str, Any]:\n"
+        '    return {"id": "123"}\n'
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr029 = [v for v in violations if v.rule_code == "QGR029"]
+    assert len(qgr029) == 1
+    assert qgr029[0].severity == GuardrailSeverity.FATAL
+    assert "Banned untyped dictionary return annotation" in qgr029[0].message
+    assert "sample_data()" in qgr029[0].message
+
+
+def test_qgr029_bare_dict_and_mapping_return_triggers_fatal() -> None:
+    """QGR029: @pytest.fixture with dict or Mapping return triggers FATAL."""
+    code = (
+        "@pytest.fixture\n"
+        "def sample_model() -> dict:\n"
+        '    return {"id": "123"}\n\n'
+        "@pytest.fixture\n"
+        "def sample_dto() -> Mapping" + "[str, object]:\n"
+        '    return {"val": 1}\n'
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr029 = [v for v in violations if v.rule_code == "QGR029"]
+    assert len(qgr029) == 2
+
+
+def test_qgr029_exempt_negative_validation_fixtures_allowed() -> None:
+    """QGR029: Fixtures providing raw JSON or negative validation payloads are exempt."""
+    code = (
+        "@pytest.fixture\n"
+        "def raw_json_payload() -> dict" + "[str, Any]:\n"
+        '    return {"invalid": True}\n\n'
+        "@pytest.fixture\n"
+        "def malformed_input_fixture() -> dict" + "[str, Any]:\n"
+        '    return {"bad": 123}\n\n'
+        "@pytest.fixture\n"
+        "def negative_test_doc() -> dict" + "[str, Any]:\n"
+        '    """Payload for negative validation testing with pytest.raises."""\n'
+        '    return {"missing": True}\n'
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr029 = [v for v in violations if v.rule_code == "QGR029"]
+    assert len(qgr029) == 0
+
+
+def test_qgr029_typed_model_fixture_and_client_calls_allowed() -> None:
+    """QGR029: Typed Pydantic model fixtures, client.post(json=...), and model_validate allow dict inputs."""
+    code = """
+@pytest.fixture
+def valid_workflow() -> Workflow:
+    return WorkflowFactory.build()
+
+async def test_endpoint(client, valid_workflow):
+    response = await client.post("/api/v2/test", json={"id": "123"})
+    assert response.status_code == 200
+    validated = Workflow.model_validate({"id": "wf_123", "name": {"translations": {"en": "W"}}})
+    assert validated.id == "wf_123"
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr029 = [v for v in violations if v.rule_code == "QGR029"]
+    assert len(qgr029) == 0
+

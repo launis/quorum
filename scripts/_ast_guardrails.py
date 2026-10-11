@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR028).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR029).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -34,6 +34,7 @@ __all__ = [
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
     "_is_dict_type_node",
+    "_is_pytest_fixture_decorator",
     "_is_repository_identifier",
     "format_violations_table",
     "is_boundary_exempt",
@@ -333,6 +334,26 @@ def _is_dict_type_node(node: ast.AST) -> bool:
             if isinstance(slice_node, ast.Tuple):
                 return any(_is_dict_type_node(elt) for elt in slice_node.elts)
             return _is_dict_type_node(slice_node)
+        case _:
+            return False
+
+
+def _is_pytest_fixture_decorator(decorator: ast.AST) -> bool:
+    """Checks if a decorator AST node represents @pytest.fixture or @fixture.
+
+    Args:
+        decorator: Decorator AST node to inspect.
+
+    Returns:
+        True if the decorator is @pytest.fixture or @fixture, False otherwise.
+    """
+    match decorator:
+        case ast.Name(id="fixture"):
+            return True
+        case ast.Attribute(value=ast.Name(id="pytest"), attr="fixture"):
+            return True
+        case ast.Call(func=func):
+            return _is_pytest_fixture_decorator(func)
         case _:
             return False
 
@@ -702,7 +723,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "L10N_MAP",
                         }
                         or name.startswith("client_")
-                        or name.endswith(("_router", "_subrouter", "_client", "_table"))
+                        or name.endswith(("_router", "_subrouter", "_client", "_table", "_driver"))
                         or name == "table"
                     ):
                         exempt = True
@@ -729,7 +750,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "L10N_MAP",
                         }
                         or attr_name.startswith("client_")
-                        or attr_name.endswith(("_router", "_subrouter", "_client", "_table"))
+                        or attr_name.endswith(("_router", "_subrouter", "_client", "_table", "_driver"))
                         or attr_name == "table"
                     ):
                         exempt = True
@@ -1615,6 +1636,48 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "Use Python 3.14 PEP 649/749 deferred annotations without quotes per `deferred_annotations_and_typing`.",
                             severity=GuardrailSeverity.FATAL,
                         )
+
+        # QGR029: Banned Untyped Dict Return in Test Fixtures
+        if self._is_test_file:
+            self._check_qgr029_fixture_returns(node)
+
+    def _check_qgr029_fixture_returns(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """QGR029: Banned Untyped Dict Return in Test Fixtures."""
+        is_fixture = any(_is_pytest_fixture_decorator(d) for d in node.decorator_list)
+        if not is_fixture:
+            return
+
+        name_lower = node.name.lower()
+        exempt_patterns = (
+            "raw_json",
+            "malformed",
+            "invalid",
+            "negative",
+            "payload",
+            "unvalidated",
+            "bad_",
+            "corrupt",
+            "_doc",
+        )
+        if any(p in name_lower for p in exempt_patterns):
+            return
+
+        docstring = ast.get_docstring(node) or ""
+        doc_lower = docstring.lower()
+        if any(
+            p in doc_lower
+            for p in ("negative validation", "pytest.raises", "validation error", "malformed", "raw json")
+        ):
+            return
+
+        if node.returns is not None and _is_dict_type_node(node.returns):
+            self._add_violation(
+                node.returns,
+                "QGR029",
+                f"Banned untyped dictionary return annotation `{ast.unparse(node.returns)}` in test fixture `{node.name}()`.",
+                "Use strongly typed Polyfactory model factories (`model_factories.py`) or explicit Pydantic V2 DTOs instead of returning raw dictionaries from test fixtures per QGR029.",
+                severity=GuardrailSeverity.FATAL,
+            )
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._check_qgr026_decorators(node)

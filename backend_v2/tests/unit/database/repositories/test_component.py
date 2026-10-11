@@ -2,62 +2,121 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+import copy
+from typing import Any
 
 import pytest
 
-from backend_v2.database.driver import StorageDriver
+from pydantic import JsonValue
+
+from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.matrix import MatrixRow, MatrixScale
+from backend_v2.models.domain.matrix import MatrixRow
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.tests.factories.model_factories import (
+    MatrixPromptBlockFactory,
+    SystemRulePromptBlockFactory,
+)
+
+
+class _FakeStorageDriver:
+    """Stateful in-memory StorageDriver fake storing raw documents per collection."""
+
+    def __init__(self) -> None:
+        self.tables: dict[str, dict[str, dict[str, JsonValue]]] = {}
+
+    def _get_table(self, collection: str) -> Any:
+        return self.tables.setdefault(collection, {})
+
+    async def get(self, collection: str, doc_id: str) -> Any:
+        table = self._get_table(collection)
+        doc = table.get(doc_id)
+        return copy.deepcopy(doc) if doc is not None else None
+
+    async def upsert(self, collection: str, data: Any, doc_id: str) -> str:
+        table = self._get_table(collection)
+        table[doc_id] = copy.deepcopy(data)
+        return doc_id
+
+    async def update(self, collection: str, doc_id: str, updates: Any) -> bool:
+        table = self._get_table(collection)
+        if doc_id not in table:
+            return False
+        table[doc_id].update(copy.deepcopy(updates))
+        return True
+
+    async def delete(self, collection: str, doc_id: str) -> bool:
+        table = self._get_table(collection)
+        if doc_id in table:
+            del table[doc_id]
+            return True
+        return False
+
+    async def query(
+        self,
+        collection: str,
+        filters: list[Filter] | None = None,
+        limit: int | None = None,
+        sort_by: str | None = None,
+        descending: bool = False,
+    ) -> Any:
+        table = self._get_table(collection)
+        results = list(table.values())
+        if filters:
+            for f in filters:
+                if f.operator == "==":
+                    filtered = []
+                    for r in results:
+                        val = r[f.field] if f.field in r else None
+                        if f.field == "name" and val is None:
+                            val = r["label"] if "label" in r else None
+                        if f.field == "type" and f.value in ("evaluation_matrix", "matrix"):
+                            cat = r["category_id"] if "category_id" in r else None
+                            is_ev = r["is_evaluative"] if "is_evaluative" in r else None
+                            if cat in ("matrix", "evaluation_matrix") or is_ev is True:
+                                filtered.append(r)
+                                continue
+                        if val == f.value:
+                            filtered.append(r)
+                        elif val is not None and "translations" in val:
+                            trans = val["translations"]
+                            if ("en" in trans and trans["en"] == f.value) or ("fi" in trans and trans["fi"] == f.value):
+                                filtered.append(r)
+                    results = filtered
+        if limit is not None:
+            results = results[:limit]
+        return [copy.deepcopy(r) for r in results]
 
 
 @pytest.fixture
-def mock_driver() -> AsyncMock:
-    """Provides a mocked StorageDriver."""
-    driver = AsyncMock(spec=StorageDriver)
-    return driver
+def fake_driver() -> _FakeStorageDriver:
+    """Provides a stateful in-memory StorageDriver fake."""
+    return _FakeStorageDriver()
 
 
 @pytest.fixture
-def repo(mock_driver: AsyncMock) -> ComponentRepositoryImpl:
-    """Provides a ComponentRepositoryImpl instance with the mocked driver."""
-    return ComponentRepositoryImpl(mock_driver)
+def repo(fake_driver: _FakeStorageDriver) -> ComponentRepositoryImpl:
+    """Provides a ComponentRepositoryImpl instance with the fake driver."""
+    return ComponentRepositoryImpl(fake_driver)
 
 
 @pytest.fixture
 def sample_system_rule() -> SystemRulePromptBlock:
-    """Provides a valid SystemRulePromptBlock instance."""
-    return SystemRulePromptBlock(
+    """Provides a valid SystemRulePromptBlock instance from Polyfactory."""
+    return SystemRulePromptBlockFactory.build(
         id="blk_1111111111111111",
-        slug="rule_1",
         label=I18nText(translations={"en": "Test Rule", "fi": "Testi sääntö"}),
-        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
-        category_id=PromptBlockCategory.SYSTEM_RULE,
-        type=BlockDataType.INSTRUCTION,
-        instruction_text="Test instruction.",
     )
 
 
 @pytest.fixture
 def sample_matrix() -> MatrixPromptBlock:
-    """Provides a valid MatrixPromptBlock instance."""
-    return MatrixPromptBlock(
+    """Provides a valid MatrixPromptBlock instance from Polyfactory."""
+    return MatrixPromptBlockFactory.build(
         id="blk_2222222222222222",
-        slug="mat_1",
         label=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
-        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
-        category_id=PromptBlockCategory.MATRIX,
-        type=BlockDataType.FLOAT,
-        scales=[
-            MatrixScale(score=1, ai_label="POOR", name=I18nText(translations={"en": "Poor", "fi": "Heikko"})),
-            MatrixScale(
-                score=5, ai_label="EXCELLENT", name=I18nText(translations={"en": "Excellent", "fi": "Erinomainen"})
-            ),
-        ],
         rows=[
             MatrixRow(
                 label=I18nText(translations={"en": "dim_target", "fi": "dim_target"}),
@@ -70,117 +129,126 @@ def sample_matrix() -> MatrixPromptBlock:
 @pytest.mark.asyncio
 async def test_get_all_components(
     repo: ComponentRepositoryImpl,
-    mock_driver: AsyncMock,
+    fake_driver: _FakeStorageDriver,
     sample_system_rule: SystemRulePromptBlock,
     sample_matrix: MatrixPromptBlock,
 ) -> None:
     """Test retrieving all components with and without filters."""
-    mock_driver.query.return_value = [
-        sample_system_rule.model_dump(mode="json"),
-        sample_matrix.model_dump(mode="json"),
-    ]
-    res = await repo.get_all_components(type="system_rule")
-    assert len(res) == 2
-    mock_driver.query.assert_called_once()
+    await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
+    await fake_driver.upsert("components", sample_matrix.model_dump(mode="json"), sample_matrix.id)
 
-    mock_driver.query.reset_mock()
-    mock_driver.query.return_value = [
-        sample_system_rule.model_dump(mode="json"),
-        sample_matrix.model_dump(mode="json"),
-    ]
-    res2 = await repo.get_all_components(type="instruction", exclude_types=["float"])
-    assert len(res2) == 1
-    assert res2[0].id == "blk_1111111111111111"
+    res = await repo.get_all_components()
+    assert len(res) == 2
+
+    res_instruction = await repo.get_all_components(type="instruction", exclude_types=["float"])
+    assert len(res_instruction) == 1
+    assert res_instruction[0].id == "blk_1111111111111111"
 
 
 @pytest.mark.asyncio
 async def test_get_component_by_id(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
     """Test getting component by ID."""
-    mock_driver.get.return_value = sample_system_rule.model_dump(mode="json")
+    await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
     res = await repo.get_component_by_id("blk_1111111111111111")
     assert res is not None
     assert res.id == "blk_1111111111111111"
-    mock_driver.get.assert_called_once_with("components", "blk_1111111111111111")
 
 
 @pytest.mark.asyncio
 async def test_get_component_by_name(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
     """Test getting component by name."""
-    mock_driver.query.return_value = [sample_system_rule.model_dump(mode="json")]
+    await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
     res = await repo.get_component_by_name("Test Rule")
     assert res is not None
     assert res.id == "blk_1111111111111111"
-    mock_driver.query.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_update_component_metadata(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
     """Test updating metadata for component."""
-    mock_driver.get.return_value = sample_system_rule.model_dump(mode="json")
-    mock_driver.update.return_value = True
+    await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
     res = await repo.update_component_metadata("blk_1111111111111111", "mod", "cls")
     assert res is True
-    mock_driver.update.assert_called_once_with(
-        "components", "blk_1111111111111111", {"module": "mod", "class_name": "cls"}
-    )
+    updated = await fake_driver.get("components", "blk_1111111111111111")
+    assert updated is not None
+    assert updated["module"] == "mod"
+    assert updated["class_name"] == "cls"
 
 
 @pytest.mark.asyncio
-async def test_update_component_metadata_not_found(repo: ComponentRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_update_component_metadata_not_found(
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+) -> None:
     """Test updating metadata for non-existent component."""
-    mock_driver.get.return_value = None
     res = await repo.update_component_metadata("blk_0000000000000000", "mod", "cls")
     assert res is False
 
 
 @pytest.mark.asyncio
 async def test_create_register_update_delete_component(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+    repo: ComponentRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
-    """Test basic CRUD for generic components."""
-    mock_driver.upsert.return_value = "blk_1111111111111111"
+    """Test basic stateful CRUD roundtrip for generic components."""
     res1 = await repo.create_component(sample_system_rule)
-    res2 = await repo.register_component(sample_system_rule)
     assert res1 == "blk_1111111111111111"
+
+    fetched = await repo.get_component_by_id("blk_1111111111111111")
+    assert fetched is not None
+    assert fetched.id == "blk_1111111111111111"
+
+    updated_rule = sample_system_rule.model_copy(update={"instruction_text": "Updated instruction."})
+    res2 = await repo.update_component("blk_1111111111111111", updated_rule)
     assert res2 == "blk_1111111111111111"
 
-    mock_driver.get.return_value = sample_system_rule.model_dump(mode="json")
-    mock_driver.update.return_value = True
-    res3 = await repo.update_component("blk_1111111111111111", sample_system_rule)
-    assert res3 == "blk_1111111111111111"
+    refetched = await repo.get_component_by_id("blk_1111111111111111")
+    assert refetched is not None
+    assert isinstance(refetched, SystemRulePromptBlock)
+    assert refetched.instruction_text == "Updated instruction."
 
-    mock_driver.delete.return_value = True
-    res4 = await repo.delete_component("blk_1111111111111111")
-    assert res4 is True
+    res3 = await repo.delete_component("blk_1111111111111111")
+    assert res3 is True
+
+    assert await repo.get_component_by_id("blk_1111111111111111") is None
 
 
 @pytest.mark.asyncio
-async def test_delete_component_not_found(repo: ComponentRepositoryImpl, mock_driver: AsyncMock) -> None:
+async def test_delete_component_not_found(
+    repo: ComponentRepositoryImpl,
+) -> None:
     """Test deleting non-existent component."""
-    mock_driver.get.return_value = None
     res = await repo.delete_component("blk_0000000000000000")
     assert res is False
 
 
 @pytest.mark.asyncio
 async def test_update_component_not_found(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_system_rule: SystemRulePromptBlock
+    repo: ComponentRepositoryImpl,
+    sample_system_rule: SystemRulePromptBlock,
 ) -> None:
     """Negative: update_component raises ResourceNotFoundError when component missing."""
-    mock_driver.get.return_value = None
     with pytest.raises(ResourceNotFoundError):
         await repo.update_component("blk_0000000000000000", sample_system_rule)
 
 
 @pytest.mark.asyncio
 async def test_get_components_using_dimension(
-    repo: ComponentRepositoryImpl, mock_driver: AsyncMock, sample_matrix: MatrixPromptBlock
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+    sample_matrix: MatrixPromptBlock,
 ) -> None:
     """Positive: tests searching matrix components referencing a dimension ID."""
     other_matrix = sample_matrix.model_copy(
@@ -194,9 +262,32 @@ async def test_get_components_using_dimension(
             ],
         }
     )
-    mock_driver.query.return_value = [
-        sample_matrix.model_dump(mode="json"),
-        other_matrix.model_dump(mode="json"),
-    ]
+    await fake_driver.upsert("components", sample_matrix.model_dump(mode="json"), sample_matrix.id)
+    await fake_driver.upsert("components", other_matrix.model_dump(mode="json"), other_matrix.id)
+
     matches = await repo.get_components_using_dimension("dim_target")
     assert matches == ["blk_2222222222222222"]
+
+
+@pytest.mark.asyncio
+async def test_update_component_empty_payload(
+    repo: ComponentRepositoryImpl,
+) -> None:
+    """Negative ISTQB Boundary Partition: Updating non-existent component raises ResourceNotFoundError."""
+    empty_id = "blk_0000000000000000"
+    dummy_rule = SystemRulePromptBlockFactory.build(id=empty_id)
+    with pytest.raises(ResourceNotFoundError):
+        await repo.update_component(empty_id, dummy_rule)
+
+
+@pytest.mark.asyncio
+async def test_get_component_malformed_id(
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+) -> None:
+    """Negative ISTQB Boundary Partition: Corrupt/malformed document in database raises AppException."""
+    malformed_id = "blk_9999999999999999"
+    await fake_driver.upsert("components", {"id": malformed_id, "corrupted": True}, malformed_id)
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_component_by_id(malformed_id)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

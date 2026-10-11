@@ -36,7 +36,7 @@
   - [x] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
   - [x] Step 12: Harden SDUI Adapters, Dumb Painter Boundaries and Relocate SduiMapperService
   - [x] Step 13: Enforce Theme Sovereignty, Strict Boundary Validation, and Flutter UI Hardening
-  - [ ] Step 14: Implement Targeted QGR029 AST Guardrail, Polyfactory Suite Expansion and Test Fixture Hardening
+  - [x] Step 14: Implement Targeted QGR029 AST Guardrail, Polyfactory Suite Expansion and Test Fixture Hardening
   - [ ] Step 15: Implement ISTQB Unit Tests and Verify Quality Gates
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md] @[docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md]`
 
@@ -146,7 +146,7 @@
 | REQ-025 | Extract hardcoded UI chrome strings into `.arb` localization files with 1:1 English/Finnish parity | Step 13 | [x] Completed |
 | REQ-026 | Wrap autonomous composite SDUI blocks with `AppErrorBoundary` in `sdui_blocks_renderer.dart` | Step 13 | [x] Completed |
 | REQ-027 | Implement static audit CLI `scripts/audit_flutter_theme_sovereignty.py` | Step 13 | [x] Completed |
-| REQ-028 | Implement AST guardrail `QGR029`, Polyfactory suite expansion, static test snapshot DTO deserialization, and repository persistence refactor | Step 14 | [ ] Pending |
+| REQ-028 | Implement AST guardrail `QGR029`, Polyfactory suite expansion, static test snapshot DTO deserialization, and repository persistence refactor | Step 14 | [x] Completed |
 | REQ-029 | Implement comprehensive ISTQB unit tests, verification suites, and pass all automated quality gates | Step 15 | [ ] Pending |
 
 # Session Handover Context

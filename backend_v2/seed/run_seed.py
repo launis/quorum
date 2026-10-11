@@ -61,6 +61,9 @@ if str(PROJECT_ROOT) not in sys.path:
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.state import StateProjector as _StateProjector
+
+_ = _StateProjector
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.step import Step
