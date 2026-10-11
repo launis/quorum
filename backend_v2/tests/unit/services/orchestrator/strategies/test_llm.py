@@ -32,7 +32,7 @@ def _make_mock_hook_state(
     elif inputs is not None:
         raw_val = inputs["inputs"] if "inputs" in inputs else {}
         raw = dict(raw_val) if type(raw_val) is dict else {}
-        dyn = {k: v for k, v in inputs.items() if k not in ("inputs", "raw_inputs")}
+        dyn = {k: v for k, v in inputs.items() if k not in ("inputs", "raw_inputs", "shuffled_atoms")}
         inp = ExecutionInputsDTO.model_construct(raw_inputs=raw, dynamic_inputs=dyn)
     else:
         inp = ExecutionInputsDTO()
@@ -553,7 +553,7 @@ async def test_llm_strategy_missing_atoms_crash(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "missing 'shuffled_atoms'" in exc_info.value.message
+    assert "Matrix step missing 'shuffled_atoms' in global_context_vars." in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -1622,7 +1622,12 @@ async def test_execute_matrix_chunking_flow(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO(
+        shuffled_atoms=[
+            FlattenedAtom(atom_id="atm_1111111111111111", question="Atom 1"),
+            FlattenedAtom(atom_id="atm_2222222222222222", question="Atom 2"),
+        ]
+    )
     context.target_locale = "en"
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.organization_id = None
@@ -1701,13 +1706,9 @@ async def test_execute_matrix_chunking_flow(
     )
 
     mock_hook_state = _make_mock_hook_state(
-        {
-            "shuffled_atoms": [
-                FlattenedAtom(atom_id="atm_1111111111111111", question="Atom 1"),
-                FlattenedAtom(atom_id="atm_2222222222222222", question="Atom 2"),
-            ]
-        },
+        {},
         metadata=context.metadata,
+        global_context_vars=context.global_context_vars,
     )
 
     from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
@@ -1912,7 +1913,7 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.global_context_vars = GlobalContextVarsDTO(shuffled_atoms=[])
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
 
@@ -1964,7 +1965,10 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
         ]
     )
 
-    mock_hook_state = _make_mock_hook_state({"shuffled_atoms": []})
+    mock_hook_state = _make_mock_hook_state(
+        {},
+        global_context_vars=GlobalContextVarsDTO(shuffled_atoms=[]),
+    )
 
     from unittest.mock import AsyncMock, patch
 

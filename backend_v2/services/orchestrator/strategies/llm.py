@@ -492,26 +492,28 @@ class LLMNodeStrategy(NodeStrategy):
         hydrated_shuffled_atoms = None
         is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
         if is_matrix_step:
-            try:
-                raw_atoms = state_data["shuffled_atoms"]
-            except KeyError as e:
+            shuffled_atoms = hook_state.global_context_vars.shuffled_atoms
+            if shuffled_atoms is None:
                 logger.error(
-                    "Matrix step missing 'shuffled_atoms' in state data.",
+                    "Matrix step missing 'shuffled_atoms' in global_context_vars.",
                     exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
                 )
                 raise AppException(
-                    message="Matrix step missing 'shuffled_atoms' in state data.",
+                    message="Matrix step missing 'shuffled_atoms' in global_context_vars.",
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-            from pydantic import TypeAdapter
-
-            from backend_v2.models.dtos.engine import FlattenedAtom
-
-            hydrated_shuffled_atoms = TypeAdapter(list[FlattenedAtom]).validate_python(raw_atoms, strict=False)
-            if hydrated_shuffled_atoms:
-                has_shuffled_atoms = True
+                )
+            if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
+                msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
+                logger.error("[LLMStrategy] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            hydrated_shuffled_atoms = shuffled_atoms
+            has_shuffled_atoms = True
 
         # Tier 4 Fix: AliasEngine is initialized with clean state.
         # prompt_compiler.build_xml_context() will register source doc aliases via .register().
@@ -571,21 +573,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         chunks_list: list[Any] = []
 
-        if is_matrix_step and "shuffled_atoms" in state_data:
-            shuffled_atoms = state_data["shuffled_atoms"]
-
-            if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
-                msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
-                logger.error("[LLMStrategy] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-
+        if is_matrix_step and hydrated_shuffled_atoms:
             req = ChunkingRequest(
                 parent_id=context.workflow_id,
-                items=shuffled_atoms,
+                items=hydrated_shuffled_atoms,
                 max_chunk_size=get_settings().schema_max_evaluations,
             )
             chunks_list = ChunkingService.chunk_payload(req)
