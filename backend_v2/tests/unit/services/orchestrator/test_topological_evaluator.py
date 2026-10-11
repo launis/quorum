@@ -340,3 +340,65 @@ async def test_missing_node_from_batch_response() -> None:
     assert states["tda_1111111111111111"].status == ExecutionStatus.PASSED
     assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
     assert states["tda_2222222222222222"].evaluation_reasoning == "Missing from batch response"
+
+
+@pytest.mark.asyncio
+async def test_dlq_marking_on_unexpected_runtime_error_and_downstream_blocked() -> None:
+    """Verify Scenario NEG-06: RuntimeError in callback transitions wave nodes to SYSTEM_ERROR and children to BLOCKED."""
+    evaluator = TopologicalEvaluator()
+    node1 = LinkedAtomGraph(atom=create_atom("tda_1111111111111111"))
+    node2 = LinkedAtomGraph(
+        atom=create_atom("tda_2222222222222222"),
+        depends_on=[
+            CausalEdge(
+                edge_reasoning="reason",
+                tda_id="tda_1111111111111111",
+                source_id="src",
+                expected_status=ExecutionStatus.PASSED,
+            )
+        ],
+    )
+    nodes = [node1, node2]
+
+    async def crashing_callback(
+        batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        raise RuntimeError("Unexpected LLM cluster crash")
+
+    states = await evaluator.evaluate_graph(nodes, crashing_callback)
+
+    # Wave 0 node must be SYSTEM_ERROR
+    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert "EVALUATION_CRASH: Unexpected LLM cluster crash" in states["tda_1111111111111111"].evaluation_reasoning
+
+    # Downstream child must be BLOCKED
+    assert states["tda_2222222222222222"].status == ExecutionStatus.BLOCKED
+
+    # Zero nodes may remain PENDING
+    for tda_id, state in states.items():
+        assert state.status != ExecutionStatus.PENDING, f"Node {tda_id} remained PENDING"
+
+
+@pytest.mark.asyncio
+async def test_dlq_marking_on_exception_group() -> None:
+    """Tests that ExceptionGroup in callback transitions nodes to SYSTEM_ERROR."""
+    evaluator = TopologicalEvaluator()
+    nodes = [
+        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+    ]
+
+    async def eg_callback(
+        batch_nodes: list[LinkedAtomGraph],
+        current_states: dict[str, AtomExecutionState],
+    ) -> dict[str, AtomEvaluationResultDTO]:
+        raise ExceptionGroup("Batch evaluation errors", [ValueError("Err 1"), TimeoutError("Err 2")])
+
+    states = await evaluator.evaluate_graph(nodes, eg_callback)
+
+    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_1111111111111111"].evaluation_reasoning
+    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_2222222222222222"].evaluation_reasoning
+

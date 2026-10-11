@@ -6,11 +6,12 @@ preventing deadlocks and enabling bulk micro-prompt batching.
 """
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 
 import networkx as nx
 
-from backend_v2.exceptions import AppException
+logger = logging.getLogger(__name__)
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
     AtomExecutionState,
@@ -43,12 +44,12 @@ class TopologicalEvaluator:
     """
 
     @staticmethod
-    def _dlq_mark_node_error(state: AtomExecutionState, exc: AppException) -> AtomExecutionState:
+    def _dlq_mark_node_error(state: AtomExecutionState, exc: BaseException) -> AtomExecutionState:
         """Dead-letter error recording for failed atom evaluations within wave.
 
         Args:
             state: The current atom execution state to update.
-            exc: The caught application exception to record.
+            exc: The caught exception to record.
 
         Returns:
             Updated atom execution state with SYSTEM_ERROR status.
@@ -170,7 +171,8 @@ class TopologicalEvaluator:
                                     "evaluation_reasoning": "Missing from batch response",
                                 }
                             )
-                except AppException as e:
+                except BaseException as e:
+                    logger.error("[TopologicalEvaluator] Wave evaluation failed: %s", e, exc_info=True)
                     for node in pending_nodes:
                         states[node.atom.tda_id] = self._dlq_mark_node_error(states[node.atom.tda_id], e)
 
