@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import copy
 import logging
 from typing import TYPE_CHECKING, cast
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from pydantic import JsonValue
 
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
@@ -52,11 +50,6 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class _EvaluativeMatricesWrapperDTO(BaseModel):
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-    evaluative_matrices: dict[str, float] = Field(default_factory=dict)
-
-
 def merge_execution_inputs(
     base: ExecutionInputsDTO | None,
     delta: ExecutionInputsDTO | None,
@@ -80,25 +73,12 @@ def merge_execution_inputs(
         return ExecutionInputsDTO()
     if base is None:
         assert delta is not None
-        return ExecutionInputsDTO(
-            raw_inputs=dict(delta.raw_inputs),
-            dynamic_inputs=dict(delta.dynamic_inputs),
-            target_locale=delta.target_locale,
-            user_role=delta.user_role,
-        )
+        return delta
     if delta is None:
-        return ExecutionInputsDTO(
-            raw_inputs=dict(base.raw_inputs),
-            dynamic_inputs=dict(base.dynamic_inputs),
-            target_locale=base.target_locale,
-            user_role=base.user_role,
-        )
+        return base
 
-    merged_raw = copy.deepcopy(dict(base.raw_inputs))
-    merged_raw.update(copy.deepcopy(dict(delta.raw_inputs)))
-
-    merged_dynamic = copy.deepcopy(dict(base.dynamic_inputs))
-    merged_dynamic.update(copy.deepcopy(dict(delta.dynamic_inputs)))
+    merged_raw = {**base.raw_inputs, **delta.raw_inputs}
+    merged_dynamic = {**base.dynamic_inputs, **delta.dynamic_inputs}
 
     target_locale = base.target_locale
     if delta.target_locale is not None:
@@ -203,188 +183,76 @@ def reduce_hook_delta(
 
     if delta is not None:
         if isinstance(delta, ArchivistPrecedentsResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["archivist_precedents"] = delta.archivist_precedents
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"archivist_precedents": delta.archivist_precedents})
         elif isinstance(delta, PassivityDetectionResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["passivity_detected"] = delta.passivity_detected
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"passivity_detected": delta.passivity_detected})
         elif isinstance(delta, AnomalyRetryResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["llm_anomaly_retry_requested"] = delta.llm_anomaly_retry_requested
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(
+                update={"llm_anomaly_retry_requested": delta.llm_anomaly_retry_requested}
             )
         elif isinstance(delta, InputControlRatioResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["input_control_ratio"] = delta.input_control_ratio
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"input_control_ratio": delta.input_control_ratio})
         elif isinstance(delta, ProfilerMetricsDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["profiler_metrics"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"profiler_metrics": delta})
         elif isinstance(delta, ExternalEvidenceResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["external_evidence"] = delta.external_evidence
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"external_evidence": delta.external_evidence})
         elif isinstance(delta, FlatteningHookOutput):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["shuffled_atoms"] = delta.shuffled_atoms
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"shuffled_atoms": delta.shuffled_atoms})
         elif isinstance(delta, MatrixHookResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_raw = dict(current_state.inputs.raw_inputs)
-            for pb_id, matrix_out in delta.matrix_outputs.items():
-                updated_dynamic[pb_id] = matrix_out
-                updated_raw[pb_id] = matrix_out
-            for pb_id, missing_ctx in delta.missing_contexts.items():
-                updated_dynamic[f"{pb_id}_missing_context"] = missing_ctx
-                updated_raw[f"{pb_id}_missing_context"] = missing_ctx
-            eval_map: dict[str, float] = {}
-            if "_evaluative_matrices" in updated_dynamic:
-                raw_eval = updated_dynamic["_evaluative_matrices"]
-                if raw_eval is not None:
-                    try:
-                        wrapper = _EvaluativeMatricesWrapperDTO.model_validate({"evaluative_matrices": raw_eval})
-                        eval_map.update(wrapper.evaluative_matrices)
-                    except (ValidationError, ValueError, TypeError) as err:
-                        logger.error(
-                            "[StateReducer] Failed to parse _evaluative_matrices: %s",
-                            err,
-                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
-                        raise AppException(
-                            message=f"Invalid _evaluative_matrices in dynamic inputs: {err}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from err
-            for pb_id, matrix_out in delta.matrix_outputs.items():
-                if matrix_out.normalized_score is not None:
-                    eval_map[pb_id] = float(matrix_out.normalized_score)
-            if eval_map:
-                updated_dynamic["_evaluative_matrices"] = eval_map
-                updated_raw["_evaluative_matrices"] = eval_map
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=updated_raw,
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars if new_global_vars is not None else GlobalContextVarsDTO()
+            new_scores = {
+                pb_id: float(out.normalized_score)
+                for pb_id, out in delta.matrix_outputs.items()
+                if out.normalized_score is not None
+            }
+            if base_vars.evaluative_matrices is not None:
+                merged_eval = {**base_vars.evaluative_matrices, **new_scores}
+            else:
+                merged_eval = new_scores
+            new_global_vars = base_vars.model_copy(update={"evaluative_matrices": merged_eval})
         elif isinstance(delta, (AnalystOutput, EvaluationResult)):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["integrity_verified_output"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"integrity_verified_output": delta})
         elif isinstance(delta, SynthesisDistillationDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["distillation"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"distillation": delta})
         elif isinstance(delta, SanitizationResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["sanitization"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"sanitization": delta})
         elif isinstance(delta, BibliographyResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["bibliography"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
-        elif isinstance(delta, (MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO)):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["metadata"] = delta
-            if isinstance(delta, MetadataHookResultDTO):
-                updated_dynamic["_step_metadata"] = delta.step_metadata
-            elif isinstance(delta, StepMetadataDTO):
-                updated_dynamic["_step_metadata"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"bibliography": delta})
+        elif isinstance(delta, StepMetadataDTO):
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"step_metadata": delta})
+        elif isinstance(delta, MetadataHookResultDTO):
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"step_metadata": delta.step_metadata})
+        elif isinstance(delta, MetadataHookPayloadDTO):
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(
+                update={
+                    "initiator_id": delta.sys_initiator_id,
+                    "organization_id": delta.organization_id,
+                    "language": delta.language,
+                }
             )
         elif isinstance(delta, (ScoringResultDTO, TraceScoringPayloadDTO)):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["scoring"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"scoring": delta})
         elif isinstance(delta, InteractionAnalysisDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["interaction_analysis"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"interaction_analysis": delta})
         elif isinstance(delta, LinguisticsResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["linguistics"] = delta
-            updated_dynamic["step_linguistics"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
-            if current_state.global_context_vars is not None:
-                new_global_vars = current_state.global_context_vars.model_copy(update={"step_linguistics": delta})
-            else:
-                new_global_vars = GlobalContextVarsDTO(step_linguistics=delta)
+            base_vars = new_global_vars or GlobalContextVarsDTO()
+            new_global_vars = base_vars.model_copy(update={"step_linguistics": delta})
             emitted_events.append(
                 TraceEvent(
                     step_name=effective_step,
@@ -394,32 +262,11 @@ def reduce_hook_delta(
                 )
             )
         elif isinstance(delta, LLMProviderConfig):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["llm_config"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            new_metadata = current_state.metadata.model_copy(update={"provider_override": delta.provider})
         elif isinstance(delta, ValidationResultDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic["validation"] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            pass
         elif isinstance(delta, StepOutputDTO):
-            updated_dynamic = dict(current_state.inputs.dynamic_inputs)
-            updated_dynamic[delta.step_id] = delta
-            new_inputs = ExecutionInputsDTO(
-                raw_inputs=dict(current_state.inputs.raw_inputs),
-                dynamic_inputs=updated_dynamic,
-                target_locale=current_state.inputs.target_locale,
-                user_role=current_state.inputs.user_role,
-            )
+            pass
         elif isinstance(delta, ExecutionInputsDTO):
             new_inputs = merge_execution_inputs(current_state.inputs, delta)
         elif isinstance(delta, GlobalContextVarsDTO):

@@ -11,8 +11,20 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain.archival import PrecedentDTO
+from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
+from backend_v2.models.domain.interaction import InteractionAnalysisDTO
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.domain.matrix import FlattenedAtom
+from backend_v2.models.domain.metadata import StepMetadataDTO
+from backend_v2.models.domain.metrics import ProfilerMetricsDTO
+from backend_v2.models.domain.references import BibliographyResultDTO
+from backend_v2.models.domain.security import SanitizationResultDTO
+from backend_v2.models.dtos.lightweight_matrix import ScoringResultDTO
+from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 
 __all__ = ["GlobalContextVarsDTO"]
 
@@ -32,6 +44,20 @@ class GlobalContextVarsDTO(V2CoreBase):
         hydration_results: Upstream hydrated input source payloads.
         step_linguistics: Evaluated linguistic statistics and metrics.
         external_evidence: Aggregated external search evidence.
+        evaluative_matrices: Dynamic prompt block scores.
+        passivity_detected: Whether passivity was detected.
+        archivist_precedents: Historical archivist precedents retrieved from prior executions.
+        shuffled_atoms: Shuffled flattened atoms for matrix evaluation.
+        profiler_metrics: Profiler telemetry metrics.
+        distillation: Synthesis distillation payload.
+        scoring: Scoring result payload.
+        interaction_analysis: Interaction analysis payload.
+        bibliography: Bibliography citations payload.
+        sanitization: Sanitization payload.
+        llm_anomaly_retry_requested: Whether LLM anomaly retry was requested.
+        input_control_ratio: Input control ratio metric.
+        integrity_verified_output: Integrity verified analyst output or evaluation result.
+        step_metadata: Step metadata payload.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -66,4 +92,60 @@ class GlobalContextVarsDTO(V2CoreBase):
     external_evidence: Annotated[
         str | None,
         Field(default=None, description="Aggregated external search evidence."),
+    ] = None
+    evaluative_matrices: Annotated[
+        dict[str, float] | None,
+        Field(default=None, description="Dynamic prompt block scores."),
+    ] = None
+    passivity_detected: Annotated[
+        bool | None,
+        Field(default=None, description="Whether passivity was detected."),
+    ] = None
+    archivist_precedents: Annotated[
+        list[PrecedentDTO] | None,
+        Field(default=None, description="Historical archivist precedents retrieved from prior executions."),
+    ] = None
+    shuffled_atoms: Annotated[
+        list[FlattenedAtom] | None,
+        Field(default=None, description="Shuffled flattened atoms for matrix evaluation."),
+    ] = None
+    profiler_metrics: Annotated[
+        ProfilerMetricsDTO | None,
+        Field(default=None, description="Profiler telemetry metrics."),
+    ] = None
+    distillation: Annotated[
+        SynthesisDistillationDTO | None,
+        Field(default=None, description="Synthesis distillation payload."),
+    ] = None
+    scoring: Annotated[
+        ScoringResultDTO | TraceScoringPayloadDTO | None,
+        Field(default=None, description="Scoring result payload."),
+    ] = None
+    interaction_analysis: Annotated[
+        InteractionAnalysisDTO | None,
+        Field(default=None, description="Interaction analysis payload."),
+    ] = None
+    bibliography: Annotated[
+        BibliographyResultDTO | None,
+        Field(default=None, description="Bibliography citations payload."),
+    ] = None
+    sanitization: Annotated[
+        SanitizationResultDTO | None,
+        Field(default=None, description="Sanitization payload."),
+    ] = None
+    llm_anomaly_retry_requested: Annotated[
+        bool | None,
+        Field(default=None, description="Whether LLM anomaly retry was requested."),
+    ] = None
+    input_control_ratio: Annotated[
+        float | None,
+        Field(default=None, description="Input control ratio metric."),
+    ] = None
+    integrity_verified_output: Annotated[
+        AnalystOutput | EvaluationResult | None,
+        Field(default=None, description="Integrity verified analyst output or evaluation result."),
+    ] = None
+    step_metadata: Annotated[
+        StepMetadataDTO | None,
+        Field(default=None, description="Step metadata payload."),
     ] = None

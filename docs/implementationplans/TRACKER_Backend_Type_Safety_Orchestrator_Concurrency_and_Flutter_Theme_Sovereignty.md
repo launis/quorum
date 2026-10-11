@@ -27,8 +27,7 @@
   - [x] Step 1: Harden SynthesisMetadataDTO and TranslationResponseDTO Typing
   - [x] Step 2: Add Invariant Validation to StepPanelDTO
   - [x] Step 3: Unify FlattenedAtom Base Hierarchy
-  - [x] Step 4: Implement Atomic transition_step on ExecutionRecord
-  - [ ] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
+  - [x] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
   - [ ] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
   - [ ] Step 7: Harden TopologicalEvaluator Wave Crash Recovery
   - [ ] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
@@ -124,8 +123,8 @@
 | REQ-002 | Add `@model_validator(mode="after")` to `StepPanelDTO` verifying non-empty analysis payloads | Step 2 | [x] Completed |
 | REQ-003 | Clean up base class divergence on `FlattenedAtom` in `matrix.py` to inherit from `V2CoreBase` | Step 3 | [x] Completed |
 | REQ-004 | Implement atomic `ExecutionRecord.transition_step` synchronizing `steps` list and `step_states` dict | Step 4 | [x] Completed |
-| REQ-005 | Add strongly typed fields to `GlobalContextVarsDTO` for cognitive deltas and delete `_EvaluativeMatricesWrapperDTO` | Step 5 | [ ] Pending |
-| REQ-006 | Refactor `state_reducer.py` to execute pure Pydantic DTO updates (zero dict wrappers, zero `d[k]=v`) | Step 5 | [ ] Pending |
+| REQ-005 | Add strongly typed fields to `GlobalContextVarsDTO` for cognitive deltas and delete `_EvaluativeMatricesWrapperDTO` | Step 5 | [x] Completed |
+| REQ-006 | Refactor `state_reducer.py` to execute pure Pydantic DTO updates (zero dict wrappers, zero `d[k]=v`) | Step 5 | [x] Completed |
 | REQ-007 | Compute Kahn's topological waves and execute steps via wave-based `asyncio.TaskGroup` in `dag_executor.py` | Step 6 | [ ] Pending |
 | REQ-008 | Wrap wave execution with PEP 758 `except*` handlers and commit unreached steps to DLQ | Step 6 | [ ] Pending |
 | REQ-009 | Delegate all 11 state mutations in `dag_executor.py` to `exec_record.transition_step(...)` with `_update_lock` | Step 6 | [ ] Pending |

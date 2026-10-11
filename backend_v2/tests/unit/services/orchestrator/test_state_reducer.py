@@ -150,12 +150,14 @@ def test_reduce_hook_delta_passivity_and_anomaly() -> None:
 
     passivity_delta = HookDeltaDTO(delta=PassivityDetectionResultDTO(passivity_detected=True))
     new_state, events = reduce_hook_delta(state, passivity_delta, "stp_step_1")
-    assert new_state.inputs.dynamic_inputs["passivity_detected"] is True
+    assert new_state.global_context_vars is not None
+    assert new_state.global_context_vars.passivity_detected is True
     assert len(events) == 0
 
     anomaly_delta = HookDeltaDTO(delta=AnomalyRetryResultDTO(llm_anomaly_retry_requested=True))
     new_state2, events2 = reduce_hook_delta(state, anomaly_delta, "stp_step_1")
-    assert new_state2.inputs.dynamic_inputs["llm_anomaly_retry_requested"] is True
+    assert new_state2.global_context_vars is not None
+    assert new_state2.global_context_vars.llm_anomaly_retry_requested is True
     assert len(events2) == 0
 
 
@@ -194,12 +196,16 @@ def test_reduce_hook_delta_archivist_and_flattening() -> None:
     precedent = ArchivalPrecedentDTO(id="exe_old", date="2026-09-20", scores="5.0", verdict="Approved")
     arch_delta = HookDeltaDTO(delta=ArchivistPrecedentsResultDTO(archivist_precedents=[precedent]))
     new_state, _ = reduce_hook_delta(state, arch_delta)
-    assert len(new_state.inputs.dynamic_inputs["archivist_precedents"]) == 1
+    assert new_state.global_context_vars is not None
+    assert new_state.global_context_vars.archivist_precedents is not None
+    assert len(new_state.global_context_vars.archivist_precedents) == 1
 
     atom = FlattenedAtom(atom_id="atm_01", question="Criteria A?")
     flat_delta = HookDeltaDTO(delta=FlatteningHookOutput(shuffled_atoms=[atom]))
     new_state2, _ = reduce_hook_delta(state, flat_delta)
-    assert len(new_state2.inputs.dynamic_inputs["shuffled_atoms"]) == 1
+    assert new_state2.global_context_vars is not None
+    assert new_state2.global_context_vars.shuffled_atoms is not None
+    assert len(new_state2.global_context_vars.shuffled_atoms) == 1
 
 
 def test_reduce_hook_delta_matrix_hook_result() -> None:
@@ -216,9 +222,9 @@ def test_reduce_hook_delta_matrix_hook_result() -> None:
     )
 
     new_state, _ = reduce_hook_delta(state, matrix_delta)
-    assert "blk_test" in new_state.inputs.dynamic_inputs
-    assert new_state.inputs.dynamic_inputs["blk_test"] == matrix_out
-    assert new_state.inputs.dynamic_inputs["blk_test_missing_context"] == "Missing summary"
+    assert new_state.global_context_vars is not None
+    assert new_state.global_context_vars.evaluative_matrices is not None
+    assert new_state.global_context_vars.evaluative_matrices["blk_test"] == 80.0
 
 
 def test_reduce_hook_delta_input_control_and_profiler_and_evidence() -> None:
@@ -227,15 +233,19 @@ def test_reduce_hook_delta_input_control_and_profiler_and_evidence() -> None:
 
     ctrl_delta = HookDeltaDTO(delta=InputControlRatioResultDTO(input_control_ratio=0.75))
     s1, _ = reduce_hook_delta(state, ctrl_delta)
-    assert s1.inputs.dynamic_inputs["input_control_ratio"] == 0.75
+    assert s1.global_context_vars is not None
+    assert s1.global_context_vars.input_control_ratio == 0.75
 
     prof_delta = HookDeltaDTO(delta=ProfilerMetricsDTO(word_count=120))
     s2, _ = reduce_hook_delta(state, prof_delta)
-    assert s2.inputs.dynamic_inputs["profiler_metrics"].word_count == 120
+    assert s2.global_context_vars is not None
+    assert s2.global_context_vars.profiler_metrics is not None
+    assert s2.global_context_vars.profiler_metrics.word_count == 120
 
     ev_delta = HookDeltaDTO(delta=ExternalEvidenceResultDTO(external_evidence="rag data"))
     s3, _ = reduce_hook_delta(state, ev_delta)
-    assert s3.inputs.dynamic_inputs["external_evidence"] == "rag data"
+    assert s3.global_context_vars is not None
+    assert s3.global_context_vars.external_evidence == "rag data"
 
 
 def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
@@ -251,7 +261,8 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
         )
     )
     s1, _ = reduce_hook_delta(state, analyst_delta)
-    assert "integrity_verified_output" in s1.inputs.dynamic_inputs
+    assert s1.global_context_vars is not None
+    assert s1.global_context_vars.integrity_verified_output is not None
 
     eval_delta = HookDeltaDTO(
         delta=EvaluationResult(
@@ -268,11 +279,14 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
         )
     )
     s2, _ = reduce_hook_delta(state, eval_delta)
-    assert "integrity_verified_output" in s2.inputs.dynamic_inputs
+    assert s2.global_context_vars is not None
+    assert s2.global_context_vars.integrity_verified_output is not None
 
     dist_delta = HookDeltaDTO(delta=SynthesisDistillationDTO(distilled_inputs="compressed inputs"))
     s3, _ = reduce_hook_delta(state, dist_delta)
-    assert s3.inputs.dynamic_inputs["distillation"].distilled_inputs == "compressed inputs"
+    assert s3.global_context_vars is not None
+    assert s3.global_context_vars.distillation is not None
+    assert s3.global_context_vars.distillation.distilled_inputs == "compressed inputs"
 
 
 def test_reduce_hook_delta_security_and_references() -> None:
@@ -285,12 +299,16 @@ def test_reduce_hook_delta_security_and_references() -> None:
         )
     )
     s1, _ = reduce_hook_delta(state, san_delta)
-    assert s1.inputs.dynamic_inputs["sanitization"].security_status == "CLEAN"
+    assert s1.global_context_vars is not None
+    assert s1.global_context_vars.sanitization is not None
+    assert s1.global_context_vars.sanitization.security_status == "CLEAN"
 
     ref = ReferenceDTO(source_id="src_42", title="Architecture Spec", snippet="Section 3")
     bib_delta = HookDeltaDTO(delta=BibliographyResultDTO(references=[ref]))
     s2, _ = reduce_hook_delta(state, bib_delta)
-    assert len(s2.inputs.dynamic_inputs["bibliography"].references) == 1
+    assert s2.global_context_vars is not None
+    assert s2.global_context_vars.bibliography is not None
+    assert len(s2.global_context_vars.bibliography.references) == 1
 
 
 def test_reduce_hook_delta_metadata_variants() -> None:
@@ -299,7 +317,8 @@ def test_reduce_hook_delta_metadata_variants() -> None:
 
     payload_delta = HookDeltaDTO(delta=MetadataHookPayloadDTO(_sys_initiator_id="usr_admin"))
     s1, _ = reduce_hook_delta(state, payload_delta)
-    assert "metadata" in s1.inputs.dynamic_inputs
+    assert s1.global_context_vars is not None
+    assert s1.global_context_vars.initiator_id == "usr_admin"
 
     step_meta = StepMetadataDTO(
         execution_id="exe_01",
@@ -311,11 +330,13 @@ def test_reduce_hook_delta_metadata_variants() -> None:
     )
     meta_result_delta = HookDeltaDTO(delta=MetadataHookResultDTO(step_metadata=step_meta))
     s2, _ = reduce_hook_delta(state, meta_result_delta)
-    assert s2.inputs.dynamic_inputs["_step_metadata"] == step_meta
+    assert s2.global_context_vars is not None
+    assert s2.global_context_vars.step_metadata == step_meta
 
     direct_step_meta_delta = HookDeltaDTO(delta=step_meta)
     s3, _ = reduce_hook_delta(state, direct_step_meta_delta)
-    assert s3.inputs.dynamic_inputs["_step_metadata"] == step_meta
+    assert s3.global_context_vars is not None
+    assert s3.global_context_vars.step_metadata == step_meta
 
 
 def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
@@ -328,11 +349,15 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
         delta=ScoringResultDTO(score=88.5, xai_log=XAILogDto(pedagogical_key="PED_KEY"), breakdown={})
     )
     s1, _ = reduce_hook_delta(state, score_delta)
-    assert s1.inputs.dynamic_inputs["scoring"].score == 88.5
+    assert s1.global_context_vars is not None
+    assert isinstance(s1.global_context_vars.scoring, ScoringResultDTO)
+    assert s1.global_context_vars.scoring.score == 88.5
 
     trace_score_delta = HookDeltaDTO(delta=TraceScoringPayloadDTO(total_score=75.0))
     s2, _ = reduce_hook_delta(state, trace_score_delta)
-    assert s2.inputs.dynamic_inputs["scoring"].total_score == 75.0
+    assert s2.global_context_vars is not None
+    assert isinstance(s2.global_context_vars.scoring, TraceScoringPayloadDTO)
+    assert s2.global_context_vars.scoring.total_score == 75.0
 
     inter_delta = HookDeltaDTO(
         delta=InteractionAnalysisDTO(
@@ -346,11 +371,12 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
         )
     )
     s3, _ = reduce_hook_delta(state, inter_delta)
-    assert s3.inputs.dynamic_inputs["interaction_analysis"].imperative_command_count == 3
+    assert s3.global_context_vars is not None
+    assert s3.global_context_vars.interaction_analysis is not None
+    assert s3.global_context_vars.interaction_analysis.imperative_command_count == 3
 
     ling_delta = HookDeltaDTO(delta=LinguisticsResultDTO(total_word_count=45))
     s4, events_4 = reduce_hook_delta(state, ling_delta)
-    assert s4.inputs.dynamic_inputs["linguistics"].total_word_count == 45
     assert s4.global_context_vars is not None
     assert s4.global_context_vars.step_linguistics is not None
     assert s4.global_context_vars.step_linguistics.total_word_count == 45
@@ -367,6 +393,7 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
         inputs=ExecutionInputsDTO(),
     )
     s4_no_gvars, events_no_gvars = reduce_hook_delta(state_no_gvars, ling_delta)
+    assert s4_no_gvars.global_context_vars is not None
     assert s4_no_gvars.global_context_vars.step_linguistics is not None
     assert s4_no_gvars.global_context_vars.step_linguistics.total_word_count == 45
     assert len(events_no_gvars) == 1
@@ -385,7 +412,7 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
         )
     )
     s5, _ = reduce_hook_delta(state, llm_delta)
-    assert s5.inputs.dynamic_inputs["llm_config"].temperature == 0.7
+    assert s5.metadata.provider_override == "openai"
 
 
 def test_reduce_hook_delta_validation_step_output_inputs_global_vars() -> None:
@@ -394,11 +421,11 @@ def test_reduce_hook_delta_validation_step_output_inputs_global_vars() -> None:
 
     val_delta = HookDeltaDTO(delta=ValidationResultDTO(is_valid=True, errors=[]))
     s1, _ = reduce_hook_delta(state, val_delta)
-    assert s1.inputs.dynamic_inputs["validation"].is_valid is True
+    assert s1.inputs == state.inputs
 
     step_out = StepOutputDTO(step_id="stp_prior", block_id="blk_prior", data_type="text", payload="Done text")
     s2, _ = reduce_hook_delta(state, HookDeltaDTO(delta=step_out))
-    assert s2.inputs.dynamic_inputs["stp_prior"] == step_out
+    assert s2.inputs == state.inputs
 
     inputs_delta = HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"merged_key": "merged_val"}))
     s3, _ = reduce_hook_delta(state, inputs_delta)
@@ -416,7 +443,11 @@ def test_reduce_hook_delta_matrix_with_existing_evaluative_matrices() -> None:
     """Verify matrix hook evaluation map handles pre-existing and numeric matrix scores."""
     base_state = _build_test_hook_state()
     state = base_state.model_copy(
-        update={"inputs": ExecutionInputsDTO(dynamic_inputs={"_evaluative_matrices": {"old_pb": 70.0, "int_pb": 60.0}})}
+        update={
+            "global_context_vars": GlobalContextVarsDTO(
+                evaluative_matrices={"old_pb": 70.0, "int_pb": 60.0}
+            )
+        }
     )
 
     matrix_out = LightweightMatrixOutput(raw_score=4.0, normalized_score=85.0)
@@ -429,7 +460,9 @@ def test_reduce_hook_delta_matrix_with_existing_evaluative_matrices() -> None:
     )
 
     new_state, _ = reduce_hook_delta(state, matrix_delta)
-    eval_map = new_state.inputs.dynamic_inputs["_evaluative_matrices"]
+    assert new_state.global_context_vars is not None
+    eval_map = new_state.global_context_vars.evaluative_matrices
+    assert eval_map is not None
     assert eval_map["old_pb"] == 70.0
     assert eval_map["int_pb"] == 60.0
     assert eval_map["new_pb"] == 85.0
