@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter

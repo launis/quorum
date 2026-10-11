@@ -2052,9 +2052,7 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
 
 
 @pytest.mark.asyncio
-async def test_node_executor_handles_unexpected_exception_and_context_vars(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
+async def test_node_executor_handles_unexpected_exception_and_context_vars(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor propagates unexpected generic Exception and binds context vars."""
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
@@ -2097,6 +2095,3 @@ async def test_node_executor_handles_unexpected_exception_and_context_vars(
         )
 
     assert "unexpected_fatal_error" in str(exc_info.value)
-
-
-

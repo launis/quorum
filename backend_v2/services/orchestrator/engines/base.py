@@ -34,4 +34,3 @@ class ExecutionEngine(Protocol):
             AppException: If engine execution fails catastrophically.
         """
         ...
-

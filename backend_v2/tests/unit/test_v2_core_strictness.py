@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
@@ -67,7 +68,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
     assert valid_blueprint.slug == "task_bp_valid"
 
     # Fails: Nothing defined
-    with pytest.raises(ValidationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         Step(
             id="step_ffff1111ffff1111",
             slug="task_bp_err",

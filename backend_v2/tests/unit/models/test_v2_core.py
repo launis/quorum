@@ -119,7 +119,7 @@ def test_step_model_validation_rules() -> None:
     assert step_llm.type == "llm"
 
     # Missing criteria_block_ids in LLM step
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         Step(
             id="stp_11111111111111111111111111111111",
             slug="step_llm_invalid",
@@ -133,7 +133,7 @@ def test_step_model_validation_rules() -> None:
         )
 
     # Missing extraction_protocol_block_id in LLM step
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         Step(
             id="stp_11111111111111111111111111111111",
             slug="step_llm_invalid",
@@ -157,7 +157,7 @@ def test_step_model_validation_rules() -> None:
     assert step_logic.type == "logic"
 
     # Logic step missing hook
-    with pytest.raises(ValidationError):
+    with pytest.raises(AppException):
         Step(
             id="stp_22222222222222222222222222222222",
             slug="step_logic_invalid",
@@ -810,32 +810,32 @@ def test_step_type_llm_and_logic_validations() -> None:
         "criteria_block_ids": ["blk_11111111111111111111111111111111"],
     }
 
-    # LLM Step without valid cognitive_tier raises ValidationError
-    with pytest.raises(ValidationError, match="cognitive_tier"):
+    # LLM Step without valid cognitive_tier raises AppException
+    with pytest.raises(AppException, match="cognitive_tier"):
         Step(
             **valid_llm_base,
             type="llm",
             cognitive_tier=None,
         )
 
-    # LLM Step without criteria_block_ids raises ValueError
-    with pytest.raises(ValidationError, match="at least one criteria_block_id"):
+    # LLM Step without criteria_block_ids raises AppException
+    with pytest.raises(AppException, match="at least one criteria_block_id"):
         Step(
             **{**valid_llm_base, "criteria_block_ids": []},
             type="llm",
             cognitive_tier=CognitiveTier.FAST,
         )
 
-    # LLM Step without extraction_protocol_block_id raises ValueError
-    with pytest.raises(ValidationError, match="valid extraction_protocol_block_id"):
+    # LLM Step without extraction_protocol_block_id raises AppException
+    with pytest.raises(AppException, match="valid extraction_protocol_block_id"):
         Step(
             **{**valid_llm_base, "extraction_protocol_block_id": None},
             type="llm",
             cognitive_tier=CognitiveTier.FAST,
         )
 
-    # Logic Step without hook raises ValueError
-    with pytest.raises(ValidationError, match="must define a native 'hook'"):
+    # Logic Step without hook raises AppException
+    with pytest.raises(AppException, match="must define a native 'hook'"):
         Step(
             id="stp_22222222222222222222222222222222",
             slug="step_logic",
