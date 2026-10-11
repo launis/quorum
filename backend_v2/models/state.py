@@ -21,21 +21,17 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, f
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-
-
-from backend_v2.models.execution_envelope import StepExecutionEnvelope
-
-
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
+from backend_v2.models.execution_envelope import StepExecutionEnvelope
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)

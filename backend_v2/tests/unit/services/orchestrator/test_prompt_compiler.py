@@ -461,7 +461,6 @@ def test_build_xml_context_unknown_source_path_prefix_raises() -> None:
     assert "Unsupported source_path prefix: $unknown.invalid_path" in exc_info.value.message
 
 
-
 def test_build_xml_context_assignment_mode() -> None:
     """Verify that ExpectedInput with 'assignment' mode wraps into
     <assignment_context> and excludes <user_payload>.

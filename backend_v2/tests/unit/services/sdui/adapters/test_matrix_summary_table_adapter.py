@@ -295,4 +295,3 @@ def test_matrix_summary_table_adapter_unmapped_column_fails_fast() -> None:
         MatrixSummaryTableAdapter.build(context)
     assert excinfo.value.details["error_code"] == "VALIDATION_FAILED"
     assert "Unknown matrix summary column: 'unmapped_column_xyz'" in excinfo.value.message
-

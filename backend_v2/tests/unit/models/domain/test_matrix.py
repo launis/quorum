@@ -205,4 +205,3 @@ def test_flattened_atom_v2_core_base_inheritance_and_whitespace_stripping() -> N
                 "unauthorized_extra": "fail",
             }
         )
-

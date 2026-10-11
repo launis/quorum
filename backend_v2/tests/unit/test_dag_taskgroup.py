@@ -55,7 +55,7 @@ def mock_compiler() -> AsyncMock:
 
 @pytest.mark.asyncio
 async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMock, mock_compiler: AsyncMock) -> None:
-    """Test that independent steps continue executing even if a sibling step fails."""
+    """Test that sibling failure in TaskGroup wave cancels wave and fails fast."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -120,13 +120,15 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            assert "Workflow completed with failed steps" in str(exc_info.value), "Should fail fast at workflow level"
+            assert "Step step_ffff1111ffff1111 emitted ErrorTraceEvent" in str(exc_info.value), (
+                "Should fail fast at workflow level"
+            )
 
             rec = await mock_repo.get_execution("exe_1111222233334444")
             assert rec is not None
             assert rec.step_states["step_5555222255552222"].status in (
-                ExecutionStatus.PASSED,
-                ExecutionStatus.PASSED.value,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.FAILED.value,
             )
             assert rec.step_states["step_ffff1111ffff1111"].status in (
                 ExecutionStatus.FAILED,
@@ -198,7 +200,9 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            assert "Workflow completed with failed steps" in str(exc_info.value), "Should fail fast at workflow level"
+            assert "Step step_aaaa1111aaaa1111 emitted ErrorTraceEvent" in str(exc_info.value), (
+                "Should fail fast at workflow level"
+            )
 
             rec = await mock_repo.get_execution("exe_1111222233334444")
             assert rec is not None
@@ -207,8 +211,8 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
                 ExecutionStatus.FAILED.value,
             )
             assert rec.step_states["step_cccc3333cccc3333"].status in (
-                ExecutionStatus.FAILED,
-                ExecutionStatus.FAILED.value,
+                ExecutionStatus.BLOCKED,
+                ExecutionStatus.BLOCKED.value,
             )
 
 
@@ -284,7 +288,7 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
                         raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                     )
 
-                assert "Workflow completed with failed steps" in str(exc_info.value)
+                assert "Workflow failed" in str(exc_info.value)
 
                 # stop_after_attempt(3) means 3 total attempts
                 assert mock_execute.call_count == 3

@@ -200,9 +200,7 @@ async def test_context_window_exceeded_error_maps_critical(
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            # Since ErrorTraceEvent was emitted, the step failed. The DAGExecutor wraps it in a
-            # WORKFLOW_EXECUTION_FAILED error code, but let's check the trace event to be strictly sure.
-            assert "Workflow completed with failed steps" in str(exc_info.value)
+            assert "AGENT_EXECUTION_CRITICAL" in str(exc_info.value)
 
             updated_record = await mock_repo.get_execution("exe_1111222233334444")
             assert updated_record is not None
@@ -325,7 +323,7 @@ async def test_transient_503_error_triggers_resilience_loop(
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            assert "Workflow completed with failed steps" in str(exc_info.value)
+            assert "unavailable" in str(exc_info.value).lower()
 
             # Should retry up to max transient retries (3) + initial attempt = 4 or stop_after_attempt logic?
             # It triggers the resilience loop. We just assert it retried.

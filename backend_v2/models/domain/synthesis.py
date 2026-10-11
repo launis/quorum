@@ -283,6 +283,7 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
 
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
@@ -292,5 +293,10 @@ RenderedSynthesisCache.model_rebuild(
         "AnySduiBlock": AnySduiBlock,
         "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
         "MCPAuditTrace": MCPAuditTrace,
+    }
+)
+SynthesisMetadataDTO.model_rebuild(
+    _types_namespace={
+        "GlobalContextVarsDTO": GlobalContextVarsDTO,
     }
 )

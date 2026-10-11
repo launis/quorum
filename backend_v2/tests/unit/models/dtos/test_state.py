@@ -34,4 +34,3 @@ def test_translation_response_dto_typing() -> None:
 
     with pytest.raises(ValidationError):
         TranslationResponseDTO.model_validate({"translated_data": {"key": ["nested", "list"]}})
-

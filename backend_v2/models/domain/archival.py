@@ -5,7 +5,7 @@ This module defines the schemas for archival execution precedents.
 
 from __future__ import annotations
 
-from typing import Annotated, TypeAlias
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
@@ -32,5 +32,4 @@ class ArchivalPrecedentDTO(V2CoreBase):
     verdict: Annotated[str, Field(min_length=1, description="Truncated verdict from the execution.")]
 
 
-PrecedentDTO: TypeAlias = ArchivalPrecedentDTO
-
+type PrecedentDTO = ArchivalPrecedentDTO

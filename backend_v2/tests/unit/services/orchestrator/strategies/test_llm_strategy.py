@@ -1,24 +1,19 @@
 """Unit tests for LLMNodeStrategy output profile prompt directives and system prompt invariance."""
 
 import hashlib
-import json
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from backend_v2.core.hook_registry import HookState
-from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -153,9 +148,9 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
 async def test_output_profile_directives_relocated_to_user_payload_and_system_prompt_invariant_neg09(
     test_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """Verify Scenario NEG-09: base_system_prompt SHA-256 hash remains bit-for-bit invariant
+    """Verify Scenario NEG-09: base_system_prompt SHA-256 hash invariance.
 
-    across varying output profiles, and dynamic directives (<tone_instruction>, <matrix_synthesis_groups>)
+    Across varying output profiles, dynamic directives (<tone_instruction>, <matrix_synthesis_groups>)
     are relocated exclusively into user_payload dynamic tail.
     """
     profile_1 = OutputProfile.model_validate(

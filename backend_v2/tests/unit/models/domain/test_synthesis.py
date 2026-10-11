@@ -289,4 +289,3 @@ def test_synthesis_metadata_dto_typed_execution_summary_and_step_metrics() -> No
                 "step_metrics": {"stp_1": "invalid_entry_not_dto"},
             }
         )
-

@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.models.domain.base import UsageRecord
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
@@ -104,7 +105,7 @@ async def test_purity_scanner_clean_static_prompt(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_purity_scanner_uuid_violation(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_purity_scanner_uuid_violation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Phase 6: Test Purity Scanner detects dynamic UUIDs in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
@@ -119,16 +120,15 @@ async def test_purity_scanner_uuid_violation(caplog: pytest.LogCaptureFixture, m
         lambda *args, **kwargs: mock_adapter,
     )
 
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(AppException) as exc_info:
         await LLMCachingService.prepare_caching_payload("mock_provider", compiled, "mock-model")
 
-    assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+    assert exc_info.value.status_code == 400
+    assert "PROMPT_CACHING_PURITY_VIOLATION" in exc_info.value.message
 
 
 @pytest.mark.asyncio
-async def test_purity_scanner_timestamp_violation(
-    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_purity_scanner_timestamp_violation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Phase 6: Test Purity Scanner detects dynamic timestamps in static system instructions."""
     compiled = CompiledPrompt(
         static_messages=[
@@ -143,10 +143,11 @@ async def test_purity_scanner_timestamp_violation(
         lambda *args, **kwargs: mock_adapter,
     )
 
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(AppException) as exc_info:
         await LLMCachingService.prepare_caching_payload("mock_provider", compiled, "mock-model")
 
-    assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+    assert exc_info.value.status_code == 400
+    assert "PROMPT_CACHING_PURITY_VIOLATION" in exc_info.value.message
 
 
 @pytest.mark.asyncio

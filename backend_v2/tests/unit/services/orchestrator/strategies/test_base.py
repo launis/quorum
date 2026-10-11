@@ -286,10 +286,9 @@ async def test_run_post_hooks_with_matrix_hook_result(
     )
 
     res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, step_rule, hook_state, MagicMock())
-    assert res_state.inputs.dynamic_inputs["blk_1"] == matrix_out
-    assert res_state.inputs.raw_inputs["blk_1"] == matrix_out
-    assert res_state.inputs.dynamic_inputs["blk_1_missing_context"] == "missing_data"
-    assert res_state.inputs.raw_inputs["blk_1_missing_context"] == "missing_data"
+    assert res_state.global_context_vars is not None
+    assert res_state.global_context_vars.evaluative_matrices is not None
+    assert res_state.global_context_vars.evaluative_matrices["blk_1"] == 80.0
 
 
 @pytest.mark.asyncio

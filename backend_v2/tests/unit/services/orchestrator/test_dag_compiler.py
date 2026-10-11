@@ -2,9 +2,9 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, WorkflowCompilationError
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.core_base import I18nText
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 
@@ -52,7 +52,12 @@ def test_compute_topological_waves() -> None:
         StepRule(id="st_0000000000000002", depends_on=[], task_blueprint="bp", input_mappings={}),
         StepRule(id="st_0000000000000003", depends_on=["st_0000000000000001"], task_blueprint="bp", input_mappings={}),
         StepRule(id="st_0000000000000004", depends_on=["st_0000000000000002"], task_blueprint="bp", input_mappings={}),
-        StepRule(id="st_0000000000000005", depends_on=["st_0000000000000003", "st_0000000000000004"], task_blueprint="bp", input_mappings={}),
+        StepRule(
+            id="st_0000000000000005",
+            depends_on=["st_0000000000000003", "st_0000000000000004"],
+            task_blueprint="bp",
+            input_mappings={},
+        ),
     ]
     waves = DAGCompilerService.compute_topological_waves(steps)
     assert len(waves) == 3

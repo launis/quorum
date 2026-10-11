@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -1918,9 +1919,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
 
 
 @pytest.mark.asyncio
-async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
+async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_repo: Any, mock_compiler: Any) -> None:
     """Verify Scenario NEG-04: TaskGroup wave crash transitions siblings to FAILED and downstream to BLOCKED."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -1942,7 +1941,12 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(
 
     step1 = StepRule(id="stp_1111111111111111", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
     step2 = StepRule(id="stp_2222222222222222", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
-    step3 = StepRule(id="stp_3333333333333333", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=["stp_1111111111111111"])
+    step3 = StepRule(
+        id="stp_3333333333333333",
+        task_blueprint="blp_1234567890abcdef",
+        input_mappings={},
+        depends_on=["stp_1111111111111111"],
+    )
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
@@ -2018,7 +2022,9 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(
 
     # Zero steps remain in PENDING or RUNNING
     for s_id, s_state in persisted.step_states.items():
-        assert s_state.status not in (ExecutionStatus.PENDING, ExecutionStatus.RUNNING), f"Step {s_id} is {s_state.status}"
+        assert s_state.status not in (ExecutionStatus.PENDING, ExecutionStatus.RUNNING), (
+            f"Step {s_id} is {s_state.status}"
+        )
 
     # Verify DLQ calls recorded all 3 steps
     dlq_step_ids = {r[0] for r in dlq_records}

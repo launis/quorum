@@ -6,7 +6,6 @@ import copy
 from typing import Any
 
 import pytest
-
 from pydantic import JsonValue
 
 from backend_v2.database.driver import Filter

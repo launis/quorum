@@ -1895,11 +1895,7 @@ def legacy_override(record):
 
 def test_qgr029_fixture_untyped_dict_return_annotation_triggers_fatal() -> None:
     """Scenario NEG-19: @pytest.fixture with dict return annotation triggers FATAL QGR029."""
-    code = (
-        "@pytest.fixture\n"
-        "def sample_data() -> dict" + "[str, Any]:\n"
-        '    return {"id": "123"}\n'
-    )
+    code = "@pytest.fixture\ndef sample_data() -> dict" + '[str, Any]:\n    return {"id": "123"}\n'
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     qgr029 = [v for v in violations if v.rule_code == "QGR029"]
     assert len(qgr029) == 1
@@ -1958,4 +1954,3 @@ async def test_endpoint(client, valid_workflow):
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     qgr029 = [v for v in violations if v.rule_code == "QGR029"]
     assert len(qgr029) == 0
-

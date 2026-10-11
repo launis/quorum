@@ -21,7 +21,6 @@ from backend_v2.models.prompts import (
     SYNTHESIS_SYSTEM_PROMPT,
 )
 from backend_v2.models.view.sdui import (
-    MarkdownBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
@@ -148,8 +147,8 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
         parsed_matrices=parsed,
     )
     blocks_1d = MatrixGraphsAdapter.build(ctx_1d)
-    assert len(blocks_1d) == 2
-    assert isinstance(blocks_1d[1], SduiMetrics1DBlock)
+    assert len(blocks_1d) == 1
+    assert isinstance(blocks_1d[0], SduiMetrics1DBlock)
 
     # 2. 2D Compare View
     p_2d = OutputProfile(
@@ -180,8 +179,8 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
         parsed_matrices=parsed,
     )
     blocks_2d = MatrixGraphsAdapter.build(ctx_2d)
-    assert len(blocks_2d) == 2
-    assert isinstance(blocks_2d[1], SduiScatterPlotBlock)
+    assert len(blocks_2d) == 1
+    assert isinstance(blocks_2d[0], SduiScatterPlotBlock)
 
     # 3. 3D Radar View
     p_3d = OutputProfile(
@@ -212,8 +211,8 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
         parsed_matrices=parsed,
     )
     blocks_3d = MatrixGraphsAdapter.build(ctx_3d)
-    assert len(blocks_3d) == 2
-    assert isinstance(blocks_3d[1], SduiRadarChartBlock)
+    assert len(blocks_3d) == 1
+    assert isinstance(blocks_3d[0], SduiRadarChartBlock)
 
     # 4. Text-Only View
     p_text = OutputProfile(
@@ -244,8 +243,7 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
         parsed_matrices=parsed,
     )
     blocks_text = MatrixGraphsAdapter.build(ctx_text)
-    assert len(blocks_text) == 1
-    assert isinstance(blocks_text[0], MarkdownBlock)
+    assert len(blocks_text) == 0
 
 
 def test_matrix_summary_table_adapter_respects_visible_columns() -> None:

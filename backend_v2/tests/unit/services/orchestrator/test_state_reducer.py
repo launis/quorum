@@ -443,11 +443,7 @@ def test_reduce_hook_delta_matrix_with_existing_evaluative_matrices() -> None:
     """Verify matrix hook evaluation map handles pre-existing and numeric matrix scores."""
     base_state = _build_test_hook_state()
     state = base_state.model_copy(
-        update={
-            "global_context_vars": GlobalContextVarsDTO(
-                evaluative_matrices={"old_pb": 70.0, "int_pb": 60.0}
-            )
-        }
+        update={"global_context_vars": GlobalContextVarsDTO(evaluative_matrices={"old_pb": 70.0, "int_pb": 60.0})}
     )
 
     matrix_out = LightweightMatrixOutput(raw_score=4.0, normalized_score=85.0)

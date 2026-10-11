@@ -401,4 +401,3 @@ async def test_dlq_marking_on_exception_group() -> None:
     assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_1111111111111111"].evaluation_reasoning
     assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
     assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_2222222222222222"].evaluation_reasoning
-

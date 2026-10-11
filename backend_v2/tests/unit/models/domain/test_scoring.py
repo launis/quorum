@@ -68,5 +68,3 @@ def test_step_panel_dto_forbids_extra_fields() -> None:
                 "unauthorized_field": "disallowed",
             }
         )
-
-

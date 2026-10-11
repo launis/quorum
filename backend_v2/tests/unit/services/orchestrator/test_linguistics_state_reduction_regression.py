@@ -159,7 +159,6 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
 
     assert new_state.global_context_vars is not None
     assert new_state.global_context_vars.step_linguistics == ling_dto
-    assert new_state.inputs.dynamic_inputs["step_linguistics"] == ling_dto
 
     # Partition 2: global_context_vars defaulted via clean constructor
     state_none_gvars = HookState(

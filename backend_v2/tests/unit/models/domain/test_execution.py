@@ -247,4 +247,3 @@ def test_execution_record_with_step_passed_forwarder() -> None:
     assert step.status == ExecutionStatus.PASSED
     assert step.progress == 100
     assert updated.step_states["stp_render"] == step
-
