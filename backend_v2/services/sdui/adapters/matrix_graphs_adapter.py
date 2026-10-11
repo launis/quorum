@@ -10,10 +10,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.sdui_rules import MatrixGraphMinAxesDTO, MatrixGraphsAestheticsDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
-    MarkdownBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
@@ -63,7 +63,6 @@ class MatrixGraphsAdapter:
         if context.is_data_starved or not context.profile.matrix_synthesis_groups:
             return blocks
 
-        locale = context.locale
         all_parsed_matrices = context.parsed_matrices
         section_syntheses: Mapping[str, Sequence[AnySduiBlock]] = {}
         if context.profile_cache is not None and context.profile_cache.section_syntheses:
@@ -89,26 +88,34 @@ class MatrixGraphsAdapter:
             has_renderable_content = len(axes) > 0 or len(section_blocks) > 0
 
             if has_renderable_content:
-                if grp.title is not None:
-                    blocks.append(MarkdownBlock(text=f"### {grp.title.resolve(locale)}"))
-
                 if len(section_blocks) > 0:
                     blocks.extend(section_blocks)
 
                 # Route graph block emission by deterministic view_type
                 view_type = grp.view_type
-                if view_type in ("3d_matrix", "matrix3d") and len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
-                    blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                elif view_type in ("2d_compare", "compare2d") and len(axes) >= MATRIX_GRAPHS_RULES["scatter"].min_axes:
-                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
+                if view_type in ("3d_matrix", "matrix3d"):
+                    if len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
+                        blocks.append(SduiRadarChartBlock(title=grp.title, axes=axes))
+                elif view_type in ("2d_compare", "compare2d"):
+                    if len(axes) >= MATRIX_GRAPHS_RULES["scatter"].min_axes:
+                        blocks.append(SduiScatterPlotBlock(title=grp.title, axes=axes[:2]))
+                elif view_type in ("1d_metrics", "metrics1d", "metrics"):
+                    if len(axes) >= MATRIX_GRAPHS_RULES["metrics"].min_axes:
+                        blocks.append(SduiMetrics1DBlock(title=grp.title, axes=axes[:1]))
                 elif view_type in ("text_only", "textOnly"):
                     # Text-only synthesis group does not emit visual chart blocks
                     pass
-                elif len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
-                    blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                elif len(axes) == MATRIX_GRAPHS_RULES["scatter"].min_axes:
-                    blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
-                elif len(axes) == MATRIX_GRAPHS_RULES["metrics"].min_axes:
-                    blocks.append(SduiMetrics1DBlock(title=None, axes=axes[:1]))
+                else:
+                    logger.error(
+                        "[MatrixGraphsAdapter] %s: Unsupported matrix graph view_type '%s'.",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        view_type,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "view_type": str(view_type)},
+                    )
+                    raise AppException(
+                        message=f"Unsupported matrix graph view_type: {grp.view_type}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
 
         return blocks

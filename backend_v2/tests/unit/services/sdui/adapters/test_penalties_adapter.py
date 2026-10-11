@@ -53,7 +53,7 @@ def test_build_unmapped_token_raises_app_exception(
     context = AdapterContext(
         execution=None,
         locale="en",
-        penalties_applied=["PENALTY_UNSUPPORTED:99"],
+        penalties_applied=["PENALTY_UNMAPPED:99"],
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
@@ -64,6 +64,7 @@ def test_build_unmapped_token_raises_app_exception(
     with pytest.raises(AppException) as excinfo:
         PenaltiesAdapter.build(context)
     assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
+    assert "Unknown penalty token: PENALTY_UNMAPPED" in excinfo.value.message
 
 
 def test_build_empty_list_returns_empty(valid_output_profile_fixture: OutputProfile) -> None:
@@ -132,7 +133,7 @@ def test_build_valid_penalties_returns_alert_blocks_fi(valid_output_profile_fixt
     assert len(blocks) == 2
 
     assert blocks[0].severity == VisualIntent.CRITICAL_OVERRIDE
-    assert "Tietoturvarangaistus (-20 %):" in blocks[0].text
+    assert "Tietoturvarangaistus (-20%):" in blocks[0].text
     assert "Syöteaineistossa havaittu tietoturva- tai luottamuksellisuusuhka." in blocks[0].text
 
     assert blocks[1].severity == VisualIntent.WARNING

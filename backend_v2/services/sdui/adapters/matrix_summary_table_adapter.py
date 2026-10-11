@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.sdui_rules import MatrixSummaryAestheticsDTO, MatrixSummaryRuleItemDTO
 from backend_v2.models.enums import ReportMatrixColumn
@@ -56,6 +57,9 @@ class MatrixSummaryTableAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
+
+        Raises:
+            AppException: If an unmapped column is specified in matrix_visible_columns (ErrorCodes.VALIDATION_FAILED).
         """
         blocks: list[AnySduiBlock] = []
 
@@ -64,11 +68,25 @@ class MatrixSummaryTableAdapter:
 
         axes = list(context.parsed_matrices.values())
 
-        visible_columns = context.profile.matrix_visible_columns or STANDARD_COLUMNS
+        visible_columns = context.profile.matrix_visible_columns
 
         col_labels: dict[str, I18nText] = {}
         for col in visible_columns:
-            col_enum = ReportMatrixColumn(col)
+            try:
+                col_enum = ReportMatrixColumn(col)
+            except ValueError as e:
+                logger.error(
+                    "[MatrixSummaryTableAdapter] %s: Unknown matrix summary column '%s'.",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    col,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "column": col},
+                )
+                raise AppException(
+                    message=f"Unknown matrix summary column: '{col}'",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
+
             col_labels[col] = I18nText(
                 translations={
                     "fi": ReportHeaderResolver.get_matrix_column_header(col_enum, "fi"),

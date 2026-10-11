@@ -214,3 +214,85 @@ def test_matrix_summary_rules_and_columns() -> None:
     assert "label" in STANDARD_COLUMNS
     assert "raw_score" in STANDARD_COLUMNS
     assert len(STANDARD_COLUMNS) == 13
+
+
+def test_matrix_summary_table_adapter_empty_visible_columns_preserved() -> None:
+    """Positive: empty matrix_visible_columns is preserved without falling back to STANDARD_COLUMNS."""
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        target_block_order=[],
+        matrix_visible_columns=[],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    blocks = MatrixSummaryTableAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiMatrixTableBlock)
+    assert blocks[0].matrix_visible_columns == []
+    assert blocks[0].matrix_column_labels == {}
+
+
+def test_matrix_summary_table_adapter_unmapped_column_fails_fast() -> None:
+    """Negative: unmapped column in matrix_visible_columns triggers Fail-Fast AppException with VALIDATION_FAILED."""
+    from backend_v2.exceptions import AppException
+
+    profile = OutputProfile.model_construct(
+        id="prf_1234567890abcdef",
+        slug="test",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        target_block_order=[],
+        matrix_visible_columns=["unmapped_column_xyz"],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    with pytest.raises(AppException) as excinfo:
+        MatrixSummaryTableAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "Unknown matrix summary column: 'unmapped_column_xyz'" in excinfo.value.message
+

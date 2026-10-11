@@ -99,7 +99,7 @@ class PenaltiesAdapter:
             try:
                 aesthetics = PENALTIES_RULES[token]
             except KeyError as e:
-                msg = f"Missing rule mapping for penalty token: '{token}'"
+                msg = f"Unknown penalty token: {token}"
                 logger.error("[PenaltiesAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
                 raise AppException(
                     message=msg,
@@ -111,15 +111,9 @@ class PenaltiesAdapter:
             desc = LocalizationService.translate(aesthetics.desc_key, context.locale)
 
             if pct_str is not None:
-                if context.locale == "fi":
-                    pct_suffix = f" (-{pct_str} %)"
-                else:
-                    pct_suffix = f" (-{pct_str}%)"
-                header = f"{title}{pct_suffix}"
+                alert_text = f"{title} (-{pct_str}%): {desc}"
             else:
-                header = title
-
-            alert_text = f"{header}: {desc}"
+                alert_text = f"{title}: {desc}"
 
             blocks.append(
                 AlertBlock(

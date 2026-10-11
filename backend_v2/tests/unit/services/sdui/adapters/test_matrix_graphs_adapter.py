@@ -1,5 +1,6 @@
-from __future__ import annotations
+import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
@@ -7,7 +8,6 @@ from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.sdui_rules import MatrixGraphsAestheticsDTO
 from backend_v2.models.enums import PresetView
 from backend_v2.models.view.sdui import (
-    MarkdownBlock,
     ParagraphBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
@@ -81,11 +81,10 @@ def test_matrix_graphs_adapter_single_group_1d() -> None:
     )
 
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 2
-    assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "### Metrics 1D"
-    assert isinstance(blocks[1], SduiMetrics1DBlock)
-    assert len(blocks[1].axes) == 1
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiMetrics1DBlock)
+    assert blocks[0].title == I18nText(translations={"en": "Metrics 1D"})
+    assert len(blocks[0].axes) == 1
 
 
 def test_matrix_graphs_adapter_single_group_2d() -> None:
@@ -137,11 +136,11 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
         },
     )
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 2
-    assert isinstance(blocks[0], MarkdownBlock)
-    assert isinstance(blocks[1], SduiScatterPlotBlock)
-    assert blocks[1].block_type == "2d_compare"
-    assert len(blocks[1].axes) == 2
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiScatterPlotBlock)
+    assert blocks[0].title == I18nText(translations={"en": "Compare 2D"})
+    assert blocks[0].block_type == "2d_compare"
+    assert len(blocks[0].axes) == 2
 
 
 def test_matrix_graphs_adapter_success_3d() -> None:
@@ -203,11 +202,10 @@ def test_matrix_graphs_adapter_success_3d() -> None:
         },
     )
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 2
-    assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "### Graph 3D"
-    assert isinstance(blocks[1], SduiRadarChartBlock)
-    assert len(blocks[1].axes) == 3
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiRadarChartBlock)
+    assert blocks[0].title == I18nText(translations={"en": "Graph 3D"})
+    assert len(blocks[0].axes) == 3
 
 
 def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
@@ -269,9 +267,9 @@ def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
         },
     )
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 2
-    assert isinstance(blocks[0], MarkdownBlock)
-    assert isinstance(blocks[1], SduiRadarChartBlock)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], SduiMetrics1DBlock)
+    assert blocks[0].title == I18nText(translations={"en": "All Matrices"})
 
 
 def test_matrix_graphs_adapter_with_section_syntheses() -> None:
@@ -319,11 +317,11 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
         },
     )
     blocks = MatrixGraphsAdapter.build(context)
-    assert len(blocks) == 3
-    assert isinstance(blocks[0], MarkdownBlock)
-    assert isinstance(blocks[1], ParagraphBlock)
-    assert blocks[1].text == "Section synthesis summary text."
-    assert isinstance(blocks[2], SduiMetrics1DBlock)
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], ParagraphBlock)
+    assert blocks[0].text == "Section synthesis summary text."
+    assert isinstance(blocks[1], SduiMetrics1DBlock)
+    assert blocks[1].title == I18nText(translations={"en": "Synthesized Group"})
 
 
 def test_matrix_graphs_adapter_explicit_view_types() -> None:
@@ -390,9 +388,10 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
         parsed_matrices=parsed,
     )
     b_2d = MatrixGraphsAdapter.build(ctx_2d)
-    assert len(b_2d) == 2
-    assert isinstance(b_2d[1], SduiScatterPlotBlock)
-    assert b_2d[1].block_type == "2d_compare"
+    assert len(b_2d) == 1
+    assert isinstance(b_2d[0], SduiScatterPlotBlock)
+    assert b_2d[0].title == I18nText(translations={"en": "2D"})
+    assert b_2d[0].block_type == "2d_compare"
 
     # 2. 3D matrix
     p_3d = OutputProfile(
@@ -423,8 +422,9 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
         parsed_matrices=parsed,
     )
     b_3d = MatrixGraphsAdapter.build(ctx_3d)
-    assert len(b_3d) == 2
-    assert isinstance(b_3d[1], SduiRadarChartBlock)
+    assert len(b_3d) == 1
+    assert isinstance(b_3d[0], SduiRadarChartBlock)
+    assert b_3d[0].title == I18nText(translations={"en": "3D"})
 
     # 3. text_only
     p_text = OutputProfile(
@@ -455,8 +455,52 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
         parsed_matrices=parsed,
     )
     b_text = MatrixGraphsAdapter.build(ctx_text)
-    assert len(b_text) == 1
-    assert isinstance(b_text[0], MarkdownBlock)
+    assert len(b_text) == 0
+
+
+def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
+    """Negative: Unsupported view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
+    p_invalid = OutputProfile(
+        id="prf_9999999999999999",
+        slug="test_invalid",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "Invalid"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup.model_construct(
+                id="grp_9999999999999999",
+                title=I18nText(translations={"en": "Invalid"}),
+                target_blocks=["m1"],
+                view_type="unsupported_view_type",
+            )
+        ],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=p_invalid,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    with pytest.raises(AppException) as excinfo:
+        MatrixGraphsAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
 
 
 def test_matrix_graphs_rules() -> None:

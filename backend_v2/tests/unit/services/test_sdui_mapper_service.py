@@ -8,7 +8,7 @@ from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiWarningCard,
 )
-from backend_v2.services.sdui_mapper_service import SduiMapperService
+from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 
 
 def test_map_evidence_to_sdui_verified() -> None:

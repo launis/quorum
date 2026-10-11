@@ -12,7 +12,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.blueprint import BlueprintTransformer
-from backend_v2.services.sdui_mapper_service import SduiMapperService
+from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 

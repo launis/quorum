@@ -34,7 +34,7 @@
   - [x] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
   - [x] Step 10: Enforce Fail-Fast Purity Scanning in caching_service.py
   - [x] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
-  - [ ] Step 12: Harden SDUI Adapters, Dumb Painter Boundaries and Relocate SduiMapperService
+  - [x] Step 12: Harden SDUI Adapters, Dumb Painter Boundaries and Relocate SduiMapperService
   - [ ] Step 13: Enforce Theme Sovereignty, Strict Boundary Validation, and Flutter UI Hardening
   - [ ] Step 14: Implement Targeted QGR029 AST Guardrail, Polyfactory Suite Expansion and Test Fixture Hardening
   - [ ] Step 15: Implement ISTQB Unit Tests and Verify Quality Gates
@@ -135,11 +135,11 @@
 | REQ-014 | Remove silent message-popping shims (`last_msg = static_msgs.pop()`) in `prompt_compiler_adapter.py` | Step 9 | [x] Completed |
 | REQ-015 | Upgrade passive purity logging to Fail-Fast `AppException` in `caching_service.py` | Step 10 | [x] Completed |
 | REQ-016 | Purge dynamic output profile injection from `base_system_prompt` and move to `user_payload` in `strategies/llm.py` | Step 11 | [x] Completed |
-| REQ-017 | Eradicate heuristic axis count guessing fallbacks and ad-hoc `MarkdownBlock` headers in `matrix_graphs_adapter.py` | Step 12 | [ ] Pending |
-| REQ-018 | Eradicate manual string concatenations and punctuation surgery in `penalties_adapter.py` | Step 12 | [ ] Pending |
-| REQ-019 | Eliminate `or STANDARD_COLUMNS` lazy code fallback in `matrix_summary_table_adapter.py` | Step 12 | [ ] Pending |
-| REQ-020 | Explicitly re-export `VarianceAdapter` in `services/sdui/adapters/__init__.py` | Step 12 | [ ] Pending |
-| REQ-021 | Relocate `sdui_mapper_service.py` to canonical `backend_v2/services/sdui/sdui_mapper_service.py` and delete root file | Step 12 | [ ] Pending |
+| REQ-017 | Eradicate heuristic axis count guessing fallbacks and ad-hoc `MarkdownBlock` headers in `matrix_graphs_adapter.py` | Step 12 | [x] Completed |
+| REQ-018 | Eradicate manual string concatenations and punctuation surgery in `penalties_adapter.py` | Step 12 | [x] Completed |
+| REQ-019 | Eliminate `or STANDARD_COLUMNS` lazy code fallback in `matrix_summary_table_adapter.py` | Step 12 | [x] Completed |
+| REQ-020 | Explicitly re-export `VarianceAdapter` in `services/sdui/adapters/__init__.py` | Step 12 | [x] Completed |
+| REQ-021 | Relocate `sdui_mapper_service.py` to canonical `backend_v2/services/sdui/sdui_mapper_service.py` and delete root file | Step 12 | [x] Completed |
 | REQ-022 | Enforce strict non-empty string check on persona capitalization and ban `safeSubstring` in `result_dashboard.dart` | Step 13 | [ ] Pending |
 | REQ-023 | Register `AppSemanticColors` as `ThemeExtension` in `app_theme.dart` (light and dark) and refactor `app_colors.dart` | Step 13 | [ ] Pending |
 | REQ-024 | Eradicate naked `TextStyle` and static colors in `bars_matrix_builder.dart`, `atom_matrix_table_widget.dart`, `specialist_section.dart`, and `result_dashboard.dart` | Step 13 | [ ] Pending |
