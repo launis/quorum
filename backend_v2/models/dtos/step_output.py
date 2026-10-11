@@ -12,6 +12,10 @@ from backend_v2.models.domain.metadata import StepMetadataDTO
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.causal_discovery import (
+    CausalGraphPayloadDTO,
+    CausalTdaFusionResultDTO,
+)
 from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
     ScoringResultDTO,
@@ -45,6 +49,8 @@ type StepPayloadValue = (
     | StepTraceMetadataDTO
     | ProgressTracePayloadDTO
     | ProfilerMetricsDTO
+    | CausalGraphPayloadDTO
+    | CausalTdaFusionResultDTO
     | dict[str, float]
     | dict[str, str]
     | str
@@ -64,8 +70,8 @@ class StepOutputDTO(V2CoreBase):
     step_id: Annotated[str, Field(description="The opaque DAG Step ID.")]
     block_id: Annotated[str, Field(description="The opaque PromptBlock ID.")]
     data_type: Annotated[
-        Literal["text", "matrix", "unknown"],
-        Field(description="Inferred or explicitly parsed data type (e.g. matrix, text)."),
+        Literal["text", "matrix", "causal", "unknown"],
+        Field(description="Inferred or explicitly parsed data type (e.g. matrix, text, causal)."),
     ]
     payload: Annotated[
         StepPayloadValue,

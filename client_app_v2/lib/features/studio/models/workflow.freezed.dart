@@ -613,7 +613,7 @@ $I18nTextCopyWith<$Res> get description {
 mixin _$StepRule {
 
 @StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings;@JsonKey(name: 'expected_sdui_type') SduiBlockType? get expectedSduiType; double get uiPosX; double get uiPosY;// Phase 1, Step 3: Synthesis context governance field
-@JsonKey(name: 'is_synthesis_source') bool get isSynthesisSource;
+@JsonKey(name: 'is_synthesis_source') bool get isSynthesisSource;@JsonKey(name: 'causal_source_step_id') String? get causalSourceStepId;
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -628,7 +628,7 @@ $StepRuleCopyWith<StepRule> get copyWith => _$StepRuleCopyWithImpl<StepRule>(thi
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource, causalSourceStepId: $causalSourceStepId)';
 }
 
 
@@ -639,7 +639,7 @@ abstract mixin class $StepRuleCopyWith<$Res>  {
   factory $StepRuleCopyWith(StepRule value, $Res Function(StepRule) _then) = _$StepRuleCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,@JsonKey(name: 'causal_source_step_id') String? causalSourceStepId
 });
 
 
@@ -656,7 +656,7 @@ class _$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,Object? causalSourceStepId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
@@ -666,7 +666,8 @@ as Map<String, String>,expectedSduiType: freezed == expectedSduiType ? _self.exp
 as SduiBlockType?,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
 as double,isSynthesisSource: null == isSynthesisSource ? _self.isSynthesisSource : isSynthesisSource // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,causalSourceStepId: freezed == causalSourceStepId ? _self.causalSourceStepId : causalSourceStepId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -751,10 +752,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource, @JsonKey(name: 'causal_source_step_id')  String? causalSourceStepId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource,_that.causalSourceStepId);case _:
   return orElse();
 
 }
@@ -772,10 +773,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource, @JsonKey(name: 'causal_source_step_id')  String? causalSourceStepId)  $default,) {final _that = this;
 switch (_that) {
 case _StepRule():
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource,_that.causalSourceStepId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -792,10 +793,10 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()  String taskBlueprint,  List<String> dependsOn,  Map<String, String> inputMappings, @JsonKey(name: 'expected_sdui_type')  SduiBlockType? expectedSduiType,  double uiPosX,  double uiPosY, @JsonKey(name: 'is_synthesis_source')  bool isSynthesisSource, @JsonKey(name: 'causal_source_step_id')  String? causalSourceStepId)?  $default,) {final _that = this;
 switch (_that) {
 case _StepRule() when $default != null:
-return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource);case _:
+return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings,_that.expectedSduiType,_that.uiPosX,_that.uiPosY,_that.isSynthesisSource,_that.causalSourceStepId);case _:
   return null;
 
 }
@@ -807,7 +808,7 @@ return $default(_that.id,_that.taskBlueprint,_that.dependsOn,_that.inputMappings
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _StepRule extends StepRule {
-  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, @JsonKey(name: 'expected_sdui_type') this.expectedSduiType, this.uiPosX = 0.0, this.uiPosY = 0.0, @JsonKey(name: 'is_synthesis_source') this.isSynthesisSource = true}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
+  const _StepRule({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter() required this.taskBlueprint, final  List<String> dependsOn = const [], final  Map<String, String> inputMappings = const {}, @JsonKey(name: 'expected_sdui_type') this.expectedSduiType, this.uiPosX = 0.0, this.uiPosY = 0.0, @JsonKey(name: 'is_synthesis_source') this.isSynthesisSource = true, @JsonKey(name: 'causal_source_step_id') this.causalSourceStepId}): _dependsOn = dependsOn,_inputMappings = inputMappings,super._();
   factory _StepRule.fromJson(Map<String, dynamic> json) => _$StepRuleFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -831,6 +832,7 @@ class _StepRule extends StepRule {
 @override@JsonKey() final  double uiPosY;
 // Phase 1, Step 3: Synthesis context governance field
 @override@JsonKey(name: 'is_synthesis_source') final  bool isSynthesisSource;
+@override@JsonKey(name: 'causal_source_step_id') final  String? causalSourceStepId;
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
@@ -847,7 +849,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource)';
+  return 'StepRule(id: $id, taskBlueprint: $taskBlueprint, dependsOn: $dependsOn, inputMappings: $inputMappings, expectedSduiType: $expectedSduiType, uiPosX: $uiPosX, uiPosY: $uiPosY, isSynthesisSource: $isSynthesisSource, causalSourceStepId: $causalSourceStepId)';
 }
 
 
@@ -858,7 +860,7 @@ abstract mixin class _$StepRuleCopyWith<$Res> implements $StepRuleCopyWith<$Res>
   factory _$StepRuleCopyWith(_StepRule value, $Res Function(_StepRule) _then) = __$StepRuleCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter() String taskBlueprint, List<String> dependsOn, Map<String, String> inputMappings,@JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType, double uiPosX, double uiPosY,@JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,@JsonKey(name: 'causal_source_step_id') String? causalSourceStepId
 });
 
 
@@ -875,7 +877,7 @@ class __$StepRuleCopyWithImpl<$Res>
 
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? taskBlueprint = null,Object? dependsOn = null,Object? inputMappings = null,Object? expectedSduiType = freezed,Object? uiPosX = null,Object? uiPosY = null,Object? isSynthesisSource = null,Object? causalSourceStepId = freezed,}) {
   return _then(_StepRule(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,taskBlueprint: null == taskBlueprint ? _self.taskBlueprint : taskBlueprint // ignore: cast_nullable_to_non_nullable
@@ -885,7 +887,8 @@ as Map<String, String>,expectedSduiType: freezed == expectedSduiType ? _self.exp
 as SduiBlockType?,uiPosX: null == uiPosX ? _self.uiPosX : uiPosX // ignore: cast_nullable_to_non_nullable
 as double,uiPosY: null == uiPosY ? _self.uiPosY : uiPosY // ignore: cast_nullable_to_non_nullable
 as double,isSynthesisSource: null == isSynthesisSource ? _self.isSynthesisSource : isSynthesisSource // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,causalSourceStepId: freezed == causalSourceStepId ? _self.causalSourceStepId : causalSourceStepId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

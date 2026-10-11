@@ -5297,4 +5297,27 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get recommendationToJudgeTitle => 'Suositus Tuomarille';
+
+  @override
+  String get causalActionCardTitle => 'Kausaalinen argumenttidiagnoosi';
+
+  @override
+  String causalIntactClaimsSummary(int count) {
+    return '$count muuta väitettä todettu loogisesti kestäviksi';
+  }
+
+  @override
+  String get causalOpenInspectorAction => 'Avaa interaktiivinen tarkastin';
+
+  @override
+  String get causalInspectorTitle => 'Kausaaligraafin tarkastin';
+
+  @override
+  String get causalRootCauseBadge => 'Juurisyy';
+
+  @override
+  String get causalCascadingFaultBadge => 'Kerrannaisvirhe';
+
+  @override
+  String get causalRemediationLabel => 'Korjausehdotus';
 }

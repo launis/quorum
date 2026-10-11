@@ -9479,6 +9479,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommendation to the Evaluator'**
   String get recommendationToJudgeTitle;
+
+  /// No description provided for @causalActionCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Causal Argument Diagnosis'**
+  String get causalActionCardTitle;
+
+  /// Summary count of intact verified claims
+  ///
+  /// In en, this message translates to:
+  /// **'{count} other claims verified logically sound'**
+  String causalIntactClaimsSummary(int count);
+
+  /// No description provided for @causalOpenInspectorAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Interactive Inspector'**
+  String get causalOpenInspectorAction;
+
+  /// No description provided for @causalInspectorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Causal Graph Inspector'**
+  String get causalInspectorTitle;
+
+  /// No description provided for @causalRootCauseBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Root Cause'**
+  String get causalRootCauseBadge;
+
+  /// No description provided for @causalCascadingFaultBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Cascading Fault'**
+  String get causalCascadingFaultBadge;
+
+  /// No description provided for @causalRemediationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescriptive Remediation'**
+  String get causalRemediationLabel;
 }
 
 class _AppLocalizationsDelegate

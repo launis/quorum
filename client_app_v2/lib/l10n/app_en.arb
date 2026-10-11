@@ -2606,6 +2606,21 @@
       }
     }
   },
-  "recommendationToJudgeTitle": "Recommendation to the Evaluator"
+  "recommendationToJudgeTitle": "Recommendation to the Evaluator",
+  "causalActionCardTitle": "Causal Argument Diagnosis",
+  "causalIntactClaimsSummary": "{count} other claims verified logically sound",
+  "@causalIntactClaimsSummary": {
+    "description": "Summary count of intact verified claims",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "causalOpenInspectorAction": "Open Interactive Inspector",
+  "causalInspectorTitle": "Causal Graph Inspector",
+  "causalRootCauseBadge": "Root Cause",
+  "causalCascadingFaultBadge": "Cascading Fault",
+  "causalRemediationLabel": "Prescriptive Remediation"
 }
 

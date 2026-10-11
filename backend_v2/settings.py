@@ -344,6 +344,26 @@ class Settings(BaseSettings):
     ensemble_parallelism: Annotated[int, Field(description="Dynamic parallel BoX calls based on execution mode")] = 3
     ensemble_min_consensus: Annotated[int, Field(description="Dynamic consensus votes based on execution mode")] = 2
 
+    # --- Causal Discovery & Dynamic DAG Settings ---
+    causal_discovery_window_size: Annotated[
+        int, Field(default=4, description="Sliding window size for causal argument linking")
+    ] = 4
+    causal_discovery_overlap: Annotated[
+        int, Field(default=2, description="Overlap size for sliding window linking")
+    ] = 2
+    causal_discovery_max_atoms_per_window: Annotated[
+        int, Field(default=25, description="Safety ceiling on claims extracted per window")
+    ] = 25
+    causal_discovery_max_total_atoms: Annotated[
+        int, Field(default=100, description="Safety ceiling on total claims extracted for a document")
+    ] = 100
+    causal_secondary_fault_dampening: Annotated[
+        float, Field(default=0.25, description="Penalty dampening factor for cascading secondary faults")
+    ] = 0.25
+    two_pass_atomizer_packet_size: Annotated[
+        int, Field(default=50, description="Default block count per chunk packet in two-pass atomizer")
+    ] = 50
+
     # --- Logging ---
     use_json_logging: Annotated[
         bool, BeforeValidator(strip_whitespace), Field(description="Force structured JSON logging in any environment")

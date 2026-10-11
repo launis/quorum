@@ -63,6 +63,7 @@ def _build_llm_strategy(
 NODE_STRATEGY_REGISTRY: dict[StepType, StrategyBuilder] = {
     StepType.LOGIC: _build_logic_strategy,
     StepType.LLM: _build_llm_strategy,
+    StepType.CAUSAL_DISCOVERY: _build_llm_strategy,
 }
 
 

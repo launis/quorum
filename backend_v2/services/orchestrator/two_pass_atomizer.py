@@ -47,16 +47,18 @@ class TwoPassAtomizer:
         """
         self.executor = executor
 
-    def _calculate_packets(self, hydrated_text: str, packet_size: int = 50) -> list[ChunkPacketDTO]:
+    def _calculate_packets(self, hydrated_text: str, packet_size: int | None = None) -> list[ChunkPacketDTO]:
         """Deterministically calculate logical chunk boundaries.
 
         Args:
             hydrated_text: Full document string containing block markers.
-            packet_size: Number of blocks per packet chunk.
+            packet_size: Number of blocks per packet chunk. When unspecified or None,
+                resolves dynamically via get_settings().two_pass_atomizer_packet_size.
 
         Returns:
             List of ChunkPacketDTO instances containing start_block, end_block, and packet_keys.
         """
+        effective_packet_size = packet_size if packet_size is not None else get_settings().two_pass_atomizer_packet_size
         block_keys: list[str] = []
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
@@ -65,8 +67,10 @@ class TwoPassAtomizer:
         packets: list[ChunkPacketDTO] = []
         if not block_keys:
             return []
-        for i in range(0, len(block_keys), packet_size):
-            packet_keys = block_keys[i : i + packet_size]
+        for i in range(0, len(block_keys), effective_packet_size):
+            packet_keys = block_keys[i : i + effective_packet_size]
+            if not packet_keys:
+                continue
             packets.append(
                 ChunkPacketDTO(
                     start_block=packet_keys[0],

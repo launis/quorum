@@ -133,6 +133,23 @@ class Step(V2CoreBase):
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 )
+        if self.type == StepType.CAUSAL_DISCOVERY:
+            if not self.cognitive_tier or self.cognitive_tier not in CognitiveTier:
+                msg = f"Causal Discovery Step '{self.id}' must declare an explicit cognitive_tier (Zero-Fallback Rule)."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
+            if not self.extraction_protocol_block_id:
+                msg = f"Causal Discovery Step '{self.id}' must define a valid extraction_protocol_block_id."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
         if self.type == StepType.LOGIC and not self.hook:
             msg = f"Logic Step '{self.id}' must define a native 'hook' execution target."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -171,9 +188,40 @@ class StepRule(V2CoreBase):
         bool,
         Field(description="Whether this step's narrative text output is forwarded to the synthesis LLM context."),
     ] = True
+    causal_source_step_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="Reference to upstream causal discovery step for fusion atom extraction.",
+        ),
+    ] = None
 
     ui_pos_x: float = Field(default=0.0, description="X coordinate on the 2D DAG canvas.")
     ui_pos_y: float = Field(default=0.0, description="Y coordinate on the 2D DAG canvas.")
+
+    @model_validator(mode="after")
+    def validate_step_rule_consistency(self) -> StepRule:
+        """Enforces that causal_source_step_id exists in depends_on if specified.
+
+        Raises:
+            AppException: If causal_source_step_id is not in depends_on.
+
+        Returns:
+            The validated StepRule instance.
+        """
+        if self.causal_source_step_id is not None and self.causal_source_step_id not in self.depends_on:
+            msg = (
+                f"StepRule '{self.id}' references causal_source_step_id '{self.causal_source_step_id}' "
+                f"which is not declared in depends_on: {self.depends_on}."
+            )
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+        return self
 
     def extract_variable_references(self) -> list[str]:
         """Extracts dynamic variable references (e.g. $inputs.x, $steps.y) from input_mappings.

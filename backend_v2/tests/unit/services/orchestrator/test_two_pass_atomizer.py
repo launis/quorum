@@ -36,6 +36,7 @@ def settings_mock(monkeypatch):
     mock.llm_retry_multiplier = 0.1
     mock.llm_retry_min_seconds = 0.01
     mock.llm_retry_max_seconds = 0.05
+    mock.two_pass_atomizer_packet_size = 50
     monkeypatch.setattr("backend_v2.services.orchestrator.two_pass_atomizer.get_settings", lambda: mock)
     return mock
 

@@ -63,6 +63,7 @@ abstract class StepRule with _$StepRule {
     @Default(0.0) double uiPosY,
     // Phase 1, Step 3: Synthesis context governance field
     @Default(true) @JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,
+    @JsonKey(name: 'causal_source_step_id') String? causalSourceStepId,
   }) = _StepRule;
 
   factory StepRule.fromJson(Map<String, dynamic> json) =>

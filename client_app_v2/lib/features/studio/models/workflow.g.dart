@@ -133,6 +133,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'ui_pos_x',
         'ui_pos_y',
         'is_synthesis_source',
+        'causal_source_step_id',
       ],
     );
     final val = _StepRule(
@@ -173,6 +174,10 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
         'is_synthesis_source',
         (v) => v as bool? ?? true,
       ),
+      causalSourceStepId: $checkedConvert(
+        'causal_source_step_id',
+        (v) => v as String?,
+      ),
     );
     return val;
   },
@@ -184,6 +189,7 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
     'uiPosX': 'ui_pos_x',
     'uiPosY': 'ui_pos_y',
     'isSynthesisSource': 'is_synthesis_source',
+    'causalSourceStepId': 'causal_source_step_id',
   },
 );
 
@@ -198,6 +204,7 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
   'is_synthesis_source': instance.isSynthesisSource,
+  'causal_source_step_id': instance.causalSourceStepId,
 };
 
 const _$SduiBlockTypeEnumMap = {

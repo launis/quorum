@@ -148,7 +148,12 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
                 clean_base = filename.removesuffix(".py").lstrip("_")
-                candidates = [f"test_{clean_base}.py", f"test__{clean_base}.py", f"test_{filename}"]
+                candidates = [
+                    f"test_{clean_base}.py",
+                    f"test_{clean_base}_dtos.py",
+                    f"test__{clean_base}.py",
+                    f"test_{filename}",
+                ]
                 if clean_base.startswith("audit_"):
                     candidates.append(f"test_{clean_base.removeprefix('audit_')}.py")
                 if clean_base.startswith("test_"):

@@ -127,6 +127,7 @@ class StepType(StrEnum):
 
     LLM = "llm"
     LOGIC = "logic"
+    CAUSAL_DISCOVERY = "causal_discovery"
 
 
 class EvaluationMandate(StrEnum):

@@ -346,3 +346,60 @@ def test_settings_llm_default_timeout_invariants() -> None:
     # 8. Negative BVA boundary (> 3600.0)
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, llm_default_timeout=3601.0)
+
+
+def test_settings_causal_defaults() -> None:
+    """Verify Settings causal discovery defaults and types."""
+    settings = get_settings()
+    assert settings.causal_discovery_window_size == 4
+    assert settings.causal_discovery_overlap == 2
+    assert settings.causal_discovery_max_atoms_per_window == 25
+    assert settings.causal_discovery_max_total_atoms == 100
+    assert settings.causal_secondary_fault_dampening == 0.25
+    assert settings.two_pass_atomizer_packet_size == 50
+
+    # Custom valid overrides
+    custom = Settings(
+        use_mock_llm=True,
+        causal_discovery_window_size=6,
+        causal_discovery_overlap=3,
+        causal_discovery_max_atoms_per_window=30,
+        causal_discovery_max_total_atoms=150,
+        causal_secondary_fault_dampening=0.5,
+        two_pass_atomizer_packet_size=25,
+    )
+    assert custom.causal_discovery_window_size == 6
+    assert custom.causal_discovery_overlap == 3
+    assert custom.causal_discovery_max_atoms_per_window == 30
+    assert custom.causal_discovery_max_total_atoms == 150
+    assert custom.causal_secondary_fault_dampening == 0.5
+    assert custom.two_pass_atomizer_packet_size == 25
+
+
+def test_two_pass_atomizer_dynamic_packet_size() -> None:
+    """Verify TwoPassAtomizer dynamically resolves packet_size from settings when None."""
+    from unittest.mock import MagicMock
+
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+    from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
+
+    mock_executor = MagicMock(spec=LLMTaskExecutor)
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+
+    # 120 blocks: [blk_0] text \n\n [blk_1] text ...
+    hydrated_lines = [f"[{f'blk_{i:04d}'}] Block text {i}" for i in range(120)]
+    hydrated_text = "\n\n".join(hydrated_lines)
+
+    # When packet_size is None, should resolve to get_settings().two_pass_atomizer_packet_size == 50
+    packets = atomizer._calculate_packets(hydrated_text, packet_size=None)
+    assert len(packets) == 3
+    assert len(packets[0].packet_keys) == 50
+    assert len(packets[1].packet_keys) == 50
+    assert len(packets[2].packet_keys) == 20
+    assert packets[0].start_block == "blk_0000"
+    assert packets[0].end_block == "blk_0049"
+
+    # Explicit packet_size parameter takes precedence
+    custom_packets = atomizer._calculate_packets(hydrated_text, packet_size=20)
+    assert len(custom_packets) == 6
+    assert len(custom_packets[0].packet_keys) == 20

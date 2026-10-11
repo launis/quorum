@@ -393,3 +393,91 @@ def test_allowed_input_modes_ssot() -> None:
     """Verify ALLOWED_INPUT_MODES SSOT members."""
     expected = frozenset({"file", "paste", "text", "questionnaire", "assignment"})
     assert ALLOWED_INPUT_MODES == expected
+
+
+def test_step_causal_discovery_valid_without_criteria() -> None:
+    """Test valid instantiation of a CAUSAL_DISCOVERY Step with empty criteria."""
+    step = Step(
+        id="stp_0123456789abcdef",
+        slug="step_causal",
+        name=I18nText(translations={"en": "Causal Discovery Step"}),
+        type=StepType.CAUSAL_DISCOVERY,
+        role_block_id="blk_0123456789abcdef",
+        extraction_protocol_block_id="blk_abcdef0123456789",
+        criteria_block_ids=[],
+        cognitive_tier=CognitiveTier.FAST,
+    )
+    assert step.id == "stp_0123456789abcdef"
+    assert step.type == StepType.CAUSAL_DISCOVERY
+    assert step.criteria_block_ids == []
+    assert step.cognitive_tier == CognitiveTier.FAST
+
+
+def test_step_causal_discovery_missing_extraction_protocol_raises_app_exception() -> None:
+    """Test that CAUSAL_DISCOVERY step without extraction_protocol_block_id fails validation."""
+    with pytest.raises(AppException) as exc_info:
+        Step(
+            id="stp_0123456789abcdef",
+            slug="step_causal_broken",
+            name=I18nText(translations={"en": "Broken Step"}),
+            type=StepType.CAUSAL_DISCOVERY,
+            role_block_id="blk_0123456789abcdef",
+            extraction_protocol_block_id=None,
+            criteria_block_ids=[],
+            cognitive_tier=CognitiveTier.FAST,
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must define a valid extraction_protocol_block_id" in exc_info.value.message
+
+
+def test_step_causal_discovery_missing_cognitive_tier_raises_app_exception() -> None:
+    """Test that CAUSAL_DISCOVERY step without cognitive_tier fails validation."""
+    with pytest.raises(AppException) as exc_info:
+        Step(
+            id="stp_0123456789abcdef",
+            slug="step_causal_broken",
+            name=I18nText(translations={"en": "Broken Step"}),
+            type=StepType.CAUSAL_DISCOVERY,
+            role_block_id="blk_0123456789abcdef",
+            extraction_protocol_block_id="blk_abcdef0123456789",
+            criteria_block_ids=[],
+            cognitive_tier=None,
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must declare an explicit cognitive_tier" in exc_info.value.message
+
+
+def test_step_rule_causal_source_step_id_in_depends_on_valid() -> None:
+    """Test StepRule with causal_source_step_id present in depends_on validates successfully."""
+    step_rule = StepRule(
+        id="sr_0123456789abcdef",
+        task_blueprint="stp_0123456789abcdef",
+        depends_on=["sr_1111111111111111", "sr_2222222222222222"],
+        causal_source_step_id="sr_1111111111111111",
+    )
+    assert step_rule.causal_source_step_id == "sr_1111111111111111"
+    assert "sr_1111111111111111" in step_rule.depends_on
+
+
+def test_step_rule_causal_source_step_id_not_in_depends_on_raises_app_exception() -> None:
+    """Test StepRule with causal_source_step_id not in depends_on raises AppException."""
+    with pytest.raises(AppException) as exc_info:
+        StepRule(
+            id="sr_0123456789abcdef",
+            task_blueprint="stp_0123456789abcdef",
+            depends_on=["sr_2222222222222222"],
+            causal_source_step_id="sr_1111111111111111",
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "references causal_source_step_id" in exc_info.value.message
+
+
+def test_step_rule_invalid_opaque_id_raises_validation_error() -> None:
+    """Boundary test: StepRule with causal_source_step_id violating OPAQUE_STRIPE_ID_REGEX raises ValidationError."""
+    with pytest.raises(ValidationError):
+        StepRule(
+            id="sr_0123456789abcdef",
+            task_blueprint="stp_0123456789abcdef",
+            depends_on=["invalid_id!"],
+            causal_source_step_id="invalid_id!",
+        )

@@ -1893,5 +1893,20 @@
       }
     }
   },
-  "recommendationToJudgeTitle": "Suositus Tuomarille"
+  "recommendationToJudgeTitle": "Suositus Tuomarille",
+  "causalActionCardTitle": "Kausaalinen argumenttidiagnoosi",
+  "causalIntactClaimsSummary": "{count} muuta väitettä todettu loogisesti kestäviksi",
+  "@causalIntactClaimsSummary": {
+    "description": "Yhteenveto loogisesti kestävistä väitteistä",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "causalOpenInspectorAction": "Avaa interaktiivinen tarkastin",
+  "causalInspectorTitle": "Kausaaligraafin tarkastin",
+  "causalRootCauseBadge": "Juurisyy",
+  "causalCascadingFaultBadge": "Kerrannaisvirhe",
+  "causalRemediationLabel": "Korjausehdotus"
 }

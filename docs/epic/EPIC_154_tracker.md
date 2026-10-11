@@ -50,14 +50,14 @@
 
 ### Phase 2: Configuration, DTOs, Studio Foundation & Parity
 **Plan:** @[docs/epic/tasks_EPIC_154/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 2.1: Settings configuration
-  - [ ] Step 2.2: Enums and ErrorCodes synchronization
-  - [ ] Step 2.3: Step consistency, strategy registry, and fusion schema extension
-  - [ ] Step 2.4: Immutable causal discovery DTO contracts
-  - [ ] Step 2.5: Presentation localization
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 2.1: Settings configuration
+  - [x] Step 2.2: Enums and ErrorCodes synchronization
+  - [x] Step 2.3: Step consistency, strategy registry, and fusion schema extension
+  - [x] Step 2.4: Immutable causal discovery DTO contracts
+  - [x] Step 2.5: Presentation localization
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 3: Autonomous Causal Discovery Engine Implementation & Tests
@@ -215,11 +215,11 @@
 | Typed ENGINE_REGISTRY and build_execution_engine factory | Section 3.1.4 | Phase 1, Step 1.5 | Completed |
 | Eradicate pre-hook heuristic matching in dag_executor.py | Section 3.1.4 | Phase 1, Step 1.6 | Completed |
 | Add telemetry_strategy_label and purge LLM strategy duck typing | Section 3.1.4 | Phase 1, Step 1.7 | Completed |
-| Settings configuration for causal window, overlap, dampening, packet size | Section 3.2.1 | Phase 2, Step 2.1 | Pending |
-| Domain enums (StepType.CAUSAL_DISCOVERY) and explicit ErrorCodes | Section 3.2.2 | Phase 2, Step 2.2 | Pending |
-| Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Pending |
-| 8 immutable Pydantic V2 DTO contracts with referential integrity validators | Section 3.2.4 | Phase 2, Step 2.4 | Pending |
-| Presentation compile-time localization in app_en.arb and app_fi.arb | Section 3.2.5 | Phase 2, Step 2.5 | Pending |
+| Settings configuration for causal window, overlap, dampening, packet size | Section 3.2.1 | Phase 2, Step 2.1 | Completed |
+| Domain enums (StepType.CAUSAL_DISCOVERY) and explicit ErrorCodes | Section 3.2.2 | Phase 2, Step 2.2 | Completed |
+| Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Completed |
+| 8 immutable Pydantic V2 DTO contracts with referential integrity validators | Section 3.2.4 | Phase 2, Step 2.4 | Completed |
+| Presentation compile-time localization in app_en.arb and app_fi.arb | Section 3.2.5 | Phase 2, Step 2.5 | Completed |
 | Pre-flight ingress verification and AliasEngine initialization | Section 3.3.1 | Phase 3, Step 3.1 | Pending |
 | Four-Layer Clean Stack prompt compilation with static caching topology | Section 3.3.1 | Phase 3, Step 3.2 | Pending |
 | Two-pass claim extraction with exact str.find quote anchoring | Section 3.3.1 | Phase 3, Step 3.3 | Pending |
@@ -254,26 +254,30 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Tier 2 Continuous Full-Auto implementation (`/tier2-execute --full-auto`) on `docs/epic/tasks_EPIC_154/01_phase1_plan.md`.
-- Verified `ChunkPacketDTO` in `backend_v2/models/dtos/dag_models.py` and `two_pass_atomizer.py` (Step 1.1).
-- Confirmed `SlidingWindowLinker` constructor parameter defaults (`window_size=4, overlap=2`) preserved unchanged (Step 1.2).
-- Modernized `Step.validate_step_consistency` in `backend_v2/models/domain/step.py` to use `StepType.LLM` and `StepType.LOGIC` enum checks, raising RFC 7807 `AppException(ErrorCodes.VALIDATION_FAILED)` with status 422 (Step 1.3).
-- Defined `EngineType` enum with members `tda`, `synthesis`, `prompt`, `causal_discovery` and `LaxEngineType` in `backend_v2/models/enums.py`. Extended `Step` domain model with `engine_type`. Mirrored in Dart `enums.dart` and `workflow.dart` (`NodeStrategy.llm` and `NodeStrategy.logic`), generating Freezed models and passing Flutter audit loop. Added explicit `engine_type` across all 19 step blueprints in `seed_data.json` and persisted to `data/db_v2.json` (Step 1.4).
-- Implemented typed `ENGINE_REGISTRY` and `build_execution_engine` factory in `backend_v2/services/orchestrator/engines/registry.py` and re-exported in `engines/__init__.py`. Tested with comprehensive positive and negative boundary test suites in `test_engine_registry.py` and `test_registry.py` (Step 1.5).
-- Eradicated heuristic pre-hook string matching (`"atom_flattening_hook"`, `"synthesis_distiller_hook"`) and criteria category loops from `dag_executor.py#L162-L189`, delegating directly to `build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)` in O(1) time (Step 1.6).
-- Extended `ExecutionEngine` Protocol with `telemetry_strategy_label` property in `base.py`, implemented on `TDAEngine` (`"tda"`), `PromptEngine` (`"prompt"`), and `SynthesisEngine` (`"synthesis"`). Purged duck-typing cascades and untyped dictionary mutation accumulators (`meta_dict = {}`) from `LLMNodeStrategy.execute`, reconstituting metadata strictly via typed `StepTraceMetadataDTO` and passing AST guardrails cleanly (Step 1.7).
-- Executed Tier 8 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`) verifying 100% as-built fidelity. Modernized legacy test assertions in `test_v2_core.py` and `test_v2_core_strictness.py` to expect `AppException`. Global backend completion gate passed all 5,204 tests cleanly in 454s with 97.75% coverage. Generated audit artifact `red_team_audit_01_phase1_plan.md`.
+- Executed Phase 2 (`@[docs/epic/tasks_EPIC_154/02_phase2_plan.md]`) in Continuous Full-Auto Mode, completing all 5 steps with 100% Quality Gate compliance.
+- Centralized Settings: Added all 6 causal discovery and sliding window parameters to `backend_v2/settings.py` (`causal_discovery_window_size`, `causal_discovery_overlap`, `causal_discovery_max_atoms_per_window`, `causal_discovery_max_total_atoms`, `causal_secondary_fault_dampening`, `two_pass_atomizer_packet_size`).
+- Dynamic Packet Sizing: Modernized `backend_v2/services/orchestrator/two_pass_atomizer.py` to dynamically resolve `packet_size` from settings when unspecified or None.
+- Enums & Exceptions: Registered `StepType.CAUSAL_DISCOVERY = "causal_discovery"` in `backend_v2/models/enums.py` and added explicit `ErrorCodes` (`CAUSAL_DISCOVERY_EMPTY_DOCUMENT`, `CAUSAL_DISCOVERY_CYCLE_DETECTED`, `CAUSAL_DISCOVERY_DATA_STARVATION`) in `backend_v2/exceptions.py`. Verified 1:1 cross-language enum parity.
+- Step & StepRule Consistency: Modernized `Step.validate_step_consistency` to permit empty criteria for causal discovery while strictly enforcing `extraction_protocol_block_id` and `cognitive_tier`. Added `StepRule.causal_source_step_id` with `@model_validator` enforcing membership in `depends_on`, mirrored to Dart `StepRule` in `workflow.dart`, and regenerated Freezed/JSON serializers via `flutter_audit_loop.py`.
+- Strategy Registry & DAG Execution: Registered `StepType.CAUSAL_DISCOVERY: _build_llm_strategy` in `NODE_STRATEGY_REGISTRY` and enabled `NodeExecutor.execute` support in `dag_executor.py`.
+- Immutable Causal DTOs: Created 8 immutable Pydantic V2 DTOs in `backend_v2/models/dtos/causal_discovery.py` enforcing `ConfigDict(strict=True, extra="forbid", frozen=True)` with cross-field referential integrity (`CausalGraphPayloadDTO`) and mathematical identity (`FairScoringBreakdownDTO`) validators.
+- Pipeline Envelope Extension: Extended `StepPayloadValue` with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`, and updated `StepOutputDTO.data_type` with `"causal"`.
+- Presentation Localization: Added all 7 compile-time localization keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`, compiled via `flutter gen-l10n`.
+- DTO Parity & Audit Loop Modernization: Explicitly aliased `causaledge -> causaledgedto` in `scripts/audit_dto_parity.py` to preserve 1:1 boundary contracts between Python `CausalEdge` and Dart `CausalEdgeDTO`. Added `test_{clean_base}_dtos.py` candidate resolution to `scripts/backend_audit_loop.py`.
 
 ## Learned
-- Python `@runtime_checkable` protocols that include non-method members (like properties) do not support `issubclass(Class, Protocol)` in `typing`; assertions must evaluate `isinstance(instance, Protocol)` and inspect `instance.property`.
-- `LLMNodeStrategy.execute` constructing `StepTraceMetadataDTO` directly passes AST strict rules (QGR001, QGR002, QGR025) and ensures all fields adhere to Pydantic extra="forbid" validation.
-- Modernizing `@model_validator` domain validation from `ValueError` to `AppException` requires downstream test assertions to catch `AppException` directly (Pydantic V2 does not wrap custom non-ValueError exceptions into `ValidationError`).
+- Cross-domain DTO parity audit matches case-insensitive class names across Python and Dart. When a Python class (`CausalEdge` in `dag_models.py`) pairs with a Dart Freezed class (`CausalEdgeDTO` in `prompt_block.dart`), introducing a new Python DTO with the name `CausalEdgeDTO` triggers an unintended match unless explicitly mapped in `EXPLICIT_MODEL_ALIASES`.
+- Census T strictly enforces zero `# type: ignore` suppressions across all tests and scripts. Testing Pydantic frozen immutability must use direct assignment (`obj.field = value`) within `pytest.raises(ValidationError)` rather than `setattr()` (which violates `QGR001`) or `# type: ignore` tokens (which violate Census T).
+- Mocks of `get_settings()` in test fixtures must supply numerical defaults for newly added numeric settings (`two_pass_atomizer_packet_size = 50`) to avoid slicing errors when methods compute ranges or step sizes.
 
 ## Remaining
-- Proceed to Phase 2: Configuration, DTOs, Studio Foundation & Parity (`02_phase2_plan.md`):
-  `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- Run Tier 8 Audit on Phase 2 Plan:
+  `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- Proceed to Phase 3 Red-Teaming:
+  `/tier0-research-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
+

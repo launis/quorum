@@ -5257,4 +5257,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recommendationToJudgeTitle => 'Recommendation to the Evaluator';
+
+  @override
+  String get causalActionCardTitle => 'Causal Argument Diagnosis';
+
+  @override
+  String causalIntactClaimsSummary(int count) {
+    return '$count other claims verified logically sound';
+  }
+
+  @override
+  String get causalOpenInspectorAction => 'Open Interactive Inspector';
+
+  @override
+  String get causalInspectorTitle => 'Causal Graph Inspector';
+
+  @override
+  String get causalRootCauseBadge => 'Root Cause';
+
+  @override
+  String get causalCascadingFaultBadge => 'Cascading Fault';
+
+  @override
+  String get causalRemediationLabel => 'Prescriptive Remediation';
 }

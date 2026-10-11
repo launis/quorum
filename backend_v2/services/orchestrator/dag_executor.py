@@ -275,7 +275,7 @@ class NodeExecutor:
                 )
 
                 engine: ExecutionEngine | None = None
-                if step_def.type == StepType.LLM:
+                if step_def.type in (StepType.LLM, StepType.CAUSAL_DISCOVERY):
                     engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks)
 
                 effective_deps = self.deps

@@ -238,6 +238,7 @@ EXPLICIT_MODEL_ALIASES: dict[str, str] = {
     "workflowresponsedto": "workflow",
     "useradminview": "user",
     "systemconfigmcpgateways": "mcpgateway",
+    "causaledge": "causaledgedto",
 }
 
 PREFERRED_BACKEND_ALIASES: dict[str, str] = {
