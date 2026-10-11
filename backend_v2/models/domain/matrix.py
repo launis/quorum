@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 if TYPE_CHECKING:
     from backend_v2.models.dtos.dag_models import CausalEdge
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import I18nText, V2CoreBase
@@ -301,7 +301,7 @@ from backend_v2.models.dtos.dag_models import CausalEdge
 TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
 
 
-class FlattenedAtom(BaseModel):
+class FlattenedAtom(V2CoreBase):
     """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
 
     Attributes:

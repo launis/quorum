@@ -1,6 +1,7 @@
 """Unit tests for matrix domain models."""
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import (
@@ -179,3 +180,29 @@ def test_tda_assertion_extractive_sensor_validation() -> None:
         logical_expression="fact1",
     )
     assert tda.evaluation_track == "EXTRACTIVE_SENSOR"
+
+
+def test_flattened_atom_v2_core_base_inheritance_and_whitespace_stripping() -> None:
+    from backend_v2.models.core_base import V2CoreBase
+    from backend_v2.models.domain.matrix import FlattenedAtom
+
+    assert issubclass(FlattenedAtom, V2CoreBase)
+
+    atom = FlattenedAtom(
+        atom_id="  atm_0123456789abcdef  ",
+        question="  Does the candidate explain X?  ",
+    )
+    # V2CoreBase string whitespace stripping
+    assert atom.atom_id == "atm_0123456789abcdef"
+    assert atom.question == "Does the candidate explain X?"
+
+    # Extra fields forbidden
+    with pytest.raises(ValidationError):
+        FlattenedAtom.model_validate(
+            {
+                "atom_id": "atm_1",
+                "question": "question",
+                "unauthorized_extra": "fail",
+            }
+        )
+
