@@ -26,8 +26,8 @@ def test_prompt_compiler_adapter_delegation() -> None:
     assert "<user_payload>" in chunk_inst
 
 
-def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
-    """Verifies compile_prompt fallback correctly splits pre-compiled message list via regex tags."""
+def test_prompt_compiler_adapter_compile_prompt_segregation() -> None:
+    """Verifies compile_prompt cleanly segregates static system messages and dynamic tail without regex scraping."""
     adapter = PromptCompilerAdapter()
 
     user_content = (
@@ -49,49 +49,39 @@ def test_prompt_compiler_adapter_compile_prompt_fallback() -> None:
     prompt = adapter.compile_prompt(messages)
 
     # 1. System is static
+    assert len(prompt.static_messages) == 1
     assert prompt.static_messages[0].role == "system"
     assert prompt.static_messages[0].content == "Static system prompt"
 
-    # 2. Static user contents are isolated in static
-    static_user = prompt.static_messages[1]
-    assert static_user.role == "user"
-    assert "<source_data>Verbatim content</source_data>" in static_user.content
-    assert "<task>Execute task.</task>" in static_user.content
-    assert "<execution_parameters>" not in static_user.content
-    assert "<PREVIOUS_SCHEMA_ERROR>" not in static_user.content
-
-    # 3. Dynamic blocks are isolated in dynamic
-    dynamic_user = prompt.dynamic_messages[0]
-    assert dynamic_user.role == "user"
-    assert "<execution_parameters>" in dynamic_user.content
-    assert "<PREVIOUS_SCHEMA_ERROR>" in dynamic_user.content
-    assert "<source_data>" not in dynamic_user.content
-    assert "<task>" not in dynamic_user.content
-
-    # 4. Assistant and subsequent users are kept in dynamic
+    # 2. Dynamic messages receive all non-system turns intact without regex scraping
+    assert len(prompt.dynamic_messages) == 3
+    assert prompt.dynamic_messages[0].role == "user"
+    assert prompt.dynamic_messages[0].content == user_content
     assert prompt.dynamic_messages[1].role == "assistant"
+    assert prompt.dynamic_messages[1].content == "Previous response"
     assert prompt.dynamic_messages[2].role == "user"
+    assert prompt.dynamic_messages[2].content == "Follow-up question"
 
 
-def test_prompt_compiler_adapter_compile_prompt_empty_dynamic_fallback() -> None:
-    """Verifies fallback moving last message to dynamic_messages when no dynamic tags exist."""
+def test_prompt_compiler_adapter_compile_prompt_missing_dynamic_tail_raises_neg10() -> None:
+    """Verifies Scenario NEG-10: compile_prompt fails fast when message list lacks dynamic tail."""
+    import pytest
+
+    from backend_v2.exceptions import AppException, ErrorCodes
+
     adapter = PromptCompilerAdapter()
 
     messages = [
-        {"role": "system", "content": "Static system"},
-        {"role": "user", "content": "Just a plain user message without any execution parameters or error tags."},
+        {"role": "system", "content": "Static system instruction 1"},
+        {"role": "system", "content": "Static system instruction 2"},
     ]
 
-    prompt = adapter.compile_prompt(messages)
+    with pytest.raises(AppException) as exc_info:
+        adapter.compile_prompt(messages)
 
-    # 1. System is static
-    assert len(prompt.static_messages) == 1
-    assert prompt.static_messages[0].role == "system"
-
-    # 2. User message moved to dynamic as fallback
-    assert len(prompt.dynamic_messages) == 1
-    assert prompt.dynamic_messages[0].role == "user"
-    assert "plain user message" in prompt.dynamic_messages[0].content
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Compiled prompt requires at least one dynamic message in the dynamic tail." in exc_info.value.message
 
 
 def test_prompt_compiler_adapter_extended_delegation() -> None:
@@ -148,9 +138,20 @@ def test_prompt_compiler_adapter_extended_delegation() -> None:
     assert "web_search" in mcp_inst
 
     # 5. build_xml_context
-    mapping = PromptMappingDTO(mappings={"doc_text": "raw_inputs.input_doc"})
+    from backend_v2.models.domain.step import ExpectedInput
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key="input_doc",
+            label=I18nText(translations={"en": "Input Document"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["file"],
+        )
+    ]
+    mapping = PromptMappingDTO(mappings={"doc_text": "$inputs.input_doc"})
     state = ExecutionInputsDTO(raw_inputs={"input_doc": "Document text content"})
-    xml_context = adapter.build_xml_context(mapping, state, "en")
+    xml_context = adapter.build_xml_context(mapping, state, "en", expected_inputs=expected_inputs)
     assert '<matrix_input source_id="doc_text">' in xml_context
     assert "Document text content" in xml_context
 
@@ -164,7 +165,7 @@ def test_prompt_compiler_adapter_build_xml_context_missing_mapping_negative() ->
     from backend_v2.models.dtos.prompt import PromptMappingDTO
 
     adapter = PromptCompilerAdapter()
-    mapping = PromptMappingDTO(mappings={"doc_text": "missing_key"})
+    mapping = PromptMappingDTO(mappings={"doc_text": "$inputs.missing_key"})
     state = ExecutionInputsDTO(raw_inputs={"different_key": "Some text"})
 
     with pytest.raises(AppException):

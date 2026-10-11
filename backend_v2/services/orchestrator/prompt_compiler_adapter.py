@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import datetime
 import json
-import re
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -19,6 +20,8 @@ from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["PromptCompilerAdapter"]
 
@@ -221,18 +224,20 @@ class PromptCompilerAdapter:
     def compile_prompt(self, messages: Sequence[ChatMessageDTO | LLMMessageDTO]) -> CompiledPrompt:
         """Splits an existing list of messages into static_messages and dynamic_messages.
 
-        Acts as a robust fallback for general inputs by extracting dynamic blocks (execution
-        parameters and error blocks) from user messages and placing them in the dynamic tail.
+        Assigns system role messages to static_messages and all subsequent user, assistant,
+        and tool messages to dynamic_messages without regex heuristic parsing or silent popping.
 
         Args:
             messages: The list of conversation messages (ChatMessageDTOs or LLMMessageDTOs).
 
         Returns:
             A CompiledPrompt object with separated static and dynamic messages.
+
+        Raises:
+            AppException: If the message list lacks a dynamic tail (ErrorCodes.VALIDATION_FAILED).
         """
         static_msgs: list[ChatMessageDTO] = []
         dynamic_msgs: list[ChatMessageDTO] = []
-        in_dynamic_tail = False
 
         typed_messages: list[ChatMessageDTO] = []
         for m in messages:
@@ -252,63 +257,18 @@ class PromptCompilerAdapter:
             content_str = msg.content
 
             if role == "system":
-                # System is 100% static
                 static_msgs.append(ChatMessageDTO(role="system", content=content_str.strip()))
-            elif role == "user":
-                if in_dynamic_tail:
-                    dynamic_msgs.append(ChatMessageDTO(role="user", content=content_str.strip()))
-                else:
-                    # Scan for dynamic parameters and previous errors
-                    has_exec_params = "<execution_parameters>" in content_str
-                    has_prev_error = "<PREVIOUS_SCHEMA_ERROR>" in content_str
-
-                    if not has_exec_params and not has_prev_error:
-                        static_msgs.append(ChatMessageDTO(role="user", content=content_str.strip()))
-                    else:
-                        in_dynamic_tail = True
-                        # Isolate dynamic parameters block
-                        exec_params_match = re.search(
-                            r"(<execution_parameters>.*?</execution_parameters>)", content_str, re.DOTALL
-                        )
-                        # Isolate previous errors block
-                        prev_error_match = re.search(
-                            r"(<PREVIOUS_SCHEMA_ERROR>.*?</PREVIOUS_SCHEMA_ERROR>)", content_str, re.DOTALL
-                        )
-
-                        dynamic_parts = []
-                        static_content = content_str
-
-                        if exec_params_match:
-                            exec_block = exec_params_match.group(1)
-                            dynamic_parts.append(exec_block)
-                            static_content = static_content.replace(exec_block, "")
-
-                        if prev_error_match:
-                            error_block = prev_error_match.group(1)
-                            dynamic_parts.append(error_block)
-                            static_content = static_content.replace(error_block, "")
-
-                        # Clean leftover duplicate newlines
-                        static_content = re.sub(r"\n{3,}", "\n\n", static_content).strip()
-
-                        # Keep static user elements in static segment
-                        if static_content:
-                            static_msgs.append(ChatMessageDTO(role="user", content=static_content))
-
-                        # Keep dynamic parameter blocks in dynamic segment
-                        if dynamic_parts:
-                            dynamic_content = "\n\n".join(dynamic_parts).strip()
-                            dynamic_msgs.append(ChatMessageDTO(role="user", content=dynamic_content))
             else:
-                # Other conversation context (assistant reply, tool response, etc.) is dynamic tail
-                in_dynamic_tail = True
                 dynamic_msgs.append(ChatMessageDTO(role=role, content=content_str.strip()))
 
-        # Fallback: Vertex AI caching requires at least one dynamic message.
-        # If no explicit dynamic tags were found, move the last user message to dynamic_msgs.
-        if not dynamic_msgs and static_msgs:
-            last_msg = static_msgs.pop()
-            dynamic_msgs.append(last_msg)
+        if not dynamic_msgs:
+            error_msg = "Compiled prompt requires at least one dynamic message in the dynamic tail."
+            logger.error("[PromptCompilerAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, error_msg)
+            raise AppException(
+                message=error_msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         return CompiledPrompt(
             static_messages=[LLMMessageDTO(role=m.role, content=m.content) for m in static_msgs],

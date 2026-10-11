@@ -31,7 +31,7 @@
   - [x] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
   - [x] Step 7: Harden TopologicalEvaluator Wave Crash Recovery
   - [x] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
-  - [ ] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
+  - [x] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
   - [ ] Step 10: Enforce Fail-Fast Purity Scanning in caching_service.py
   - [ ] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
   - [ ] Step 12: Harden SDUI Adapters, Dumb Painter Boundaries and Relocate SduiMapperService
@@ -131,8 +131,8 @@
 | REQ-010 | Harden `TopologicalEvaluator` callback handling to catch `BaseException` and fail fast without orphan nodes | Step 7 | [x] Completed |
 | REQ-011 | Seal unwrapped string branches for `is_chat_history` inside `<chat_history>` in `prompt_compiler.py` | Step 8 | [x] Completed |
 | REQ-012 | Eradicate fallback for unknown `$source_path` inputs in `prompt_compiler.py` (fail fast on unmapped prefixes) | Step 8 | [x] Completed |
-| REQ-013 | Eradicate regex prompt scraping (`<execution_parameters>`) in `prompt_compiler_adapter.py` | Step 9 | [ ] Pending |
-| REQ-014 | Remove silent message-popping shims (`last_msg = static_msgs.pop()`) in `prompt_compiler_adapter.py` | Step 9 | [ ] Pending |
+| REQ-013 | Eradicate regex prompt scraping (`<execution_parameters>`) in `prompt_compiler_adapter.py` | Step 9 | [x] Completed |
+| REQ-014 | Remove silent message-popping shims (`last_msg = static_msgs.pop()`) in `prompt_compiler_adapter.py` | Step 9 | [x] Completed |
 | REQ-015 | Upgrade passive purity logging to Fail-Fast `AppException` in `caching_service.py` | Step 10 | [ ] Pending |
 | REQ-016 | Purge dynamic output profile injection from `base_system_prompt` and move to `user_payload` in `strategies/llm.py` | Step 11 | [ ] Pending |
 | REQ-017 | Eradicate heuristic axis count guessing fallbacks and ad-hoc `MarkdownBlock` headers in `matrix_graphs_adapter.py` | Step 12 | [ ] Pending |

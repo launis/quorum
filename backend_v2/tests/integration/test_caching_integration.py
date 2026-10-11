@@ -279,16 +279,22 @@ async def test_vertex_fail_soft_resilience_integration(
 
     # Generate a massive prompt (over Vertex caching character threshold)
     large_static = "A" * 150000
-    messages = [
-        {"role": "system", "content": "You are a helpful analyst."},
-        {"role": "user", "content": large_static},
-        {"role": "user", "content": "Extract dynamic insight"},
-    ]
+    from backend_v2.models.llm import LLMMessageDTO
+
+    compiled_p = CompiledPrompt(
+        static_messages=[
+            LLMMessageDTO(role="system", content="You are a helpful analyst."),
+            LLMMessageDTO(role="user", content=large_static),
+        ],
+        dynamic_messages=[
+            LLMMessageDTO(role="user", content="Extract dynamic insight"),
+        ],
+    )
 
     # Execute structuring task, should complete cleanly despite the Vertex API Context Caching failure!
     res_model, usage = await executor.execute_structured_task(
         client=client,
-        messages=messages,
+        messages=compiled_p,
         response_model=IntegrationResponseSchema,
     )
 
@@ -298,10 +304,6 @@ async def test_vertex_fail_soft_resilience_integration(
     assert mock_cached_contents.CachedContent.create.call_count == 1
 
     # Verify that the FAILED sentinel status was written to the shared ledger to lock it out
-    from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
-
-    # The actual static_messages is compiled by PromptCompilerAdapter.compile_prompt
-    compiled_p = PromptCompilerAdapter().compile_prompt(messages)
     actual_hash = hashlib.sha256(
         json.dumps(
             [m.model_dump(mode="json", exclude_none=True) for m in compiled_p.static_messages],
