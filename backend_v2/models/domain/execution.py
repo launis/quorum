@@ -279,6 +279,65 @@ class ExecutionRecord(ExecutionCoreFields):
         updated_syntheses = {k: v for k, v in self.profile_syntheses.items() if k != profile_id}
         return self.model_copy(update={"profile_syntheses": updated_syntheses})
 
+    def transition_step(
+        self,
+        step_id: str,
+        status: ExecutionStatus,
+        progress: int | None = None,
+        label: str | None = None,
+        last_error: str | None = None,
+        has_warning: bool | None = None,
+    ) -> ExecutionRecord:
+        """Atomically transition step state across steps list and step_states dictionary.
+
+        Args:
+            step_id: Canonical identifier of the execution step.
+            status: Target execution status.
+            progress: Optional completion progress percentage (0-100).
+            label: Optional display label for the step.
+            last_error: Optional error message string if failed.
+            has_warning: Optional boolean flag indicating warnings.
+
+        Returns:
+            ExecutionRecord: Cloned execution record with atomically synchronized steps.
+        """
+        existing_step: ExecutionStep | None = (
+            self.step_states[step_id]
+            if step_id in self.step_states
+            else next((s for s in self.steps if s.id == step_id), None)
+        )
+
+        if existing_step is not None:
+            updated_data = existing_step.model_dump(mode="python")
+            updated_data["status"] = status
+            if progress is not None:
+                updated_data["progress"] = progress
+            if label is not None:
+                updated_data["label"] = label
+            if last_error is not None:
+                updated_data["last_error"] = last_error
+            if has_warning is not None:
+                updated_data["has_warning"] = has_warning
+            step_item = ExecutionStep.model_validate(updated_data)
+        else:
+            step_item = ExecutionStep.model_validate(
+                {
+                    "id": step_id,
+                    "label": label if label is not None else step_id,
+                    "status": status,
+                    "progress": progress,
+                    "last_error": last_error,
+                    "has_warning": has_warning if has_warning is not None else False,
+                }
+            )
+
+        new_step_states = {**self.step_states, step_id: step_item}
+        new_steps = [step_item if s.id == step_id else s for s in self.steps]
+        if not any(s.id == step_id for s in self.steps):
+            new_steps.append(step_item)
+
+        return self.model_copy(update={"step_states": new_step_states, "steps": new_steps})
+
     def with_step_passed(self, step_id: str, label: str = "Report Render") -> ExecutionRecord:
         """Return an immutable copy with the designated step marked PASSED at 100%.
 
@@ -289,27 +348,12 @@ class ExecutionRecord(ExecutionCoreFields):
         Returns:
             ExecutionRecord: Cloned execution record with updated steps and step_states.
         """
-        new_step_states = {**self.step_states}
-        if step_id in new_step_states:
-            step_item = new_step_states[step_id].model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
-        else:
-            step_item = ExecutionStep(
-                id=step_id,
-                label=label,
-                status=ExecutionStatus.PASSED,
-                progress=100,
-                has_warning=False,
-            )
-        new_step_states[step_id] = step_item
-
-        new_steps = [
-            s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == step_id else s
-            for s in self.steps
-        ]
-        if not any(s.id == step_id for s in self.steps):
-            new_steps.append(step_item)
-
-        return self.model_copy(update={"step_states": new_step_states, "steps": new_steps})
+        return self.transition_step(
+            step_id=step_id,
+            status=ExecutionStatus.PASSED,
+            progress=100,
+            label=label,
+        )
 
 
 class JobAcceptedDTO(V2CoreBase):

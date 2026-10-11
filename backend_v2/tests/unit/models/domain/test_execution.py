@@ -167,3 +167,84 @@ def test_execution_record_instantiation() -> None:
     assert rec.steps == []
     assert rec.step_states == {}
     assert rec.profile_syntheses == {}
+
+
+def test_execution_record_transition_step_new_step() -> None:
+    rec = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wor_1234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+    )
+    updated = rec.transition_step(
+        step_id="stp_1234567890abcdef",
+        status=ExecutionStatus.RUNNING,
+        progress=25,
+        label="Analyze Dialogue",
+    )
+    # Original record must remain immutable
+    assert rec.steps == []
+    assert rec.step_states == {}
+
+    # Updated record contains newly transitioned step in both steps list and step_states dict
+    assert "stp_1234567890abcdef" in updated.step_states
+    assert len(updated.steps) == 1
+    assert updated.steps[0].id == "stp_1234567890abcdef"
+    assert updated.steps[0].status == ExecutionStatus.RUNNING
+    assert updated.steps[0].progress == 25
+    assert updated.steps[0].label == "Analyze Dialogue"
+    assert updated.step_states["stp_1234567890abcdef"] == updated.steps[0]
+
+
+def test_execution_record_transition_step_existing_step() -> None:
+    initial_step = ExecutionStep(
+        id="stp_1234567890abcdef",
+        label="Original Label",
+        status=ExecutionStatus.PENDING,
+    )
+    rec = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wor_1234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.RUNNING,
+        steps=[initial_step],
+        step_states={"stp_1234567890abcdef": initial_step},
+        created_at=datetime.now(timezone.utc),
+    )
+    updated = rec.transition_step(
+        step_id="stp_1234567890abcdef",
+        status=ExecutionStatus.FAILED,
+        progress=50,
+        last_error="Network timeout",
+        has_warning=True,
+    )
+    assert len(updated.steps) == 1
+    step = updated.steps[0]
+    assert step.id == "stp_1234567890abcdef"
+    assert step.label == "Original Label"
+    assert step.status == ExecutionStatus.FAILED
+    assert step.progress == 50
+    assert step.last_error == "Network timeout"
+    assert step.has_warning is True
+    assert updated.step_states["stp_1234567890abcdef"] == step
+
+
+def test_execution_record_with_step_passed_forwarder() -> None:
+    rec = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wor_1234567890abcdef",
+        target_locale="fi",
+        status=ExecutionStatus.RUNNING,
+        created_at=datetime.now(timezone.utc),
+    )
+    updated = rec.with_step_passed(step_id="stp_render", label="Render Report")
+    assert "stp_render" in updated.step_states
+    assert len(updated.steps) == 1
+    step = updated.steps[0]
+    assert step.id == "stp_render"
+    assert step.label == "Render Report"
+    assert step.status == ExecutionStatus.PASSED
+    assert step.progress == 100
+    assert updated.step_states["stp_render"] == step
+

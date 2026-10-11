@@ -451,7 +451,12 @@ class ReportService:
             step_states = None
             steps = None
             if exec_refreshed:
-                exec_obj = exec_refreshed.with_step_passed(v_step_id, label="Report Render")
+                exec_obj = exec_refreshed.transition_step(
+                    step_id=v_step_id,
+                    status=ExecutionStatus.PASSED,
+                    progress=100,
+                    label="Report Render",
+                )
                 step_states = exec_obj.step_states
                 steps = exec_obj.steps
 

@@ -27,7 +27,7 @@
   - [x] Step 1: Harden SynthesisMetadataDTO and TranslationResponseDTO Typing
   - [x] Step 2: Add Invariant Validation to StepPanelDTO
   - [x] Step 3: Unify FlattenedAtom Base Hierarchy
-  - [ ] Step 4: Implement Atomic transition_step on ExecutionRecord
+  - [x] Step 4: Implement Atomic transition_step on ExecutionRecord
   - [ ] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
   - [ ] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
   - [ ] Step 7: Harden TopologicalEvaluator Wave Crash Recovery
@@ -122,8 +122,8 @@
 | :--- | :--- | :--- | :--- |
 | REQ-001 | Remove residual open-JSON `dict[str, JsonValue]` in `SynthesisMetadataDTO` and `TranslationResponseDTO` | Step 1 | [x] Completed |
 | REQ-002 | Add `@model_validator(mode="after")` to `StepPanelDTO` verifying non-empty analysis payloads | Step 2 | [x] Completed |
-| REQ-003 | Clean up base class divergence on `FlattenedAtom` in `matrix.py` to inherit from `V2CoreBase` | Step 3 | [ ] Pending |
-| REQ-004 | Implement atomic `ExecutionRecord.transition_step` synchronizing `steps` list and `step_states` dict | Step 4 | [ ] Pending |
+| REQ-003 | Clean up base class divergence on `FlattenedAtom` in `matrix.py` to inherit from `V2CoreBase` | Step 3 | [x] Completed |
+| REQ-004 | Implement atomic `ExecutionRecord.transition_step` synchronizing `steps` list and `step_states` dict | Step 4 | [x] Completed |
 | REQ-005 | Add strongly typed fields to `GlobalContextVarsDTO` for cognitive deltas and delete `_EvaluativeMatricesWrapperDTO` | Step 5 | [ ] Pending |
 | REQ-006 | Refactor `state_reducer.py` to execute pure Pydantic DTO updates (zero dict wrappers, zero `d[k]=v`) | Step 5 | [ ] Pending |
 | REQ-007 | Compute Kahn's topological waves and execute steps via wave-based `asyncio.TaskGroup` in `dag_executor.py` | Step 6 | [ ] Pending |
