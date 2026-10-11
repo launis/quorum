@@ -85,7 +85,9 @@ async def test_pre_cache_document() -> None:
 
 @pytest.mark.asyncio
 async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixture) -> None:
-    """Verify purity scanner logs warning on dynamic traces in system instructions."""
+    """Verify purity scanner raises Fail-Fast AppException on dynamic traces in system instructions."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+
     mock_adapter = AsyncMock()
     mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(messages=[], kwargs={})
 
@@ -96,32 +98,40 @@ async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixtur
     )
     with (
         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter),
-        caplog.at_level(logging.WARNING),
+        caplog.at_level(logging.ERROR),
+        pytest.raises(AppException) as exc_info,
     ):
         await LLMCachingService.prepare_caching_payload(
             provider_name="vertex_ai",
             compiled_prompt=uuid_prompt,
             model_name="gemini-1.5-pro",
         )
-        assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["violating_role"] == "system"
+    assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
 
     caplog.clear()
 
-    # Timestamp in system message
+    # Timestamp in system message (Scenario NEG-07)
     ts_prompt = CompiledPrompt(
         static_messages=[LLMMessageDTO(role="system", content="Timestamp: 2026-08-27T18:22:00")],
         dynamic_messages=[],
     )
     with (
         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter),
-        caplog.at_level(logging.WARNING),
+        caplog.at_level(logging.ERROR),
+        pytest.raises(AppException) as exc_info,
     ):
         await LLMCachingService.prepare_caching_payload(
             provider_name="vertex_ai",
             compiled_prompt=ts_prompt,
             model_name="gemini-1.5-pro",
         )
-        assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["violating_role"] == "system"
+    assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
 
 
 def test_record_cache_hit_with_recording_span() -> None:

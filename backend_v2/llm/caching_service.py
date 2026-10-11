@@ -94,11 +94,25 @@ class LLMCachingService:
             if msg.role == "system":
                 content = str(msg.content)
                 if uuid_pattern.search(content) or timestamp_pattern.search(content):
-                    logger.warning(
+                    msg_text = (
                         "PROMPT_CACHING_PURITY_VIOLATION: Dynamic trace/timestamp pattern "
                         "detected in static system instruction block. Cache hit rate will drop to 0%!"
                     )
-                    break
+                    logger.error(
+                        "[LLMCachingService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg_text,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                    raise AppException(
+                        message=msg_text,
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "reason": "Dynamic UUID or timestamp detected in static system prompt prefix",
+                            "violating_role": msg.role,
+                        },
+                    )
 
     @staticmethod
     async def teardown_workflow_caches(provider_name: str, workflow_run_id: str) -> None:
