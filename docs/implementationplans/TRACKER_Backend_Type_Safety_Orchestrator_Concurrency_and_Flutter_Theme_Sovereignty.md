@@ -25,7 +25,7 @@
 
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md] @[docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md]`
   - [x] Step 1: Harden SynthesisMetadataDTO and TranslationResponseDTO Typing
-  - [ ] Step 2: Add Invariant Validation to StepPanelDTO
+  - [x] Step 2: Add Invariant Validation to StepPanelDTO
   - [ ] Step 3: Unify FlattenedAtom Base Hierarchy
   - [ ] Step 4: Implement Atomic transition_step on ExecutionRecord
   - [ ] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
@@ -121,7 +121,7 @@
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
 | REQ-001 | Remove residual open-JSON `dict[str, JsonValue]` in `SynthesisMetadataDTO` and `TranslationResponseDTO` | Step 1 | [x] Completed |
-| REQ-002 | Add `@model_validator(mode="after")` to `StepPanelDTO` verifying non-empty analysis payloads | Step 2 | [ ] Pending |
+| REQ-002 | Add `@model_validator(mode="after")` to `StepPanelDTO` verifying non-empty analysis payloads | Step 2 | [x] Completed |
 | REQ-003 | Clean up base class divergence on `FlattenedAtom` in `matrix.py` to inherit from `V2CoreBase` | Step 3 | [ ] Pending |
 | REQ-004 | Implement atomic `ExecutionRecord.transition_step` synchronizing `steps` list and `step_states` dict | Step 4 | [ ] Pending |
 | REQ-005 | Add strongly typed fields to `GlobalContextVarsDTO` for cognitive deltas and delete `_EvaluativeMatricesWrapperDTO` | Step 5 | [ ] Pending |

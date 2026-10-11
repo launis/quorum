@@ -4,9 +4,9 @@ Provides strict Pydantic V2 validation schemas to replace legacy dictionary
 parsing in the scoring and passivity penalty hooks.
 """
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace
@@ -51,3 +51,16 @@ class StepPanelDTO(V2CoreBase):
     causal_analysis: Annotated[
         CausalAnalysis | None, Field(description="Analysis mapping causality relationships.")
     ] = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one_payload(self) -> Self:
+        """Enforce that at least one analysis payload is populated."""
+        if (
+            self.falsifier_data is None
+            and self.overseer_data is None
+            and self.logician_data is None
+            and self.performativity_analysis is None
+            and self.causal_analysis is None
+        ):
+            raise ValueError("StepPanelDTO requires at least one analysis payload to be populated.")
+        return self
