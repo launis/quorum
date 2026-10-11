@@ -46,7 +46,7 @@
   - [x] Step 1.6: Eradicate pre-hook heuristic matching in dag_executor.py
   - [x] Step 1.7: Add telemetry_strategy_label and purge LLM strategy duck typing
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 2: Configuration, DTOs, Studio Foundation & Parity
 **Plan:** @[docs/epic/tasks_EPIC_154/02_phase2_plan.md]
@@ -208,13 +208,13 @@
 
 | Requirement Description | Source Epic Section | Implementation Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| Verify ChunkPacketDTO in dag_models.py and TwoPassAtomizer | Section 3.1.1 | Phase 1, Step 1.1 | Pending |
-| SlidingWindowLinker constructor parameter defaults isolation | Section 3.1.2 | Phase 1, Step 1.2 | Pending |
-| Step consistency validation enum modernization to StepType.LLM and LOGIC | Section 3.1.3 | Phase 1, Step 1.3 | Pending |
-| EngineType enum definition and Dart model mapping | Section 3.1.4 | Phase 1, Step 1.4 | Pending |
-| Typed ENGINE_REGISTRY and build_execution_engine factory | Section 3.1.4 | Phase 1, Step 1.5 | Pending |
-| Eradicate pre-hook heuristic matching in dag_executor.py | Section 3.1.4 | Phase 1, Step 1.6 | Pending |
-| Add telemetry_strategy_label and purge LLM strategy duck typing | Section 3.1.4 | Phase 1, Step 1.7 | Pending |
+| Verify ChunkPacketDTO in dag_models.py and TwoPassAtomizer | Section 3.1.1 | Phase 1, Step 1.1 | Completed |
+| SlidingWindowLinker constructor parameter defaults isolation | Section 3.1.2 | Phase 1, Step 1.2 | Completed |
+| Step consistency validation enum modernization to StepType.LLM and LOGIC | Section 3.1.3 | Phase 1, Step 1.3 | Completed |
+| EngineType enum definition and Dart model mapping | Section 3.1.4 | Phase 1, Step 1.4 | Completed |
+| Typed ENGINE_REGISTRY and build_execution_engine factory | Section 3.1.4 | Phase 1, Step 1.5 | Completed |
+| Eradicate pre-hook heuristic matching in dag_executor.py | Section 3.1.4 | Phase 1, Step 1.6 | Completed |
+| Add telemetry_strategy_label and purge LLM strategy duck typing | Section 3.1.4 | Phase 1, Step 1.7 | Completed |
 | Settings configuration for causal window, overlap, dampening, packet size | Section 3.2.1 | Phase 2, Step 2.1 | Pending |
 | Domain enums (StepType.CAUSAL_DISCOVERY) and explicit ErrorCodes | Section 3.2.2 | Phase 2, Step 2.2 | Pending |
 | Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Pending |
@@ -262,18 +262,18 @@
 - Implemented typed `ENGINE_REGISTRY` and `build_execution_engine` factory in `backend_v2/services/orchestrator/engines/registry.py` and re-exported in `engines/__init__.py`. Tested with comprehensive positive and negative boundary test suites in `test_engine_registry.py` and `test_registry.py` (Step 1.5).
 - Eradicated heuristic pre-hook string matching (`"atom_flattening_hook"`, `"synthesis_distiller_hook"`) and criteria category loops from `dag_executor.py#L162-L189`, delegating directly to `build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)` in O(1) time (Step 1.6).
 - Extended `ExecutionEngine` Protocol with `telemetry_strategy_label` property in `base.py`, implemented on `TDAEngine` (`"tda"`), `PromptEngine` (`"prompt"`), and `SynthesisEngine` (`"synthesis"`). Purged duck-typing cascades and untyped dictionary mutation accumulators (`meta_dict = {}`) from `LLMNodeStrategy.execute`, reconstituting metadata strictly via typed `StepTraceMetadataDTO` and passing AST guardrails cleanly (Step 1.7).
-- Executed Universal Quality Gates across all target files (`registry.py`, `dag_executor.py`, `llm.py`, `step.py`, `workflow.dart`, `test_enum_parity.py`) with 100% test pass rates and zero fatal violations.
+- Executed Tier 8 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`) verifying 100% as-built fidelity. Modernized legacy test assertions in `test_v2_core.py` and `test_v2_core_strictness.py` to expect `AppException`. Global backend completion gate passed all 5,204 tests cleanly in 454s with 97.75% coverage. Generated audit artifact `red_team_audit_01_phase1_plan.md`.
 
 ## Learned
 - Python `@runtime_checkable` protocols that include non-method members (like properties) do not support `issubclass(Class, Protocol)` in `typing`; assertions must evaluate `isinstance(instance, Protocol)` and inspect `instance.property`.
 - `LLMNodeStrategy.execute` constructing `StepTraceMetadataDTO` directly passes AST strict rules (QGR001, QGR002, QGR025) and ensures all fields adhere to Pydantic extra="forbid" validation.
-- `DAGExecutor.__init__` requires `rag_preflight: RAGPreflightService` and uses `exec_repo` (not `execution_repo`).
+- Modernizing `@model_validator` domain validation from `ValueError` to `AppException` requires downstream test assertions to catch `AppException` directly (Pydantic V2 does not wrap custom non-ValueError exceptions into `ValidationError`).
 
 ## Remaining
-- Execute Tier 8 audit on Phase 1 plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
-- Proceed to Phase 2: Configuration, DTOs, Studio Foundation & Parity (`02_phase2_plan.md`).
+- Proceed to Phase 2: Configuration, DTOs, Studio Foundation & Parity (`02_phase2_plan.md`):
+  `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
