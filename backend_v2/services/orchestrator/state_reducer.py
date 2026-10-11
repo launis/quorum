@@ -188,6 +188,14 @@ def reduce_hook_delta(
         elif isinstance(delta, PassivityDetectionResultDTO):
             base_vars = new_global_vars or GlobalContextVarsDTO()
             new_global_vars = base_vars.model_copy(update={"passivity_detected": delta.passivity_detected})
+            emitted_events.append(
+                TraceEvent(
+                    step_name=effective_step,
+                    event_type="decision",
+                    content={"passivity_detected": delta.passivity_detected},
+                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                )
+            )
         elif isinstance(delta, AnomalyRetryResultDTO):
             base_vars = new_global_vars or GlobalContextVarsDTO()
             new_global_vars = base_vars.model_copy(
@@ -217,6 +225,22 @@ def reduce_hook_delta(
             else:
                 merged_eval = new_scores
             new_global_vars = base_vars.model_copy(update={"evaluative_matrices": merged_eval})
+            matrix_inputs = ExecutionInputsDTO(
+                dynamic_inputs={
+                    **{pb_id: out for pb_id, out in delta.matrix_outputs.items()},
+                    "_evaluative_matrices": merged_eval,
+                    "evaluative_matrices": merged_eval,
+                }
+            )
+            new_inputs = merge_execution_inputs(new_inputs, matrix_inputs)
+            emitted_events.append(
+                TraceEvent(
+                    step_name=effective_step,
+                    event_type="decision",
+                    content={"evaluative_matrices": cast(JsonValue, merged_eval)},
+                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                )
+            )
         elif isinstance(delta, (AnalystOutput, EvaluationResult)):
             base_vars = new_global_vars or GlobalContextVarsDTO()
             new_global_vars = base_vars.model_copy(update={"integrity_verified_output": delta})

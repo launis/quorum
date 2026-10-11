@@ -152,7 +152,11 @@ def test_reduce_hook_delta_passivity_and_anomaly() -> None:
     new_state, events = reduce_hook_delta(state, passivity_delta, "stp_step_1")
     assert new_state.global_context_vars is not None
     assert new_state.global_context_vars.passivity_detected is True
-    assert len(events) == 0
+    assert len(events) == 1
+    assert events[0].event_type == "decision"
+    assert events[0].step_name == "stp_step_1"
+    assert events[0].metadata.is_context_update is True
+    assert events[0].content == {"passivity_detected": True}
 
     anomaly_delta = HookDeltaDTO(delta=AnomalyRetryResultDTO(llm_anomaly_retry_requested=True))
     new_state2, events2 = reduce_hook_delta(state, anomaly_delta, "stp_step_1")

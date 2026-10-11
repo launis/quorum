@@ -21,6 +21,7 @@ from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.state import StepOutputDTO
 
@@ -221,18 +222,25 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
     return payloads
 
 
-def _extract_guard_flag(data: ExecutionInputsDTO | StateInputWrapper) -> bool | None:
-    """Extracts the security threat flag from the guard output in the state.
+def _extract_guard_flag(
+    data: ExecutionInputsDTO | StateInputWrapper,
+    global_context_vars: GlobalContextVarsDTO | None = None,
+) -> bool | None:
+    """Extracts the security threat flag from the guard output in the state or global context.
 
     Iterates over the V2 execution snapshot to find the input processing result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
 
     Args:
         data: The execution inputs DTO or StateInputWrapper representation.
+        global_context_vars: Optional global context variables DTO.
 
     Returns:
         Boolean indicating if a threat was detected, or None if guard data is missing.
     """
+    if global_context_vars and global_context_vars.sanitization is not None:
+        return global_context_vars.sanitization.threat_detected
+
     for wrapper in _extract_payloads(data):
         if wrapper.step_input_processing and wrapper.step_input_processing.security_check:
             return wrapper.step_input_processing.security_check.threat_detected
@@ -279,11 +287,15 @@ def _calculate_falsifier_penalty(falsifier_data: FalsifierData | None) -> bool:
     return False
 
 
-def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> bool:
-    """Extracts passivity penalty detection flag from state snapshot or step payloads.
+def _extract_passivity_flag(
+    data: ExecutionInputsDTO | StateInputWrapper,
+    global_context_vars: GlobalContextVarsDTO | None = None,
+) -> bool:
+    """Extracts passivity penalty detection flag from state snapshot, global context, or step payloads.
 
     Args:
         data: The execution inputs DTO or StateInputWrapper representation.
+        global_context_vars: Optional global context variables DTO.
 
     Returns:
         bool: True if passivity penalty was detected, False otherwise.
@@ -291,6 +303,9 @@ def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> boo
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if data validation fails.
     """
+    if global_context_vars and global_context_vars.passivity_detected is True:
+        return True
+
     for wrapper in _extract_payloads(data):
         if wrapper.passivity_detected is True:
             return True
@@ -359,14 +374,14 @@ async def apply_scoring_logic_hook(state: HookState | None, deps: HookDependenci
         workflow = Workflow.model_validate(workflow_raw, strict=False)
 
     # 1. Security Penalty Check (Guard)
-    security_threat = _extract_guard_flag(state.inputs)
+    security_threat = _extract_guard_flag(state.inputs, state.global_context_vars)
 
     # 2. Falsifier Penalty Check
     falsifier_data = _extract_falsifier_data(state.inputs)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
 
     # 3. Passivity Penalty Check
-    passivity_detected = _extract_passivity_flag(state.inputs)
+    passivity_detected = _extract_passivity_flag(state.inputs, state.global_context_vars)
 
     penalties: list[str] = []
     total_penalty = 0.0
@@ -406,6 +421,10 @@ async def apply_scoring_logic_hook(state: HookState | None, deps: HookDependenci
     scores_found = []
 
     unique_matrices: dict[str, float] = {}
+
+    if state.global_context_vars and state.global_context_vars.evaluative_matrices:
+        for block_id, norm_val in state.global_context_vars.evaluative_matrices.items():
+            unique_matrices[block_id] = float(norm_val)
 
     def _extract_scores(source: ScoringPayloadWrapper) -> None:
         if source.evaluative_matrices:

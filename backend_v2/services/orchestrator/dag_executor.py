@@ -70,7 +70,9 @@ logger = logging.getLogger(__name__)
 __all__ = ["DAGExecutor", "ExecutionCommitter", "NodeExecutor"]
 
 type FrozenContextUpdate = list[MCPAuditTrace] | GeneratedSchemaManifestDTO
-type ExecutionRecordUpdate = ContextVariablesDTO | FrozenContext | dict[str, ExecutionStepState] | list[ExecutionStep]
+type ExecutionRecordUpdate = (
+    ContextVariablesDTO | FrozenContext | ExecutionMetadata | dict[str, ExecutionStepState] | list[ExecutionStep]
+)
 type StepOutputContentValue = DomainInputValue | JsonValue
 
 
@@ -597,11 +599,27 @@ class DAGExecutor:
         if resolved_language is None and exec_record.target_locale:
             resolved_language = exec_record.target_locale
 
-        global_context_vars = GlobalContextVarsDTO(
-            language=resolved_language,
-            target_locale=exec_record.target_locale,
-            profile_id=workflow.default_profile_id,
-        )
+        if exec_record.metadata and exec_record.metadata.global_context_vars is not None:
+            existing_gvars = exec_record.metadata.global_context_vars
+            new_lang = resolved_language if not existing_gvars.language else existing_gvars.language
+            new_locale = exec_record.target_locale if not existing_gvars.target_locale else existing_gvars.target_locale
+            new_profile = workflow.default_profile_id if not existing_gvars.profile_id else existing_gvars.profile_id
+            global_context_vars = existing_gvars.model_copy(
+                update={"language": new_lang, "target_locale": new_locale, "profile_id": new_profile}
+            )
+        else:
+            global_context_vars = GlobalContextVarsDTO(
+                language=resolved_language,
+                target_locale=exec_record.target_locale,
+                profile_id=workflow.default_profile_id,
+            )
+            base_meta = exec_record.metadata or ExecutionMetadata(
+                workflow_version=workflow.version,
+                model_registry_id=workflow.model_registry_id,
+            )
+            exec_record = exec_record.model_copy(
+                update={"metadata": base_meta.model_copy(update={"global_context_vars": global_context_vars})}
+            )
 
         projector = StateProjector()
         for evt in exec_record.execution_trace:
@@ -736,7 +754,7 @@ class DAGExecutor:
                 )
 
         async def run_step_wrapper(step_id: str) -> None:
-            nonlocal exec_record
+            nonlocal exec_record, global_context_vars
             step_obj = steps_by_id[step_id]
 
             if exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
@@ -882,6 +900,7 @@ class DAGExecutor:
                     step_generated_schemas: dict[str, JsonValue] = {}
                     new_cv = exec_record.context_variables
                     has_cv_updates = False
+                    has_gvar_updates = False
                     for evt in events:
                         exec_record.execution_trace.append(evt)
                         projector.apply_delta(evt)
@@ -892,8 +911,31 @@ class DAGExecutor:
                             and not isinstance(evt.content, (str, int, float, bool, list))
                             and evt.content is not None
                         ):
-                            new_cv = new_cv.with_update(**dict(evt.content))
+                            content_dict = dict(evt.content)
+                            new_cv = new_cv.with_update(**content_dict)
                             has_cv_updates = True
+                            gvar_data = {
+                                k: v for k, v in content_dict.items() if k in GlobalContextVarsDTO.model_fields
+                            }
+                            if gvar_data:
+                                parsed_gvars = GlobalContextVarsDTO.model_validate(gvar_data)
+                                if parsed_gvars.evaluative_matrices is not None:
+                                    if global_context_vars.evaluative_matrices:
+                                        merged_eval = {
+                                            **global_context_vars.evaluative_matrices,
+                                            **parsed_gvars.evaluative_matrices,
+                                        }
+                                    else:
+                                        merged_eval = parsed_gvars.evaluative_matrices
+                                    global_context_vars = global_context_vars.model_copy(
+                                        update={"evaluative_matrices": merged_eval}
+                                    )
+                                    has_gvar_updates = True
+                                if parsed_gvars.passivity_detected is not None:
+                                    global_context_vars = global_context_vars.model_copy(
+                                        update={"passivity_detected": parsed_gvars.passivity_detected}
+                                    )
+                                    has_gvar_updates = True
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
                                 step_mcp_traces.extend(evt.mcp_audit_traces)
@@ -904,6 +946,13 @@ class DAGExecutor:
                     updates: dict[str, ExecutionRecordUpdate] = {}
                     if has_cv_updates:
                         updates["context_variables"] = new_cv
+
+                    if has_gvar_updates:
+                        base_meta = exec_record.metadata or ExecutionMetadata(
+                            workflow_version=workflow.version,
+                            model_registry_id=workflow.model_registry_id,
+                        )
+                        updates["metadata"] = base_meta.model_copy(update={"global_context_vars": global_context_vars})
 
                     fc_updates: dict[str, FrozenContextUpdate] = {}
                     base_fc = exec_record.frozen_context or FrozenContext()

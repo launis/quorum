@@ -886,6 +886,9 @@ class LLMNodeStrategy(NodeStrategy):
                 final_dict = dict(post_hook_state.inputs)
             else:
                 final_dict = {}
+            if post_hook_state.global_context_vars and post_hook_state.global_context_vars.evaluative_matrices:
+                final_dict["_evaluative_matrices"] = post_hook_state.global_context_vars.evaluative_matrices
+                final_dict["evaluative_matrices"] = post_hook_state.global_context_vars.evaluative_matrices
 
             if "llm_anomaly_retry_requested" in final_dict and final_dict["llm_anomaly_retry_requested"]:
                 retry_count += 1
