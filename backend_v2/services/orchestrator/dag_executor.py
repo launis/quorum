@@ -51,14 +51,14 @@ from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
-from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.services.execution import create_execution_record
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-from backend_v2.services.orchestrator.engines.base import ExecutionEngine
+from backend_v2.services.orchestrator.engines import ExecutionEngine, build_execution_engine
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
@@ -159,34 +159,19 @@ class NodeExecutor:
             )
         ]
 
-    def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine:
-        """Resolve ExecutionEngine orthogonally from model_strategy based on step prompt blocks.
+    def _resolve_execution_engine(
+        self, step_def: Step, prompt_blocks: list[PromptBlock] | None = None
+    ) -> ExecutionEngine:
+        """Resolve ExecutionEngine orthogonally from model_strategy based on step engine_type.
 
         Args:
             step_def: Step domain blueprint model.
-            prompt_blocks: Pre-loaded list of prompt blocks.
+            prompt_blocks: Optional pre-loaded list of prompt blocks (retained for signature parity).
 
         Returns:
             Instantiated ExecutionEngine strategy instance.
         """
-        from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-        from backend_v2.models.enums import PromptBlockCategory
-        from backend_v2.services.llm_task_executor import LLMTaskExecutor
-        from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
-        from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
-        from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
-
-        criteria_blocks = [b for b in prompt_blocks if b.id in step_def.criteria_block_ids]
-
-        if any(
-            b.category_id == PromptBlockCategory.MATRIX or isinstance(b, MatrixPromptBlock) for b in criteria_blocks
-        ):
-            return TDAEngine(self.deps.prompt_compiler)
-
-        if "atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks:
-            return SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))
-
-        return PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))
+        return build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)
 
     async def execute(
         self,
@@ -327,6 +312,10 @@ class NodeExecutor:
                 else:
                     resolved_context_vars = ContextVariablesDTO()
 
+                resolved_cognitive_tier = CognitiveTier.FAST
+                if step_def.cognitive_tier is not None:
+                    resolved_cognitive_tier = step_def.cognitive_tier
+
                 context = StrategyContext(
                     execution_id=execution_id,
                     workflow_id=workflow_id,
@@ -334,7 +323,7 @@ class NodeExecutor:
                     output_profile_id=output_profile_id,
                     metadata=metadata,
                     expected_inputs=expected_inputs,
-                    cognitive_tier=step_def.cognitive_tier,
+                    cognitive_tier=resolved_cognitive_tier,
                     strictness_level=strictness_level,
                     global_context_vars=resolved_global_vars,
                     context_variables=resolved_context_vars,

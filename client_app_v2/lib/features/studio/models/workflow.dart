@@ -97,6 +97,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
+    @JsonKey(name: 'engine_type')
+    @Default(EngineType.prompt)
+    EngineType engineType,
   }) = NodeStrategyLlm;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -122,6 +125,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
+    @JsonKey(name: 'engine_type')
+    @Default(EngineType.prompt)
+    EngineType engineType,
   }) = NodeStrategyLogic;
 
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>

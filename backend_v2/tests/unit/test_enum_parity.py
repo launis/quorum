@@ -166,3 +166,9 @@ def test_enum_l10n_keys() -> None:
     ]:
         assert xai_member.l10n_key, f"Missing l10n_key for XaiExtensionType.{xai_member.name}"
         assert isinstance(xai_member.l10n_key, str)
+
+
+def test_engine_type_parity() -> None:
+    """Verify EngineType members match between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "EngineType")
+

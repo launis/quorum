@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import (
     ALLOWED_INPUT_MODES,
@@ -55,7 +56,7 @@ def test_step_valid_logic() -> None:
 
 def test_step_llm_missing_criteria_block_ids_fails() -> None:
     """Test that LLM step without criteria_block_ids fails validation."""
-    with pytest.raises(ValidationError, match="must define at least one criteria_block_id"):
+    with pytest.raises(AppException) as exc_info:
         Step(
             id="stp_0123456789abcdef",
             slug="step_broken",
@@ -66,11 +67,13 @@ def test_step_llm_missing_criteria_block_ids_fails() -> None:
             criteria_block_ids=[],
             cognitive_tier=CognitiveTier.FAST,
         )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must define at least one criteria_block_id" in exc_info.value.message
 
 
 def test_step_llm_missing_extraction_protocol_fails() -> None:
     """Test that LLM step without extraction_protocol_block_id fails validation."""
-    with pytest.raises(ValidationError, match="must define a valid extraction_protocol_block_id"):
+    with pytest.raises(AppException) as exc_info:
         Step(
             id="stp_0123456789abcdef",
             slug="step_broken",
@@ -81,11 +84,30 @@ def test_step_llm_missing_extraction_protocol_fails() -> None:
             criteria_block_ids=["blk_1111222233334444"],
             cognitive_tier=CognitiveTier.FAST,
         )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must define a valid extraction_protocol_block_id" in exc_info.value.message
+
+
+def test_step_consistency_missing_cognitive_tier_raises_app_exception() -> None:
+    """Test that LLM step without cognitive_tier fails validation."""
+    with pytest.raises(AppException) as exc_info:
+        Step(
+            id="stp_0123456789abcdef",
+            slug="step_broken",
+            name=I18nText(translations={"en": "Broken Step"}),
+            type=StepType.LLM,
+            role_block_id="blk_0123456789abcdef",
+            extraction_protocol_block_id="blk_abcdef0123456789",
+            criteria_block_ids=["blk_1111222233334444"],
+            cognitive_tier=None,
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must declare an explicit cognitive_tier" in exc_info.value.message
 
 
 def test_step_logic_missing_hook_fails() -> None:
     """Test that Logic step without hook target fails validation."""
-    with pytest.raises(ValidationError, match="must define a native 'hook' execution target"):
+    with pytest.raises(AppException) as exc_info:
         Step(
             id="stp_0123456789abcdef",
             slug="step_logic_broken",
@@ -93,6 +115,8 @@ def test_step_logic_missing_hook_fails() -> None:
             type=StepType.LOGIC,
             hook=None,
         )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must define a native 'hook' execution target" in exc_info.value.message
 
 
 def test_step_extra_fields_forbidden() -> None:

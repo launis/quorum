@@ -450,3 +450,16 @@ enum ReportStatus {
   @JsonValue('failed')
   failed,
 }
+
+/// Explicit ExecutionEngine responsible for computing a step.
+@JsonEnum()
+enum EngineType {
+  @JsonValue('tda')
+  tda,
+  @JsonValue('synthesis')
+  synthesis,
+  @JsonValue('prompt')
+  prompt,
+  @JsonValue('causal_discovery')
+  causalDiscovery,
+}

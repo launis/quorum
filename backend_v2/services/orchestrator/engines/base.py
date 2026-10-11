@@ -16,6 +16,11 @@ class ExecutionEngine(Protocol):
     All context, state, limits, and callbacks must be passed in the request payload.
     """
 
+    @property
+    def telemetry_strategy_label(self) -> str:
+        """Canonical telemetry strategy label for execution trace recording."""
+        ...
+
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Executes the pipeline over the given request.
 
@@ -29,3 +34,4 @@ class ExecutionEngine(Protocol):
             AppException: If engine execution fails catastrophically.
         """
         ...
+

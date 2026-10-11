@@ -20389,7 +20389,8 @@
         "reflection_text"
       ],
       "is_system_core": true,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "prompt"
     },
     {
       "id": "sp_b5c751d1cbe24735",
@@ -20440,7 +20441,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "deep"
+      "cognitive_tier": "deep",
+      "engine_type": "tda"
     },
     {
       "id": "sp_f22db9f1dde048b7",
@@ -20483,7 +20485,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "deep"
+      "cognitive_tier": "deep",
+      "engine_type": "tda"
     },
     {
       "id": "sp_bd0b3054fe664960",
@@ -20528,7 +20531,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_25664f44773a4354",
@@ -20578,7 +20582,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_7f9649114d2344dc",
@@ -20621,7 +20626,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_6f40b964895c426b",
@@ -20669,7 +20675,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_ddb7cf7c8a0245d4",
@@ -20715,7 +20722,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "deep"
+      "cognitive_tier": "deep",
+      "engine_type": "tda"
     },
     {
       "id": "sp_48974af1fc584407",
@@ -20763,7 +20771,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_8daee218c6b14f02",
@@ -20808,7 +20817,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "deep"
+      "cognitive_tier": "deep",
+      "engine_type": "tda"
     },
     {
       "id": "sp_dfc365994fa944b2",
@@ -20857,7 +20867,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "deep"
+      "cognitive_tier": "deep",
+      "engine_type": "tda"
     },
     {
       "id": "sp_6a45d484ad5b497c",
@@ -20904,7 +20915,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_192910b5f5a34c79",
@@ -20944,7 +20956,8 @@
         "prior_analysis"
       ],
       "is_system_core": true,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_76eedbc020274f66",
@@ -20988,7 +21001,8 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
     },
     {
       "id": "sp_d245365e4a274b9e",
@@ -21017,7 +21031,8 @@
         "results",
         "prior_analysis"
       ],
-      "is_system_core": true
+      "is_system_core": true,
+      "engine_type": "prompt"
     },
     {
       "id": "sp_8ffee13639e64e34",
@@ -21045,7 +21060,8 @@
       "expected_inputs": [
         "steps"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "engine_type": "prompt"
     },
     {
       "id": "sp_9c6a85edc29347b9",
@@ -21080,7 +21096,8 @@
         "language"
       ],
       "is_system_core": false,
-      "cognitive_tier": "balanced"
+      "cognitive_tier": "balanced",
+      "engine_type": "synthesis"
     },
     {
       "id": "sp_fb1b8e908bf24c1f",
@@ -21113,7 +21130,8 @@
         "language"
       ],
       "is_system_core": false,
-      "cognitive_tier": "fast"
+      "cognitive_tier": "fast",
+      "engine_type": "synthesis"
     },
     {
       "id": "sp_7a8b9c0d1e2f3a4b",
@@ -21145,7 +21163,8 @@
         "reduced_matrix"
       ],
       "is_system_core": true,
-      "cognitive_tier": "balanced"
+      "cognitive_tier": "balanced",
+      "engine_type": "synthesis"
     }
   ],
   "organizations": [

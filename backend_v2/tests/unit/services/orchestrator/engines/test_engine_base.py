@@ -5,6 +5,10 @@ from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 
 
 class DummyEngine:
+    @property
+    def telemetry_strategy_label(self) -> str:
+        return "dummy"
+
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         return EngineExecutionResult(results=[], hydrated_references={})
 

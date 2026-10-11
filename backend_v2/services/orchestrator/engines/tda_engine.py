@@ -48,6 +48,11 @@ class TDAEngine(ExecutionEngine):
         """
         self._compiler = prompt_compiler
 
+    @property
+    def telemetry_strategy_label(self) -> str:
+        """Canonical telemetry strategy label for execution trace recording."""
+        return "tda"
+
     @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Executes the TDA pipeline for matrix evaluations.

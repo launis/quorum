@@ -390,6 +390,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
             "slug": "synthesis-slug",
             "type": "llm",
             "cognitive_tier": "fast",
+            "engine_type": "synthesis",
             "pre_hooks": ["atom_flattening_hook"],
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
@@ -400,7 +401,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     projector = MagicMock()
     projector.snapshot = {}
     with (
-        patch("backend_v2.services.orchestrator.engines.synthesis_engine.SynthesisEngine") as mock_engine_class,
+        patch("backend_v2.services.orchestrator.engines.registry.SynthesisEngine") as mock_engine_class,
         patch(
             "backend_v2.services.orchestrator.strategies.llm.LLMNodeStrategy.execute", new_callable=AsyncMock
         ) as mock_strategy_execute,
@@ -496,9 +497,10 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     from backend_v2.models.domain.matrix import MatrixScale
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
     from backend_v2.models.domain.step import Step
-    from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
+    from backend_v2.models.enums import CognitiveTier, EngineType, PromptBlockCategory, StepType
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
+    from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
     from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
@@ -545,6 +547,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         slug="matrix-slug",
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
+        engine_type=EngineType.TDA,
         criteria_block_ids=["blk_1111222233334444"],
         role_block_id="blk_5555666677778888",
         extraction_protocol_block_id="blk_5555666677778888",
@@ -561,6 +564,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         slug="prompt-slug",
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
+        engine_type=EngineType.PROMPT,
         criteria_block_ids=["blk_5555666677778888"],
         extraction_protocol_block_id="blk_5555666677778888",
         name=I18nText(translations={"en": "Prompt Step"}),
@@ -568,6 +572,20 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     )
     prompt_engine = executor._resolve_execution_engine(prompt_step_def, [system_block])
     assert isinstance(prompt_engine, PromptEngine)
+
+    synthesis_step_def = Step(
+        id="stp_9999888877776666",
+        slug="synthesis-slug",
+        type=StepType.LLM,
+        cognitive_tier=CognitiveTier.FAST,
+        engine_type=EngineType.SYNTHESIS,
+        criteria_block_ids=["blk_5555666677778888"],
+        extraction_protocol_block_id="blk_5555666677778888",
+        name=I18nText(translations={"en": "Synthesis Step"}),
+        description=I18nText(translations={"en": "Synthesis Step"}),
+    )
+    synthesis_engine = executor._resolve_execution_engine(synthesis_step_def)
+    assert isinstance(synthesis_engine, SynthesisEngine)
 
 
 @pytest.mark.asyncio
@@ -2031,3 +2049,54 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
     assert "stp_1111111111111111" in dlq_step_ids
     assert "stp_2222222222222222" in dlq_step_ids
     assert "stp_3333333333333333" in dlq_step_ids
+
+
+@pytest.mark.asyncio
+async def test_node_executor_handles_unexpected_exception_and_context_vars(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Test NodeExecutor propagates unexpected generic Exception and binds context vars."""
+    from backend_v2.services.orchestrator.dag_executor import NodeExecutor
+    from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+
+    deps = StrategyDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_repo,
+        output_profile_repo=mock_repo,
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    executor = NodeExecutor(deps=deps)
+    step = StepRule(
+        id="stp_1111222233334444",
+        task_blueprint="blp_1234567890abcdef",
+        expected_sdui_type="markdown",
+    )
+    projector = MagicMock()
+    projector.snapshot = []
+
+    with (
+        patch(
+            "backend_v2.services.orchestrator.strategies.logic.LogicNodeStrategy.execute",
+            side_effect=Exception("unexpected_fatal_error"),
+        ),
+        pytest.raises(Exception) as exc_info,
+    ):
+        await executor.execute(
+            execution_id="exe_1111222233334444",
+            workflow_id="wor_1111222233334444",
+            step=step,
+            metadata=ExecutionMetadata(),
+            projector=projector,
+            global_context_vars=GlobalContextVarsDTO(),
+            context_variables=ContextVariablesDTO(),
+        )
+
+    assert "unexpected_fatal_error" in str(exc_info.value)
+
+
+

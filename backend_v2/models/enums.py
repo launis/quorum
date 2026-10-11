@@ -21,6 +21,7 @@ __all__ = [
     "CognitiveTier",
     "ComponentType",
     "DisplayScale",
+    "EngineType",
     "EnsembleJitter",
     "EntityPrefix",
     "EthicalSeverity",
@@ -45,6 +46,7 @@ __all__ = [
     "LaxCognitiveTier",
     "LaxComponentType",
     "LaxDisplayScale",
+    "LaxEngineType",
     "LaxEthicalSeverity",
     "LaxEvaluationRunCount",
     "LaxExecutionProfile",
@@ -109,6 +111,15 @@ __all__ = [
     "XaiExtensionScope",
     "XaiExtensionType",
 ]
+
+
+class EngineType(StrEnum):
+    """Explicit ExecutionEngine responsible for computing a step."""
+
+    TDA = "tda"
+    SYNTHESIS = "synthesis"
+    PROMPT = "prompt"
+    CAUSAL_DISCOVERY = "causal_discovery"
 
 
 class StepType(StrEnum):
@@ -800,6 +811,7 @@ LaxBloomLevel = Annotated[BloomLevel, Field(strict=False)]
 LaxCognitiveTier = Annotated[CognitiveTier, Field(strict=False)]
 LaxLLMProvider = Annotated[LLMProvider, Field(strict=False)]
 LaxStrategicDepth = Annotated[StrategicDepth, Field(strict=False)]
+LaxEngineType = Annotated[EngineType, Field(strict=False)]
 LaxStepType = Annotated[StepType, Field(strict=False)]
 LaxVerificationResult = Annotated[VerificationResult, Field(strict=False)]
 LaxEthicalSeverity = Annotated[EthicalSeverity, Field(strict=False)]

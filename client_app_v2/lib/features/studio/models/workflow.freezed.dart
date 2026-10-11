@@ -920,7 +920,7 @@ NodeStrategy _$NodeStrategyFromJson(
 mixin _$NodeStrategy {
 
 @StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools; List<String> get expectedInputs;@JsonKey(name: 'cognitive_tier') CognitiveTier get cognitiveTier; String? get organizationId;// Phase 1, Step 3: System core protection governance field
-@JsonKey(name: 'is_system_core') bool get isSystemCore;
+@JsonKey(name: 'is_system_core') bool get isSystemCore;@JsonKey(name: 'engine_type') EngineType get engineType;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -933,16 +933,16 @@ $NodeStrategyCopyWith<NodeStrategy> get copyWith => _$NodeStrategyCopyWithImpl<N
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other.criteriaBlockIds, criteriaBlockIds)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other.criteriaBlockIds, criteriaBlockIds)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(criteriaBlockIds),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),cognitiveTier,organizationId,isSystemCore);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(criteriaBlockIds),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType);
 
 @override
 String toString() {
-  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore)';
+  return 'NodeStrategy(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore, engineType: $engineType)';
 }
 
 
@@ -953,7 +953,7 @@ abstract mixin class $NodeStrategyCopyWith<$Res>  {
   factory $NodeStrategyCopyWith(NodeStrategy value, $Res Function(NodeStrategy) _then) = _$NodeStrategyCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType
 });
 
 
@@ -970,7 +970,7 @@ class _$NodeStrategyCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,Object? engineType = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -989,7 +989,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self.expectedInputs : 
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,engineType: null == engineType ? _self.engineType : engineType // ignore: cast_nullable_to_non_nullable
+as EngineType,
   ));
 }
 /// Create a copy of NodeStrategy
@@ -1095,11 +1096,11 @@ return logic(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  logic,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)?  llm,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)?  logic,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);case _:
   return orElse();
 
 }
@@ -1117,11 +1118,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)  logic,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)  llm,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm():
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic():
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);}
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);case NodeStrategyLogic():
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1135,11 +1136,11 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore)?  logic,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String? hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)?  llm,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText? description,  String hook, @StrictOpaqueIdConverter()  String? roleBlockId, @StrictOpaqueIdConverter()  String? extractionProtocolBlockId, @StrictOpaqueIdConverter()  String? executionPersonaBlockId,  List<String> criteriaBlockIds,  List<String> preHooks,  List<String> postHooks,  String safety,  List<String> allowedMcpTools,  List<String> expectedInputs, @JsonKey(name: 'cognitive_tier')  CognitiveTier cognitiveTier,  String? organizationId, @JsonKey(name: 'is_system_core')  bool isSystemCore, @JsonKey(name: 'engine_type')  EngineType engineType)?  logic,}) {final _that = this;
 switch (_that) {
 case NodeStrategyLlm() when llm != null:
-return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);case NodeStrategyLogic() when logic != null:
-return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore);case _:
+return llm(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);case NodeStrategyLogic() when logic != null:
+return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.roleBlockId,_that.extractionProtocolBlockId,_that.executionPersonaBlockId,_that.criteriaBlockIds,_that.preHooks,_that.postHooks,_that.safety,_that.allowedMcpTools,_that.expectedInputs,_that.cognitiveTier,_that.organizationId,_that.isSystemCore,_that.engineType);case _:
   return null;
 
 }
@@ -1151,7 +1152,7 @@ return logic(_that.id,_that.slug,_that.name,_that.description,_that.hook,_that.r
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLlm extends NodeStrategy {
-  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,$type = $type ?? 'llm',super._();
+  const NodeStrategyLlm({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,$type = $type ?? 'llm',super._();
   factory NodeStrategyLlm.fromJson(Map<String, dynamic> json) => _$NodeStrategyLlmFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1202,6 +1203,7 @@ class NodeStrategyLlm extends NodeStrategy {
 @override final  String? organizationId;
 // Phase 1, Step 3: System core protection governance field
 @override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
+@override@JsonKey(name: 'engine_type') final  EngineType engineType;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1220,16 +1222,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType);
 
 @override
 String toString() {
-  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore)';
+  return 'NodeStrategy.llm(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore, engineType: $engineType)';
 }
 
 
@@ -1240,7 +1242,7 @@ abstract mixin class $NodeStrategyLlmCopyWith<$Res> implements $NodeStrategyCopy
   factory $NodeStrategyLlmCopyWith(NodeStrategyLlm value, $Res Function(NodeStrategyLlm) _then) = _$NodeStrategyLlmCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String? hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType
 });
 
 
@@ -1257,7 +1259,7 @@ class _$NodeStrategyLlmCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = freezed,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,Object? engineType = null,}) {
   return _then(NodeStrategyLlm(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1276,7 +1278,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs :
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,engineType: null == engineType ? _self.engineType : engineType // ignore: cast_nullable_to_non_nullable
+as EngineType,
   ));
 }
 
@@ -1308,7 +1311,7 @@ $I18nTextCopyWith<$Res>? get description {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class NodeStrategyLogic extends NodeStrategy {
-  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,$type = $type ?? 'logic',super._();
+  const NodeStrategyLogic({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, this.description, required this.hook, @StrictOpaqueIdConverter() this.roleBlockId, @StrictOpaqueIdConverter() this.extractionProtocolBlockId, @StrictOpaqueIdConverter() this.executionPersonaBlockId, final  List<String> criteriaBlockIds = const [], final  List<String> preHooks = const [], final  List<String> postHooks = const [], this.safety = 'safe', final  List<String> allowedMcpTools = const [], final  List<String> expectedInputs = const [], @JsonKey(name: 'cognitive_tier') this.cognitiveTier = CognitiveTier.fast, this.organizationId, @JsonKey(name: 'is_system_core') this.isSystemCore = false, @JsonKey(name: 'engine_type') this.engineType = EngineType.prompt, final  String? $type}): _criteriaBlockIds = criteriaBlockIds,_preHooks = preHooks,_postHooks = postHooks,_allowedMcpTools = allowedMcpTools,_expectedInputs = expectedInputs,$type = $type ?? 'logic',super._();
   factory NodeStrategyLogic.fromJson(Map<String, dynamic> json) => _$NodeStrategyLogicFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1359,6 +1362,7 @@ class NodeStrategyLogic extends NodeStrategy {
 @override final  String? organizationId;
 // Phase 1, Step 3: System core protection governance field
 @override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
+@override@JsonKey(name: 'engine_type') final  EngineType engineType;
 
 @JsonKey(name: 'type')
 final String $type;
@@ -1377,16 +1381,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore);
+int get hashCode => Object.hash(runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType);
 
 @override
 String toString() {
-  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore)';
+  return 'NodeStrategy.logic(id: $id, slug: $slug, name: $name, description: $description, hook: $hook, roleBlockId: $roleBlockId, extractionProtocolBlockId: $extractionProtocolBlockId, executionPersonaBlockId: $executionPersonaBlockId, criteriaBlockIds: $criteriaBlockIds, preHooks: $preHooks, postHooks: $postHooks, safety: $safety, allowedMcpTools: $allowedMcpTools, expectedInputs: $expectedInputs, cognitiveTier: $cognitiveTier, organizationId: $organizationId, isSystemCore: $isSystemCore, engineType: $engineType)';
 }
 
 
@@ -1397,7 +1401,7 @@ abstract mixin class $NodeStrategyLogicCopyWith<$Res> implements $NodeStrategyCo
   factory $NodeStrategyLogicCopyWith(NodeStrategyLogic value, $Res Function(NodeStrategyLogic) _then) = _$NodeStrategyLogicCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText? description, String hook,@StrictOpaqueIdConverter() String? roleBlockId,@StrictOpaqueIdConverter() String? extractionProtocolBlockId,@StrictOpaqueIdConverter() String? executionPersonaBlockId, List<String> criteriaBlockIds, List<String> preHooks, List<String> postHooks, String safety, List<String> allowedMcpTools, List<String> expectedInputs,@JsonKey(name: 'cognitive_tier') CognitiveTier cognitiveTier, String? organizationId,@JsonKey(name: 'is_system_core') bool isSystemCore,@JsonKey(name: 'engine_type') EngineType engineType
 });
 
 
@@ -1414,7 +1418,7 @@ class _$NodeStrategyLogicCopyWithImpl<$Res>
 
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? name = null,Object? description = freezed,Object? hook = null,Object? roleBlockId = freezed,Object? extractionProtocolBlockId = freezed,Object? executionPersonaBlockId = freezed,Object? criteriaBlockIds = null,Object? preHooks = null,Object? postHooks = null,Object? safety = null,Object? allowedMcpTools = null,Object? expectedInputs = null,Object? cognitiveTier = null,Object? organizationId = freezed,Object? isSystemCore = null,Object? engineType = null,}) {
   return _then(NodeStrategyLogic(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
@@ -1433,7 +1437,8 @@ as List<String>,expectedInputs: null == expectedInputs ? _self._expectedInputs :
 as List<String>,cognitiveTier: null == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
 as CognitiveTier,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
 as String?,isSystemCore: null == isSystemCore ? _self.isSystemCore : isSystemCore // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,engineType: null == engineType ? _self.engineType : engineType // ignore: cast_nullable_to_non_nullable
+as EngineType,
   ));
 }
 

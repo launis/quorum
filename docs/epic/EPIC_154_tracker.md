@@ -37,15 +37,15 @@
 ### Phase 1: Pre-Implementation Technical Debt Cleanups (Scoped Boy Scout)
 **Plan:** @[docs/epic/tasks_EPIC_154/01_phase1_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 1.1: Verify ChunkPacketDTO in dag_models.py and TwoPassAtomizer
-  - [ ] Step 1.2: SlidingWindowLinker constructor parameter defaults isolation
-  - [ ] Step 1.3: Step consistency validation enum modernization
-  - [ ] Step 1.4: EngineType enum definition and Dart model mapping
-  - [ ] Step 1.5: Typed ENGINE_REGISTRY and build_execution_engine factory
-  - [ ] Step 1.6: Eradicate pre-hook heuristic matching in dag_executor.py
-  - [ ] Step 1.7: Add telemetry_strategy_label and purge LLM strategy duck typing
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 1.1: Verify ChunkPacketDTO in dag_models.py and TwoPassAtomizer
+  - [x] Step 1.2: SlidingWindowLinker constructor parameter defaults isolation
+  - [x] Step 1.3: Step consistency validation enum modernization
+  - [x] Step 1.4: EngineType enum definition and Dart model mapping
+  - [x] Step 1.5: Typed ENGINE_REGISTRY and build_execution_engine factory
+  - [x] Step 1.6: Eradicate pre-hook heuristic matching in dag_executor.py
+  - [x] Step 1.7: Add telemetry_strategy_label and purge LLM strategy duck typing
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 2: Configuration, DTOs, Studio Foundation & Parity
@@ -254,25 +254,26 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Tier 0 Research & Analysis (`/tier0-research-plan`) on `docs/epic/tasks_EPIC_154/01_phase1_plan.md`.
-- Conducted Five-Axis System 2 Deconstruction (Scope, Duct-Tape, Best Practice, Over-Engineering, Proof Anchor) across all Phase 1 targets and 1-hop callers.
-- Verified physical codebase state: `ChunkPacketDTO` in `backend_v2/models/dtos/dag_models.py#L273-L286` is already completed and consumed in `two_pass_atomizer.py#L50-L77`.
-- Confirmed `SlidingWindowLinker` constructor parameter defaults (`window_size=4, overlap=2`) must remain untouched to prevent parameter contamination.
-- Verified `Step.validate_step_consistency` in `step.py#L92-L119` must be modernized to `StepType.LLM` and `StepType.LOGIC` enum checks with `AppException(ErrorCodes.VALIDATION_FAILED)`.
-- Audited `EngineType` enum definition across `enums.py` and `enums.dart`, establishing `LaxEngineType = Annotated[EngineType, Field(strict=False)]` requirement for `step.py` under `strict=True` models to safely deserialize strings from JSON seeds without crashing.
-- Identified client-side crash vector: `workflow.dart` enforces `disallowUnrecognizedKeys: true` on `NodeStrategy.llm` and `logic`, requiring synchronous Dart Freezed update before running studio queries.
-- Hardened 5-Column Directives Table and execution protocol in `01_phase1_plan.md` with exact AST line spans (#Lnn-Lmm), passing `audit_markdown_boundaries.py` with zero MBD008 parity issues.
+- Executed Tier 2 Continuous Full-Auto implementation (`/tier2-execute --full-auto`) on `docs/epic/tasks_EPIC_154/01_phase1_plan.md`.
+- Verified `ChunkPacketDTO` in `backend_v2/models/dtos/dag_models.py` and `two_pass_atomizer.py` (Step 1.1).
+- Confirmed `SlidingWindowLinker` constructor parameter defaults (`window_size=4, overlap=2`) preserved unchanged (Step 1.2).
+- Modernized `Step.validate_step_consistency` in `backend_v2/models/domain/step.py` to use `StepType.LLM` and `StepType.LOGIC` enum checks, raising RFC 7807 `AppException(ErrorCodes.VALIDATION_FAILED)` with status 422 (Step 1.3).
+- Defined `EngineType` enum with members `tda`, `synthesis`, `prompt`, `causal_discovery` and `LaxEngineType` in `backend_v2/models/enums.py`. Extended `Step` domain model with `engine_type`. Mirrored in Dart `enums.dart` and `workflow.dart` (`NodeStrategy.llm` and `NodeStrategy.logic`), generating Freezed models and passing Flutter audit loop. Added explicit `engine_type` across all 19 step blueprints in `seed_data.json` and persisted to `data/db_v2.json` (Step 1.4).
+- Implemented typed `ENGINE_REGISTRY` and `build_execution_engine` factory in `backend_v2/services/orchestrator/engines/registry.py` and re-exported in `engines/__init__.py`. Tested with comprehensive positive and negative boundary test suites in `test_engine_registry.py` and `test_registry.py` (Step 1.5).
+- Eradicated heuristic pre-hook string matching (`"atom_flattening_hook"`, `"synthesis_distiller_hook"`) and criteria category loops from `dag_executor.py#L162-L189`, delegating directly to `build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)` in O(1) time (Step 1.6).
+- Extended `ExecutionEngine` Protocol with `telemetry_strategy_label` property in `base.py`, implemented on `TDAEngine` (`"tda"`), `PromptEngine` (`"prompt"`), and `SynthesisEngine` (`"synthesis"`). Purged duck-typing cascades and untyped dictionary mutation accumulators (`meta_dict = {}`) from `LLMNodeStrategy.execute`, reconstituting metadata strictly via typed `StepTraceMetadataDTO` and passing AST guardrails cleanly (Step 1.7).
+- Executed Universal Quality Gates across all target files (`registry.py`, `dag_executor.py`, `llm.py`, `step.py`, `workflow.dart`, `test_enum_parity.py`) with 100% test pass rates and zero fatal violations.
 
 ## Learned
-- `Step` model uses `model_config = ConfigDict(strict=True)`. String values deserialized from JSON or database without `strict=False` on `EngineType` field will fail validation. Must declare `engine_type: Annotated[EngineType, Field(default=EngineType.PROMPT, strict=False)]` with `LaxEngineType`.
-- `NodeStrategy.llm` and `NodeStrategy.logic` in `client_app_v2/lib/features/studio/models/workflow.dart` enforce `disallowUnrecognizedKeys: true`. Adding `engine_type` to backend serialized step payloads requires synchronous Flutter Freezed model generation via `flutter_audit_loop.py client_app_v2/lib/features/studio/models/workflow.dart --build`.
-- `test_node_executor_injects_tda_and_prompt_engines` in `test_dag_executor.py` constructs a matrix step without `engine_type`; with O(1) registry resolution, the fixture must explicitly set `engine_type=EngineType.TDA`.
+- Python `@runtime_checkable` protocols that include non-method members (like properties) do not support `issubclass(Class, Protocol)` in `typing`; assertions must evaluate `isinstance(instance, Protocol)` and inspect `instance.property`.
+- `LLMNodeStrategy.execute` constructing `StepTraceMetadataDTO` directly passes AST strict rules (QGR001, QGR002, QGR025) and ensures all fields adhere to Pydantic extra="forbid" validation.
+- `DAGExecutor.__init__` requires `rag_preflight: RAGPreflightService` and uses `exec_repo` (not `execution_repo`).
 
 ## Remaining
-- Execute Tier 2 implementation on Phase 1: `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
-- Execute subsequent phases 1 through 7 step-by-step with localized tests, audits, and atomic commits.
+- Execute Tier 8 audit on Phase 1 plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
+- Proceed to Phase 2: Configuration, DTOs, Studio Foundation & Parity (`02_phase2_plan.md`).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/01_phase1_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```

@@ -412,8 +412,8 @@ async def test_tda_engine_execute_with_matrix_context(
 def test_tda_engine_implements_protocol(mock_compiler: MagicMock) -> None:
     """Verify TDAEngine implements ExecutionEngine protocol."""
     engine = TDAEngine(prompt_compiler=mock_compiler)
-    assert issubclass(TDAEngine, ExecutionEngine)
     assert isinstance(engine, ExecutionEngine)
+    assert engine.telemetry_strategy_label == "tda"
 
 
 @pytest.mark.asyncio

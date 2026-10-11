@@ -47,7 +47,7 @@ from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     ExecutionStatus,
@@ -927,34 +927,52 @@ class LLMNodeStrategy(NodeStrategy):
             if key in state_data:
                 final_dict[key] = state_data[key]
 
-        meta_dict = {}
         if "_step_metadata" in final_dict:
-            existing_meta = final_dict["_step_metadata"]
-            if isinstance(existing_meta, BaseModel):
-                meta_dict = existing_meta.model_dump(exclude_none=True)
-            elif not isinstance(existing_meta, (str, int, float, bool, list)) and existing_meta is not None:
-                meta_dict = dict(existing_meta)
-
-        meta_dict["task_blueprint"] = blueprint_id
-        if isinstance(self._engine, SynthesisEngine):
-            meta_dict["model_strategy"] = "synthesis"
+            meta_dto = StepTraceMetadataDTO.model_validate(final_dict["_step_metadata"])
         else:
-            meta_dict["model_strategy"] = "prompt"
+            meta_dto = StepTraceMetadataDTO()
 
-        if isinstance(step_obj.cognitive_tier, CognitiveTier):
-            meta_dict["cognitive_tier"] = step_obj.cognitive_tier.value
-        else:
-            meta_dict["cognitive_tier"] = str(step_obj.cognitive_tier)
-        if bound_client and bound_client.model_name:
-            if isinstance(bound_client.model_name, str):
-                meta_dict["physical_model"] = bound_client.model_name
+        model_strategy = "unknown"
+        if self._engine is not None:
+            raw_label = self._engine.telemetry_strategy_label
+            if isinstance(raw_label, str):
+                model_strategy = raw_label
             else:
-                meta_dict["physical_model"] = str(bound_client.model_name)
-        if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
-            if "token_usage" not in meta_dict:
-                meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
-        final_dict["_step_metadata"] = meta_dict
-        final_dict["step_metadata"] = meta_dict
+                model_strategy = "prompt"
+
+        cognitive_tier_val: str | None = None
+        if isinstance(step_obj.cognitive_tier, CognitiveTier):
+            cognitive_tier_val = step_obj.cognitive_tier.value
+        elif isinstance(step_obj.cognitive_tier, str):
+            cognitive_tier_val = step_obj.cognitive_tier
+
+        physical_model_val: str | None = None
+        if bound_client and isinstance(bound_client.model_name, str):
+            physical_model_val = bound_client.model_name
+
+        effective_token_usage = meta_dto.token_usage
+        if (usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0) and effective_token_usage is None:
+            effective_token_usage = usage_agg
+
+        meta_dto = StepTraceMetadataDTO(
+            task_blueprint=blueprint_id,
+            model_strategy=model_strategy,
+            cognitive_tier=cognitive_tier_val,
+            physical_model=physical_model_val,
+            token_usage=effective_token_usage,
+            chunk_size=meta_dto.chunk_size,
+            execution_id=meta_dto.execution_id,
+            workflow_id=meta_dto.workflow_id,
+            step_id=meta_dto.step_id,
+            initiator_id=meta_dto.initiator_id,
+            timestamp_isot=meta_dto.timestamp_isot,
+            unix_time=meta_dto.unix_time,
+            v2_engine=meta_dto.v2_engine,
+            system_fingerprint=meta_dto.system_fingerprint,
+        )
+        serialized_meta = meta_dto.model_dump(exclude_none=True)
+        final_dict["_step_metadata"] = serialized_meta
+        final_dict["step_metadata"] = serialized_meta
 
         generated_schema = None
         if dynamic_schema is not None:

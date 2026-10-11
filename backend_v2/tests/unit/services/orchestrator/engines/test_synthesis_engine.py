@@ -494,5 +494,5 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
 def test_synthesis_engine_implements_protocol(mock_executor: AsyncMock) -> None:
     """Verify SynthesisEngine implements ExecutionEngine protocol."""
     engine = SynthesisEngine(llm_executor=mock_executor)
-    assert issubclass(SynthesisEngine, ExecutionEngine)
     assert isinstance(engine, ExecutionEngine)
+    assert engine.telemetry_strategy_label == "synthesis"

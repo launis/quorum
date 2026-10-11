@@ -27,6 +27,11 @@ class PromptEngine(ExecutionEngine):
         """
         self.task_executor = task_executor
 
+    @property
+    def telemetry_strategy_label(self) -> str:
+        """Canonical telemetry strategy label for execution trace recording."""
+        return "prompt"
+
     @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
         """Execute structured LLM prompt task with Fail-Fast validations.

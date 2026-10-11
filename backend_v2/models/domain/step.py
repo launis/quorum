@@ -10,10 +10,11 @@ import uuid
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, model_validator
+from starlette import status
 
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
-from backend_v2.models.enums import CognitiveTier, LaxCognitiveTier, LaxStepType, StepType
+from backend_v2.models.enums import CognitiveTier, EngineType, LaxCognitiveTier, LaxStepType, StepType
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class Step(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
     )
-    cognitive_tier: LaxCognitiveTier = Field(
+    cognitive_tier: LaxCognitiveTier | None = Field(
         default=CognitiveTier.FAST,
         description="Step-level cognitive tier profile (e.g., 'fast', 'deep', 'reasoning').",
     )
@@ -88,34 +89,58 @@ class Step(V2CoreBase):
         bool,
         Field(description="Whether this step blueprint is a protected system foundational component."),
     ] = False
+    engine_type: Annotated[
+        EngineType,
+        Field(
+            default=EngineType.PROMPT,
+            strict=False,
+            description="Explicit ExecutionEngine responsible for computing this step.",
+        ),
+    ] = EngineType.PROMPT
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
         """Strict fail-fast validation to ensure Step is structurally complete.
 
         Raises:
-            ValueError: If structure is malformed or internally inconsistent.
+            AppException: If structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized Step matching schema expectations.
         """
-        if self.type == "llm":
+        if self.type == StepType.LLM:
             if not self.cognitive_tier or self.cognitive_tier not in CognitiveTier:
                 msg = f"LLM Step '{self.id}' must declare an explicit cognitive_tier (Zero-Fallback Rule)."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
             if not self.criteria_block_ids:
                 msg = f"LLM Step '{self.id}' must define at least one criteria_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ValueError(msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
             if not self.extraction_protocol_block_id:
                 msg = f"LLM Step '{self.id}' must define a valid extraction_protocol_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise ValueError(msg)
-        if self.type == "logic" and not self.hook:
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
+        if self.type == StepType.LOGIC and not self.hook:
             msg = f"Logic Step '{self.id}' must define a native 'hook' execution target."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise ValueError(msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         return self
 
 

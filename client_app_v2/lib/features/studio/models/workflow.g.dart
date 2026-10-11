@@ -247,6 +247,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'cognitive_tier',
         'organization_id',
         'is_system_core',
+        'engine_type',
         'type',
       ],
     );
@@ -323,6 +324,10 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'is_system_core',
         (v) => v as bool? ?? false,
       ),
+      engineType: $checkedConvert(
+        'engine_type',
+        (v) => $enumDecodeNullable(_$EngineTypeEnumMap, v) ?? EngineType.prompt,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -339,6 +344,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
+    'engineType': 'engine_type',
     r'$type': 'type',
   },
 );
@@ -371,6 +377,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
+      'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
       'type': instance.$type,
     };
 
@@ -384,6 +391,13 @@ const _$CognitiveTierEnumMap = {
   CognitiveTier.balanced: 'balanced',
   CognitiveTier.deep: 'deep',
   CognitiveTier.reasoning: 'reasoning',
+};
+
+const _$EngineTypeEnumMap = {
+  EngineType.tda: 'tda',
+  EngineType.synthesis: 'synthesis',
+  EngineType.prompt: 'prompt',
+  EngineType.causalDiscovery: 'causal_discovery',
 };
 
 Json? _$JsonConverterToJson<Json, Value>(
@@ -417,6 +431,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'cognitive_tier',
         'organization_id',
         'is_system_core',
+        'engine_type',
         'type',
       ],
     );
@@ -493,6 +508,10 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'is_system_core',
         (v) => v as bool? ?? false,
       ),
+      engineType: $checkedConvert(
+        'engine_type',
+        (v) => $enumDecodeNullable(_$EngineTypeEnumMap, v) ?? EngineType.prompt,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -509,6 +528,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
+    'engineType': 'engine_type',
     r'$type': 'type',
   },
 );
@@ -541,6 +561,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
+      'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
       'type': instance.$type,
     };
 

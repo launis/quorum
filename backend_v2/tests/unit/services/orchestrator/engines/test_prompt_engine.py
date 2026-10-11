@@ -120,28 +120,34 @@ async def test_prompt_engine_fails_fast_when_messages_empty(
 def test_prompt_engine_implements_protocol(mock_executor: MagicMock) -> None:
     """Verify PromptEngine implements ExecutionEngine protocol."""
     engine = PromptEngine(task_executor=mock_executor)
-    assert issubclass(PromptEngine, ExecutionEngine)
     assert isinstance(engine, ExecutionEngine)
+    assert engine.telemetry_strategy_label == "prompt"
 
 
 def test_engines_exports_all_symbols() -> None:
     """Verify __all__ contains exactly the intended public engine symbols."""
     import backend_v2.services.orchestrator.engines as engines_module
     from backend_v2.services.orchestrator.engines import (
+        ENGINE_REGISTRY,
         ExecutionEngine,
         PromptEngine,
         SynthesisEngine,
         TDAEngine,
+        build_execution_engine,
     )
 
     expected_symbols = {
+        "ENGINE_REGISTRY",
         "ExecutionEngine",
         "PromptEngine",
         "SynthesisEngine",
         "TDAEngine",
+        "build_execution_engine",
     }
     assert set(engines_module.__all__) == expected_symbols
     assert ExecutionEngine is not None
     assert PromptEngine is not None
     assert SynthesisEngine is not None
     assert TDAEngine is not None
+    assert ENGINE_REGISTRY is not None
+    assert build_execution_engine is not None
