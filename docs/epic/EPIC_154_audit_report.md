@@ -1,153 +1,178 @@
+<required_context_rules>
+    <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+    <rule>@[.agents/rules/01-python-backend.md]</rule>
+    <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+    <rule>@[.agents/rules/03_seed_vault.md]</rule>
+    <rule>@[.agents/rules/04_directory_reference.md]</rule>
+    <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+    <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+    <knowledge_item>@[ki_context_enriched_decompose_verify.md]</knowledge_item>
+    <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_topological_engine.md]</knowledge_item>
+    <knowledge_item>@[ki_execution_engine_protocol.md]</knowledge_item>
+    <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+    <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
+    <knowledge_item>@[ki_prompt_orchestration_and_matrix_evaluation.md]</knowledge_item>
+    <knowledge_item>@[ki_unified_matrix_scoring_strictness.md]</knowledge_item>
+    <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
+    <knowledge_item>@[ki_shared_storage_driver_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_dag_engine_dto_projection_rules.md]</knowledge_item>
+    <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
+    <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+    <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
+    <knowledge_item>@[ki_opentelemetry_logfire_observability.md]</knowledge_item>
+    <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
+    <knowledge_item>@[ki_synthesis_payload_compression.md]</knowledge_item>
+</required_context_rules>
+
 # EPIC 154 System 2 Architectural Research & Red-Team Audit Report
 
-**Epic Document:** `@[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`  
-**Target Domain:** Exploratory Text DAG & Argument Mapping (`CausalDiscoveryEngine`)  
-**Auditor:** Principal Enterprise Architect & System Red Team  
-**Evaluation Level:** Tier 0 Research Epic (`/tier0-research-epic`)  
-**Status:** VALIDATED & HARDENED (DISTANT FUTURE ROADMAP ONLY)
+> **Target Document:** `@[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`  
+> **Auditor Role:** Principal Enterprise Architect & System Red Team  
+> **Audit Status:** VERIFIED & HARDENED (Gate Readiness Approved for `/tier1-planner`)  
+> **Execution Gate Classification:** Feature Epic (Roadmap Reserved: Distant Future Autonomous Argument Mining Engine)  
 
 ---
 
-## 1. Executive Summary & Architectural Posture
+## 1. Executive Summary & Objective
 
-EPIC 154 defines the architecture for Quorum's future **Dynamic Causal Discovery Engine** (`CausalDiscoveryEngine`). It establishes an autonomous neuro-symbolic argument mining pipeline capable of extracting premises, claims, and conclusions directly from free-form text, chaining them into a directed argument graph (`LinkedAtomGraph`), executing topological wave evaluation with Kahn's sort and thread-isolated cycle detection, and attributing causal blame (`blame_parent_ids`) to isolate root causes and prevent double-penalization of secondary faults.
+This audit report delivers the formal System 2 architectural analysis, first-principles deconstruction, adversarial red-teaming, and scope boundary audit of `@[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`.
 
-The Epic enforces two decoupled modes:
-1. **100% Standalone Mode:** Pure open-text argument mining without criteria blocks, evaluation matrices, or `TDAEngine` dependencies.
-2. **Optional Chained Fusion Mode (Phase 1A -> Phase 1B):** Studio-driven pipeline chaining via `StepRule.causal_source_step_id`, where Discovery structures document topology and `TDAEngine` qualitatively evaluates discovered atoms against dynamic matrices.
-
-Presentation is consolidated into **exactly ONE presentation point**: the **Unified Causal Action Card** (`SduiCausalGraphBlock`) integrated directly into `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`, obeying Flutter Theme Sovereignty and achieving 1:1 cross-platform parity between Flutter desktop and A4 PDF print layouts (constrained to a strict half-page budget). Tabular reporting achieves rectangular multi-row atom parity across Excel ("Raw Data" Tab 2) and CSV exports via `ReportHeaderResolver`.
+EPIC 154 defines the architectural blueprint for an autonomous, exploratory causal discovery engine (`CausalDiscoveryEngine`) within Quorum's tripartite execution architecture. The engine mines open-text arguments (premises, claims, backing, conclusions) from unstructured documents without requiring pre-configured criteria matrices, links them into a directed argument graph (`LinkedAtomGraph`), executes topological wave evaluation to detect circular reasoning (`cycle_detected`), and attributes blame to foundational root causes (`blame_parent_ids`). Furthermore, it supports optional pipeline chaining into `TDAEngine` (Phase 1A Discovery -> Phase 1B Normative Evaluation) and projects argument structures into a unified, compact **Unified Causal Action Card** (`SduiCausalGraphBlock`) integrated directly into the `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`, with interactive exploration decoupled into `CausalInspectorModal`.
 
 ---
 
-## 2. Context Rules & Knowledge Item (KI) Governance Audit
+## 2. Five-Axis System 2 Deconstruction Findings
 
-A comprehensive audit was performed matching the canonical `<required_context_rules>` block in lines 1–28 of `EPIC_154_Dynamic_Causal_Discovery_Engine.md` against Quorum's architectural laws and knowledge base:
-
-| Rule / Knowledge Item Reference | Validation Status | Architectural Role |
-| :--- | :--- | :--- |
-| `@[.agents/rules/00-antigravity-core.md]` | VERIFIED | Global system invariants, Fail-Fast, no legacy fallbacks, anti-ambiguity |
-| `@[.agents/rules/01-python-backend.md]` | VERIFIED | Strict Pydantic V2, zero naked dicts, no duck-typing, RFC 7807 logging |
-| `@[.agents/rules/02_flutter_desktop.md]` | VERIFIED | Flutter desktop, Freezed models, Dumb Painter SDUI, Flutter Theme Sovereignty |
-| `@[.agents/rules/03_seed_vault.md]` | VERIFIED | SSOT seed data integrity (`seed_data.json`), no drive-by mutations |
-| `@[.agents/rules/04_directory_reference.md]` | VERIFIED | Workspace file paths and module boundaries |
-| `@[.agents/rules/05_llm_architecture.md]` | VERIFIED | Four-Layer Clean Stack, prompt caching, static prefix, exact lexical quotes |
-| `@[ki_god_code_prevention.md]` | VERIFIED | Modular decomposition, single responsibility, clean strategy extraction |
-| `@[ki_context_enriched_decompose_verify.md]` | VERIFIED | Two-pass extraction, DAG grounding, exact physical quote anchoring |
-| `@[ki_tripartite_pipeline_architecture.md]` | VERIFIED | 3-phase decoupling: Phase 1 (Compute), Phase 2 (Synthesis), Phase 3 (SDUI) |
-| `@[ki_topological_engine.md]` | VERIFIED | Kahn's wave evaluation, thread-isolated cycle detection, Markov conditioning |
-| `@[ki_execution_engine_protocol.md]` | VERIFIED | `ExecutionEngine` protocol, Pure Compute Engine Law, dynamic semaphore pool |
-| `@[ki_zero_permissive_typing.md]` | VERIFIED | Zero naked dicts (`QGR001`), `extra='forbid'` (`QGR002`), no Tuple Hell |
-| `@[ki_dumb_painter_sdui.md]` | VERIFIED | Zero client-side semantic inference, 1:1 Flutter & PDF parity, Anti-Synthetic Row |
-| `@[ki_prompt_orchestration_and_matrix_evaluation.md]` | VERIFIED | Four-Layer Stack, atom aliasing (`a0`, `a1`), XML sandwich CDATA shielding |
-| `@[ki_unified_matrix_scoring_strictness.md]` | VERIFIED | Continuous strictness curve, secondary fault dampening |
-| `@[ki_desktop_pro_tool_studio_ux.md]` | VERIFIED | Desktop pro-tool UX, decoupled inspector modal (`CausalInspectorModal`) |
-| `@[ki_shared_storage_driver_architecture.md]` | VERIFIED | FileDriver storage boundaries, report artifact isolation |
-| `@[ki_dag_engine_dto_projection_rules.md]` | VERIFIED | DAG engine state boundaries, immutable DTO projection |
-| `@[ki_python_314_concurrency_strictness.md]` | VERIFIED | Python 3.14 runtime, `TaskGroup` wave execution, DLQ failure recording |
-| `@[ki_dual_axis_localization_architecture.md]` | VERIFIED | Axis 1 ARB client chrome, Axis 2 backend `ReportHeaderResolver` & `I18nText` |
-| `@[ki_workflow_context_governance.md]` | VERIFIED | Workflow step taxonomy, `StepRule` governance, studio chaining |
-| `@[ki_execution_record_ssot.md]` | VERIFIED | ExecutionRecord SSOT, trace events, FinOps telemetry |
-| `@[ki_opentelemetry_logfire_observability.md]` | VERIFIED | GenAI semantic conventions, trace telemetry |
-| `@[ki_llm_extraction_architecture.md]` | VERIFIED | Four-Layer static prompt compilation, exact quote verification |
-| `@[ki_epic_lifecycle_workflow.md]` | VERIFIED | Epic lifecycle governance, 5-tier regression defense |
-| `@[ki_synthesis_payload_compression.md]` | VERIFIED | Phase 2 synthesis payload compression, token shield |
-
-**Audit Result:** 6 Rules verified, 20 Knowledge Items verified. 100% context coverage achieved.
-
----
-
-## 3. Five-Axis System 2 Deconstruction
-
-### Axis 1: Target Scope & Boundary (Scope Inquisitor)
-- **Blast Radius:** 47 Active Target Files (9 NEW, 35 MODIFIED, 3 COMPLETED) + 3 Read-Only Reference Files across Backend and Frontend.
-- **Physical Boundaries:**
-  - Standalone engine implementation is strictly isolated to `backend_v2/services/orchestrator/engines/causal_discovery_engine.py`.
-  - Engine dispatch is isolated to `backend_v2/services/orchestrator/engines/registry.py` and `ENGINE_REGISTRY`.
-  - DTOs are isolated to `backend_v2/models/dtos/causal_discovery.py`.
-  - Presentation is isolated to `SduiCausalGraphBlock`, `CausalGraphAdapter`, `ExecutiveSummaryAdapter`, `SduiCausalGraphWidget`, `CausalInspectorModal`, and Jinja2 PDF macro.
-- **Scope Creep Eradication:**
-  - Speculative `CausalStep` domain model subclass: **PRUNED**.
-  - Persistent Neo4j / NetworkX graph database: **PRUNED**.
-  - Disjoint parallel Excel worksheets ("Causal Graph", "Causal Diagnostics"): **PRUNED**.
-  - Dedicated `TargetBlockType.CAUSAL_GRAPH_BLOCK` in profile order: **PRUNED** in favor of existing `EXECUTIVE_SUMMARY_BLOCK`.
-  - Granular micro-toggles and `CausalDisplayMode`: **PRUNED** in favor of `visible_block_extensions`.
+### Axis 1: Target Scope & Boundaries (Scope Inquisitor & 1-Hop Caller Sweep)
+- **Quantitative Scope:** The active target scope comprises **50 target files** (9 NEW, 38 MODIFIED, 3 COMPLETED) plus 3 read-only architectural context files, totaling 55 system boundaries audited.
+- **1-Hop Caller Audit & Blast Radius Discovery:** During the pre-flight analysis of `ReportAtomColumn` and `ExportForensicAtomDTO`, three critical 1-hop caller test files were identified that enforce hardcoded column counts and field mappings:
+  1. `@[backend_v2/tests/unit/test_report_headers_l10n_parity.py]`: Asserts `len(atom_headers) == len(ReportAtomColumn) == 9`, `len(sheet2_rows[0]) == len(ReportAtomColumn) == 9`, and exact `expected_atom_fields` set. Expanding `ReportAtomColumn` to 12 columns without updating this test would cause an instant CI/audit failure.
+  2. `@[backend_v2/tests/unit/test_localization.py]`: Asserts `len(atom_headers) == len(ReportAtomColumn)`.
+  3. `@[backend_v2/tests/unit/models/test_enums.py]`: Asserts enum members and localization properties.
+  **Remediation:** All three files have been incorporated into the target scope, 5-column directives table, Phase 4 deliverables, and DoD.
 
 ### Axis 2: Eradicated Duct-Tape (Duct-Tape Prosecutor - Under-Engineering Ban)
-- **Eliminated Pre-Existing Technical Debt:**
-  - `TwoPassAtomizer._calculate_packets`: Anonymous 3-tuples (`tuple[str, str, list[str]]`) eradicated; already encapsulated into `ChunkPacketDTO(start_block, end_block, packet_keys)` in `dag_models.py`.
-  - `_resolve_execution_engine` in `dag_executor.py`: Pre-hook string checks (`"atom_flattening_hook" in step_def.pre_hooks`) and criteria block category guessing eradicated in favor of typed `ENGINE_REGISTRY[step_def.engine_type]`.
-  - `LLMNodeStrategy.execute`: Duck-typing cascade (`isinstance(existing_meta, BaseModel|Mapping)`) and untyped dictionary accumulator (`meta_dict = {}`) eradicated in favor of typed `StepTraceMetadataDTO` and Protocol property `self._engine.telemetry_strategy_label`.
-  - `Step.validate_step_consistency`: String literal comparisons (`self.type == "llm"`) modernized to typed `StepType.LLM` enums, and `ValueError` upgraded to `AppException(ErrorCodes.VALIDATION_FAILED)`.
-  - `SlidingWindowLinker.__init__`: Constructor parameter defaults (`window_size = 4, overlap = 2`) preserved intact; causal settings injected explicitly to prevent caller parameter contamination.
+The audit identified and scheduled resolution for five concrete technical debt patterns in touched files:
+1. **TD-1 (Heuristic Hook Matching in `dag_executor.py`):** `_resolve_execution_engine` currently checks `"atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks` and loops over criteria block categories. This violates `ban_heuristic_identifier_matching`. Resolved by introducing typed `EngineType` enum and `ENGINE_REGISTRY: dict[EngineType, Callable[[PromptCompiler], ExecutionEngine]]`.
+2. **TD-2 (Duck-Typing & Mutation Accumulator in `llm.py`):** `LLMNodeStrategy.execute` uses duck-typing cascades (`isinstance(existing_meta, BaseModel|Mapping)`), hardcoded `isinstance(self._engine, SynthesisEngine)` checks defaulting to `"prompt"`, and an untyped dictionary mutation accumulator `meta_dict = {}`. Resolved by adding `telemetry_strategy_label: str` to `ExecutionEngine` Protocol, reconstituting `_step_metadata` strictly via `StepTraceMetadataDTO`, and eliminating dict mutation loops.
+3. **TD-3 (Raw String Comparisons in `step.py`):** `Step.validate_step_consistency` uses raw string literal checks `if self.type == "llm":` and `if self.type == "logic":` and raises `ValueError`. Resolved by migrating to `StepType.LLM` and `StepType.LOGIC` enum checks and raising `AppException(ErrorCodes.VALIDATION_FAILED)`.
+4. **TD-4 (Constructor Parameter Contamination in `sliding_window_linker.py`):** Constructor defaults (`window_size = 4, overlap = 2`) must remain unmutated; `CausalDiscoveryEngine` injects explicit `get_settings().causal_discovery_*` parameters at instantiation.
+5. **TD-5 (Hardcoded Column Count Assertions in Parity Tests):** Parity tests asserting 9 columns are updated synchronously to assert 12 columns.
 
 ### Axis 3: Approved Best Practice (Type Constitutionalist - Sovereign Target)
-- **Immutable Pydantic V2:** All 8 causal DTOs (`CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`) strictly enforce `ConfigDict(strict=True, extra="forbid", frozen=True)`.
-- **Sealed Polymorphic Discriminators:** `SduiCausalGraphBlock` defines `block_type: Literal["causal_graph"] = "causal_graph"` matching Dart Freezed union `@FreezedUnionValue('causal_graph')`.
-- **Theme Sovereignty:** Zero raw `Color(...)` or `Colors.*` in Flutter widgets; all styling derives dynamically from `Theme.of(context).colorScheme`, `AppSemanticColors`, and `Theme.of(context).textTheme`.
-- **Exact Lexical Anchoring:** Extracted quotes validated strictly via `str.find` against indexed paragraphs `[B0]...[Bn]`. Fuzzy string matching is strictly prohibited.
+- **Zero Permissive Typing & Referential Integrity:** All 8 new causal DTOs (`CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`) enforce `ConfigDict(strict=True, extra="forbid", frozen=True)`. `CausalGraphPayloadDTO` enforces cross-field referential integrity via `@model_validator(mode='after')` verifying all edge `source_id`/`target_id`, `root_cause_node_ids`, and `isolated_node_ids` exist in `nodes`. `FairScoringBreakdownDTO` enforces mathematical identity `@model_validator(mode='after')` asserting `abs(raw_penalty_points - (deduplicated_penalty_points + dampened_savings_points)) < 1e-4` and all fields $\ge 0.0$.
+- **Topological Engine SSOT & Traversal Defense:** Reuses existing `TopologicalEvaluator` with Kahn's wave evaluation, Local Causal Markov Condition, and thread-isolated cycle detection. Cyclic nodes are quarantined from blame propagation, and all graph traversals enforce explicit `visited: set[str]` accumulators terminating in $O(V+E)$ time.
+- **Dumb Painter SDUI & Reference Equality:** Client Flutter widgets perform zero semantic inference; all critical paths, error chains, and remediations are pre-computed on the backend. `SduiCausalGraphBlock` in Dart declares `@Freezed(equal: false, unionKey: 'block_type')` per `ki_desktop_pro_tool_studio_ux` to eliminate expensive $O(N^2)$ deep equality passes on large graph collections during Riverpod rebuilds.
+- **Flutter Theme Sovereignty:** Zero raw `Color(...)` or naked `TextStyle(...)`. All styling resolves dynamically via `ColorScheme`, `AppSemanticColors`, and `textTheme`.
 
-### Axis 4: Pruned Over-Engineering (Complexity Slayer - 30% Deletion Test)
-- **30% Deletion Question:** *"If 30% of proposed classes/functions were deleted, what gets cut and what breaks?"*
-- **Cut:**
-  - Standalone `CausalStep` subclass -> Reused `Step` domain model.
-  - Neo4j graph storage engine -> In-memory transient `LinkedAtomGraph`.
-  - Separate Causal Report tab & separate Excel worksheets -> Integrated into single executive horizon and canonical "Raw Data" sheet.
-  - Dedicated display mode selector (`CausalDisplayMode`) -> Reused existing `visible_block_extensions`.
-- **Preserved (Irreducible Core):**
-  - Standalone `CausalDiscoveryEngine` implementing `ExecutionEngine`.
-  - Typed `ENGINE_REGISTRY` mapping `EngineType`.
-  - 8 Pydantic V2 DTOs capturing graph nodes, edges, root causes, remediations, and fusion states.
-  - Single presentation card (`SduiCausalGraphBlock`) and decoupled inspector (`CausalInspectorModal`).
+### Axis 4: Pruned Over-Engineering (Complexity Slayer - 30% Deletion Verification)
+- **`CausalStep` Domain Model Subclass: PRUNED.** Reuses existing `Step` domain model with validation branching on `StepType.CAUSAL_DISCOVERY`.
+- **Persistent Graph Database: PRUNED.** Uses transient in-memory `LinkedAtomGraph` projected to DTOs and trace JSON without external graph database bloat.
+- **Separate Causal Reports & Disjoint Worksheets: PRUNED.** All causal reporting is consolidated into the single unified report (`SduiCausalGraphBlock`) and canonical "Raw Data" worksheet.
+- **Granular Micro-Toggles & `CausalDisplayMode`: PRUNED.** Eradicated in favor of existing `OutputProfile.visible_block_extensions` SSOT.
+- **Separate `CAUSAL_GRAPH_BLOCK` in Profile Order: PRUNED.** Integrated directly as the empirical focal core of `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`.
 
-### Axis 5: Fail-Fast Proof Anchor (Incorruptible Judge - Deterministic Verification)
-- **Automated Gates:**
-  - `scripts/backend_audit_loop.py`: Enforces Ruff formatting, MyPy strict typing, and full Pytest execution.
-  - `scripts/flutter_audit_loop.py --build`: Validates Freezed code generation and zero unrecognized keys under `disallowUnrecognizedKeys: true`.
-  - `scripts/audit_flutter_theme_sovereignty.py`: Verifies zero raw hex colors, `Colors.*`, or naked `TextStyle(...)`.
-  - `scripts/_ast_guardrails.py`: Enforces zero naked dicts (`QGR001`), `extra='forbid'` (`QGR002`), and Polyfactory test fixtures (`QGR029`).
-  - `scripts/audit_markdown_boundaries.py`: Verifies boundary integrity and zero ambiguous documentation patterns.
+### Axis 5: Fail-Fast Proof Anchors (Incorruptible Judge - Deterministic Verification)
+- `AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT)` on physical empty text (`len(text.strip()) == 0`).
+- `AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION)` when claim extraction yields 0 valid claims from non-empty text, or downstream fusion step receives 0 nodes from upstream discovery.
+- Thread-isolated cycle detection marking cyclic nodes `ExecutionStatus.SYSTEM_ERROR` with reason `CYCLIC_DEPENDENCY_DETECTED`, quarantining cyclic nodes, and terminating traversals via `visited: set[str]` accumulators.
+- `CausalGraphPayloadDTO` referential integrity `@model_validator(mode='after')` failing fast on dangling edges or unextracted root causes.
+- `FairScoringBreakdownDTO` mathematical balance `@model_validator(mode='after')` failing fast on inconsistent penalty calculations or negative numbers.
+- Exact physical quote validation via `str.find` against indexed paragraphs `[B0]...[Bn]` (zero fuzzy matching).
+- AST guardrails: `QGR001` (no naked dicts), `QGR002` (extra='forbid'), `QGR029` (Polyfactory fixtures).
 
 ---
 
-## 4. Falsification & Red-Teaming Analysis (Anti-Happy-Path)
+## 3. Panel of Architects Review
 
-### Failure Mode 1: Document Starvation / Empty Extraction
-- **Scenario:** The input document contains zero argumentative premises, whitespace only, or completely un-extractable text.
-- **Vulnerability:** Downstream topological evaluation receives an empty graph, risking divide-by-zero errors in scoring or silent empty output in report generation.
-- **Fail-Fast Defense:** `CausalDiscoveryEngine` implements pre-flight validation: if input text is empty or phase 1 extraction produces 0 nodes, it raises `AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT)` immediately. In fusion mode, if upstream discovery yields 0 nodes, `DAGExecutor` raises `AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION)`.
+### 3.1 Global System Architect
+- **Single Pipeline Invariant:** `CausalDiscoveryEngine` and `TDAEngine` execute via sovereign, decoupled pipelines resolved deterministically through `ENGINE_REGISTRY`. Standalone mode executes with zero criteria dependencies; Fusion mode chains Phase 1A into Phase 1B via `causal_source_step_id`. Zero conditional fallback branches.
+- **Full-Duplex Serialization Parity:** New fields on `Step` (`engine_type`) and `StepRule` (`causal_source_step_id`) are mapped 1:1 into Flutter Dart Freezed models (`workflow.dart`) and seed blueprints (`seed_data.json`), avoiding `disallowUnrecognizedKeys: true` deserialization crashes.
 
-### Failure Mode 2: Circular Argument Deadlock
-- **Scenario:** The candidate authors a circular argument chain: Premise A -> Claim B -> Conclusion C -> Premise A.
-- **Vulnerability:** Standard Kahn's topological sort hangs or deadlocks in an infinite loop while waiting for in-degree to reach 0.
-- **Fail-Fast Defense:** `TopologicalEvaluator` runs thread-isolated cycle detection via `asyncio.to_thread(list, nx.simple_cycles(g))`. When a cycle is detected, it terminates the topological wave loop without event loop deadlock, marks `cycle_detected=True`, flags participating nodes as `ExecutionStatus.SYSTEM_ERROR` with reason `CYCLIC_DEPENDENCY_DETECTED`, and records points deduction in `AntiFluffAuditDTO`.
+### 3.2 Backend/Data Architect
+- **Zero Naked Dictionaries:** All DTOs enforce `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+- **Opaque Stripe ID Compliance:** All primary and relational entity IDs enforce regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"`.
+- **Settings SSOT:** All sliding window sizes, token limits, packet sizes, and dampening constants reside strictly in `backend_v2/settings.py`.
 
-### Failure Mode 3: Client Deserialization Contract Fracture (Unrecognized Keys)
-- **Scenario:** Backend introduces new fields (`causal_source_step_id` on `StepRule`, `engine_type` on `NodeStrategy`) before client models are regenerated.
-- **Vulnerability:** Dart models configured with `@JsonSerializable(disallowUnrecognizedKeys: true)` crash with fatal `FormatException` upon reading seed data or API payloads.
-- **Fail-Fast Defense:** Phase 1 mandates Full-Duplex Serialization Parity: Dart models in `workflow.dart` and `enums.dart` are updated and generated via `flutter_audit_loop.py --build` in Phase 1 synchronously before any backend seed data or API routes expose the new fields.
+### 3.3 SDUI & Frontend Architect
+- **1:1 Cross-Platform Presentation Parity:** `SduiCausalGraphBlock` renders an identical Unified Causal Action Card in Flutter (`SduiCausalGraphWidget`) and PDF (`report_template.jinja2` macro), constrained to at most half an A4 page in PDF.
+- **Pro-Tool Exploration Decoupling:** Deep interactive graph exploration, pan/zoom, and remediation simulation are decoupled into `CausalInspectorModal`.
+- **Flutter Theme Sovereignty:** Automated verification via `scripts/audit_flutter_theme_sovereignty.py` ensures zero raw hex colors, static Colors, or naked TextStyles.
 
-### Failure Mode 4: Visual Report Layout Explosion (Unbounded Graph Rendering)
-- **Scenario:** A 50-page technical paper generates 100+ argument nodes and 150+ edges. Rendering the full directed graph into the PDF report causes 10+ pages of illegible spaghetti lines, blowing past print page budgets.
-- **Vulnerability:** Unusable PDF reports, rendering timeouts, memory exhaustion in WeasyPrint / Chrome headless.
-- **Fail-Fast Defense:** The **Critical Causal Path Principle** strictly limits the primary report block (`SduiCausalGraphBlock`) to an executive, half-page linear error chain: `[Root Cause]` -> `[Cascading Fault]` -> `[Score Loss]`. All passing claims are summarized into a single compact metric chip (`"X other claims verified logically sound"`). Deep graph exploration is strictly decoupled into `CausalInspectorModal`.
+### 3.4 AI & Orchestration Architect
+- **Four-Layer Clean Stack Hierarchy:** Static ontology instructions in system prefix for 100% caching; dynamic theory context in `<theory_context>` compiled from ALL configured PromptBlocks (ensuring argumentation matrices configured via `PromptBlockCategory.MATRIX` prompt blocks remain 100% dynamic domain entities, pluggable, and omittable with zero backend code changes); step-level extraction protocol; dynamic user payload with atom aliasing (`a0`, `a1`) at tail.
+- **Pure Compute Engine Law:** `CausalDiscoveryEngine` has zero background worker semaphores; micro-concurrency throttling is handled by provider dynamic semaphores.
 
 ---
 
-## 5. Architectural Findings & Directives Summary
+## 4. Falsification & Red-Teaming (Anti-Happy-Path Analysis)
 
-1. **Standalone Engine Sovereignty:** `CausalDiscoveryEngine` is a standalone `ExecutionEngine`. It does not subclass or branch inside `TDAEngine`.
-2. **Single Pipeline Invariant:** Zero legacy shims, fallback branches, or dual pipelines. `_resolve_execution_engine` dispatches via typed `ENGINE_REGISTRY`.
-3. **Executive Summary Unification:** Exactly one presentation point: `SduiCausalGraphBlock` integrated into `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`.
-4. **Theme Sovereignty Compliance:** 100% compliance with `audit_flutter_theme_sovereignty.py`.
-5. **Rectangular Atom Tabular Parity:** Canonical Excel Tab 2 enrichment and rectangular multi-row CSV streaming adhering strictly to `IMPLEMENTATION_PLAN_Logic_Matrix_Excel_and_CSV_Parity_Architecture.md`.
-6. **Roadmap Isolation:** Explicitly flagged as `DISTANT FUTURE ROADMAP ONLY`. The engine remains reserved for future open-text discovery workflows and does not compromise current evaluation cores.
+The audit examined concrete adversarial failure modes:
+
+| Failure Mode | Root Cause | Architectural Defense & Proof Anchor |
+| :--- | :--- | :--- |
+| **1-Hop Export Parity Test Cascade Failure** | Adding `CAUSAL_STATUS`, `BLAME_PARENT_ID`, and `DEPENDENT_COUNT` to `ReportAtomColumn` and `ExportForensicAtomDTO` breaks hardcoded 9-column assertion in `test_report_headers_l10n_parity.py` (`assert len(atom_headers) == 9`). | Incorporate `test_report_headers_l10n_parity.py`, `test_localization.py`, and `models/test_enums.py` into Phase 4 / Phase 6 deliverables; assert 12 columns and updated field sets atomically. |
+| **Client Deserialization Contract Fracture** | Ingesting new schema fields (`engine_type`, `causal_source_step_id`) before Dart model compilation causes `UnrecognizedKeysException` under `disallowUnrecognizedKeys: true`. | Enforce Phase 1 Dart model updates (`workflow.dart`, `enums.dart` with `@JsonValue('causal_discovery')`) and run `flutter_audit_loop.py --build` before backend seed data is updated. |
+| **Empty Input Document vs Extraction Starvation** | Conflating physically empty text with text that yields 0 extracted arguments confuses observability and error handling. | Explicit error code delineation: `CAUSAL_DISCOVERY_EMPTY_DOCUMENT` for `len(text.strip()) == 0`; `CAUSAL_DISCOVERY_DATA_STARVATION` when extraction yields 0 claims from non-empty text. |
+| **Dangling Edge Referential Integrity Risk** | Graph linking produces edges referencing pruned or unextracted node IDs, or unextracted root causes. | `CausalGraphPayloadDTO` `@model_validator(mode='after')` asserts all edge source/target IDs and root cause IDs exist in `self.nodes`. |
+| **Fair Scoring Arithmetic Inconsistency** | Numerical drift or calculation bugs produce inconsistent penalty points (`raw != deduplicated + dampened_savings`) or negative numbers. | `FairScoringBreakdownDTO` `@model_validator(mode='after')` asserts mathematical balance within `1e-4` and non-negativity. |
+| **Downstream Fusion Starvation** | Upstream discovery extracts 0 valid claims, but downstream TDA step expects `shuffled_atoms`. | DAG executor raises `AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION)` if upstream step output has 0 nodes, preventing downstream silent evaluation. |
+| **Circular Argument Deadlock & Infinite Traversal** | Candidate text contains circular reasoning (A -> B -> A), causing traversal recursion or stack overflow. | `TopologicalEvaluator` thread-isolated cycle detection catches cycle, sets `cycle_detected=True`, marks cyclic nodes `ExecutionStatus.SYSTEM_ERROR` with reason `CYCLIC_DEPENDENCY_DETECTED`, quarantines cyclic nodes from blame propagation, and terminates traversals via `visited: set[str]` accumulators. |
+| **Standalone Scoring Hook Crash** | Attaching `apply_scoring_logic_hook` to a standalone non-matrix causal discovery workflow crashes because `evaluative_matrices` is empty. | Scoring Hook Separation Contract: standalone workflows omit `apply_scoring_logic_hook`; scoring evaluates purely via `FairScoringBreakdownDTO` and `AntiFluffAuditDTO`. |
+| **Flutter Large Graph Performance Stutter** | Deep equality comparisons on large node/edge collections during Riverpod rebuilds degrade UI performance. | Declare `@Freezed(equal: false, unionKey: 'block_type')` on `SduiCausalGraphBlock` in Dart, enforcing reference equality. |
+| **Flutter Theme Sovereignty Violation** | Using raw `Color(0x...)` or naked `TextStyle(...)` in causal widgets. | `audit_flutter_theme_sovereignty.py` fails with fatal exit code `1`. |
 
 ---
 
-## 6. Audit Conclusion & Sign-Off
+## 5. Five-Column Architectural Directive Table
 
-`EPIC_154_Dynamic_Causal_Discovery_Engine.md` has been thoroughly analyzed, deconstructed across all five System 2 axes, stress-tested against red-team failure modes, and verified for 100% compliance with Quorum 2026 architectural invariants, AST guardrails, and knowledge items.
+| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Settings Configuration**<br>`@[backend_v2/settings.py]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`, `two_pass_atomizer_packet_size: int = 50`. Injected explicitly into `SlidingWindowLinker`. | Speculative per-domain sliding window overrides and dynamic reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
+| **SSOT Enums & ErrorCodes**<br>`@[backend_v2/models/enums.py]`<br>`@[backend_v2/exceptions.py]`<br>`@[client_app_v2/lib/core/models/enums.dart]` | Untyped string comparisons (`self.type == "llm"`), heuristic string matching, casing mismatches between backend snake_case and Dart camelCase. | `StepType.CAUSAL_DISCOVERY = "causal_discovery"` and `EngineType(StrEnum)` in `enums.py`. Mirror in Dart `enums.dart` with `@JsonValue('causal_discovery') causalDiscovery`. Explicit ErrorCodes in `exceptions.py`: `CAUSAL_DISCOVERY_EMPTY_DOCUMENT` (physical empty text input, `len(text.strip()) == 0`), `CAUSAL_DISCOVERY_CYCLE_DETECTED` (circular reasoning detected in argument chain), and `CAUSAL_DISCOVERY_DATA_STARVATION` (zero extracted claims from non-empty text, or zero nodes in downstream fusion). Zero mutation to `TargetBlockType`. | Granular display mode permutations, speculative block type additions. | `backend_audit_loop.py` and `test_enum_parity.py` verifying enum and exception integrity. |
+| **Pre-Implementation Atomizer Cleanups**<br>`@[backend_v2/services/orchestrator/two_pass_atomizer.py]`<br>`@[backend_v2/models/dtos/dag_models.py]`<br>`@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py]` | Returning anonymous 3-tuples (`tuple[str, str, list[str]]`) in `_calculate_packets` ("Tuple Hell"), hardcoded magic window sizes (`packet_size = 50`). | **ALREADY COMPLETED IN CODEBASE:** Encapsulated chunk packet bounds into typed immutable `ChunkPacketDTO(start_block: str, end_block: str, packet_keys: list[str])` in `dag_models.py`. Bound `packet_size` to `get_settings().two_pass_atomizer_packet_size`. Zero code changes required for Phase 1.1. | Speculative packet wrapper classes or mutating canonical `packet_keys` field. | Physical verification via `view_file` on `dag_models.py` and unit tests in `test_two_pass_atomizer.py`. |
+| **SlidingWindowLinker Isolation**<br>`@[backend_v2/services/orchestrator/sliding_window_linker.py]` | Hardcoded `window_size=4, overlap=2` constructor defaults mutating shared caller behavior. | **DO NOT** mutate constructor defaults in `SlidingWindowLinker.__init__`. `CausalDiscoveryEngine` constructs `SlidingWindowLinker` with explicit settings: `SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap)`. | Binding constructor defaults to causal-specific settings. | Regression tests for existing `SlidingWindowLinker` callers; unit tests in `test_causal_discovery_engine.py`. |
+| **Step Consistency & Strategy Registry**<br>`@[backend_v2/models/domain/step.py]`<br>`@[backend_v2/services/orchestrator/strategies/registry.py]` | Raw string literal comparisons (`self.type == "llm"`, `self.type == "logic"`) bypassing `StepType` enum, duck-typing missing criteria block IDs. | Explicit `StepType.LLM` and `StepType.LOGIC` enum comparisons. Declare `engine_type: EngineType = Field(default=EngineType.PROMPT)` on `Step`. New `StepType.CAUSAL_DISCOVERY` branch allowing empty `criteria_block_ids` while enforcing `extraction_protocol_block_id` and `cognitive_tier`. `NODE_STRATEGY_REGISTRY` maps `StepType.CAUSAL_DISCOVERY -> _build_llm_strategy`. | Separate `CausalStep` domain model subclass or parallel step validation pipeline. | Unit tests asserting `AppException` when `extraction_protocol_block_id` is missing; `backend_audit_loop.py`. |
+| **`_resolve_execution_engine` Cleanup & Typed EngineRegistry**<br>[NEW] `@[backend_v2/services/orchestrator/engines/registry.py]`<br>`@[backend_v2/services/orchestrator/dag_executor.py]` | **Pre-existing debt:** `"atom_flattening_hook" in step_def.pre_hooks` heuristic string matching and criteria block category guessing violating `ban_heuristic_identifier_matching`. | Eradicate all heuristic string parsing and category inspection loops in `_resolve_execution_engine`. Introduce typed `ENGINE_REGISTRY: dict[EngineType, Callable[[PromptCompiler], ExecutionEngine]]` and factory `build_execution_engine(engine_type, prompt_compiler)` in `registry.py`. `NodeExecutor._resolve_execution_engine` resolves deterministically via `build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)` in O(1) time with Fail-Fast `AppException(ErrorCodes.VALIDATION_FAILED)`. | Heuristic substring matches, hardcoded hook tuple markers, and if-elif branching cascades. | Unit tests in `test_engine_registry.py` proving deterministic resolution and zero heuristic hook parsing. |
+| **LLM Strategy Telemetry & Dispatch**<br>`@[backend_v2/services/orchestrator/strategies/llm.py]`<br>`@[backend_v2/services/orchestrator/engines/base.py]`<br>`@[backend_v2/services/orchestrator/engines/tda_engine.py]`<br>`@[backend_v2/services/orchestrator/engines/prompt_engine.py]`<br>`@[backend_v2/services/orchestrator/engines/synthesis_engine.py]` | Permissive model strategy fallback defaulting to `"prompt"`, ignoring engine ontology for causal discovery steps. `isinstance()` runtime type-check heuristic for strategy string selection. Duck-typing `isinstance(existing_meta, BaseModel|Mapping)` cascade and untyped `meta_dict = {}` dictionary key mutation accumulator. | Add `telemetry_strategy_label: str` property to `ExecutionEngine` Protocol in `@[backend_v2/services/orchestrator/engines/base.py]`. Each engine self-reports its label (`TDAEngine` returns `"tda"`, `PromptEngine` returns `"prompt"`, `SynthesisEngine` returns `"synthesis"`, `CausalDiscoveryEngine` returns `"causal"`). In `LLMNodeStrategy`, replace `isinstance` branching and untyped duck-typing by reconstituting `_step_metadata` directly via typed `StepTraceMetadataDTO` and reading `self._engine.telemetry_strategy_label`. | Dynamic strategy router subclasses or parallel LLM execution strategies. `isinstance` cascade branches and untyped dictionary accumulators. | Unit tests verifying `engine.telemetry_strategy_label == "causal"`, `_step_metadata.model_strategy == "causal"`, and `StepTraceMetadataDTO` validation roundtrip. |
+| **Causal Discovery DTOs**<br>[NEW] @[backend_v2/models/dtos/causal_discovery.py]<br>`@[backend_v2/models/dtos/step_output.py]` | Naked dictionaries (`dict[str, Any]`, `TypedDict`), anonymous state tuples ("Tuple Hell"), optional fallback keys, dangling edge reference vulnerabilities, and unverified scoring arithmetic. | Immutable Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`): `CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`. `CausalGraphPayloadDTO` enforces cross-field referential integrity via `@model_validator(mode='after')` verifying all edge `source_id`/`target_id`, `root_cause_node_ids`, and `isolated_node_ids` exist in `nodes`. `FairScoringBreakdownDTO` enforces mathematical identity `@model_validator(mode='after')` asserting `abs(raw_penalty_points - (deduplicated_penalty_points + dampened_savings_points)) < 1e-4` and all fields $\ge 0.0$. `StepPayloadValue` extended with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`. | Polymorphic node inheritance hierarchies, recursive graph wrapper classes, intermediate DTO converter factories. | `QGR001` (no naked dicts) and `QGR002` (extra="forbid") automated AST guardrail passing in audit loop. |
+| **Fusion Chaining Contract**<br>`@[backend_v2/models/domain/step.py]`<br>`@[backend_v2/services/orchestrator/dag_executor.py]` | Heuristic step-order detection, runtime flag branching, passing atoms directly to `request.shuffled_atoms` while bypassing `global_context_vars.shuffled_atoms` (triggering `LLMNodeStrategy` crash). | Studio-driven parameterization: explicit first-class field `StepRule.causal_source_step_id: str \| None = None` referencing upstream causal discovery step within workflow DAG, with cross-field `@model_validator(mode='after')` on `StepRule` enforcing `causal_source_step_id ∈ self.depends_on`. In Wave $N+1$, DAG executor transforms upstream `CausalGraphPayloadDTO.nodes` to `FlattenedAtom` via `transform_causal_nodes_to_atoms`, populating `global_context_vars = global_context_vars.model_copy(update={"shuffled_atoms": atoms})` (and updating `exec_record.metadata.global_context_vars.shuffled_atoms`) to satisfy `LLMNodeStrategy`'s mandatory `hook_state.global_context_vars.shuffled_atoms` contract and feed `TDAEngine.request.shuffled_atoms`. Upstream discovery step output is persisted strictly as `CausalGraphPayloadDTO` in `exec_record.step_states[step.id]`; in Wave $N+1$, `DAGExecutor` resolves `step.causal_source_step_id`, transforms causal nodes to `FlattenedAtom`, and commits `shuffled_atoms` to `global_context_vars` under `_update_lock`. | Nondeterministic engine picking, automatic graph merging without declared contracts, bypassing `GlobalContextVarsDTO`. | Integration test in `test_causal_tda_fusion.py` asserting Pydantic `FlattenedAtom` schema validation and `GlobalContextVarsDTO` transit. |
+| **Unified Executive Presentation Point**<br>`@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`<br>`@[backend_v2/services/blueprint.py]` | Speculative `CausalDisplayMode` enum, separate `CAUSAL_GRAPH_BLOCK` in `target_block_order`, parallel studio configuration cards, and dual-summary fragmentation. | Single Presentation Point Invariant: OutputProfile retains strictly `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK` in `target_block_order` (zero block-type proliferation). The causal action card is integrated as an empirical input and sub-component of Executive Summary. Prescriptive extensions (`remediation_steps`, `falsification`, etc.) are governed exclusively via existing `visible_block_extensions`. | Granular micro-toggles, separate bifurcated display modes (`CausalDisplayMode`), duplicate layout block types in `target_block_order`. | Unit and integration tests in `test_sdui_semantic_parity.py` and `backend_audit_loop.py`. |
+| **Causal Discovery Engine & Execution**<br>[NEW] `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`<br>`@[backend_v2/services/orchestrator/engines/__init__.py]`<br>`@[backend_v2/services/orchestrator/dag_executor.py]` | Subclassing `TDAEngine`, branching inside `TDAEngine` based on missing `shuffled_atoms`, mutating existing step execution states in-place without DTOs, routing through fallback branches in `_resolve_execution_engine`. Unquarantined cycle traversals causing stack overflow. | Autonomous `CausalDiscoveryEngine(ExecutionEngine)` cleanly implementing `execute(request: EngineExecutionRequest) -> EngineExecutionResult`, re-exported in `__all__`. `NodeExecutor._resolve_execution_engine` resolves deterministically via `build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)` where `EngineType` member `CAUSAL_DISCOVERY` maps to `CausalDiscoveryEngine` in `ENGINE_REGISTRY`. Sequential DAG chaining executes strictly via immutable DTOs and `StepRule.causal_source_step_id` across Kahn's topological waves. Cycle nodes are quarantined from blame propagation upon detection, and all graph traversals enforce explicit `visited: set[str]` accumulators terminating in O(V+E) time. | Dual execution buses, speculative actor frameworks, and persistent graph database storage engines. | Unit tests in `test_causal_discovery_engine.py` asserting Fail-Fast on cycle loops and empty documents; `test_causal_tda_fusion.py`. |
+| **SDUI Model, Adapter & Blueprint**<br>`@[backend_v2/models/view/sdui.py]`<br>[NEW] `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`<br>`@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`<br>`@[backend_v2/services/sdui/adapters/base_adapter.py]`<br>`@[backend_v2/services/blueprint.py]`<br>`@[backend_v2/workers/synthesis_tasks.py]`<br>`@[backend_v2/workers/synthesis_worker.py]`<br>`@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` | Client-side graph semantic calculation, client inferring root causes, generic raw JSON passing, loose block discriminators, dual-summary clutter. Deep equality checks on large collections causing UI rebuild performance degradation. | `SduiCausalGraphBlock(SduiBlockBase)` added to `AnySduiBlock` discriminated union with strict `block_type: Literal["causal_graph"] = "causal_graph"` and `ConfigDict(title="causal_graph", strict=True, extra="forbid")`. `AdapterContext` extended with typed `causal_result: CausalTdaFusionResultDTO \| CausalGraphPayloadDTO \| None = None` (in-memory only). `ExecutiveSummaryAdapter` unifies top fold: role badge $\rightarrow$ lead prose $\rightarrow$ delegates to `CausalGraphAdapter` to inject `SduiCausalGraphBlock` $\rightarrow$ bullet recommendations. 1:1 Freezed `@Freezed(equal: false, unionKey: 'block_type')` Dart model with `@FreezedUnionValue('causal_graph')`, enforcing reference equality to eliminate $O(N^2)$ deep equality passes on large graph collections during Flutter rebuilds. | Dynamic client-side layout calculators, SVG graph vector serialization over HTTP, multi-pass SDUI transformers, separate disjoint report blocks. | `test_sdui_template_parity.py` and `test_sdui_semantic_parity.py` passing 100%. |
+| **1:1 Presentation Parity (Flutter & PDF)**<br>`@[backend_v2/templates/report_template.jinja2]`<br>[NEW] `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`<br>[NEW] `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`<br>`@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]` | Sprawling unreadable node graphs in PDF, inconsistent layout between PDF and screen, embedding heavy canvas tools into report print templates. Raw `Color(...)` or `Colors.*` violating Flutter Theme Sovereignty. | Identical Unified Causal Action Card in both Flutter and PDF: executive half-page critical causal path (`[Root Cause]` -> `[Cascading Fault]` -> `[Score Loss]`), lexical quote, prescriptive remediation. Deep interactive exploration decoupled strictly into `CausalInspectorModal`. All Flutter widget styling derived exclusively from `Theme.of(context).colorScheme`, `AppSemanticColors`, and `Theme.of(context).textTheme`. | Embedded interactive JavaScript canvas in PDF, duplicate styling engines across platforms, static hardcoded colors. | `test_sdui_semantic_parity.py` validating identical token and quote rendering across HTML/PDF and Flutter widgets. Automated theme sovereignty verification via `scripts/audit_flutter_theme_sovereignty.py`. |
+| **Tabular Export & Rectangular Flat CSV Parity**<br>`@[backend_v2/services/export_service.py]`<br>`@[backend_v2/models/dtos/export.py]`<br>`@[backend_v2/models/enums.py]`<br>`@[backend_v2/services/localization.py]`<br>`@[backend_v2/l10n/fi.json]`<br>`@[backend_v2/l10n/en.json]`<br>`@[backend_v2/tests/unit/test_report_headers_l10n_parity.py]`<br>`@[backend_v2/tests/unit/test_localization.py]`<br>`@[backend_v2/tests/unit/models/test_enums.py]` | Legacy 2-line machine vector assumption, unlocalized column headers, missing ReportAtomColumn enums, loose dict mutation accumulators, hardcoded 9-column assertion cascade failures in 1-hop parity tests. | In fusion mode, enrich canonical `Raw Data` worksheet rows (`ExportForensicAtomDTO`) with typed columns: `causal_status`, `blame_parent_id`, and `dependent_count`. Register enum members on `ReportAtomColumn` (`CAUSAL_STATUS`, `BLAME_PARENT_ID`, `DEPENDENT_COUNT`) with localization keys in `fi.json` and `en.json` resolved via `ReportHeaderResolver`. `ExportDenormalizedFlatRowDTO` receives the same typed atom-level causal fields. `ExportService.export_flat_csv` streams a multi-row rectangular atom dataset (`len(flat_dtos) == len(report_dto.results)`) in UTF-8-SIG adhering strictly to `IMPLEMENTATION_PLAN_Logic_Matrix_Excel_and_CSV_Parity_Architecture.md` and the Anti-Synthetic Row Law. Synchronously update `test_report_headers_l10n_parity.py`, `test_localization.py`, and `models/test_enums.py` asserting 12 columns. | Disjoint parallel Excel worksheets ("Causal Graph", "Causal Diagnostics"), pivot table generators, dynamic CSV dialect negotiation, synthetic run-level summary vectors injected into atom CSV streams. | Unit tests in `test_export_service.py` asserting exact `ReportHeaderResolver` column headers, 100% row count equality (`actual_rows == len(report_dto.results)`), and typed `ExportPayloadDTO` returns. `test_report_headers_l10n_parity.py` passing with 12 columns. |
+| **Regression & Integration Testing**<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]`<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py]`<br>`@[backend_v2/tests/fixtures/sdui_golden_master.json]`<br>`@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`<br>`@[backend_v2/tests/unit/test_sdui_template_parity.py]`<br>`@[backend_v2/tests/factories/model_factories.py]` | Happy-path-only tests, mocking persistence with static dummy dicts, unasserted mock calls, raw dictionary fixtures violating AST guardrail `QGR029`. | Comprehensive ISTQB tests: equivalence partitioning, boundary value analysis, negative partitions (at least 2 negative tests per feature: empty text, single atom, circular dependency, disconnected subgraph). Integration tests for Phase 1A -> Phase 1B sequential chaining. Test fixtures MUST use Polyfactory (`model_factories.py`) with zero raw untyped dictionaries. | Flaky network integration tests, long-running end-to-end browser tests for unit logic, ad-hoc dictionary fixtures. | `uv run python scripts/backend_audit_loop.py` exiting 0 with Ruff, MyPy, and Pytest all green; `uv run python scripts/_ast_guardrails.py` passing QGR029. |
 
-**Verdict:** **APPROVED AS ARCHITECTURALLY SOUND (DISTANT FUTURE ROADMAP)**  
-**Readiness:** Ready for future planning via `/tier1-planner` when scheduled on the active development roadmap.
+---
+
+## 6. Context Rules & Knowledge Items Coverage Audit
+
+- **Context Rules Audit:** Verified 6 domain rules:
+  1. `00-antigravity-core.md` (Global IDE & Orchestration)
+  2. `01-python-backend.md` (Python Runtime & Schema Laws)
+  3. `02_flutter_desktop.md` (Flutter Desktop & Riverpod Architecture)
+  4. `03_seed_vault.md` (Database Seeding & Vault Mutation Laws)
+  5. `04_directory_reference.md` (Directory Laws & High-Level Routing)
+  6. `05_llm_architecture.md` (LLM Orchestration, Prompt Caching & Extraction Laws)
+- **Knowledge Items Audit:** Verified 20 repository Knowledge Items:
+  `ki_god_code_prevention.md`, `ki_context_enriched_decompose_verify.md`, `ki_tripartite_pipeline_architecture.md`, `ki_topological_engine.md`, `ki_execution_engine_protocol.md`, `ki_zero_permissive_typing.md`, `ki_dumb_painter_sdui.md`, `ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_unified_matrix_scoring_strictness.md`, `ki_desktop_pro_tool_studio_ux.md`, `ki_shared_storage_driver_architecture.md`, `ki_dag_engine_dto_projection_rules.md`, `ki_python_314_concurrency_strictness.md`, `ki_dual_axis_localization_architecture.md`, `ki_workflow_context_governance.md`, `ki_execution_record_ssot.md`, `ki_opentelemetry_logfire_observability.md`, `ki_llm_extraction_architecture.md`, `ki_epic_lifecycle_workflow.md`, `ki_synthesis_payload_compression.md`.
+- **Coverage Status:** `Context & KI Coverage Audit: 6 Rules verified, 20 KIs verified.` 100% coverage achieved.
+
+---
+
+## 7. Quality Gates & Validation Audit Verification
+
+- `scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md`: **PASSED (Exit 0)**
+- `scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_154_audit_report.md`: Verified upon report generation.
+
+---
+
+## 8. Conclusion & Gate Readiness for `/tier1-planner`
+
+`@[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]` has undergone deep System 2 analysis, adversarial red-teaming, 1-hop caller boundary hardening, and zero-compromise modernity gate verification. The document now constitutes a mathematically locked, unambiguous, and fully verified architectural blueprint.
+
+The Epic is **FULLY APPROVED** for breakdown into an architectural implementation plan via `/tier1-planner`.

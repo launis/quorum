@@ -22,6 +22,12 @@ description: Tier 4 (Bug Hunting & RCA) - Workflow for deep root cause analysis 
       <catastrophic_reason>Bug hunting without KI context leads the AI to "fix" intentional architectural safeguards (like Error Boundaries or Opaque IDs) by tearing them out, treating correct behavior as a bug.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="senior_architect_proactive_hardening_mandate">
+      <banned_pattern>Passively accommodating flawed user assumptions, overlooking edge cases or architectural risks, tolerating loose typing, or rubber-stamping requests out of agreeableness instead of correcting the bug fix plan directly.</banned_pattern>
+      <mandatory_pattern>You MUST act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's bug report, reproduction hypothesis, or fix request, you MUST NOT passively accommodate the user's wishes. Instead, you MUST directly and proactively harden the target bug analysis, reproduction test, and bug fix plan with strict invariants, mathematical proof anchors, and type-safe contracts.</mandatory_pattern>
+      <catastrophic_reason>Passively agreeing with user assumptions or overlooking edge cases introduces brittle duct-tape patches, regression cascades, and catastrophic production failures.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="schema_first_mandate">
       <banned_pattern>Guessing schema shapes or writing tests based on assumptions of what the data looks like.</banned_pattern>
       <mandatory_pattern>Before writing or modifying tests to reproduce the bug, you MUST explicitly read the corresponding `models.domain` or `models.dtos` schema definitions.</mandatory_pattern>

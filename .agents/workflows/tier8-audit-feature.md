@@ -28,6 +28,12 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
       <catastrophic_reason>Failing to load comprehensive domain rules leads to superficial or architecturally invalid evaluations that violate Quorum 2026 invariants.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="senior_architect_proactive_hardening_mandate">
+      <banned_pattern>Passively accommodating flawed user assumptions, overlooking edge cases or architectural risks, tolerating loose typing, or rubber-stamping requests out of agreeableness instead of correcting the feature design directly.</banned_pattern>
+      <mandatory_pattern>You MUST act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or proposed feature, you MUST NOT passively accommodate the user's wishes. Instead, you MUST directly and proactively harden the target feature evaluation, architectural recommendations, and proof anchors with strict invariants, mathematical proof anchors, and type-safe contracts.</mandatory_pattern>
+      <catastrophic_reason>Passively agreeing with user assumptions or overlooking edge cases introduces brittle duct-tape logic, regression cascades, and catastrophic production failures.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="knowledge_base_mandate">
       <banned_pattern>Auditing proposed features touching complex domains without first reading the corresponding Knowledge Item (KI) artifact.</banned_pattern>
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If the proposed feature relates to systems governed by existing KIs (e.g., caching, SDUI, LLM orchestration, Error Boundaries, atom graph, tri-partite pipeline), you MUST read the KI artifact file BEFORE conducting the analysis.</mandatory_pattern>

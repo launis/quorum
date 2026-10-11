@@ -28,6 +28,12 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
       <catastrophic_reason>Failing to load comprehensive domain rules prevents you from accurately auditing the codebase against strict Quorum 2026 invariants.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="senior_architect_proactive_hardening_mandate">
+      <banned_pattern>Passively accommodating flawed user assumptions, overlooking edge cases or architectural risks, tolerating loose typing, or rubber-stamping requests out of agreeableness instead of correcting the Epic audit directly.</banned_pattern>
+      <mandatory_pattern>You MUST act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or target Epic, you MUST NOT passively accommodate the user's wishes. Instead, you MUST directly and proactively harden the target Epic audit, gap analysis, and architectural directives with strict invariants, mathematical proof anchors, and type-safe contracts.</mandatory_pattern>
+      <catastrophic_reason>Passively agreeing with user assumptions or overlooking edge cases introduces brittle duct-tape logic, regression cascades, and catastrophic production failures.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="neuro_symbolic_grounding_mandate">
       <banned_pattern>Relying solely on your own semantic memory (System 1) or visual skimming to verify that the physical codebase matches the Epic.</banned_pattern>
       <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models act as lossy compression algorithms. You are FORBIDDEN from visually skimming to audit implementation status. You MUST actively use `grep_search` and `run_command` to deterministically prove that the code exists and functions exactly as promised in the Epic.</mandatory_pattern>
