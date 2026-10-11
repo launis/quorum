@@ -397,7 +397,7 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
 
     b_pattern = (
         r"Tier 2 Hardening \(Backend\)[^\n]*\n([\s\S]*?)"
-        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Tier 2 Hardening \(Frontend\)|\Z))"
+        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK|SKIPPED)\]\s+Tier 2 Hardening \(Frontend\)|\Z))"
     )
     b_match = re.search(b_pattern, content, re.IGNORECASE)
     if b_match:
@@ -406,7 +406,7 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
 
     f_pattern = (
         r"Tier 2 Hardening \(Frontend\)[^\n]*\n([\s\S]*?)"
-        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK)\]\s+Pre-Delete|\Z))"
+        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK|SKIPPED)\]\s+Pre-Delete|\Z))"
     )
     f_match = re.search(f_pattern, content, re.IGNORECASE)
     if f_match:
