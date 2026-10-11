@@ -253,6 +253,15 @@ class PromptCompiler:
         mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
 
         for logical_name, source_path in mappings.items():
+            if not (source_path.startswith("$inputs") or source_path.startswith("$steps")):
+                msg = f"Unsupported source_path prefix: {source_path}"
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
             value = self._extract_value_from_state(source_path, state_data)
             if value:
                 source_id_to_use = logical_name
@@ -309,13 +318,11 @@ class PromptCompiler:
                             t"<assignment_context>\n{value}\n</assignment_context>"
                         )
                     elif meta.is_chat_history:
-                        wrapped_val = TemplateProcessor.render_prompt(t"{value}")
+                        wrapped_val = TemplateProcessor.render_prompt(t"<chat_history>\n{value}\n</chat_history>")
                     else:
                         wrapped_val = TemplateProcessor.render_prompt(t"<user_payload>\n{value}\n</user_payload>")
-                elif source_path.startswith("$steps"):
-                    wrapped_val = TemplateProcessor.render_prompt(t"<ai_draft_context>\n{value}\n</ai_draft_context>")
                 else:
-                    wrapped_val = TemplateProcessor.render_prompt(t"{value}")
+                    wrapped_val = TemplateProcessor.render_prompt(t"<ai_draft_context>\n{value}\n</ai_draft_context>")
 
                 inner_xml = f"{desc_text}{wrapped_val}"
                 xml_blocks.append(

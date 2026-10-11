@@ -30,7 +30,7 @@
   - [x] Step 5: Type-Harden GlobalContextVarsDTO and Refactor state_reducer.py (Zero Dict Wrappers)
   - [x] Step 6: Implement Wave-Based TaskGroup Step Execution and DLQ Handlers in dag_executor.py
   - [x] Step 7: Harden TopologicalEvaluator Wave Crash Recovery
-  - [ ] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
+  - [x] Step 8: Seal XML Sandwich and CDATA Shielding in prompt_compiler.py
   - [ ] Step 9: Eradicate Regex Prompt Scraping in prompt_compiler_adapter.py
   - [ ] Step 10: Enforce Fail-Fast Purity Scanning in caching_service.py
   - [ ] Step 11: Relocate Output Profile Directives to Dynamic User Tail in strategies/llm.py
@@ -129,8 +129,8 @@
 | REQ-008 | Wrap wave execution with PEP 758 `except*` handlers and commit unreached steps to DLQ | Step 6 | [x] Completed |
 | REQ-009 | Delegate all 11 state mutations in `dag_executor.py` to `exec_record.transition_step(...)` with `_update_lock` | Step 6 | [x] Completed |
 | REQ-010 | Harden `TopologicalEvaluator` callback handling to catch `BaseException` and fail fast without orphan nodes | Step 7 | [x] Completed |
-| REQ-011 | Seal unwrapped string branches for `is_chat_history` inside `<chat_history>` in `prompt_compiler.py` | Step 8 | [ ] Pending |
-| REQ-012 | Eradicate fallback for unknown `$source_path` inputs in `prompt_compiler.py` (fail fast on unmapped prefixes) | Step 8 | [ ] Pending |
+| REQ-011 | Seal unwrapped string branches for `is_chat_history` inside `<chat_history>` in `prompt_compiler.py` | Step 8 | [x] Completed |
+| REQ-012 | Eradicate fallback for unknown `$source_path` inputs in `prompt_compiler.py` (fail fast on unmapped prefixes) | Step 8 | [x] Completed |
 | REQ-013 | Eradicate regex prompt scraping (`<execution_parameters>`) in `prompt_compiler_adapter.py` | Step 9 | [ ] Pending |
 | REQ-014 | Remove silent message-popping shims (`last_msg = static_msgs.pop()`) in `prompt_compiler_adapter.py` | Step 9 | [ ] Pending |
 | REQ-015 | Upgrade passive purity logging to Fail-Fast `AppException` in `caching_service.py` | Step 10 | [ ] Pending |
