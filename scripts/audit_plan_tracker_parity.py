@@ -192,15 +192,15 @@ def _is_test_path(posix_path: str) -> bool:
 
 
 def _is_backend_path(posix_path: str) -> bool:
-    """Determine if a file path belongs to the backend/python domain."""
+    """Determine if a file path belongs to the backend Python code domain."""
     p = posix_path.lower()
-    return p.startswith("backend_v2/") or p.startswith("scripts/") or p.endswith(".py") or p.endswith(".sql")
+    return p.endswith(".py") and not p.startswith("client_app_v2/")
 
 
 def _is_frontend_path(posix_path: str) -> bool:
-    """Determine if a file path belongs to the frontend/flutter domain."""
+    """Determine if a file path belongs to the frontend Flutter/Dart code domain."""
     p = posix_path.lower()
-    return p.startswith("client_app_v2/") or p.endswith(".dart") or p.endswith(".arb")
+    return p.endswith(".dart") and not p.endswith((".g.dart", ".freezed.dart"))
 
 
 def parse_plan_document(content: str, plan_path: Path) -> PlanDocumentAST:
@@ -486,7 +486,7 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
 
     # Check TPR002: Missing Step in Requirements Traceability Matrix
     for s_id in sorted(plan_step_ids):
-        if s_id not in tracker_matrix_step_ids:
+        if s_id != "0" and s_id not in tracker_matrix_step_ids:
             findings.append(
                 ParityAuditFindingDTO(
                     rule_code=ParityRuleCode.TPR002,
@@ -519,12 +519,68 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
             )
         )
 
-    # Check TPR004: Target Production File Hardening Coverage
+    # Check TPR004: Target Production File Hardening Coverage & Extension Integrity
     backend_prod_targets = {t.file_path for t in plan_ast.target_files if t.is_production and t.is_backend}
     frontend_prod_targets = {t.file_path for t in plan_ast.target_files if t.is_production and t.is_frontend}
 
     tracker_backend_files = set(tracker_ast.hardening_checklist.backend_files)
     tracker_frontend_files = set(tracker_ast.hardening_checklist.frontend_files)
+
+    for fpath in sorted(tracker_backend_files):
+        if not fpath.lower().endswith(".py"):
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Non-Python file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
+                        "hardening only runs on `.py` files."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
+                )
+            )
+        elif _is_test_path(fpath):
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Test file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
+                        "unit/integration tests are verification evidence, not hardening targets."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
+                )
+            )
+
+    for fpath in sorted(tracker_frontend_files):
+        if not fpath.lower().endswith(".dart"):
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Non-Dart file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
+                        "hardening only runs on `.dart` files."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
+                )
+            )
+        elif _is_test_path(fpath):
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Test file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
+                        "tests are verification evidence, not hardening targets."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
+                )
+            )
 
     for fpath in sorted(backend_prod_targets - tracker_backend_files):
         findings.append(

@@ -78,6 +78,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_154/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 4.0: Pre-Implementation Cleanups
   - [x] Step 4.1: Register CausalDiscoveryEngine in ENGINE_REGISTRY
   - [x] Step 4.2: Wave-based TaskGroup execution integration
   - [x] Step 4.3: Transform causal nodes to atoms and inject global context
@@ -127,7 +128,7 @@
   - [x] Step 7.6: Markdown boundary auditing
   - [x] Step 7.7: Final Live E2E REST API Verification Gate
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
 - [ ] **[NOK] Full-Stack Integration Verification Gate:** Execute end-to-end workflow execution in development mode verifying Phase 1A Discovery -> Phase 1B TDA chaining, Executive Summary action card injection in `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`, Flutter rendering via `SduiCausalGraphWidget`, PDF compilation via Jinja2, Tab 2 Excel causal column enrichment, and rectangular CSV export.
@@ -149,14 +150,12 @@
   - [ ] @[backend_v2/services/orchestrator/engines/__init__.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/seed/seed_data.json]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/exceptions.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/registry.py]
   - [ ] [NEW] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/dtos/step_output.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
-  - [ ] @[backend_v2/tests/factories/model_factories.py]
   - [ ] @[backend_v2/models/view/sdui.py]
   - [ ] [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
@@ -164,13 +163,9 @@
   - [ ] @[backend_v2/services/blueprint.py]
   - [ ] @[backend_v2/workers/synthesis_tasks.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
-  - [ ] @[backend_v2/templates/report_template.jinja2]
-  - [ ] @[backend_v2/l10n/fi.json]
-  - [ ] @[backend_v2/l10n/en.json]
   - [ ] @[backend_v2/services/localization.py]
   - [ ] @[backend_v2/models/dtos/export.py]
   - [ ] @[backend_v2/services/export_service.py]
-  - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/audit_flutter_theme_sovereignty.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
@@ -180,9 +175,7 @@
   - [ ] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
-  - [ ] @[client_app_v2/lib/l10n/app_en.arb]
-  - [ ] @[client_app_v2/lib/l10n/app_fi.arb]
-  - [ ] @[scripts/flutter_audit_loop.py]
+  - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies or temporary variables remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving business logic.
 
@@ -256,6 +249,7 @@
 | Extend ExportForensicAtomDTO and ExportDenormalizedFlatRowDTO schemas | Section 3.6.1 | Phase 6, Step 6.3 | Completed |
 | ExportService Tab 2 enrichment and rectangular multi-row CSV streaming | Section 3.6.1 | Phase 6, Step 6.4 | Completed |
 | Synchronize 1-hop parity test suites asserting 12 columns and 20 CSV headers | Section 3.6.1 | Phase 6, Step 6.5 | Completed |
+| Pre-implementation cleanups (use_build_context_synchronously in dashboard_view.dart) | Section 3.7 | Phase 7, Step 1 | Completed |
 | Backend audit execution across all touched files with strict AST | Section 3.7.1 | Phase 7, Step 7.1 | Completed |
 | Flutter audit execution with Freezed build runner | Section 3.7.1 | Phase 7, Step 7.2 | Completed |
 | Flutter Theme Sovereignty verification | Section 3.7.1 | Phase 7, Step 7.3 | Completed |
@@ -277,16 +271,28 @@
   - Executed `scripts/audit_markdown_boundaries.py` on Epic 154 and all plan files (0 violations).
   - Executed Final Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` - passed in 223s).
   - Verified positive and negative test contracts including usage errors and raw color detection.
+- Completed Tier 8 Red Team Audit on Phase 7 (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`):
+  - Audited Planner output, as-built mapping, and Five-Axis System 2 invariants.
+  - Verified zero third-party AI bloatware dependencies.
+  - Generated audit report artifact `red_team_audit_phase7_plan.md` with 100% mathematical pass.
+  - All 7 implementation phases of EPIC 154 are now complete and fully audited.
 
 ## Learned
 - In `dashboard_view.dart`, pre-fetching localized parameters before async gaps is the approved Quorum invariant for preventing `use_build_context_synchronously` warnings without mutating state machines.
 - All 5255 backend unit and integration tests and the live E2E pipeline run with 100% pass rates and 97.64% coverage across the modern Python 3.14 runtime.
+- Across all 7 phases of EPIC 154, every single phase passed its Tier 8 Red Team Audit on the first pass with mathematical zero violations.
 
 ## Remaining
-- Run Tier 8 Audit on Phase 7: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
-- Post-implementation gates: Full-Stack Integration Verification Gate, Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Parameterized `/tier7-describe-architecture`, and `/tier8-audit-epic`.
+- Post-implementation gates:
+  - Full-Stack Integration Verification Gate: Execute end-to-end workflow execution in development mode.
+  - Golden Master & Test Restoration Audit: Verify no skipped tests.
+  - Proxy Sunset & Consumer Migration: Verify zero residual heuristic matching.
+  - Tier 2 Hardening (Backend): Comprehensive verification across all 31 touched backend files (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`).
+  - Tier 2 Hardening (Frontend): Verification across all 10 touched frontend files (`/tier2-hardening-frontend @[docs/epic/EPIC_154_tracker.md]`).
+  - As-Built Architectural Sync: Parameterized `/tier7-describe-architecture`.
+  - Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]
 ```

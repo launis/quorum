@@ -66,8 +66,8 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
           4. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
         - **`### Post-Implementation Gates`**:
           - `- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`/tier2-hardening-backend\` specifying the explicit list of created/modified @-referenced production backend files. Indent each production backend file (excluding /tests/ or test_) as child checkboxes.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`/tier2-hardening-frontend\` specifying the explicit list of created/modified @-referenced production Flutter files. Indent each production frontend file (excluding /test/ or _test.dart) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`/tier2-hardening-backend\` specifying the explicit list of created/modified @-referenced production backend `.py` files. Indent each production backend file (strictly excluding /tests/, test_, and non-code assets) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`/tier2-hardening-frontend\` specifying the explicit list of created/modified @-referenced production Flutter `.dart` files. Indent each production frontend file (strictly excluding /test/, _test.dart, generated models, and non-code assets) as child checkboxes.`
           - `- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.`
           - `- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.`
         - **`### Documentation & Knowledge Item Update`**:
@@ -102,8 +102,8 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
       <constraint name="GRANULAR_FILE_LEVEL_HARDENING_CHECKLIST">
         When generating or updating `### Post-Implementation Gates`:
         1. Extract all lines matching `#### \[(MODIFY|NEW)\]` from the implementation plan.
-        2. Under `Tier 2 Hardening (Backend)`, generate an indented `  - [ ] @[relative/path.py]` checkbox for EVERY production backend file target (excluding test files).
-        3. Under `Tier 2 Hardening (Frontend)`, generate an indented `  - [ ] @[relative/path.dart]` checkbox for EVERY production frontend file target (excluding test files).
+        2. Under `Tier 2 Hardening (Backend)`, generate an indented `  - [ ] @[relative/path.py]` checkbox for EVERY production backend `.py` file target (strictly excluding test files and non-code assets like `.json`, `.jinja2`, `.arb`, `.sql`, etc.).
+        3. Under `Tier 2 Hardening (Frontend)`, generate an indented `  - [ ] @[relative/path.dart]` checkbox for EVERY production frontend `.dart` file target (strictly excluding test files, generated files, and non-code assets).
         4. When updating an existing tracker, preserve all existing `  - [x]` checkboxes on previously completed files.
       </constraint>
     </step>
@@ -112,7 +112,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
       <action>After generating or updating the tracker, run the structural audit script: `uv run python scripts/audit_tracker_output.py --tracker <path_to_tracker> --plan-file <path_to_plan>`. You MUST also run plan-tracker parity verification: `uv run python scripts/audit_plan_tracker_parity.py --plan <path_to_plan> --tracker <path_to_tracker>`.</action>
       <action>If any audit fails, correct the tracker document and re-run. If it fails 3 times sequentially, STOP, output &lt;circuit_breaker_tripped&gt;, and ask user for guidance.</action>
       <constraint name="HARDENING_FILE_PARITY_VALIDATION">
-        The tracker structural verification MUST validate that the indented file list in `### Post-Implementation Gates` under `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` exactly matches the union of all `[MODIFY]` and `[NEW]` targets from the implementation plan.
+        The tracker structural verification MUST validate that the indented file list in `### Post-Implementation Gates` under `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` exactly matches the union of all production code targets (`[MODIFY]` and `[NEW]` `.py` files for Backend, `.dart` files for Frontend, strictly excluding all test files and non-code assets) from the implementation plan.
       </constraint>
     </step>
   </execution_protocol>
