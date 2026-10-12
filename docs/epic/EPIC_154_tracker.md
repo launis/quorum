@@ -172,7 +172,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
