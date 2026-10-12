@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Annotated, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,6 +14,8 @@ from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, Causa
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock
+
+__all__ = ["AdapterContext", "SduiAdapterProtocol"]
 
 
 class AdapterContext(BaseModel):
@@ -35,8 +37,14 @@ class AdapterContext(BaseModel):
     profile_cache: RenderedSynthesisCache | None
     user_name: str | None
     org_name: str | None
-    parsed_matrices: dict[str, MatrixScorecardRowDTO] = Field(default_factory=dict)
-    mcp_tools_map: dict[str, AllowedMCPTool] = Field(default_factory=dict)
+    parsed_matrices: Annotated[
+        dict[str, MatrixScorecardRowDTO],
+        Field(default_factory=dict, description="Parsed scorecard rows by matrix block ID."),
+    ]
+    mcp_tools_map: Annotated[
+        dict[str, AllowedMCPTool],
+        Field(default_factory=dict, description="Allowed MCP tools mapping."),
+    ]
     local_time_str: str | None = None
     scoring_engine: str | None = None
     strictness_level: int = 50
@@ -50,6 +58,7 @@ class AdapterContext(BaseModel):
         return bool(self.profile_cache and self.profile_cache.data_starvation is not None)
 
 
+@runtime_checkable
 class SduiAdapterProtocol(Protocol):
     """Protocol for all SDUI presentation adapters.
 

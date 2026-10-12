@@ -5,7 +5,10 @@ from pydantic import ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.services.sdui.adapters.base_adapter import AdapterContext, SduiAdapterProtocol
 
 
 @pytest.fixture
@@ -35,6 +38,9 @@ def test_adapter_context_valid_construction(valid_output_profile_fixture: Output
     )
     assert context.locale == "fi"
     assert context.penalties_applied == []
+    assert context.parsed_matrices == {}
+    assert context.mcp_tools_map == {}
+    assert context.is_data_starved is False
 
 
 def test_adapter_context_frozen_rejects_mutation(valid_output_profile_fixture: OutputProfile) -> None:
@@ -102,3 +108,62 @@ def test_adapter_context_strict_type_enforcement(valid_output_profile_fixture: O
             }
         )
     assert "Input should be a valid string" in str(exc_info.value)
+
+
+def test_adapter_context_is_data_starved_predicate(valid_output_profile_fixture: OutputProfile) -> None:
+    """Verifies is_data_starved predicate under starved and non-starved scenarios."""
+    starved_cache = RenderedSynthesisCache(
+        data_starvation=DataStarvationEvent(
+            total_atoms=0,
+            reason="Data starvation: insufficient atoms",
+        )
+    )
+    starved_context = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=starved_cache,
+        user_name=None,
+        org_name=None,
+    )
+    assert starved_context.is_data_starved is True
+
+    normal_cache = RenderedSynthesisCache(data_starvation=None)
+    normal_context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=normal_cache,
+        user_name=None,
+        org_name=None,
+    )
+    assert normal_context.is_data_starved is False
+
+
+def test_sdui_adapter_protocol_conformance(valid_output_profile_fixture: OutputProfile) -> None:
+    """Verifies that concrete classes satisfy SduiAdapterProtocol static build contract."""
+
+    class MockAdapter:
+        @staticmethod
+        def build(context: AdapterContext) -> list[AnySduiBlock]:
+            return []
+
+    assert issubclass(MockAdapter, SduiAdapterProtocol)
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    assert MockAdapter.build(context) == []
