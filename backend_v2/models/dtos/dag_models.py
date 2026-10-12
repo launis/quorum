@@ -178,7 +178,6 @@ class AtomEvaluationResultDTO(BaseModel):
         str | None,
         Field(
             default=None,
-            max_length=500,
             description="Exact verbatim quote in original source language.",
         ),
     ] = None
@@ -221,7 +220,6 @@ class AtomExecutionState(BaseModel):
         str | None,
         Field(
             default=None,
-            max_length=500,
             description="Exact verbatim quote extracted by the sensor during evaluation in original language.",
         ),
     ] = None

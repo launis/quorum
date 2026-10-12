@@ -151,15 +151,15 @@ def test_atom_execution_state_source_quote_valid() -> None:
     assert state.source_quote == "Valid verbatim quote."
 
 
-def test_atom_execution_state_source_quote_max_length_exceeded() -> None:
-    """Test AtomExecutionState enforces max_length=500 on source_quote."""
-    oversized_quote = "A" * 501
-    with pytest.raises(ValidationError):
-        AtomExecutionState(
-            tda_id="tda_1234567890abcdef",
-            status=ExecutionStatus.PASSED,
-            source_quote=oversized_quote,
-        )
+def test_atom_execution_state_source_quote_long_allowed() -> None:
+    """Test AtomExecutionState allows long verbatim source_quote (>500 chars)."""
+    long_quote = "A" * 850
+    state = AtomExecutionState(
+        tda_id="tda_1234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote=long_quote,
+    )
+    assert state.source_quote == long_quote
 
 
 def test_atom_evaluation_result_dto_valid() -> None:
@@ -203,14 +203,14 @@ def test_atom_evaluation_result_dto_missing_status_fails() -> None:
         AtomEvaluationResultDTO.model_validate({})
 
 
-def test_atom_evaluation_result_dto_source_quote_max_length() -> None:
-    """Test AtomEvaluationResultDTO enforces max_length=500 on source_quote."""
-    oversized_quote = "Q" * 501
-    with pytest.raises(ValidationError):
-        AtomEvaluationResultDTO(
-            status=ExecutionStatus.PASSED,
-            source_quote=oversized_quote,
-        )
+def test_atom_evaluation_result_dto_source_quote_long_allowed() -> None:
+    """Test AtomEvaluationResultDTO accepts long verbatim source_quote (>500 chars)."""
+    long_quote = "Q" * 850
+    dto = AtomEvaluationResultDTO(
+        status=ExecutionStatus.PASSED,
+        source_quote=long_quote,
+    )
+    assert dto.source_quote == long_quote
 
 
 def test_chunk_packet_dto_valid() -> None:

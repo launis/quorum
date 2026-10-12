@@ -117,6 +117,16 @@ def test_check_model_availability_exception(handler: LLMHandler) -> None:
         assert handler._check_model_availability("gemini-2.5-flash", "us-central1") is False
 
 
+def test_check_model_availability_genai_api_error(handler: LLMHandler) -> None:
+    """Verifies that GenAI ClientError/APIError results in False."""
+    from google.genai import errors as genai_errors
+
+    mock_client = MagicMock()
+    mock_client.models.get.side_effect = genai_errors.ClientError(404, {"error": {"message": "not found"}}, None)
+    with patch("google.genai.Client", return_value=mock_client):
+        assert handler._check_model_availability("gemini-2.5-flash", "us-central1") is False
+
+
 # -----------------------------------------------------------------------------
 # Mock Models Discovery
 # -----------------------------------------------------------------------------
@@ -195,6 +205,61 @@ def test_fetch_vertex_models_success(handler: LLMHandler) -> None:
         result = handler._fetch_vertex_models("europe-north1", mock_settings)
         assert "vertex_ai/gemini-2.5-pro" in result
         assert "vertex_ai/gemini-2.5-flash" in result
+
+
+def test_fetch_vertex_models_skips_unsupported_models_with_genai_api_error(handler: LLMHandler) -> None:
+    """Verifies that unsupported or missing models raising GenAI ClientError/APIError are skipped rather than crashing discovery."""
+    from google.genai import errors as genai_errors
+
+    mock_settings = MagicMock()
+    mock_settings.discovery_location = "us-central1"
+    mock_client = MagicMock()
+
+    def mock_get(model: str) -> MagicMock:
+        if model == "gemini-2.5-flash-preview-tts":
+            raise genai_errors.ClientError(
+                404,
+                {"error": {"code": 404, "message": f"Publisher Model publishers/google/models/{model} is not found.", "status": "NOT_FOUND"}},
+                None,
+            )
+        return MagicMock()
+
+    mock_client.models.get.side_effect = mock_get
+
+    with (
+        patch("google.auth.default", return_value=(MagicMock(), "proj-123")),
+        patch("litellm.model_list", ["vertex_ai/gemini-2.5-flash", "vertex_ai/gemini-2.5-flash-preview-tts"]),
+        patch("google.genai.Client", return_value=mock_client),
+    ):
+        result = handler._fetch_vertex_models("europe-north1", mock_settings)
+        assert result == ["vertex_ai/gemini-2.5-flash"]
+
+
+def test_fetch_vertex_models_dynamic_two_stage_discovery(handler: LLMHandler) -> None:
+    """Verifies that Stage 1 fetches candidates dynamically from discovery_location (us-central1), and Stage 2 validates in target_location."""
+    mock_settings = MagicMock()
+    mock_settings.discovery_location = "us-central1"
+
+    m1 = MagicMock()
+    m1.name = "publishers/google/models/gemini-2.5-pro"
+    m2 = MagicMock()
+    m2.name = "publishers/google/models/gemini-2.5-flash"
+
+    mock_client = MagicMock()
+    mock_client.models.list.return_value = [m1, m2]
+    mock_client.models.get.return_value = MagicMock()
+
+    with (
+        patch("google.auth.default", return_value=(MagicMock(), "proj-123")),
+        patch("litellm.model_list", ["vertex_ai/claude-3-5-sonnet"]),
+        patch("google.genai.Client", return_value=mock_client),
+        patch("requests.get", return_value=MagicMock(status_code=200)),
+    ):
+        result = handler._fetch_vertex_models("europe-north1", mock_settings)
+        assert "vertex_ai/gemini-2.5-pro" in result
+        assert "vertex_ai/gemini-2.5-flash" in result
+        assert "vertex_ai/claude-3-5-sonnet" in result
+        mock_client.models.list.assert_called_once_with(config={"query_base": True})
 
 
 # -----------------------------------------------------------------------------

@@ -70,6 +70,7 @@ class LLMHandler:
         """
         try:
             from google import genai
+            from google.genai import errors as genai_errors
 
             clean_name = model_id.split("/")[-1]
             if clean_name == "gemini-3.5-pro":
@@ -78,7 +79,7 @@ class LLMHandler:
             client = genai.Client(vertexai=True, location=location)
             client.models.get(model=clean_name)
             return True
-        except (ImportError, AttributeError, RuntimeError, OSError) as err:
+        except (ImportError, AttributeError, RuntimeError, OSError, genai_errors.APIError) as err:
             logger.warning("[LLMHandler] Availability check failed for %s in %s: %s", model_id, location, err)
             if isinstance(err, (KeyboardInterrupt, SystemExit)):
                 raise
@@ -161,21 +162,6 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
                 )
 
-            import litellm
-
-            # Get all candidates (Gemini, Claude, Llama, Mistral for Vertex AI)
-            all_models = litellm.model_list
-            candidates: list[str] = []
-            for m in all_models:
-                if not isinstance(m, str):
-                    continue
-                m_lower = m.lower()
-                if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
-                    if any(kw in m_lower for kw in ["gemini", "claude", "llama", "mistral"]):
-                        candidates.append(m)
-
-            candidates = sorted(list(set(candidates)))
-
             try:
                 raw_credentials, project = google.auth.default(
                     scopes=["https://www.googleapis.com/auth/cloud-platform"]
@@ -193,15 +179,60 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
                 ) from auth_err
 
+            from google import genai
+            from google.genai import errors as genai_errors
+
+            # Stage 1: Dynamic Discovery from source_region (us-central1 main catalog)
+            candidates: list[str] = []
+            try:
+                discovery_client = genai.Client(vertexai=True, project=project, location=source_region)
+                for base_model in discovery_client.models.list(config={"query_base": True}):
+                    if not base_model.name:
+                        continue
+                    raw_name = str(base_model.name)
+                    parts = raw_name.split("/")
+                    clean_name = parts[-1]
+                    if not clean_name:
+                        continue
+                    if "gemini" in clean_name.lower():
+                        candidates.append(f"vertex_ai/{clean_name}")
+            except (genai_errors.APIError, OSError, RuntimeError, ValueError, TypeError) as disc_err:
+                logger.warning(
+                    "[LLMHandler] Failed to query dynamic Vertex discovery in %s: %s; falling back to candidate pool.",
+                    source_region,
+                    disc_err,
+                )
+
+            # Stage 1b: Merge Model Garden models or fallback from litellm registry
+            has_discovered_gemini = any("gemini" in c.lower() for c in candidates)
+            import litellm
+
+            for litellm_model in litellm.model_list:
+                if not isinstance(litellm_model, str):
+                    continue
+                m_lower = litellm_model.lower()
+                if m_lower.startswith("vertex_ai/") or m_lower.startswith("gemini"):
+                    if any(kw in m_lower for kw in ["claude", "llama", "mistral"]):
+                        candidates.append(litellm_model)
+                    elif not has_discovered_gemini and "gemini" in m_lower:
+                        candidates.append(litellm_model)
+
+            candidates = sorted(list(set(candidates)))
+
             class _ModelProbeResult(BaseModel):
                 model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
                 model_id: str | None = None
 
+            # Stage 2: Validation of operational models in target_location (e.g. europe-north1)
             def check_model(model_id: str) -> _ModelProbeResult:
                 clean_id = model_id
                 for prefix in ["vertex_ai/", "gemini/", "models/"]:
                     if clean_id.startswith(prefix):
                         clean_id = clean_id[len(prefix) :]
+
+                # Proactive exclusion of non-operational preview model
+                if clean_id == "gemini-3.5-pro":
+                    return _ModelProbeResult(model_id=None)
 
                 clean_lower = clean_id.lower()
                 if "claude" in clean_lower:
@@ -215,12 +246,17 @@ class LLMHandler:
 
                 if publisher == "google":
                     try:
-                        from google import genai
-
                         modern_client = genai.Client(vertexai=True, project=project, location=target_location)
                         _ = modern_client.models.get(model=clean_id)
                         return _ModelProbeResult(model_id=f"vertex_ai/{clean_id}")
-                    except (ImportError, AttributeError, RuntimeError, OSError, ValueError) as err:
+                    except (
+                        ImportError,
+                        AttributeError,
+                        RuntimeError,
+                        OSError,
+                        ValueError,
+                        genai_errors.APIError,
+                    ) as err:
                         logger.debug("[LLMHandler] GenAI model probe failed for %s: %s", clean_id, err)
                         return _ModelProbeResult(model_id=None)
                 else:
