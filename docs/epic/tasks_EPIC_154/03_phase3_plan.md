@@ -13,14 +13,23 @@
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| [NEW] `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`, `@[backend_v2/services/orchestrator/engines/__init__.py]` | Subclassing `TDAEngine`, branching inside `TDAEngine` based on missing `shuffled_atoms`, mutating existing step execution states in-place without DTOs. Unquarantined cycle traversals causing recursion stack overflow. Fuzzy string matching for quotes. | Autonomous `CausalDiscoveryEngine(ExecutionEngine)` cleanly implementing `execute(request: EngineExecutionRequest) -> EngineExecutionResult`, re-exported in `__all__`. Constructs `SlidingWindowLinker` with explicit settings (`causal_discovery_window_size`, `causal_discovery_overlap`). Exact lexical quote validation via `str.find` against indexed paragraph blocks. Cycle nodes are quarantined from blame propagation upon detection, and all graph traversals enforce explicit `visited: set[str]` accumulators terminating in O(V+E) time. | Persistent graph database engines (Neo4j, NetworkX), speculative actor frameworks, and branching fallback methods. | Unit tests in `test_causal_discovery_engine.py` asserting Fail-Fast on cycle loops, empty documents, and extraction starvation; `backend_audit_loop.py`. |
-| [NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]` | Happy-path-only tests, unverified mocks, raw dictionary test fixtures violating AST guardrail `QGR029`. | Comprehensive ISTQB test suite: equivalence partitioning, boundary value analysis, negative partitions (empty document, claim extraction starvation, circular argument loops, single isolated atom, disconnected subgraphs). Test fixtures use typed Pydantic V2 DTOs with zero raw dictionaries. | Flaky live LLM calls in unit test suite. | `backend_audit_loop.py` exiting 0 with 100% test pass rate. |
+| `[NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`, `@[backend_v2/services/orchestrator/engines/__init__.py]` | Reading `request.payload` instead of `request.global_source_text`. Subclassing `TDAEngine`, branching inside `TDAEngine` based on missing `shuffled_atoms`, or mutating existing step execution states in-place. Calling `linker.link_graph(extracted_atoms, paragraph_blocks)` with invalid parameters. Unquarantined cycle traversals causing recursion stack overflow. Fuzzy string matching (RapidFuzz, Levenshtein, regex) for quotes. Permitting phantom edges violating `CausalGraphPayloadDTO` referential integrity. Dropping sub-step token usage counts. | Autonomous `CausalDiscoveryEngine(ExecutionEngine)` cleanly implementing `execute(request: EngineExecutionRequest) -> EngineExecutionResult`, re-exported in `__all__`. Pre-flight validation on `request.global_source_text` raising `AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT)` on empty or whitespace text. Four-Layer Clean Stack prompt compilation. Exact physical quote anchoring via `str.find` against indexed paragraph blocks `[B0]...[Bn]` (dropping invalid claims; raising `CAUSAL_DISCOVERY_DATA_STARVATION` if 0 valid claims remain). Explicit settings parameter injection into `SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap)`. Wave execution via `TopologicalEvaluator`: detecting cycles, setting `cycle_detected=True`, marking cyclic nodes `SYSTEM_ERROR` with `CYCLIC_DEPENDENCY_DETECTED`, quarantining cyclic nodes from blame propagation, and enforcing `visited: set[str]` accumulators terminating in O(V+E) time with recursion depth bounded by `len(self.nodes)`. Token usage aggregated across all phases. Return `EngineExecutionResult(results=[], hydrated_references={}, synthesis_output=payload, usage=total_usage)`. | Persistent graph database engines (Neo4j, NetworkX), speculative actor frameworks, and branching fallback methods. | Unit tests in `test_causal_discovery_engine.py` asserting Fail-Fast on cycle loops, empty documents, and extraction starvation; `backend_audit_loop.py`. |
+| `[NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]` | Happy-path-only tests, unverified mocks, theater mocks (`mock.execute.return_value = X; assert res == X`), raw dictionary test fixtures violating AST guardrail `QGR029`, and blanket `# noqa` or `# type: ignore` suppressions. | Comprehensive ISTQB test suite: equivalence partitioning, boundary value analysis, negative partitions (empty document, whitespace-only, claim extraction starvation, circular argument loops A->B->A, single isolated atom, disconnected subgraphs, exact quote match, hallucinated quote mismatch). All test fixtures use strongly typed Pydantic V2 DTOs with zero raw dictionaries. | Flaky live LLM calls in unit test suite. Uses typed mock responses via `LLMClient` and mocked task executor. | `backend_audit_loop.py` exiting 0 with 100% test pass rate across all test partitions. |
+
+## Pre-Implementation Cleanups
+
+1. `[CLEANUP]` Verify prerequisite contracts from Phase 2: `CausalNodeDTO` in `@[backend_v2/models/dtos/causal_discovery.py#L28-L51]`, `CausalGraphPayloadDTO` in `@[backend_v2/models/dtos/causal_discovery.py#L64-L108]`, `StepType.CAUSAL_DISCOVERY` in `@[backend_v2/models/enums.py]`, `ErrorCodes` in `@[backend_v2/exceptions.py]`, and settings in `@[backend_v2/settings.py]`.
+2. `[CLEANUP]` Eradicate hallucinated `request.payload` attribute reference; bind strictly to `request.global_source_text` from `@[backend_v2/models/dtos/engine.py#L60-L116]`.
+3. `[CLEANUP]` Align `SlidingWindowLinker.link_graph` calling contract: pass `(executor=llm_executor, client=request.bound_client, atoms=extracted_atoms, ontology_map=ontology, progress_callback=...)` and unpack `(linked_nodes, usage_linking)` per `@[backend_v2/services/orchestrator/sliding_window_linker.py#L121-L347]`.
+4. `[CLEANUP]` Mandate explicit `@property def telemetry_strategy_label(self) -> str: return "causal"` on `CausalDiscoveryEngine` to satisfy `ExecutionEngine` protocol in `@[backend_v2/services/orchestrator/engines/base.py#L11-L36]`.
+5. `[CLEANUP]` Enforce referential integrity in `CausalGraphPayloadDTO` construction by filtering out phantom edges referencing unextracted node IDs before instantiating the DTO.
 
 ```xml
 <execution_protocol>
-  <step id="0" name="STRATEGIC ALIGNMENT CHECK">
-    <action>Look backward: Read the actual codebase state left by Phase 2. Verify `backend_v2/models/dtos/causal_discovery.py` exists with all 8 DTOs, `StepType.CAUSAL_DISCOVERY` is registered, and settings are defined in `backend_v2/settings.py`.</action>
+  <step id="0" name="STRATEGIC ALIGNMENT CHECK &amp; PRE-IMPLEMENTATION CLEANUPS">
+    <action>Look backward: Read the actual codebase state left by Phase 2. Verify `backend_v2/models/dtos/causal_discovery.py#L28-L51` exists with all 8 DTOs, `StepType.CAUSAL_DISCOVERY` is registered in `backend_v2/models/enums.py`, explicit causal error codes exist in `backend_v2/exceptions.py`, and settings are defined in `backend_v2/settings.py`.</action>
     <action>Look forward: Verify if standalone `CausalDiscoveryEngine` execution produces defined `CausalGraphPayloadDTO` that can be directly consumed by Phase 4 DAG router and Phase 5 SDUI adapter.</action>
+    <action>Pre-implementation cleanups: Verify that `request.global_source_text` is used (never `request.payload`), `SlidingWindowLinker.link_graph` is called with exact typed arguments `(executor, client, atoms, ontology_map)`, `TDAEngine` is never imported or subclassed, and all mock fixtures in tests use typed Pydantic V2 DTOs with zero raw dictionaries.</action>
     <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
     <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document (@[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]) and the Tracker document (@[docs/epic/EPIC_154_tracker.md]), and synchronize architectural corrections back into them. Update `# Session Handover Context` and set `Resume Command` to `/tier2-execute @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`.</directive>
   </step>
@@ -70,15 +79,17 @@
     <forbidden>Do not use fuzzy string matching (RapidFuzz, Levenshtein, regex) for quote validation.</forbidden>
     <forbidden>Do not allow infinite recursion in cycle traversal; mandate visited set and depth bound.</forbidden>
     <forbidden>Do not exceed 250 lines in causal_discovery_engine.py.</forbidden>
+    <forbidden>Do not access request.payload; access request.global_source_text strictly.</forbidden>
   </anti_targets>
 
   <touched_artifacts>
     <backend>[NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]</backend>
     <backend>@[backend_v2/services/orchestrator/engines/__init__.py]</backend>
+    <backend>[NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]</backend>
   </touched_artifacts>
 
   <step id="3.1" name="PRE_FLIGHT_INGRESS_AND_ALIAS_ENGINE">
-    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], implement CausalDiscoveryEngine(ExecutionEngine). In execute(request: EngineExecutionRequest), extract document text from request.payload. Verify len(text.strip()) &gt; 0; if empty or whitespace only, raise AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT, "Causal discovery cannot execute on an empty text document."). Initialize AliasEngine and index paragraph blocks [B0]...[Bn].</action>
+    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], implement CausalDiscoveryEngine(ExecutionEngine). In execute(request: EngineExecutionRequest), extract document text from request.global_source_text (strictly banning request.payload). Implement @property def telemetry_strategy_label(self) -> str: return "causal". Verify len(text.strip()) > 0; if empty or whitespace only, log structured error and raise AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT, "Causal discovery cannot execute on an empty text document.", status_code=status.HTTP_422_UNPROCESSABLE_CONTENT). Initialize AliasEngine and index paragraph blocks [B0]...[Bn].</action>
     <constraint invariant="universal_fail_fast">Fail-Fast immediately before calling LLM or tokenization.</constraint>
   </step>
 
@@ -88,24 +99,25 @@
   </step>
 
   <step id="3.3" name="TWO_PASS_ATOMIZATION_AND_LEXICAL_ANCHORING">
-    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], execute TwoPassAtomizer.execute_phase_0 to construct GlobalOntologyMap, then execute TwoPassAtomizer.execute_phase_1 to generate independent ExtractedAtom instances. Validate every extracted quote strictly via str.find against indexed paragraph blocks [B0]...[Bn]. If extraction yields 0 valid argument claims from non-empty text, raise AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION, "Causal discovery extracted 0 valid argument propositions from non-empty text.").</action>
+    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], instantiate LLMTaskExecutor(self._compiler, default_validation_context={"execution_id": request.context.execution_id, "step_id": request.step.id}). Instantiate TwoPassAtomizer(llm_executor). Execute TwoPassAtomizer.execute_phase_0 to construct GlobalOntologyMap and capture usage_p0, then execute TwoPassAtomizer.execute_phase_1 to generate independent ExtractedAtom instances and capture usage_p1. Validate every extracted quote strictly via str.find against indexed paragraph blocks [B0]...[Bn] (or request.global_source_text); fuzzy matching is strictly banned. Drop invalid claims that fail lexical verification. If extraction yields 0 valid argument claims from non-empty text, raise AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION, "Causal discovery extracted 0 valid argument propositions from non-empty text.", status_code=status.HTTP_422_UNPROCESSABLE_CONTENT).</action>
     <constraint invariant="strict_physical_anchoring_mandate">Exact lexical validation via str.find; fuzzy matching is strictly banned.</constraint>
   </step>
 
   <step id="3.4" name="SLIDING_WINDOW_GRAPH_CONSTRUCTION">
-    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], construct SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap). Call linker.link_graph(extracted_atoms, paragraph_blocks) to generate a directed LinkedAtomGraph.</action>
+    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], construct SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap). Call await linker.link_graph(executor=llm_executor, client=request.bound_client, atoms=extracted_atoms, ontology_map=ontology, progress_callback=...) to generate directed LinkedAtomGraph nodes and capture usage_linking.</action>
     <constraint invariant="the_zero_compromise_pledge">Preserve default parameters of SlidingWindowLinker for TDA callers.</constraint>
   </step>
 
   <step id="3.5" name="TOPOLOGICAL_WAVE_EXECUTION_AND_CYCLE_DEFENSE">
-    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], pass LinkedAtomGraph to TopologicalEvaluator for wave evaluation, short-circuit cascades, and thread-isolated cycle detection. If circular dependency is detected, set cycle_detected=True, mark cyclic nodes with ExecutionStatus.SYSTEM_ERROR and reason CYCLIC_DEPENDENCY_DETECTED, quarantine cyclic nodes from blame propagation, and enforce visited: set[str] accumulators terminating in O(V+E) time with absolute recursion depth bounded by len(self.nodes) across all graph traversals.</action>
-    <action>Construct and return EngineExecutionResult wrapping CausalGraphPayloadDTO.</action>
-    <action>In @[backend_v2/services/orchestrator/engines/__init__.py], re-export CausalDiscoveryEngine in __all__.</action>
+    <action>In [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], pass LinkedAtomGraph nodes to TopologicalEvaluator for wave evaluation, short-circuit cascades, and thread-isolated cycle detection. If circular dependency is detected, set cycle_detected=True, mark cyclic nodes with ExecutionStatus.SYSTEM_ERROR and reason CYCLIC_DEPENDENCY_DETECTED, quarantine cyclic nodes from blame propagation, and enforce visited: set[str] accumulators terminating in O(V+E) time with absolute recursion depth bounded by len(self.nodes) across all graph traversals.</action>
+    <action>Aggregate total token usage: total_usage = usage_p0 + usage_p1 + usage_linking.</action>
+    <action>Construct and return EngineExecutionResult wrapping CausalGraphPayloadDTO, strictly verifying referential integrity by omitting phantom edges referencing unextracted nodes.</action>
+    <action>In [MODIFY] @[backend_v2/services/orchestrator/engines/__init__.py], import CausalDiscoveryEngine and re-export in __all__.</action>
     <constraint invariant="topological_engine">Reuses TopologicalEvaluator SSOT; cycle detection must never trigger infinite loop or deadlock.</constraint>
   </step>
 
   <step id="3.6" name="ISTQB_UNIT_TEST_IMPLEMENTATION">
-    <action>In [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py], create comprehensive ISTQB test suite verifying: test_causal_discovery_empty_document_raises_app_exception, test_causal_discovery_starvation_raises_app_exception, test_causal_discovery_circular_graph_marks_system_error, test_causal_discovery_single_atom_zero_edges, test_causal_discovery_exact_quote_anchoring_passes, test_causal_discovery_inexact_quote_fails_validation.</action>
+    <action>In [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py], create comprehensive ISTQB test suite verifying: test_causal_discovery_empty_document_raises_app_exception, test_causal_discovery_data_starvation_raises_app_exception, test_causal_discovery_circular_graph_marks_system_error, test_causal_discovery_single_atom_zero_edges, test_causal_discovery_exact_quote_anchoring_passes, test_causal_discovery_inexact_quote_fails_validation, test_causal_discovery_telemetry_strategy_label, test_causal_discovery_token_usage_aggregated, test_causal_discovery_phantom_edges_filtered.</action>
     <constraint invariant="universal_fail_fast">All test fixtures must use typed Pydantic V2 DTOs; zero naked dictionaries.</constraint>
   </step>
 
@@ -124,7 +136,7 @@
     </test>
     <test name="test_causal_discovery_single_atom_zero_edges" category="boundary">
       <input>Text yielding exactly 1 extracted claim</input>
-      <expected>returns CausalGraphPayloadDTO with 1 node, 0 edges, cycle_detected == False</expected>
+      <expected>returns CausalGraphPayloadDTO with 1 node, 0 edges, cycle_detected == False, node in isolated_node_ids</expected>
     </test>
     <test name="test_causal_discovery_exact_quote_anchoring_passes" category="positive">
       <input>Extracted claim with quote exactly matching source paragraph</input>
@@ -134,6 +146,18 @@
       <input>Extracted claim with hallucinated quote not in source text</input>
       <expected>raises SemanticEvidenceError or drops invalid proposition</expected>
     </test>
+    <test name="test_causal_discovery_telemetry_strategy_label" category="positive">
+      <input>CausalDiscoveryEngine instance inspection</input>
+      <expected>telemetry_strategy_label == 'causal'</expected>
+    </test>
+    <test name="test_causal_discovery_token_usage_aggregated" category="positive">
+      <input>Engine execution with mocked phases returning TokenUsage</input>
+      <expected>result.usage matches sum of Phase 0, Phase 1, and linking token counts</expected>
+    </test>
+    <test name="test_causal_discovery_phantom_edges_filtered" category="boundary">
+      <input>Linker producing edge with target or source not in extracted nodes</input>
+      <expected>phantom edge is pruned before CausalGraphPayloadDTO construction, preserving referential integrity</expected>
+    </test>
   </test_contracts>
 
   <validation_gate>
@@ -142,3 +166,4 @@
     <action>Execute: grep_search for "TDAEngine" in backend_v2/services/orchestrator/engines/causal_discovery_engine.py confirming zero coupling</action>
   </validation_gate>
 </execution_protocol>
+

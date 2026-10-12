@@ -59,19 +59,19 @@
   - [x] Step 2.4: Immutable causal discovery DTO contracts
   - [x] Step 2.5: Presentation localization
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 3: Autonomous Causal Discovery Engine Implementation & Tests
 **Plan:** @[docs/epic/tasks_EPIC_154/03_phase3_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 3.1: Pre-flight ingress and AliasEngine initialization
-  - [ ] Step 3.2: Four-Layer Clean Stack prompt compilation
-  - [ ] Step 3.3: Two-pass atomization and lexical anchoring
-  - [ ] Step 3.4: Sliding window graph construction
-  - [ ] Step 3.5: Topological wave execution and cycle traversal defense
-  - [ ] Step 3.6: ISTQB unit test implementation
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 3.1: Pre-flight ingress and AliasEngine initialization
+  - [x] Step 3.2: Four-Layer Clean Stack prompt compilation
+  - [x] Step 3.3: Two-pass atomization and lexical anchoring
+  - [x] Step 3.4: Sliding window graph construction
+  - [x] Step 3.5: Topological wave execution and cycle traversal defense
+  - [x] Step 3.6: ISTQB unit test implementation
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 4: DAG Router & Optional Chained Fusion Integration
@@ -226,12 +226,12 @@
 | Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Completed |
 | 8 immutable Pydantic V2 DTO contracts with referential integrity validators | Section 3.2.4 | Phase 2, Step 2.4 | Completed |
 | Presentation compile-time localization in app_en.arb and app_fi.arb | Section 3.2.5 | Phase 2, Step 2.5 | Completed |
-| Pre-flight ingress verification and AliasEngine initialization | Section 3.3.1 | Phase 3, Step 3.1 | Pending |
-| Four-Layer Clean Stack prompt compilation with static caching topology | Section 3.3.1 | Phase 3, Step 3.2 | Pending |
-| Two-pass claim extraction with exact str.find quote anchoring | Section 3.3.1 | Phase 3, Step 3.3 | Pending |
-| Sliding window argument graph construction with explicit settings | Section 3.3.1 | Phase 3, Step 3.4 | Pending |
-| Topological wave execution, cycle defense, and bounded O(V+E) traversals | Section 3.3.1 | Phase 3, Step 3.5 | Pending |
-| Comprehensive ISTQB unit tests for CausalDiscoveryEngine | Section 3.3.1 | Phase 3, Step 3.6 | Pending |
+| Pre-flight ingress verification and AliasEngine initialization | Section 3.3.1 | Phase 3, Step 3.1 | Completed |
+| Four-Layer Clean Stack prompt compilation with static caching topology | Section 3.3.1 | Phase 3, Step 3.2 | Completed |
+| Two-pass claim extraction with exact str.find quote anchoring | Section 3.3.1 | Phase 3, Step 3.3 | Completed |
+| Sliding window argument graph construction with explicit settings | Section 3.3.1 | Phase 3, Step 3.4 | Completed |
+| Topological wave execution, cycle defense, and bounded O(V+E) traversals | Section 3.3.1 | Phase 3, Step 3.5 | Completed |
+| Comprehensive ISTQB unit tests for CausalDiscoveryEngine | Section 3.3.1 | Phase 3, Step 3.6 | Completed |
 | Register CausalDiscoveryEngine in ENGINE_REGISTRY | Section 3.4.1 | Phase 4, Step 4.1 | Pending |
 | Wave-based TaskGroup execution integration across Wave N and Wave N+1 | Section 3.4.2 | Phase 4, Step 4.2 | Pending |
 | Transform causal nodes to FlattenedAtoms and inject into GlobalContextVarsDTO | Section 3.4.2 | Phase 4, Step 4.3 | Pending |
@@ -260,33 +260,29 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Phase 2 (`@[docs/epic/tasks_EPIC_154/02_phase2_plan.md]`) in Continuous Full-Auto Mode, completing all 5 steps with 100% Quality Gate compliance.
-- Centralized Settings: Added all 6 causal discovery and sliding window parameters to `backend_v2/settings.py` (`causal_discovery_window_size`, `causal_discovery_overlap`, `causal_discovery_max_atoms_per_window`, `causal_discovery_max_total_atoms`, `causal_secondary_fault_dampening`, `two_pass_atomizer_packet_size`).
-- Dynamic Packet Sizing: Modernized `backend_v2/services/orchestrator/two_pass_atomizer.py` to dynamically resolve `packet_size` from settings when unspecified or None.
-- Enums & Exceptions: Registered `StepType.CAUSAL_DISCOVERY = "causal_discovery"` in `backend_v2/models/enums.py` and added explicit `ErrorCodes` (`CAUSAL_DISCOVERY_EMPTY_DOCUMENT`, `CAUSAL_DISCOVERY_CYCLE_DETECTED`, `CAUSAL_DISCOVERY_DATA_STARVATION`) in `backend_v2/exceptions.py`. Verified 1:1 cross-language enum parity.
-- Step & StepRule Consistency: Modernized `Step.validate_step_consistency` to permit empty criteria for causal discovery while strictly enforcing `extraction_protocol_block_id` and `cognitive_tier`. Added `StepRule.causal_source_step_id` with `@model_validator` enforcing membership in `depends_on`, mirrored to Dart `StepRule` in `workflow.dart`, and regenerated Freezed/JSON serializers via `flutter_audit_loop.py`.
-- Strategy Registry & DAG Execution: Registered `StepType.CAUSAL_DISCOVERY: _build_llm_strategy` in `NODE_STRATEGY_REGISTRY` and enabled `NodeExecutor.execute` support in `dag_executor.py`.
-- Immutable Causal DTOs: Created 8 immutable Pydantic V2 DTOs in `backend_v2/models/dtos/causal_discovery.py` enforcing `ConfigDict(strict=True, extra="forbid", frozen=True)` with cross-field referential integrity (`CausalGraphPayloadDTO`) and mathematical identity (`FairScoringBreakdownDTO`) validators.
-- Pipeline Envelope Extension: Extended `StepPayloadValue` with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`, and updated `StepOutputDTO.data_type` with `"causal"`.
-- Domain Input Value Parity: Extended `DomainInputValue` in `backend_v2/models/domain/inputs.py` with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`, resolving MyPy strict errors in `LogicNodeStrategy`.
-- Presentation Localization: Added all 7 compile-time localization keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`, compiled via `flutter gen-l10n`.
-- DTO Parity & Audit Loop Modernization: Explicitly aliased `causaledge -> causaledgedto` in `scripts/audit_dto_parity.py` to preserve 1:1 boundary contracts between Python `CausalEdge` and Dart `CausalEdgeDTO`. Added `test_{clean_base}_dtos.py` candidate resolution to `scripts/backend_audit_loop.py`.
-- Plan & Tracker Parity: Resolved all 5 fatal findings in `audit_plan_tracker_parity.py` (Step 0 mapped in Execution Status & Traceability Matrix, hardening targets declared).
-- Global Completion Gate: Passed `uv run python scripts/backend_audit_loop.py backend_v2/ --test` across all 10 stages and 5,224 unit/integration tests with 97.75% coverage.
+- Implemented autonomous `CausalDiscoveryEngine` in `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]` complying strictly with the `ExecutionEngine` Protocol (`telemetry_strategy_label = "causal"`).
+- Built pre-flight validation raising `AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT)` on empty or whitespace text.
+- Enforced Four-Layer Clean Stack prompt compilation with static caching topology and exact lexical quote anchoring via `str.find` against indexed paragraph blocks.
+- Implemented claim extraction starvation guard raising `AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION)`.
+- Integrated `SlidingWindowLinker` with dynamic parameter injection (`causal_discovery_window_size`, `causal_discovery_overlap`).
+- Executed topological wave evaluation with Kahn's algorithm, thread-isolated cycle defense marking `SYSTEM_ERROR` with `CYCLIC_DEPENDENCY_DETECTED`, cycle node quarantine, and bounded $O(V+E)$ blame propagation.
+- Re-exported `CausalDiscoveryEngine` in `@[backend_v2/services/orchestrator/engines/__init__.py]`.
+- Implemented 11 comprehensive ISTQB unit tests in `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]` with 100% test pass rate and 98% coverage.
+- Passed `backend_audit_loop.py` on both the engine and test target with 0 AST violations, clean formatting, valid typing, and zero dictionary usage.
 
 ## Learned
-- Cross-domain DTO parity audit matches case-insensitive class names across Python and Dart. When a Python class (`CausalEdge` in `dag_models.py`) pairs with a Dart Freezed class (`CausalEdgeDTO` in `prompt_block.dart`), introducing a new Python DTO with the name `CausalEdgeDTO` triggers an unintended match unless explicitly mapped in `EXPLICIT_MODEL_ALIASES`.
-- Census T strictly enforces zero `# type: ignore` suppressions across all tests and scripts. Testing Pydantic frozen immutability must use direct assignment (`obj.field = value`) within `pytest.raises(ValidationError)` rather than `setattr()` (which violates `QGR001`) or `# type: ignore` tokens (which violate Census T).
-- Mocks of `get_settings()` in test fixtures must supply numerical defaults for newly added numeric settings (`two_pass_atomizer_packet_size = 50`) to avoid slicing errors when methods compute ranges or step sizes.
+- `QGR016` flags `or ""` fallbacks in domain code; explicit `is not None and ...` preserves strict typing and prevents default string coersion.
+- `QGR002` strictly bans `.get()` on dictionaries in domain code; `if k in dict:` and direct indexing enforces strict zero permissive typing.
+- Starlette deprecates `HTTP_422_UNPROCESSABLE_ENTITY` in favor of `status.HTTP_422_UNPROCESSABLE_CONTENT`.
+- `ExtractedAtom.tda_id` enforces regex pattern `^tda_[a-fA-F0-9]{8,32}$`; mock atom IDs must use valid hex strings.
 
 ## Remaining
-- Run Tier 8 Audit on Phase 2 Plan:
-  `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- Proceed to Phase 3 Red-Teaming:
-  `/tier0-research-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- Run plan audit gate:
+  `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
+
 
