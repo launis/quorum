@@ -265,7 +265,12 @@ def test_report_header_resolver() -> None:
     assert matrix_headers[ReportMatrixColumn.LABEL] == "Logic Matrix"
 
     atom_headers = ReportHeaderResolver.get_all_atom_headers("en")
-    assert len(atom_headers) == len(ReportAtomColumn)
+    assert len(atom_headers) == len(ReportAtomColumn) == 12
     assert atom_headers[0] == "Matrix"
+    assert atom_headers[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
+
+    csv_headers = ReportHeaderResolver.get_all_denormalized_csv_headers("en")
+    assert len(csv_headers) == 20
+    assert csv_headers[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
 
     assert ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "en") == "Summary"

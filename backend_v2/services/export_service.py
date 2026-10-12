@@ -23,7 +23,13 @@ from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
     MatrixPromptBlock,
 )
+from backend_v2.models.dtos.causal_discovery import (
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalTdaFusionResultDTO,
+)
 from backend_v2.models.dtos.export import (
+    AtomCausalMetadataDTO,
     AtomScaleMetadataDTO,
     ExportDenormalizedFlatRowDTO,
     ExportForensicAtomDTO,
@@ -32,6 +38,7 @@ from backend_v2.models.dtos.export import (
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     ReportAtomColumn,
@@ -212,6 +219,81 @@ class ExportService:
             return parent_m.context_target
         return ""
 
+    @classmethod
+    def _extract_causal_result(
+        cls, execution: ExecutionRecord | None
+    ) -> CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None:
+        """Extracts CausalTdaFusionResultDTO or CausalGraphPayloadDTO from execution trace or step states.
+
+        Args:
+            execution: Optional ExecutionRecord to extract causal data from.
+
+        Returns:
+            CausalTdaFusionResultDTO or CausalGraphPayloadDTO instance if present, else None.
+        """
+        if execution is None:
+            return None
+
+        for evt in reversed(execution.execution_trace):
+            match evt.content:
+                case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                    return evt.content
+                case _:
+                    continue
+
+        if execution.step_states:
+            for state_val in execution.step_states.values():
+                if isinstance(state_val, StepOutputDTO):
+                    match state_val.payload:
+                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                            return state_val.payload
+                        case _:
+                            continue
+                elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                    return state_val
+
+        return None
+
+    @classmethod
+    def _resolve_causal_meta(
+        cls,
+        c_node: CausalNodeDTO | None,
+        root_cause_set: set[str],
+        isolated_set: set[str],
+    ) -> AtomCausalMetadataDTO:
+        """Resolves topological causal metadata for a single argument node.
+
+        Args:
+            c_node: Optional CausalNodeDTO instance.
+            root_cause_set: Set of node IDs identified as root causes.
+            isolated_set: Set of node IDs identified as isolated/orphaned.
+
+        Returns:
+            AtomCausalMetadataDTO containing causal_status, blame_parent_id, and dependent_count.
+        """
+        if c_node is None:
+            return AtomCausalMetadataDTO()
+
+        if c_node.node_id in isolated_set:
+            status = "orphan"
+        elif c_node.status == ExecutionStatus.PASSED:
+            status = "validated"
+        elif c_node.blame_parent_ids:
+            status = "cascading_fault"
+        else:
+            status = "root_cause"
+
+        blame_parent: str | None = None
+        if c_node.blame_parent_ids:
+            blame_parent = c_node.blame_parent_ids[0]
+        dep_count = len(c_node.dependent_child_ids)
+
+        return AtomCausalMetadataDTO(
+            causal_status=status,
+            blame_parent_id=blame_parent,
+            dependent_count=dep_count,
+        )
+
     @staticmethod
     def _apply_corporate_excel_styling(workbook: openpyxl.Workbook, sheet_names: list[str]) -> None:
         """Applies professional corporate styling across export sheets.
@@ -360,6 +442,7 @@ class ExportService:
         blocks_by_id: dict[str, AnyPromptBlock],
         matrix_title_lookup: dict[str, str],
         all_matrices: list[MatrixScorecardRowDTO] | None = None,
+        causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None,
     ) -> list[ExportForensicAtomDTO]:
         """Constructs tabular raw data rows containing complete atom details with binary results.
 
@@ -370,6 +453,7 @@ class ExportService:
             blocks_by_id: Pre-indexed prompt blocks dictionary.
             matrix_title_lookup: Pre-computed matrix titles by block ID.
             all_matrices: Optional comprehensive list of all matrix scorecard rows.
+            causal_result: Optional composite fusion or causal graph payload.
 
         Returns:
             List of strictly validated ExportForensicAtomDTO instances.
@@ -383,6 +467,15 @@ class ExportService:
 
         atom_to_matrix, atom_to_scorecard = self._build_matrix_atom_maps(effective_matrices)
         atom_scale_meta = self._build_scale_metadata(blocks_by_id, locale)
+
+        causal_nodes_by_id: dict[str, CausalNodeDTO] = {}
+        root_cause_set: set[str] = set()
+        isolated_set: set[str] = set()
+        if causal_result is not None:
+            graph = causal_result.graph if isinstance(causal_result, CausalTdaFusionResultDTO) else causal_result
+            causal_nodes_by_id = {n.node_id: n for n in graph.nodes}
+            root_cause_set = set(graph.root_cause_node_ids)
+            isolated_set = set(graph.isolated_node_ids)
 
         atom_rows: list[ExportForensicAtomDTO] = []
         hydrated_refs = report_dto.hydrated_references
@@ -452,6 +545,16 @@ class ExportService:
             formatted_quotes = format_text_observations(quote_raw)
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
+            c_node: CausalNodeDTO | None = None
+            if atom.tda_id in causal_nodes_by_id:
+                c_node = causal_nodes_by_id[atom.tda_id]
+
+            causal_meta = self._resolve_causal_meta(
+                c_node,
+                root_cause_set,
+                isolated_set,
+            )
+
             atom_rows.append(
                 ExportForensicAtomDTO(
                     matrix_label=matrix_label,
@@ -463,6 +566,9 @@ class ExportService:
                     result_status=result_status,
                     quotes=formatted_quotes,
                     ai_reasoning=formatted_reasoning,
+                    causal_status=causal_meta.causal_status,
+                    blame_parent_id=causal_meta.blame_parent_id,
+                    dependent_count=causal_meta.dependent_count,
                 )
             )
         return atom_rows
@@ -476,6 +582,7 @@ class ExportService:
         matrix_title_lookup: dict[str, str],
         execution_id: str,
         all_matrices: list[MatrixScorecardRowDTO] | None = None,
+        causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None,
     ) -> list[ExportDenormalizedFlatRowDTO]:
         """Constructs denormalized rows combining parent matrix metrics and atom evaluations.
 
@@ -487,6 +594,7 @@ class ExportService:
             matrix_title_lookup: Pre-computed matrix titles by block ID.
             execution_id: Unique execution identifier.
             all_matrices: Optional comprehensive list of all matrix scorecard rows.
+            causal_result: Optional composite fusion or causal graph payload.
 
         Returns:
             List of strictly validated ExportDenormalizedFlatRowDTO instances.
@@ -500,6 +608,15 @@ class ExportService:
 
         atom_to_matrix, atom_to_scorecard = self._build_matrix_atom_maps(effective_matrices)
         atom_scale_meta = self._build_scale_metadata(blocks_by_id, locale)
+
+        causal_nodes_by_id: dict[str, CausalNodeDTO] = {}
+        root_cause_set: set[str] = set()
+        isolated_set: set[str] = set()
+        if causal_result is not None:
+            graph = causal_result.graph if isinstance(causal_result, CausalTdaFusionResultDTO) else causal_result
+            causal_nodes_by_id = {n.node_id: n for n in graph.nodes}
+            root_cause_set = set(graph.root_cause_node_ids)
+            isolated_set = set(graph.isolated_node_ids)
 
         denormalized_rows: list[ExportDenormalizedFlatRowDTO] = []
         hydrated_refs = report_dto.hydrated_references
@@ -595,6 +712,16 @@ class ExportService:
             formatted_quotes = format_text_observations(quote_raw)
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
+            c_node: CausalNodeDTO | None = None
+            if atom.tda_id in causal_nodes_by_id:
+                c_node = causal_nodes_by_id[atom.tda_id]
+
+            causal_meta = self._resolve_causal_meta(
+                c_node,
+                root_cause_set,
+                isolated_set,
+            )
+
             denormalized_rows.append(
                 ExportDenormalizedFlatRowDTO(
                     execution_id=execution_id,
@@ -614,6 +741,9 @@ class ExportService:
                     result_status=result_status,
                     quotes=formatted_quotes,
                     ai_reasoning=formatted_reasoning,
+                    causal_status=causal_meta.causal_status,
+                    blame_parent_id=causal_meta.blame_parent_id,
+                    dependent_count=causal_meta.dependent_count,
                 )
             )
         return denormalized_rows
@@ -720,6 +850,8 @@ class ExportService:
             comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
             blocks_by_id = {b.id: b for b in comp_list}
 
+        causal_result = self._extract_causal_result(execution)
+
         atom_dtos = self._build_atom_rows(
             report_dto=report_dto,
             matrices=matrices,
@@ -727,6 +859,7 @@ class ExportService:
             blocks_by_id=blocks_by_id,
             matrix_title_lookup=matrix_title_lookup,
             all_matrices=all_matrices,
+            causal_result=causal_result,
         )
 
         atom_headers = {col: ReportHeaderResolver.get_atom_column_header(col, locale) for col in ReportAtomColumn}
@@ -741,6 +874,9 @@ class ExportService:
                 atom_headers[ReportAtomColumn.RESULT_STATUS]: a.result_status,
                 atom_headers[ReportAtomColumn.QUOTES]: a.quotes,
                 atom_headers[ReportAtomColumn.AI_REASONING]: a.ai_reasoning,
+                atom_headers[ReportAtomColumn.CAUSAL_STATUS]: a.causal_status,
+                atom_headers[ReportAtomColumn.BLAME_PARENT_ID]: a.blame_parent_id,
+                atom_headers[ReportAtomColumn.DEPENDENT_COUNT]: a.dependent_count,
             }
             for a in atom_dtos
         ]
@@ -785,7 +921,7 @@ class ExportService:
         execution_id: str | None = None,
         all_matrices: list[MatrixScorecardRowDTO] | None = None,
     ) -> ExportPayloadDTO:
-        """Generate a flat tabular CSV export streaming 17 denormalized columns.
+        """Generate a flat tabular CSV export streaming 20 denormalized columns.
 
         Args:
             execution: ExecutionRecord containing evaluation data.
@@ -847,6 +983,8 @@ class ExportService:
             comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
             blocks_by_id = {b.id: b for b in comp_list}
 
+        causal_result = self._extract_causal_result(execution)
+
         flat_dtos = self._build_denormalized_rows(
             report_dto=report_dto,
             matrices=effective_matrices,
@@ -855,6 +993,7 @@ class ExportService:
             matrix_title_lookup=matrix_title_lookup,
             execution_id=target_id,
             all_matrices=all_matrices,
+            causal_result=causal_result,
         )
 
         headers = ReportHeaderResolver.get_all_denormalized_csv_headers(locale)
@@ -882,6 +1021,9 @@ class ExportService:
                     row.result_status,
                     row.quotes,
                     row.ai_reasoning,
+                    row.causal_status,
+                    row.blame_parent_id,
+                    row.dependent_count,
                 ]
             )
 

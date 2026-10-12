@@ -154,7 +154,7 @@ def test_cross_surface_header_parity() -> None:
         atom_headers = ReportHeaderResolver.get_all_atom_headers(locale=locale)
 
         assert len(matrix_headers) == len(ReportMatrixColumn) == 13
-        assert len(atom_headers) == len(ReportAtomColumn) == 9
+        assert len(atom_headers) == len(ReportAtomColumn) == 12
 
         for col in ReportMatrixColumn:
             assert matrix_headers[col] == ReportHeaderResolver.get_matrix_column_header(col, locale=locale)
@@ -182,6 +182,9 @@ def test_dto_field_mapping_parity() -> None:
         "result_status",
         "quotes",
         "ai_reasoning",
+        "causal_status",
+        "blame_parent_id",
+        "dependent_count",
     }
     assert atom_fields == expected_atom_fields
 
@@ -357,7 +360,7 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     sheet2 = wb[LocalizationService.translate("export_sheet_raw_data", "fi")]
     sheet2_rows = list(sheet2.iter_rows(values_only=True))
     assert len(sheet2_rows) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(sheet2_rows[0]) == len(ReportAtomColumn) == 9
+    assert len(sheet2_rows[0]) == len(ReportAtomColumn) == 12
 
     # Verify binary integer status on Tab 2
     status_col_idx = 6  # ReportAtomColumn.RESULT_STATUS index
@@ -376,7 +379,7 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     reader = list(csv.reader(io.StringIO(csv_text)))
 
     assert len(reader) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(reader[0]) == 17
+    assert len(reader[0]) == 20
 
     # Verify binary integer status on CSV
     csv_status_col_idx = 14

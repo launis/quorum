@@ -948,6 +948,9 @@ class ReportAtomColumn(StrEnum):
     RESULT_STATUS = "result_status"
     QUOTES = "quotes"
     AI_REASONING = "ai_reasoning"
+    CAUSAL_STATUS = "causal_status"
+    BLAME_PARENT_ID = "blame_parent_id"
+    DEPENDENT_COUNT = "dependent_count"
 
     @property
     def l10n_key(self) -> str:

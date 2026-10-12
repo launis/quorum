@@ -14,12 +14,23 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 
 __all__ = [
+    "AtomCausalMetadataDTO",
     "AtomScaleMetadataDTO",
     "ExportDenormalizedFlatRowDTO",
     "ExportForensicAtomDTO",
     "ExportMatrixSummaryRowDTO",
     "ExportPayloadDTO",
 ]
+
+
+class AtomCausalMetadataDTO(V2CoreBase):
+    """Encapsulates resolved topological causal metadata for an atom."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    causal_status: Annotated[str | None, Field(default=None, description="Topological argument status")] = None
+    blame_parent_id: Annotated[str | None, Field(default=None, description="Upstream root cause identifier")] = None
+    dependent_count: Annotated[int | None, Field(default=None, description="Number of downstream propositions")] = None
 
 
 class AtomScaleMetadataDTO(V2CoreBase):
@@ -48,6 +59,21 @@ class ExportForensicAtomDTO(V2CoreBase):
     result_status: Annotated[int, Field(description="Binary execution result status: 1 for passed, 0 for failed")]
     quotes: Annotated[str, Field(description="Exact forensic citation text or empty string")]
     ai_reasoning: Annotated[str, Field(description="AI evaluation rationale or empty string")]
+    causal_status: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Topological argument status (validated, cascading_fault, root_cause, orphan)",
+        ),
+    ] = None
+    blame_parent_id: Annotated[
+        str | None,
+        Field(default=None, description="Upstream root cause identifier if cascading fault"),
+    ] = None
+    dependent_count: Annotated[
+        int | None,
+        Field(default=None, description="Number of downstream propositions dependent on this node"),
+    ] = None
 
 
 class ExportMatrixSummaryRowDTO(V2CoreBase):
@@ -92,6 +118,21 @@ class ExportDenormalizedFlatRowDTO(V2CoreBase):
     result_status: Annotated[int, Field(description="Binary execution outcome (1=passed, 0=failed)", ge=0, le=1)]
     quotes: Annotated[str, Field(description="Formatted text observations or citation quote")]
     ai_reasoning: Annotated[str, Field(description="Formatted qualitative reasoning explanation")]
+    causal_status: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Topological argument status (validated, cascading_fault, root_cause, orphan)",
+        ),
+    ] = None
+    blame_parent_id: Annotated[
+        str | None,
+        Field(default=None, description="Upstream root cause identifier if cascading fault"),
+    ] = None
+    dependent_count: Annotated[
+        int | None,
+        Field(default=None, description="Number of downstream propositions dependent on this node"),
+    ] = None
 
 
 class ExportPayloadDTO(V2CoreBase):

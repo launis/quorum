@@ -165,7 +165,8 @@ async def test_sdui_semantic_parity() -> None:
                     new_layouts.append(layout.model_copy(update={"citations": []}))
                 case _:
                     # Note: Filtered out of dynamic polyfactory run to prevent unrendered random fixture divergences;
-                    # comprehensive rendering of all 17 blocks is verified deterministically in test_sdui_template_parity.py.
+                    # comprehensive rendering of all 19 blocks is verified deterministically in
+                    # test_sdui_template_parity.py.
                     continue
 
         # Add deterministic authorized contextual override block to verify semantic parity

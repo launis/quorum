@@ -138,4 +138,7 @@ def test_enum_l10n_properties() -> None:
 
     assert ReportMatrixColumn.LABEL.l10n_key == "matrix_col_label"
     assert ReportAtomColumn.MATRIX.l10n_key == "export_col_matrix"
+    assert ReportAtomColumn.CAUSAL_STATUS.l10n_key == "export_col_causal_status"
+    assert ReportAtomColumn.BLAME_PARENT_ID.l10n_key == "export_col_blame_parent_id"
+    assert ReportAtomColumn.DEPENDENT_COUNT.l10n_key == "export_col_dependent_count"
     assert ReportSheetKey.SUMMARY.l10n_key == "export_sheet_summary"

@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -19,6 +20,20 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalEdgeDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
+    CausalTdaFusionResultDTO,
+    FairScoringBreakdownDTO,
+    PrescriptiveRemediationDTO,
+)
+from backend_v2.models.dtos.export import (
+    ExportDenormalizedFlatRowDTO,
+    ExportForensicAtomDTO,
+)
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import (
@@ -28,6 +43,7 @@ from backend_v2.models.enums import (
     ReportSheetKey,
     VisualIntent,
 )
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService
 from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
@@ -266,7 +282,7 @@ async def test_export_flat_csv_success() -> None:
     assert payload.filename == "execution_export_exe_custom_999.csv"
     csv_text = payload.content_bytes.decode("utf-8-sig")
     reader = list(csv.reader(io.StringIO(csv_text)))
-    assert len(reader[0]) == 17
+    assert len(reader[0]) == 20
     assert len(reader) - 1 == len(report_dto.results)
     assert "Logiikkamatriisi" in reader[0]
     assert "Arviointikriteeri" in reader[0]
@@ -1255,3 +1271,293 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     assert "Informaatiomatriisi" in csv_text
     assert "Taso 5 Nimi" in csv_text
     assert "Taso 3 Nimi" in csv_text
+
+
+def test_report_atom_column_has_12_members() -> None:
+    """Verify ReportAtomColumn has exactly 12 members including causal fields."""
+    assert len(ReportAtomColumn) == 12
+    assert ReportAtomColumn.CAUSAL_STATUS.value == "causal_status"
+    assert ReportAtomColumn.BLAME_PARENT_ID.value == "blame_parent_id"
+    assert ReportAtomColumn.DEPENDENT_COUNT.value == "dependent_count"
+
+
+def test_denormalized_csv_headers_has_20_columns() -> None:
+    """Verify ReportHeaderResolver.get_all_denormalized_csv_headers has 20 columns."""
+    headers_en = ReportHeaderResolver.get_all_denormalized_csv_headers("en")
+    assert len(headers_en) == 20
+    assert headers_en[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
+
+    headers_fi = ReportHeaderResolver.get_all_denormalized_csv_headers("fi")
+    assert len(headers_fi) == 20
+    assert headers_fi[-3:] == ["Kausaalistatus", "Juurisyyn tunnus", "Riippuvuuksien lkm"]
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_row_count_matches_results() -> None:
+    """Verify flat CSV export streams exactly 1 header + N atom rows, zero synthetic summary rows."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"en": "Matrix 1"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Row exp",
+            is_evaluative=True,
+        )
+    ]
+    payload = await service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="en",
+    )
+    csv_text = payload.content_bytes.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    assert len(rows) == len(report_dto.results) + 1
+    assert len(rows[0]) == 20
+
+
+@pytest.mark.asyncio
+async def test_export_causal_enrichment_parity() -> None:
+    """Verify Excel Tab 2 and CSV stream rows contain populated causal fields matching graph."""
+    service = ExportService()
+
+    node1 = CausalNodeDTO(
+        node_id="tda_0000000000000001",
+        claim="Foundational architecture assumption holds true.",
+        source_quote="Foundational verified quote.",
+        paragraph_ref="Section 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000002"],
+        tda_score=5.0,
+        tda_level_key="L5",
+    )
+    node2 = CausalNodeDTO(
+        node_id="tda_0000000000000002",
+        claim="Downstream interface verification.",
+        source_quote="Interface failure quote.",
+        paragraph_ref="Section 2",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_0000000000000001"],
+        dependent_child_ids=[],
+        tda_score=1.0,
+        tda_level_key="L1",
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_0000000000000001",
+        target_id="tda_0000000000000002",
+        reasoning="Dependency implies interface requirement.",
+    )
+    graph = CausalGraphPayloadDTO(
+        nodes=[node1, node2],
+        edges=[edge],
+        root_cause_node_ids=["tda_0000000000000001"],
+        cycle_detected=False,
+        isolated_node_ids=[],
+    )
+    diag = CausalRootCauseDiagnosisDTO(
+        failing_node_id="tda_0000000000000002",
+        root_cause_parent_id="tda_0000000000000001",
+        paragraph_ref="Section 2",
+        explanation="Root assumption lacked schema boundary.",
+        penalty_points=1.5,
+    )
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=0,
+        cycle_detected=False,
+        unsupported_claims_count=1,
+        logical_cohesion_score=0.9,
+        detected_hollow_terms=[],
+    )
+    remediation = PrescriptiveRemediationDTO(
+        target_node_id="tda_0000000000000002",
+        required_action="Add extra='forbid' to model.",
+        unlocks_node_ids=["tda_0000000000000003"],
+        potential_score_impact=1.5,
+    )
+    fair_scoring = FairScoringBreakdownDTO(
+        independent_error_count=1,
+        cascading_fault_count=1,
+        raw_penalty_points=3.0,
+        deduplicated_penalty_points=1.5,
+        dampened_savings_points=1.5,
+    )
+    fusion_result = CausalTdaFusionResultDTO(
+        graph=graph,
+        root_cause_diagnoses=[diag],
+        anti_fluff_audit=audit,
+        prescriptive_remediations=[remediation],
+        fair_scoring=fair_scoring,
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="causal_discovery",
+                event_type="output",
+                content=fusion_result,
+            )
+        ],
+    )
+
+    atom1 = AtomResultDTO(
+        tda_id="tda_0000000000000001",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Foundational verified quote.",
+        evaluation_reasoning="Valid reasoning 1",
+    )
+    atom2 = AtomResultDTO(
+        tda_id="tda_0000000000000002",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.FAILED,
+        source_quote=None,
+        evaluation_reasoning="Failure reasoning 2",
+    )
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prf_0123456789abcdef",
+        results=[atom1, atom2],
+        hydrated_references={
+            "tda_0000000000000001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 1",
+            ),
+            "tda_0000000000000002": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 2",
+            ),
+        },
+    )
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"en": "Matrix 1"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Explanation",
+            is_evaluative=True,
+        )
+    ]
+
+    # 1. Verify Excel Tab 2
+    excel_payload = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="en",
+    )
+    sheet_name = ReportHeaderResolver.get_sheet_name(ReportSheetKey.RAW_DATA, locale="en")
+    df = pd.read_excel(io.BytesIO(excel_payload.content_bytes), sheet_name=sheet_name)
+    assert len(df) == 2
+    assert list(df.columns) == ReportHeaderResolver.get_all_atom_headers("en")
+
+    causal_status_col = ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.CAUSAL_STATUS, "en")
+    blame_parent_col = ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.BLAME_PARENT_ID, "en")
+    dep_count_col = ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.DEPENDENT_COUNT, "en")
+
+    # Node 1: validated, no blame parent, 1 dependent child
+    assert df.iloc[0][causal_status_col] == "validated"
+    assert pd.isna(df.iloc[0][blame_parent_col]) or df.iloc[0][blame_parent_col] == ""
+    assert int(df.iloc[0][dep_count_col]) == 1
+
+    # Node 2: cascading_fault, blame parent 'tda_0000000000000001', 0 dependent children
+    assert df.iloc[1][causal_status_col] == "cascading_fault"
+    assert df.iloc[1][blame_parent_col] == "tda_0000000000000001"
+    assert int(df.iloc[1][dep_count_col]) == 0
+
+    # 2. Verify CSV stream
+    csv_payload = await service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="en",
+    )
+    csv_rows = list(csv.reader(io.StringIO(csv_payload.content_bytes.decode("utf-8-sig"))))
+    assert len(csv_rows) == 3  # 1 header + 2 atom rows
+    assert csv_rows[0] == ReportHeaderResolver.get_all_denormalized_csv_headers("en")
+
+    # Node 1 row
+    assert csv_rows[1][17] == "validated"
+    assert csv_rows[1][18] == ""
+    assert csv_rows[1][19] == "1"
+
+    # Node 2 row
+    assert csv_rows[2][17] == "cascading_fault"
+    assert csv_rows[2][18] == "tda_0000000000000001"
+    assert csv_rows[2][19] == "0"
+
+
+def test_export_forensic_atom_dto_extra_field_raises_validation_error() -> None:
+    """Error path: ExportForensicAtomDTO raises ValidationError when unknown field is passed."""
+    with pytest.raises(ValidationError):
+        ExportForensicAtomDTO.model_validate(
+            {
+                "matrix_label": "M",
+                "context_target": "C",
+                "level": 1,
+                "level_name": "L1",
+                "criterion": "Crit",
+                "claim_type": "Claim",
+                "result_status": 1,
+                "quotes": "Quotes",
+                "ai_reasoning": "Reasoning",
+                "unknown_extra_field": "disallowed",
+            }
+        )
+
+
+def test_export_denormalized_flat_row_dto_extra_field_raises_validation_error() -> None:
+    """Error path: ExportDenormalizedFlatRowDTO raises ValidationError when unknown field is passed."""
+    with pytest.raises(ValidationError):
+        ExportDenormalizedFlatRowDTO.model_validate(
+            {
+                "execution_id": "exe_123",
+                "matrix_label": "M",
+                "context_target": "C",
+                "distribution": "dist",
+                "hits": 1,
+                "total_atoms": 1,
+                "hit_ratio": 1.0,
+                "raw_score": 1.0,
+                "scale_max": 5.0,
+                "normalized_score": 20.0,
+                "level": 1,
+                "level_name": "L1",
+                "criterion": "Crit",
+                "claim_type": "Claim",
+                "result_status": 1,
+                "quotes": "Quotes",
+                "ai_reasoning": "Reasoning",
+                "unknown_extra_field": "disallowed",
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_fails_empty_results() -> None:
+    """Boundary test: Exporting flat CSV with empty results raises AppException."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prf_0123456789abcdef",
+        results=[],
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.export_flat_csv(execution=exec_record, report_dto=report_dto, matrices=[])
+    assert exc_info.value.status_code == 400
+    assert "Execution has no scoreable atoms" in exc_info.value.message

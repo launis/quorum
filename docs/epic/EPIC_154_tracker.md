@@ -99,19 +99,20 @@
   - [x] Step 5.4: Jinja2 PDF macro implementation
   - [x] Step 5.5: Flutter widget and inspector modal implementation
   - [x] Step 5.6: Golden Master and parity test synchronization
-- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 6: Tabular Export & Rectangular Flat CSV Parity
 **Plan:** @[docs/epic/tasks_EPIC_154/06_phase6_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 6.1: Enum and localization keys registration
-  - [ ] Step 6.2: ReportHeaderResolver expansion
-  - [ ] Step 6.3: Export DTO schema extension
-  - [ ] Step 6.4: ExportService enrichment and rectangular CSV streaming
-  - [ ] Step 6.5: Synchronize 1-hop parity test suites
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Pre-Implementation Cleanups
+  - [x] Step 6.1: Enum and localization keys registration
+  - [x] Step 6.2: ReportHeaderResolver expansion
+  - [x] Step 6.3: Export DTO schema extension
+  - [x] Step 6.4: ExportService enrichment and rectangular CSV streaming
+  - [x] Step 6.5: Synchronize 1-hop parity test suites
+- [x] **[OK] Test Coverage Assertions:** Verified 65 unit tests passing with 90% strict coverage in test_export_service.py.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 7: Global Quality Gate & Final Verification
@@ -224,7 +225,6 @@
 | Typed ENGINE_REGISTRY and build_execution_engine factory | Section 3.1.4 | Phase 1, Step 1.5 | Completed |
 | Eradicate pre-hook heuristic matching in dag_executor.py | Section 3.1.4 | Phase 1, Step 1.6 | Completed |
 | Add telemetry_strategy_label and purge LLM strategy duck typing | Section 3.1.4 | Phase 1, Step 1.7 | Completed |
-| Strategic alignment check and prerequisite state verification | Section 3.2 | Phase 2, Step 0 | Completed |
 | Settings configuration for causal window, overlap, dampening, packet size | Section 3.2.1 | Phase 2, Step 2.1 | Completed |
 | Domain enums (StepType.CAUSAL_DISCOVERY) and explicit ErrorCodes | Section 3.2.2 | Phase 2, Step 2.2 | Completed |
 | Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Completed |
@@ -236,6 +236,7 @@
 | Sliding window argument graph construction with explicit settings | Section 3.3.1 | Phase 3, Step 3.4 | Completed |
 | Topological wave execution, cycle defense, and bounded O(V+E) traversals | Section 3.3.1 | Phase 3, Step 3.5 | Completed |
 | Comprehensive ISTQB unit tests for CausalDiscoveryEngine | Section 3.3.1 | Phase 3, Step 3.6 | Completed |
+| Pre-implementation cleanups (test consolidation) | Section 3.4 | Phase 4, Step 4.0 | Completed |
 | Register CausalDiscoveryEngine in ENGINE_REGISTRY | Section 3.4.1 | Phase 4, Step 4.1 | Completed |
 | Wave-based TaskGroup execution integration across Wave N and Wave N+1 | Section 3.4.2 | Phase 4, Step 4.2 | Completed |
 | Transform causal nodes to FlattenedAtoms and inject into GlobalContextVarsDTO | Section 3.4.2 | Phase 4, Step 4.3 | Completed |
@@ -249,11 +250,12 @@
 | Jinja2 PDF macro render_causal_graph_block implementation | Section 3.5.2 | Phase 5, Step 5.4 | Completed |
 | SduiCausalGraphWidget and CausalInspectorModal with Flutter Theme Sovereignty | Section 3.5.2 | Phase 5, Step 5.5 | Completed |
 | Golden Master fixture update and template/semantic parity verification | Section 3.5.2 | Phase 5, Step 5.6 | Completed |
-| Register CAUSAL_STATUS, BLAME_PARENT_ID, DEPENDENT_COUNT in ReportAtomColumn | Section 3.6.1 | Phase 6, Step 6.1 | Pending |
-| Extend ReportHeaderResolver to append causal headers (20 CSV columns) | Section 3.6.1 | Phase 6, Step 6.2 | Pending |
-| Extend ExportForensicAtomDTO and ExportDenormalizedFlatRowDTO schemas | Section 3.6.1 | Phase 6, Step 6.3 | Pending |
-| ExportService Tab 2 enrichment and rectangular multi-row CSV streaming | Section 3.6.1 | Phase 6, Step 6.4 | Pending |
-| Synchronize 1-hop parity test suites asserting 12 columns and 20 CSV headers | Section 3.6.1 | Phase 6, Step 6.5 | Pending |
+| Pre-implementation cleanups (docstrings, baseline test invariants) | Section 3.6 | Phase 6, Step 1 | Completed |
+| Register CAUSAL_STATUS, BLAME_PARENT_ID, DEPENDENT_COUNT in ReportAtomColumn | Section 3.6.1 | Phase 6, Step 6.1 | Completed |
+| Extend ReportHeaderResolver to append causal headers (20 CSV columns) | Section 3.6.1 | Phase 6, Step 6.2 | Completed |
+| Extend ExportForensicAtomDTO and ExportDenormalizedFlatRowDTO schemas | Section 3.6.1 | Phase 6, Step 6.3 | Completed |
+| ExportService Tab 2 enrichment and rectangular multi-row CSV streaming | Section 3.6.1 | Phase 6, Step 6.4 | Completed |
+| Synchronize 1-hop parity test suites asserting 12 columns and 20 CSV headers | Section 3.6.1 | Phase 6, Step 6.5 | Completed |
 | Backend audit execution across all touched files with strict AST | Section 3.7.1 | Phase 7, Step 7.1 | Pending |
 | Flutter audit execution with Freezed build runner | Section 3.7.1 | Phase 7, Step 7.2 | Pending |
 | Flutter Theme Sovereignty verification | Section 3.7.1 | Phase 7, Step 7.3 | Pending |
@@ -265,31 +267,28 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Phase 5 (Atomic SDUI Presentation Parity & Theme Sovereignty) in full compliance with Dumb Painter SDUI architecture and Flutter Theme Sovereignty.
-- Defined `SduiCausalGraphBlock` in `backend_v2/models/view/sdui.py` with `block_type: Literal["causal_graph"] = "causal_graph"` and `ConfigDict(title="causal_graph", strict=True, extra="forbid")`, appending to `AnySduiBlock` discriminated union.
-- Generated Dart Freezed DTOs in `client_app_v2/lib/features/execution/models/causal_discovery_dto.dart` (`@Freezed(equal: false)`) and registered `SduiCausalGraphBlock` in `client_app_v2/lib/shared/models/sdui_block_dto.dart`.
-- Extended `AdapterContext` with in-memory `causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None` and implemented `CausalGraphAdapter`.
-- Integrated `SduiCausalGraphBlock` into `ExecutiveSummaryAdapter` and `BlueprintTransformer`, preserving the Zero New Output Profiles Invariant by projecting into `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK`.
-- Injected `<causal_diagnosis>` into synthesis tasks (`synthesis_tasks.py` and `synthesis_worker.py`) to align LLM prose with empirical causal action card data.
-- Implemented Jinja2 macro `render_causal_graph_block` in `backend_v2/templates/report_template.jinja2` rendering compact half-page A4 Unified Causal Action Card.
-- Built `SduiCausalGraphWidget` and `CausalInspectorModal` in Flutter obeying 100% Theme Sovereignty, registered in `sdui_blocks_renderer.dart` and `scripts/audit_flutter_theme_sovereignty.py`.
-- Synchronized `sdui_golden_master.json` fixture and test suites (`test_sdui_template_parity.py` asserting 19 SDUI block types, `test_sdui_semantic_parity.py` passing 100%, and `test_causal_graph_adapter.py` passing with 100% coverage).
-- Resolved all Tier 8 audit findings: updated `test_prompt_engine.py` exports assertion to include `CausalDiscoveryEngine` (DEF-1), wrapped long line in `synthesis_worker.py` to fix E501 (DEF-2), and synchronized tracker checkboxes, hardening lists, and RTM rows (GAP-1) to achieve 0 Fatal parity violations.
-- Verified DTO Parity (52/52 shared models 1:1 aligned), Flutter Theme Sovereignty (0 violations), and backend audit loop with 0 fatal violations.
+- Executed and validated Phase 6 (Tabular Export & Rectangular Flat CSV Parity):
+  - Registered `CAUSAL_STATUS`, `BLAME_PARENT_ID`, and `DEPENDENT_COUNT` in `ReportAtomColumn` (`backend_v2/models/enums.py`), expanding column count to 12.
+  - Added authoritative translations in `backend_v2/l10n/fi.json` and `en.json`.
+  - Extended `ReportHeaderResolver` (`backend_v2/services/localization.py`) to resolve causal columns and expand denormalized CSV headers from 17 to 20.
+  - Extended `ExportForensicAtomDTO` and `ExportDenormalizedFlatRowDTO` (`backend_v2/models/dtos/export.py`) with typed causal fields (`causal_status`, `blame_parent_id`, `dependent_count`) preserving `ConfigDict(strict=True, extra="forbid", frozen=True)`.
+  - Enriched `ExportService` (`backend_v2/services/export_service.py`) canonical Raw Data worksheet (Tab 2) and flat CSV streaming with causal metadata, strictly adhering to the Anti-Synthetic Row Invariant (`len(flat_dtos) == len(report_dto.results)`).
+  - Synchronized 1-hop parity test suites (`test_report_headers_l10n_parity.py`, `test_localization.py`, `models/test_enums.py`, `test_export_service.py`), achieving 100% pass across all 65 unit tests.
+  - Executed Universal Quality Gate via `backend_audit_loop.py` with strict AST guardrails (0 violations, 90% test coverage).
+  - Validated `audit_markdown_boundaries.py` on `06_phase6_plan.md` with 0 findings.
 
 ## Learned
-- In Quorum V2 Zero Permissive Typing, `execution.execution_trace` and `execution.step_states` contain typed DTO objects; duck-typing with `isinstance(dict)` or `.get("payload")` and catching broad exceptions violates AST guardrails (`QGR012`, `QGR003`, `QGR002`). State hydration must use strict typed pattern matching on `CausalTdaFusionResultDTO | CausalGraphPayloadDTO` directly.
-- In `scripts/audit_dto_parity.py`, removing obsolete legacy alias `"causaledge": "causaledgedto"` allows `CausalEdgeDTO` to pair natively with `CausalEdgeDto`.
-- In test suites with strict AST guardrails, dictionary access on `I18nText` must use `.translations["en"]` instead of `.get("en")`.
-- When introducing a new execution engine (e.g. `CausalDiscoveryEngine`) to `backend_v2/services/orchestrator/engines/__init__.py`, `backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py::test_engines_exports_all_symbols` must be updated synchronously to include the new symbol in `expected_symbols`.
+- In `ExportService._resolve_causal_meta`, evaluating `ExecutionStatus.PASSED` to `"validated"` before failure states prevents false-positive `"root_cause"` status on passed nodes that happen to be referenced as causal parents.
+- Avoided banned ternary fallbacks (QGR016) and dictionary `.get()` lookups (QGR002) by utilizing explicit conditional blocks and direct attribute indexing on DTOs.
+- CSV streaming in `ExportService` preserves multi-row rectangular atom alignment with zero summary row injection, matching Excel Tab 2 row count.
 
 ## Remaining
-- Execute Plan Audit for Phase 5: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
-- Upon audit approval, proceed to Phase 6 (Tabular Export & Rectangular Flat CSV Parity).
+- Execute Tier 8 Audit for Phase 6: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
+- Proceed to Phase 7: Global Quality Gate & Final Verification (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
 
 
