@@ -167,15 +167,15 @@
   - [x] @[backend_v2/models/dtos/export.py]
   - [x] @[backend_v2/services/export_service.py]
   - [x] @[scripts/audit_flutter_theme_sovereignty.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend):**
+- [x] **[OK] Tier 2 Hardening (Frontend):**
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [x] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [x] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies or temporary variables remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving business logic.
 
@@ -258,28 +258,24 @@
 | Markdown boundary auditing across plans | Section 3.7.1 | Phase 7, Step 7.6 | Completed |
 | Final Live E2E REST API Verification Gate | Section 3.7.1 | Phase 7, Step 7.7 | Completed |
 
-# # Session Handover Context
+# Session Handover Context
 
 ## Achieved
 - Executed Tier 2 Backend Hardening (Sessions 1-4): 30/30 files completed and verified; gate marked `[OK]`.
-- Executed Tier 2 Frontend Hardening Session 1: 3/8 files audited and verified (enums.dart, workflow.dart, causal_discovery_dto.dart).
-- Executed Tier 2 Frontend Hardening Session 2 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
-  - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
-    4. `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`: Verified Freezed sealed class `SduiBlockDTO` with `disallowUnrecognizedKeys: true` across all variants; created unit test suite covering `SduiCausalGraphBlock` and `SduiBulletListItemDTO` in `client_app_v2/test/shared/models/sdui_block_dto_test.dart` (27 tests total passing); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `f4fef54c3`.
-    5. `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`: Verified pure Dumb Painter rendering of `SduiCausalGraphBlock` with 100% Theme Sovereignty and AppErrorBoundary wrapping; created comprehensive unit/widget test suite `client_app_v2/test/features/execution/views/widgets/sdui_causal_graph_widget_test.dart` (4 tests covering happy path, Finnish locale, inspector button, and empty lists); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `ef2f9fdb7`.
-    6. `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`: Fixed RenderFlex overflow defect in modal footer by wrapping text in `Expanded` with `TextOverflow.ellipsis`; verified 100% Theme Sovereignty; created comprehensive widget test suite `client_app_v2/test/features/execution/presentation/causal_inspector_modal_test.dart` (4 tests covering interactive canvas, node selection, empty fallback, and dismissal); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `75ca2732d`.
-  - 6/8 frontend files completed total.
+- Executed Tier 2 Frontend Hardening (Sessions 1-3): 8/8 files audited and verified; gate marked `[OK]`.
+  - Session 1: 3/8 files audited and verified (enums.dart, workflow.dart, causal_discovery_dto.dart).
+  - Session 2: 3/8 files audited and verified (sdui_block_dto.dart, sdui_causal_graph_widget.dart, causal_inspector_modal.dart).
+  - Session 3: 2/8 files audited and verified:
+    7. `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`: Verified polymorphic dispatching over sealed `SduiBlockDTO` union including `SduiCausalGraphBlock`; added 3 new unit/widget test cases in `sdui_blocks_renderer_test.dart` (18 passing tests total); passed flutter audit loop with 0 fatal violations; verified 107 audit matrix rules; committed in `4474a2e67`.
+    8. `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`: Enforced 100% Flutter Theme Sovereignty (eliminated naked TextStyles, Colors.red, Colors.blue, magic numbers); created comprehensive widget test suite `client_app_v2/test/features/execution/views/dashboard_view_test.dart` with positive, negative, and boundary tests (4 passing tests total); passed flutter audit loop with 0 fatal violations; verified 107 audit matrix rules; committed in `319a0f12b`.
 
 ## Learned
-- **Horizontal Row Text Containment**: In `CausalInspectorModal`, long footer status strings in horizontal `Row` without `Expanded` trigger 380px RenderFlex overflows; wrapping text in `Expanded` with `TextOverflow.ellipsis` guarantees hazard-stripe-free rendering across all dialog widths.
-- **AppErrorBoundary in Widget Tests**: Widgets wrapped with `AppErrorBoundary` (`AppExceptionBoundary`) override `ErrorWidget.builder`. When widget testing, tests must capture and restore `ErrorWidget.builder` in `setUp`/`tearDown` to prevent Flutter's test runner from asserting an un-reset error widget builder.
-- **Node Selection in Tests**: In `SduiCausalGraphWidget`, claim texts and IDs may appear in both node chips and fault chain diagnostics; test matchers should anchor precisely (e.g. `[atm_root_01]`) to distinguish chip badges from diagnostic text.
+- **Flutter Theme Sovereignty and AppSpacing Tokens**: In `DashboardView`, replacing static palette colors (`Colors.red`, `Colors.blue`) with `Theme.of(context).colorScheme` tokens, naked `TextStyle` with `Theme.of(context).textTheme`, and raw numeric dimensions with `AppSpacing` tokens ensures compliance with the Theme Sovereignty gate (`scripts/audit_flutter_theme_sovereignty.py`).
+- **BuildContext Semantic Colors Extension**: `context.semanticColors` is defined as an extension in `client_app/theme/app_colors.dart`; removing `app_colors.dart` breaks compilation if `context.semanticColors` is evaluated in the widget.
+- **Audit Matrix Filename Mentions**: In `audit_matrix_manager.py`, `check_conflicting_file_references` flags any `.dart` or `.py` filename mentioned in justifications unless it matches the target stem or allowed files. Justifications must refer to auxiliary files abstractly or by allowed stems to avoid false-positive verification errors.
 
 ## Remaining
 - Subsequent post-implementation gates:
-  - Tier 2 Hardening (Frontend) on 2 remaining Flutter files:
-    - `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
-    - `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`
   - Pre-Delete Audit.
   - Semantic Coverage & Zero-Loss Audit.
   - Full-Stack Integration Verification Gate.
@@ -288,10 +284,7 @@
   - As-Built Architectural Sync (`/tier7-describe-architecture`).
   - Final Epic Audit (`/tier8-audit-epic @[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`).
 
-## Resume Command
+## Next Recommended Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+/tier7-describe-architecture @[docs/epic/EPIC_154_tracker.md] @[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md] @[ki_topological_engine.md] @[ki_execution_engine_protocol.md] @[ki_dumb_painter_sdui.md] @[ki_zero_permissive_typing.md] @[ki_desktop_pro_tool_studio_ux.md]
 ```
-
-
-
