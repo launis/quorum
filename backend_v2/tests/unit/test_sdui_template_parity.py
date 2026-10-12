@@ -459,14 +459,9 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
         assert "tavily_search" in audit_div.get_text()
         assert "Enterprise Cognitive Architecture Standards" in audit_div.get_text()
 
-        # 18. causal_graph
+        # 18. causal_graph (omitted in static PDF documents per UX specification)
         causal_card = soup.find("div", class_="sdui-causal-graph-card")
-        assert causal_card is not None, f"[{locale}] Missing causal_graph sdui-causal-graph-card"
-        assert (
-            "Causal Discovery & Fault Analysis" in causal_card.get_text()
-            or "Kausaalilöydökset" in causal_card.get_text()
-        )
-        assert "Critical Causal Path" in causal_card.get_text()
+        assert causal_card is None, f"[{locale}] Causal graph card should be omitted from static PDF reports"
 
     # Anti-happy-path negative verification
     with pytest.raises(AssertionError):

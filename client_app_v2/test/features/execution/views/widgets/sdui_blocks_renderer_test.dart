@@ -417,10 +417,10 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('8 / 10 Intact'), findsOneWidget);
-        expect(find.text('CRITICAL CAUSAL PATH'), findsOneWidget);
-        expect(find.textContaining('[atm_root_01]'), findsOneWidget);
-        expect(find.text('ROOT CAUSE DIAGNOSES'), findsOneWidget);
-        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsOneWidget);
+        expect(find.text('CRITICAL CAUSAL PATH'), findsNothing);
+        expect(find.textContaining('[atm_root_01]'), findsNothing);
+        expect(find.text('ROOT CAUSE DIAGNOSES'), findsNothing);
+        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsNothing);
       },
     );
 

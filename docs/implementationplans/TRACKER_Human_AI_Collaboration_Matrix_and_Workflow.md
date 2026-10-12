@@ -18,10 +18,13 @@
 
 - [ ] **Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Human_AI_Collaboration_Matrix_and_Workflow.md] @[docs/implementationplans/TRACKER_Human_AI_Collaboration_Matrix_and_Workflow.md]`
   - [ ] Step 1: Pre-flight backup of `seed_data.json` and in-memory schema dry-run verification
-  - [ ] Step 2: Define `PromptBlock` (MatrixModel `HACM`, `blk_7d8e9f0a1b2c3d4e`) in `backend_v2/seed/seed_data.json` with 25 TDA assertions (12 positive, 13 negative, `target_speaker: USER`)
-  - [ ] Step 3: Define specialist step blueprint (`sp_06c1d71000000001`) with HACM criteria and dynamic expected inputs
-  - [ ] Step 4: Define dedicated assessment workflow (`wf_06a1d71000000001`) with dynamic topology agnosticism and 3-Zone step DAG
-  - [ ] Step 5: Define dedicated custom output profile (`prf_06b1d71000000001`) with tailored preface, radar groups, and SDUI hierarchy
+  - [ ] Step 2: Define `PromptBlock` (MatrixModel `HACM`, `blk_7d8e9f0a1b2c3d4e`) in `backend_v2/seed/seed_data.json` with 25 TDA assertions (12 positive, 13 negative, `target_speaker: USER`) restoring the 5 user role archetypes (Matkustaja, Reaktiivinen viilaaja, Navigaattori, Kuljettaja, Arkkitehti)
+  - [ ] Step 2b: Update Causal Analyst matrix (`blk_c5804a9143c34cb1`) in `backend_v2/seed/seed_data.json` with `is_evaluative: true`
+  - [ ] Step 3: Define HACM specialist step blueprint (`sp_06c1d71000000001`) with HACM criteria and dynamic expected inputs
+  - [ ] Step 3b: Define Dynamic Causal Discovery step blueprint (`sp_06b1d7100000ca06`) for proposition mining, directed dependencies, and fault chain attribution
+  - [ ] Step 4: Define dedicated assessment workflow (`wf_06a1d71000000001`) with dynamic topology agnosticism and 7-step Tripartite Zone B DAG
+  - [ ] Step 5: Define dedicated custom output profile (`prf_06b1d71000000001`) with enhanced synthesis directives (Executive Summary, Row Explanations, 2D/3D Radar, Variance, XAI max 4 items), radar groups, and SDUI hierarchy with causal action card; update all existing output profiles to configure `user_role_target_block` and `user_role_label`
+  - [ ] Step 5b: Restore `RoleClassification` Enum SSOT resolution in `ExecutiveSummaryAdapter` (`executive_summary_adapter.py`) and expand unit tests (`test_executive_summary_adapter.py`) to guarantee deterministic role rendering across all output profiles
   - [ ] Step 6: Execute database atom audit (`audit_database_atoms.py`) and synchronize to local database (`run_seed.py local`)
   - [ ] Step 7: Execute end-to-end quality gate verification (`backend_audit_loop.py` and `audit_markdown_boundaries.py`)
 - [ ] **Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Human_AI_Collaboration_Matrix_and_Workflow.md] @[docs/implementationplans/TRACKER_Human_AI_Collaboration_Matrix_and_Workflow.md]`
@@ -30,6 +33,8 @@
 - [ ] **Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend files:
   - [ ] @[backend_v2/seed/seed_data.json]
+  - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
+  - [ ] @[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]
 - [ ] **Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **Database & Atom Integrity Audit**: Verify `uv run python scripts/audit_database_atoms.py --strict` passes with 0 findings.
 

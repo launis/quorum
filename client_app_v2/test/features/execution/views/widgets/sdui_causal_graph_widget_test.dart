@@ -125,30 +125,14 @@ void main() {
         // Intact badge
         expect(find.text('8 / 10 Intact'), findsOneWidget);
 
-        // Critical Path header and nodes
-        expect(find.text('CRITICAL CAUSAL PATH'), findsOneWidget);
-        expect(find.textContaining('[atm_root_01]'), findsOneWidget);
-        expect(
-          find.textContaining('[atm_child_02] Downstream'),
-          findsOneWidget,
-        );
+        // Inspector button
+        expect(find.byType(OutlinedButton), findsOneWidget);
 
-        // Root Causes section
-        expect(find.text('ROOT CAUSE DIAGNOSES'), findsOneWidget);
-        expect(
-          find.text('Fault Chain: atm_root_01 → atm_child_02'),
-          findsOneWidget,
-        );
-        expect(find.text('Ref: Section 2.4'), findsOneWidget);
-        expect(find.text('Penalty: -1.5 pts'), findsOneWidget);
-
-        // Prescriptive Remediations section
-        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsOneWidget);
-        expect(
-          find.text('Target [atm_child_02]: Enforce explicit schema contract.'),
-          findsOneWidget,
-        );
-        expect(find.text('Estimated Impact: +1.5 pts'), findsOneWidget);
+        // Detailed sections are no longer rendered inline in the compact card
+        expect(find.text('CRITICAL CAUSAL PATH'), findsNothing);
+        expect(find.textContaining('[atm_root_01]'), findsNothing);
+        expect(find.text('ROOT CAUSE DIAGNOSES'), findsNothing);
+        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsNothing);
       },
     );
 

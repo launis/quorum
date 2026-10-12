@@ -17,16 +17,18 @@
 
 ### 1.1 Objective
 Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja Yhteistyön Auditointi*), a **Dedicated Assessment Workflow** (`wf_06a1d71000000001`), and a **Tailored Custom Output Profile** (`prf_06b1d71000000001`) strictly as declarative data assets in `@[backend_v2/seed/seed_data.json]`. In accordance with explicit user mandates:
-1. **Zero Code Modifications:** Zero modifications to Python (`.py`) or Dart (`.dart`) source code files. All functionality is realized 100% through declarative seed configuration.
+1. **Targeted Code Alignment for Universal Role Parity:** All new matrix, step, workflow, and output profile definitions are configured declaratively in `@[backend_v2/seed/seed_data.json]`. Source code modifications are strictly quarantined to `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` and its accompanying test file to restore the `RoleClassification` Enum SSOT resolution, ensuring the user role badge renders deterministically across all output profiles.
 2. **Exhaustive Configuration Completeness (Zero Missing Fields):** Every single field across `PromptBlock`, `MatrixScale`, `MatrixClaim`, `TDAAssertion`, `Step`, `Workflow`, and `OutputProfile` is explicitly defined and populated with verified data-driven values, ensuring 100% parity with Quorum Studio UI controls and existing production matrices (`matrix_bloom`, `matrix_goodhart`, `matrix_causal_analyst`).
 3. **Rigorous Scientific Theory Foundation:** Fully grounded in established cognitive science and human-machine interaction literature: Supervisory Control & Levels of Automation (Sheridan & Verplank, 1978; Parasuraman et al., 2000), Automation Bias (Parasuraman & Manzey, 2010), Distributed Cognition & Cognitive Offloading (Hutchins, 1995; Clark & Chalmers, 1998; Risko & Gilbert, 2016), Epistemic Vigilance (Sperber et al., 2010; Mercier & Sperber, 2011), and Critical AI Literacy Taxonomies (Ng et al., 2021; Long & Magerko, 2020).
 4. **Exact Parity of Positive Capabilities & Negative Error Detectors:** The matrix configures exactly 25 TDA assertions across 5 scales (12 Positive Capabilities [48%] and 13 Negative Error Detectors / Anti-patterns [52%]), matching the mathematical parity of Quorum's sovereign benchmark matrices (`matrix_goodhart`, `matrix_causal_analyst`, and `matrix_taskxai_clarity`).
 5. **Dynamic Input Files & Counts:** The workflow operates with dynamic topology agnosticism, supporting varying combinations and quantities of candidate inputs (conversational transcripts, final products, reflections, and assignments) without rigid file count assumptions.
 6. **Dedicated Presentation & Evaluation:** A new sovereign workflow and customized output profile ensure existing workflows remain untouched while providing tailored executive coaching, radar visualizations, and evidentiary synthesis for human-AI interaction.
 7. **Peer Evaluative Causal Analyst Integration:** Incorporates the existing Causal Analyst step (`sp_bd0b3054fe664960`) and matrix (`blk_c5804a9143c34cb1`) as a parallel Zone B evaluative specialist step, updating `blk_c5804a9143c34cb1` with `is_evaluative: true`. This ensures both human-AI steering and causal reasoning robustness are evaluated as peer pillars in the overall score.
+8. **Dynamic Causal Discovery & Argument Mining Integration:** Incorporates a dedicated autonomous causal discovery step (`sp_06b1d7100000ca06`, `step_causal_discovery_hacm`, `type: "causal_discovery"`) as a third parallel Zone B step. It mines causal claims, argument propositions, and directed dependencies from `product_text` and `chat_log`, generating `CausalGraphPayloadDTO` (`causal_result`). This activates the interactive "Kausaaligraafin tarkastin" action card in the UI, surfaces `CRITICAL CAUSAL EDGES` and fault chains, and feeds downstream synthesis.
+9. **Multi-Dimensional Enhanced Phase 2 Synthesis Directives:** Enhances all narrative and analytical synthesis directives across Executive Summary, Row Explanations, 2D/3D Radar Visualizations, Cognitive Variance Validation, and XAI Highlights (configuring `max_extension_items: 4` per category, specifically and exhaustively: Justification, Coaching, Falsification, and Remediations) to ground synthesis in causal graph edges and verified evidence.
 
 ### 1.2 Core Architectural Invariants
-1. **Zero Code Mutation Invariant:** Modifying source files in `backend_v2/` (outside `backend_v2/seed/seed_data.json`) or `client_app_v2/` is strictly prohibited. The system executes this feature purely via data-driven configuration.
+1. **Targeted Code Boundary Invariant:** Python source modifications are strictly isolated to `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` and its corresponding unit test. All domain workflow and matrix logic is executed through declarative configuration.
 2. **Pure Seed Vault Governance:** In accordance with `03_seed_vault.md`, all structural data modifications occur exclusively in `@[backend_v2/seed/seed_data.json]` before synchronization to the local development database via `uv run python backend_v2/seed/run_seed.py local`. Direct ad-hoc mutations of `data/db_v2.json` are strictly forbidden.
 3. **100% Field Population Mandate:** No entity may rely on undefined optional fields or null fallbacks where explicit domain values are required by Quorum Studio UI or runtime evaluators.
 4. **50/50 Positive/Negative Balance:** Exactly 12 positive capability assertions (`inverse_evidence: false`) and 13 negative error detector assertions (`inverse_evidence: true`) distributed across 5 scales.
@@ -35,7 +37,7 @@ Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja 
 7. **13-Parameter TDA Compliance:** Every assertion in the matrix defines all 13 canonical parameters: `evaluation_track`, `concept_description`, `anchor_target`, `bounding_box_scope`, `extraction_rule`, `anti_patterns`, `contrastive_example`, `acceptance_criteria`, `syntactic_anchors`, `enforce_pre_flight`, `aggregation_mode`, `inverse_evidence`, and `target_speaker`.
 8. **Continuous 0–100% Strictness Invariant:** Scored sovereignly through `UnifiedScoringEngine` using the workflow's configured `default_strictness_level` (50% default).
 9. **Dedicated Output Profile Parity:** Matrix visualization is automatically generated by `ReportAssembler` into `quadrant_matrix`, `2d_compare`, and `matrix_summary` blocks, exporting forensically to Excel, PDF, and SDUI without requiring UI code additions.
-10. **Dual-Matrix Evaluative Parity Invariant:** The workflow executes two peer Zone B specialist steps: HACM (`sp_06c1d71000000001`, evaluating human steering from `chat_log` and `reflection_text`) and Causal Analyst (`sp_bd0b3054fe664960`, evaluating causal claims from `product_text` and `chat_log`). Both matrices configure `is_evaluative: true`. In `apply_scoring_logic_hook`, both normalized matrix scores are extracted into `unique_matrices` and averaged into the unpenalized global score.
+10. **Tripartite Zone B Specialist Sovereignty Invariant:** The workflow executes three parallel Zone B specialist steps: HACM (`sp_06c1d71000000001`, evaluating human steering from `chat_log` and `reflection_text`), Causal Analyst (`sp_bd0b3054fe664960`, evaluating causal claims from `product_text` and `chat_log`), and Dynamic Causal Discovery (`sp_06b1d7100000ca06`, mining propositions, dependencies, and `critical_edges` from `product_text` and `chat_log`). Both evaluative matrices configure `is_evaluative: true`. In `apply_scoring_logic_hook`, both normalized matrix scores are extracted into `unique_matrices` and averaged into the unpenalized global score, while Causal Discovery populates `causal_result` for the causal inspector and synthesis grounding.
 11. **Relational Slug Ban & Opaque ID SSOT Invariant:** In accordance with `03_seed_vault.md`, a `slug` is strictly an informative metadata field and MUST NEVER be used as a foreign key, relational identifier, filter, or target lookup key in `seed_data.json` or queries. All relational bindings (`criteria_block_ids`, `workflow_id`, `default_profile_id`, `task_blueprint`, `variance_target_block`, `user_role_target_block`) and entity updates MUST exclusively resolve and target the exact opaque Stripe ID (`blk_...`, `sp_...`, `wf_...`, `prf_...`).
 
 ---
@@ -44,6 +46,8 @@ Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja 
 
 ### 2.1 Target Files
 - `@[backend_v2/seed/seed_data.json]` [MODIFY]
+- `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` [MODIFY]
+- `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]` [MODIFY]
 
 ### 2.2 Context Files [READ-ONLY]
 - `@[backend_v2/models/domain/matrix.py]`
@@ -133,7 +137,7 @@ Scale 5: 3 Positive, 2 Negative (Total 5)
 Total:  12 Positive (48%), 13 Negative (52%)
 ```
 
-### Scale 1: Passiivinen tilaaja (Score = 1)
+### Scale 1: Matkustaja (Passiivinen tilaaja) (Score = 1)
 *Thematic Focus: Automation Bias, Blind Delegation, Lack of Quality Thresholds.*
 1. **[POSITIIVINEN KYVYKKYS] Perustehtävänanto:** Author states a primary topic, subject, or desired outcome without operational guidelines. (`inverse_evidence: false`)
 2. **[POSITIIVINEN KYVYKKYS] Välitön hyödyntäminen:** Author adopts model suggestions as a starting baseline for task initiation. (`inverse_evidence: false`)
@@ -149,7 +153,7 @@ Total:  12 Positive (48%), 13 Negative (52%)
 9. **[VIRHEDETEKTORI] Taikasanaohjaus (Prompt Buzzwords):** Author attempts to improve quality using superficial buzzwords ("toimi asiantuntijana") without providing actionable constraints. (`inverse_evidence: true`)
 10. **[VIRHEDETEKTORI] Kiertely ilman suuntaa:** Author repeatedly re-prompts the model with circular phrasing when dissatisfied, instead of introducing concrete criteria or examples. (`inverse_evidence: true`)
 
-### Scale 3: Kontekstin asettaja (Score = 3)
+### Scale 3: Navigaattori (Kontekstin asettaja) (Score = 3)
 *Thematic Focus: Multi-Perspective Framing, Role Specification, Operational Boundaries.*
 11. **[POSITIIVINEN KYVYKKYS] Moninäkökulmainen roolitus (Observed in Exe 1):** Author constructs a multi-perspective dialectic instructing the model to evaluate topics across distinct organizational roles. (`inverse_evidence: false`)
 12. **[POSITIIVINEN KYVYKKYS] Eksplisiittiset reunaehdot ja kiellot:** Author establishes negative constraints, exclusion criteria, or forbidden assumptions (including anti-jargon directives). (`inverse_evidence: false`)
@@ -157,7 +161,7 @@ Total:  12 Positive (48%), 13 Negative (52%)
 14. **[VIRHEDETEKTORI] Passiivinen lopputuloksen hyväksyntä (Observed in Exe 1):** Author establishes a sophisticated prompt framework but uncritically accepts the generated output without follow-up inquiry. (`inverse_evidence: true`)
 15. **[VIRHEDETEKTORI] Epäsuhtainen keinotekoinen vastakkainasettelu:** Author forces artificial dichotomies between perspectives that are non-conflicting in practice. (`inverse_evidence: true`)
 
-### Scale 4: Kriittinen haastaja (Score = 4)
+### Scale 4: Kuljettaja (Kriittinen haastaja) (Score = 4)
 *Thematic Focus: Epistemic Vigilance, Counterfactual Probing, Falsification.*
 16. **[POSITIIVINEN KYVYKKYS] Oletusten aktiivinen haastaminen:** Author interrogates model claims, demands counter-arguments, or tests edge cases ("Riittääkö yksi läsnäolopäivä?"). (`inverse_evidence: false`)
 17. **[POSITIIVINEN KYVYKKYS] Empiirisen ankkuroinnin vaatimus:** Author commands the model to cite verifiable empirical research, statutory codes, or external benchmarks for claims. (`inverse_evidence: false`)
@@ -165,7 +169,7 @@ Total:  12 Positive (48%), 13 Negative (52%)
 19. **[VIRHEDETEKTORI] Päämäärätön sokraattinen regressio:** Author enters endless theoretical deconstruction and meta-questioning, preventing operational execution. (`inverse_evidence: true`)
 20. **[VIRHEDETEKTORI] Valikoiva vahvistusharha:** Author challenges model outputs selectively only when they contradict personal preconceived conclusions. (`inverse_evidence: true`)
 
-### Scale 5: Strateginen orkestroija (Score = 5)
+### Scale 5: Arkkitehti (Aktiivinen haastaja) (Score = 5)
 *Thematic Focus: Distributed Cognition, Epistemic Calibration, Active Curation.*
 21. **[POSITIIVINEN KYVYKKYS] Aktiivinen synteettinen kuraatio:** Author selectively derives, recombines, and discards AI generations to construct an authentic, context-tailored final deliverable. (`inverse_evidence: false`)
 22. **[POSITIIVINEN KYVYKKYS] Jännitteiden ja kompromissien hallinta:** Author identifies cross-dimensional tensions between AI suggestions and executes a reasoned trade-off decision. (`inverse_evidence: false`)
@@ -201,27 +205,28 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | `computed_max` | `5` | Highest scale score |
 | `rows` | 4 `MatrixRow` definitions mapping the 4 dimensions (`Kehotusarkkitehtuuri`, `Kriittisyys`, `Kuraatio`, `Metakognitio`) | Multi-dimensional matrix row definitions |
 | `columns` | `None` | Standard 1D/2D BARS representation |
-| `scales` | 5 `MatrixScale` definitions (scores 1..5), each with `score`, `name`, `ai_label`, and 5 `MatrixClaim` definitions (each containing a fully-hydrated `TDAAssertion` with all 13 canonical parameters) | BARS scale columns matching Studio UI |
+| `scales` | 5 `MatrixScale` definitions (scores 1..5), each with `score`, `name`, `ai_label`, and 5 `MatrixClaim` definitions (each containing a fully-hydrated `TDAAssertion` with all 13 canonical parameters), specifically and exhaustively restoring Quorum's foundational user archetype continuum: Scale 1 `Matkustaja (Passiivinen tilaaja)` / `Passenger (Passive Delegator)`, Scale 2 `Reaktiivinen viilaaja` / `Reactive Tweaker`, Scale 3 `Navigaattori (Kontekstin asettaja)` / `Navigator (Context Setter)`, Scale 4 `Kuljettaja (Kriittinen haastaja)` / `Driver (Critical Challenger)`, and Scale 5 `Arkkitehti (Aktiivinen haastaja)` / `Architect (Active Challenger)` | BARS scale columns matching Studio UI and executive summary archetype derivation |
 
-### 5.2 Step Blueprint Schema Parity (`sp_06c1d71000000001`)
+### 5.2 Step Blueprint Schema Parity (`sp_06c1d71000000001` & `sp_06b1d7100000ca06`)
 
-| Configuration Attribute | Populated Value | Validation / Role |
+| Configuration Attribute | HACM Evaluator (`sp_06c1d71000000001`) | Dynamic Causal Discovery (`sp_06b1d7100000ca06`) |
 | :--- | :--- | :--- |
-| `id` | `"sp_06c1d71000000001"` | Opaque Stripe ID pattern (`sp_[a-f0-9]{16}`) |
-| `slug` | `"hacm_evaluator_step"` | Distinct step slug identifier |
-| `organization_id` | `"SYSTEM"` | System tenant ownership |
-| `name` | `{"translations": {"fi": "Tekoälyohjauksen Arvioija", "en": "Human-AI Collaboration Evaluator"}}` | Localizable step name in Studio DAG builder |
-| `description` | `{"translations": {"fi": "Arvioi käyttäjän tekoälyohjausta, kriittistä haastamista, kuraatiota ja reflektiota HACM-matriisin mukaisesti.", "en": "Evaluates user AI steering, critical inquiry, curation, and reflection using HACM matrix."}}` | Localizable step description |
-| `type` | `"llm"` | Step execution engine type |
-| `extraction_protocol_block_id` | `"blk_573802341db9d68c"` | Authority extraction protocol binding |
-| `criteria_block_ids` | `["blk_7d8e9f0a1b2c3d4e"]` | Binds HACM matrix block as evaluation criteria |
-| `pre_hooks` | `["inject_step_metadata", "atom_flattening_hook"]` | Standard pre-execution pipeline hooks |
-| `post_hooks` | `["matrix_scoring_hook", "normalize_matrix_scores", "enforce_passivity_penalty"]` | Post-execution scoring and normalization hooks |
-| `safety` | `"safe"` | Guardrail safety tier |
-| `allowed_mcp_tools` | `[]` | MCP tool permissions |
-| `expected_inputs` | `["chat_log", "product_text", "reflection_text", "assignment_context"]` | Dynamic input declarations |
-| `is_system_core` | `False` | Allows flexible workflow configuration |
-| `cognitive_tier` | `"fast"` | LLM cognitive model registry strategy |
+| `id` | `"sp_06c1d71000000001"` | `"sp_06b1d7100000ca06"` |
+| `slug` | `"hacm_evaluator_step"` | `"step_causal_discovery_hacm"` |
+| `organization_id` | `"SYSTEM"` | `"SYSTEM"` |
+| `name` | `{"translations": {"fi": "Tekoälyohjauksen Arvioija", "en": "Human-AI Collaboration Evaluator"}}` | `{"translations": {"fi": "Kausaalipäättelyn ja Argumentaation Louhinta", "en": "Dynamic Causal Discovery & Argument Mining"}}` |
+| `description` | `{"translations": {"fi": "Arvioi käyttäjän tekoälyohjausta, kriittistä haastamista, kuraatiota ja reflektiota HACM-matriisin mukaisesti.", "en": "Evaluates user AI steering, critical inquiry, curation, and reflection using HACM matrix."}}` | `{"translations": {"fi": "Louhii kausaaliväitteet, ohjausinterventiot ja riippuvuussuhteet tuotoksesta ja chat-lokista.", "en": "Mines causal claims, steering interventions, and dependencies from product deliverable and chat log."}}` |
+| `type` | `"llm"` | `"causal_discovery"` |
+| `extraction_protocol_block_id` | `"blk_573802341db9d68c"` | `"blk_573802341db9d68c"` |
+| `criteria_block_ids` | `["blk_7d8e9f0a1b2c3d4e"]` | `[]` |
+| `pre_hooks` | `["inject_step_metadata", "atom_flattening_hook"]` | `["inject_step_metadata"]` |
+| `post_hooks` | `["matrix_scoring_hook", "normalize_matrix_scores", "enforce_passivity_penalty"]` | `[]` |
+| `safety` | `"safe"` | `"safe"` |
+| `allowed_mcp_tools` | `[]` | `[]` |
+| `expected_inputs` | `["chat_log", "product_text", "reflection_text", "assignment_context"]` | `["product_text", "chat_log"]` |
+| `is_system_core` | `False` | `True` |
+| `cognitive_tier` | `"fast"` | `"fast"` |
+| `engine_type` | `None` | `"causal_discovery"` |
 
 ### 5.3 Dedicated Assessment Workflow Schema Parity (`wf_06a1d71000000001`)
 
@@ -248,7 +253,7 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | `system_audit_trail` | `True` | FinOps and OpenTelemetry telemetry capture |
 | `historical_context_mode` | `"disabled"` | Stateless deterministic run isolation |
 | `expected_inputs` | 4 inputs (`chat_log` [required], `product_text`, `reflection_text`, `assignment_context`) with complete fields (`input_key`, `label`, `required`, `is_chat_history`, `is_endorsed_deliverable`, `scan_for_performative_patterns`, `input_modes`, `description`, `ai_description`, `questionnaire_definition`) | Dynamic topology agnosticism |
-| `steps` | 6 step rules (`sr_06s1000000000001` to `sr_06s1000000000006`) with complete attributes (`id`, `task_blueprint`, `depends_on`, `input_mappings`, `expected_sdui_type`, `is_synthesis_source`, `ui_pos_x`, `ui_pos_y`) | 3-Zone DAG hierarchy (Zone A Ingestion, Zone B Dual Evaluators [HACM and Causal Analyst], Zone C Funnel Anchors) |
+| `steps` | 7 step rules (`sr_06s1000000000001` to `sr_06s1000000000007`) with complete attributes (`id`, `task_blueprint`, `depends_on`, `input_mappings`, `expected_sdui_type`, `is_synthesis_source`, `ui_pos_x`, `ui_pos_y`) | 3-Zone DAG hierarchy (Zone A Ingestion, Zone B Tripartite Specialists [HACM, Causal Analyst, Dynamic Causal Discovery], Zone C Funnel Anchors) |
 
 #### 5.3.1 Workflow Step DAG Breakdown (Studio "Stepit & Riippuvuudet" View)
 
@@ -257,9 +262,10 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | **Vaihe 1** | `sr_06s1000000000001` | `sp_db849f9790984585` (Input Processing) | `[]` (Järjestelmän perusaskel - Suojattu) | `{"chat_log": "$inputs.chat_log", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "assignment_context": "$inputs.assignment_context"}` | Zone A: Raakadokumenttien purku atomeiksi (`markdown`) |
 | **Vaihe 2** | `sr_06s1000000000002` | `sp_06c1d71000000001` (Tekoälyohjauksen Arvioija / HACM) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"chat_log": "$inputs.chat_log", "reflection_text": "$inputs.reflection_text"}` | Zone B: HACM-matriisin arviointi ihmiskehotteista (`grid`) |
 | **Vaihe 3** | `sr_06s1000000000003` | `sp_bd0b3054fe664960` (Kausaalisuuden Arvioija / Causal Analyst) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"product_text": "$inputs.product_text", "chat_log": "$inputs.chat_log", "assignment_context": "$inputs.assignment_context"}` | Zone B: Syy-seuraussuhteiden arviointi tuotoksesta ja argumenteista (`grid`) |
-| **Vaihe 4** | `sr_06s1000000000004` | `sp_192910b5f5a34c79` (Synteesin Generointi / Coach) | `["sr_06s1000000000002", "sr_06s1000000000003"]` (Käynnistyy kun molemmat arvioijat valmiit) | `{"prior_analysis": "$steps"}` | Zone C: Laadullinen valmennussynteesi (`markdown`) |
-| **Vaihe 5** | `sr_06s1000000000005` | `sp_d245365e4a274b9e` (Scoring Engine / Reducer) | `["sr_06s1000000000004"]` (Käynnistyy kun Synteesi valmis) | `{"results": "$steps.sr_06s1000000000004"}` | Zone C: Numeerinen pisteaggregaatio kahdesta arvioivasta matriisista (`grid`) |
-| **Vaihe 6** | `sr_06s1000000000006` | `sp_7a8b9c0d1e2f3a4b` (XAI Reporter) | `["sr_06s1000000000005"]` (Käynnistyy kun Scoring valmis) | `{"results": "$steps.sr_06s1000000000005", "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"}` | Zone C: Loppuraportti ja tutkagraafit (`markdown`) |
+| **Vaihe 4** | `sr_06s1000000000004` | `sp_06b1d7100000ca06` (Kausaalipäättelyn Louhinta / Causal Discovery) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"product_text": "$inputs.product_text", "chat_log": "$inputs.chat_log"}` | Zone B: Propositioiden, kausaaliverkon ja riippuvuuksien louhinta (`markdown`) |
+| **Vaihe 5** | `sr_06s1000000000005` | `sp_192910b5f5a34c79` (Synteesin Generointi / Coach) | `["sr_06s1000000000002", "sr_06s1000000000003", "sr_06s1000000000004"]` (Käynnistyy kun kaikki 3 arvioijaa valmiit) | `{"prior_analysis": "$steps"}` | Zone C: Laadullinen valmennussynteesi (`markdown`) |
+| **Vaihe 6** | `sr_06s1000000000006` | `sp_d245365e4a274b9e` (Scoring Engine / Reducer) | `["sr_06s1000000000005"]` (Käynnistyy kun Synteesi valmis) | `{"results": "$steps.sr_06s1000000000005"}` | Zone C: Numeerinen pisteaggregaatio kahdesta arvioivasta matriisista (`grid`) |
+| **Vaihe 7** | `sr_06s1000000000007` | `sp_7a8b9c0d1e2f3a4b` (XAI Reporter) | `["sr_06s1000000000006"]` (Käynnistyy kun Scoring valmis) | `{"results": "$steps.sr_06s1000000000006", "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"}` | Zone C: Loppuraportti ja tutkagraafit (`markdown`) |
 
 
 ### 5.4 Dedicated Custom Output Profile Schema Parity (`prf_06b1d71000000001`)
@@ -275,32 +281,66 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | `user_role_label` | `{"translations": {"fi": "Käyttäjärooli", "en": "User Role"}}` | Archetype badge label |
 | `custom_preface` | Bilingual coaching preface explaining focus on user steering and critical curation without penalizing AI deliverable assistance | Rendered in PDF and SDUI metadata block |
 | `tone_instruction` | Practical Executive Coach instruction focusing on steering agency, epistemic vigilance, and deliverable curation | Guides synthesis voice across all text blocks, emphasizing the delta between prompt scaffolding and final deliverable curation |
-| `executive_summary_directive` | Mandate synthesizing interaction trajectory, framing maturity, dialectic delegation risks, and curation agency | Generates executive summary block evaluating whether the operator fell into the Dialectic Delegation Trap or Curation Deficit |
+| `executive_summary_directive` | Mandate synthesizing interaction trajectory, framing maturity, dialectic delegation risks, and curation agency, specifically contrasting operator prompt framing against downstream deliverable causal robustness and highlighting where broken causal links originate from passive AI delegation | Generates executive summary block evaluating whether the operator fell into the Dialectic Delegation Trap or Curation Deficit |
 | `matrix_1d_synthesis_directive` | 1D metric directive focusing on steering balance and passivity risks | Generates 1D metrics synthesis |
-| `matrix_2d_synthesis_directive` | 2D comparative directive contrasting Framing against Critical Inquiry | Generates 2D comparative synthesis |
-| `matrix_3d_synthesis_directive` | 3D radar directive evaluating macro balance across all 4 HACM dimensions | Generates 3D radar synthesis |
-| `matrix_text_synthesis_directive` | Qualitative deep-dive directive analyzing conversational prompt nuances | Generates qualitative synthesis text |
-| `row_explanation_directive` | Causal explanation directive grounding scores in verified quotes from `<user_payload>` | Generates row-level score justifications |
-| `xai_synthesis_directive` | Explainable AI directive highlighting actionable behavioral coaching steps | Generates XAI diagnostic recommendations |
-| `variance_synthesis_directive` | Cognitive variance directive detecting performative buzzwords vs authentic steering | Generates authenticity validation |
+| `matrix_2d_synthesis_directive` | 2D comparative directive contrasting Human-AI Steering Agency against Causal Inference Robustness, classifying candidate into quadrants, specifically and exhaustively: Arkkitehti (Architect / High Steering & High Causal Grounding), Matkustaja (Passenger / Low Steering & Low Causal Grounding), Kokeilija (Sparrer / High Steering & Low Causal Grounding), and Analyytikko (Analyst / Low Steering & High Causal Grounding) | Generates 2D comparative synthesis |
+| `matrix_3d_synthesis_directive` | 3D radar directive evaluating macro balance across all 4 HACM dimensions (Framing, Criticality, Curation, Metacognition) | Generates 3D radar synthesis |
+| `matrix_text_synthesis_directive` | Qualitative deep-dive directive analyzing conversational prompt nuances and interaction trajectories | Generates qualitative synthesis text |
+| `row_explanation_directive` | Causal explanation directive grounding scores in verified quotes from `<user_payload>`, explaining why each row in HACM received its score and citing specific prompt turns or deliverable derivation gaps | Generates row-level score justifications |
+| `xai_synthesis_directive` | Explainable AI directive highlighting actionable behavioral coaching steps across 4 distinct categories (Perustelu, Valmennus, Falsifikaatio, Korjaustoimenpiteet) grounded in causal graph remediations (`prescriptive_remediations`) | Generates XAI diagnostic recommendations |
+| `variance_synthesis_directive` | Cognitive variance directive detecting performative buzzwords versus authentic steering by contrasting candidate self-reflection against physical chat logs and causal fault chains | Generates authenticity validation |
 | `visible_metadata` | `["date", "execution_id", "organization", "user", "scoring_engine", "strictness"]` | Metadata chips rendered in header |
 | `matrix_visible_columns` | `["label", "distribution", "row_explanation", "criteria", "normalized_score"]` | Columns displayed in summary score table |
 | `visible_block_extensions` | `["justification", "coaching", "falsification", "remediation_steps"]` | Accordions rendered in report |
 | `visible_workflow_extensions` | `["variance_validation"]` | Workflow extensions rendered |
-| `max_extension_items` | `4` | Max items displayed per accordion |
+| `max_extension_items` | `4` | Max items displayed per accordion (specifically: 4 items per category) |
 | `display_scale` | `"normalized_100"` | Standardized 0-100 visual scale |
 | `synthesis_length_constraint` | `1000` | Max character length for narrative synthesis |
 | `row_explanation_length_constraint` | `250` | Max character length per row explanation |
 | `xai_length_constraint` | `300` | Max character length for XAI takeaways |
 | `variance_length_constraint` | `500` | Max character length for variance report |
 | `matrix_graph_length_constraint` | `400` | Max character length for graph summaries |
-| `target_block_order` | `["metadata_block", "executive_summary_block", "global_score_block", "synthesis_text_block", "matrix_graphs_block", "grouped_extensions_block", "penalties_block", "matrix_summary_table_block", "variance_validation_block", "printable_sources_block"]` | Complete 10 SDUI visual blocks |
+| `target_block_order` | `["metadata_block", "executive_summary_block", "global_score_block", "synthesis_text_block", "matrix_graphs_block", "grouped_extensions_block", "penalties_block", "matrix_summary_table_block", "variance_validation_block", "printable_sources_block"]` | Complete 10 SDUI visual blocks, including executive summary with causal action card |
 | `matrix_synthesis_groups` | 3 custom groups: 3D Radar (HACM 4 dimensions), 2D Comparative (HACM Steering vs Causal Inference Robustness), 1D Metrics (Human Agency & Causal Grounding) | Data-driven visual groupings |
 | `content_blocks` | `[]` | Static custom blocks |
 | `show_sources_summary_box` | `True` | Renders document provenance box |
 | `sources_display_mode` | `"verified_evidence"` | Displays verified quote evidence breakdown |
 | `variance_target_block` | `"blk_7d8e9f0a1b2c3d4e"` | Binds variance analysis to HACM matrix |
-| `user_role_target_block` | `"blk_7d8e9f0a1b2c3d4e"` | Derives user archetype from HACM matrix score |
+| `user_role_target_block` | `"blk_7d8e9f0a1b2c3d4e"` | Derives user archetype dynamically from HACM matrix score via `executive_summary_adapter.py`. With the restored archetype scale names, a candidate evaluating to level 5 deterministically receives `**Käyttäjärooli:** Arkkitehti (Aktiivinen haastaja)` (or `**User Role:** Architect (Active Challenger)` in English) |
+
+#### 5.4.1 Universal User Role Resolution Architecture (Enum SSOT Parity across All Output Profiles)
+
+The user role badge rendered in the executive summary (`**Käyttäjärooli:** <Rooli>`) is an immutable architectural invariant across ALL output profiles in Quorum:
+
+1. **Universal Output Profile Requirement:**
+   - Every output profile in `backend_v2/seed/seed_data.json` MUST define `user_role_target_block` and `user_role_label`.
+   - In `prf_06b1d71000000001`, `user_role_target_block` is bound strictly to `"blk_7d8e9f0a1b2c3d4e"` (HACM).
+   - In all existing output profiles (`prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_02b1d71000000002`, `prf_03b1d71000000003`, `prf_04b1d71000000004`, `prf_05b1d71000000005`), `user_role_target_block` is confirmed to target an evaluative domain matrix (`blk_53f32679aa514fcb` or primary matrix), ensuring zero profiles omit the role badge.
+
+2. **Enum Single Source of Truth (`RoleClassification`):**
+   - The user role MUST be anchored in the immutable enum definition in `backend_v2/models/enums.py`:
+     - `RoleClassification.PASSENGER = "ROLE_PASSENGER"` with `l10n_key = "rolePassenger"` (resolving to `"Matkustaja"` / `"Passenger"`)
+     - `RoleClassification.NAVIGATOR = "ROLE_NAVIGATOR"` with `l10n_key = "roleNavigator"` (resolving to `"Navigaattori"` / `"Navigator"`)
+     - `RoleClassification.DRIVER = "ROLE_DRIVER"` with `l10n_key = "roleDriver"` (resolving to `"Kuljettaja"` / `"Driver"`)
+     - `RoleClassification.ARCHITECT = "ROLE_ARCHITECT"` with `l10n_key = "roleArchitect"` (resolving to `"Arkkitehti"` / `"Architect"`)
+
+3. **Deterministic Score-to-Enum Mapping Helper:**
+   - The numeric score maps deterministically to `RoleClassification` via the helper function architecture (`extract_user_role_from_trace` in `backend_v2/workers/synthesis_reducers.py` and `RoleClassification.l10n_key`):
+     - Score 1.0 to 2.4: `RoleClassification.PASSENGER`
+     - Score 2.5 to 3.4: `RoleClassification.NAVIGATOR`
+     - Score 3.5 to 4.4: `RoleClassification.DRIVER`
+     - Score 4.5 to 5.0: `RoleClassification.ARCHITECT`
+   - In `ExecutiveSummaryAdapter`, the role badge text is formatted deterministically as `**{user_role_label}:** {role_title}`, where `role_title` guarantees the presence of the authoritative `RoleClassification` archetype (specifically: **Arkkitehti**, **Kuljettaja**, **Navigaattori**, **Matkustaja**), with any descriptive matrix nuance appended in parentheses.
+
+4. **ExecutiveSummaryAdapter Architecture Parity:**
+   - In `ExecutiveSummaryAdapter.build`, role resolution MUST NEVER fail or be omitted due to missing `level_names` on a matrix.
+   - When `profile.user_role_target_block` is set:
+     1. Target matrix score is retrieved from `context.parsed_matrices`. If present, the score is mapped deterministically to `RoleClassification` via `extract_user_role_from_trace` helper logic.
+     2. If `context.parsed_matrices` has no score for the block, fallback to `profile_cache.user_role` (which holds `RoleClassification.<ROLE>.value` computed during synthesis).
+     3. The canonical role title is resolved via `LocalizationService.translate(role.l10n_key, locale)`.
+     4. If the target matrix defines an explicit subtitle/nuance in `target_matrix.level_names` for the score key, the nuance is appended in parentheses: `{role_title} ({nuance_subtitle})`. If `level_names` is absent or unmapped, `{role_title}` is rendered cleanly without omission.
+     5. The prefix label is resolved via `profile.user_role_label.resolve(locale)` or `LocalizationService.translate('user_role_label', locale)`.
+   - This guarantees 100% full-duplex parity across Finnish and English, zero dropped role badges, and absolute fidelity to the 4 canonical user archetypes across all 6 production output profiles and the new HACM profile.
 
 ---
 
@@ -334,7 +374,7 @@ Every entity introduced in this plan is populated 100% without missing or empty 
       - computed_min: 1
       - computed_max: 5
       - rows: 4 MatrixRow definitions mapping the 4 dimensions.
-      - scales: 5 scales with exactly 25 TDA assertions (12 positive capabilities, 13 negative error detectors).
+      - scales: 5 scales with exactly 25 TDA assertions (12 positive capabilities, 13 negative error detectors), specifically restoring the 5 user role archetypes: Scale 1 "Matkustaja (Passiivinen tilaaja)", Scale 2 "Reaktiivinen viilaaja", Scale 3 "Navigaattori (Kontekstin asettaja)", Scale 4 "Kuljettaja (Kriittinen haastaja)", and Scale 5 "Arkkitehti (Aktiivinen haastaja)".
       - All claims enforce target_speaker: "USER".
     </specification>
   </step>
@@ -350,7 +390,7 @@ Every entity introduced in this plan is populated 100% without missing or empty 
   </step>
 
   <step id="3" name="STEP_BLUEPRINT_DEFINITION">
-    <action>Define new step blueprint in steps array in backend_v2/seed/seed_data.json:</action>
+    <action>Define new step blueprints in steps array in backend_v2/seed/seed_data.json:</action>
     <specification>
       - id: "sp_06c1d71000000001"
       - slug: "hacm_evaluator_step"
@@ -367,6 +407,28 @@ Every entity introduced in this plan is populated 100% without missing or empty 
       - expected_inputs: ["chat_log", "product_text", "reflection_text", "assignment_context"]
       - is_system_core: false
       - cognitive_tier: "fast"
+    </specification>
+  </step>
+
+  <step id="3b" name="CAUSAL_DISCOVERY_STEP_BLUEPRINT_DEFINITION">
+    <action>Define new dynamic causal discovery step blueprint in steps array in backend_v2/seed/seed_data.json:</action>
+    <specification>
+      - id: "sp_06b1d7100000ca06"
+      - slug: "step_causal_discovery_hacm"
+      - organization_id: "SYSTEM"
+      - name: {"translations": {"fi": "Kausaalipäättelyn ja Argumentaation Louhinta", "en": "Dynamic Causal Discovery & Argument Mining"}}
+      - description: {"translations": {"fi": "Louhii kausaaliväitteet, ohjausinterventiot ja riippuvuussuhteet tuotoksesta ja chat-lokista.", "en": "Mines causal claims, steering interventions, and dependencies from product deliverable and chat log."}}
+      - type: "causal_discovery"
+      - extraction_protocol_block_id: "blk_573802341db9d68c"
+      - criteria_block_ids: []
+      - pre_hooks: ["inject_step_metadata"]
+      - post_hooks: []
+      - safety: "safe"
+      - allowed_mcp_tools: []
+      - expected_inputs: ["product_text", "chat_log"]
+      - is_system_core: true
+      - cognitive_tier: "fast"
+      - engine_type: "causal_discovery"
     </specification>
   </step>
 
@@ -394,12 +456,13 @@ Every entity introduced in this plan is populated 100% without missing or empty 
       - post_hoc_penalty: 0.0
       - passivity_penalty: 0.0
       - expected_inputs: Dynamic inputs (chat_log required; product_text, reflection_text, assignment_context optional).
-      - steps: 6-step DAG implementing Zone A Ingestion, Zone B Dual Evaluators (HACM and Causal Analyst), and Zone C Scoring, Synthesis, and XAI Reporter.
+      - steps: 7-step DAG implementing Zone A Ingestion, Zone B Tripartite Specialists (HACM, Causal Analyst, and Dynamic Causal Discovery), and Zone C Scoring, Synthesis, and XAI Reporter.
     </specification>
   </step>
 
-  <step id="5" name="DEDICATED_OUTPUT_PROFILE_DEFINITION">
+  <step id="5" name="DEDICATED_OUTPUT_PROFILE_DEFINITION_AND_UNIVERSAL_ROLE_ALIGNMENT">
     <action>Define new dedicated output profile in output_profiles array in backend_v2/seed/seed_data.json:</action>
+    <action>Update existing output profiles (specifically: prf_5d6e7f8091a2b3c4, prf_01b1d71000000001, prf_02b1d71000000002, prf_03b1d71000000003, prf_04b1d71000000004, prf_05b1d71000000005) in backend_v2/seed/seed_data.json to ensure user_role_target_block is set to "blk_53f32679aa514fcb" and user_role_label is defined, guaranteeing universal role coverage.</action>
     <specification>
       - id: "prf_06b1d71000000001"
       - slug: "tekoalyn_kayton_ja_ohjauksen_tulostusprofiili"
@@ -409,17 +472,24 @@ Every entity introduced in this plan is populated 100% without missing or empty 
       - description: {"translations": {"fi": "Räätälöity tulostusprofiili tekoälyn ohjauksen, kyseenalaistamisen ja lopputuotteen hakemisen raportointiin.", "en": "Dedicated output profile for reporting human AI steering, critical inquiry, and deliverable derivation."}}
       - user_role_label: {"translations": {"fi": "Käyttäjärooli", "en": "User Role"}}
       - custom_preface: Tailored coaching preface explaining focus on user steering and critical curation.
-      - target_block_order: Complete 10 SDUI visual blocks.
+      - target_block_order: Complete 10 SDUI visual blocks, including executive summary with causal action card.
       - matrix_synthesis_groups: 3 custom synthesis groups (3D Radar [HACM], 2D Comparative [HACM vs Causal Analyst], 1D Metrics [Agency & Causal Grounding]).
       - show_sources_summary_box: true
       - sources_display_mode: "verified_evidence"
       - variance_target_block: "blk_7d8e9f0a1b2c3d4e"
       - user_role_target_block: "blk_7d8e9f0a1b2c3d4e"
+      - max_extension_items: 4
       - visible_metadata: ["date", "execution_id", "organization", "user", "scoring_engine", "strictness"]
       - matrix_visible_columns: ["label", "distribution", "row_explanation", "criteria", "normalized_score"]
       - visible_block_extensions: ["justification", "coaching", "falsification", "remediation_steps"]
       - visible_workflow_extensions: ["variance_validation"]
     </specification>
+  </step>
+
+  <step id="5b" name="EXECUTIVE_SUMMARY_ADAPTER_ENUM_SSOT_RESTORATION">
+    <action>Modify backend_v2/services/sdui/adapters/executive_summary_adapter.py to restore deterministic RoleClassification Enum SSOT resolution.</action>
+    <action>Ensure role_val maps score to RoleClassification (or extracts from profile_cache.user_role), resolves via LocalizationService.translate(role.l10n_key, locale), and appends optional level_names nuance if present.</action>
+    <action>Update and expand backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py to assert full-duplex role rendering across all output profile configurations.</action>
   </step>
 
   <step id="6" name="SEED_SANITY_AUDIT_AND_SYNC">
@@ -450,6 +520,8 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | **5. Real-World Cosmetic Fiddling (Level 2 Anti-pattern)** | Exe 2 user prompt ("poista taulukot ja kerro tekstinä"). | Evaluates to `is_true = true` on Scale 2 error detector `tda_hacm_cosmetic_formatting_anti_pattern`. | Verified via step DAG test execution. |
 | **6. Dedicated Profile SDUI Assembly** | `OutputProfile` loaded for `wf_06a1d71000000001`. | `target_block_order` and 3 synthesis groups assemble cleanly into `ReportDataDTO`. | Checked by `ReportAssembler` validation. |
 | **7. In-Memory Seed Schema Parity** | `seed_data.json` loaded during `run_seed.py local --dry-run`. | Zero `ValidationError` exceptions, all collections pass `model_validate()`. | Checked by `run_seed.py` exit code 0. |
+| **8. Dynamic Causal Discovery Integration** | `sp_06b1d7100000ca06` executed in `wf_06a1d71000000001`. | Generates non-null `CausalGraphPayloadDTO` with nodes and critical edges. | Verified via DAG execution test. |
+| **9. XAI Accordion Depth & Remediation Parity** | `OutputProfile` XAI configuration asserted. | `max_extension_items == 4` across all 4 visible extensions grounded in causal remediations. | Verified via schema validation. |
 
 ### 7.2 Quality Gate Commands
 ```powershell
