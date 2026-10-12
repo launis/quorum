@@ -1,13 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_causal_graph_widget.dart';
+import 'package:client_app/features/execution/models/causal_discovery_dto.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/theme/app_theme.dart';
 
 void main() {
   Widget buildTestableWidget(Widget child) {
     return MaterialApp(
+      theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
@@ -16,6 +21,15 @@ void main() {
   }
 
   group('SduiBlocksRenderer Tests', () {
+    late ErrorWidgetBuilder originalErrorBuilder;
+
+    setUp(() {
+      originalErrorBuilder = ErrorWidget.builder;
+    });
+
+    tearDown(() {
+      ErrorWidget.builder = originalErrorBuilder;
+    });
     testWidgets('renders empty SizedBox when blocks list is empty', (
       tester,
     ) async {
@@ -325,6 +339,144 @@ void main() {
       final columnWidget = tester.widget<Column>(columnFinder);
       expect(columnWidget.children, isEmpty);
       expect(find.byType(SizedBox), findsNothing);
+    });
+
+    testWidgets(
+      'renders SduiCausalGraphBlock with full causal discovery data',
+      (tester) async {
+        const block = SduiCausalGraphBlock(
+          id: 'blk_causal_render_1',
+          summary: I18nText(
+            translations: {
+              'en': 'Causal Discovery & Fault Analysis: Root Cause Traced',
+            },
+          ),
+          intactClaimsCount: 8,
+          totalClaimsCount: 10,
+          criticalPathNodes: [
+            CausalNodeDto(
+              nodeId: 'atm_root_01',
+              claim: 'Root prerequisite holds.',
+              sourceQuote: 'Foundational assumptions verified.',
+              paragraphRef: 'Section 1.1',
+              status: ExecutionStatus.passed,
+              blameParentIds: [],
+              dependentChildIds: ['atm_child_02'],
+              tdaScore: 5.0,
+              tdaLevelKey: 'L5',
+            ),
+          ],
+          criticalEdges: [
+            CausalEdgeDto(
+              sourceId: 'atm_root_01',
+              targetId: 'atm_child_02',
+              reasoning: 'Direct dependency propagation.',
+            ),
+          ],
+          rootCauseDiagnoses: [
+            CausalRootCauseDiagnosisDto(
+              failingNodeId: 'atm_child_02',
+              rootCauseParentId: 'atm_root_01',
+              paragraphRef: 'Section 2.4',
+              explanation: 'Root interface definition lacks schema bounds.',
+              penaltyPoints: 1.5,
+            ),
+          ],
+          antiFluffAudit: AntiFluffAuditDto(
+            isolatedConceptCount: 0,
+            cycleDetected: false,
+            unsupportedClaimsCount: 1,
+            logicalCohesionScore: 0.85,
+            detectedHollowTerms: [],
+          ),
+          prescriptiveRemediations: [
+            PrescriptiveRemediationDto(
+              targetNodeId: 'atm_child_02',
+              requiredAction: 'Enforce explicit schema contract.',
+              unlocksNodeIds: ['atm_child_03'],
+              potentialScoreImpact: 1.5,
+            ),
+          ],
+          fairScoring: FairScoringBreakdownDto(
+            independentErrorCount: 1,
+            cascadingFaultCount: 1,
+            rawPenaltyPoints: 3.0,
+            deduplicatedPenaltyPoints: 1.5,
+            dampenedSavingsPoints: 1.5,
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(const SduiBlocksRenderer(blocks: [block])),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SduiCausalGraphWidget), findsOneWidget);
+        expect(
+          find.text('Causal Discovery & Fault Analysis: Root Cause Traced'),
+          findsOneWidget,
+        );
+        expect(find.text('8 / 10 Intact'), findsOneWidget);
+        expect(find.text('CRITICAL CAUSAL PATH'), findsOneWidget);
+        expect(find.textContaining('[atm_root_01]'), findsOneWidget);
+        expect(find.text('ROOT CAUSE DIAGNOSES'), findsOneWidget);
+        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders SduiCausalGraphBlock minimal with empty lists safely',
+      (tester) async {
+        const block = SduiCausalGraphBlock(
+          id: 'blk_causal_render_min',
+          summary: I18nText(
+            translations: {'en': 'Minimal Causal Discovery'},
+          ),
+          intactClaimsCount: 3,
+          totalClaimsCount: 3,
+          criticalPathNodes: [],
+          criticalEdges: [],
+          rootCauseDiagnoses: [],
+          antiFluffAudit: AntiFluffAuditDto(
+            isolatedConceptCount: 0,
+            cycleDetected: false,
+            unsupportedClaimsCount: 0,
+            logicalCohesionScore: 1.0,
+            detectedHollowTerms: [],
+          ),
+          prescriptiveRemediations: [],
+          fairScoring: null,
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(const SduiBlocksRenderer(blocks: [block])),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SduiCausalGraphWidget), findsOneWidget);
+        expect(find.text('Minimal Causal Discovery'), findsOneWidget);
+        expect(find.text('3 / 3 Intact'), findsOneWidget);
+        expect(find.text('CRITICAL CAUSAL PATH'), findsNothing);
+      },
+    );
+
+    testWidgets('renders SduiGridBlock with columns and children', (
+      tester,
+    ) async {
+      const block = SduiGridBlock(
+        items: [
+          SduiMarkdownBlock(text: 'Grid Item 1'),
+          SduiMarkdownBlock(text: 'Grid Item 2'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        buildTestableWidget(const SduiBlocksRenderer(blocks: [block])),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Grid Item 1'), findsOneWidget);
+      expect(find.textContaining('Grid Item 2'), findsOneWidget);
     });
   });
 }
