@@ -274,13 +274,14 @@
 - Implemented Jinja2 macro `render_causal_graph_block` in `backend_v2/templates/report_template.jinja2` rendering compact half-page A4 Unified Causal Action Card.
 - Built `SduiCausalGraphWidget` and `CausalInspectorModal` in Flutter obeying 100% Theme Sovereignty, registered in `sdui_blocks_renderer.dart` and `scripts/audit_flutter_theme_sovereignty.py`.
 - Synchronized `sdui_golden_master.json` fixture and test suites (`test_sdui_template_parity.py` asserting 19 SDUI block types, `test_sdui_semantic_parity.py` passing 100%, and `test_causal_graph_adapter.py` passing with 100% coverage).
-- Eradicated all 19 fatal AST violations in `blueprint.py`, `synthesis_worker.py`, and `test_causal_graph_adapter.py`, achieving 0 fatal violations and 0 advisory warnings across `backend_v2`.
-- Verified DTO Parity (52/52 shared models 1:1 aligned) and Flutter build/analyze with 0 fatal violations.
+- Resolved all Tier 8 audit findings: updated `test_prompt_engine.py` exports assertion to include `CausalDiscoveryEngine` (DEF-1), wrapped long line in `synthesis_worker.py` to fix E501 (DEF-2), and synchronized tracker checkboxes, hardening lists, and RTM rows (GAP-1) to achieve 0 Fatal parity violations.
+- Verified DTO Parity (52/52 shared models 1:1 aligned), Flutter Theme Sovereignty (0 violations), and backend audit loop with 0 fatal violations.
 
 ## Learned
 - In Quorum V2 Zero Permissive Typing, `execution.execution_trace` and `execution.step_states` contain typed DTO objects; duck-typing with `isinstance(dict)` or `.get("payload")` and catching broad exceptions violates AST guardrails (`QGR012`, `QGR003`, `QGR002`). State hydration must use strict typed pattern matching on `CausalTdaFusionResultDTO | CausalGraphPayloadDTO` directly.
 - In `scripts/audit_dto_parity.py`, removing obsolete legacy alias `"causaledge": "causaledgedto"` allows `CausalEdgeDTO` to pair natively with `CausalEdgeDto`.
 - In test suites with strict AST guardrails, dictionary access on `I18nText` must use `.translations["en"]` instead of `.get("en")`.
+- When introducing a new execution engine (e.g. `CausalDiscoveryEngine`) to `backend_v2/services/orchestrator/engines/__init__.py`, `backend_v2/tests/unit/services/orchestrator/engines/test_prompt_engine.py::test_engines_exports_all_symbols` must be updated synchronously to include the new symbol in `expected_symbols`.
 
 ## Remaining
 - Execute Plan Audit for Phase 5: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
