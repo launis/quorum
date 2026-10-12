@@ -61,4 +61,33 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'AppExceptionBoundary diagnostic node renders safely without an external Material ancestor',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {};
+
+      try {
+        // Render in MaterialApp directly without a Scaffold above AppExceptionBoundary
+        await tester.pumpWidget(
+          const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
+            home: AppExceptionBoundary(child: FaultyWidget()),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Ensure the diagnostic node rendered without 'No Material widget found' crash
+        expect(find.byType(FaultyWidget), findsNothing);
+        expect(find.byIcon(Icons.report_problem), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsOneWidget);
+      } finally {
+        FlutterError.onError = originalOnError;
+      }
+    },
+  );
 }

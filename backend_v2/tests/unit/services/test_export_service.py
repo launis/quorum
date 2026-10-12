@@ -31,15 +31,13 @@ from backend_v2.models.dtos.causal_discovery import (
     PrescriptiveRemediationDTO,
 )
 from backend_v2.models.dtos.export import (
-    AtomCausalMetadataDTO,
     AtomScaleMetadataDTO,
     ExportDenormalizedFlatRowDTO,
     ExportForensicAtomDTO,
-    ExportMatrixSummaryRowDTO,
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     LaxSDUIComponentType,
@@ -1933,5 +1931,3 @@ def test_build_matrix_summary_rows_extra_branches() -> None:
     assert rows[0].label == "English Axis"
     assert rows[0].raw_score == 3.5
     assert rows[0].source == "src_doc_1"
-
-

@@ -127,5 +127,22 @@ void main() {
         expect(find.text('ID on pakollinen.'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'renders ErrorView when stepsController fails to load steps (Negative Partition 3)',
+      (tester) async {
+        when(
+          () => mockClient.getWorkflow(testWfId),
+        ).thenAnswer((_) async => testWorkflow);
+        when(
+          () => mockClient.getSteps(),
+        ).thenThrow(Exception('Failed to load steps'));
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ErrorView), findsOneWidget);
+      },
+    );
   });
 }

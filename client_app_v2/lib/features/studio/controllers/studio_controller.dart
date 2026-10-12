@@ -80,6 +80,8 @@ class StepForm extends _$StepForm {
         return l.copyWith();
       case NodeStrategyLogic l:
         return l.copyWith();
+      case NodeStrategyCausalDiscovery l:
+        return l.copyWith();
     }
   }
 
@@ -315,6 +317,9 @@ class StepsController extends _$StepsController {
       case NodeStrategyLogic l:
         returnData = l.copyWith(id: id);
         break;
+      case NodeStrategyCausalDiscovery l:
+        returnData = l.copyWith(id: id);
+        break;
     }
 
     // 1. Optimistic Update
@@ -323,6 +328,7 @@ class StepsController extends _$StepsController {
       final index = currentList.indexWhere((m) {
         if (m is NodeStrategyLlm) return m.id == id;
         if (m is NodeStrategyLogic) return m.id == id;
+        if (m is NodeStrategyCausalDiscovery) return m.id == id;
         return false;
       });
 
@@ -345,6 +351,7 @@ class StepsController extends _$StepsController {
         final index = currentList.indexWhere((m) {
           if (m is NodeStrategyLlm) return m.id == id;
           if (m is NodeStrategyLogic) return m.id == id;
+          if (m is NodeStrategyCausalDiscovery) return m.id == id;
           return false;
         });
 

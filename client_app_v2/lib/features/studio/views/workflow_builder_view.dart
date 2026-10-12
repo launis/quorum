@@ -55,9 +55,29 @@ class WorkflowBuilderView extends HookConsumerWidget {
 
     return switch (formState) {
       AsyncData(:final value) => () {
-        // Absolute Fail-Fast
-        if (stepsAsync.hasError) throw stepsAsync.error!;
-        if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
+        // Absolute Fail-Fast with safe Scaffold ErrorView presentation
+        if (stepsAsync.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+            body: ErrorView(
+              error: stepsAsync.error!,
+              stackTrace: stepsAsync.stackTrace,
+              compact: false,
+              onRetry: () => ref.invalidate(stepsControllerProvider),
+            ),
+          );
+        }
+        if (mcpGatewaysAsync.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+            body: ErrorView(
+              error: mcpGatewaysAsync.error!,
+              stackTrace: mcpGatewaysAsync.stackTrace,
+              compact: false,
+              onRetry: () => ref.invalidate(mcpGatewaysControllerProvider),
+            ),
+          );
+        }
         if (!stepsAsync.hasValue || !mcpGatewaysAsync.hasValue) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

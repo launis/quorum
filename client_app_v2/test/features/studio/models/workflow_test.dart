@@ -31,6 +31,7 @@ void main() {
         case NodeStrategyLlm l:
           expect(l.expectedInputs, equals(['doc_id', 'prompt_text']));
         case NodeStrategyLogic _:
+        case NodeStrategyCausalDiscovery _:
           fail('Should be LLM');
       }
     });
@@ -81,6 +82,7 @@ void main() {
 
         switch (parsed) {
           case NodeStrategyLlm _:
+          case NodeStrategyCausalDiscovery _:
             fail('Should be Logic');
           case NodeStrategyLogic l:
             expect(l.expectedInputs, isEmpty);
@@ -185,6 +187,7 @@ void main() {
           case NodeStrategyLlm l:
             expect(l.isSystemCore, isFalse);
           case NodeStrategyLogic _:
+          case NodeStrategyCausalDiscovery _:
             fail('Should be LLM');
         }
       },
@@ -211,6 +214,7 @@ void main() {
           case NodeStrategyLlm l:
             expect(l.isSystemCore, isTrue);
           case NodeStrategyLogic _:
+          case NodeStrategyCausalDiscovery _:
             fail('Should be LLM');
         }
       },
@@ -235,6 +239,7 @@ void main() {
 
         switch (parsed) {
           case NodeStrategyLlm _:
+          case NodeStrategyCausalDiscovery _:
             fail('Should be Logic');
           case NodeStrategyLogic l:
             expect(l.isSystemCore, isTrue);
@@ -352,6 +357,51 @@ void main() {
         (parsed as NodeStrategyLlm).engineType,
         EngineType.causalDiscovery,
       );
+    });
+
+    test('NodeStrategy parses type causal_discovery from seed blueprint', () {
+      final json = {
+        'id': 'sp_c4a5a1d15c00438a',
+        'slug': 'step_causal_discovery_kokonaisvaltainen',
+        'organization_id': 'SYSTEM',
+        'name': {
+          'translations': {
+            'fi': 'Kausaalipäättelyn Louhinta (Kokonaisvaltainen)',
+            'en': 'Dynamic Causal Discovery (Holistic)',
+          },
+        },
+        'description': {
+          'translations': {
+            'fi':
+                'Louhii kausaaliväitteet, seuraukset ja todisteet lopputuotteesta ja reflektiosta.',
+            'en':
+                'Mines causal claims, consequences, and evidence from product deliverable and reflection.',
+          },
+        },
+        'type': 'causal_discovery',
+        'extraction_protocol_block_id': 'blk_573802341db9d68c',
+        'criteria_block_ids': <String>[],
+        'pre_hooks': ['inject_step_metadata'],
+        'post_hooks': <String>[],
+        'safety': 'safe',
+        'allowed_mcp_tools': <String>[],
+        'expected_inputs': ['product_text', 'reflection_text'],
+        'is_system_core': true,
+        'cognitive_tier': 'fast',
+        'engine_type': 'causal_discovery',
+      };
+
+      final parsed = NodeStrategy.fromJson(json);
+      expect(parsed, isA<NodeStrategyCausalDiscovery>());
+      switch (parsed) {
+        case NodeStrategyCausalDiscovery c:
+          expect(c.id, 'sp_c4a5a1d15c00438a');
+          expect(c.slug, 'step_causal_discovery_kokonaisvaltainen');
+          expect(c.engineType, EngineType.causalDiscovery);
+        case NodeStrategyLlm _:
+        case NodeStrategyLogic _:
+          fail('Should be CausalDiscovery');
+      }
     });
   });
 }

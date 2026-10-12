@@ -32,13 +32,20 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
       if (!mounted) return const SizedBox.shrink();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _error == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.errorUnknown),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          try {
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(context)?.errorUnknown ??
+                      'Data Corruption / Render Error',
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          } catch (_) {
+            // Scaffold / ScaffoldMessenger may not be available in all hierarchies
+          }
           setState(() {
             _error = details.exception;
           });
@@ -84,69 +91,72 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
           '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $displayError';
     }
 
-    return Container(
-      margin: AppSpacing.p8,
-      padding: AppSpacing.p16,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer,
-        border: Border.all(
-          color: theme.colorScheme.error,
-          width: AppSpacing.s2,
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        margin: AppSpacing.p8,
+        padding: AppSpacing.p16,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer,
+          border: Border.all(
+            color: theme.colorScheme.error,
+            width: AppSpacing.s2,
+          ),
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
         ),
-        borderRadius: BorderRadius.circular(AppSpacing.s8),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.report_problem,
-                color: theme.colorScheme.onErrorContainer,
-              ),
-              AppSpacing.w8,
-              Expanded(
-                child: Text(
-                  l10n?.errorUnknown ?? 'Data Corruption / Render Error',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onErrorContainer,
-                    fontWeight: FontWeight.bold,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.report_problem,
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    l10n?.errorUnknown ?? 'Data Corruption / Render Error',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
-              Semantics(
-                button: true,
-                label: 'Reset',
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppSpacing.s4),
-                    onTap: resetError,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.s4),
-                      child: Icon(
-                        Icons.refresh,
-                        color: theme.colorScheme.onErrorContainer,
-                        size: 20,
+                Semantics(
+                  button: true,
+                  label: 'Reset',
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppSpacing.s4),
+                      onTap: resetError,
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.s4),
+                        child: Icon(
+                          Icons.refresh,
+                          color: theme.colorScheme.onErrorContainer,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          AppSpacing.h8,
-          Text(
-            displayError,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
-              fontFamily: 'monospace',
+              ],
             ),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            AppSpacing.h8,
+            Text(
+              displayError,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+                fontFamily: 'monospace',
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

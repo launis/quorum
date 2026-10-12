@@ -131,6 +131,34 @@ sealed class NodeStrategy with _$NodeStrategy {
     EngineType engineType,
   }) = NodeStrategyLogic;
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('causal_discovery')
+  const factory NodeStrategy.causalDiscovery({
+    @StrictOpaqueIdConverter() required String id,
+    required String slug,
+    required I18nText name,
+    I18nText? description,
+    String? hook,
+    @StrictOpaqueIdConverter() String? roleBlockId,
+    @StrictOpaqueIdConverter() String? extractionProtocolBlockId,
+    @StrictOpaqueIdConverter() String? executionPersonaBlockId,
+    @Default([]) List<String> criteriaBlockIds,
+    @Default([]) List<String> preHooks,
+    @Default([]) List<String> postHooks,
+    @Default('safe') String safety,
+    @Default([]) List<String> allowedMcpTools,
+    @Default([]) List<String> expectedInputs,
+    @JsonKey(name: 'cognitive_tier')
+    @Default(CognitiveTier.fast)
+    CognitiveTier cognitiveTier,
+    String? organizationId,
+    // Phase 1, Step 3: System core protection governance field
+    @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
+    @JsonKey(name: 'engine_type')
+    @Default(EngineType.causalDiscovery)
+    EngineType engineType,
+  }) = NodeStrategyCausalDiscovery;
+
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>
       _$NodeStrategyFromJson(json);
 }

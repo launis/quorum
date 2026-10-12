@@ -468,6 +468,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       NodeStrategyLogic() => 'Logic: ${blueprint.hook}',
                       NodeStrategyLlm() =>
                         'LLM: ${blueprint.cognitiveTier.name}',
+                      NodeStrategyCausalDiscovery() =>
+                        'Causal Discovery (${blueprint.engineType.name})',
                     };
 
                     return Card(

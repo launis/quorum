@@ -572,6 +572,169 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'type': instance.$type,
     };
 
+NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'NodeStrategyCausalDiscovery',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'slug',
+        'name',
+        'description',
+        'hook',
+        'role_block_id',
+        'extraction_protocol_block_id',
+        'execution_persona_block_id',
+        'criteria_block_ids',
+        'pre_hooks',
+        'post_hooks',
+        'safety',
+        'allowed_mcp_tools',
+        'expected_inputs',
+        'cognitive_tier',
+        'organization_id',
+        'is_system_core',
+        'engine_type',
+        'type',
+      ],
+    );
+    final val = NodeStrategyCausalDiscovery(
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      slug: $checkedConvert('slug', (v) => v as String),
+      name: $checkedConvert(
+        'name',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      description: $checkedConvert(
+        'description',
+        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      hook: $checkedConvert('hook', (v) => v as String?),
+      roleBlockId: $checkedConvert(
+        'role_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      extractionProtocolBlockId: $checkedConvert(
+        'extraction_protocol_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      executionPersonaBlockId: $checkedConvert(
+        'execution_persona_block_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      criteriaBlockIds: $checkedConvert(
+        'criteria_block_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      preHooks: $checkedConvert(
+        'pre_hooks',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      postHooks: $checkedConvert(
+        'post_hooks',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      safety: $checkedConvert('safety', (v) => v as String? ?? 'safe'),
+      allowedMcpTools: $checkedConvert(
+        'allowed_mcp_tools',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      expectedInputs: $checkedConvert(
+        'expected_inputs',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      cognitiveTier: $checkedConvert(
+        'cognitive_tier',
+        (v) =>
+            $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
+            CognitiveTier.fast,
+      ),
+      organizationId: $checkedConvert('organization_id', (v) => v as String?),
+      isSystemCore: $checkedConvert(
+        'is_system_core',
+        (v) => v as bool? ?? false,
+      ),
+      engineType: $checkedConvert(
+        'engine_type',
+        (v) =>
+            $enumDecodeNullable(_$EngineTypeEnumMap, v) ??
+            EngineType.causalDiscovery,
+      ),
+      $type: $checkedConvert('type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'roleBlockId': 'role_block_id',
+    'extractionProtocolBlockId': 'extraction_protocol_block_id',
+    'executionPersonaBlockId': 'execution_persona_block_id',
+    'criteriaBlockIds': 'criteria_block_ids',
+    'preHooks': 'pre_hooks',
+    'postHooks': 'post_hooks',
+    'allowedMcpTools': 'allowed_mcp_tools',
+    'expectedInputs': 'expected_inputs',
+    'cognitiveTier': 'cognitive_tier',
+    'organizationId': 'organization_id',
+    'isSystemCore': 'is_system_core',
+    'engineType': 'engine_type',
+    r'$type': 'type',
+  },
+);
+
+Map<String, dynamic> _$NodeStrategyCausalDiscoveryToJson(
+  NodeStrategyCausalDiscovery instance,
+) => <String, dynamic>{
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
+  'slug': instance.slug,
+  'name': instance.name.toJson(),
+  'description': instance.description?.toJson(),
+  'hook': instance.hook,
+  'role_block_id': _$JsonConverterToJson<String, String>(
+    instance.roleBlockId,
+    const StrictOpaqueIdConverter().toJson,
+  ),
+  'extraction_protocol_block_id': _$JsonConverterToJson<String, String>(
+    instance.extractionProtocolBlockId,
+    const StrictOpaqueIdConverter().toJson,
+  ),
+  'execution_persona_block_id': _$JsonConverterToJson<String, String>(
+    instance.executionPersonaBlockId,
+    const StrictOpaqueIdConverter().toJson,
+  ),
+  'criteria_block_ids': instance.criteriaBlockIds,
+  'pre_hooks': instance.preHooks,
+  'post_hooks': instance.postHooks,
+  'safety': instance.safety,
+  'allowed_mcp_tools': instance.allowedMcpTools,
+  'expected_inputs': instance.expectedInputs,
+  'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
+  'organization_id': instance.organizationId,
+  'is_system_core': instance.isSystemCore,
+  'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
+  'type': instance.$type,
+};
+
 _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
   '_Workflow',
   json,

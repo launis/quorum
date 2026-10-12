@@ -388,7 +388,7 @@ final class StepFormProvider
   }
 }
 
-String _$stepFormHash() => r'a191b3ab632b9a7c5db8eb2bf417769764b48067';
+String _$stepFormHash() => r'8eeb391d4435226abae7828edbd87488155c86fe';
 
 final class StepFormFamily extends $Family
     with
@@ -522,7 +522,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'6bf4740c0971564172ed8e4dee24f3a6160ad6d9';
+String _$stepsControllerHash() => r'c49d4255c7c1e9bf163d79db13ea6f9f641bdeb0';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.
