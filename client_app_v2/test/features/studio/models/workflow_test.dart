@@ -303,5 +303,55 @@ void main() {
         );
       },
     );
+
+    test('StepRule correctly parses causal_source_step_id', () {
+      final json = {
+        'id': 'st_0123456789abcdef',
+        'task_blueprint': 'st_abcdef0123456789',
+        'depends_on': ['st_causal_upstream_01'],
+        'causal_source_step_id': 'st_causal_upstream_01',
+        'is_synthesis_source': true,
+      };
+
+      final step = StepRule.fromJson(json);
+      expect(step.causalSourceStepId, 'st_causal_upstream_01');
+      expect(step.isSynthesisSource, isTrue);
+
+      final serialized = step.toJson();
+      expect(serialized['causal_source_step_id'], 'st_causal_upstream_01');
+    });
+
+    test('StepRule rejects unrecognized keys fail-fast (negative)', () {
+      final json = {
+        'id': 'st_0123456789abcdef',
+        'task_blueprint': 'st_abcdef0123456789',
+        'invalid_unrecognized_key': 'fail_fast',
+      };
+
+      expect(
+        () => StepRule.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('NodeStrategy parses engine_type causal_discovery', () {
+      final json = {
+        'id': 'st_0123456789abcdef',
+        'slug': 'causal_step',
+        'name': {
+          'translations': {'en': 'Causal Step'},
+        },
+        'type': 'llm',
+        'cognitive_tier': 'fast',
+        'engine_type': 'causal_discovery',
+      };
+
+      final parsed = NodeStrategy.fromJson(json);
+      expect(parsed, isA<NodeStrategyLlm>());
+      expect(
+        (parsed as NodeStrategyLlm).engineType,
+        EngineType.causalDiscovery,
+      );
+    });
   });
 }
