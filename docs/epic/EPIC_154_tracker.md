@@ -156,7 +156,7 @@
   - [x] [NEW] @[backend_v2/models/dtos/causal_discovery.py]
   - [x] @[backend_v2/models/dtos/step_output.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
-  - [ ] @[backend_v2/models/view/sdui.py]
+  - [x] @[backend_v2/models/view/sdui.py]
   - [ ] [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
@@ -263,47 +263,48 @@
 ## Achieved
 - Executed Tier 2 Backend Hardening Session 1 (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`):
   - Audited 10 target files (reaching the 10-file session ceiling):
-    1. `@[backend_v2/services/orchestrator/sliding_window_linker.py]`: Passed 10/10 quality stages, 11 tests (96% coverage). Matrix verified (181 rules passed).
-    2. `@[backend_v2/services/orchestrator/two_pass_atomizer.py]`: Passed 10/10 quality stages, 14 tests (97% coverage). Matrix verified (181 rules passed).
-    3. `@[backend_v2/models/domain/step.py]`: Passed 10/10 quality stages, 25 tests (100% coverage). Matrix verified (181 rules passed).
-    4. `@[backend_v2/models/domain/inputs.py]`: Passed 10/10 quality stages, 14 tests (100% coverage). Matrix verified (181 rules passed).
-    5. `@[backend_v2/services/orchestrator/engines/registry.py]`: Hardened with RFC 7807 dual logging. Passed 10/10 quality stages, 7 tests (100% coverage). Matrix verified (181 rules passed). Committed via atomic git commit `51f926325`.
-    6. `@[backend_v2/models/enums.py]`: Passed 10/10 quality stages, 8 tests (100% coverage). Matrix verified (181 rules passed).
-    7. `@[backend_v2/services/orchestrator/engines/base.py]`: Hardened with explicit `__all__ = ["ExecutionEngine"]` and added `test_base.py`. Passed 10/10 quality stages, 3 tests (100% coverage). Matrix verified (181 rules passed). Committed via atomic git commit `59d285517`.
-    8. `@[backend_v2/services/orchestrator/engines/tda_engine.py]`: Passed 10/10 quality stages, 14 tests (100% coverage). Matrix verified (181 rules passed).
-    9. `@[backend_v2/services/orchestrator/engines/prompt_engine.py]`: Passed 10/10 quality stages, 5 tests (100% coverage). Matrix verified (181 rules passed).
-    10. `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`: Passed 10/10 quality stages, 14 tests (94% coverage). Matrix verified (181 rules passed).
-  - All 10 files marked `[x]` in `docs/epic/EPIC_154_tracker.md`.
+    1. `@[backend_v2/services/orchestrator/engines/__init__.py]`: Explicit `__all__` verified; passed 10/10 quality stages, 100% coverage, audit matrix verified (181 rules passed).
+    2. `@[backend_v2/services/orchestrator/strategies/llm.py]`: RFC 7807 dual logging and `get_settings()` SSOT injection verified; passed 10/10 quality stages, 37 tests (93% coverage), audit matrix verified (181 rules passed).
+    3. `@[backend_v2/services/orchestrator/dag_executor.py]`: Fixed internal envelope enum string hydration (`TypeAdapter(CausalGraphPayloadDTO).validate_python(step_out.data, strict=False)`); expanded unit test suite `test_dag_executor_causal_fusion.py` (21 tests covering causal fusion, raw results aggregation, data starvation, validation errors, snapshot resolution); passed 10/10 stages with 72 tests and 91% strict coverage (66 misses / 743 stmts); audit matrix verified (181 rules passed); committed in `5efc5289f`.
+    4. `@[backend_v2/settings.py]`: Verified 23 tests, 99% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+    5. `@[backend_v2/exceptions.py]`: Verified 11 tests, 98% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+    6. `@[backend_v2/services/orchestrator/strategies/registry.py]`: Verified 5 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+    7. `@[backend_v2/models/dtos/causal_discovery.py]`: Verified 12 tests, 95% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+    8. `@[backend_v2/models/dtos/step_output.py]`: Verified 5 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+    9. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`: Enhanced PEP 257 Google style docstrings (`Args:`, `Returns:`, `Raises:` explicitly documenting `AppException` error codes); verified 11 tests, 98% coverage, 10/10 stages passed; audit matrix verified (181 rules passed); committed in `dde2f5ef1`.
+    10. `@[backend_v2/models/view/sdui.py]`: Verified 7 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
+  - All 10 audited files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (20 backend files completed total).
 
 ## Learned
-- In `backend_v2/services/orchestrator/engines/base.py`, standalone protocol modules must explicitly declare `__all__` to satisfy the strict encapsulation audit.
-- `scripts/backend_audit_loop.py` path resolution looks for `test_base.py` for target `base.py`; having `test_base.py` exercising runtime checkable protocol invariants ensures both 100% coverage and ISTQB negative testing compliance.
-- In `audit_matrix_manager.py`, repeated NA justifications cannot exceed 40 occurrences; categorizing NA rules by domain (chat orchestration, Flutter client, FastAPI router boundary, database seed/persistence) ensures strict validation compliance.
+- **StateProjector Snapshot Property Semantics**: `projector.snapshot` is a `@property` returning a fresh list built on the fly from `_snapshot`. Calling `projector.snapshot.append(...)` in tests does NOT modify `projector._snapshot`. Test mock events must emit `TraceEvent(..., event_type="input", content=StepOutputContentDTO(data={...}))` to populate `_snapshot` via `apply_delta`.
+- **StepRule & Workflow Cross-Validation**: `StepRule` has an `@after_validator` mandating that `causal_source_step_id` must be declared in `depends_on`. `Workflow` has a validator mandating that all `depends_on` steps must exist in `workflow.steps`. DAGExecutor defense-in-depth tests must use `StepRule.model_construct()` and `Workflow.model_construct()` to bypass model validation gates when asserting runtime graph failure handling.
+- **Audit Matrix Manager Justification Anchoring**: `scripts/audit_matrix_manager.py verify` strictly asserts that justifications anchor to the target file. Mentioning other python files in justifications triggers a conflicting file reference error. Keep rule justifications anchored strictly to `<target_file>` (e.g. `causal_discovery.py is verified by 12 unit tests achieving 95% strict line coverage.`).
+- **NA Justification Ceiling**: `audit_matrix_manager.py verify` permits a maximum of 40 occurrences of the same NA justification string. Distributing NA justifications across domains (chat, flutter, router, db, export, llm) ensures strict conformance.
 
 ## Remaining
-- Complete Tier 2 Hardening (Backend) on the remaining 20 target files:
-  - `@[backend_v2/services/orchestrator/engines/__init__.py]`
-  - `@[backend_v2/services/orchestrator/strategies/llm.py]`
-  - `@[backend_v2/services/orchestrator/dag_executor.py]`
-  - `@[backend_v2/settings.py]`
-  - `@[backend_v2/exceptions.py]`
-  - `@[backend_v2/services/orchestrator/strategies/registry.py]`
-  - `@[backend_v2/models/dtos/causal_discovery.py]`
-  - `@[backend_v2/models/dtos/step_output.py]`
-  - `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
-  - `@[backend_v2/models/view/sdui.py]`
+- Complete Tier 2 Hardening (Backend) on the remaining 10 target files:
   - `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`
   - `@[backend_v2/services/sdui/adapters/base_adapter.py]`
   - `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
   - `@[backend_v2/services/blueprint.py]`
   - `@[backend_v2/workers/synthesis_tasks.py]`
   - `@[backend_v2/workers/synthesis_worker.py]`
-  - `@[backend_v2/services/sdui/adapters/registry.py]`
-  - `@[backend_v2/services/export_service.py]`
+  - `@[backend_v2/services/localization.py]`
   - `@[backend_v2/models/dtos/export.py]`
-  - `@[backend_v2/services/orchestrator/dag_compiler.py]`
+  - `@[backend_v2/services/export_service.py]`
+  - `@[scripts/audit_flutter_theme_sovereignty.py]`
 - Subsequent post-implementation gates:
-  - Tier 2 Hardening (Frontend) on 10 touched Flutter files.
+  - Tier 2 Hardening (Frontend) on 8 touched Flutter files:
+    - `@[client_app_v2/lib/core/models/enums.dart]`
+    - `@[client_app_v2/lib/features/studio/models/workflow.dart]`
+    - `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`
+    - `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
+    - `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
+    - `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`
+    - `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
+    - `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`
+  - Pre-Delete Audit.
+  - Semantic Coverage & Zero-Loss Audit.
   - Full-Stack Integration Verification Gate.
   - Golden Master & Test Restoration Audit.
   - Proxy Sunset & Consumer Migration.
@@ -312,5 +313,5 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/orchestrator/engines/__init__.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/sdui/adapters/causal_graph_adapter.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
