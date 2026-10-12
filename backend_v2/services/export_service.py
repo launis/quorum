@@ -541,6 +541,9 @@ class ExportService:
             elif meta is not None and meta.is_inverse:
                 is_inverse_claim = True
 
+            is_inverse_val = 1 if is_inverse_claim else 0
+            points_awarded_val = 1.0 if (atom.status == ExecutionStatus.PASSED and not is_inverse_claim) else 0.0
+
             claim_type = LocalizationService.translate("export_claim_positive", locale)
             if is_inverse_claim:
                 claim_type = LocalizationService.translate("export_claim_inverse", locale)
@@ -573,9 +576,39 @@ class ExportService:
                     level_name=level_name,
                     criterion=criterion,
                     claim_type=claim_type,
+                    is_inverse=is_inverse_val,
+                    points_awarded=points_awarded_val,
                     result_status=result_status,
                     quotes=formatted_quotes,
                     ai_reasoning=formatted_reasoning,
+                    causal_status=causal_meta.causal_status,
+                    blame_parent_id=causal_meta.blame_parent_id,
+                    dependent_count=causal_meta.dependent_count,
+                )
+            )
+
+        mapped_tda_ids: set[str] = {atom.tda_id for atom in report_dto.results}
+        for node in causal_nodes_by_id.values():
+            if node.node_id in mapped_tda_ids:
+                continue
+            causal_meta = self._resolve_causal_meta(
+                node,
+                root_cause_set,
+                isolated_set,
+            )
+            atom_rows.append(
+                ExportForensicAtomDTO(
+                    matrix_label=LocalizationService.translate("export_causal_matrix_label", locale),
+                    context_target="",
+                    level=1,
+                    level_name=LocalizationService.translate("export_causal_level_name", locale),
+                    criterion=node.claim,
+                    claim_type=LocalizationService.translate("export_claim_positive", locale),
+                    is_inverse=0,
+                    points_awarded=0.0,
+                    result_status=1 if node.status == ExecutionStatus.PASSED else 0,
+                    quotes=format_text_observations(node.source_quote),
+                    ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,
                     dependent_count=causal_meta.dependent_count,
@@ -708,6 +741,9 @@ class ExportService:
             elif meta is not None and meta.is_inverse:
                 is_inverse_claim = True
 
+            is_inverse_val = 1 if is_inverse_claim else 0
+            points_awarded_val = 1.0 if (atom.status == ExecutionStatus.PASSED and not is_inverse_claim) else 0.0
+
             claim_type = LocalizationService.translate("export_claim_positive", locale)
             if is_inverse_claim:
                 claim_type = LocalizationService.translate("export_claim_inverse", locale)
@@ -748,9 +784,47 @@ class ExportService:
                     level_name=level_name,
                     criterion=criterion,
                     claim_type=claim_type,
+                    is_inverse=is_inverse_val,
+                    points_awarded=points_awarded_val,
                     result_status=result_status,
                     quotes=formatted_quotes,
                     ai_reasoning=formatted_reasoning,
+                    causal_status=causal_meta.causal_status,
+                    blame_parent_id=causal_meta.blame_parent_id,
+                    dependent_count=causal_meta.dependent_count,
+                )
+            )
+
+        mapped_tda_ids: set[str] = {atom.tda_id for atom in report_dto.results}
+        for node in causal_nodes_by_id.values():
+            if node.node_id in mapped_tda_ids:
+                continue
+            causal_meta = self._resolve_causal_meta(
+                node,
+                root_cause_set,
+                isolated_set,
+            )
+            denormalized_rows.append(
+                ExportDenormalizedFlatRowDTO(
+                    execution_id=execution_id,
+                    matrix_label=LocalizationService.translate("export_causal_matrix_label", locale),
+                    context_target="",
+                    distribution="",
+                    hits=1 if node.status == ExecutionStatus.PASSED else 0,
+                    total_atoms=1,
+                    hit_ratio=1.0 if node.status == ExecutionStatus.PASSED else 0.0,
+                    raw_score=1.0 if node.status == ExecutionStatus.PASSED else 0.0,
+                    scale_max=1.0,
+                    normalized_score=100.0 if node.status == ExecutionStatus.PASSED else 0.0,
+                    level=1,
+                    level_name=LocalizationService.translate("export_causal_level_name", locale),
+                    criterion=node.claim,
+                    claim_type=LocalizationService.translate("export_claim_positive", locale),
+                    is_inverse=0,
+                    points_awarded=0.0,
+                    result_status=1 if node.status == ExecutionStatus.PASSED else 0,
+                    quotes=format_text_observations(node.source_quote),
+                    ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,
                     dependent_count=causal_meta.dependent_count,
@@ -881,6 +955,8 @@ class ExportService:
                 atom_headers[ReportAtomColumn.LEVEL_NAME]: a.level_name,
                 atom_headers[ReportAtomColumn.CRITERION]: a.criterion,
                 atom_headers[ReportAtomColumn.CLAIM_TYPE]: a.claim_type,
+                atom_headers[ReportAtomColumn.IS_INVERSE]: a.is_inverse,
+                atom_headers[ReportAtomColumn.POINTS_AWARDED]: a.points_awarded,
                 atom_headers[ReportAtomColumn.RESULT_STATUS]: a.result_status,
                 atom_headers[ReportAtomColumn.QUOTES]: a.quotes,
                 atom_headers[ReportAtomColumn.AI_REASONING]: a.ai_reasoning,
@@ -931,7 +1007,7 @@ class ExportService:
         execution_id: str | None = None,
         all_matrices: list[MatrixScorecardRowDTO] | None = None,
     ) -> ExportPayloadDTO:
-        """Generate a flat tabular CSV export streaming 20 denormalized columns.
+        """Generate a flat tabular CSV export streaming 22 denormalized columns.
 
         Args:
             execution: ExecutionRecord containing evaluation data.
@@ -1028,6 +1104,8 @@ class ExportService:
                     row.level_name,
                     row.criterion,
                     row.claim_type,
+                    row.is_inverse,
+                    row.points_awarded,
                     row.result_status,
                     row.quotes,
                     row.ai_reasoning,

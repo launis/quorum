@@ -446,13 +446,13 @@ class ReportHeaderResolver:
 
     @classmethod
     def get_all_denormalized_csv_headers(cls, locale: str = "en") -> list[str]:
-        """Resolves all 20 denormalized CSV headers for the given locale in canonical order.
+        """Resolves all 22 denormalized CSV headers for the given locale in canonical order.
 
         Args:
             locale: Language locale code (e.g. 'fi' or 'en').
 
         Returns:
-            Ordered list of 20 translated column header strings.
+            Ordered list of 22 translated column header strings.
         """
         return [
             LocalizationService.translate("export_col_execution_id", locale),
@@ -469,6 +469,8 @@ class ReportHeaderResolver:
             LocalizationService.translate("export_col_level_name", locale),
             LocalizationService.translate("export_col_criterion", locale),
             LocalizationService.translate("export_col_claim_type", locale),
+            LocalizationService.translate("export_col_is_inverse", locale),
+            LocalizationService.translate("export_col_points_awarded", locale),
             LocalizationService.translate("export_col_result_status", locale),
             LocalizationService.translate("export_col_quotes", locale),
             LocalizationService.translate("export_col_ai_reasoning", locale),

@@ -258,7 +258,7 @@ def test_report_header_resolver() -> None:
     LocalizationService.load_if_needed()
 
     assert ReportHeaderResolver.get_matrix_column_header(ReportMatrixColumn.LABEL, "en") == "Logic Matrix"
-    assert ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.MATRIX, "en") == "Matrix"
+    assert ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.MATRIX, "en") == "Logic Matrix"
 
     matrix_headers = ReportHeaderResolver.get_all_matrix_headers("en")
     assert len(matrix_headers) == len(ReportMatrixColumn)
@@ -268,12 +268,12 @@ def test_report_header_resolver() -> None:
     assert resolved_matrix_headers == matrix_headers
 
     atom_headers = ReportHeaderResolver.get_all_atom_headers("en")
-    assert len(atom_headers) == len(ReportAtomColumn) == 12
-    assert atom_headers[0] == "Matrix"
+    assert len(atom_headers) == len(ReportAtomColumn) == 14
+    assert atom_headers[0] == "Logic Matrix"
     assert atom_headers[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
 
     csv_headers = ReportHeaderResolver.get_all_denormalized_csv_headers("en")
-    assert len(csv_headers) == 20
+    assert len(csv_headers) == 22
     assert csv_headers[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
 
     assert ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "en") == "Summary"

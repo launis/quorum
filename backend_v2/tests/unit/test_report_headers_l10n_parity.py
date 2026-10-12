@@ -154,7 +154,7 @@ def test_cross_surface_header_parity() -> None:
         atom_headers = ReportHeaderResolver.get_all_atom_headers(locale=locale)
 
         assert len(matrix_headers) == len(ReportMatrixColumn) == 13
-        assert len(atom_headers) == len(ReportAtomColumn) == 12
+        assert len(atom_headers) == len(ReportAtomColumn) == 14
 
         for col in ReportMatrixColumn:
             assert matrix_headers[col] == ReportHeaderResolver.get_matrix_column_header(col, locale=locale)
@@ -179,6 +179,8 @@ def test_dto_field_mapping_parity() -> None:
         "level_name",
         "criterion",
         "claim_type",
+        "is_inverse",
+        "points_awarded",
         "result_status",
         "quotes",
         "ai_reasoning",
@@ -360,10 +362,10 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     sheet2 = wb[LocalizationService.translate("export_sheet_raw_data", "fi")]
     sheet2_rows = list(sheet2.iter_rows(values_only=True))
     assert len(sheet2_rows) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(sheet2_rows[0]) == len(ReportAtomColumn) == 12
+    assert len(sheet2_rows[0]) == len(ReportAtomColumn) == 14
 
     # Verify binary integer status on Tab 2
-    status_col_idx = 6  # ReportAtomColumn.RESULT_STATUS index
+    status_col_idx = 8  # ReportAtomColumn.RESULT_STATUS index
     for row in sheet2_rows[1:]:
         assert row[status_col_idx] in (0, 1), f"Status {row[status_col_idx]} is not strictly 0 or 1"
 
@@ -379,10 +381,10 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     reader = list(csv.reader(io.StringIO(csv_text)))
 
     assert len(reader) == len(report_dto.results) + 1  # 1 header row + M data rows
-    assert len(reader[0]) == 20
+    assert len(reader[0]) == 22
 
     # Verify binary integer status on CSV
-    csv_status_col_idx = 14
+    csv_status_col_idx = 16
     for row in reader[1:]:
         assert row[csv_status_col_idx] in ("0", "1"), f"CSV status {row[csv_status_col_idx]} is not strictly 0 or 1"
 

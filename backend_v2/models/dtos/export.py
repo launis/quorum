@@ -56,6 +56,18 @@ class ExportForensicAtomDTO(V2CoreBase):
     level_name: Annotated[str, Field(description="Descriptive level name")]
     criterion: Annotated[str, Field(description="Evaluation criterion or resolved claim")]
     claim_type: Annotated[str, Field(description="Localized claim type label")]
+    is_inverse: Annotated[
+        int,
+        Field(ge=0, le=1, description="Binary flag: 1 if inverse/anti-pattern detector, 0 if affirmative capability"),
+    ]
+    points_awarded: Annotated[
+        float,
+        Field(
+            ge=0.0,
+            le=1.0,
+            description="Affirmative score points awarded (1.0 for passed capability, 0.0 for inverse or failed)",
+        ),
+    ]
     result_status: Annotated[int, Field(description="Binary execution result status: 1 for passed, 0 for failed")]
     quotes: Annotated[str, Field(description="Exact forensic citation text or empty string")]
     ai_reasoning: Annotated[str, Field(description="AI evaluation rationale or empty string")]
@@ -115,6 +127,8 @@ class ExportDenormalizedFlatRowDTO(V2CoreBase):
     level_name: Annotated[str, Field(description="Descriptive level name")]
     criterion: Annotated[str, Field(description="Evaluation criterion or resolved claim")]
     claim_type: Annotated[str, Field(description="Localized claim type label")]
+    is_inverse: Annotated[int, Field(ge=0, le=1)]
+    points_awarded: Annotated[float, Field(ge=0.0, le=1.0)]
     result_status: Annotated[int, Field(description="Binary execution outcome (1=passed, 0=failed)", ge=0, le=1)]
     quotes: Annotated[str, Field(description="Formatted text observations or citation quote")]
     ai_reasoning: Annotated[str, Field(description="Formatted qualitative reasoning explanation")]

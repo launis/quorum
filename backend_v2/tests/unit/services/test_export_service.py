@@ -284,7 +284,7 @@ async def test_export_flat_csv_success() -> None:
     assert payload.filename == "execution_export_exe_custom_999.csv"
     csv_text = payload.content_bytes.decode("utf-8-sig")
     reader = list(csv.reader(io.StringIO(csv_text)))
-    assert len(reader[0]) == 20
+    assert len(reader[0]) == 22
     assert len(reader) - 1 == len(report_dto.results)
     assert "Logiikkamatriisi" in reader[0]
     assert "Arviointikriteeri" in reader[0]
@@ -664,7 +664,8 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
     raw_df = pd.read_excel(io.BytesIO(payload.content_bytes), sheet_name="Raakadata")
     assert len(raw_df) == 1
     row = raw_df.iloc[0]
-    assert row["Matriisi"] == "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)"
+    atom_col_name = ReportHeaderResolver.get_atom_column_header(ReportAtomColumn.MATRIX, "fi")
+    assert row[atom_col_name] == "Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)"
     assert row["Väitetyyppi"] == "Virhedetektori / Anti-pattern"
     assert row["Tulos (Status)"] == 1
     assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
@@ -1275,22 +1276,24 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     assert "Taso 3 Nimi" in csv_text
 
 
-def test_report_atom_column_has_12_members() -> None:
-    """Verify ReportAtomColumn has exactly 12 members including causal fields."""
-    assert len(ReportAtomColumn) == 12
+def test_report_atom_column_has_14_members() -> None:
+    """Verify ReportAtomColumn has exactly 14 members including causal fields and ML columns."""
+    assert len(ReportAtomColumn) == 14
+    assert ReportAtomColumn.IS_INVERSE.value == "is_inverse"
+    assert ReportAtomColumn.POINTS_AWARDED.value == "points_awarded"
     assert ReportAtomColumn.CAUSAL_STATUS.value == "causal_status"
     assert ReportAtomColumn.BLAME_PARENT_ID.value == "blame_parent_id"
     assert ReportAtomColumn.DEPENDENT_COUNT.value == "dependent_count"
 
 
-def test_denormalized_csv_headers_has_20_columns() -> None:
-    """Verify ReportHeaderResolver.get_all_denormalized_csv_headers has 20 columns."""
+def test_denormalized_csv_headers_has_22_columns() -> None:
+    """Verify ReportHeaderResolver.get_all_denormalized_csv_headers has 22 columns."""
     headers_en = ReportHeaderResolver.get_all_denormalized_csv_headers("en")
-    assert len(headers_en) == 20
+    assert len(headers_en) == 22
     assert headers_en[-3:] == ["Causal Status", "Root Cause ID", "Dependent Count"]
 
     headers_fi = ReportHeaderResolver.get_all_denormalized_csv_headers("fi")
-    assert len(headers_fi) == 20
+    assert len(headers_fi) == 22
     assert headers_fi[-3:] == ["Kausaalistatus", "Juurisyyn tunnus", "Riippuvuuksien lkm"]
 
 
@@ -1320,7 +1323,7 @@ async def test_export_flat_csv_row_count_matches_results() -> None:
     csv_text = payload.content_bytes.decode("utf-8-sig")
     rows = list(csv.reader(io.StringIO(csv_text)))
     assert len(rows) == len(report_dto.results) + 1
-    assert len(rows[0]) == 20
+    assert len(rows[0]) == 22
 
 
 @pytest.mark.asyncio
@@ -1492,14 +1495,14 @@ async def test_export_causal_enrichment_parity() -> None:
     assert csv_rows[0] == ReportHeaderResolver.get_all_denormalized_csv_headers("en")
 
     # Node 1 row
-    assert csv_rows[1][17] == "validated"
-    assert csv_rows[1][18] == ""
-    assert csv_rows[1][19] == "1"
+    assert csv_rows[1][19] == "validated"
+    assert csv_rows[1][20] == ""
+    assert csv_rows[1][21] == "1"
 
     # Node 2 row
-    assert csv_rows[2][17] == "cascading_fault"
-    assert csv_rows[2][18] == "tda_0000000000000001"
-    assert csv_rows[2][19] == "0"
+    assert csv_rows[2][19] == "cascading_fault"
+    assert csv_rows[2][20] == "tda_0000000000000001"
+    assert csv_rows[2][21] == "0"
 
 
 def test_export_forensic_atom_dto_extra_field_raises_validation_error() -> None:
@@ -1931,3 +1934,240 @@ def test_build_matrix_summary_rows_extra_branches() -> None:
     assert rows[0].label == "English Axis"
     assert rows[0].raw_score == 3.5
     assert rows[0].source == "src_doc_1"
+
+
+@pytest.mark.asyncio
+async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
+    """Verify Excel Tab 2 includes unmapped causal propositions with causal metrics and ML-ready columns."""
+    import io
+    import openpyxl
+    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import ExecutionStatus
+
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+
+    # 1 mapped atom
+    atom_res = AtomResultDTO(
+        tda_id="tda_0000000000000001",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Quote 1",
+        evaluation_reasoning="Affirmative claim passed",
+        is_inverse_evidence=False,
+    )
+    hydrated = HydratedAtomDTO(
+        sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Atom 1 Claim",
+    )
+    causal_payload = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="tda_0000000000000001",
+                claim="Atom 1 Claim",
+                paragraph_ref="p1",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=["causal_prop_0001"],
+            ),
+            CausalNodeDTO(
+                node_id="causal_prop_0001",
+                claim="Unmapped Causal Proposition",
+                paragraph_ref="p2",
+                status=ExecutionStatus.FAILED,
+                blame_parent_ids=["tda_0000000000000001"],
+                dependent_child_ids=[],
+            ),
+        ],
+        edges=[],
+        root_cause_node_ids=[],
+        cycle_detected=False,
+        isolated_node_ids=[],
+    )
+    exec_record = exec_record.model_copy(
+        update={
+            "execution_trace": [
+                TraceEvent(
+                    step_name="causal_discovery",
+                    event_type="output",
+                    content=causal_payload,
+                )
+            ]
+        }
+    )
+    report_dto = _build_sample_report_dto()
+    report_dto = report_dto.model_copy(
+        update={
+            "results": [atom_res],
+            "hydrated_references": {"tda_0000000000000001": hydrated},
+        }
+    )
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
+            score=5.0,
+            scale_max=5.0,
+            row_explanation="Explanation",
+            is_evaluative=True,
+            true_atoms=1,
+            total_atoms=1,
+        )
+    ]
+    payload = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+    wb = openpyxl.load_workbook(io.BytesIO(payload.content_bytes))
+    tab2 = wb["Raakadata"]
+    rows = list(tab2.iter_rows(values_only=True))
+    assert len(rows[0]) == 14
+    # Header check
+    assert rows[0][0] == "Logiikkamatriisi"
+    assert rows[0][6] == "Käänteinen ehto"
+    assert rows[0][7] == "Saadut pisteet"
+    assert rows[0][11] == "Kausaalistatus"
+    assert rows[0][12] == "Juurisyyn tunnus"
+    assert rows[0][13] == "Riippuvuuksien lkm"
+
+    # Row 1 (mapped atom)
+    assert rows[1][0] == "Matriisi 1"
+    assert rows[1][6] == 0
+    assert rows[1][7] == 1.0
+    assert rows[1][11] == "validated"
+    assert rows[1][13] == 1
+
+    # Row 2 (unmapped causal proposition)
+    assert rows[2][0] == "Kausaalipäättely"
+    assert rows[2][2] == 1  # level
+    assert rows[2][3] == "Propositio"  # level_name
+    assert rows[2][4] == "Unmapped Causal Proposition"  # criterion
+    assert rows[2][6] == 0  # is_inverse
+    assert rows[2][7] == 0.0  # points_awarded
+    assert rows[2][11] == "cascading_fault"  # causal_status
+    assert rows[2][12] == "tda_0000000000000001"  # blame_parent_id
+    assert rows[2][13] == 0  # dependent_count
+
+
+@pytest.mark.asyncio
+async def test_export_csv_includes_causal_and_ml_columns() -> None:
+    """Verify CSV export contains exactly 22 columns with ML indicators and unmapped causal propositions."""
+    import io
+    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import ExecutionStatus
+
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+
+    atom_res_1 = AtomResultDTO(
+        tda_id="tda_0000000000000001",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Quote 1",
+        evaluation_reasoning="Affirmative passed",
+        is_inverse_evidence=False,
+    )
+    hydrated_1 = HydratedAtomDTO(
+        sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Criterion 1",
+    )
+    atom_res_2 = AtomResultDTO(
+        tda_id="tda_0000000000000002",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote=None,
+        evaluation_reasoning="Inverse claim passed (anti-pattern absent = clean finding)",
+        is_inverse_evidence=True,
+    )
+    hydrated_2 = HydratedAtomDTO(
+        sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Anti-pattern 1",
+    )
+
+    causal_payload_csv = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="causal_prop_0002",
+                claim="Standalone Causal Node",
+                paragraph_ref="p3",
+                status=ExecutionStatus.SYSTEM_ERROR,
+                blame_parent_ids=[],
+                dependent_child_ids=[],
+            ),
+        ],
+        edges=[],
+        root_cause_node_ids=["causal_prop_0002"],
+        cycle_detected=False,
+        isolated_node_ids=[],
+    )
+    exec_record = exec_record.model_copy(
+        update={
+            "execution_trace": [
+                TraceEvent(
+                    step_name="causal_discovery",
+                    event_type="output",
+                    content=causal_payload_csv,
+                )
+            ]
+        }
+    )
+    report_dto = _build_sample_report_dto()
+    report_dto = report_dto.model_copy(
+        update={
+            "results": [atom_res_1, atom_res_2],
+            "hydrated_references": {
+                "tda_0000000000000001": hydrated_1,
+                "tda_0000000000000002": hydrated_2,
+            },
+        }
+    )
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"en": "Matrix 1"}),
+            score=5.0,
+            scale_max=5.0,
+            row_explanation="Explanation",
+            is_evaluative=True,
+            true_atoms=1,
+            total_atoms=2,
+        )
+    ]
+    payload = await service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="en",
+    )
+    csv_text = payload.content_bytes.decode("utf-8-sig")
+    rows = list(csv.reader(io.StringIO(csv_text)))
+    assert len(rows[0]) == 22
+    assert rows[0] == ReportHeaderResolver.get_all_denormalized_csv_headers("en")
+
+    # Row 1 (affirmative atom)
+    assert rows[1][14] == "0"  # is_inverse
+    assert float(rows[1][15]) == 1.0  # points_awarded
+
+    # Row 2 (inverse atom: anti-pattern passed means clean finding, points_awarded = 0.0)
+    assert rows[2][14] == "1"  # is_inverse
+    assert float(rows[2][15]) == 0.0  # points_awarded
+
+    # Mathematical scoring invariant: sum(points_awarded) for affirmative == hits
+    affirmative_points = sum(
+        float(r[15]) for r in rows[1:3] if r[14] == "0"
+    )
+    assert affirmative_points == matrices[0].true_atoms
+
+    # Row 3 (unmapped causal proposition)
+    assert rows[3][1] == "Causal Inference"
+    assert rows[3][11] == "Proposition"
+    assert rows[3][12] == "Standalone Causal Node"
+    assert rows[3][14] == "0"  # is_inverse
+    assert float(rows[3][15]) == 0.0  # points_awarded
+    assert rows[3][19] == "root_cause"  # causal_status

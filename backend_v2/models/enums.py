@@ -945,6 +945,8 @@ class ReportAtomColumn(StrEnum):
     LEVEL_NAME = "level_name"
     CRITERION = "criterion"
     CLAIM_TYPE = "claim_type"
+    IS_INVERSE = "is_inverse"
+    POINTS_AWARDED = "points_awarded"
     RESULT_STATUS = "result_status"
     QUOTES = "quotes"
     AI_REASONING = "ai_reasoning"
