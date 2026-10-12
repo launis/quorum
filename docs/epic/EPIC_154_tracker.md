@@ -168,7 +168,7 @@
   - [x] @[backend_v2/services/export_service.py]
   - [x] @[scripts/audit_flutter_theme_sovereignty.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
-  - [ ] @[client_app_v2/lib/core/models/enums.dart]
+  - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
