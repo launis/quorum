@@ -13,15 +13,13 @@ from backend_v2.models.domain.execution import (
     ExecutionRecord,
     ExecutionStep,
     FrozenContext,
-    GeneratedSchemaManifestDTO,
-    InjectedTheoryManifestDTO,
-    WorkflowInputs,
 )
 from backend_v2.models.domain.falsifier import (
     FalsifierData,
     ReasoningFidelity,
     WaltonStressTest,
 )
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
@@ -31,8 +29,15 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.domain.scoring import StepPanelDTO
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.causal_discovery import (
+    CausalEdgeDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+)
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -43,6 +48,8 @@ from backend_v2.models.enums import (
 )
 
 __all__ = [
+    "CausalGraphPayloadDTOFactory",
+    "CausalNodeDTOFactory",
     "ExecutionRecordFactory",
     "ExecutionStepFactory",
     "GlobalContextVarsDTOFactory",
@@ -391,3 +398,66 @@ class GlobalContextVarsDTOFactory(ModelFactory[GlobalContextVarsDTO]):
     input_control_ratio: float | None = None
     integrity_verified_output: Any = None
     step_metadata: Any = None
+
+
+class CausalNodeDTOFactory(ModelFactory[CausalNodeDTO]):
+    """Polyfactory model factory for CausalNodeDTO argument nodes."""
+
+    __model__ = CausalNodeDTO
+    __set_as_default_factory_for_type__ = True
+
+    node_id: str = "tda_0000000000000001"
+    claim: str = "Verifiable claim premise."
+    source_quote: str | None = "Verbatim quote."
+    paragraph_ref: str | None = "B0"
+    status: ExecutionStatus = ExecutionStatus.PASSED
+    blame_parent_ids: list[str] = []
+    dependent_child_ids: list[str] = []
+    tda_score: float | None = None
+    tda_level_key: str | None = None
+
+
+class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
+    """Polyfactory model factory for CausalGraphPayloadDTO with referential integrity."""
+
+    __model__ = CausalGraphPayloadDTO
+    __set_as_default_factory_for_type__ = True
+
+    @classmethod
+    def nodes(cls) -> list[CausalNodeDTO]:
+        """Generates valid interconnected argument nodes."""
+        return [
+            CausalNodeDTO(
+                node_id="tda_0000000000000001",
+                claim="Premise claim statement.",
+                source_quote="Verbatim quote 1.",
+                paragraph_ref="B0",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=["tda_0000000000000002"],
+            ),
+            CausalNodeDTO(
+                node_id="tda_0000000000000002",
+                claim="Conclusion claim statement.",
+                source_quote="Verbatim quote 2.",
+                paragraph_ref="B1",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=[],
+            ),
+        ]
+
+    @classmethod
+    def edges(cls) -> list[CausalEdgeDTO]:
+        """Generates directed dependency edges satisfying referential integrity."""
+        return [
+            CausalEdgeDTO(
+                source_id="tda_0000000000000001",
+                target_id="tda_0000000000000002",
+                reasoning="Logical premise to conclusion dependency.",
+            )
+        ]
+
+    root_cause_node_ids: list[str] = []
+    cycle_detected: bool = False
+    isolated_node_ids: list[str] = []

@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.tests.factories.model_factories import (
+    CausalGraphPayloadDTOFactory,
+    CausalNodeDTOFactory,
     ExecutionRecordFactory,
     ExecutionStepFactory,
     GlobalContextVarsDTOFactory,
@@ -16,7 +21,7 @@ from backend_v2.tests.factories.model_factories import (
     WorkflowFactory,
 )
 
-ALL_FACTORIES = [
+ALL_FACTORIES: list[type[ModelFactory[Any]]] = [
     I18nTextFactory,
     WorkflowFactory,
     SystemRulePromptBlockFactory,
@@ -26,13 +31,16 @@ ALL_FACTORIES = [
     ExecutionRecordFactory,
     StepPanelDTOFactory,
     GlobalContextVarsDTOFactory,
+    CausalNodeDTOFactory,
+    CausalGraphPayloadDTOFactory,
 ]
 
 
 @pytest.mark.parametrize("factory_cls", ALL_FACTORIES)
-def test_polyfactory_build_succeeds(factory_cls: type) -> None:
+def test_polyfactory_build_succeeds(factory_cls: type[ModelFactory[Any]]) -> None:
     """Asserts that each registered Polyfactory model factory builds valid instances."""
     instance = factory_cls.build()
-    assert isinstance(instance, factory_cls.__model__)
+    model_cls = factory_cls.__model__
+    assert isinstance(instance, model_cls)
     # Verify strict re-validation roundtrip
-    assert factory_cls.__model__.model_validate(instance).model_dump() is not None
+    assert model_cls.model_validate(instance).model_dump() is not None

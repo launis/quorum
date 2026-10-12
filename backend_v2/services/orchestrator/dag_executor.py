@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import opentelemetry.trace as otel_trace
-from pydantic import BaseModel, JsonValue, ValidationError
+from pydantic import BaseModel, JsonValue, TypeAdapter, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
@@ -43,10 +43,21 @@ from backend_v2.models.auth import User
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionStepState, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
+from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
+    CausalTdaFusionResultDTO,
+    FairScoringBreakdownDTO,
+    PrescriptiveRemediationDTO,
+)
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
@@ -67,13 +78,206 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["DAGExecutor", "ExecutionCommitter", "NodeExecutor"]
+__all__ = [
+    "DAGExecutor",
+    "ExecutionCommitter",
+    "NodeExecutor",
+    "compute_causal_tda_fusion_result",
+    "transform_causal_nodes_to_atoms",
+]
 
 type FrozenContextUpdate = list[MCPAuditTrace] | GeneratedSchemaManifestDTO
 type ExecutionRecordUpdate = (
     ContextVariablesDTO | FrozenContext | ExecutionMetadata | dict[str, ExecutionStepState] | list[ExecutionStep]
 )
 type StepOutputContentValue = DomainInputValue | JsonValue
+
+
+def transform_causal_nodes_to_atoms(nodes: list[CausalNodeDTO]) -> list[FlattenedAtom]:
+    """Transform causal discovery proposition nodes into immutable FlattenedAtom instances.
+
+    Args:
+        nodes: List of CausalNodeDTO instances from upstream causal discovery.
+
+    Returns:
+        List of strictly typed FlattenedAtom instances for TDA evaluation.
+    """
+    atoms: list[FlattenedAtom] = []
+    for node in nodes:
+        anchor_target = ""
+        if node.paragraph_ref is not None:
+            anchor_target = node.paragraph_ref
+        extraction_rule = ""
+        if node.source_quote is not None:
+            extraction_rule = node.source_quote
+        atoms.append(
+            FlattenedAtom(
+                atom_id=node.node_id,
+                question=node.claim,
+                anchor_target=anchor_target,
+                extraction_rule=extraction_rule,
+                depends_on=(),
+                acceptance_criteria=(),
+                anti_patterns=(),
+                syntactic_anchors=(),
+            )
+        )
+    return atoms
+
+
+def compute_causal_tda_fusion_result(
+    graph: CausalGraphPayloadDTO,
+    evaluative_matrices: dict[str, float] | None = None,
+    evaluated_atoms: list[AtomResultDTO] | None = None,
+    dampening_factor: float | None = None,
+) -> CausalTdaFusionResultDTO:
+    """Computes composite fusion result executing five stakeholder benefit pipelines.
+
+    Executes:
+    1. Root Cause Attribution: Diagnoses cascading failures via blame_parent_ids.
+    2. Anti-Fluff Shield: Quantifies isolated concepts, unsupported claims, and logical cohesion.
+    3. Prescriptive Remediation: Identifies unlock paths for root cause failure nodes.
+    4. Visual XAI Data Projection: Overlays evaluated statuses and scores on graph nodes.
+    5. Fair Scoring Deduplication: Deduplicates cascading penalties with power-curve dampening.
+
+    Args:
+        graph: Causal graph payload discovered from source propositions.
+        evaluative_matrices: Optional mapping of matrix IDs to evaluated scores.
+        evaluated_atoms: Optional list of evaluated AtomResultDTO instances.
+        dampening_factor: Optional penalty dampening factor (defaults to settings value).
+
+    Returns:
+        CausalTdaFusionResultDTO combining graph and all five analytical facets.
+    """
+    # 1. Visual XAI Data Projection: Overlay evaluated statuses/scores
+    updated_nodes: list[CausalNodeDTO] = []
+    atom_by_id: dict[str, AtomResultDTO] = {}
+    if evaluated_atoms is not None:
+        for atom in evaluated_atoms:
+            atom_by_id[atom.tda_id] = atom
+
+    for node in graph.nodes:
+        if node.node_id in atom_by_id:
+            atom = atom_by_id[node.node_id]
+            node_status = ExecutionStatus.FAILED
+            if atom.status.value == "PASSED":
+                node_status = ExecutionStatus.PASSED
+            score_val = node.tda_score
+            if evaluative_matrices and atom.matrix_id and atom.matrix_id in evaluative_matrices:
+                score_val = evaluative_matrices[atom.matrix_id]
+            elif atom.extracted_data and isinstance(atom.extracted_data.value, (int, float)):
+                score_val = float(atom.extracted_data.value)
+
+            updated_nodes.append(
+                node.model_copy(
+                    update={
+                        "status": node_status,
+                        "tda_score": score_val,
+                    }
+                )
+            )
+        else:
+            updated_nodes.append(node)
+
+    projected_graph = graph.model_copy(update={"nodes": updated_nodes})
+
+    # 2. Root Cause Attribution
+    root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO] = []
+    for node in projected_graph.nodes:
+        if node.blame_parent_ids:
+            paragraph_ref = ""
+            if node.paragraph_ref is not None:
+                paragraph_ref = node.paragraph_ref
+            for parent_id in node.blame_parent_ids:
+                root_cause_diagnoses.append(
+                    CausalRootCauseDiagnosisDTO(
+                        failing_node_id=node.node_id,
+                        root_cause_parent_id=parent_id,
+                        paragraph_ref=paragraph_ref,
+                        explanation=f"Cascading failure caused by root issue in parent '{parent_id}'.",
+                        penalty_points=1.0,
+                    )
+                )
+
+    # 3. Anti-Fluff Shield
+    isolated_count = len(projected_graph.isolated_node_ids)
+    cycle = projected_graph.cycle_detected
+    unsupported_count = sum(1 for n in projected_graph.nodes if not n.source_quote)
+    total_nodes = len(projected_graph.nodes)
+    if total_nodes == 0:
+        cohesion = 1.0
+    else:
+        connected_ratio = max(0.0, 1.0 - (isolated_count / total_nodes))
+        if cycle:
+            connected_ratio *= 0.5
+        cohesion = round(connected_ratio, 4)
+
+    anti_fluff_audit = AntiFluffAuditDTO(
+        isolated_concept_count=isolated_count,
+        cycle_detected=cycle,
+        unsupported_claims_count=unsupported_count,
+        logical_cohesion_score=cohesion,
+        detected_hollow_terms=[],
+    )
+
+    # 4. Prescriptive Remediation
+    prescriptive_remediations: list[PrescriptiveRemediationDTO] = []
+    node_by_id = {n.node_id: n for n in projected_graph.nodes}
+    for root_id in projected_graph.root_cause_node_ids:
+        root_node = None
+        if root_id in node_by_id:
+            root_node = node_by_id[root_id]
+        dependent_children: set[str] = set()
+        if root_node is not None:
+            dependent_children = set(root_node.dependent_child_ids)
+        blaming_nodes = {n.node_id for n in projected_graph.nodes if root_id in n.blame_parent_ids}
+        unlocked = sorted(list((dependent_children | blaming_nodes) - {root_id}))
+        if unlocked:
+            prescriptive_remediations.append(
+                PrescriptiveRemediationDTO(
+                    target_node_id=root_id,
+                    required_action=f"Remediate foundational claim in node '{root_id}' to restore downstream validity.",
+                    unlocks_node_ids=unlocked,
+                    potential_score_impact=float(len(unlocked) + 1),
+                )
+            )
+
+    # 5. Fair Scoring Deduplication
+    effective_dampening = get_settings().causal_secondary_fault_dampening
+    if dampening_factor is not None:
+        effective_dampening = dampening_factor
+
+    failing_nodes = [
+        n
+        for n in projected_graph.nodes
+        if n.status in (ExecutionStatus.FAILED, ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
+    ]
+    if not failing_nodes and (projected_graph.root_cause_node_ids or root_cause_diagnoses):
+        cascading_fault_count = len({d.failing_node_id for d in root_cause_diagnoses})
+        independent_error_count = len(projected_graph.root_cause_node_ids)
+    else:
+        cascading_fault_count = sum(1 for n in failing_nodes if n.blame_parent_ids)
+        independent_error_count = sum(1 for n in failing_nodes if not n.blame_parent_ids)
+
+    raw_penalty = float(independent_error_count + cascading_fault_count) * 1.0
+    dampened_savings = round(float(cascading_fault_count) * 1.0 * effective_dampening, 4)
+    deduplicated_penalty = round(raw_penalty - dampened_savings, 4)
+
+    fair_scoring = FairScoringBreakdownDTO(
+        independent_error_count=independent_error_count,
+        cascading_fault_count=cascading_fault_count,
+        raw_penalty_points=raw_penalty,
+        deduplicated_penalty_points=deduplicated_penalty,
+        dampened_savings_points=dampened_savings,
+    )
+
+    return CausalTdaFusionResultDTO(
+        graph=projected_graph,
+        root_cause_diagnoses=root_cause_diagnoses,
+        anti_fluff_audit=anti_fluff_audit,
+        prescriptive_remediations=prescriptive_remediations,
+        fair_scoring=fair_scoring,
+    )
 
 
 class ExecutionCommitter:
@@ -254,6 +458,19 @@ class NodeExecutor:
                             details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                         )
                     step_def = Step.model_validate(step_def_data)
+
+                # Scoring Hook Separation Contract: Standalone causal steps or steps with zero criteria matrices
+                # and no evaluative matrices omit apply_scoring_logic_hook.
+                if "apply_scoring_logic_hook" in step_def.post_hooks or "apply_scoring_logic" in step_def.post_hooks:
+                    has_step_matrices = bool(step_def.criteria_block_ids)
+                    has_eval_matrices = bool(global_context_vars and global_context_vars.evaluative_matrices)
+                    if not has_step_matrices and not has_eval_matrices:
+                        filtered_posts = [
+                            h
+                            for h in step_def.post_hooks
+                            if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")
+                        ]
+                        step_def = step_def.model_copy(update={"post_hooks": filtered_posts})
 
                 normalized_mappings = {}
                 for logical_name, path in step.input_mappings.items():
@@ -491,6 +708,20 @@ class DAGExecutor:
                 tasks = [tg.create_task(_fetch_and_validate(b_id)) for b_id in blueprint_ids]
             results = [t.result() for t in tasks]
             step_definitions = dict(results)
+
+        # Scoring Hook Separation Contract:
+        # In standalone non-matrix workflows (zero criteria matrix blocks), omit apply_scoring_logic_hook
+        # to prevent false-positive fail-fast crashes on empty evaluative matrices.
+        has_criteria_matrices = any(
+            bool(s_def.criteria_block_ids) for s_def in step_definitions.values() if s_def is not None
+        )
+        if not has_criteria_matrices:
+            for bp_id, s_def in step_definitions.items():
+                if "apply_scoring_logic_hook" in s_def.post_hooks or "apply_scoring_logic" in s_def.post_hooks:
+                    filtered_posts = [
+                        h for h in s_def.post_hooks if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")
+                    ]
+                    step_definitions[bp_id] = s_def.model_copy(update={"post_hooks": filtered_posts})
 
         if strictness_level is None:
             strictness_level = workflow.default_strictness_level
@@ -774,6 +1005,139 @@ class DAGExecutor:
                         )
                         return
 
+                # --- Causal Discovery Upstream Resolution & Fusion Atom Injection ---
+                upstream_graph: CausalGraphPayloadDTO | None = None
+                if step_obj.causal_source_step_id is not None:
+                    if step_obj.causal_source_step_id not in steps_by_id:
+                        msg = (
+                            f"Step '{step_id}' references causal_source_step_id "
+                            f"'{step_obj.causal_source_step_id}' which does not exist in workflow."
+                        )
+                        logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=400,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        )
+
+                    source_state = None
+                    if step_obj.causal_source_step_id in exec_record.step_states:
+                        source_state = exec_record.step_states[step_obj.causal_source_step_id]
+                    if source_state is None or source_state.status != ExecutionStatus.PASSED:
+                        logger.error(
+                            "[DAGExecutor] %s: Upstream causal step '%s' did not complete successfully.",
+                            ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
+                            step_obj.causal_source_step_id,
+                        )
+                        raise AppException(
+                            message="Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation.",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION},
+                        )
+
+                    for evt in reversed(exec_record.execution_trace):
+                        if evt.step_name == step_obj.causal_source_step_id and evt.event_type == "output":
+                            match evt.content:
+                                case CausalGraphPayloadDTO() as direct_graph:
+                                    upstream_graph = direct_graph
+                                    break
+                                case StepOutputContentDTO() as step_out:
+                                    try:
+                                        upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                            step_out.data
+                                        )
+                                        break
+                                    except ValidationError as err:
+                                        logger.error(
+                                            "[DAGExecutor] %s: Failed to parse upstream causal graph from step output: %s",
+                                            ErrorCodes.VALIDATION_FAILED.name,
+                                            err,
+                                        )
+                                        raise AppException(
+                                            message=f"Failed to parse upstream causal graph: {err}",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                        ) from err
+                                case _:
+                                    try:
+                                        upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(evt.content)
+                                        break
+                                    except ValidationError as err:
+                                        logger.error(
+                                            "[DAGExecutor] %s: Failed to parse upstream causal graph from trace event: %s",
+                                            ErrorCodes.VALIDATION_FAILED.name,
+                                            err,
+                                        )
+                                        raise AppException(
+                                            message=f"Failed to parse upstream causal graph: {err}",
+                                            status_code=500,
+                                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                        ) from err
+
+                    if upstream_graph is None:
+                        for snap_dto in projector.snapshot:
+                            if snap_dto.step_id == step_obj.causal_source_step_id:
+                                match snap_dto.payload:
+                                    case CausalGraphPayloadDTO() as snap_graph:
+                                        upstream_graph = snap_graph
+                                        break
+                                    case StepOutputContentDTO() as snap_step_out:
+                                        try:
+                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                snap_step_out.data
+                                            )
+                                            break
+                                        except ValidationError as err:
+                                            logger.error(
+                                                "[DAGExecutor] %s: Failed to parse upstream causal graph from snapshot: %s",
+                                                ErrorCodes.VALIDATION_FAILED.name,
+                                                err,
+                                            )
+                                            raise AppException(
+                                                message=f"Failed to parse upstream causal graph from snapshot: {err}",
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                            ) from err
+                                    case _:
+                                        try:
+                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                snap_dto.payload
+                                            )
+                                            break
+                                        except ValidationError as err:
+                                            logger.error(
+                                                "[DAGExecutor] %s: Failed to parse upstream causal graph from snapshot payload: %s",
+                                                ErrorCodes.VALIDATION_FAILED.name,
+                                                err,
+                                            )
+                                            raise AppException(
+                                                message=f"Failed to parse upstream causal graph from snapshot payload: {err}",
+                                                status_code=500,
+                                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                            ) from err
+
+                    if upstream_graph is None or not upstream_graph.nodes:
+                        msg = "Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation."
+                        logger.error("[DAGExecutor] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION},
+                        )
+
+                    fusion_atoms = transform_causal_nodes_to_atoms(upstream_graph.nodes)
+                    async with _update_lock:
+                        global_context_vars = global_context_vars.model_copy(update={"shuffled_atoms": fusion_atoms})
+                        base_meta = exec_record.metadata or ExecutionMetadata(
+                            workflow_version=workflow.version,
+                            model_registry_id=workflow.model_registry_id,
+                        )
+                        exec_record = exec_record.model_copy(
+                            update={
+                                "metadata": base_meta.model_copy(update={"global_context_vars": global_context_vars})
+                            }
+                        )
+
                 # --- Pre-Synthesis Matrix Reducer Lifecycle Event ---
                 step_def = None
                 if step_obj.task_blueprint is not None and step_obj.task_blueprint in step_definitions:
@@ -882,6 +1246,42 @@ class DAGExecutor:
                             step_def=node_step_def,
                             global_context_vars=global_context_vars,
                         )
+
+                if step_obj.causal_source_step_id is not None and upstream_graph is not None:
+                    evaluated_atoms: list[AtomResultDTO] = []
+                    for evt in events:
+                        match evt.content:
+                            case AtomResultDTO() as single_atom:
+                                evaluated_atoms.append(single_atom)
+                            case _:
+                                if type(evt.content) is dict and "results" in evt.content:
+                                    raw_results = evt.content["results"]
+                                    if type(raw_results) is list:
+                                        for item in raw_results:
+                                            match item:
+                                                case AtomResultDTO() as item_atom:
+                                                    evaluated_atoms.append(item_atom)
+                                                case _:
+                                                    if type(item) is dict:
+                                                        evaluated_atoms.append(
+                                                            AtomResultDTO.model_validate(item, strict=False)
+                                                        )
+                    atoms_arg: list[AtomResultDTO] | None = None
+                    if evaluated_atoms:
+                        atoms_arg = evaluated_atoms
+                    fusion_res = compute_causal_tda_fusion_result(
+                        graph=upstream_graph,
+                        evaluative_matrices=global_context_vars.evaluative_matrices,
+                        evaluated_atoms=atoms_arg,
+                        dampening_factor=settings.causal_secondary_fault_dampening,
+                    )
+                    events.append(
+                        TraceEvent(
+                            step_name=step_id,
+                            event_type="output",
+                            content=fusion_res,
+                        )
+                    )
 
                 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
                 async with _update_lock:

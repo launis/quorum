@@ -72,19 +72,19 @@
   - [x] Step 3.5: Topological wave execution and cycle traversal defense
   - [x] Step 3.6: ISTQB unit test implementation
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 4: DAG Router & Optional Chained Fusion Integration
 **Plan:** @[docs/epic/tasks_EPIC_154/04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 4.1: Register CausalDiscoveryEngine in ENGINE_REGISTRY
-  - [ ] Step 4.2: Wave-based TaskGroup execution integration
-  - [ ] Step 4.3: Transform causal nodes to atoms and inject global context
-  - [ ] Step 4.4: Data starvation Fail-Fast enforcement
-  - [ ] Step 4.5: Scoring hook separation and five stakeholder benefit pipelines
-  - [ ] Step 4.6: Polyfactory fixtures and fusion integration tests
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 4.1: Register CausalDiscoveryEngine in ENGINE_REGISTRY
+  - [x] Step 4.2: Wave-based TaskGroup execution integration
+  - [x] Step 4.3: Transform causal nodes to atoms and inject global context
+  - [x] Step 4.4: Data starvation Fail-Fast enforcement
+  - [x] Step 4.5: Scoring hook separation and five stakeholder benefit pipelines
+  - [x] Step 4.6: Polyfactory fixtures and fusion integration tests
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 5: Atomic SDUI Presentation Parity & Theme Sovereignty
@@ -260,29 +260,26 @@
 # Session Handover Context
 
 ## Achieved
-- Implemented autonomous `CausalDiscoveryEngine` in `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]` complying strictly with the `ExecutionEngine` Protocol (`telemetry_strategy_label = "causal"`).
-- Built pre-flight validation raising `AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT)` on empty or whitespace text.
-- Enforced Four-Layer Clean Stack prompt compilation with static caching topology and exact lexical quote anchoring via `str.find` against indexed paragraph blocks.
-- Implemented claim extraction starvation guard raising `AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION)`.
-- Integrated `SlidingWindowLinker` with dynamic parameter injection (`causal_discovery_window_size`, `causal_discovery_overlap`).
-- Executed topological wave evaluation with Kahn's algorithm, thread-isolated cycle defense marking `SYSTEM_ERROR` with `CYCLIC_DEPENDENCY_DETECTED`, cycle node quarantine, and bounded $O(V+E)$ blame propagation.
-- Re-exported `CausalDiscoveryEngine` in `@[backend_v2/services/orchestrator/engines/__init__.py]`.
-- Implemented 11 comprehensive ISTQB unit tests in `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]` with 100% test pass rate and 98% coverage.
-- Passed `backend_audit_loop.py` on both the engine and test target with 0 AST violations, clean formatting, valid typing, and zero dictionary usage.
+- Registered `CausalDiscoveryEngine` in `ENGINE_REGISTRY` (`backend_v2/services/orchestrator/engines/registry.py#L35-L60`) under `EngineType.CAUSAL_DISCOVERY`.
+- Implemented `transform_causal_nodes_to_atoms` and `compute_causal_tda_fusion_result` in `backend_v2/services/orchestrator/dag_executor.py#L577-L1679`.
+- Integrated wave-based DAG execution in `DAGExecutor` to resolve upstream causal discovery graphs and inject transformed `FlattenedAtom` instances into `global_context_vars.shuffled_atoms` under `_update_lock`.
+- Enforced data starvation Fail-Fast (`ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION`) and Scoring Hook Separation (omitting `apply_scoring_logic_hook` when criteria matrices are absent).
+- Added `CausalNodeDTOFactory` and `CausalGraphPayloadDTOFactory` in `backend_v2/tests/factories/model_factories.py#L403-L417` and registered in `backend_v2/tests/factories/test_model_factories.py#L39-L46`.
+- Implemented comprehensive 11-contract test suite in `backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py` passing 100% with strict AST compliance.
+- Passed all Universal Quality Gate checks (Ruff, MyPy strict, AST Guardrails QGR000-QGR029, clean imports, DTO parity, and markdown boundaries).
 
 ## Learned
-- `QGR016` flags `or ""` fallbacks in domain code; explicit `is not None and ...` preserves strict typing and prevents default string coersion.
-- `QGR002` strictly bans `.get()` on dictionaries in domain code; `if k in dict:` and direct indexing enforces strict zero permissive typing.
-- Starlette deprecates `HTTP_422_UNPROCESSABLE_ENTITY` in favor of `status.HTTP_422_UNPROCESSABLE_CONTENT`.
-- `ExtractedAtom.tda_id` enforces regex pattern `^tda_[a-fA-F0-9]{8,32}$`; mock atom IDs must use valid hex strings.
+- In `backend_v2/services/orchestrator/dag_executor.py`, upstream causal discovery graphs produce proposition nodes that directly transform into `FlattenedAtom` instances to feed downstream TDA engines without intermediate proxies.
+- AST guardrail `QGR002` strictly forbids `.get()` calls on dictionaries in tests and domain code; explicit key lookups or subscript access with guards must be used.
+- `audit_markdown_boundaries.py` enforces exact class/function bounds matching `(start, end)` lineno including decorators; functions decorated with `@pytest.mark.parametrize` start at the decorator's line number.
 
 ## Remaining
-- Run plan audit gate:
-  `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- Run Tier 8 plan audit for Phase 4: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
+- Proceed to Phase 5: Atomic SDUI Presentation Parity & Theme Sovereignty (`@[docs/epic/tasks_EPIC_154/05_phase5_plan.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/03_phase3_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/04_phase4_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
 
 

@@ -14,6 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import EngineType
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
+from backend_v2.services.orchestrator.engines.causal_discovery_engine import CausalDiscoveryEngine
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -27,6 +28,7 @@ ENGINE_REGISTRY: dict[EngineType, Callable[[PromptCompiler], ExecutionEngine]] =
     EngineType.TDA: lambda compiler: TDAEngine(compiler),
     EngineType.SYNTHESIS: lambda compiler: SynthesisEngine(LLMTaskExecutor(compiler)),
     EngineType.PROMPT: lambda compiler: PromptEngine(LLMTaskExecutor(compiler)),
+    EngineType.CAUSAL_DISCOVERY: lambda compiler: CausalDiscoveryEngine(compiler),
 }
 
 

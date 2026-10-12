@@ -8,6 +8,7 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import EngineType
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
+from backend_v2.services.orchestrator.engines.causal_discovery_engine import CausalDiscoveryEngine
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.engines.registry import (
     ENGINE_REGISTRY,
@@ -54,16 +55,14 @@ def test_build_execution_engine_prompt_returns_prompt_engine(
     assert engine.telemetry_strategy_label == "prompt"
 
 
-def test_build_execution_engine_unsupported_raises_app_exception(
+def test_build_execution_engine_causal_discovery_returns_causal_discovery_engine(
     mock_prompt_compiler: MagicMock,
 ) -> None:
-    """Verify unmapped EngineType (e.g. CAUSAL_DISCOVERY before Phase 3) raises AppException."""
-    # EngineType.CAUSAL_DISCOVERY is not yet in ENGINE_REGISTRY until Phase 3
-    with pytest.raises(AppException) as exc_info:
-        build_execution_engine(EngineType.CAUSAL_DISCOVERY, mock_prompt_compiler)
-
-    assert exc_info.value.status_code == 422
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+    """Verify EngineType.CAUSAL_DISCOVERY resolves to CausalDiscoveryEngine with canonical telemetry label."""
+    engine = build_execution_engine(EngineType.CAUSAL_DISCOVERY, mock_prompt_compiler)
+    assert isinstance(engine, CausalDiscoveryEngine)
+    assert isinstance(engine, ExecutionEngine)
+    assert engine.telemetry_strategy_label == "causal"
 
 
 def test_build_execution_engine_invalid_value_raises_app_exception(
@@ -93,3 +92,4 @@ def test_engine_registry_contains_expected_keys() -> None:
     assert EngineType.TDA in ENGINE_REGISTRY
     assert EngineType.SYNTHESIS in ENGINE_REGISTRY
     assert EngineType.PROMPT in ENGINE_REGISTRY
+    assert EngineType.CAUSAL_DISCOVERY in ENGINE_REGISTRY
