@@ -268,8 +268,11 @@
 - Strategy Registry & DAG Execution: Registered `StepType.CAUSAL_DISCOVERY: _build_llm_strategy` in `NODE_STRATEGY_REGISTRY` and enabled `NodeExecutor.execute` support in `dag_executor.py`.
 - Immutable Causal DTOs: Created 8 immutable Pydantic V2 DTOs in `backend_v2/models/dtos/causal_discovery.py` enforcing `ConfigDict(strict=True, extra="forbid", frozen=True)` with cross-field referential integrity (`CausalGraphPayloadDTO`) and mathematical identity (`FairScoringBreakdownDTO`) validators.
 - Pipeline Envelope Extension: Extended `StepPayloadValue` with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`, and updated `StepOutputDTO.data_type` with `"causal"`.
+- Domain Input Value Parity: Extended `DomainInputValue` in `backend_v2/models/domain/inputs.py` with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`, resolving MyPy strict errors in `LogicNodeStrategy`.
 - Presentation Localization: Added all 7 compile-time localization keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`, compiled via `flutter gen-l10n`.
 - DTO Parity & Audit Loop Modernization: Explicitly aliased `causaledge -> causaledgedto` in `scripts/audit_dto_parity.py` to preserve 1:1 boundary contracts between Python `CausalEdge` and Dart `CausalEdgeDTO`. Added `test_{clean_base}_dtos.py` candidate resolution to `scripts/backend_audit_loop.py`.
+- Plan & Tracker Parity: Resolved all 5 fatal findings in `audit_plan_tracker_parity.py` (Step 0 mapped in Execution Status & Traceability Matrix, hardening targets declared).
+- Global Completion Gate: Passed `uv run python scripts/backend_audit_loop.py backend_v2/ --test` across all 10 stages and 5,224 unit/integration tests with 97.75% coverage.
 
 ## Learned
 - Cross-domain DTO parity audit matches case-insensitive class names across Python and Dart. When a Python class (`CausalEdge` in `dag_models.py`) pairs with a Dart Freezed class (`CausalEdgeDTO` in `prompt_block.dart`), introducing a new Python DTO with the name `CausalEdgeDTO` triggers an unintended match unless explicitly mapped in `EXPLICIT_MODEL_ALIASES`.
