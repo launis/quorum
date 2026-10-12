@@ -42,6 +42,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
@@ -120,7 +121,7 @@ class LLMNodeStrategy(NodeStrategy):
         """
         gvars = {}
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
+            gvars = hook_state.global_context_vars.model_dump(mode="json", exclude_none=True)
         elif (
             not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
             and hook_state.global_context_vars is not None
@@ -837,6 +838,8 @@ class LLMNodeStrategy(NodeStrategy):
             if engine_result.synthesis_output is not None:
                 if isinstance(engine_result.synthesis_output, BaseModel):
                     final_dict = engine_result.synthesis_output.model_dump(exclude_none=True)
+                    if isinstance(engine_result.synthesis_output, CausalGraphPayloadDTO):
+                        final_dict = {"graph": engine_result.synthesis_output}
                 elif not isinstance(engine_result.synthesis_output, (str, int, float, bool, list)):
                     final_dict = {k: v for k, v in engine_result.synthesis_output.items() if v is not None}
                 else:

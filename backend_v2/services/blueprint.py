@@ -544,13 +544,23 @@ class BlueprintTransformer:
             # Hydrate causal_result from execution traces or step_states
             causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
             if execution is not None:
+                causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
+                    CausalTdaFusionResultDTO | CausalGraphPayloadDTO
+                )
                 for evt in reversed(execution.execution_trace):
-                    match evt.content:
-                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                            causal_result = evt.content
+                    content = evt.content
+                    if isinstance(content, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                        causal_result = content
+                        break
+                    if type(content) is dict:
+                        candidate = content
+                        if "fusion" in candidate and type(candidate["fusion"]) is dict:
+                            candidate = candidate["fusion"]
+                        elif "graph" in candidate and type(candidate["graph"]) is dict:
+                            candidate = candidate["graph"]
+                        if "anti_fluff_audit" in candidate or "nodes" in candidate:
+                            causal_result = causal_adapter.validate_python(candidate)
                             break
-                        case _:
-                            continue
 
                 if causal_result is None and execution.step_states:
                     for state_val in execution.step_states.values():

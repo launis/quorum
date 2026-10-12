@@ -1043,10 +1043,16 @@ class DAGExecutor:
                                     break
                                 case StepOutputContentDTO() as step_out:
                                     try:
-                                        upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                            step_out.data,
-                                            strict=False,
+                                        out_payload = (
+                                            step_out.data["graph"] if "graph" in step_out.data else step_out.data
                                         )
+                                        if isinstance(out_payload, CausalGraphPayloadDTO):
+                                            upstream_graph = out_payload
+                                        else:
+                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                out_payload,
+                                                strict=False,
+                                            )
                                         break
                                     except ValidationError as err:
                                         logger.error(
@@ -1061,7 +1067,18 @@ class DAGExecutor:
                                         ) from err
                                 case _:
                                     try:
-                                        upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(evt.content)
+                                        evt_payload = (
+                                            evt.content["graph"]
+                                            if type(evt.content) is dict and "graph" in evt.content
+                                            else evt.content
+                                        )
+                                        if isinstance(evt_payload, CausalGraphPayloadDTO):
+                                            upstream_graph = evt_payload
+                                        else:
+                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                evt_payload,
+                                                strict=False,
+                                            )
                                         break
                                     except ValidationError as err:
                                         logger.error(
@@ -1084,9 +1101,18 @@ class DAGExecutor:
                                         break
                                     case StepOutputContentDTO() as snap_step_out:
                                         try:
-                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                                snap_step_out.data
+                                            snap_out_payload = (
+                                                snap_step_out.data["graph"]
+                                                if "graph" in snap_step_out.data
+                                                else snap_step_out.data
                                             )
+                                            if isinstance(snap_out_payload, CausalGraphPayloadDTO):
+                                                upstream_graph = snap_out_payload
+                                            else:
+                                                upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                    snap_out_payload,
+                                                    strict=False,
+                                                )
                                             break
                                         except ValidationError as err:
                                             logger.error(
@@ -1101,9 +1127,18 @@ class DAGExecutor:
                                             ) from err
                                     case _:
                                         try:
-                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                                snap_dto.payload
+                                            snap_payload = (
+                                                snap_dto.payload["graph"]
+                                                if type(snap_dto.payload) is dict and "graph" in snap_dto.payload
+                                                else snap_dto.payload
                                             )
+                                            if isinstance(snap_payload, CausalGraphPayloadDTO):
+                                                upstream_graph = snap_payload
+                                            else:
+                                                upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
+                                                    snap_payload,
+                                                    strict=False,
+                                                )
                                             break
                                         except ValidationError as err:
                                             logger.error(
@@ -1280,7 +1315,7 @@ class DAGExecutor:
                         TraceEvent(
                             step_name=step_id,
                             event_type="output",
-                            content=fusion_res,
+                            content={"fusion": fusion_res},
                         )
                     )
 

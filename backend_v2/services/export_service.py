@@ -15,6 +15,7 @@ import openpyxl
 import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from pydantic import TypeAdapter
 
 from backend_v2.database.interfaces import IPromptBlockRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -234,12 +235,21 @@ class ExportService:
         if execution is None:
             return None
 
+        causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
+            CausalTdaFusionResultDTO | CausalGraphPayloadDTO
+        )
         for evt in reversed(execution.execution_trace):
-            match evt.content:
-                case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                    return evt.content
-                case _:
-                    continue
+            content = evt.content
+            if isinstance(content, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                return content
+            if type(content) is dict:
+                candidate = content
+                if "fusion" in candidate and type(candidate["fusion"]) is dict:
+                    candidate = candidate["fusion"]
+                elif "graph" in candidate and type(candidate["graph"]) is dict:
+                    candidate = candidate["graph"]
+                if "anti_fluff_audit" in candidate or "nodes" in candidate:
+                    return causal_adapter.validate_python(candidate)
 
         if execution.step_states:
             for state_val in execution.step_states.values():

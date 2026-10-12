@@ -31,10 +31,14 @@ from backend_v2.models.dtos.causal_discovery import (
     PrescriptiveRemediationDTO,
 )
 from backend_v2.models.dtos.export import (
+    AtomCausalMetadataDTO,
+    AtomScaleMetadataDTO,
     ExportDenormalizedFlatRowDTO,
     ExportForensicAtomDTO,
+    ExportMatrixSummaryRowDTO,
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
@@ -1561,3 +1565,373 @@ async def test_export_flat_csv_fails_empty_results() -> None:
         await service.export_flat_csv(execution=exec_record, report_dto=report_dto, matrices=[])
     assert exc_info.value.status_code == 400
     assert "Execution has no scoreable atoms" in exc_info.value.message
+
+
+def _build_test_causal_payloads() -> tuple[CausalGraphPayloadDTO, CausalTdaFusionResultDTO]:
+    """Helper constructing validated CausalGraphPayloadDTO and CausalTdaFusionResultDTO."""
+    node1 = CausalNodeDTO(
+        node_id="tda_0000000000000001",
+        claim="Foundational architecture assumption holds true.",
+        source_quote="Foundational verified quote.",
+        paragraph_ref="Section 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000002"],
+        tda_score=5.0,
+        tda_level_key="L5",
+    )
+    node2 = CausalNodeDTO(
+        node_id="tda_0000000000000002",
+        claim="Downstream interface verification.",
+        source_quote="Interface failure quote.",
+        paragraph_ref="Section 2",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_0000000000000001"],
+        dependent_child_ids=[],
+        tda_score=1.0,
+        tda_level_key="L1",
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_0000000000000001",
+        target_id="tda_0000000000000002",
+        reasoning="Dependency implies interface requirement.",
+    )
+    graph = CausalGraphPayloadDTO(
+        nodes=[node1, node2],
+        edges=[edge],
+        root_cause_node_ids=["tda_0000000000000001"],
+        cycle_detected=False,
+        isolated_node_ids=[],
+    )
+    diag = CausalRootCauseDiagnosisDTO(
+        failing_node_id="tda_0000000000000002",
+        root_cause_parent_id="tda_0000000000000001",
+        paragraph_ref="Section 2",
+        explanation="Root assumption lacked schema boundary.",
+        penalty_points=1.5,
+    )
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=0,
+        cycle_detected=False,
+        unsupported_claims_count=1,
+        logical_cohesion_score=0.9,
+        detected_hollow_terms=[],
+    )
+    remediation = PrescriptiveRemediationDTO(
+        target_node_id="tda_0000000000000002",
+        required_action="Add extra='forbid' to model.",
+        unlocks_node_ids=["tda_0000000000000001"],
+        potential_score_impact=1.5,
+    )
+    fair_scoring = FairScoringBreakdownDTO(
+        independent_error_count=1,
+        cascading_fault_count=1,
+        raw_penalty_points=3.0,
+        deduplicated_penalty_points=1.5,
+        dampened_savings_points=1.5,
+    )
+    fusion_result = CausalTdaFusionResultDTO(
+        graph=graph,
+        root_cause_diagnoses=[diag],
+        anti_fluff_audit=audit,
+        prescriptive_remediations=[remediation],
+        fair_scoring=fair_scoring,
+    )
+    return graph, fusion_result
+
+
+def test_extract_causal_result_none_and_empty() -> None:
+    """Verify _extract_causal_result returns None for None or trace with no causal data."""
+    assert ExportService._extract_causal_result(None) is None
+
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=True)
+    assert ExportService._extract_causal_result(exec_record) is None
+
+
+def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
+    """Verify _extract_causal_result parses dict with 'fusion', 'graph', or direct 'nodes'."""
+    graph, fusion = _build_test_causal_payloads()
+
+    # 1. content is dict containing "fusion"
+    exec_fusion = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="causal_discovery",
+                event_type="output",
+                content={"fusion": fusion.model_dump(mode="json")},
+            )
+        ],
+    )
+    res_fusion = ExportService._extract_causal_result(exec_fusion)
+    assert isinstance(res_fusion, CausalTdaFusionResultDTO)
+    assert len(res_fusion.graph.nodes) == 2
+
+    # 2. content is dict containing "graph"
+    exec_graph = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="causal_discovery",
+                event_type="output",
+                content={"graph": graph.model_dump(mode="json")},
+            )
+        ],
+    )
+    res_graph = ExportService._extract_causal_result(exec_graph)
+    assert isinstance(res_graph, CausalGraphPayloadDTO)
+    assert len(res_graph.nodes) == 2
+
+    # 3. content is dict directly containing "nodes"
+    exec_raw_graph = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="causal_discovery",
+                event_type="output",
+                content=graph.model_dump(mode="json"),
+            )
+        ],
+    )
+    res_raw = ExportService._extract_causal_result(exec_raw_graph)
+    assert isinstance(res_raw, CausalGraphPayloadDTO)
+    assert len(res_raw.nodes) == 2
+
+
+def test_extract_causal_result_from_step_states() -> None:
+    """Verify _extract_causal_result extracts from step_states when trace does not contain it."""
+    graph, fusion = _build_test_causal_payloads()
+
+    # 1. StepOutputDTO with CausalTdaFusionResultDTO payload
+    exec_step_fusion = ExecutionRecord.model_construct(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        step_states={
+            "causal_step": StepOutputDTO(
+                step_id="stp_0123456789abcdef",
+                block_id="blk_0123456789abcdef",
+                data_type="causal",
+                payload=fusion,
+            )
+        },
+    )
+    assert isinstance(ExportService._extract_causal_result(exec_step_fusion), CausalTdaFusionResultDTO)
+
+    # 2. StepOutputDTO with CausalGraphPayloadDTO payload
+    exec_step_graph = ExecutionRecord.model_construct(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        step_states={
+            "causal_step": StepOutputDTO(
+                step_id="stp_0123456789abcdef",
+                block_id="blk_0123456789abcdef",
+                data_type="causal",
+                payload=graph,
+            )
+        },
+    )
+    assert isinstance(ExportService._extract_causal_result(exec_step_graph), CausalGraphPayloadDTO)
+
+    # 3. Direct causal DTO in step_states
+    exec_direct = ExecutionRecord.model_construct(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        step_states={"causal_step": graph},
+    )
+    assert isinstance(ExportService._extract_causal_result(exec_direct), CausalGraphPayloadDTO)
+
+    # 4. StepOutputDTO with non-causal payload
+    exec_other = ExecutionRecord.model_construct(
+        id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        target_locale="en",
+        status=ExecutionStatus.PASSED,
+        step_states={
+            "text_step": StepOutputDTO(
+                step_id="stp_0123456789abcdef",
+                block_id="blk_0123456789abcdef",
+                data_type="text",
+                payload="unrelated text",
+            )
+        },
+    )
+    assert ExportService._extract_causal_result(exec_other) is None
+
+
+def test_resolve_causal_meta_all_branches() -> None:
+    """Verify _resolve_causal_meta covers orphan, validated, cascading_fault, root_cause, and None."""
+    # 1. c_node is None
+    meta_none = ExportService._resolve_causal_meta(None, set(), set())
+    assert meta_none.causal_status is None
+    assert meta_none.blame_parent_id is None
+    assert meta_none.dependent_count is None
+
+    # 2. Isolated set -> orphan
+    node_orphan = CausalNodeDTO(
+        node_id="tda_0000000000000003",
+        claim="Claim orphan",
+        source_quote="Quote",
+        paragraph_ref="Section 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        tda_score=3.0,
+        tda_level_key="L3",
+    )
+    meta_orphan = ExportService._resolve_causal_meta(node_orphan, set(), {"tda_0000000000000003"})
+    assert meta_orphan.causal_status == "orphan"
+
+    # 3. Passed -> validated
+    node_passed = CausalNodeDTO(
+        node_id="tda_0000000000000001",
+        claim="Claim passed",
+        source_quote="Quote",
+        paragraph_ref="Section 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000002"],
+        tda_score=5.0,
+        tda_level_key="L5",
+    )
+    meta_passed = ExportService._resolve_causal_meta(node_passed, set(), set())
+    assert meta_passed.causal_status == "validated"
+    assert meta_passed.dependent_count == 1
+
+    # 4. Failed with blame parents -> cascading_fault
+    node_cascading = CausalNodeDTO(
+        node_id="tda_0000000000000002",
+        claim="Claim cascading",
+        source_quote="Quote",
+        paragraph_ref="Section 2",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_0000000000000001"],
+        dependent_child_ids=[],
+        tda_score=1.0,
+        tda_level_key="L1",
+    )
+    meta_cascading = ExportService._resolve_causal_meta(node_cascading, set(), set())
+    assert meta_cascading.causal_status == "cascading_fault"
+    assert meta_cascading.blame_parent_id == "tda_0000000000000001"
+
+    # 5. Failed without blame parents -> root_cause
+    node_root = CausalNodeDTO(
+        node_id="tda_0000000000000004",
+        claim="Claim root cause",
+        source_quote="Quote",
+        paragraph_ref="Section 3",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000005"],
+        tda_score=1.0,
+        tda_level_key="L1",
+    )
+    meta_root = ExportService._resolve_causal_meta(node_root, set(), set())
+    assert meta_root.causal_status == "root_cause"
+    assert meta_root.blame_parent_id is None
+    assert meta_root.dependent_count == 1
+
+
+def test_resolve_context_target_and_matrix_label_branches() -> None:
+    """Verify _resolve_context_target and _resolve_matrix_label fallback paths."""
+    # Context target None parent
+    assert ExportService._resolve_context_target(None, "en") == ""
+
+    # Context target with fallback string
+    row = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Axis 1",
+        label_i18n=I18nText(translations={"en": "Axis 1"}),
+        score=3.0,
+        scale_max=5.0,
+        row_explanation="Explanation",
+        is_evaluative=True,
+        context_target="Explicit Fallback Target",
+    )
+    assert ExportService._resolve_context_target(row, "en") == "Explicit Fallback Target"
+
+    # _resolve_matrix_label parent_m name fallback when label_i18n resolved
+    row_label = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Fallback Matrix Name",
+        label_i18n=I18nText(translations={"en": "Parent Matrix Label", "fi": "Suomeksi"}),
+        score=3.0,
+        scale_max=5.0,
+        row_explanation="Explanation",
+        is_evaluative=True,
+    )
+    resolved_name = ExportService._resolve_matrix_label(
+        tda_id="tda_0123456789abcdef",
+        atom_matrix_id="blk_unregistered_id",
+        parent_m=row_label,
+        matrix_title_lookup={},
+        blocks_by_id={},
+        atom_scale_meta={},
+        locale="en",
+    )
+    assert resolved_name == "Parent Matrix Label"
+
+    # _resolve_matrix_label atom_scale_meta path when atom_matrix_id and parent_m are None
+    scale_meta = {
+        "tda_0123456789abcdef": AtomScaleMetadataDTO(
+            matrix_id="blk_0123456789abcdef",
+            level=1,
+            level_name="Level 1",
+            criterion="Criterion",
+            is_inverse=False,
+        )
+    }
+    resolved_scale = ExportService._resolve_matrix_label(
+        tda_id="tda_0123456789abcdef",
+        atom_matrix_id=None,
+        parent_m=None,
+        matrix_title_lookup={"blk_0123456789abcdef": "Lookup Title"},
+        blocks_by_id={},
+        atom_scale_meta=scale_meta,
+        locale="en",
+    )
+    assert resolved_scale == "Lookup Title"
+
+
+def test_build_matrix_summary_rows_extra_branches() -> None:
+    """Verify _build_summary_dtos handles raw_score, cited_source_id, and localized label."""
+    service = ExportService()
+    row = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Fallback Axis Name",
+        label_i18n=I18nText(translations={"en": "English Axis", "fi": "Akseli"}),
+        score=4.0,
+        raw_score=3.5,
+        scale_max=5.0,
+        row_explanation="Summary reasoning",
+        is_evaluative=True,
+        cited_source_id="[src_doc_1]",
+    )
+    rows = service._build_summary_dtos([row], "en", "exe_0123456789abcdef")
+    assert len(rows) == 1
+    assert rows[0].label == "English Axis"
+    assert rows[0].raw_score == 3.5
+    assert rows[0].source == "src_doc_1"
+
+

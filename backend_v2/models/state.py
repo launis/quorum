@@ -24,6 +24,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
@@ -626,8 +627,35 @@ class StateProjector:
                 self._snapshot[event.step_name] = StepOutputContentDTO(data={"reduced_atoms": content.reduced_atoms})
             elif isinstance(content, LightweightMatrixOutput):
                 self._snapshot[event.step_name] = StepOutputContentDTO(data={event.step_name: content})
+            elif isinstance(content, CausalTdaFusionResultDTO):
+                if event.step_name in self._snapshot:
+                    existing = self._snapshot[event.step_name]
+                    if isinstance(existing, StepOutputContentDTO):
+                        new_data = dict(existing.data)
+                        new_data["fusion"] = content
+                        self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                    else:
+                        self._snapshot[event.step_name] = StepOutputContentDTO(data={"fusion": content})
+                else:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data={"fusion": content})
+            elif isinstance(content, CausalGraphPayloadDTO):
+                if event.step_name in self._snapshot:
+                    existing = self._snapshot[event.step_name]
+                    if isinstance(existing, StepOutputContentDTO):
+                        new_data = dict(existing.data)
+                        new_data["graph"] = content
+                        self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                    else:
+                        self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
+                else:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
             elif type(content) is dict:
-                self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
+                if "anti_fluff_audit" in content and "fair_scoring" in content and "graph" in content:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(
+                        data={"fusion": CausalTdaFusionResultDTO.model_validate(content, strict=False)}
+                    )
+                else:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
             else:
                 self._snapshot[event.step_name] = content
         elif event.event_type == "tombstone":

@@ -11,7 +11,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
 
 __all__ = [
     "AntiFluffAuditDTO",
@@ -38,7 +38,7 @@ class CausalNodeDTO(V2CoreBase):
     paragraph_ref: Annotated[
         str | None, Field(default=None, description="Paragraph or block reference in source text.")
     ] = None
-    status: Annotated[ExecutionStatus, Field(description="Execution and verification status.")]
+    status: Annotated[LaxExecutionStatus, Field(description="Execution and verification status.")]
     blame_parent_ids: Annotated[
         list[str],
         Field(default_factory=list, description="IDs of upstream parent nodes contributing to failure."),
