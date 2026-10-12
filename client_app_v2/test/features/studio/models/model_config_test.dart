@@ -125,5 +125,69 @@ void main() {
         );
       },
     );
+
+    test(
+      'Positive 2: Parses reasoning_effort from additional_params and exposes via getter',
+      () {
+        final payload = {
+          'id': 'sys_1234567890abcdef',
+          'type': 'model_registry',
+          'tier_definitions': {
+            'reasoning': {
+              'provider': 'openai',
+              'model_name': 'openai/gpt-5.4',
+              'additional_params': {
+                'reasoning_effort': 'medium',
+              },
+            },
+          },
+        };
+
+        final config = ModelConfig.fromJson(payload);
+        final tier = config.tierDefinitions['reasoning']!;
+        expect(tier.reasoningEffort, 'medium');
+        expect(tier.additionalParams['reasoning_effort'], 'medium');
+
+        // Test withReasoningEffort modification
+        final updated = tier.withReasoningEffort('high');
+        expect(updated.reasoningEffort, 'high');
+        expect(updated.additionalParams['reasoning_effort'], 'high');
+
+        // Test withReasoningEffort removal
+        final cleared = updated.withReasoningEffort(null);
+        expect(cleared.reasoningEffort, isNull);
+        expect(cleared.additionalParams.containsKey('reasoning_effort'), isFalse);
+
+        // Test serialization does NOT include root-level reasoning_effort
+        final json = updated.toJson();
+        expect(json.containsKey('reasoning_effort'), isFalse);
+        expect(
+          (json['additional_params'] as Map<String, dynamic>?)?['reasoning_effort'],
+          'high',
+        );
+      },
+    );
+
+    test(
+      'Negative 5: Throws CheckedFromJsonException when reasoning_effort is provided at root level',
+      () {
+        final payload = {
+          'id': 'sys_1234567890abcdef',
+          'type': 'model_registry',
+          'tier_definitions': {
+            'reasoning': {
+              'provider': 'openai',
+              'model_name': 'openai/gpt-5.4',
+              'reasoning_effort': 'high',
+            },
+          },
+        };
+
+        expect(
+          () => ModelConfig.fromJson(payload),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 }

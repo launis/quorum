@@ -155,3 +155,55 @@ async def test_clone_model_registry(mock_current_user: TokenData, mock_studio_se
         registry_id="sys_1234567890abcdef", current_user=mock_current_user, studio_service=mock_studio_service
     )
     assert res.id == "sys_a1b2c3d4e5f60718"
+
+
+def test_model_profile_and_registry_accepts_reasoning_effort_in_additional_params() -> None:
+    """Verifies that ModelProfile and SystemConfigModelRegistry accept reasoning_effort in additional_params."""
+    payload = {
+        "id": "sys_b1c2d3e4f5a60718",
+        "name": "Default Model Registry",
+        "type": "model_registry",
+        "default_provider": "ai_studio",
+        "tier_definitions": {
+            "fast": {
+                "provider": "google",
+                "model_name": "gemini-2.5-flash",
+                "temperature": 1.0,
+                "max_tokens": 8192,
+                "tpm_limit": 1000,
+                "rpm_limit": 10,
+                "additional_params": {},
+            },
+            "balanced": {
+                "provider": "google",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 1.0,
+                "max_tokens": 8192,
+                "tpm_limit": 1000,
+                "rpm_limit": 10,
+                "additional_params": {},
+            },
+            "deep": {
+                "provider": "openai",
+                "model_name": "openai/gpt-5.4",
+                "temperature": 1.0,
+                "max_tokens": 32768,
+                "tpm_limit": 1000,
+                "rpm_limit": 10,
+                "additional_params": {"reasoning_effort": "medium"},
+            },
+            "reasoning": {
+                "provider": "openai",
+                "model_name": "openai/gpt-5.4",
+                "temperature": 1.0,
+                "max_tokens": 32768,
+                "tpm_limit": 1000,
+                "rpm_limit": 10,
+                "additional_params": {"reasoning_effort": "high"},
+            },
+        },
+    }
+    registry = SystemConfigModelRegistry.model_validate(payload)
+    assert registry.tier_definitions[CognitiveTier.FAST].additional_params.reasoning_effort is None
+    assert registry.tier_definitions[CognitiveTier.DEEP].additional_params.reasoning_effort == "medium"
+    assert registry.tier_definitions[CognitiveTier.REASONING].additional_params.reasoning_effort == "high"

@@ -94,7 +94,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'api_key',
         'caching_strategy',
         'thinking_budget_tokens',
-        'reasoning_effort',
         'additional_params',
       ],
     );
@@ -135,7 +134,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'thinking_budget_tokens',
         (v) => (v as num?)?.toInt(),
       ),
-      reasoningEffort: $checkedConvert('reasoning_effort', (v) => v as String?),
       additionalParams: $checkedConvert(
         'additional_params',
         (v) => v as Map<String, dynamic>? ?? const {},
@@ -159,7 +157,6 @@ _LlmModelConfig _$LlmModelConfigFromJson(
     'apiKey': 'api_key',
     'cachingStrategy': 'caching_strategy',
     'thinkingBudgetTokens': 'thinking_budget_tokens',
-    'reasoningEffort': 'reasoning_effort',
     'additionalParams': 'additional_params',
   },
 );
@@ -183,6 +180,5 @@ Map<String, dynamic> _$LlmModelConfigToJson(_LlmModelConfig instance) =>
       'api_key': instance.apiKey,
       'caching_strategy': instance.cachingStrategy,
       'thinking_budget_tokens': instance.thinkingBudgetTokens,
-      'reasoning_effort': instance.reasoningEffort,
       'additional_params': instance.additionalParams,
     };

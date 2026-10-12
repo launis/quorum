@@ -28,6 +28,8 @@ abstract class ModelConfig with _$ModelConfig {
 /// Strongly-typed Sub-Model for individual LLM Configurations.
 @Freezed(equal: false)
 abstract class LlmModelConfig with _$LlmModelConfig {
+  const LlmModelConfig._();
+
   const factory LlmModelConfig({
     @Default('unknown') String provider,
     @JsonKey(name: 'model_name') @Default('') String modelName,
@@ -46,7 +48,6 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'caching_strategy') String? cachingStrategy,
     @JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,
-    @JsonKey(name: 'reasoning_effort') String? reasoningEffort,
     @JsonKey(name: 'additional_params')
     @Default({})
     Map<String, Object?> additionalParams,
@@ -54,4 +55,17 @@ abstract class LlmModelConfig with _$LlmModelConfig {
 
   factory LlmModelConfig.fromJson(Map<String, dynamic> json) =>
       _$LlmModelConfigFromJson(json);
+
+  String? get reasoningEffort =>
+      additionalParams['reasoning_effort'] as String?;
+
+  LlmModelConfig withReasoningEffort(String? val) {
+    final updated = Map<String, Object?>.from(additionalParams);
+    if (val == null) {
+      updated.remove('reasoning_effort');
+    } else {
+      updated['reasoning_effort'] = val;
+    }
+    return copyWith(additionalParams: updated);
+  }
 }

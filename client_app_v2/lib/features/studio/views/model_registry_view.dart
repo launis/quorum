@@ -711,10 +711,7 @@ class ModelRegistryView extends HookConsumerWidget {
                               ),
                             ],
                             onChanged: (val) {
-                              updateTier(
-                                tierKey,
-                                cfg.copyWith(reasoningEffort: val),
-                              );
+                              updateTier(tierKey, cfg.withReasoningEffort(val));
                             },
                           ),
                         ),
