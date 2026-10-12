@@ -113,20 +113,20 @@
   - [x] Step 6.4: ExportService enrichment and rectangular CSV streaming
   - [x] Step 6.5: Synchronize 1-hop parity test suites
 - [x] **[OK] Test Coverage Assertions:** Verified 65 unit tests passing with 90% strict coverage in test_export_service.py.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Phase 7: Global Quality Gate & Final Verification
 **Plan:** @[docs/epic/tasks_EPIC_154/07_phase7_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
-  - [ ] Step 7.1: Backend audit execution
-  - [ ] Step 7.2: Flutter audit execution
-  - [ ] Step 7.3: Theme Sovereignty verification
-  - [ ] Step 7.4: AST guardrail and fixture audit
-  - [ ] Step 7.5: Dictionary eradication audit
-  - [ ] Step 7.6: Markdown boundary auditing
-  - [ ] Step 7.7: Final Live E2E REST API Verification Gate
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 7.1: Backend audit execution
+  - [x] Step 7.2: Flutter audit execution
+  - [x] Step 7.3: Theme Sovereignty verification
+  - [x] Step 7.4: AST guardrail and fixture audit
+  - [x] Step 7.5: Dictionary eradication audit
+  - [x] Step 7.6: Markdown boundary auditing
+  - [x] Step 7.7: Final Live E2E REST API Verification Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent explicitly executed the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -256,40 +256,37 @@
 | Extend ExportForensicAtomDTO and ExportDenormalizedFlatRowDTO schemas | Section 3.6.1 | Phase 6, Step 6.3 | Completed |
 | ExportService Tab 2 enrichment and rectangular multi-row CSV streaming | Section 3.6.1 | Phase 6, Step 6.4 | Completed |
 | Synchronize 1-hop parity test suites asserting 12 columns and 20 CSV headers | Section 3.6.1 | Phase 6, Step 6.5 | Completed |
-| Backend audit execution across all touched files with strict AST | Section 3.7.1 | Phase 7, Step 7.1 | Pending |
-| Flutter audit execution with Freezed build runner | Section 3.7.1 | Phase 7, Step 7.2 | Pending |
-| Flutter Theme Sovereignty verification | Section 3.7.1 | Phase 7, Step 7.3 | Pending |
-| AST guardrails and Polyfactory fixture audit (QGR029) | Section 3.7.1 | Phase 7, Step 7.4 | Pending |
-| Dictionary eradication audit | Section 3.7.1 | Phase 7, Step 7.5 | Pending |
-| Markdown boundary auditing across plans | Section 3.7.1 | Phase 7, Step 7.6 | Pending |
-| Final Live E2E REST API Verification Gate | Section 3.7.1 | Phase 7, Step 7.7 | Pending |
+| Backend audit execution across all touched files with strict AST | Section 3.7.1 | Phase 7, Step 7.1 | Completed |
+| Flutter audit execution with Freezed build runner | Section 3.7.1 | Phase 7, Step 7.2 | Completed |
+| Flutter Theme Sovereignty verification | Section 3.7.1 | Phase 7, Step 7.3 | Completed |
+| AST guardrails and Polyfactory fixture audit (QGR029) | Section 3.7.1 | Phase 7, Step 7.4 | Completed |
+| Dictionary eradication audit | Section 3.7.1 | Phase 7, Step 7.5 | Completed |
+| Markdown boundary auditing across plans | Section 3.7.1 | Phase 7, Step 7.6 | Completed |
+| Final Live E2E REST API Verification Gate | Section 3.7.1 | Phase 7, Step 7.7 | Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Executed and validated Phase 6 (Tabular Export & Rectangular Flat CSV Parity):
-  - Registered `CAUSAL_STATUS`, `BLAME_PARENT_ID`, and `DEPENDENT_COUNT` in `ReportAtomColumn` (`backend_v2/models/enums.py`), expanding column count to 12.
-  - Added authoritative translations in `backend_v2/l10n/fi.json` and `en.json`.
-  - Extended `ReportHeaderResolver` (`backend_v2/services/localization.py`) to resolve causal columns and expand denormalized CSV headers from 17 to 20.
-  - Extended `ExportForensicAtomDTO` and `ExportDenormalizedFlatRowDTO` (`backend_v2/models/dtos/export.py`) with typed causal fields (`causal_status`, `blame_parent_id`, `dependent_count`) preserving `ConfigDict(strict=True, extra="forbid", frozen=True)`.
-  - Enriched `ExportService` (`backend_v2/services/export_service.py`) canonical Raw Data worksheet (Tab 2) and flat CSV streaming with causal metadata, strictly adhering to the Anti-Synthetic Row Invariant (`len(flat_dtos) == len(report_dto.results)`).
-  - Synchronized 1-hop parity test suites (`test_report_headers_l10n_parity.py`, `test_localization.py`, `models/test_enums.py`, `test_export_service.py`), achieving 100% pass across all 65 unit tests.
-  - Executed Universal Quality Gate via `backend_audit_loop.py` with strict AST guardrails (0 violations, 90% test coverage).
-  - Validated `audit_markdown_boundaries.py` on `06_phase6_plan.md` with 0 findings.
+- Executed Phase 7 Global Quality Gate & Final Verification (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`):
+  - Pre-implementation cleanups: Resolved `use_build_context_synchronously` in `client_app_v2/lib/features/execution/views/dashboard_view.dart` by pre-fetching `fallbackLocale` prior to `await dio.get` and enforcing `if (!context.mounted) return;`. Verified with `dart analyze` (0 issues).
+  - Executed `scripts/backend_audit_loop.py` on `export_service.py` with `--test --ast-strict` (30 passed, 90% strict coverage) and global completion gate on all `backend_v2/` (5255 passed, 97.64% test coverage, all 10 audit stages passed).
+  - Executed `scripts/flutter_audit_loop.py` with `--build` (0 fatal violations, all clean).
+  - Executed `scripts/audit_flutter_theme_sovereignty.py` verifying 0 raw colors and 0 naked TextStyles across all UI target widgets.
+  - Executed `scripts/_ast_guardrails.py backend_v2/ --strict` (AST guardrails passed cleanly).
+  - Executed `scripts/audit_dict_eradication.py backend_v2 --strict` (0 violations across all 12 metrics).
+  - Executed `scripts/audit_markdown_boundaries.py` on Epic 154 and all plan files (0 violations).
+  - Executed Final Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` - passed in 223s).
+  - Verified positive and negative test contracts including usage errors and raw color detection.
 
 ## Learned
-- In `ExportService._resolve_causal_meta`, evaluating `ExecutionStatus.PASSED` to `"validated"` before failure states prevents false-positive `"root_cause"` status on passed nodes that happen to be referenced as causal parents.
-- Avoided banned ternary fallbacks (QGR016) and dictionary `.get()` lookups (QGR002) by utilizing explicit conditional blocks and direct attribute indexing on DTOs.
-- CSV streaming in `ExportService` preserves multi-row rectangular atom alignment with zero summary row injection, matching Excel Tab 2 row count.
+- In `dashboard_view.dart`, pre-fetching localized parameters before async gaps is the approved Quorum invariant for preventing `use_build_context_synchronously` warnings without mutating state machines.
+- All 5255 backend unit and integration tests and the live E2E pipeline run with 100% pass rates and 97.64% coverage across the modern Python 3.14 runtime.
 
 ## Remaining
-- Execute Tier 8 Audit for Phase 6: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
-- Proceed to Phase 7: Global Quality Gate & Final Verification (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`).
+- Run Tier 8 Audit on Phase 7: `/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]`.
+- Post-implementation gates: Full-Stack Integration Verification Gate, Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Parameterized `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_154/06_phase6_plan.md] @[docs/epic/EPIC_154_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_154/07_phase7_plan.md] @[docs/epic/EPIC_154_tracker.md]
 ```
-
-
-
