@@ -7,6 +7,8 @@ from typing import Protocol, runtime_checkable
 
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 
+__all__ = ["ExecutionEngine"]
+
 
 @runtime_checkable
 class ExecutionEngine(Protocol):
