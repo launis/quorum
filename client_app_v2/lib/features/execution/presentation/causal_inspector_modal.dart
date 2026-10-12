@@ -724,22 +724,24 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
         children: [
           Icon(Icons.balance, size: 16, color: colorScheme.primary),
           AppSpacing.w8,
-          if (fairScoring != null) ...[
-            Text(
-              'Fair Scoring: ${fairScoring.independentErrorCount} independent, ${fairScoring.cascadingFaultCount} cascading | Deduplicated: -${fairScoring.deduplicatedPenaltyPoints.toStringAsFixed(1)} pts (saved ${fairScoring.dampenedSavingsPoints.toStringAsFixed(1)} pts)',
-              style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ] else ...[
-            Text(
-              'Cohesion Score: ${(antiFluff.logicalCohesionScore * 100).toStringAsFixed(0)}% | Unsupported Claims: ${antiFluff.unsupportedClaimsCount}',
-              style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const Spacer(),
+          Expanded(
+            child: fairScoring != null
+                ? Text(
+                    'Fair Scoring: ${fairScoring.independentErrorCount} independent, ${fairScoring.cascadingFaultCount} cascading | Deduplicated: -${fairScoring.deduplicatedPenaltyPoints.toStringAsFixed(1)} pts (saved ${fairScoring.dampenedSavingsPoints.toStringAsFixed(1)} pts)',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : Text(
+                    'Cohesion Score: ${(antiFluff.logicalCohesionScore * 100).toStringAsFixed(0)}% | Unsupported Claims: ${antiFluff.unsupportedClaimsCount}',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+          ),
+          AppSpacing.w8,
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(AppLocalizations.of(context)!.close),
