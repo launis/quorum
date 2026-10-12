@@ -105,7 +105,7 @@ async def generate_profile_synthesis_and_pdf_task(
     """
     if accept_language is None or not accept_language.strip():
         msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
-        logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=400,
@@ -126,7 +126,7 @@ async def generate_profile_synthesis_and_pdf_task(
         resolved_lang = accept_language.strip() if accept_language else execution.target_locale
         if not resolved_lang or not resolved_lang.strip():
             msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
-            logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=400,
@@ -170,7 +170,9 @@ async def generate_profile_synthesis_and_pdf_task(
                         progress=0,
                         has_warning=False,
                     )
-                new_states = dict(exec_record_local.step_states)
+                new_states: dict[str, ExecutionStep] = {
+                    k: v for k, v in exec_record_local.step_states.items() if isinstance(v, ExecutionStep)
+                }
                 new_states[v_step_id] = updated_state
                 new_steps = [
                     s.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING}) if s.id == v_step_id else s
@@ -184,13 +186,6 @@ async def generate_profile_synthesis_and_pdf_task(
                 )
 
         await _update_render_status("Calculating dynamic results...")
-
-        projector = StateProjector()
-        for evt in execution.execution_trace:
-            if evt.event_type == "input":
-                continue
-            projector.apply_delta(evt)
-        final_inputs = projector._build_dto_list()
 
         if not accept_language and execution.target_locale:
             accept_language = execution.target_locale
@@ -208,6 +203,13 @@ async def generate_profile_synthesis_and_pdf_task(
         ):
             return
 
+        projector = StateProjector()
+        for evt in execution.execution_trace:
+            if evt.event_type == "input":
+                continue
+            projector.apply_delta(evt)
+        final_inputs = projector._build_dto_list()
+
         resolved_pid = profile_id
         if not resolved_pid or resolved_pid == "default":
             resolved_pid = execution.output_profile_id
@@ -216,7 +218,7 @@ async def generate_profile_synthesis_and_pdf_task(
             p_dict = await repo.get_output_profile_by_id(resolved_pid)
             if not p_dict:
                 msg = f"Strict Fail-Fast Enforced: OutputProfile '{resolved_pid}' not found in repository."
-                logger.error("[Worker] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                logger.error("[Worker] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg, exc_info=True)
                 raise ResourceNotFoundError(resource_type="output_profile", resource_id=resolved_pid)
             active_profile_dto: OutputProfile | None = OutputProfile.model_validate(p_dict, strict=False)
             profile_id = resolved_pid
@@ -226,7 +228,7 @@ async def generate_profile_synthesis_and_pdf_task(
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         if not w_dict:
             msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
-            logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         workflow_def = Workflow.model_validate(w_dict)
         hook_metadata = execution.metadata or ExecutionMetadata()
@@ -249,16 +251,20 @@ async def generate_profile_synthesis_and_pdf_task(
         )
         hook_result = await synthesis_distiller_hook(hook_state, hook_deps)
         if hook_result.state_delta is None or not hook_result.state_delta.delta:
+            msg = "Fail-Fast: hook_result.state_delta cannot be None."
+            logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
-                message="Fail-Fast: hook_result.state_delta cannot be None.",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
         try:
             distilled_dto = SynthesisDistillationDTO.model_validate(hook_result.state_delta.delta)
         except ValidationError as e:
+            msg = f"Fail-Fast: distilled_inputs missing from state_delta: {e}"
+            logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
-                message=f"Fail-Fast: distilled_inputs missing from state_delta: {e}",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
