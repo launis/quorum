@@ -179,7 +179,8 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     @JsonKey(name: 'root_cause_diagnoses')
     @Default([])
     List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses,
-    @JsonKey(name: 'anti_fluff_audit') required AntiFluffAuditDto antiFluffAudit,
+    @JsonKey(name: 'anti_fluff_audit')
+    required AntiFluffAuditDto antiFluffAudit,
     @JsonKey(name: 'prescriptive_remediations')
     @Default([])
     List<PrescriptiveRemediationDto> prescriptiveRemediations,

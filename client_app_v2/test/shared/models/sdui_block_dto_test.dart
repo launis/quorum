@@ -260,5 +260,138 @@ void main() {
       final block = SduiBlockDTO.fromJson(json);
       expect(block, isA<SduiParagraphBlock>());
     });
+
+    test('parses causal_graph block correctly', () {
+      final json = {
+        'block_type': 'causal_graph',
+        'summary': {
+          'translations': {
+            'en': 'Causal Discovery Summary',
+            'fi': 'Kausaalilöydösten yhteenveto',
+          },
+        },
+        'intact_claims_count': 8,
+        'total_claims_count': 10,
+        'critical_path_nodes': [
+          {
+            'node_id': 'atm_root_01',
+            'claim': 'Prerequisite holds.',
+            'source_quote': 'Foundational quote.',
+            'paragraph_ref': 'Section 1.1',
+            'status': 'PASSED',
+            'blame_parent_ids': <String>[],
+            'dependent_child_ids': ['atm_child_02'],
+            'tda_score': 5.0,
+            'tda_level_key': 'L5',
+          },
+        ],
+        'critical_edges': [
+          {
+            'source_id': 'atm_root_01',
+            'target_id': 'atm_child_02',
+            'reasoning': 'Dependency link.',
+          },
+        ],
+        'root_cause_diagnoses': [
+          {
+            'failing_node_id': 'atm_child_02',
+            'root_cause_parent_id': 'atm_root_01',
+            'paragraph_ref': 'Section 2.4',
+            'explanation': 'Root interface mismatch.',
+            'penalty_points': 1.5,
+          },
+        ],
+        'anti_fluff_audit': {
+          'isolated_concept_count': 0,
+          'cycle_detected': false,
+          'unsupported_claims_count': 1,
+          'logical_cohesion_score': 0.85,
+          'detected_hollow_terms': <String>[],
+        },
+        'prescriptive_remediations': [
+          {
+            'target_node_id': 'atm_child_02',
+            'required_action': 'Enforce schema contract.',
+            'unlocks_node_ids': ['atm_downstream_03'],
+            'potential_score_impact': 1.5,
+          },
+        ],
+        'fair_scoring': {
+          'independent_error_count': 1,
+          'cascading_fault_count': 1,
+          'raw_penalty_points': 3.0,
+          'deduplicated_penalty_points': 1.5,
+          'dampened_savings_points': 1.5,
+        },
+      };
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiCausalGraphBlock>());
+      if (block is SduiCausalGraphBlock) {
+        expect(block.intactClaimsCount, 8);
+        expect(block.totalClaimsCount, 10);
+        expect(block.criticalPathNodes.length, 1);
+        expect(block.criticalPathNodes.first.nodeId, 'atm_root_01');
+        expect(block.criticalEdges.length, 1);
+        expect(block.criticalEdges.first.sourceId, 'atm_root_01');
+        expect(block.rootCauseDiagnoses.length, 1);
+        expect(block.rootCauseDiagnoses.first.failingNodeId, 'atm_child_02');
+        expect(block.antiFluffAudit.unsupportedClaimsCount, 1);
+        expect(block.prescriptiveRemediations.length, 1);
+        expect(block.fairScoring?.deduplicatedPenaltyPoints, 1.5);
+      }
+    });
+
+    test('throws exception on causal_graph missing required fields', () {
+      final json = {
+        'block_type': 'causal_graph',
+        'intact_claims_count': 8,
+        // missing 'total_claims_count', 'anti_fluff_audit', 'summary'
+      };
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('throws exception on causal_graph unrecognized key', () {
+      final json = {
+        'block_type': 'causal_graph',
+        'summary': {
+          'translations': {'en': 'Test'},
+        },
+        'intact_claims_count': 5,
+        'total_claims_count': 5,
+        'anti_fluff_audit': {
+          'isolated_concept_count': 0,
+          'cycle_detected': false,
+          'unsupported_claims_count': 0,
+          'logical_cohesion_score': 1.0,
+          'detected_hollow_terms': <String>[],
+        },
+        'unrecognized_causal_key': 'fail_fast',
+      };
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('parses SduiBulletListItemDTO and enforces strict keys', () {
+      final validJson = {
+        'text': 'Strict bullet item',
+        'citations': [1, 3],
+        'exact_quotes': ['quote'],
+      };
+      final item = SduiBulletListItemDTO.fromJson(validJson);
+      expect(item.text, 'Strict bullet item');
+      expect(item.citations, [1, 3]);
+
+      final invalidJson = {
+        'text': 'Strict bullet item',
+        'extra_unrecognized_key': 'fail',
+      };
+      expect(
+        () => SduiBulletListItemDTO.fromJson(invalidJson),
+        throwsException,
+      );
+    });
   });
 }
