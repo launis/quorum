@@ -264,6 +264,9 @@ def test_report_header_resolver() -> None:
     assert len(matrix_headers) == len(ReportMatrixColumn)
     assert matrix_headers[ReportMatrixColumn.LABEL] == "Logic Matrix"
 
+    resolved_matrix_headers = ReportHeaderResolver.resolve_matrix_headers("en")
+    assert resolved_matrix_headers == matrix_headers
+
     atom_headers = ReportHeaderResolver.get_all_atom_headers("en")
     assert len(atom_headers) == len(ReportAtomColumn) == 12
     assert atom_headers[0] == "Matrix"
