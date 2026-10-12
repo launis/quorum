@@ -3,9 +3,10 @@ import pytest
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
-from backend_v2.models.enums import RoleClassification, TargetBlockType
-from backend_v2.models.view.sdui import ParagraphBlock
+from backend_v2.models.enums import ExecutionStatus, RoleClassification, TargetBlockType
+from backend_v2.models.view.sdui import BulletListBlock, BulletListItem, ParagraphBlock, SduiCausalGraphBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 
@@ -612,3 +613,70 @@ def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert blocks == []
+
+
+def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
+    """Verifies that BulletListBlock is ordered as recommendation and causal action card is injected."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        user_role_label=None,
+        user_role_target_block=None,
+    )
+    node = CausalNodeDTO(
+        node_id="atm_01",
+        claim="Claim 1",
+        source_quote="Quote 1",
+        paragraph_ref="Section 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        tda_score=5.0,
+        tda_level_key="L5",
+    )
+    causal_payload = CausalGraphPayloadDTO(
+        nodes=[node],
+        edges=[],
+        root_cause_node_ids=["atm_01"],
+        cycle_detected=False,
+        isolated_node_ids=[],
+    )
+    cache = RenderedSynthesisCache(
+        section_syntheses={
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value: [
+                ParagraphBlock(text="Narrative intro", exact_quotes=[], citations=[]),
+                BulletListBlock(
+                    items=[
+                        BulletListItem(text="Strategic recommendation 1"),
+                        BulletListItem(text="Strategic recommendation 2"),
+                    ]
+                ),
+            ]
+        }
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+        causal_result=causal_payload,
+    )
+    blocks = ExecutiveSummaryAdapter.build(context)
+    # Order: Narrative ParagraphBlock -> SduiCausalGraphBlock -> BulletListBlock
+    assert len(blocks) == 3
+    assert isinstance(blocks[0], ParagraphBlock)
+    assert blocks[0].text == "Narrative intro"
+    assert isinstance(blocks[1], SduiCausalGraphBlock)
+    assert isinstance(blocks[2], BulletListBlock)
+    assert len(blocks[2].items) == 2
+
