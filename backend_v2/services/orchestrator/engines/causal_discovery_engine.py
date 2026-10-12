@@ -43,7 +43,11 @@ class CausalDiscoveryEngine(ExecutionEngine):
     """Engine executing autonomous causal discovery and argument mining over documents."""
 
     def __init__(self, prompt_compiler: Any) -> None:
-        """Initialize CausalDiscoveryEngine with injected prompt compiler."""
+        """Initialize CausalDiscoveryEngine with injected prompt compiler.
+
+        Args:
+            prompt_compiler: Injected prompt compiler instance.
+        """
         self._compiler = prompt_compiler
 
     @property
@@ -53,7 +57,18 @@ class CausalDiscoveryEngine(ExecutionEngine):
 
     @override
     async def execute(self, request: EngineExecutionRequest) -> EngineExecutionResult:
-        """Executes autonomous causal discovery pipeline over source document text."""
+        """Executes autonomous causal discovery pipeline over source document text.
+
+        Args:
+            request: The strongly typed engine execution request.
+
+        Returns:
+            The engine execution result containing the causal graph payload and token usage.
+
+        Raises:
+            AppException: If document text is empty (CAUSAL_DISCOVERY_EMPTY_DOCUMENT) or
+                no valid propositions are extracted (CAUSAL_DISCOVERY_DATA_STARVATION).
+        """
         tracer = get_tracer(__name__)
         with tracer.start_as_current_span("causal_discovery.execute") as span:
             span.set_attribute("execution.id", request.context.execution_id)
