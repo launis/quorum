@@ -182,26 +182,35 @@ class LLMHandler:
             from google import genai
             from google.genai import errors as genai_errors
 
+            class _DiscoveryCandidatesResult(BaseModel):
+                model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+                candidates: tuple[str, ...] = ()
+
+            def discover_catalog() -> _DiscoveryCandidatesResult:
+                discovered: list[str] = []
+                try:
+                    discovery_client = genai.Client(vertexai=True, project=project, location=source_region)
+                    for base_model in discovery_client.models.list(config={"query_base": True}):
+                        if not base_model.name:
+                            continue
+                        raw_name = str(base_model.name)
+                        parts = raw_name.split("/")
+                        clean_name = parts[-1]
+                        if not clean_name:
+                            continue
+                        if "gemini" in clean_name.lower():
+                            discovered.append(f"vertex_ai/{clean_name}")
+                    return _DiscoveryCandidatesResult(candidates=tuple(discovered))
+                except (genai_errors.APIError, OSError, RuntimeError, ValueError, TypeError) as disc_err:
+                    logger.warning(
+                        "[LLMHandler] Failed to query dynamic Vertex discovery in %s: %s; falling back to candidate pool.",
+                        source_region,
+                        disc_err,
+                    )
+                    return _DiscoveryCandidatesResult(candidates=())
+
             # Stage 1: Dynamic Discovery from source_region (us-central1 main catalog)
-            candidates: list[str] = []
-            try:
-                discovery_client = genai.Client(vertexai=True, project=project, location=source_region)
-                for base_model in discovery_client.models.list(config={"query_base": True}):
-                    if not base_model.name:
-                        continue
-                    raw_name = str(base_model.name)
-                    parts = raw_name.split("/")
-                    clean_name = parts[-1]
-                    if not clean_name:
-                        continue
-                    if "gemini" in clean_name.lower():
-                        candidates.append(f"vertex_ai/{clean_name}")
-            except (genai_errors.APIError, OSError, RuntimeError, ValueError, TypeError) as disc_err:
-                logger.warning(
-                    "[LLMHandler] Failed to query dynamic Vertex discovery in %s: %s; falling back to candidate pool.",
-                    source_region,
-                    disc_err,
-                )
+            candidates: list[str] = list(discover_catalog().candidates)
 
             # Stage 1b: Merge Model Garden models or fallback from litellm registry
             has_discovered_gemini = any("gemini" in c.lower() for c in candidates)

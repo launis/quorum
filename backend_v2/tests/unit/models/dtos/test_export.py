@@ -30,6 +30,8 @@ def test_export_forensic_atom_dto_valid() -> None:
         result_status=1,
         quotes="The roadmap defines Q1 deliverables.",
         ai_reasoning="Quote directly verifies the milestone planning.",
+        is_inverse=0,
+        points_awarded=1.0,
     )
     assert atom.matrix_label == "Strategic Alignment"
     assert atom.context_target == "Overall Strategy"
@@ -40,6 +42,8 @@ def test_export_forensic_atom_dto_valid() -> None:
     assert atom.result_status == 1
     assert atom.quotes == "The roadmap defines Q1 deliverables."
     assert atom.ai_reasoning == "Quote directly verifies the milestone planning."
+    assert atom.is_inverse == 0
+    assert atom.points_awarded == 1.0
 
 
 def test_export_forensic_atom_dto_extra_forbid() -> None:
@@ -73,6 +77,8 @@ def test_export_forensic_atom_dto_frozen() -> None:
         result_status=1,
         quotes="Q",
         ai_reasoning="R",
+        is_inverse=0,
+        points_awarded=1.0,
     )
     with pytest.raises(ValidationError):
         atom.matrix_label = "Mutated"
@@ -174,6 +180,8 @@ def test_export_denormalized_flat_row_dto_valid() -> None:
         result_status=1,
         quotes="Weekly retrospectives are maintained in Confluence.",
         ai_reasoning="Consistent cadence evidenced by verified artifact.",
+        is_inverse=0,
+        points_awarded=1.0,
     )
     assert row.execution_id == "exe_0123456789abcdef"
     assert row.matrix_label == "Operational Excellence"
@@ -192,6 +200,8 @@ def test_export_denormalized_flat_row_dto_valid() -> None:
     assert row.result_status == 1
     assert row.quotes == "Weekly retrospectives are maintained in Confluence."
     assert row.ai_reasoning == "Consistent cadence evidenced by verified artifact."
+    assert row.is_inverse == 0
+    assert row.points_awarded == 1.0
 
 
 def test_export_denormalized_flat_row_dto_extra_forbid() -> None:
@@ -241,6 +251,8 @@ def test_export_denormalized_flat_row_dto_frozen() -> None:
         result_status=1,
         quotes="Q",
         ai_reasoning="R",
+        is_inverse=0,
+        points_awarded=1.0,
     )
     with pytest.raises(ValidationError):
         row.matrix_label = "Modified"
@@ -268,6 +280,8 @@ def test_export_denormalized_flat_row_dto_boundary_validation() -> None:
             result_status=1,
             quotes="Q",
             ai_reasoning="R",
+            is_inverse=0,
+            points_awarded=1.0,
         )
 
     # Invalid result_status rejected (must be 0 or 1)
@@ -290,6 +304,8 @@ def test_export_denormalized_flat_row_dto_boundary_validation() -> None:
             result_status=2,
             quotes="Q",
             ai_reasoning="R",
+            is_inverse=0,
+            points_awarded=1.0,
         )
 
 

@@ -17,7 +17,7 @@
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]`
   - [x] Step 1.1: Register ML-Ready Columns in ReportAtomColumn Enum
   - [x] Step 1.2: Synchronize Export Column Matrix and ML Headers in Localization Files
   - [x] Step 1.3: Update Denormalized CSV Header SSOT in ReportHeaderResolver
@@ -37,9 +37,9 @@
   - [x] Step 5.1: Two-Phase Pre-Flight In-Memory Seed Validation
   - [x] Step 5.2: Execution Artifact Pre-Flight Backup and Local Database Hard Reset
   - [x] Step 5.3: Validate Post-Seeding Database State
-  - [ ] Step 6.1: Execute Global Backend Audit Gate
-  - [ ] Step 6.2: Execute Flutter Audit Loop
-  - [ ] Step 6.3: Verify Real Artifact Export and Row Data View Against Past Execution
+  - [x] Step 6.1: Execute Global Backend Audit Gate
+  - [x] Step 6.2: Execute Flutter Audit Loop
+  - [x] Step 6.3: Verify Real Artifact Export and Row Data View Against Past Execution
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]`
 
 ### Post-Implementation Gates
@@ -108,24 +108,32 @@
 | REQ-017 | Two-Phase Pre-Flight In-Memory Seed Validation | Step 5.1 | Completed |
 | REQ-018 | Execution Artifact Pre-Flight Backup and Local Database Hard Reset | Step 5.2 | Completed |
 | REQ-019 | Validate Post-Seeding Database State | Step 5.3 | Completed |
-| REQ-020 | Execute Global Backend Audit Gate | Step 6.1 | Pending |
-| REQ-021 | Execute Flutter Audit Loop | Step 6.2 | Pending |
-| REQ-022 | Verify Real Artifact Export and Row Data View Against Past Execution | Step 6.3 | Pending |
+| REQ-020 | Execute Global Backend Audit Gate | Step 6.1 | Completed |
+| REQ-021 | Execute Flutter Audit Loop | Step 6.2 | Completed |
+| REQ-022 | Verify Real Artifact Export and Row Data View Against Past Execution | Step 6.3 | Completed |
 
 # Session Handover Context
 ## Achieved
-- Plan created, researched, red-teamed, and validated under Tier 0 Research Plan protocol.
-- Established 1:1 bidirectional plan-tracker parity contracts across 22 execution steps and 11 production hardening targets.
+- Executed all 6 phases and 22 steps of the implementation plan under `/tier2-execute --full-auto`.
+- Verified Global Backend Audit Gate (`uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`): 5,316 passed, 0 fatal AST, 0 residual debt ceiling mismatches, 97.74% strict test coverage.
+- Verified Flutter Audit Loop (`uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/reports/ --build`): 0 errors, code generation and analyze clean.
+- Forensically verified real artifact export on past execution `exe_c50e968fc9c04906` across all 6 assertions (28 causal nodes streamed under `Logiikkamatriisi = "Kausaalipäättely"`, pure numeric `hits` and `hit_ratio`, mathematical identity `sum(points_awarded) + passed_clean_anti_patterns == hits`, and `is_inverse_evidence` semantic badge decoupling in row data).
 
 ## Learned
-- Column naming unification from `"Matriisi"` to `"Logiikkamatriisi"` requires dynamic lookup resolution via `ReportHeaderResolver` in `test_export_service.py` (line 667).
-- Machine learning pipelines require decoupled numeric indicators (`is_inverse: int`, `points_awarded: float`) to prevent clean anti-pattern checks from being counted as affirmative capability points.
-- Pre-flight backup of `data/files/executions/exe_c50e968fc9c04906` is mandatory before `run_seed.py local` wipes the execution directory via `shutil.rmtree`.
+- Tab 1 scorecard hits include clean anti-patterns avoided (`status == ExecutionStatus.PASSED`), while ML `points_awarded` strictly credits passed affirmative capabilities (`points_awarded == 1.0` if passed affirmative, `0.0` otherwise), establishing the mathematical identity `hits == sum(points_awarded) + passed_clean_anti_patterns`.
+- Unmapped causal graph nodes (`CausalNodeDTO`) stream deterministically into Tab 2 / CSV under `matrix_label = "Kausaalipäättely"` without requiring synthetic scorecard matrices.
+- Residual debt Census N strictly bans all inline `# noqa` suppression comment tokens across `backend_v2` and `scripts`.
 
 ## Remaining
-- Step 1.1 through Step 6.3 pending execution under `/tier2-execute --full-auto`.
+- Post-implementation gates:
+  - Golden Master & Test Restoration Audit
+  - Tier 8 Plan Audit: `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]`
+  - Tier 7 Architectural Sync:
+    ```powershell
+    /tier7-describe-architecture @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[ki_god_code_prevention.md] @[ki_dumb_painter_sdui.md] @[ki_dual_axis_localization_architecture.md] @[ki_zero_permissive_typing.md]
+    ```
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md] @[docs/implementationplans/TRACKER_Report_Tables_SSOT_and_Causal_Export.md]
 ```

@@ -479,7 +479,7 @@ class TestWorkflowMatrixTelemetry:
         assert telemetry["total_high_entropy_atoms"] == 88
 
         steps = {s["step_rule_id"]: s for s in telemetry["steps"]}
-        assert len(steps) == 7
+        assert len(steps) == 8
 
         # Step 2: Archivist (Bloom)
         archivist = steps["sr_03c1d71000000002"]

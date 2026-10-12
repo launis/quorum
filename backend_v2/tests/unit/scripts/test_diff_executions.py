@@ -433,7 +433,7 @@ class TestWorkflowProvenance:
         assert isinstance(wf_01, WorkflowProvenanceDTO)
         assert wf_01.workflow_id == "wf_01a1d71000000001"
         assert wf_01.total_workflow_atoms == 68
-        assert wf_01.total_active_steps == 6
+        assert wf_01.total_active_steps == 7
         assert wf_01.version == 1
 
         # wf_02: Strategic Leadership (113 atoms)

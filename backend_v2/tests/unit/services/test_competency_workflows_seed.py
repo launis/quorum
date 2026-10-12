@@ -85,8 +85,8 @@ def test_baseline_monolithic_workflow_preserved() -> None:
     assert mono_wf.default_profile_id == "prf_5d6e7f8091a2b3c4"
     assert mono_prf.workflow_id == "wf_9d68c573802341db"
 
-    # 1. Exact 12-step topology and 6 matrix groups
-    assert len(mono_wf.steps) == 12, f"Expected exactly 12 steps in monolith workflow, got {len(mono_wf.steps)}"
+    # 1. Exact 13-step topology and 6 matrix groups
+    assert len(mono_wf.steps) == 13, f"Expected exactly 13 steps in monolith workflow, got {len(mono_wf.steps)}"
     assert len(mono_prf.matrix_synthesis_groups) == 6, (
         f"Expected exactly 6 matrix synthesis groups, got {len(mono_prf.matrix_synthesis_groups)}"
     )
@@ -118,8 +118,9 @@ def test_baseline_monolithic_workflow_preserved() -> None:
 
     for step in mono_wf.steps:
         if step.id in zone_b_step_ids:
-            assert step.depends_on == [ingress_id], (
-                f"Zone B step {step.id} must depend strictly on ingress {ingress_id}, got {step.depends_on}"
+            expected_deps = [ingress_id, "sr_c4a5a1d15c00438a"] if step.id == "sr_4d2272d8b4864847" else [ingress_id]
+            assert step.depends_on == expected_deps, (
+                f"Zone B step {step.id} must depend strictly on {expected_deps}, got {step.depends_on}"
             )
             assert "prior_analysis" not in step.input_mappings, f"Zone B step {step.id} must not map prior_analysis"
 

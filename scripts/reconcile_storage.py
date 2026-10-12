@@ -100,7 +100,7 @@ class ReconciliationReport(BaseModel):
 
 
 def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
-    """Extracts target_locale and workflow_id from the initial trace event if present.
+    """Extracts target_locale and workflow_id from trace events or artifacts.
 
     Args:
         trace_file: Path to execution_trace.json.
@@ -114,13 +114,82 @@ def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
         raw_text = trace_file.read_text(encoding="utf-8")
         ta = TypeAdapter(list[TraceEventHeader])
         events = ta.validate_json(raw_text)
-        if events and events[0].content:
-            c = events[0].content
-            target_locale = c.language or c.target_locale or "en"
-            workflow_id = c.workflow_id or "wor_default"
+        for ev in events:
+            if ev.content:
+                c = ev.content
+                if (c.language or c.target_locale) and target_locale == "en":
+                    target_locale = c.language or c.target_locale or "en"
+                if c.workflow_id and workflow_id == "wor_default":
+                    workflow_id = c.workflow_id
     except OSError, json.JSONDecodeError, ValueError:
         pass
+
+    if workflow_id == "wor_default":
+        summary_file = trace_file.parent / "forensic_summary.md"
+        if summary_file.exists():
+            import re
+
+            summary_text = summary_file.read_text(encoding="utf-8")
+            match_wf = re.search(r"\*\*Workflow ID:\*\*\s*`?([a-zA-Z0-9_]+)`?", summary_text)
+            if match_wf and workflow_id == "wor_default":
+                workflow_id = match_wf.group(1)
+
+    if workflow_id == "wor_default":
+        reports_dir = trace_file.parent.parent.parent / "artifacts" / "reports"
+        if reports_dir.exists():
+            for rep_dir in reports_dir.iterdir():
+                sdui_path = rep_dir / "report.sdui.json"
+                if sdui_path.exists():
+                    try:
+                        sdui_data = json.loads(sdui_path.read_text(encoding="utf-8"))
+                        if sdui_data.get("execution_id") == trace_file.parent.name:
+                            if sdui_data.get("workflow_id"):
+                                workflow_id = sdui_data["workflow_id"]
+                            break
+                    except Exception:
+                        pass
+
+    if target_locale == "en":
+        summary_file = trace_file.parent / "forensic_summary.md"
+        if summary_file.exists():
+            stext = summary_file.read_text(encoding="utf-8").lower()
+            if any(term in stext for term in ("megatrend", "sitra", "analyysi", "lopputuote", "suomi")):
+                target_locale = "fi"
+
     return workflow_id, target_locale
+
+
+def _extract_profile_id(trace_file: Path) -> str | None:
+    """Extracts output profile ID from forensic summary or report SDUI if available.
+
+    Args:
+        trace_file: Path to execution_trace.json.
+
+    Returns:
+        Profile ID string if found, otherwise None.
+    """
+    summary_file = trace_file.parent / "forensic_summary.md"
+    if summary_file.exists():
+        import re
+
+        summary_text = summary_file.read_text(encoding="utf-8")
+        match_prf = re.search(r"\*\*Output Profile:\*\*\s*`?([a-zA-Z0-9_]+)`?", summary_text)
+        if match_prf:
+            return match_prf.group(1)
+
+    reports_dir = trace_file.parent.parent.parent / "artifacts" / "reports"
+    if reports_dir.exists():
+        for rep_dir in reports_dir.iterdir():
+            sdui_path = rep_dir / "report.sdui.json"
+            if sdui_path.exists():
+                try:
+                    sdui_data = json.loads(sdui_path.read_text(encoding="utf-8"))
+                    if sdui_data.get("execution_id") == trace_file.parent.name:
+                        if sdui_data.get("profile_id"):
+                            return sdui_data["profile_id"]
+                except Exception:
+                    pass
+    return None
 
 
 def _resolve_trace_path(storage_dir: Path, exe_id: str, trace_path_raw: str | None) -> Path | None:
@@ -167,6 +236,7 @@ def _reconstitute_execution_record(
     cv_file = exe_dir / "context_variables.json"
 
     workflow_id, target_locale = _extract_trace_metadata(trace_file)
+    profile_id = _extract_profile_id(trace_file)
 
     trace_storage_path = f"executions/{exe_id}/execution_trace.json"
     cv_storage_path = f"executions/{exe_id}/context_variables.json" if cv_file.exists() else None
@@ -180,6 +250,8 @@ def _reconstitute_execution_record(
             rec_dict["workflow_id"] = workflow_id
         elif "workflow_id" not in rec_dict or not rec_dict["workflow_id"]:
             rec_dict["workflow_id"] = "wor_default"
+        if profile_id:
+            rec_dict["output_profile_id"] = profile_id
         rec_dict["target_locale"] = target_locale
         rec_dict["status"] = status.value
         rec_dict["execution_trace_storage_path"] = trace_storage_path
@@ -202,7 +274,7 @@ def _reconstitute_execution_record(
             id=exe_id,
             workflow_id=workflow_id,
             target_locale=target_locale,
-            output_profile_id="prof_default",
+            output_profile_id=profile_id or "prof_default",
             status=status,
             execution_trace_storage_path=trace_storage_path,
             context_variables_storage_path=cv_storage_path,

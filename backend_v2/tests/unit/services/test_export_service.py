@@ -1940,9 +1940,11 @@ def test_build_matrix_summary_rows_extra_branches() -> None:
 async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
     """Verify Excel Tab 2 includes unmapped causal propositions with causal metrics and ML-ready columns."""
     import io
+
     import openpyxl
-    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+
     from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
     from backend_v2.models.enums import ExecutionStatus
 
     service = ExportService()
@@ -2057,8 +2059,9 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
 async def test_export_csv_includes_causal_and_ml_columns() -> None:
     """Verify CSV export contains exactly 22 columns with ML indicators and unmapped causal propositions."""
     import io
-    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+
     from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
     from backend_v2.models.enums import ExecutionStatus
 
     service = ExportService()
@@ -2159,9 +2162,7 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
     assert float(rows[2][15]) == 0.0  # points_awarded
 
     # Mathematical scoring invariant: sum(points_awarded) for affirmative == hits
-    affirmative_points = sum(
-        float(r[15]) for r in rows[1:3] if r[14] == "0"
-    )
+    affirmative_points = sum(float(r[15]) for r in rows[1:3] if r[14] == "0")
     assert affirmative_points == matrices[0].true_atoms
 
     # Row 3 (unmapped causal proposition)

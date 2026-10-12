@@ -219,7 +219,13 @@ def test_fetch_vertex_models_skips_unsupported_models_with_genai_api_error(handl
         if model == "gemini-2.5-flash-preview-tts":
             raise genai_errors.ClientError(
                 404,
-                {"error": {"code": 404, "message": f"Publisher Model publishers/google/models/{model} is not found.", "status": "NOT_FOUND"}},
+                {
+                    "error": {
+                        "code": 404,
+                        "message": f"Publisher Model publishers/google/models/{model} is not found.",
+                        "status": "NOT_FOUND",
+                    }
+                },
                 None,
             )
         return MagicMock()

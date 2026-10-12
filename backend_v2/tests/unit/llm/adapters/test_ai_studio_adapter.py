@@ -40,6 +40,7 @@ class MockGenAITypes(types.ModuleType):
 
 
 class MockGenAIModule(types.ModuleType):
+    __path__: list[str] = []
     types = MockGenAITypes("google.genai.types")
 
     @staticmethod
@@ -66,6 +67,33 @@ except ImportError:
 
 sys.modules["google.genai"] = mod_genai
 sys.modules["google.genai.types"] = mod_genai_types
+
+try:
+    import google.genai.errors as real_genai_errors
+
+    mod_genai.errors = real_genai_errors
+    sys.modules["google.genai.errors"] = real_genai_errors
+except ImportError:
+    pass
+
+
+@pytest.fixture(scope="module", autouse=True)
+def cleanup_genai_mock() -> Any:
+    """Restore real google.genai modules after this test module finishes."""
+    yield
+    try:
+        import importlib
+
+        for mod_name in ("google.genai", "google.genai.types", "google.genai.errors"):
+            if mod_name in sys.modules:
+                del sys.modules[mod_name]
+        import google
+
+        google.genai = importlib.import_module("google.genai")
+        importlib.import_module("google.genai.types")
+        importlib.import_module("google.genai.errors")
+    except ImportError, AttributeError, KeyError:
+        pass
 
 
 @pytest.fixture(autouse=True)
