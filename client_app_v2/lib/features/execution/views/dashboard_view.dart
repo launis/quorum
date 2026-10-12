@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -82,7 +83,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
           value.isEmpty
               ? Center(child: Text(AppLocalizations.of(context)!.noExecutions))
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.s16),
                   itemCount: value.length,
                   itemBuilder: (context, index) {
                     final exec = value[index];
@@ -168,11 +169,12 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                     }
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
+                      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
                       child: ListTile(
                         title: Text(
                           workflowDisplay,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
@@ -181,7 +183,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             _buildStatusChip(status),
-                            const SizedBox(width: 8),
+                            AppSpacing.w8,
                             if (status.toLowerCase() == 'passed' ||
                                 status.toLowerCase() == 'completed') ...[
                               IconButton(
@@ -199,7 +201,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                                   asyncWorkflows,
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              AppSpacing.w8,
                             ],
                             IconButton(
                               icon: Icon(
@@ -212,7 +214,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                               onPressed: () =>
                                   _cloneAndRunExecution(context, ref, id),
                             ),
-                            const SizedBox(width: 8),
+                            AppSpacing.w8,
                             IconButton(
                               icon: Icon(
                                 Icons.delete,
@@ -274,7 +276,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.errorValidation),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return; // Do not crash the UI, just abort opening the modal.
@@ -287,7 +289,9 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.s16),
+        ),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -295,20 +299,19 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppSpacing.s16),
                 child: Text(
                   AppLocalizations.of(context)!.printVariantSelectorTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.only(
-                  left: 16.0,
-                  right: 16.0,
-                  bottom: 16.0,
+                  left: AppSpacing.s16,
+                  right: AppSpacing.s16,
+                  bottom: AppSpacing.s16,
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.printVariantSelectorDescription,
@@ -324,7 +327,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                           (v) => ListTile(
                             leading: Icon(
                               v == 'default' ? Icons.star : Icons.description,
-                              color: Colors.blue,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                             title: Text(
                               _getVariantDisplayName(
@@ -370,7 +373,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
             ],
           ),
         );
@@ -604,9 +607,8 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     return Chip(
       label: Text(
         status.toUpperCase(),
-        style: TextStyle(
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: textColor,
-          fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
       ),
