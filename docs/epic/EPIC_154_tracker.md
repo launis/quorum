@@ -137,11 +137,11 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit:** Ensure no `@pytest.mark.skip` or commented-out tests were left behind in modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide verification confirming zero residual `"atom_flattening_hook"` string matching or duct-tape heuristics.
 - [ ] **[NOK] Tier 2 Hardening (Backend):**
-  - [ ] @[backend_v2/services/orchestrator/sliding_window_linker.py]
-  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
-  - [ ] @[backend_v2/models/domain/step.py]
-  - [ ] @[backend_v2/models/domain/inputs.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/engines/registry.py]
+  - [x] @[backend_v2/services/orchestrator/sliding_window_linker.py]
+  - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [x] @[backend_v2/models/domain/step.py]
+  - [x] @[backend_v2/models/domain/inputs.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/engines/registry.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/services/orchestrator/engines/base.py]
   - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]

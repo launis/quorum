@@ -5,6 +5,7 @@ SSOT for polymorphic ExecutionEngine instantiation based on Step.engine_type.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -23,6 +24,8 @@ if TYPE_CHECKING:
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 __all__ = ["ENGINE_REGISTRY", "build_execution_engine"]
+
+logger = logging.getLogger(__name__)
 
 ENGINE_REGISTRY: dict[EngineType, Callable[[PromptCompiler], ExecutionEngine]] = {
     EngineType.TDA: lambda compiler: TDAEngine(compiler),
@@ -50,6 +53,12 @@ def build_execution_engine(
     """
     if not isinstance(engine_type, EngineType) or engine_type not in ENGINE_REGISTRY:
         msg = f"Unsupported engine type: {engine_type}"
+        logger.error(
+            "[EngineRegistry] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
