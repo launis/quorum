@@ -261,59 +261,23 @@
 # # Session Handover Context
 
 ## Achieved
-- Executed Tier 2 Backend Hardening Session 1 (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`):
-  - Audited 10 target files (reaching the 10-file session ceiling):
-    1. `@[backend_v2/services/orchestrator/engines/__init__.py]`: Explicit `__all__` verified; passed 10/10 quality stages, 100% coverage, audit matrix verified (181 rules passed).
-    2. `@[backend_v2/services/orchestrator/strategies/llm.py]`: RFC 7807 dual logging and `get_settings()` SSOT injection verified; passed 10/10 quality stages, 37 tests (93% coverage), audit matrix verified (181 rules passed).
-    3. `@[backend_v2/services/orchestrator/dag_executor.py]`: Fixed internal envelope enum string hydration (`TypeAdapter(CausalGraphPayloadDTO).validate_python(step_out.data, strict=False)`); expanded unit test suite `test_dag_executor_causal_fusion.py` (21 tests covering causal fusion, raw results aggregation, data starvation, validation errors, snapshot resolution); passed 10/10 stages with 72 tests and 91% strict coverage (66 misses / 743 stmts); audit matrix verified (181 rules passed); committed in `5efc5289f`.
-    4. `@[backend_v2/settings.py]`: Verified 23 tests, 99% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-    5. `@[backend_v2/exceptions.py]`: Verified 11 tests, 98% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-    6. `@[backend_v2/services/orchestrator/strategies/registry.py]`: Verified 5 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-    7. `@[backend_v2/models/dtos/causal_discovery.py]`: Verified 12 tests, 95% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-    8. `@[backend_v2/models/dtos/step_output.py]`: Verified 5 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-    9. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`: Enhanced PEP 257 Google style docstrings (`Args:`, `Returns:`, `Raises:` explicitly documenting `AppException` error codes); verified 11 tests, 98% coverage, 10/10 stages passed; audit matrix verified (181 rules passed); committed in `dde2f5ef1`.
-    10. `@[backend_v2/models/view/sdui.py]`: Verified 7 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
-  - All 10 audited files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (20 backend files completed total).
-- Executed Tier 2 Backend Hardening Session 2 (`/tier5-resume` targeting `backend_v2/services/sdui/adapters/`):
+- Executed Tier 2 Backend Hardening (Sessions 1-4): 30/30 files completed and verified; gate marked `[OK]`.
+- Executed Tier 2 Frontend Hardening Session 1 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
   - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
-    1. `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`: Upgraded `ValueError` to `AppException` with RFC 7807 logging (`ErrorCodes.VALIDATION_FAILED`); enhanced PEP 257 docstrings; synchronized `test_causal_graph_adapter.py`; verified 10/10 quality stages, 9 unit tests (100% coverage), verified 181 rules; committed in `0d0a54dbd`.
-    2. `@[backend_v2/services/sdui/adapters/base_adapter.py]`: Added explicit `__all__ = ["AdapterContext", "SduiAdapterProtocol"]`; migrated `parsed_matrices` and `mcp_tools_map` to PEP 593 `Annotated` syntax per `pydantic_annotated_fields_mandate`; decorated `SduiAdapterProtocol` with `@runtime_checkable`; expanded `test_base_adapter.py` verifying `is_data_starved` and protocol conformance; passed 10/10 stages, 7 unit tests (100% coverage), verified 181 rules; committed in `9c8c571a0`.
-    3. `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Verified Zero Fallback user role resolution and Dumb Painter sequence; expanded `test_executive_summary_adapter.py` verifying `BulletListBlock` recommendation ordering and `SduiCausalGraphBlock` injection; passed 10/10 stages, 24 unit tests (100% coverage), verified 181 rules; committed in `fe35b8020`.
-  - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (23 backend files completed total).
-- Executed Tier 2 Backend Hardening Session 3 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
-  - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
-    1. `@[backend_v2/services/blueprint.py]`: Hardened error handling with RFC 7807 `exc_info=True` dual-logging; added causal discovery hydration unit tests in `test_blueprint.py`; verified 10/10 quality stages, 23 unit tests (100% coverage), verified 181 rules; committed in `9bffa56ae`.
-    2. `@[backend_v2/workers/synthesis_tasks.py]`: Added RFC 7807 logging; added causal diagnosis injection verification unit tests in `test_synthesis_tasks.py`; verified 10/10 quality stages, 18 unit tests (100% coverage), verified 181 rules; committed in `14a77a1ce`.
-    3. `@[backend_v2/workers/synthesis_worker.py]`: Hardened error handling with RFC 7807 logging; filtered non-ExecutionStep types in `_update_render_status` to prevent `ExecutionUpdateDTO` validation failures; decoupled starvation short-circuiting before trace projection; added unit tests covering happy path causal fusion, step_states payload, data starvation, and error handling in `test_synthesis_worker.py`; verified 10/10 quality stages, 11 unit tests (92% coverage), verified 181 rules; committed in `9c44dc548`.
-  - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (26 backend files completed total).
-- Executed Tier 2 Backend Hardening Session 4 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
-  - Audited and hardened the final 4 target files, closing Tier 2 Backend Hardening with 30/30 files verified:
-    1. `@[backend_v2/services/localization.py]`: Added unit test coverage for `ReportHeaderResolver.resolve_matrix_headers` in `test_localization.py` achieving 100% strict test coverage; passed 10/10 quality stages, verified 181 audit matrix rules; committed in `8711ec287`.
-    2. `@[backend_v2/models/dtos/export.py]`: Verified 13 unit tests in `test_export.py` achieving 100% line coverage; passed 10/10 quality stages, verified 181 audit matrix rules.
-    3. `@[backend_v2/services/export_service.py]`: Verified 30 unit tests in `test_export_service.py` achieving 90% line coverage; passed 10/10 quality stages, verified 181 audit matrix rules.
-    4. `@[scripts/audit_flutter_theme_sovereignty.py]`: Formatted code; created comprehensive unit test suite in `test_audit_flutter_theme_sovereignty.py` achieving 97% line coverage across 11 test cases; passed 10/10 quality stages, verified 181 audit matrix rules; committed in `91d733c44`.
-  - All 4 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (30/30 backend files completed total).
-  - Parent post-implementation gate `- [x] **[OK] Tier 2 Hardening (Backend):**` transitioned from `[NOK]` to `[OK]`.
+    1. `@[client_app_v2/lib/core/models/enums.dart]`: Verified `EngineType.causalDiscovery`, `TargetBlockType.executiveSummaryBlock`, `SystemConcurrency`, and enum serialization invariants; created unit test suite `client_app_v2/test/core/models/enums_test.dart` (7 tests covering happy and negative boundary paths); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `38ec2321b`.
+    2. `@[client_app_v2/lib/features/studio/models/workflow.dart]`: Verified Freezed models with `disallowUnrecognizedKeys: true` across `StepRule`, `NodeStrategy`, and `Workflow`; added unit tests in `workflow_test.dart` asserting `causal_source_step_id`, `engine_type: causal_discovery`, and negative fail-fast on unrecognized keys (17 tests total); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `95b9ebd37`.
+    3. `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`: Verified 6 Freezed models (`CausalNodeDto`, `CausalEdgeDto`, `CausalRootCauseDiagnosisDto`, `AntiFluffAuditDto`, `PrescriptiveRemediationDto`, `FairScoringBreakdownDto`) with `@Freezed(equal: false)` and `disallowUnrecognizedKeys: true`; created comprehensive unit test suite `causal_discovery_dto_test.dart` (8 unit tests covering all models and negative fail-fast); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `0bcc9e3b7`.
+  - All 3 audited files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (3/8 frontend files completed total).
 
 ## Learned
-- **StateProjector Snapshot Property Semantics**: `projector.snapshot` is a `@property` returning a fresh list built on the fly from `_snapshot`. Calling `projector.snapshot.append(...)` in tests does NOT modify `projector._snapshot`. Test mock events must emit `TraceEvent(..., event_type="input", content=StepOutputContentDTO(data={...}))` to populate `_snapshot` via `apply_delta`.
-- **StepRule & Workflow Cross-Validation**: `StepRule` has an `@after_validator` mandating that `causal_source_step_id` must be declared in `depends_on`. `Workflow` has a validator mandating that all `depends_on` steps must exist in `workflow.steps`. DAGExecutor defense-in-depth tests must use `StepRule.model_construct()` and `Workflow.model_construct()` to bypass model validation gates when asserting runtime graph failure handling.
-- **Audit Matrix Manager Justification Anchoring**: `scripts/audit_matrix_manager.py verify` strictly asserts that justifications anchor to the target file. Mentioning other python files in justifications triggers a conflicting file reference error. Keep rule justifications anchored strictly to `<target_file>` (e.g. `causal_discovery.py is verified by 12 unit tests achieving 95% strict line coverage.`).
-- **NA Justification Ceiling**: `audit_matrix_manager.py verify` permits a maximum of 40 occurrences of the same NA justification string. Distributing NA justifications across domains (chat, flutter, router, db, export, llm, schema) ensures strict conformance.
-- **DataStarvationEvent Schema Strictness**: `DataStarvationEvent` enforces `total_atoms: int` and literal `event_type: Literal["starvation"]` with `extra="forbid"`.
-- **Typing Protocol Runtime Checks**: Non-runtime checkable protocols raise `TypeError` when tested via `issubclass()`; decorating with `@runtime_checkable` allows standard structural subtyping validation in tests.
-- **BulletListBlock Item Typing**: `BulletListBlock.items` strictly requires `list[BulletListItem]` with `BulletListItem(text=...)`, rejecting naked strings under `extra="forbid"`.
-- **ExecutionUpdateDTO Step States Invariance**: `ExecutionUpdateDTO.step_states` strictly requires `dict[str, ExecutionStep]`. When copying `step_states` from execution records, non-ExecutionStep entries must be filtered to prevent validation errors.
-- **RenderedSynthesisCache Extension Metrics Typing**: `RenderedSynthesisCache.extension_metrics` requires `ExtensionMetricsDTO | None`. Tests mocking `build_variance_metrics_and_task` must return `(None, ...)` rather than `([], ...)`.
-- **Data Starvation Short-Circuit Ordering**: Data starvation checks (`handle_starvation_if_detected`) must execute prior to `StateProjector` folding to ensure immediate short-circuiting without failing on empty or non-DTO trace events.
-- **Theme Sovereignty Multi-Violation Lines**: When testing static theme analysis scanners, lines combining multiple prohibited patterns (e.g., `TextStyle` containing `Colors.*`) emit distinct violations for each rule condition; test fixtures isolating single violations should avoid co-locating multiple forbidden patterns on the same source line.
+- **StepRule Snake_Case Invariance**: `workflow.dart` enforces `disallowUnrecognizedKeys: true` and maps `task_blueprint` strictly in snake_case, rejecting camelCase `taskBlueprint`.
+- **StrictOpaqueIdConverter Opaque Hex Specification**: `StrictOpaqueIdConverter` mandates that IDs start with a 2-5 letter prefix followed by underscore and exactly 16-32 hex characters (e.g. `st_0123456789abcdef`), rejecting arbitrary non-hex strings.
+- **Audit Matrix Manager Conflicting File Whitelist**: In `scripts/audit_matrix_manager.py`, PASS justifications cannot cite non-whitelisted filenames (such as test files); justifications must anchor strictly to target file stem or permitted whitelist tokens.
+- **Freezed Equal False Optimization**: In `causal_discovery_dto.dart`, decorating all DTOs with `@Freezed(equal: false)` prevents O(N^2) deep equality checks during high-frequency stream updates while retaining immutability.
 
 ## Remaining
 - Subsequent post-implementation gates:
-  - Tier 2 Hardening (Frontend) on 8 touched Flutter files:
-    - `@[client_app_v2/lib/core/models/enums.dart]`
-    - `@[client_app_v2/lib/features/studio/models/workflow.dart]`
-    - `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`
+  - Tier 2 Hardening (Frontend) on 5 remaining Flutter files:
     - `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
     - `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
     - `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`
@@ -329,6 +293,7 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/core/models/enums.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/shared/models/sdui_block_dto.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
 ```
+
 
