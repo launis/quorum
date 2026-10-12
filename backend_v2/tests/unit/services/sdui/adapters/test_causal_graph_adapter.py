@@ -10,6 +10,7 @@ import pydantic
 import pytest
 from pydantic import TypeAdapter
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -220,10 +221,11 @@ def test_causal_graph_adapter_build_valid_returns_card() -> None:
 
 
 def test_causal_graph_adapter_build_action_card_none_raises() -> None:
-    """Asserts build_action_card raises ValueError if causal_result is None."""
+    """Asserts build_action_card raises AppException if causal_result is None."""
     ctx = _build_sample_adapter_context(causal_result=None)
-    with pytest.raises(ValueError, match="Cannot build causal action card when causal_result is None"):
+    with pytest.raises(AppException) as exc_info:
         CausalGraphAdapter.build_action_card(ctx)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_causal_graph_adapter_with_graph_payload_only() -> None:

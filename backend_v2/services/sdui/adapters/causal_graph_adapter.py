@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
@@ -56,10 +59,19 @@ class CausalGraphAdapter:
 
         Returns:
             SduiCausalGraphBlock configured for Dumb Painter rendering.
+
+        Raises:
+            AppException: If ctx.causal_result is None (VALIDATION_FAILED).
         """
         causal = ctx.causal_result
         if causal is None:
-            raise ValueError("Cannot build causal action card when causal_result is None.")
+            msg = "Cannot build causal action card when causal_result is None."
+            logger.error("[CausalGraphAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         if isinstance(causal, CausalTdaFusionResultDTO):
             graph = causal.graph
