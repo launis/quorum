@@ -45,8 +45,8 @@ abstract class OutputProfile with _$OutputProfile {
       'label',
       'distribution',
       'row_explanation',
+      'criteria',
       'normalized_score',
-      'raw_score',
     ])
     @JsonKey(name: 'matrix_visible_columns')
     List<String> matrixVisibleColumns,

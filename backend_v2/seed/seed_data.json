@@ -21621,8 +21621,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",
@@ -21784,8 +21784,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",
@@ -21884,8 +21884,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",
@@ -21993,8 +21993,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",
@@ -22085,8 +22085,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",
@@ -22195,8 +22195,8 @@
         "label",
         "distribution",
         "row_explanation",
-        "normalized_score",
-        "raw_score"
+        "criteria",
+        "normalized_score"
       ],
       "visible_block_extensions": [
         "justification",

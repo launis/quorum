@@ -10,6 +10,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.domain.output_profile import STANDARD_MATRIX_VISIBLE_COLUMNS
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
@@ -119,13 +120,7 @@ class OutputProfileCreateDTO(V2CoreBase):
     matrix_visible_columns: Annotated[
         list[str],
         Field(
-            default_factory=lambda: [
-                "label",
-                "distribution",
-                "row_explanation",
-                "normalized_score",
-                "raw_score",
-            ],
+            default_factory=lambda: list(STANDARD_MATRIX_VISIBLE_COLUMNS),
             description="List of column keys visible in the matrix summary table.",
         ),
     ]
@@ -573,15 +568,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     ]
     matrix_visible_columns: Annotated[
         list[str],
-        Field(
-            default_factory=lambda: [
-                "label",
-                "distribution",
-                "row_explanation",
-                "normalized_score",
-                "raw_score",
-            ]
-        ),
+        Field(default_factory=lambda: list(STANDARD_MATRIX_VISIBLE_COLUMNS)),
     ]
     visible_block_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]
     visible_workflow_extensions: Annotated[list[LaxXaiExtensionType], Field(default_factory=list)]

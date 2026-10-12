@@ -31,9 +31,9 @@
   - [x] Step 3.3: Declare Semantic Row Status Localizations
   - [x] Step 3.4: Render Semantic Status Badges in Flutter ExecutionReportsView
   - [x] Step 3.5: Unit Test Row Item Inverse Evidence Propagation
-  - [ ] Step 4.1: Define Standard Matrix Visible Columns SSOT in Backend and Flutter
-  - [ ] Step 4.2: Synchronize All Output Profiles in Seed Vault
-  - [ ] Step 4.3: Verify Output Profile and SDUI Parity Tests
+  - [x] Step 4.1: Define Standard Matrix Visible Columns SSOT in Backend and Flutter
+  - [x] Step 4.2: Synchronize All Output Profiles in Seed Vault
+  - [x] Step 4.3: Verify Output Profile and SDUI Parity Tests
   - [ ] Step 5.1: Two-Phase Pre-Flight In-Memory Seed Validation
   - [ ] Step 5.2: Execution Artifact Pre-Flight Backup and Local Database Hard Reset
   - [ ] Step 5.3: Validate Post-Seeding Database State
@@ -102,9 +102,9 @@
 | REQ-011 | Declare Semantic Row Status Localizations | Step 3.3 | Completed |
 | REQ-012 | Render Semantic Status Badges in Flutter ExecutionReportsView | Step 3.4 | Completed |
 | REQ-013 | Unit Test Row Item Inverse Evidence Propagation | Step 3.5 | Completed |
-| REQ-014 | Define Standard Matrix Visible Columns SSOT in Backend and Flutter | Step 4.1 | Pending |
-| REQ-015 | Synchronize All Output Profiles in Seed Vault | Step 4.2 | Pending |
-| REQ-016 | Verify Output Profile and SDUI Parity Tests | Step 4.3 | Pending |
+| REQ-014 | Define Standard Matrix Visible Columns SSOT in Backend and Flutter | Step 4.1 | Completed |
+| REQ-015 | Synchronize All Output Profiles in Seed Vault | Step 4.2 | Completed |
+| REQ-016 | Verify Output Profile and SDUI Parity Tests | Step 4.3 | Completed |
 | REQ-017 | Two-Phase Pre-Flight In-Memory Seed Validation | Step 5.1 | Pending |
 | REQ-018 | Execution Artifact Pre-Flight Backup and Local Database Hard Reset | Step 5.2 | Pending |
 | REQ-019 | Validate Post-Seeding Database State | Step 5.3 | Pending |

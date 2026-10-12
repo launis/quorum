@@ -30,7 +30,15 @@ from backend_v2.models.view.sdui import AnySduiBlock
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["OutputProfile"]
+STANDARD_MATRIX_VISIBLE_COLUMNS: list[str] = [
+    "label",
+    "distribution",
+    "row_explanation",
+    "criteria",
+    "normalized_score",
+]
+
+__all__ = ["OutputProfile", "STANDARD_MATRIX_VISIBLE_COLUMNS"]
 
 
 class OutputProfile(V2CoreBase):
@@ -91,13 +99,7 @@ class OutputProfile(V2CoreBase):
         description="List of metadata fields visible on the UI and PDF cover header.",
     )
     matrix_visible_columns: list[str] = Field(
-        default_factory=lambda: [
-            "label",
-            "distribution",
-            "row_explanation",
-            "normalized_score",
-            "raw_score",
-        ],
+        default_factory=lambda: list(STANDARD_MATRIX_VISIBLE_COLUMNS),
         description="List of column keys visible in the matrix summary table.",
     )
     visible_block_extensions: list[LaxXaiExtensionType] = Field(
