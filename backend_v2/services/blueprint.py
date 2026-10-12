@@ -275,7 +275,12 @@ class BlueprintTransformer:
                             msg_legacy = (
                                 f"Zero-Compromise Check Failed: Legacy or unsupported penalty string: '{p_str}'"
                             )
-                            logger.error("[BlueprintTransformer] %s", msg_legacy)
+                            logger.error(
+                                "[BlueprintTransformer] %s: %s",
+                                ErrorCodes.VALIDATION_FAILED.name,
+                                msg_legacy,
+                                exc_info=True,
+                            )
                             raise AppException(
                                 message=msg_legacy,
                                 status_code=500,
@@ -311,7 +316,12 @@ class BlueprintTransformer:
                             rejected_evq_ids.add(override_dto.evq_id)
                     except ValidationError as val_err:
                         msg = f"Failed to parse EvidenceOverrideDTO in execution trace: {val_err}"
-                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        logger.error(
+                            "[BlueprintTransformer] %s: %s",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            msg,
+                            exc_info=True,
+                        )
                         raise AppException(
                             message=msg,
                             status_code=500,
@@ -448,8 +458,10 @@ class BlueprintTransformer:
                     org_name = org.name
             except Exception as org_err:
                 logger.error(
-                    "[BlueprintTransformer] RESOURCE_NOT_FOUND: Failed to resolve org name "
-                    f"for id {execution.organization_id}: {org_err}",
+                    "[BlueprintTransformer] %s: Failed to resolve org name for id %s: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    execution.organization_id,
+                    org_err,
                     exc_info=True,
                 )
                 raise AppException(
@@ -637,6 +649,8 @@ class BlueprintTransformer:
                 hydrated_references=v2_hydrated_refs,
             )
             return report_dto
+        except AppException:
+            raise
         except Exception as e:
             msg = f"Failed to map execution {execution.id} results to ReportDataDTO: {e}"
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

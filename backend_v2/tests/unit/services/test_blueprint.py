@@ -3895,3 +3895,202 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     assert report.total_tokens == 250
     assert report.cost_estimate == 0.012
     assert report.org_name == "Test Org Inc"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_causal_result_hydration_from_trace() -> None:
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.causal_discovery import (
+        CausalGraphPayloadDTO,
+        CausalNodeDTO,
+    )
+    from backend_v2.models.enums import ExecutionStatus, TargetBlockType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.view.sdui import SduiCausalGraphBlock
+    from backend_v2.services.blueprint import BlueprintTransformer
+    from backend_v2.tests.fakes.in_memory_repositories import (
+        InMemoryUnifiedWorkflowRepository,
+    )
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    profile = OutputProfile(
+        id="prf_00000000000000c1",
+        slug="profile-causal-1",
+        workflow_id="wf_00000000000000c1",
+        name=I18nText(translations={"en": "Profile Causal"}),
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+    )
+    wf = Workflow(
+        id="wf_00000000000000c1",
+        slug="wf-causal",
+        name=I18nText(translations={"en": "WF Causal"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="published",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode="DISABLED",
+        default_profile_id=profile.id,
+        steps=[],
+    )
+    repo.set_output_profiles([profile])
+    repo.set_workflow(wf)
+    repo.set_prompt_blocks([])
+
+    transformer = BlueprintTransformer(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
+    )
+
+    causal_payload = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="claim_0",
+                claim="Defect occurs due to high temperature",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=[],
+            )
+        ],
+        edges=[],
+        root_cause_node_ids=["claim_0"],
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_00000000000000c1",
+        workflow_id=wf.id,
+        organization_id="org_0000000000000001",
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=10,
+        completion_tokens=10,
+        reasoning_tokens=0,
+        dag_cost_usd=0.01,
+        execution_trace=[
+            TraceEvent(
+                step_name="causal_discovery",
+                event_type="progress",
+                content=causal_payload,
+            ),
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    repo.set_execution(exec_record)
+
+    report = await transformer.build_report_dto("exe_00000000000000c1")
+    assert report is not None
+    causal_blocks = [b for b in report.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
+    assert len(causal_blocks) == 1
+    assert causal_blocks[0].critical_path_nodes[0].node_id == "claim_0"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_causal_result_hydration_from_step_states() -> None:
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.causal_discovery import (
+        CausalGraphPayloadDTO,
+        CausalNodeDTO,
+    )
+    from backend_v2.models.dtos.step_output import StepOutputDTO
+    from backend_v2.models.enums import ExecutionStatus, TargetBlockType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.view.sdui import SduiCausalGraphBlock
+    from backend_v2.services.blueprint import BlueprintTransformer
+    from backend_v2.tests.fakes.in_memory_repositories import (
+        InMemoryUnifiedWorkflowRepository,
+    )
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    profile = OutputProfile(
+        id="prf_00000000000000c2",
+        slug="profile-causal-2",
+        workflow_id="wf_00000000000000c2",
+        name=I18nText(translations={"en": "Profile Causal"}),
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+    )
+    wf = Workflow(
+        id="wf_00000000000000c2",
+        slug="wf-causal-2",
+        name=I18nText(translations={"en": "WF Causal 2"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="published",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode="DISABLED",
+        default_profile_id=profile.id,
+        steps=[],
+    )
+    repo.set_output_profiles([profile])
+    repo.set_workflow(wf)
+    repo.set_prompt_blocks([])
+
+    transformer = BlueprintTransformer(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
+    )
+
+    causal_payload = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="claim_1",
+                claim="Pressure fluctuation caused valve trip",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=[],
+            )
+        ],
+        edges=[],
+        root_cause_node_ids=["claim_1"],
+    )
+
+    step_output = StepOutputDTO(
+        step_id="stp_causal_eval",
+        block_id="blk_causal_discovery",
+        data_type="causal",
+        payload=causal_payload,
+    )
+
+    exec_record = ExecutionRecord.model_construct(
+        id="exe_00000000000000c2",
+        workflow_id=wf.id,
+        organization_id="org_0000000000000001",
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=10,
+        completion_tokens=10,
+        reasoning_tokens=0,
+        dag_cost_usd=0.01,
+        execution_trace=[],
+        step_states={"stp_causal_eval": step_output},
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+        profile_syntheses={},
+    )
+    repo.set_execution(exec_record)
+
+    report = await transformer.build_report_dto("exe_00000000000000c2")
+    assert report is not None
+    causal_blocks = [b for b in report.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
+    assert len(causal_blocks) == 1
+    assert causal_blocks[0].critical_path_nodes[0].node_id == "claim_1"
+
+
+
+
