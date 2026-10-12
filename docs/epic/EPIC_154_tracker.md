@@ -162,7 +162,7 @@
   - [x] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[backend_v2/workers/synthesis_tasks.py]
-  - [ ] @[backend_v2/workers/synthesis_worker.py]
+  - [x] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[backend_v2/services/localization.py]
   - [ ] @[backend_v2/models/dtos/export.py]
   - [ ] @[backend_v2/services/export_service.py]
@@ -280,6 +280,12 @@
     2. `@[backend_v2/services/sdui/adapters/base_adapter.py]`: Added explicit `__all__ = ["AdapterContext", "SduiAdapterProtocol"]`; migrated `parsed_matrices` and `mcp_tools_map` to PEP 593 `Annotated` syntax per `pydantic_annotated_fields_mandate`; decorated `SduiAdapterProtocol` with `@runtime_checkable`; expanded `test_base_adapter.py` verifying `is_data_starved` and protocol conformance; passed 10/10 stages, 7 unit tests (100% coverage), verified 181 rules; committed in `9c8c571a0`.
     3. `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Verified Zero Fallback user role resolution and Dumb Painter sequence; expanded `test_executive_summary_adapter.py` verifying `BulletListBlock` recommendation ordering and `SduiCausalGraphBlock` injection; passed 10/10 stages, 24 unit tests (100% coverage), verified 181 rules; committed in `fe35b8020`.
   - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (23 backend files completed total).
+- Executed Tier 2 Backend Hardening Session 3 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
+  - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
+    1. `@[backend_v2/services/blueprint.py]`: Hardened error handling with RFC 7807 `exc_info=True` dual-logging; added causal discovery hydration unit tests in `test_blueprint.py`; verified 10/10 quality stages, 23 unit tests (100% coverage), verified 181 rules; committed in `9bffa56ae`.
+    2. `@[backend_v2/workers/synthesis_tasks.py]`: Added RFC 7807 logging; added causal diagnosis injection verification unit tests in `test_synthesis_tasks.py`; verified 10/10 quality stages, 18 unit tests (100% coverage), verified 181 rules; committed in `14a77a1ce`.
+    3. `@[backend_v2/workers/synthesis_worker.py]`: Hardened error handling with RFC 7807 logging; filtered non-ExecutionStep types in `_update_render_status` to prevent `ExecutionUpdateDTO` validation failures; decoupled starvation short-circuiting before trace projection; added unit tests covering happy path causal fusion, step_states payload, data starvation, and error handling in `test_synthesis_worker.py`; verified 10/10 quality stages, 11 unit tests (92% coverage), verified 181 rules; committed in `9c44dc548`.
+  - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (26 backend files completed total).
 
 ## Learned
 - **StateProjector Snapshot Property Semantics**: `projector.snapshot` is a `@property` returning a fresh list built on the fly from `_snapshot`. Calling `projector.snapshot.append(...)` in tests does NOT modify `projector._snapshot`. Test mock events must emit `TraceEvent(..., event_type="input", content=StepOutputContentDTO(data={...}))` to populate `_snapshot` via `apply_delta`.
@@ -289,12 +295,12 @@
 - **DataStarvationEvent Schema Strictness**: `DataStarvationEvent` enforces `total_atoms: int` and literal `event_type: Literal["starvation"]` with `extra="forbid"`.
 - **Typing Protocol Runtime Checks**: Non-runtime checkable protocols raise `TypeError` when tested via `issubclass()`; decorating with `@runtime_checkable` allows standard structural subtyping validation in tests.
 - **BulletListBlock Item Typing**: `BulletListBlock.items` strictly requires `list[BulletListItem]` with `BulletListItem(text=...)`, rejecting naked strings under `extra="forbid"`.
+- **ExecutionUpdateDTO Step States Invariance**: `ExecutionUpdateDTO.step_states` strictly requires `dict[str, ExecutionStep]`. When copying `step_states` from execution records, non-ExecutionStep entries must be filtered to prevent validation errors.
+- **RenderedSynthesisCache Extension Metrics Typing**: `RenderedSynthesisCache.extension_metrics` requires `ExtensionMetricsDTO | None`. Tests mocking `build_variance_metrics_and_task` must return `(None, ...)` rather than `([], ...)`.
+- **Data Starvation Short-Circuit Ordering**: Data starvation checks (`handle_starvation_if_detected`) must execute prior to `StateProjector` folding to ensure immediate short-circuiting without failing on empty or non-DTO trace events.
 
 ## Remaining
-- Complete Tier 2 Hardening (Backend) on the remaining 7 target files:
-  - `@[backend_v2/services/blueprint.py]`
-  - `@[backend_v2/workers/synthesis_tasks.py]`
-  - `@[backend_v2/workers/synthesis_worker.py]`
+- Complete Tier 2 Hardening (Backend) on the remaining 4 target files:
   - `@[backend_v2/services/localization.py]`
   - `@[backend_v2/models/dtos/export.py]`
   - `@[backend_v2/services/export_service.py]`
@@ -319,5 +325,5 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/blueprint.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/localization.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
