@@ -34,9 +34,9 @@
   - [x] Step 4.1: Define Standard Matrix Visible Columns SSOT in Backend and Flutter
   - [x] Step 4.2: Synchronize All Output Profiles in Seed Vault
   - [x] Step 4.3: Verify Output Profile and SDUI Parity Tests
-  - [ ] Step 5.1: Two-Phase Pre-Flight In-Memory Seed Validation
-  - [ ] Step 5.2: Execution Artifact Pre-Flight Backup and Local Database Hard Reset
-  - [ ] Step 5.3: Validate Post-Seeding Database State
+  - [x] Step 5.1: Two-Phase Pre-Flight In-Memory Seed Validation
+  - [x] Step 5.2: Execution Artifact Pre-Flight Backup and Local Database Hard Reset
+  - [x] Step 5.3: Validate Post-Seeding Database State
   - [ ] Step 6.1: Execute Global Backend Audit Gate
   - [ ] Step 6.2: Execute Flutter Audit Loop
   - [ ] Step 6.3: Verify Real Artifact Export and Row Data View Against Past Execution
@@ -105,9 +105,9 @@
 | REQ-014 | Define Standard Matrix Visible Columns SSOT in Backend and Flutter | Step 4.1 | Completed |
 | REQ-015 | Synchronize All Output Profiles in Seed Vault | Step 4.2 | Completed |
 | REQ-016 | Verify Output Profile and SDUI Parity Tests | Step 4.3 | Completed |
-| REQ-017 | Two-Phase Pre-Flight In-Memory Seed Validation | Step 5.1 | Pending |
-| REQ-018 | Execution Artifact Pre-Flight Backup and Local Database Hard Reset | Step 5.2 | Pending |
-| REQ-019 | Validate Post-Seeding Database State | Step 5.3 | Pending |
+| REQ-017 | Two-Phase Pre-Flight In-Memory Seed Validation | Step 5.1 | Completed |
+| REQ-018 | Execution Artifact Pre-Flight Backup and Local Database Hard Reset | Step 5.2 | Completed |
+| REQ-019 | Validate Post-Seeding Database State | Step 5.3 | Completed |
 | REQ-020 | Execute Global Backend Audit Gate | Step 6.1 | Pending |
 | REQ-021 | Execute Flutter Audit Loop | Step 6.2 | Pending |
 | REQ-022 | Verify Real Artifact Export and Row Data View Against Past Execution | Step 6.3 | Pending |
