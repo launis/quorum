@@ -465,3 +465,40 @@ async def test_create_xai_highlights_task_with_block_extensions() -> None:
 
     res = await create_xai_highlights_task(mock_client, "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert res is not None
+
+
+@pytest.mark.asyncio
+async def test_create_executive_summary_task_with_causal_diagnosis() -> None:
+    """Test create_executive_summary_task injects <causal_diagnosis> block when provided."""
+    prof = _make_profile(
+        requires_exec=True,
+        exec_directive="Clear executive directive.",
+    )
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.return_value = ExecutiveSummarySectionResult(
+        executive_summary=[ParagraphBlock(text="Summary text", exact_quotes=[], citations=[])],
+        user_role=None,
+        user_role_justification=None,
+        cited_sources=[],
+    )
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    await create_executive_summary_task(
+        mock_client,
+        "sys_prompt",
+        ["<base>1</base>"],
+        "distilled_text",
+        "matrix_text",
+        prof,
+        dummy_sem,
+        causal_diagnosis="Empirical bottleneck: root cause in Node 0",
+    )
+    mock_client.run_structured_task.assert_called_once()
+    call_args = mock_client.run_structured_task.call_args
+    messages = call_args.kwargs["messages"]
+    user_content = messages[1].content
+    assert "<causal_diagnosis>" in user_content
+    assert "Empirical bottleneck: root cause in Node 0" in user_content
+

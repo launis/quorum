@@ -157,11 +157,11 @@
   - [x] @[backend_v2/models/dtos/step_output.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
   - [x] @[backend_v2/models/view/sdui.py]
-  - [ ] [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
-  - [ ] @[backend_v2/services/blueprint.py]
-  - [ ] @[backend_v2/workers/synthesis_tasks.py]
+  - [x] [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/base_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
+  - [x] @[backend_v2/services/blueprint.py]
+  - [x] @[backend_v2/workers/synthesis_tasks.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[backend_v2/services/localization.py]
   - [ ] @[backend_v2/models/dtos/export.py]
@@ -258,7 +258,7 @@
 | Markdown boundary auditing across plans | Section 3.7.1 | Phase 7, Step 7.6 | Completed |
 | Final Live E2E REST API Verification Gate | Section 3.7.1 | Phase 7, Step 7.7 | Completed |
 
-# Session Handover Context
+# # Session Handover Context
 
 ## Achieved
 - Executed Tier 2 Backend Hardening Session 1 (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`):
@@ -274,18 +274,24 @@
     9. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`: Enhanced PEP 257 Google style docstrings (`Args:`, `Returns:`, `Raises:` explicitly documenting `AppException` error codes); verified 11 tests, 98% coverage, 10/10 stages passed; audit matrix verified (181 rules passed); committed in `dde2f5ef1`.
     10. `@[backend_v2/models/view/sdui.py]`: Verified 7 tests, 100% coverage, 10/10 stages passed; audit matrix verified (181 rules passed).
   - All 10 audited files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (20 backend files completed total).
+- Executed Tier 2 Backend Hardening Session 2 (`/tier5-resume` targeting `backend_v2/services/sdui/adapters/`):
+  - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
+    1. `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`: Upgraded `ValueError` to `AppException` with RFC 7807 logging (`ErrorCodes.VALIDATION_FAILED`); enhanced PEP 257 docstrings; synchronized `test_causal_graph_adapter.py`; verified 10/10 quality stages, 9 unit tests (100% coverage), verified 181 rules; committed in `0d0a54dbd`.
+    2. `@[backend_v2/services/sdui/adapters/base_adapter.py]`: Added explicit `__all__ = ["AdapterContext", "SduiAdapterProtocol"]`; migrated `parsed_matrices` and `mcp_tools_map` to PEP 593 `Annotated` syntax per `pydantic_annotated_fields_mandate`; decorated `SduiAdapterProtocol` with `@runtime_checkable`; expanded `test_base_adapter.py` verifying `is_data_starved` and protocol conformance; passed 10/10 stages, 7 unit tests (100% coverage), verified 181 rules; committed in `9c8c571a0`.
+    3. `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`: Verified Zero Fallback user role resolution and Dumb Painter sequence; expanded `test_executive_summary_adapter.py` verifying `BulletListBlock` recommendation ordering and `SduiCausalGraphBlock` injection; passed 10/10 stages, 24 unit tests (100% coverage), verified 181 rules; committed in `fe35b8020`.
+  - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (23 backend files completed total).
 
 ## Learned
 - **StateProjector Snapshot Property Semantics**: `projector.snapshot` is a `@property` returning a fresh list built on the fly from `_snapshot`. Calling `projector.snapshot.append(...)` in tests does NOT modify `projector._snapshot`. Test mock events must emit `TraceEvent(..., event_type="input", content=StepOutputContentDTO(data={...}))` to populate `_snapshot` via `apply_delta`.
 - **StepRule & Workflow Cross-Validation**: `StepRule` has an `@after_validator` mandating that `causal_source_step_id` must be declared in `depends_on`. `Workflow` has a validator mandating that all `depends_on` steps must exist in `workflow.steps`. DAGExecutor defense-in-depth tests must use `StepRule.model_construct()` and `Workflow.model_construct()` to bypass model validation gates when asserting runtime graph failure handling.
 - **Audit Matrix Manager Justification Anchoring**: `scripts/audit_matrix_manager.py verify` strictly asserts that justifications anchor to the target file. Mentioning other python files in justifications triggers a conflicting file reference error. Keep rule justifications anchored strictly to `<target_file>` (e.g. `causal_discovery.py is verified by 12 unit tests achieving 95% strict line coverage.`).
-- **NA Justification Ceiling**: `audit_matrix_manager.py verify` permits a maximum of 40 occurrences of the same NA justification string. Distributing NA justifications across domains (chat, flutter, router, db, export, llm) ensures strict conformance.
+- **NA Justification Ceiling**: `audit_matrix_manager.py verify` permits a maximum of 40 occurrences of the same NA justification string. Distributing NA justifications across domains (chat, flutter, router, db, export, llm, schema) ensures strict conformance.
+- **DataStarvationEvent Schema Strictness**: `DataStarvationEvent` enforces `total_atoms: int` and literal `event_type: Literal["starvation"]` with `extra="forbid"`.
+- **Typing Protocol Runtime Checks**: Non-runtime checkable protocols raise `TypeError` when tested via `issubclass()`; decorating with `@runtime_checkable` allows standard structural subtyping validation in tests.
+- **BulletListBlock Item Typing**: `BulletListBlock.items` strictly requires `list[BulletListItem]` with `BulletListItem(text=...)`, rejecting naked strings under `extra="forbid"`.
 
 ## Remaining
-- Complete Tier 2 Hardening (Backend) on the remaining 10 target files:
-  - `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`
-  - `@[backend_v2/services/sdui/adapters/base_adapter.py]`
-  - `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
+- Complete Tier 2 Hardening (Backend) on the remaining 7 target files:
   - `@[backend_v2/services/blueprint.py]`
   - `@[backend_v2/workers/synthesis_tasks.py]`
   - `@[backend_v2/workers/synthesis_worker.py]`
@@ -313,5 +319,5 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/sdui/adapters/causal_graph_adapter.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/blueprint.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
 ```

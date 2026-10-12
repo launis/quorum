@@ -278,6 +278,7 @@ async def create_xai_highlights_task(
         logger.error(
             "[synthesis_tasks] %s: max_extension_items is mandatory if extensions are visible.",
             ErrorCodes.VALIDATION_FAILED.name,
+            exc_info=True,
         )
         raise AppException(
             message="Fail-Fast: max_extension_items is mandatory if extensions are visible.",
