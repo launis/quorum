@@ -160,55 +160,67 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                     candidates.append(f"{clean_base}.py")
             cov_filter_name = filename
 
-            test_path = ""
+            test_paths: list[str] = []
             if parts[0] == "scripts":
                 for cand in candidates:
                     cand_path = Path("backend_v2/tests/unit/scripts") / cand
                     if cand_path.exists():
-                        test_path = str(cand_path).replace("\\", "/")
+                        test_paths.append(str(cand_path).replace("\\", "/"))
+                        for sib in sorted(cand_path.parent.glob(f"test_{clean_base}_*.py")):
+                            sib_str = str(sib).replace("\\", "/")
+                            if sib_str not in test_paths:
+                                test_paths.append(sib_str)
                         break
             elif parts[0] == "backend_v2":
                 for cand in candidates:
                     # 1. Direct subfolder match
                     p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
                     if p.exists():
-                        test_path = str(p).replace("\\", "/")
+                        test_paths.append(str(p).replace("\\", "/") )
+                        for sib in sorted(p.parent.glob(f"test_{clean_base}_*.py")):
+                            sib_str = str(sib).replace("\\", "/")
+                            if sib_str not in test_paths:
+                                test_paths.append(sib_str)
                         break
                     # 1b. Parent package subfolder test file (e.g. backend_v2/models/prompts/execution/matrix_evaluation.py -> tests/unit/models/prompts/test_matrix_evaluation.py)
                     for i in range(len(parts) - 2, 0, -1):
                         parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
                         if parent_cand.exists():
-                            test_path = str(parent_cand).replace("\\", "/")
+                            test_paths.append(str(parent_cand).replace("\\", "/"))
+                            for sib in sorted(parent_cand.parent.glob(f"test_{clean_base}_*.py")):
+                                sib_str = str(sib).replace("\\", "/")
+                                if sib_str not in test_paths:
+                                    test_paths.append(sib_str)
                             break
-                    if test_path:
+                    if test_paths:
                         break
                     # 2. Parent package test file (e.g. backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
                     for i in range(len(parts) - 2, 0, -1):
                         parent_pkg = parts[i]
                         parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
                         if parent_cand.exists():
-                            test_path = str(parent_cand).replace("\\", "/")
+                            test_paths.append(str(parent_cand).replace("\\", "/"))
                             break
-                    if test_path:
+                    if test_paths:
                         break
                     # 3. Flat unit test match (direct or package-prefixed like test_hooks_validation.py)
                     flat = Path("backend_v2/tests/unit") / cand
                     if flat.exists():
-                        test_path = str(flat).replace("\\", "/")
+                        test_paths.append(str(flat).replace("\\", "/"))
                         break
                     pkg_prefix_cand = Path("backend_v2/tests/unit") / f"test_{'_'.join(parts[1:-1])}_{cand[5:]}"
                     if pkg_prefix_cand.exists():
-                        test_path = str(pkg_prefix_cand).replace("\\", "/")
+                        test_paths.append(str(pkg_prefix_cand).replace("\\", "/"))
                         break
 
-            if not test_path:
+            if not test_paths:
                 if parts[0] == "scripts":
-                    test_path = "backend_v2/tests/unit/scripts/" + candidates[0]
+                    test_paths.append("backend_v2/tests/unit/scripts/" + candidates[0])
                 else:
-                    test_path = "backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0]
+                    test_paths.append("backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0])
 
         # 1. Run Pytest and collect coverage data (no fail-under crash yet)
-        pytest_args = [test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
+        pytest_args = [*test_paths, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
         if logfire:
             pytest_args.extend(["--logfire", "--logfire-service-name=quorum-audit-loop"])
         cmd = [

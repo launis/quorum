@@ -1044,7 +1044,8 @@ class DAGExecutor:
                                 case StepOutputContentDTO() as step_out:
                                     try:
                                         upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                            step_out.data
+                                            step_out.data,
+                                            strict=False,
                                         )
                                         break
                                     except ValidationError as err:
