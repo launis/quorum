@@ -15,6 +15,7 @@
 - `[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L176-L357]`
 - `[NEW] @[backend_v2/models/dtos/causal_discovery.py]`
 - `[MODIFY] @[backend_v2/models/dtos/step_output.py#L59-L73]`
+- `[MODIFY] @[backend_v2/models/domain/inputs.py#L26-L131]`
 - `[MODIFY] @[client_app_v2/lib/features/studio/models/workflow.dart#L50-L70]`
 - `[MODIFY] @[client_app_v2/lib/l10n/app_en.arb#L2600-L2610]`
 - `[MODIFY] @[client_app_v2/lib/l10n/app_fi.arb#L1887-L1897]`
@@ -106,6 +107,7 @@
     <backend>@[backend_v2/services/orchestrator/dag_executor.py#L176-L357]</backend>
     <backend>[NEW] @[backend_v2/models/dtos/causal_discovery.py]</backend>
     <backend>@[backend_v2/models/dtos/step_output.py#L59-L73]</backend>
+    <backend>@[backend_v2/models/domain/inputs.py#L26-L131]</backend>
     <frontend>@[client_app_v2/lib/features/studio/models/workflow.dart#L50-L70]</frontend>
     <frontend>@[client_app_v2/lib/l10n/app_en.arb#L2600-L2610]</frontend>
     <frontend>@[client_app_v2/lib/l10n/app_fi.arb#L1887-L1897]</frontend>
@@ -145,7 +147,7 @@
     <action>In PrescriptiveRemediationDTO, define: target_node_id: str, required_action: str, unlocks_node_ids: list[str] = Field(default_factory=list), potential_score_impact: float.</action>
     <action>In FairScoringBreakdownDTO, define: independent_error_count: int, cascading_fault_count: int, raw_penalty_points: float, deduplicated_penalty_points: float, dampened_savings_points: float. Add @model_validator(mode='after') asserting abs(self.raw_penalty_points - (self.deduplicated_penalty_points + self.dampened_savings_points)) &lt; 1e-4, non-negativity across all penalty fields, and non-negativity on counts.</action>
     <action>In CausalTdaFusionResultDTO, define: graph: CausalGraphPayloadDTO, root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO] = Field(default_factory=list), anti_fluff_audit: AntiFluffAuditDTO, prescriptive_remediations: list[PrescriptiveRemediationDTO] = Field(default_factory=list), fair_scoring: FairScoringBreakdownDTO.</action>
-    <action>In @[backend_v2/models/dtos/step_output.py#L59-L73], extend StepPayloadValue union with CausalGraphPayloadDTO | CausalTdaFusionResultDTO and StepOutputDTO.data_type literal with "causal".</action>
+    <action>In @[backend_v2/models/dtos/step_output.py#L59-L73], extend StepPayloadValue union with CausalGraphPayloadDTO | CausalTdaFusionResultDTO and StepOutputDTO.data_type literal with "causal". In @[backend_v2/models/domain/inputs.py#L26-L131], extend DomainInputValue union with CausalGraphPayloadDTO | CausalTdaFusionResultDTO ensuring symmetric schema transit across LogicNodeStrategy.</action>
     <action>Create [NEW] @[backend_v2/tests/unit/models/dtos/test_causal_discovery_dtos.py] asserting referential integrity, mathematical identity, and non-negativity boundary partitions.</action>
     <constraint invariant="the_zero_compromise_pledge">Zero naked dictionaries in state transit; all fields strictly validated.</constraint>
   </step>

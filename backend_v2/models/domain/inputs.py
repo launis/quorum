@@ -25,6 +25,10 @@ from backend_v2.models.domain.security import InputProcessingOutputDTO, Sanitiza
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluationFactsDTO, HydratedAtomDTO
+from backend_v2.models.dtos.causal_discovery import (
+    CausalGraphPayloadDTO,
+    CausalTdaFusionResultDTO,
+)
 from backend_v2.models.dtos.inputs import (
     Base64Attachment,
     GuidedReflectionInputDTO,
@@ -92,6 +96,8 @@ type DomainInputValue = Annotated[
     | TraceMatrixPayloadDTO
     | StepTraceMetadataDTO
     | EvaluationFactsDTO
+    | CausalGraphPayloadDTO
+    | CausalTdaFusionResultDTO
     | dict[str, float]
     | dict[str, str]
     | dict[str, HydratedAtomDTO]

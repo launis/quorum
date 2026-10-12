@@ -96,7 +96,10 @@ def test_fair_scoring_breakdown_identity_valid() -> None:
         dampened_savings_points=2.5,
     )
     assert breakdown.raw_penalty_points == 10.0
-    assert abs(breakdown.raw_penalty_points - (breakdown.deduplicated_penalty_points + breakdown.dampened_savings_points)) < 1e-4
+    assert (
+        abs(breakdown.raw_penalty_points - (breakdown.deduplicated_penalty_points + breakdown.dampened_savings_points))
+        < 1e-4
+    )
 
 
 def test_fair_scoring_breakdown_identity_violation_raises_validation_error() -> None:

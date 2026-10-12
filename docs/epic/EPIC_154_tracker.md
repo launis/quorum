@@ -52,6 +52,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_154/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/02_phase2_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
   - [x] Step 2.1: Settings configuration
   - [x] Step 2.2: Enums and ErrorCodes synchronization
   - [x] Step 2.3: Step consistency, strategy registry, and fusion schema extension
@@ -133,7 +134,9 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide verification confirming zero residual `"atom_flattening_hook"` string matching or duct-tape heuristics.
 - [ ] **[NOK] Tier 2 Hardening (Backend):**
   - [ ] @[backend_v2/services/orchestrator/sliding_window_linker.py]
+  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [ ] @[backend_v2/models/domain/step.py]
+  - [ ] @[backend_v2/models/domain/inputs.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/engines/registry.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/services/orchestrator/engines/base.py]
@@ -172,6 +175,8 @@
   - [ ] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
+  - [ ] @[client_app_v2/lib/l10n/app_en.arb]
+  - [ ] @[client_app_v2/lib/l10n/app_fi.arb]
   - [ ] @[scripts/flutter_audit_loop.py]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies or temporary variables remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving business logic.
@@ -215,6 +220,7 @@
 | Typed ENGINE_REGISTRY and build_execution_engine factory | Section 3.1.4 | Phase 1, Step 1.5 | Completed |
 | Eradicate pre-hook heuristic matching in dag_executor.py | Section 3.1.4 | Phase 1, Step 1.6 | Completed |
 | Add telemetry_strategy_label and purge LLM strategy duck typing | Section 3.1.4 | Phase 1, Step 1.7 | Completed |
+| Strategic alignment check and prerequisite state verification | Section 3.2 | Phase 2, Step 0 | Completed |
 | Settings configuration for causal window, overlap, dampening, packet size | Section 3.2.1 | Phase 2, Step 2.1 | Completed |
 | Domain enums (StepType.CAUSAL_DISCOVERY) and explicit ErrorCodes | Section 3.2.2 | Phase 2, Step 2.2 | Completed |
 | Step consistency, strategy registry, and fusion schema (causal_source_step_id) | Section 3.2.3 | Phase 2, Step 2.3 | Completed |
