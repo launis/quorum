@@ -26,6 +26,8 @@ from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
@@ -340,6 +342,58 @@ async def generate_profile_synthesis_and_pdf_task(
         t_row = None
         ext_metrics = None
 
+        # Resolve empirical causal diagnosis from execution step_states or execution_trace if present
+        causal_diagnosis_text: str | None = None
+        causal_payload: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
+        for evt in reversed(execution.execution_trace):
+            match evt.content:
+                case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                    causal_payload = evt.content
+                    break
+                case _:
+                    continue
+
+        if causal_payload is None and execution.step_states:
+            for state_val in execution.step_states.values():
+                if isinstance(state_val, StepOutputDTO):
+                    match state_val.payload:
+                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                            causal_payload = state_val.payload
+                            break
+                        case _:
+                            continue
+                elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                    causal_payload = state_val
+                    break
+
+        if causal_payload is not None:
+            if isinstance(causal_payload, CausalTdaFusionResultDTO):
+                intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
+                total = len(causal_payload.graph.nodes)
+                diag_lines = [
+                    f"Intact Propositions: {intact}/{total}",
+                    f"Logical Cohesion: {causal_payload.anti_fluff_audit.logical_cohesion_score:.2f}",
+                ]
+                if causal_payload.root_cause_diagnoses:
+                    diag_lines.append("Root Cause Fault Chains:")
+                    for diag in causal_payload.root_cause_diagnoses:
+                        diag_lines.append(
+                            f"- Root Parent {diag.root_cause_parent_id} -> Failing Node {diag.failing_node_id}: {diag.explanation}"
+                        )
+                if causal_payload.prescriptive_remediations:
+                    diag_lines.append("Prescriptive Remediations:")
+                    for rem in causal_payload.prescriptive_remediations:
+                        diag_lines.append(f"- Node {rem.target_node_id}: {rem.required_action}")
+                causal_diagnosis_text = "\n".join(diag_lines)
+            elif isinstance(causal_payload, CausalGraphPayloadDTO):
+                diag_lines = [
+                    f"Total Propositions: {len(causal_payload.nodes)}",
+                    f"Cycle Detected: {causal_payload.cycle_detected}",
+                ]
+                if causal_payload.root_cause_node_ids:
+                    diag_lines.append(f"Root Cause Node IDs: {', '.join(causal_payload.root_cause_node_ids)}")
+                causal_diagnosis_text = "\n".join(diag_lines)
+
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
                 t_exec_summary = tg.create_task(
@@ -351,6 +405,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         matrix_context=matrix_context,
                         active_profile_dto=active_profile_dto,
                         sem_runner=_run_with_sem,
+                        causal_diagnosis=causal_diagnosis_text,
                     )
                 )
                 t_matrix_task = tg.create_task(

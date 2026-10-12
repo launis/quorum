@@ -475,6 +475,85 @@
       ]
     },
     {
+      "block_type": "causal_graph",
+      "summary": {
+        "translations": {
+          "en": "Causal Discovery & Fault Analysis: Systemic failure traced to root dependency.",
+          "fi": "Kausaalilöydökset ja virheanalyysi: Järjestelmävirhe jäljitetty juurisyyhyn."
+        }
+      },
+      "intact_claims_count": 8,
+      "total_claims_count": 10,
+      "critical_path_nodes": [
+        {
+          "node_id": "atm_root_01",
+          "claim": "Initial prerequisite assumption holds in system boundary.",
+          "source_quote": "Foundational assumptions verified in documentation.",
+          "paragraph_ref": "Section 1.1",
+          "status": "PASSED",
+          "blame_parent_ids": [],
+          "dependent_child_ids": [
+            "atm_child_02"
+          ],
+          "tda_score": 5.0,
+          "tda_level_key": "L5"
+        },
+        {
+          "node_id": "atm_child_02",
+          "claim": "Cascading interface contract verified across components.",
+          "source_quote": "Unverified interface coupling caused contract fracture.",
+          "paragraph_ref": "Section 2.4",
+          "status": "FAILED",
+          "blame_parent_ids": [
+            "atm_root_01"
+          ],
+          "dependent_child_ids": [],
+          "tda_score": 1.0,
+          "tda_level_key": "L1"
+        }
+      ],
+      "critical_edges": [
+        {
+          "source_id": "atm_root_01",
+          "target_id": "atm_child_02",
+          "reasoning": "Component dependency propagates contract violation."
+        }
+      ],
+      "root_cause_diagnoses": [
+        {
+          "failing_node_id": "atm_child_02",
+          "root_cause_parent_id": "atm_root_01",
+          "paragraph_ref": "Section 2.4",
+          "explanation": "Root interface definition lacks explicit schema bounds causing cascading fault.",
+          "penalty_points": 1.5
+        }
+      ],
+      "anti_fluff_audit": {
+        "isolated_concept_count": 0,
+        "cycle_detected": false,
+        "unsupported_claims_count": 1,
+        "logical_cohesion_score": 0.85,
+        "detected_hollow_terms": []
+      },
+      "prescriptive_remediations": [
+        {
+          "target_node_id": "atm_child_02",
+          "required_action": "Enforce explicit Pydantic V2 schema contract with extra='forbid'.",
+          "unlocks_node_ids": [
+            "atm_downstream_03"
+          ],
+          "potential_score_impact": 1.5
+        }
+      ],
+      "fair_scoring": {
+        "independent_error_count": 1,
+        "cascading_fault_count": 1,
+        "raw_penalty_points": 3.0,
+        "deduplicated_penalty_points": 1.5,
+        "dampened_savings_points": 1.5
+      }
+    },
+    {
       "block_type": "audit_trail"
     }
   ]

@@ -10,6 +10,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -18,8 +19,9 @@ from backend_v2.models.view.sdui import AnySduiBlock
 class AdapterContext(BaseModel):
     """Immutable data envelope for all SDUI adapters.
 
-    Constructed once by the BlueprintTransformer orchestrator before
-    the dispatch loop. Passed identically to every adapter.
+    Constructed once by the BlueprintTransformer orchestrator in
+    backend_v2/services/blueprint.py (single production construction site)
+    before the dispatch loop. Passed identically to every adapter.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -40,6 +42,7 @@ class AdapterContext(BaseModel):
     strictness_level: int = 50
     cost: float | None = None
     tokens: int | None = None
+    causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
 
     @property
     def is_data_starved(self) -> bool:
@@ -77,5 +80,7 @@ AdapterContext.model_rebuild(
         "MCPAuditTrace": MCPAuditTrace,
         "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
         "AllowedMCPTool": AllowedMCPTool,
+        "CausalTdaFusionResultDTO": CausalTdaFusionResultDTO,
+        "CausalGraphPayloadDTO": CausalGraphPayloadDTO,
     }
 )

@@ -739,6 +739,131 @@ const _$XaiExtensionTypeEnumMap = {
   XaiExtensionType.authenticityEvaluation: 'authenticity_evaluation',
 };
 
+SduiCausalGraphBlock _$SduiCausalGraphBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  'SduiCausalGraphBlock',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'critical_path_nodes',
+        'critical_edges',
+        'root_cause_diagnoses',
+        'anti_fluff_audit',
+        'prescriptive_remediations',
+        'fair_scoring',
+        'intact_claims_count',
+        'total_claims_count',
+        'summary',
+        'block_type',
+      ],
+    );
+    final val = SduiCausalGraphBlock(
+      id: $checkedConvert('id', (v) => v as String?),
+      criticalPathNodes: $checkedConvert(
+        'critical_path_nodes',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => CausalNodeDto.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+      criticalEdges: $checkedConvert(
+        'critical_edges',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map((e) => CausalEdgeDto.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+      ),
+      rootCauseDiagnoses: $checkedConvert(
+        'root_cause_diagnoses',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => CausalRootCauseDiagnosisDto.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList() ??
+            const [],
+      ),
+      antiFluffAudit: $checkedConvert(
+        'anti_fluff_audit',
+        (v) => AntiFluffAuditDto.fromJson(v as Map<String, dynamic>),
+      ),
+      prescriptiveRemediations: $checkedConvert(
+        'prescriptive_remediations',
+        (v) =>
+            (v as List<dynamic>?)
+                ?.map(
+                  (e) => PrescriptiveRemediationDto.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList() ??
+            const [],
+      ),
+      fairScoring: $checkedConvert(
+        'fair_scoring',
+        (v) => v == null
+            ? null
+            : FairScoringBreakdownDto.fromJson(v as Map<String, dynamic>),
+      ),
+      intactClaimsCount: $checkedConvert(
+        'intact_claims_count',
+        (v) => (v as num).toInt(),
+      ),
+      totalClaimsCount: $checkedConvert(
+        'total_claims_count',
+        (v) => (v as num).toInt(),
+      ),
+      summary: $checkedConvert(
+        'summary',
+        (v) => I18nText.fromJson(v as Map<String, dynamic>),
+      ),
+      $type: $checkedConvert('block_type', (v) => v as String?),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'criticalPathNodes': 'critical_path_nodes',
+    'criticalEdges': 'critical_edges',
+    'rootCauseDiagnoses': 'root_cause_diagnoses',
+    'antiFluffAudit': 'anti_fluff_audit',
+    'prescriptiveRemediations': 'prescriptive_remediations',
+    'fairScoring': 'fair_scoring',
+    'intactClaimsCount': 'intact_claims_count',
+    'totalClaimsCount': 'total_claims_count',
+    r'$type': 'block_type',
+  },
+);
+
+Map<String, dynamic> _$SduiCausalGraphBlockToJson(
+  SduiCausalGraphBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'critical_path_nodes': instance.criticalPathNodes
+      .map((e) => e.toJson())
+      .toList(),
+  'critical_edges': instance.criticalEdges.map((e) => e.toJson()).toList(),
+  'root_cause_diagnoses': instance.rootCauseDiagnoses
+      .map((e) => e.toJson())
+      .toList(),
+  'anti_fluff_audit': instance.antiFluffAudit.toJson(),
+  'prescriptive_remediations': instance.prescriptiveRemediations
+      .map((e) => e.toJson())
+      .toList(),
+  'fair_scoring': instance.fairScoring?.toJson(),
+  'intact_claims_count': instance.intactClaimsCount,
+  'total_claims_count': instance.totalClaimsCount,
+  'summary': instance.summary.toJson(),
+  'block_type': instance.$type,
+};
+
 _SduiBulletListItemDTO _$SduiBulletListItemDTOFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('_SduiBulletListItemDTO', json, ($checkedConvert) {

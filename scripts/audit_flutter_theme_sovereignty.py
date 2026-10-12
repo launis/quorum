@@ -52,6 +52,8 @@ DEFAULT_TARGET_FILES = [
     "client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart",
     "client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart",
     "client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart",
+    "client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart",
+    "client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart",
     "client_app_v2/lib/theme/app_colors.dart",
     "client_app_v2/lib/shared/widgets/specialist_section.dart",
     "client_app_v2/lib/shared/widgets/result_dashboard.dart",

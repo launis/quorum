@@ -14,6 +14,14 @@ from backend_v2.models.core_base import I18nText, V2CoreBase
 from backend_v2.models.enums import LaxUiVariant, LaxVisualIntent, LaxXaiExtensionType, VisualIntent
 
 if TYPE_CHECKING:
+    from backend_v2.models.dtos.causal_discovery import (
+        AntiFluffAuditDTO,
+        CausalEdgeDTO,
+        CausalNodeDTO,
+        CausalRootCauseDiagnosisDTO,
+        FairScoringBreakdownDTO,
+        PrescriptiveRemediationDTO,
+    )
     from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 
 __all__ = [
@@ -49,6 +57,7 @@ __all__ = [
     "ScoreCardDisplay",
     "SduiAuditTrailBlock",
     "SduiBlockBase",
+    "SduiCausalGraphBlock",
     "SduiGridBlock",
     "SduiMatrixTableBlock",
     "SduiMetadataBlock",
@@ -784,6 +793,22 @@ class SduiMetrics1DBlock(SduiBlockBase):
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
 
 
+class SduiCausalGraphBlock(SduiBlockBase):
+    """Specific block for Unified Causal Action Card and argument graph visualization."""
+
+    model_config = ConfigDict(title="causal_graph", strict=True, extra="forbid")
+    block_type: Literal["causal_graph"] = "causal_graph"
+    critical_path_nodes: list[CausalNodeDTO] = Field(default_factory=list)
+    critical_edges: list[CausalEdgeDTO] = Field(default_factory=list)
+    root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO] = Field(default_factory=list)
+    anti_fluff_audit: AntiFluffAuditDTO
+    prescriptive_remediations: list[PrescriptiveRemediationDTO] = Field(default_factory=list)
+    fair_scoring: FairScoringBreakdownDTO | None = None
+    intact_claims_count: int
+    total_claims_count: int
+    summary: I18nText
+
+
 AnySduiBlock = Annotated[
     HeroInsightBlock
     | ParagraphBlock
@@ -802,11 +827,20 @@ AnySduiBlock = Annotated[
     | SduiMatrixTableBlock
     | SduiMetrics1DBlock
     | SduiScoreCardBlock
-    | SduiAuditTrailBlock,
+    | SduiAuditTrailBlock
+    | SduiCausalGraphBlock,
     Field(discriminator="block_type"),
 ]
 
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalEdgeDTO,
+    CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
+    FairScoringBreakdownDTO,
+    PrescriptiveRemediationDTO,
+)
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 
 _sdui_localns = {
@@ -814,6 +848,12 @@ _sdui_localns = {
     "LaxXaiExtensionType": LaxXaiExtensionType,
     "AnySduiBlock": AnySduiBlock,
     "MCPAuditTrace": MCPAuditTrace,
+    "CausalNodeDTO": CausalNodeDTO,
+    "CausalEdgeDTO": CausalEdgeDTO,
+    "CausalRootCauseDiagnosisDTO": CausalRootCauseDiagnosisDTO,
+    "AntiFluffAuditDTO": AntiFluffAuditDTO,
+    "PrescriptiveRemediationDTO": PrescriptiveRemediationDTO,
+    "FairScoringBreakdownDTO": FairScoringBreakdownDTO,
 }
 SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
 SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
@@ -821,6 +861,7 @@ SduiQuadrantMatrixBlock.model_rebuild(_types_namespace=_sdui_localns)
 SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
 SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
 SduiGridBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiCausalGraphBlock.model_rebuild(_types_namespace=_sdui_localns)
 
 MatrixScorecardRowDTO.model_rebuild(
     _types_namespace={

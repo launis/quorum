@@ -23,8 +23,10 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
@@ -527,6 +529,30 @@ class BlueprintTransformer:
             if mcp_audit_data:
                 adapter_mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
 
+            # Hydrate causal_result from execution traces or step_states
+            causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
+            if execution is not None:
+                for evt in reversed(execution.execution_trace):
+                    match evt.content:
+                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                            causal_result = evt.content
+                            break
+                        case _:
+                            continue
+
+                if causal_result is None and execution.step_states:
+                    for state_val in execution.step_states.values():
+                        if isinstance(state_val, StepOutputDTO):
+                            match state_val.payload:
+                                case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                                    causal_result = state_val.payload
+                                    break
+                                case _:
+                                    continue
+                        elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                            causal_result = state_val
+                            break
+
             adapter_context = AdapterContext(
                 execution=execution,
                 locale=locale,
@@ -544,6 +570,7 @@ class BlueprintTransformer:
                 strictness_level=strictness_level,
                 cost=combined_cost,
                 tokens=combined_tokens,
+                causal_result=causal_result,
             )
 
             warning_blocks = WarningCardAdapter.build(adapter_context)

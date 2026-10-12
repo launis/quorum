@@ -66,6 +66,7 @@ async def create_executive_summary_task(
     matrix_context: str,
     active_profile_dto: OutputProfile | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
+    causal_diagnosis: str | None = None,
 ) -> Any | None:
     """Build and execute the executive summary structured LLM task.
 
@@ -77,6 +78,7 @@ async def create_executive_summary_task(
         matrix_context: Compiled matrix assertions and context.
         active_profile_dto: Active output profile configuration.
         sem_runner: Concurrency runner executing coroutines under semaphore.
+        causal_diagnosis: Optional empirical causal diagnosis to inject into dynamic tail.
 
     Returns:
         A tuple of (ExecutiveSummarySectionResult, TokenUsage) if successful, or None if skipped.
@@ -112,6 +114,8 @@ async def create_executive_summary_task(
         "</section_instruction>\n"
     )
     exec_dynamic_parts.append(exec_section_rule)
+    if causal_diagnosis and causal_diagnosis.strip():
+        exec_dynamic_parts.append(f"<causal_diagnosis>\n{causal_diagnosis.strip()}\n</causal_diagnosis>")
     exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
 
     exec_messages: list[ChatMessageDTO] = [

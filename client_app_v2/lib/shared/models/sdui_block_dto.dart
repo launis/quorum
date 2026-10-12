@@ -2,11 +2,12 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/features/execution/models/causal_discovery_dto.dart';
 
 part 'sdui_block_dto.freezed.dart';
 part 'sdui_block_dto.g.dart';
 
-@Freezed(unionKey: 'block_type')
+@Freezed(equal: false, unionKey: 'block_type')
 sealed class SduiBlockDTO with _$SduiBlockDTO {
   const SduiBlockDTO._();
 
@@ -164,6 +165,29 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     @Default([])
     List<String> matrixVisibleColumns,
   }) = SduiMatrixTableBlock;
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  @FreezedUnionValue('causal_graph')
+  const factory SduiBlockDTO.causalGraph({
+    String? id,
+    @JsonKey(name: 'critical_path_nodes')
+    @Default([])
+    List<CausalNodeDto> criticalPathNodes,
+    @JsonKey(name: 'critical_edges')
+    @Default([])
+    List<CausalEdgeDto> criticalEdges,
+    @JsonKey(name: 'root_cause_diagnoses')
+    @Default([])
+    List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses,
+    @JsonKey(name: 'anti_fluff_audit') required AntiFluffAuditDto antiFluffAudit,
+    @JsonKey(name: 'prescriptive_remediations')
+    @Default([])
+    List<PrescriptiveRemediationDto> prescriptiveRemediations,
+    @JsonKey(name: 'fair_scoring') FairScoringBreakdownDto? fairScoring,
+    @JsonKey(name: 'intact_claims_count') required int intactClaimsCount,
+    @JsonKey(name: 'total_claims_count') required int totalClaimsCount,
+    required I18nText summary,
+  }) = SduiCausalGraphBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);

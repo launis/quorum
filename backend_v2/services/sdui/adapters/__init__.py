@@ -1,6 +1,7 @@
 """SDUI adapters package."""
 
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext, SduiAdapterProtocol
+from backend_v2.services.sdui.adapters.causal_graph_adapter import CausalGraphAdapter
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
@@ -17,6 +18,7 @@ from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighligh
 __all__ = [
     "AdapterContext",
     "SduiAdapterProtocol",
+    "CausalGraphAdapter",
     "ExecutiveSummaryAdapter",
     "GlobalScoreAdapter",
     "MatrixGraphsAdapter",

@@ -8,9 +8,10 @@ role badge is omitted without legacy fallbacks.
 import logging
 
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
+from backend_v2.models.view.sdui import AnySduiBlock, BulletListBlock, ParagraphBlock
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.services.sdui.adapters.causal_graph_adapter import CausalGraphAdapter
 
 __all__ = ["ExecutiveSummaryAdapter"]
 
@@ -44,7 +45,7 @@ class ExecutiveSummaryAdapter:
         if context.is_data_starved:
             return blocks
 
-        if not profile_cache and not profile.user_role_target_block:
+        if not profile_cache and not profile.user_role_target_block and not context.causal_result:
             return blocks
 
         # 2. TRANSFORM: Strict deterministic lookup of user role badge from evaluated target matrix
@@ -86,11 +87,31 @@ class ExecutiveSummaryAdapter:
                 )
             )
 
-        # 4. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
+        # 4. ASSEMBLE SYNTHESES & UNIFIED CAUSAL ACTION CARD:
+        # Sequence per Zero New Output Profiles Invariant:
+        # 1. Status pill (already assembled above)
+        # 2. Holistic narrative ParagraphBlock(s)
+        # 3. Unified Causal Action Card SduiCausalGraphBlock (if causal_result present)
+        # 4. Strategic recommendations BulletListBlock(s)
+        narrative_blocks: list[AnySduiBlock] = []
+        recommendation_blocks: list[AnySduiBlock] = []
+
         if profile_cache and profile_cache.section_syntheses:
             target_key = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
             if target_key in profile_cache.section_syntheses:
                 for sb in profile_cache.section_syntheses[target_key]:
-                    blocks.append(sb.model_copy(deep=True))
+                    copied_sb = sb.model_copy(deep=True)
+                    if isinstance(copied_sb, BulletListBlock):
+                        recommendation_blocks.append(copied_sb)
+                    else:
+                        narrative_blocks.append(copied_sb)
+
+        blocks.extend(narrative_blocks)
+
+        if context.causal_result is not None:
+            action_card = CausalGraphAdapter.build_action_card(context)
+            blocks.append(action_card)
+
+        blocks.extend(recommendation_blocks)
 
         return blocks

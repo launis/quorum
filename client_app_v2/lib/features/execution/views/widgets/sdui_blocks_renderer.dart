@@ -15,6 +15,7 @@ import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dar
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/features/execution/views/widgets/sdui_causal_graph_widget.dart';
 
 class SduiBlocksRenderer extends StatelessWidget {
   final List<SduiBlockDTO> blocks;
@@ -107,6 +108,9 @@ class SduiBlocksRenderer extends StatelessWidget {
       SduiQuoteCardBlock() => _buildQuoteCard(context, block),
       SduiWarningCardBlock() => _buildWarningCard(context, block),
       SduiNACardBlock() => _buildNACard(context, block),
+      SduiCausalGraphBlock() => AppErrorBoundary(
+        child: SduiCausalGraphWidget(block: block),
+      ),
     };
   }
 

@@ -84,6 +84,87 @@
 </head>
 <body>
 
+    {% macro render_causal_graph_block(block) %}
+        <div class="sdui-causal-graph-card" style="border: 1px solid #E0E0E0; border-radius: 8px; background-color: #FAFAFA; padding: 14px; margin-bottom: 16px; page-break-inside: avoid;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #ECEFF1; padding-bottom: 8px;">
+                <div style="font-weight: 700; font-size: 13px; color: #1A237E;">
+                    {% if block.summary is defined and block.summary %}
+                        {% if block.summary is string %}
+                            {{ block.summary }}
+                        {% elif block.summary is mapping %}
+                            {{ block.summary[lang_code] if lang_code in block.summary else block.summary['en'] }}
+                        {% else %}
+                            {{ block.summary.resolve(lang_code) }}
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div style="background-color: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32; font-weight: bold; padding: 3px 8px; border-radius: 12px; font-size: 11px;">
+                    {{ block.intact_claims_count }} / {{ block.total_claims_count }} Intact
+                </div>
+            </div>
+
+            {% if block.critical_path_nodes %}
+            <div style="margin-bottom: 10px;">
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #5C6BC0; font-weight: bold; margin-bottom: 4px;">
+                    Critical Causal Path
+                </div>
+                <div style="background-color: #FFFFFF; border: 1px solid #E8EAF6; border-radius: 6px; padding: 8px 10px; font-size: 11px; line-height: 1.4;">
+                    {% for node in block.critical_path_nodes %}
+                        <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; {% if node.status == 'PASSED' %}background-color: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7;{% else %}background-color: #FFEBEE; color: #C62828; border: 1px solid #EF9A9A;{% endif %} font-weight: 600;">
+                            [{{ node.node_id }}] {{ node.claim | truncate(60) }}
+                        </span>
+                        {% if not loop.last %}
+                            <span style="color: #9E9E9E; font-weight: bold; margin: 0 4px;">&rarr;</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if block.root_cause_diagnoses %}
+            <div style="margin-bottom: 10px;">
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #C62828; font-weight: bold; margin-bottom: 4px;">
+                    Root Cause Diagnoses
+                </div>
+                {% for diag in block.root_cause_diagnoses %}
+                <div style="background-color: #FFF8E1; border-left: 3px solid #FFA000; border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; font-size: 11px;">
+                    <div style="font-weight: 600; color: #5D4037;">
+                        <span>Fault Chain: {{ diag.root_cause_parent_id }} &rarr; {{ diag.failing_node_id }}</span>
+                        {% if diag.paragraph_ref %}
+                        <span style="float: right; color: #8D6E63; font-size: 10px;">Ref: {{ diag.paragraph_ref }}</span>
+                        {% endif %}
+                    </div>
+                    <div style="color: #4E342E; margin-top: 2px;">{{ diag.explanation }}</div>
+                    {% if diag.penalty_points > 0 %}
+                    <div style="color: #D32F2F; font-size: 10px; font-weight: 600; margin-top: 2px;">Penalty: -{{ "%.1f"|format(diag.penalty_points) }} pts</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if block.prescriptive_remediations %}
+            <div>
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #2E7D32; font-weight: bold; margin-bottom: 4px;">
+                    Prescriptive Remediations
+                </div>
+                {% for rem in block.prescriptive_remediations %}
+                <div style="background-color: #E8F5E9; border-left: 3px solid #4CAF50; border-radius: 4px; padding: 6px 10px; margin-bottom: 4px; font-size: 11px;">
+                    <div style="font-weight: 600; color: #1B5E20;">
+                        Target [{{ rem.target_node_id }}]: {{ rem.required_action }}
+                    </div>
+                    {% if rem.potential_score_impact > 0 %}
+                    <div style="color: #2E7D32; font-size: 10px; margin-top: 2px;">
+                        Estimated Impact: +{{ "%.1f"|format(rem.potential_score_impact) }} pts
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    {% endmacro %}
+
     {% macro render_sdui_blocks(blocks, level=0, charts=none) %}
         {% for block in blocks %}
             {% if block.title is defined and block.title and block.block_type not in ['metadata', 'accordion'] %}
@@ -558,6 +639,8 @@
                     {% endif %}
                 </div>
                 {% endif %}
+            {% elif block.block_type is defined and block.block_type == 'causal_graph' %}
+                {{ render_causal_graph_block(block) }}
             {% else %}
                 {{ raise_unrecognized_sdui_block(block.block_type) }}
             {% endif %}

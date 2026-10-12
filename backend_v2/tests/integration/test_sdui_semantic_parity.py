@@ -206,10 +206,11 @@ async def test_sdui_semantic_parity() -> None:
         )
         parity_matrix_block = SduiMatrixTableBlock(
             title=I18nText(translations={"en": "Parity Matrix Table"}),
-            matrix_visible_columns=["label", "raw_score"],
+            matrix_visible_columns=["label", "raw_score", "quotes"],
             matrix_column_labels={
                 "label": I18nText(translations={"en": "Dimension"}),
                 "raw_score": I18nText(translations={"en": "Raw Score"}),
+                "quotes": I18nText(translations={"en": "Evidence"}),
             },
             axes=[override_axis],
         )
