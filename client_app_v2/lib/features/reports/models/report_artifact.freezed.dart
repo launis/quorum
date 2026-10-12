@@ -543,7 +543,7 @@ as int?,
 /// @nodoc
 mixin _$ReportRowItem {
 
-@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'report_id') String get reportId;@JsonKey(name: 'metric_key') String get metricKey;@JsonKey(name: 'metric_label') String get metricLabel; double get score;@JsonKey(name: 'max_scale') double get maxScale; double get weight; String? get reasoning; String? get quote;
+@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'report_id') String get reportId;@JsonKey(name: 'metric_key') String get metricKey;@JsonKey(name: 'metric_label') String get metricLabel; double get score;@JsonKey(name: 'max_scale') double get maxScale; double get weight; String? get reasoning; String? get quote;@JsonKey(name: 'is_inverse_evidence') bool get isInverseEvidence;
 /// Create a copy of ReportRowItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -558,7 +558,7 @@ $ReportRowItemCopyWith<ReportRowItem> get copyWith => _$ReportRowItemCopyWithImp
 
 @override
 String toString() {
-  return 'ReportRowItem(executionId: $executionId, reportId: $reportId, metricKey: $metricKey, metricLabel: $metricLabel, score: $score, maxScale: $maxScale, weight: $weight, reasoning: $reasoning, quote: $quote)';
+  return 'ReportRowItem(executionId: $executionId, reportId: $reportId, metricKey: $metricKey, metricLabel: $metricLabel, score: $score, maxScale: $maxScale, weight: $weight, reasoning: $reasoning, quote: $quote, isInverseEvidence: $isInverseEvidence)';
 }
 
 
@@ -569,7 +569,7 @@ abstract mixin class $ReportRowItemCopyWith<$Res>  {
   factory $ReportRowItemCopyWith(ReportRowItem value, $Res Function(ReportRowItem) _then) = _$ReportRowItemCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote
+@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
 });
 
 
@@ -586,7 +586,7 @@ class _$ReportRowItemCopyWithImpl<$Res>
 
 /// Create a copy of ReportRowItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? executionId = null,Object? reportId = null,Object? metricKey = null,Object? metricLabel = null,Object? score = null,Object? maxScale = null,Object? weight = null,Object? reasoning = freezed,Object? quote = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? executionId = null,Object? reportId = null,Object? metricKey = null,Object? metricLabel = null,Object? score = null,Object? maxScale = null,Object? weight = null,Object? reasoning = freezed,Object? quote = freezed,Object? isInverseEvidence = null,}) {
   return _then(_self.copyWith(
 executionId: null == executionId ? _self.executionId : executionId // ignore: cast_nullable_to_non_nullable
 as String,reportId: null == reportId ? _self.reportId : reportId // ignore: cast_nullable_to_non_nullable
@@ -597,7 +597,8 @@ as double,maxScale: null == maxScale ? _self.maxScale : maxScale // ignore: cast
 as double,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as double,reasoning: freezed == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
 as String?,quote: freezed == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isInverseEvidence: null == isInverseEvidence ? _self.isInverseEvidence : isInverseEvidence // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -682,10 +683,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportRowItem() when $default != null:
-return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote);case _:
+return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
   return orElse();
 
 }
@@ -703,10 +704,10 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)  $default,) {final _that = this;
 switch (_that) {
 case _ReportRowItem():
-return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote);case _:
+return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -723,10 +724,10 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportRowItem() when $default != null:
-return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote);case _:
+return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
   return null;
 
 }
@@ -738,7 +739,7 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportRowItem extends ReportRowItem {
-  const _ReportRowItem({@JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'metric_key') required this.metricKey, @JsonKey(name: 'metric_label') required this.metricLabel, required this.score, @JsonKey(name: 'max_scale') required this.maxScale, required this.weight, this.reasoning, this.quote}): super._();
+  const _ReportRowItem({@JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'metric_key') required this.metricKey, @JsonKey(name: 'metric_label') required this.metricLabel, required this.score, @JsonKey(name: 'max_scale') required this.maxScale, required this.weight, this.reasoning, this.quote, @JsonKey(name: 'is_inverse_evidence') this.isInverseEvidence = false}): super._();
   factory _ReportRowItem.fromJson(Map<String, dynamic> json) => _$ReportRowItemFromJson(json);
 
 @override@JsonKey(name: 'execution_id') final  String executionId;
@@ -750,6 +751,7 @@ class _ReportRowItem extends ReportRowItem {
 @override final  double weight;
 @override final  String? reasoning;
 @override final  String? quote;
+@override@JsonKey(name: 'is_inverse_evidence') final  bool isInverseEvidence;
 
 /// Create a copy of ReportRowItem
 /// with the given fields replaced by the non-null parameter values.
@@ -766,7 +768,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ReportRowItem(executionId: $executionId, reportId: $reportId, metricKey: $metricKey, metricLabel: $metricLabel, score: $score, maxScale: $maxScale, weight: $weight, reasoning: $reasoning, quote: $quote)';
+  return 'ReportRowItem(executionId: $executionId, reportId: $reportId, metricKey: $metricKey, metricLabel: $metricLabel, score: $score, maxScale: $maxScale, weight: $weight, reasoning: $reasoning, quote: $quote, isInverseEvidence: $isInverseEvidence)';
 }
 
 
@@ -777,7 +779,7 @@ abstract mixin class _$ReportRowItemCopyWith<$Res> implements $ReportRowItemCopy
   factory _$ReportRowItemCopyWith(_ReportRowItem value, $Res Function(_ReportRowItem) _then) = __$ReportRowItemCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote
+@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
 });
 
 
@@ -794,7 +796,7 @@ class __$ReportRowItemCopyWithImpl<$Res>
 
 /// Create a copy of ReportRowItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? executionId = null,Object? reportId = null,Object? metricKey = null,Object? metricLabel = null,Object? score = null,Object? maxScale = null,Object? weight = null,Object? reasoning = freezed,Object? quote = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? executionId = null,Object? reportId = null,Object? metricKey = null,Object? metricLabel = null,Object? score = null,Object? maxScale = null,Object? weight = null,Object? reasoning = freezed,Object? quote = freezed,Object? isInverseEvidence = null,}) {
   return _then(_ReportRowItem(
 executionId: null == executionId ? _self.executionId : executionId // ignore: cast_nullable_to_non_nullable
 as String,reportId: null == reportId ? _self.reportId : reportId // ignore: cast_nullable_to_non_nullable
@@ -805,7 +807,8 @@ as double,maxScale: null == maxScale ? _self.maxScale : maxScale // ignore: cast
 as double,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
 as double,reasoning: freezed == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
 as String?,quote: freezed == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,isInverseEvidence: null == isInverseEvidence ? _self.isInverseEvidence : isInverseEvidence // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

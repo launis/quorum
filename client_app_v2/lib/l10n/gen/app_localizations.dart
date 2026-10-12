@@ -9426,6 +9426,36 @@ abstract class AppLocalizations {
   /// **'Score'**
   String get tableColumnScore;
 
+  /// No description provided for @tableColumnScoreOrStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Score / Status'**
+  String get tableColumnScoreOrStatus;
+
+  /// No description provided for @reportRowStatusClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean'**
+  String get reportRowStatusClean;
+
+  /// No description provided for @reportRowStatusDefectDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Defect Detected'**
+  String get reportRowStatusDefectDetected;
+
+  /// No description provided for @reportRowStatusAffirmativeHit.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 pt'**
+  String get reportRowStatusAffirmativeHit;
+
+  /// No description provided for @reportRowStatusAffirmativeMiss.
+  ///
+  /// In en, this message translates to:
+  /// **'0 pt'**
+  String get reportRowStatusAffirmativeMiss;
+
   /// No description provided for @tableColumnReasoningQuote.
   ///
   /// In en, this message translates to:

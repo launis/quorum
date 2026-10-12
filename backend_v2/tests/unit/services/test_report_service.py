@@ -340,6 +340,68 @@ async def test_get_report_rows() -> None:
     assert rows[0].score == 1.0
     assert rows[0].max_scale == 1.0
     assert rows[0].reasoning == "Sound reasoning."
+    assert rows[0].is_inverse_evidence is False
+
+
+@pytest.mark.asyncio
+async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
+    """Verify get_report_rows propagates is_inverse_evidence correctly for affirmative and inverse atoms."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    atom_affirmative = AtomResultDTO(
+        tda_id="tda_0000000000000001",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Affirmative quote",
+        evaluation_reasoning="Affirmative reasoning.",
+        is_inverse_evidence=False,
+    )
+    atom_inverse = AtomResultDTO(
+        tda_id="tda_0000000000000002",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote=None,
+        evaluation_reasoning="Inverse reasoning.",
+        is_inverse_evidence=True,
+    )
+    report_data = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_affirmative, atom_inverse],
+        hydrated_references={
+            "tda_0000000000000001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Affirmative Claim",
+            ),
+            "tda_0000000000000002": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Inverse Claim",
+            ),
+        },
+    )
+
+    storage = AsyncMock()
+    storage.read.return_value = report_data.model_dump_json().encode("utf-8")
+
+    service = ReportService(repo=repo, storage_driver=storage)
+    rows = await service.get_report_rows(report.id)
+    assert len(rows) == 2
+    # Affirmative row
+    assert rows[0].metric_label == "Affirmative Claim"
+    assert rows[0].is_inverse_evidence is False
+    assert rows[0].score == 1.0
+
+    # Inverse row
+    assert rows[1].metric_label == "Inverse Claim"
+    assert rows[1].is_inverse_evidence is True
+    assert rows[1].score == 1.0
 
 
 @pytest.mark.asyncio

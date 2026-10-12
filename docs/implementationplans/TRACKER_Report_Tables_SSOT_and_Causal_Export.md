@@ -26,11 +26,11 @@
   - [x] Step 2.2: Stream Causal Graph Nodes and Populate ML Columns in Atom Rows
   - [x] Step 2.3: Stream Causal Graph Nodes and Populate ML Columns in Flat CSV Rows
   - [x] Step 2.4: Unit Testing ML Columns and Causal Export Population
-  - [ ] Step 3.1: Enrich ReportRowItem DTO and Freezed Model with is_inverse_evidence
-  - [ ] Step 3.2: Propagate is_inverse_evidence in ReportService.get_report_rows
-  - [ ] Step 3.3: Declare Semantic Row Status Localizations
-  - [ ] Step 3.4: Render Semantic Status Badges in Flutter ExecutionReportsView
-  - [ ] Step 3.5: Unit Test Row Item Inverse Evidence Propagation
+  - [x] Step 3.1: Enrich ReportRowItem DTO and Freezed Model with is_inverse_evidence
+  - [x] Step 3.2: Propagate is_inverse_evidence in ReportService.get_report_rows
+  - [x] Step 3.3: Declare Semantic Row Status Localizations
+  - [x] Step 3.4: Render Semantic Status Badges in Flutter ExecutionReportsView
+  - [x] Step 3.5: Unit Test Row Item Inverse Evidence Propagation
   - [ ] Step 4.1: Define Standard Matrix Visible Columns SSOT in Backend and Flutter
   - [ ] Step 4.2: Synchronize All Output Profiles in Seed Vault
   - [ ] Step 4.3: Verify Output Profile and SDUI Parity Tests
@@ -97,11 +97,11 @@
 | REQ-006 | Stream Causal Graph Nodes and Populate ML Columns in Atom Rows | Step 2.2 | Completed |
 | REQ-007 | Stream Causal Graph Nodes and Populate ML Columns in Flat CSV Rows | Step 2.3 | Completed |
 | REQ-008 | Unit Testing ML Columns and Causal Export Population | Step 2.4 | Completed |
-| REQ-009 | Enrich ReportRowItem DTO and Freezed Model with is_inverse_evidence | Step 3.1 | Pending |
-| REQ-010 | Propagate is_inverse_evidence in ReportService.get_report_rows | Step 3.2 | Pending |
-| REQ-011 | Declare Semantic Row Status Localizations | Step 3.3 | Pending |
-| REQ-012 | Render Semantic Status Badges in Flutter ExecutionReportsView | Step 3.4 | Pending |
-| REQ-013 | Unit Test Row Item Inverse Evidence Propagation | Step 3.5 | Pending |
+| REQ-009 | Enrich ReportRowItem DTO and Freezed Model with is_inverse_evidence | Step 3.1 | Completed |
+| REQ-010 | Propagate is_inverse_evidence in ReportService.get_report_rows | Step 3.2 | Completed |
+| REQ-011 | Declare Semantic Row Status Localizations | Step 3.3 | Completed |
+| REQ-012 | Render Semantic Status Badges in Flutter ExecutionReportsView | Step 3.4 | Completed |
+| REQ-013 | Unit Test Row Item Inverse Evidence Propagation | Step 3.5 | Completed |
 | REQ-014 | Define Standard Matrix Visible Columns SSOT in Backend and Flutter | Step 4.1 | Pending |
 | REQ-015 | Synchronize All Output Profiles in Seed Vault | Step 4.2 | Pending |
 | REQ-016 | Verify Output Profile and SDUI Parity Tests | Step 4.3 | Pending |

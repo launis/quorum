@@ -873,7 +873,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                     child: DataTable(
                       columns: [
                         DataColumn(label: Text(l10n.tableColumnCriteriaMetric)),
-                        DataColumn(label: Text(l10n.tableColumnScore)),
+                        DataColumn(label: Text(l10n.tableColumnScoreOrStatus)),
                         DataColumn(label: Text(l10n.tableColumnReasoningQuote)),
                       ],
                       rows: value.map((row) {
@@ -891,7 +891,13 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                                 ),
                               ),
                             ),
-                            DataCell(Text('${row.score.toInt()}')),
+                            DataCell(
+                              _buildRowStatusBadge(
+                                row: row,
+                                theme: theme,
+                                l10n: l10n,
+                              ),
+                            ),
                             DataCell(
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
@@ -911,6 +917,56 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                   ),
                 ),
       },
+    );
+  }
+
+  Widget _buildRowStatusBadge({
+    required ReportRowItem row,
+    required ThemeData theme,
+    required AppLocalizations l10n,
+  }) {
+    final Color backgroundColor;
+    final Color textColor;
+    final String label;
+
+    if (row.isInverseEvidence) {
+      if (row.score > 0) {
+        backgroundColor = theme.colorScheme.primaryContainer;
+        textColor = theme.colorScheme.onPrimaryContainer;
+        label = l10n.reportRowStatusClean;
+      } else {
+        backgroundColor = theme.colorScheme.errorContainer;
+        textColor = theme.colorScheme.onErrorContainer;
+        label = l10n.reportRowStatusDefectDetected;
+      }
+    } else {
+      if (row.score > 0) {
+        backgroundColor = theme.colorScheme.surfaceContainerHighest;
+        textColor = theme.colorScheme.onSurface;
+        label = l10n.reportRowStatusAffirmativeHit;
+      } else {
+        backgroundColor = theme.colorScheme.surfaceContainer;
+        textColor = theme.colorScheme.onSurfaceVariant;
+        label = l10n.reportRowStatusAffirmativeMiss;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s8,
+        vertical: AppSpacing.s4,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppSpacing.s4),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 

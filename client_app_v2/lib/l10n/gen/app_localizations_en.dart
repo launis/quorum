@@ -5225,6 +5225,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tableColumnScore => 'Score';
 
   @override
+  String get tableColumnScoreOrStatus => 'Score / Status';
+
+  @override
+  String get reportRowStatusClean => 'Clean';
+
+  @override
+  String get reportRowStatusDefectDetected => '⚠️ Defect Detected';
+
+  @override
+  String get reportRowStatusAffirmativeHit => '+1 pt';
+
+  @override
+  String get reportRowStatusAffirmativeMiss => '0 pt';
+
+  @override
   String get tableColumnReasoningQuote => 'Explanation';
 
   @override

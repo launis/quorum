@@ -5265,6 +5265,21 @@ class AppLocalizationsFi extends AppLocalizations {
   String get tableColumnScore => 'Pisteet';
 
   @override
+  String get tableColumnScoreOrStatus => 'Tulos / Tila';
+
+  @override
+  String get reportRowStatusClean => 'Puhdas';
+
+  @override
+  String get reportRowStatusDefectDetected => '⚠️ Negatiivinen löydös';
+
+  @override
+  String get reportRowStatusAffirmativeHit => '+1 p';
+
+  @override
+  String get reportRowStatusAffirmativeMiss => '0 p';
+
+  @override
   String get tableColumnReasoningQuote => 'Selitys';
 
   @override

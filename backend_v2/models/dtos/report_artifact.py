@@ -77,6 +77,9 @@ class ReportRowItemDTO(V2CoreBase):
     weight: Annotated[float, Field(description="Relative weight of this metric.")]
     reasoning: Annotated[str | None, Field(default=None, description="Analytical reasoning justification.")] = None
     quote: Annotated[str | None, Field(default=None, description="Forensic source quote supporting evaluation.")] = None
+    is_inverse_evidence: Annotated[
+        bool, Field(default=False, description="True if assertion evaluates absence of negative evidence.")
+    ] = False
 
 
 class PublicReportDTO(V2CoreBase):

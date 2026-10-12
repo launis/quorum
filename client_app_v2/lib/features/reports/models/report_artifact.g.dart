@@ -131,6 +131,7 @@ _ReportRowItem _$ReportRowItemFromJson(Map<String, dynamic> json) =>
             'weight',
             'reasoning',
             'quote',
+            'is_inverse_evidence',
           ],
         );
         final val = _ReportRowItem(
@@ -143,6 +144,10 @@ _ReportRowItem _$ReportRowItemFromJson(Map<String, dynamic> json) =>
           weight: $checkedConvert('weight', (v) => (v as num).toDouble()),
           reasoning: $checkedConvert('reasoning', (v) => v as String?),
           quote: $checkedConvert('quote', (v) => v as String?),
+          isInverseEvidence: $checkedConvert(
+            'is_inverse_evidence',
+            (v) => v as bool? ?? false,
+          ),
         );
         return val;
       },
@@ -152,6 +157,7 @@ _ReportRowItem _$ReportRowItemFromJson(Map<String, dynamic> json) =>
         'metricKey': 'metric_key',
         'metricLabel': 'metric_label',
         'maxScale': 'max_scale',
+        'isInverseEvidence': 'is_inverse_evidence',
       },
     );
 
@@ -166,6 +172,7 @@ Map<String, dynamic> _$ReportRowItemToJson(_ReportRowItem instance) =>
       'weight': instance.weight,
       'reasoning': instance.reasoning,
       'quote': instance.quote,
+      'is_inverse_evidence': instance.isInverseEvidence,
     };
 
 _ReportArtifact _$ReportArtifactFromJson(Map<String, dynamic> json) =>

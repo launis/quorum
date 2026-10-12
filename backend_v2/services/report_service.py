@@ -634,6 +634,7 @@ class ReportService:
                     weight=1.0,
                     reasoning=reasoning_val,
                     quote=atom.source_quote,
+                    is_inverse_evidence=atom.is_inverse_evidence,
                 )
             )
         return rows

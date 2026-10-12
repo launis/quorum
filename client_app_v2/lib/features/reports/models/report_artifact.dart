@@ -58,6 +58,9 @@ abstract class ReportRowItem with _$ReportRowItem {
     required double weight,
     String? reasoning,
     String? quote,
+    @JsonKey(name: 'is_inverse_evidence')
+    @Default(false)
+    bool isInverseEvidence,
   }) = _ReportRowItem;
 
   factory ReportRowItem.fromJson(Map<String, dynamic> json) =>
