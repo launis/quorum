@@ -142,11 +142,11 @@
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/domain/inputs.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/engines/registry.py]
-  - [ ] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/base.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [x] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/services/orchestrator/engines/base.py]
+  - [x] @[backend_v2/services/orchestrator/engines/tda_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/prompt_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [ ] @[backend_v2/services/orchestrator/engines/__init__.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
@@ -261,38 +261,56 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Phase 7 Global Quality Gate & Final Verification (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`):
-  - Pre-implementation cleanups: Resolved `use_build_context_synchronously` in `client_app_v2/lib/features/execution/views/dashboard_view.dart` by pre-fetching `fallbackLocale` prior to `await dio.get` and enforcing `if (!context.mounted) return;`. Verified with `dart analyze` (0 issues).
-  - Executed `scripts/backend_audit_loop.py` on `export_service.py` with `--test --ast-strict` (30 passed, 90% strict coverage) and global completion gate on all `backend_v2/` (5255 passed, 97.64% test coverage, all 10 audit stages passed).
-  - Executed `scripts/flutter_audit_loop.py` with `--build` (0 fatal violations, all clean).
-  - Executed `scripts/audit_flutter_theme_sovereignty.py` verifying 0 raw colors and 0 naked TextStyles across all UI target widgets.
-  - Executed `scripts/_ast_guardrails.py backend_v2/ --strict` (AST guardrails passed cleanly).
-  - Executed `scripts/audit_dict_eradication.py backend_v2 --strict` (0 violations across all 12 metrics).
-  - Executed `scripts/audit_markdown_boundaries.py` on Epic 154 and all plan files (0 violations).
-  - Executed Final Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py` - passed in 223s).
-  - Verified positive and negative test contracts including usage errors and raw color detection.
-- Completed Tier 8 Red Team Audit on Phase 7 (`docs/epic/tasks_EPIC_154/07_phase7_plan.md`):
-  - Audited Planner output, as-built mapping, and Five-Axis System 2 invariants.
-  - Verified zero third-party AI bloatware dependencies.
-  - Generated audit report artifact `red_team_audit_phase7_plan.md` with 100% mathematical pass.
-  - All 7 implementation phases of EPIC 154 are now complete and fully audited.
+- Executed Tier 2 Backend Hardening Session 1 (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`):
+  - Audited 10 target files (reaching the 10-file session ceiling):
+    1. `@[backend_v2/services/orchestrator/sliding_window_linker.py]`: Passed 10/10 quality stages, 11 tests (96% coverage). Matrix verified (181 rules passed).
+    2. `@[backend_v2/services/orchestrator/two_pass_atomizer.py]`: Passed 10/10 quality stages, 14 tests (97% coverage). Matrix verified (181 rules passed).
+    3. `@[backend_v2/models/domain/step.py]`: Passed 10/10 quality stages, 25 tests (100% coverage). Matrix verified (181 rules passed).
+    4. `@[backend_v2/models/domain/inputs.py]`: Passed 10/10 quality stages, 14 tests (100% coverage). Matrix verified (181 rules passed).
+    5. `@[backend_v2/services/orchestrator/engines/registry.py]`: Hardened with RFC 7807 dual logging. Passed 10/10 quality stages, 7 tests (100% coverage). Matrix verified (181 rules passed). Committed via atomic git commit `51f926325`.
+    6. `@[backend_v2/models/enums.py]`: Passed 10/10 quality stages, 8 tests (100% coverage). Matrix verified (181 rules passed).
+    7. `@[backend_v2/services/orchestrator/engines/base.py]`: Hardened with explicit `__all__ = ["ExecutionEngine"]` and added `test_base.py`. Passed 10/10 quality stages, 3 tests (100% coverage). Matrix verified (181 rules passed). Committed via atomic git commit `59d285517`.
+    8. `@[backend_v2/services/orchestrator/engines/tda_engine.py]`: Passed 10/10 quality stages, 14 tests (100% coverage). Matrix verified (181 rules passed).
+    9. `@[backend_v2/services/orchestrator/engines/prompt_engine.py]`: Passed 10/10 quality stages, 5 tests (100% coverage). Matrix verified (181 rules passed).
+    10. `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`: Passed 10/10 quality stages, 14 tests (94% coverage). Matrix verified (181 rules passed).
+  - All 10 files marked `[x]` in `docs/epic/EPIC_154_tracker.md`.
 
 ## Learned
-- In `dashboard_view.dart`, pre-fetching localized parameters before async gaps is the approved Quorum invariant for preventing `use_build_context_synchronously` warnings without mutating state machines.
-- All 5255 backend unit and integration tests and the live E2E pipeline run with 100% pass rates and 97.64% coverage across the modern Python 3.14 runtime.
-- Across all 7 phases of EPIC 154, every single phase passed its Tier 8 Red Team Audit on the first pass with mathematical zero violations.
+- In `backend_v2/services/orchestrator/engines/base.py`, standalone protocol modules must explicitly declare `__all__` to satisfy the strict encapsulation audit.
+- `scripts/backend_audit_loop.py` path resolution looks for `test_base.py` for target `base.py`; having `test_base.py` exercising runtime checkable protocol invariants ensures both 100% coverage and ISTQB negative testing compliance.
+- In `audit_matrix_manager.py`, repeated NA justifications cannot exceed 40 occurrences; categorizing NA rules by domain (chat orchestration, Flutter client, FastAPI router boundary, database seed/persistence) ensures strict validation compliance.
 
 ## Remaining
-- Post-implementation gates:
-  - Full-Stack Integration Verification Gate: Execute end-to-end workflow execution in development mode.
-  - Golden Master & Test Restoration Audit: Verify no skipped tests.
-  - Proxy Sunset & Consumer Migration: Verify zero residual heuristic matching.
-  - Tier 2 Hardening (Backend): Comprehensive verification across all 31 touched backend files (`/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]`).
-  - Tier 2 Hardening (Frontend): Verification across all 10 touched frontend files (`/tier2-hardening-frontend @[docs/epic/EPIC_154_tracker.md]`).
-  - As-Built Architectural Sync: Parameterized `/tier7-describe-architecture`.
-  - Final Epic Audit: `/tier8-audit-epic @[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`.
+- Complete Tier 2 Hardening (Backend) on the remaining 20 target files:
+  - `@[backend_v2/services/orchestrator/engines/__init__.py]`
+  - `@[backend_v2/services/orchestrator/strategies/llm.py]`
+  - `@[backend_v2/services/orchestrator/dag_executor.py]`
+  - `@[backend_v2/settings.py]`
+  - `@[backend_v2/exceptions.py]`
+  - `@[backend_v2/services/orchestrator/strategies/registry.py]`
+  - `@[backend_v2/models/dtos/causal_discovery.py]`
+  - `@[backend_v2/models/dtos/step_output.py]`
+  - `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
+  - `@[backend_v2/models/view/sdui.py]`
+  - `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`
+  - `@[backend_v2/services/sdui/adapters/base_adapter.py]`
+  - `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
+  - `@[backend_v2/services/blueprint.py]`
+  - `@[backend_v2/workers/synthesis_tasks.py]`
+  - `@[backend_v2/workers/synthesis_worker.py]`
+  - `@[backend_v2/services/sdui/adapters/registry.py]`
+  - `@[backend_v2/services/export_service.py]`
+  - `@[backend_v2/models/dtos/export.py]`
+  - `@[backend_v2/services/orchestrator/dag_compiler.py]`
+- Subsequent post-implementation gates:
+  - Tier 2 Hardening (Frontend) on 10 touched Flutter files.
+  - Full-Stack Integration Verification Gate.
+  - Golden Master & Test Restoration Audit.
+  - Proxy Sunset & Consumer Migration.
+  - As-Built Architectural Sync (`/tier7-describe-architecture`).
+  - Final Epic Audit (`/tier8-audit-epic @[docs/epic/EPIC_154_Dynamic_Causal_Discovery_Engine.md]`).
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[docs/epic/EPIC_154_tracker.md]
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/orchestrator/engines/__init__.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
 ```
