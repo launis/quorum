@@ -262,25 +262,22 @@
 
 ## Achieved
 - Executed Tier 2 Backend Hardening (Sessions 1-4): 30/30 files completed and verified; gate marked `[OK]`.
-- Executed Tier 2 Frontend Hardening Session 1 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
+- Executed Tier 2 Frontend Hardening Session 1: 3/8 files audited and verified (enums.dart, workflow.dart, causal_discovery_dto.dart).
+- Executed Tier 2 Frontend Hardening Session 2 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
   - Audited and hardened 3 target files (reaching the 3-refactoring-commit session ceiling):
-    1. `@[client_app_v2/lib/core/models/enums.dart]`: Verified `EngineType.causalDiscovery`, `TargetBlockType.executiveSummaryBlock`, `SystemConcurrency`, and enum serialization invariants; created unit test suite `client_app_v2/test/core/models/enums_test.dart` (7 tests covering happy and negative boundary paths); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `38ec2321b`.
-    2. `@[client_app_v2/lib/features/studio/models/workflow.dart]`: Verified Freezed models with `disallowUnrecognizedKeys: true` across `StepRule`, `NodeStrategy`, and `Workflow`; added unit tests in `workflow_test.dart` asserting `causal_source_step_id`, `engine_type: causal_discovery`, and negative fail-fast on unrecognized keys (17 tests total); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `95b9ebd37`.
-    3. `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`: Verified 6 Freezed models (`CausalNodeDto`, `CausalEdgeDto`, `CausalRootCauseDiagnosisDto`, `AntiFluffAuditDto`, `PrescriptiveRemediationDto`, `FairScoringBreakdownDto`) with `@Freezed(equal: false)` and `disallowUnrecognizedKeys: true`; created comprehensive unit test suite `causal_discovery_dto_test.dart` (8 unit tests covering all models and negative fail-fast); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `0bcc9e3b7`.
-  - All 3 audited files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (3/8 frontend files completed total).
+    4. `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`: Verified Freezed sealed class `SduiBlockDTO` with `disallowUnrecognizedKeys: true` across all variants; created unit test suite covering `SduiCausalGraphBlock` and `SduiBulletListItemDTO` in `client_app_v2/test/shared/models/sdui_block_dto_test.dart` (27 tests total passing); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `f4fef54c3`.
+    5. `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`: Verified pure Dumb Painter rendering of `SduiCausalGraphBlock` with 100% Theme Sovereignty and AppErrorBoundary wrapping; created comprehensive unit/widget test suite `client_app_v2/test/features/execution/views/widgets/sdui_causal_graph_widget_test.dart` (4 tests covering happy path, Finnish locale, inspector button, and empty lists); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `ef2f9fdb7`.
+    6. `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`: Fixed RenderFlex overflow defect in modal footer by wrapping text in `Expanded` with `TextOverflow.ellipsis`; verified 100% Theme Sovereignty; created comprehensive widget test suite `client_app_v2/test/features/execution/presentation/causal_inspector_modal_test.dart` (4 tests covering interactive canvas, node selection, empty fallback, and dismissal); passed flutter audit loop (0 fatal violations); verified 107 audit matrix rules; committed in `75ca2732d`.
+  - 6/8 frontend files completed total.
 
 ## Learned
-- **StepRule Snake_Case Invariance**: `workflow.dart` enforces `disallowUnrecognizedKeys: true` and maps `task_blueprint` strictly in snake_case, rejecting camelCase `taskBlueprint`.
-- **StrictOpaqueIdConverter Opaque Hex Specification**: `StrictOpaqueIdConverter` mandates that IDs start with a 2-5 letter prefix followed by underscore and exactly 16-32 hex characters (e.g. `st_0123456789abcdef`), rejecting arbitrary non-hex strings.
-- **Audit Matrix Manager Conflicting File Whitelist**: In `scripts/audit_matrix_manager.py`, PASS justifications cannot cite non-whitelisted filenames (such as test files); justifications must anchor strictly to target file stem or permitted whitelist tokens.
-- **Freezed Equal False Optimization**: In `causal_discovery_dto.dart`, decorating all DTOs with `@Freezed(equal: false)` prevents O(N^2) deep equality checks during high-frequency stream updates while retaining immutability.
+- **Horizontal Row Text Containment**: In `CausalInspectorModal`, long footer status strings in horizontal `Row` without `Expanded` trigger 380px RenderFlex overflows; wrapping text in `Expanded` with `TextOverflow.ellipsis` guarantees hazard-stripe-free rendering across all dialog widths.
+- **AppErrorBoundary in Widget Tests**: Widgets wrapped with `AppErrorBoundary` (`AppExceptionBoundary`) override `ErrorWidget.builder`. When widget testing, tests must capture and restore `ErrorWidget.builder` in `setUp`/`tearDown` to prevent Flutter's test runner from asserting an un-reset error widget builder.
+- **Node Selection in Tests**: In `SduiCausalGraphWidget`, claim texts and IDs may appear in both node chips and fault chain diagnostics; test matchers should anchor precisely (e.g. `[atm_root_01]`) to distinguish chip badges from diagnostic text.
 
 ## Remaining
 - Subsequent post-implementation gates:
-  - Tier 2 Hardening (Frontend) on 5 remaining Flutter files:
-    - `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
-    - `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
-    - `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`
+  - Tier 2 Hardening (Frontend) on 2 remaining Flutter files:
     - `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
     - `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`
   - Pre-Delete Audit.
@@ -293,7 +290,8 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/shared/models/sdui_block_dto.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
 ```
+
 
 
