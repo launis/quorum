@@ -170,7 +170,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
