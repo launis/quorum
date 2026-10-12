@@ -11,13 +11,7 @@ import logging
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
-    CausalEdgeDTO,
-    CausalGraphPayloadDTO,
-    CausalNodeDTO,
-    CausalRootCauseDiagnosisDTO,
     CausalTdaFusionResultDTO,
-    FairScoringBreakdownDTO,
-    PrescriptiveRemediationDTO,
 )
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.view.sdui import AnySduiBlock, SduiCausalGraphBlock

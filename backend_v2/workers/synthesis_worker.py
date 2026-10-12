@@ -378,7 +378,8 @@ async def generate_profile_synthesis_and_pdf_task(
                     diag_lines.append("Root Cause Fault Chains:")
                     for diag in causal_payload.root_cause_diagnoses:
                         diag_lines.append(
-                            f"- Root Parent {diag.root_cause_parent_id} -> Failing Node {diag.failing_node_id}: {diag.explanation}"
+                            f"- Root Parent {diag.root_cause_parent_id} -> Failing Node "
+                            f"{diag.failing_node_id}: {diag.explanation}"
                         )
                 if causal_payload.prescriptive_remediations:
                     diag_lines.append("Prescriptive Remediations:")

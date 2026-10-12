@@ -128,6 +128,7 @@ def test_engines_exports_all_symbols() -> None:
     """Verify __all__ contains exactly the intended public engine symbols."""
     import backend_v2.services.orchestrator.engines as engines_module
     from backend_v2.services.orchestrator.engines import (
+        CausalDiscoveryEngine,
         ENGINE_REGISTRY,
         ExecutionEngine,
         PromptEngine,
@@ -137,6 +138,7 @@ def test_engines_exports_all_symbols() -> None:
     )
 
     expected_symbols = {
+        "CausalDiscoveryEngine",
         "ENGINE_REGISTRY",
         "ExecutionEngine",
         "PromptEngine",
@@ -145,6 +147,7 @@ def test_engines_exports_all_symbols() -> None:
         "build_execution_engine",
     }
     assert set(engines_module.__all__) == expected_symbols
+    assert CausalDiscoveryEngine is not None
     assert ExecutionEngine is not None
     assert PromptEngine is not None
     assert SynthesisEngine is not None

@@ -91,6 +91,8 @@
 **Plan:** @[docs/epic/tasks_EPIC_154/05_phase5_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_154/05_phase5_plan.md] @[docs/epic/EPIC_154_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 1: Pre-Implementation Cleanups
   - [x] Step 5.1: SDUI model definition and Dart Freezed parity
   - [x] Step 5.2: AdapterContext extension and CausalGraphAdapter
   - [x] Step 5.3: Executive Summary integration and Blueprint wiring
@@ -168,9 +170,11 @@
   - [ ] @[backend_v2/models/dtos/export.py]
   - [ ] @[backend_v2/services/export_service.py]
   - [ ] @[scripts/backend_audit_loop.py]
+  - [ ] @[scripts/audit_flutter_theme_sovereignty.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
+  - [ ] [NEW] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
@@ -238,6 +242,7 @@
 | Data starvation Fail-Fast on empty upstream node extraction | Section 3.4.2 | Phase 4, Step 4.4 | Completed |
 | Scoring hook separation contract and five stakeholder benefit pipelines | Section 3.4.2 | Phase 4, Step 4.5 | Completed |
 | Polyfactory fixtures and fusion integration tests in test_causal_tda_fusion.py | Section 3.4.2 | Phase 4, Step 4.6 | Completed |
+| Pre-implementation cleanups (restore quotes, create DTOs, register theme sovereignty) | Section 3.5 | Phase 5, Step 1 | Completed |
 | SduiCausalGraphBlock model definition and Dart Freezed parity | Section 3.5.1 | Phase 5, Step 5.1 | Completed |
 | AdapterContext extension and CausalGraphAdapter implementation | Section 3.5.1 | Phase 5, Step 5.2 | Completed |
 | Executive Summary integration and Blueprint wiring (Zero New Output Profiles) | Section 3.5.1 | Phase 5, Step 5.3 | Completed |
