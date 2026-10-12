@@ -220,8 +220,7 @@ def main(argv: list[str] | None = None) -> None:
 
     if report.total_violations == 0:
         print(
-            f"{GREEN}✓ Theme Sovereignty Pass: {report.total_files_scanned} files scanned, "
-            f"0 violations found.{RESET}\n"
+            f"{GREEN}✓ Theme Sovereignty Pass: {report.total_files_scanned} files scanned, 0 violations found.{RESET}\n"
         )
         sys.exit(0)
     else:

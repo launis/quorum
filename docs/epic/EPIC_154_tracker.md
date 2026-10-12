@@ -136,7 +136,7 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit:** Ensure no `@pytest.mark.skip` or commented-out tests were left behind in modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide verification confirming zero residual `"atom_flattening_hook"` string matching or duct-tape heuristics.
-- [ ] **[NOK] Tier 2 Hardening (Backend):**
+- [x] **[OK] Tier 2 Hardening (Backend):**
   - [x] @[backend_v2/services/orchestrator/sliding_window_linker.py]
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [x] @[backend_v2/models/domain/step.py]
@@ -163,10 +163,10 @@
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[backend_v2/workers/synthesis_tasks.py]
   - [x] @[backend_v2/workers/synthesis_worker.py]
-  - [ ] @[backend_v2/services/localization.py]
-  - [ ] @[backend_v2/models/dtos/export.py]
-  - [ ] @[backend_v2/services/export_service.py]
-  - [ ] @[scripts/audit_flutter_theme_sovereignty.py]
+  - [x] @[backend_v2/services/localization.py]
+  - [x] @[backend_v2/models/dtos/export.py]
+  - [x] @[backend_v2/services/export_service.py]
+  - [x] @[scripts/audit_flutter_theme_sovereignty.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
