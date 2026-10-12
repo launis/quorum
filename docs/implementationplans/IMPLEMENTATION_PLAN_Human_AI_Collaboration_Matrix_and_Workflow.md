@@ -17,7 +17,7 @@
 
 ### 1.1 Objective
 Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja Yhteistyön Auditointi*), a **Dedicated Assessment Workflow** (`wf_06a1d71000000001`), and a **Tailored Custom Output Profile** (`prf_06b1d71000000001`) strictly as declarative data assets in `@[backend_v2/seed/seed_data.json]`. In accordance with explicit user mandates:
-1. **Targeted Code Alignment for Universal Role Parity:** All new matrix, step, workflow, and output profile definitions are configured declaratively in `@[backend_v2/seed/seed_data.json]`. Source code modifications are strictly quarantined to `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` and its accompanying test file to restore the `RoleClassification` Enum SSOT resolution, ensuring the user role badge renders deterministically across all output profiles.
+1. **Pure Declarative Data Asset Architecture:** All new matrix, step, workflow, and output profile definitions are configured strictly and declaratively in `@[backend_v2/seed/seed_data.json]`. As mathematically verified during architectural red-teaming, Quorum's `ExecutiveSummaryAdapter` natively derives the user role badge directly from the evaluated matrix's configured BARS scale names (`target_matrix.level_names[int_key]`), requiring ZERO Python source code modifications and ZERO fallback chains.
 2. **Exhaustive Configuration Completeness (Zero Missing Fields):** Every single field across `PromptBlock`, `MatrixScale`, `MatrixClaim`, `TDAAssertion`, `Step`, `Workflow`, and `OutputProfile` is explicitly defined and populated with verified data-driven values, ensuring 100% parity with Quorum Studio UI controls and existing production matrices (`matrix_bloom`, `matrix_goodhart`, `matrix_causal_analyst`).
 3. **Rigorous Scientific Theory Foundation:** Fully grounded in established cognitive science and human-machine interaction literature: Supervisory Control & Levels of Automation (Sheridan & Verplank, 1978; Parasuraman et al., 2000), Automation Bias (Parasuraman & Manzey, 2010), Distributed Cognition & Cognitive Offloading (Hutchins, 1995; Clark & Chalmers, 1998; Risko & Gilbert, 2016), Epistemic Vigilance (Sperber et al., 2010; Mercier & Sperber, 2011), and Critical AI Literacy Taxonomies (Ng et al., 2021; Long & Magerko, 2020).
 4. **Exact Parity of Positive Capabilities & Negative Error Detectors:** The matrix configures exactly 25 TDA assertions across 5 scales (12 Positive Capabilities [48%] and 13 Negative Error Detectors / Anti-patterns [52%]), matching the mathematical parity of Quorum's sovereign benchmark matrices (`matrix_goodhart`, `matrix_causal_analyst`, and `matrix_taskxai_clarity`).
@@ -28,7 +28,7 @@ Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja 
 9. **Multi-Dimensional Enhanced Phase 2 Synthesis Directives:** Enhances all narrative and analytical synthesis directives across Executive Summary, Row Explanations, 2D/3D Radar Visualizations, Cognitive Variance Validation, and XAI Highlights (configuring `max_extension_items: 4` per category, specifically and exhaustively: Justification, Coaching, Falsification, and Remediations) to ground synthesis in causal graph edges and verified evidence.
 
 ### 1.2 Core Architectural Invariants
-1. **Targeted Code Boundary Invariant:** Python source modifications are strictly isolated to `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` and its corresponding unit test. All domain workflow and matrix logic is executed through declarative configuration.
+1. **Zero-Code Declarative Invariant:** Python source modifications are completely pruned. All domain workflow, matrix, step, and profile logic is executed 100% through declarative configuration in `@[backend_v2/seed/seed_data.json]`, preserving the native SDUI adapter pipeline and zero-fallback contracts.
 2. **Pure Seed Vault Governance:** In accordance with `03_seed_vault.md`, all structural data modifications occur exclusively in `@[backend_v2/seed/seed_data.json]` before synchronization to the local development database via `uv run python backend_v2/seed/run_seed.py local`. Direct ad-hoc mutations of `data/db_v2.json` are strictly forbidden.
 3. **100% Field Population Mandate:** No entity may rely on undefined optional fields or null fallbacks where explicit domain values are required by Quorum Studio UI or runtime evaluators.
 4. **50/50 Positive/Negative Balance:** Exactly 12 positive capability assertions (`inverse_evidence: false`) and 13 negative error detector assertions (`inverse_evidence: true`) distributed across 5 scales.
@@ -46,13 +46,49 @@ Establish the **Human-AI Collaboration Matrix (HACM)** (*Tekoälyn Ohjauksen ja 
 
 ### 2.1 Target Files
 - `@[backend_v2/seed/seed_data.json]` [MODIFY]
-- `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]` [MODIFY]
-- `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]` [MODIFY]
 
 ### 2.2 Context Files [READ-ONLY]
+- `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
+- `@[backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py]`
 - `@[backend_v2/models/domain/matrix.py]`
 - `@[backend_v2/models/domain/workflow.py]`
 - `@[backend_v2/models/domain/step.py]`
+- `@[backend_v2/models/domain/output_profile.py]`
+- `@[backend_v2/models/domain/prompt_blocks.py]`
+- `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
+- `@[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]`
+- `@[backend_v2/services/orchestrator/anchor_validation_service.py]`
+- `@[backend_v2/utils/scoring/unified_engine.py]`
+
+### 2.3 Phase 1: Pre-Implementation Cleanups (Discovered Technical Debt & Invariant Guards)
+Before executing declarative mutations in `@[backend_v2/seed/seed_data.json]`, the following architectural technical debt items, edge-case invariants, and quarantine boundaries discovered during System 2 red-teaming MUST be acknowledged and strictly enforced:
+
+1. **Quarantine of ExecutiveSummaryAdapter (`executive_summary_adapter.py`):**
+   - *Discovered Debt / Hazard:* The initial plan draft contemplated modifying `ExecutiveSummaryAdapter` to inject a fallback to `profile_cache.user_role` when `context.parsed_matrices` lacks a score for `target_block_id`.
+   - *Architectural Red-Team Resolution:* This proposed fallback violates `zero_backward_compatibility_planning_ban` and was already proven to break regression test `test_build_matrix_target_block_absent_omits_badge_without_fallback` (commit `4ca9ecdd8`). `ExecutiveSummaryAdapter.build` natively and deterministically renders the user role badge via `target_matrix.level_names[int_key]` when HACM is evaluated. Modifying `executive_summary_adapter.py` is strictly quarantined and pruned from the plan.
+2. **Quarantine of Output Profiles 4 and 5 (`prf_04b1d71000000004`, `prf_05b1d71000000005`):**
+   - *Discovered Debt / Hazard:* Step 5 proposed setting `user_role_target_block: "blk_53f32679aa514fcb"` on Profiles 4 and 5.
+   - *Architectural Red-Team Resolution:* Neither `wf_04` nor `wf_05` evaluates `blk_53f32679aa514fcb`. Mutating them would create broken foreign references. Profiles 4 (Fact-Checking) and 5 (Compliance) legitimately omit the user role badge because they audit factual grounding and statutory compliance, not human steering agency.
+3. **Deterministic `engine_type: "tda"` on `sp_06c1d71000000001`:**
+   - *Discovered Debt / Hazard:* Table 5.2 listed `engine_type: None`, which defaults to `"prompt"` under `ki_execution_engine_protocol.md`.
+   - *Architectural Red-Team Resolution:* `sp_06c1d71000000001` is an evaluative TDA step. It MUST declare `engine_type: "tda"` to be routed deterministically through `TDAEngine`.
+4. **DAG Step Rule Invariance for Dynamic Causal Discovery:**
+   - *Discovered Debt / Hazard:* Table 5.3.1 listed Step 4 (`sr_06s1000000000004`) with `expected_sdui_type: "markdown"`.
+   - *Architectural Red-Team Resolution:* Intermediate causal discovery steps do not emit direct SDUI blocks (`expected_sdui_type: null`, `is_synthesis_source: false`). The downstream Coach synthesis step (`sr_06s1000000000005`) binds `causal_source_step_id: "sr_06s1000000000004"`, as enforced Fail-Fast by `validate_step_rule_consistency()`.
+5. **Exact 50/50 Balance & 13 Canonical TDA Parameters:**
+   - *Discovered Debt / Hazard:* Creating TDA assertions with missing parameters or ungrounded anti-patterns.
+   - *Architectural Red-Team Resolution:* All 25 assertions MUST define all 13 canonical parameters with `target_speaker: TargetSpeaker.USER`, 12 positive capabilities and 13 negative error detectors, and exact lexical anchors.
+
+### 2.4 Five-Column Architectural Directives Table
+
+| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
+| :--- | :--- | :--- | :--- | :--- |
+| **@[backend_v2/seed/seed_data.json#L237-L18956]** (HACM PromptBlock `blk_7d8e9f0a1b2c3d4e`) | Banned omitting any of the 13 canonical TDA parameters, guessing scale names, or hardcoding heuristic speaker matching. Banned missing `theory_grounding` citations or missing `output_extensions`. | 100% typed `PromptBlock` with 4 `MatrixRow` and 5 `MatrixScale` items containing exactly 25 TDA assertions (12 positive capabilities, 13 negative error detectors). All assertions enforce `target_speaker: TargetSpeaker.USER`. Scale names restore the 5 canonical user archetype names. | Pruned redundant helper wrapper classes, custom scoring models, or duplicate prompt templates. Reuses native `TDAAssertion` and `PromptBlock` schemas. | `uv run python scripts/audit_database_atoms.py --strict` passes with 0 errors; in-memory Pydantic validation via `uv run python backend_v2/seed/run_seed.py local --dry-run`. |
+| **@[backend_v2/seed/seed_data.json#L7056-L7075]** (Evaluative Causal Analyst Matrix `blk_c5804a9143c34cb1`) | Banned creating duplicate causal analysis steps or branching execution logic. Banned leaving `is_evaluative: false` while expecting it to contribute to the global score. | Sovereign peer evaluative specialist step: `blk_c5804a9143c34cb1` sets `is_evaluative: true`. `apply_scoring_logic_hook` extracts both matrix scores into `unique_matrices` and averages them into unpenalized global score. | Pruned speculative custom scoring reducers. Reuses standard `sp_d245365e4a274b9e` scoring engine. | `apply_scoring_logic_hook` asserts both `blk_7d8e9f0a1b2c3d4e` and `blk_c5804a9143c34cb1` contribute 50/50 to global score. |
+| **@[backend_v2/seed/seed_data.json#L20463-L21475]** (Dynamic Causal Discovery Step `sp_06b1d7100000ca06`) | Banned using prompt engine for causal extraction or configuring `expected_sdui_type: "markdown"` on intermediate causal discovery steps. Banned passing unmapped keys. | `sp_06b1d7100000ca06` configures `engine_type: "causal_discovery"`, `is_system_core: true`, and maps to `CausalDiscoveryEngine`. In workflow step rule `sr_06s1000000000004`, `expected_sdui_type: null`, `is_synthesis_source: false`, and downstream step `sr_06s1000000000005` binds `causal_source_step_id: "sr_06s1000000000004"`. | Pruned redundant intermediate formatting adapters or separate JSON parsers. Reuses native `CausalGraphPayloadDTO` and `SlidingWindowLinker`. | `validate_step_rule_consistency()` in `backend_v2/models/domain/step.py` validates `causal_source_step_id` referential integrity. |
+| **@[backend_v2/seed/seed_data.json#L20463-L21475]** (HACM Evaluator Step Blueprint `sp_06c1d71000000001`) | Banned leaving `engine_type: None` (which defaults to `"prompt"`). Banned omitting criteria block IDs or hooks. | Explicitly configures `engine_type: "tda"`, `extraction_protocol_block_id: "blk_573802341db9d68c"`, `criteria_block_ids: ["blk_7d8e9f0a1b2c3d4e"]`, pre-hooks `["inject_step_metadata", "atom_flattening_hook"]`, post-hooks `["matrix_scoring_hook", "normalize_matrix_scores", "enforce_passivity_penalty"]`. | Pruned custom execution engines. Reuses pure compute `TDAEngine`. | `sp_06c1d71000000001` validates via `Step.model_validate()` and `audit_database_atoms.py`. |
+| **@[backend_v2/seed/seed_data.json#L18957-L20462]** (Dedicated Assessment Workflow `wf_06a1d71000000001`) | Banned hardcoded step count assumptions, legacy fallbacks, or ambiguous input lists. Banned bifurcated execution paths. | Sovereign 7-step DAG enforcing 3-Zone hierarchy (Zone A Ingestion, Zone B Tripartite Specialists, Zone C Funnel Anchors). Continuous strictness set to 50% default (`default_strictness_level: 50`). Dynamic topology agnosticism across candidate inputs. | Pruned ad-hoc workflow scripts or hardcoded file counters. Reuses `SourceDocumentPacker` dynamic mapping. | `Workflow.model_validate()` and DAG acyclicity validation in `DAGExecutor`. |
+| **@[backend_v2/seed/seed_data.json#L21573-L22273]** (Dedicated Output Profile `prf_06b1d71000000001`) | Banned mutating unrelated profiles (`prf_04`, `prf_05`) with disconnected block IDs (`blk_53f32679aa514fcb`). Banned modifying `executive_summary_adapter.py` with illegal fallbacks to `profile_cache.user_role`. | Pure declarative profile binding `user_role_target_block: "blk_7d8e9f0a1b2c3d4e"` and `variance_target_block: "blk_7d8e9f0a1b2c3d4e"`. `ExecutiveSummaryAdapter.build` natively derives `target_matrix.level_names[int_key]` with zero code modifications. | Pruned redundant Python code edits and test mutations in `executive_summary_adapter.py`. 100% of functionality achieved declaratively. | 24 existing unit tests in `test_executive_summary_adapter.py` pass 100%; `ReportAssembler` validates complete 10-block SDUI payload. |
 - `@[backend_v2/models/domain/output_profile.py]`
 - `@[backend_v2/models/domain/prompt_blocks.py]`
 - `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
@@ -226,7 +262,7 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | `expected_inputs` | `["chat_log", "product_text", "reflection_text", "assignment_context"]` | `["product_text", "chat_log"]` |
 | `is_system_core` | `False` | `True` |
 | `cognitive_tier` | `"fast"` | `"fast"` |
-| `engine_type` | `None` | `"causal_discovery"` |
+| `engine_type` | `"tda"` | `"causal_discovery"` |
 
 ### 5.3 Dedicated Assessment Workflow Schema Parity (`wf_06a1d71000000001`)
 
@@ -262,8 +298,8 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | **Vaihe 1** | `sr_06s1000000000001` | `sp_db849f9790984585` (Input Processing) | `[]` (Järjestelmän perusaskel - Suojattu) | `{"chat_log": "$inputs.chat_log", "product_text": "$inputs.product_text", "reflection_text": "$inputs.reflection_text", "assignment_context": "$inputs.assignment_context"}` | Zone A: Raakadokumenttien purku atomeiksi (`markdown`) |
 | **Vaihe 2** | `sr_06s1000000000002` | `sp_06c1d71000000001` (Tekoälyohjauksen Arvioija / HACM) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"chat_log": "$inputs.chat_log", "reflection_text": "$inputs.reflection_text"}` | Zone B: HACM-matriisin arviointi ihmiskehotteista (`grid`) |
 | **Vaihe 3** | `sr_06s1000000000003` | `sp_bd0b3054fe664960` (Kausaalisuuden Arvioija / Causal Analyst) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"product_text": "$inputs.product_text", "chat_log": "$inputs.chat_log", "assignment_context": "$inputs.assignment_context"}` | Zone B: Syy-seuraussuhteiden arviointi tuotoksesta ja argumenteista (`grid`) |
-| **Vaihe 4** | `sr_06s1000000000004` | `sp_06b1d7100000ca06` (Kausaalipäättelyn Louhinta / Causal Discovery) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"product_text": "$inputs.product_text", "chat_log": "$inputs.chat_log"}` | Zone B: Propositioiden, kausaaliverkon ja riippuvuuksien louhinta (`markdown`) |
-| **Vaihe 5** | `sr_06s1000000000005` | `sp_192910b5f5a34c79` (Synteesin Generointi / Coach) | `["sr_06s1000000000002", "sr_06s1000000000003", "sr_06s1000000000004"]` (Käynnistyy kun kaikki 3 arvioijaa valmiit) | `{"prior_analysis": "$steps"}` | Zone C: Laadullinen valmennussynteesi (`markdown`) |
+| **Vaihe 4** | `sr_06s1000000000004` | `sp_06b1d7100000ca06` (Kausaalipäättelyn Louhinta / Causal Discovery) | `["sr_06s1000000000001"]` (Käynnistyy kun Input Processing valmis) | `{"product_text": "$inputs.product_text", "chat_log": "$inputs.chat_log"}` | Zone B: Propositioiden, kausaaliverkon ja riippuvuuksien louhinta (`expected_sdui_type: null`, `is_synthesis_source: false`) |
+| **Vaihe 5** | `sr_06s1000000000005` | `sp_192910b5f5a34c79` (Synteesin Generointi / Coach) | `["sr_06s1000000000002", "sr_06s1000000000003", "sr_06s1000000000004"]` (Käynnistyy kun kaikki 3 arvioijaa valmiit) | `{"prior_analysis": "$steps"}` | Zone C: Laadullinen valmennussynteesi (`markdown`, `causal_source_step_id: "sr_06s1000000000004"`, `is_synthesis_source: false`) |
 | **Vaihe 6** | `sr_06s1000000000006` | `sp_d245365e4a274b9e` (Scoring Engine / Reducer) | `["sr_06s1000000000005"]` (Käynnistyy kun Synteesi valmis) | `{"results": "$steps.sr_06s1000000000005"}` | Zone C: Numeerinen pisteaggregaatio kahdesta arvioivasta matriisista (`grid`) |
 | **Vaihe 7** | `sr_06s1000000000007` | `sp_7a8b9c0d1e2f3a4b` (XAI Reporter) | `["sr_06s1000000000006"]` (Käynnistyy kun Scoring valmis) | `{"results": "$steps.sr_06s1000000000006", "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"}` | Zone C: Loppuraportti ja tutkagraafit (`markdown`) |
 
@@ -308,39 +344,27 @@ Every entity introduced in this plan is populated 100% without missing or empty 
 | `variance_target_block` | `"blk_7d8e9f0a1b2c3d4e"` | Binds variance analysis to HACM matrix |
 | `user_role_target_block` | `"blk_7d8e9f0a1b2c3d4e"` | Derives user archetype dynamically from HACM matrix score via `executive_summary_adapter.py`. With the restored archetype scale names, a candidate evaluating to level 5 deterministically receives `**Käyttäjärooli:** Arkkitehti (Aktiivinen haastaja)` (or `**User Role:** Architect (Active Challenger)` in English) |
 
-#### 5.4.1 Universal User Role Resolution Architecture (Enum SSOT Parity across All Output Profiles)
+#### 5.4.1 Native User Role Resolution Architecture (BARS Scale Derivation without Code Fallbacks)
 
-The user role badge rendered in the executive summary (`**Käyttäjärooli:** <Rooli>`) is an immutable architectural invariant across ALL output profiles in Quorum:
+The user role badge rendered in the executive summary (`**Käyttäjärooli:** <Rooli>`) is an immutable architectural invariant across output profiles in Quorum:
 
-1. **Universal Output Profile Requirement:**
-   - Every output profile in `backend_v2/seed/seed_data.json` MUST define `user_role_target_block` and `user_role_label`.
+1. **Native Adapter Derivation via Evaluated Matrix Scales:**
+   - In `ExecutiveSummaryAdapter.build` (`backend_v2/services/sdui/adapters/executive_summary_adapter.py#L82-L100`), when `profile.user_role_target_block` is set:
+     1. Target matrix score is retrieved from `context.parsed_matrices[target_block_id]`.
+     2. The score is rounded to the nearest integer index (`int_key = int(round(score))`).
+     3. If `int_key` is present in `target_matrix.level_names`, `role_title = target_matrix.level_names[int_key]`.
+     4. The badge is emitted as `**{user_role_label}:** {role_title}`.
+   - For HACM (`blk_7d8e9f0a1b2c3d4e`), the 5 scales explicitly contain the 5 user archetype names (`Matkustaja (Passiivinen tilaaja)`, `Reaktiivinen viilaaja`, `Navigaattori (Kontekstin asettaja)`, `Kuljettaja (Kriittinen haastaja)`, `Arkkitehti (Aktiivinen haastaja)`).
+   - This operates 100% natively without modifying a single line of Python code and without creating illegal fallback chains.
+
+2. **Quarantine of Code Modifications & Zero-Fallback Compliance:**
+   - Proposing fallbacks to `profile_cache.user_role` in `ExecutiveSummaryAdapter` is strictly banned by `zero_backward_compatibility_planning_ban` and was verified to break regression test `test_build_matrix_target_block_absent_omits_badge_without_fallback`.
+   - Modifying `executive_summary_adapter.py` is pruned from the target scope.
+
+3. **Output Profile Role Targeting Boundary:**
    - In `prf_06b1d71000000001`, `user_role_target_block` is bound strictly to `"blk_7d8e9f0a1b2c3d4e"` (HACM).
-   - In all existing output profiles (`prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_02b1d71000000002`, `prf_03b1d71000000003`, `prf_04b1d71000000004`, `prf_05b1d71000000005`), `user_role_target_block` is confirmed to target an evaluative domain matrix (`blk_53f32679aa514fcb` or primary matrix), ensuring zero profiles omit the role badge.
-
-2. **Enum Single Source of Truth (`RoleClassification`):**
-   - The user role MUST be anchored in the immutable enum definition in `backend_v2/models/enums.py`:
-     - `RoleClassification.PASSENGER = "ROLE_PASSENGER"` with `l10n_key = "rolePassenger"` (resolving to `"Matkustaja"` / `"Passenger"`)
-     - `RoleClassification.NAVIGATOR = "ROLE_NAVIGATOR"` with `l10n_key = "roleNavigator"` (resolving to `"Navigaattori"` / `"Navigator"`)
-     - `RoleClassification.DRIVER = "ROLE_DRIVER"` with `l10n_key = "roleDriver"` (resolving to `"Kuljettaja"` / `"Driver"`)
-     - `RoleClassification.ARCHITECT = "ROLE_ARCHITECT"` with `l10n_key = "roleArchitect"` (resolving to `"Arkkitehti"` / `"Architect"`)
-
-3. **Deterministic Score-to-Enum Mapping Helper:**
-   - The numeric score maps deterministically to `RoleClassification` via the helper function architecture (`extract_user_role_from_trace` in `backend_v2/workers/synthesis_reducers.py` and `RoleClassification.l10n_key`):
-     - Score 1.0 to 2.4: `RoleClassification.PASSENGER`
-     - Score 2.5 to 3.4: `RoleClassification.NAVIGATOR`
-     - Score 3.5 to 4.4: `RoleClassification.DRIVER`
-     - Score 4.5 to 5.0: `RoleClassification.ARCHITECT`
-   - In `ExecutiveSummaryAdapter`, the role badge text is formatted deterministically as `**{user_role_label}:** {role_title}`, where `role_title` guarantees the presence of the authoritative `RoleClassification` archetype (specifically: **Arkkitehti**, **Kuljettaja**, **Navigaattori**, **Matkustaja**), with any descriptive matrix nuance appended in parentheses.
-
-4. **ExecutiveSummaryAdapter Architecture Parity:**
-   - In `ExecutiveSummaryAdapter.build`, role resolution MUST NEVER fail or be omitted due to missing `level_names` on a matrix.
-   - When `profile.user_role_target_block` is set:
-     1. Target matrix score is retrieved from `context.parsed_matrices`. If present, the score is mapped deterministically to `RoleClassification` via `extract_user_role_from_trace` helper logic.
-     2. If `context.parsed_matrices` has no score for the block, fallback to `profile_cache.user_role` (which holds `RoleClassification.<ROLE>.value` computed during synthesis).
-     3. The canonical role title is resolved via `LocalizationService.translate(role.l10n_key, locale)`.
-     4. If the target matrix defines an explicit subtitle/nuance in `target_matrix.level_names` for the score key, the nuance is appended in parentheses: `{role_title} ({nuance_subtitle})`. If `level_names` is absent or unmapped, `{role_title}` is rendered cleanly without omission.
-     5. The prefix label is resolved via `profile.user_role_label.resolve(locale)` or `LocalizationService.translate('user_role_label', locale)`.
-   - This guarantees 100% full-duplex parity across Finnish and English, zero dropped role badges, and absolute fidelity to the 4 canonical user archetypes across all 6 production output profiles and the new HACM profile.
+   - In `prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_02b1d71000000002`, and `prf_03b1d71000000003`, `user_role_target_block` targets `blk_53f32679aa514fcb`.
+   - Profiles 4 (`prf_04b1d71000000004`, Fact-Checking) and 5 (`prf_05b1d71000000005`, Compliance) legitimately omit `user_role_target_block` because their workflows do not evaluate user steering agency; injecting disconnected block IDs onto these profiles is strictly banned to prevent orphan references.
 
 ---
 
@@ -407,6 +431,7 @@ The user role badge rendered in the executive summary (`**Käyttäjärooli:** <R
       - expected_inputs: ["chat_log", "product_text", "reflection_text", "assignment_context"]
       - is_system_core: false
       - cognitive_tier: "fast"
+      - engine_type: "tda"
     </specification>
   </step>
 
@@ -460,9 +485,8 @@ The user role badge rendered in the executive summary (`**Käyttäjärooli:** <R
     </specification>
   </step>
 
-  <step id="5" name="DEDICATED_OUTPUT_PROFILE_DEFINITION_AND_UNIVERSAL_ROLE_ALIGNMENT">
-    <action>Define new dedicated output profile in output_profiles array in backend_v2/seed/seed_data.json:</action>
-    <action>Update existing output profiles (specifically: prf_5d6e7f8091a2b3c4, prf_01b1d71000000001, prf_02b1d71000000002, prf_03b1d71000000003, prf_04b1d71000000004, prf_05b1d71000000005) in backend_v2/seed/seed_data.json to ensure user_role_target_block is set to "blk_53f32679aa514fcb" and user_role_label is defined, guaranteeing universal role coverage.</action>
+  <step id="5" name="DEDICATED_OUTPUT_PROFILE_DEFINITION">
+    <action>Define new dedicated output profile prf_06b1d71000000001 in output_profiles array in @[backend_v2/seed/seed_data.json].</action>
     <specification>
       - id: "prf_06b1d71000000001"
       - slug: "tekoalyn_kayton_ja_ohjauksen_tulostusprofiili"
@@ -486,16 +510,10 @@ The user role badge rendered in the executive summary (`**Käyttäjärooli:** <R
     </specification>
   </step>
 
-  <step id="5b" name="EXECUTIVE_SUMMARY_ADAPTER_ENUM_SSOT_RESTORATION">
-    <action>Modify backend_v2/services/sdui/adapters/executive_summary_adapter.py to restore deterministic RoleClassification Enum SSOT resolution.</action>
-    <action>Ensure role_val maps score to RoleClassification (or extracts from profile_cache.user_role), resolves via LocalizationService.translate(role.l10n_key, locale), and appends optional level_names nuance if present.</action>
-    <action>Update and expand backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py to assert full-duplex role rendering across all output profile configurations.</action>
-  </step>
-
   <step id="6" name="SEED_SANITY_AUDIT_AND_SYNC">
     <action>Execute structural atom audit: uv run python scripts/audit_database_atoms.py --strict</action>
-    <action>Execute in-memory dry-run sync: uv run python backend_v2/seed/run_seed.py local --dry-run</action>
-    <action>Execute live local database sync: uv run python backend_v2/seed/run_seed.py local</action>
+    <action>Execute in-memory dry-run sync of @[backend_v2/seed/seed_data.json]: uv run python backend_v2/seed/run_seed.py local --dry-run</action>
+    <action>Execute live local database sync of @[backend_v2/seed/seed_data.json]: uv run python backend_v2/seed/run_seed.py local</action>
   </step>
 
   <step id="7" name="END_TO_END_VERIFICATION_GATE">
