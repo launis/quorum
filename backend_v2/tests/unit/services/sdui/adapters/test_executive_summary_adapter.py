@@ -679,4 +679,3 @@ def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
     assert isinstance(blocks[1], SduiCausalGraphBlock)
     assert isinstance(blocks[2], BulletListBlock)
     assert len(blocks[2].items) == 2
-

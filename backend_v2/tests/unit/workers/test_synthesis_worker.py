@@ -25,6 +25,7 @@ from backend_v2.models.dtos.causal_discovery import (
     FairScoringBreakdownDTO,
     PrescriptiveRemediationDTO,
 )
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -35,7 +36,6 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
-from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     LaxHistoricalContextMode,
@@ -379,7 +379,9 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
                 new_callable=AsyncMock,
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))),
+                return_value=HookResult(
+                    success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))
+                ),
             ):
                 with patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier", new_callable=AsyncMock):
                     with patch(
@@ -508,7 +510,9 @@ async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> No
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
                 new_callable=AsyncMock,
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))),
+                return_value=HookResult(
+                    success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))
+                ),
             ):
                 with patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier", new_callable=AsyncMock):
                     with patch(
@@ -735,7 +739,9 @@ async def test_synthesis_worker_validation_error_in_taskgroup_handled() -> None:
             with patch(
                 "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
                 new_callable=AsyncMock,
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))),
+                return_value=HookResult(
+                    success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))
+                ),
             ):
                 with patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier", new_callable=AsyncMock):
                     with patch(
@@ -749,4 +755,3 @@ async def test_synthesis_worker_validation_error_in_taskgroup_handled() -> None:
                                 profile_id=prof_id,
                             )
                         assert exc_info.value.status_code == 500
-

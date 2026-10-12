@@ -4090,7 +4090,3 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
     causal_blocks = [b for b in report.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
     assert len(causal_blocks) == 1
     assert causal_blocks[0].critical_path_nodes[0].node_id == "claim_1"
-
-
-
-

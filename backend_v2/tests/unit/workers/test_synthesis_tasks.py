@@ -501,4 +501,3 @@ async def test_create_executive_summary_task_with_causal_diagnosis() -> None:
     user_content = messages[1].content
     assert "<causal_diagnosis>" in user_content
     assert "Empirical bottleneck: root cause in Node 0" in user_content
-

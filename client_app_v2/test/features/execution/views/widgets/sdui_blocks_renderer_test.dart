@@ -429,9 +429,7 @@ void main() {
       (tester) async {
         const block = SduiCausalGraphBlock(
           id: 'blk_causal_render_min',
-          summary: I18nText(
-            translations: {'en': 'Minimal Causal Discovery'},
-          ),
+          summary: I18nText(translations: {'en': 'Minimal Causal Discovery'}),
           intactClaimsCount: 3,
           totalClaimsCount: 3,
           criticalPathNodes: [],

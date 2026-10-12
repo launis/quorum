@@ -36,10 +36,7 @@ void main() {
     );
   }
 
-  Workflow createWorkflow({
-    required String id,
-    required String name,
-  }) {
+  Workflow createWorkflow({required String id, required String name}) {
     return Workflow(
       id: id,
       slug: 'slug_$id',
@@ -72,7 +69,9 @@ void main() {
   }
 
   group('DashboardView Widget Tests', () {
-    testWidgets('renders empty state when no executions are present', (tester) async {
+    testWidgets('renders empty state when no executions are present', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           overrides: [
@@ -88,58 +87,76 @@ void main() {
       expect(find.byType(FloatingActionButton), findsOneWidget);
     });
 
-    testWidgets('renders execution list with workflow title, status chip, and metrics', (tester) async {
-      final wf = createWorkflow(id: 'wor_causal_01', name: 'Causal Discovery Workflow');
-      final exec = createExecution(
-        id: 'exe_test_01',
-        workflowId: 'wor_causal_01',
-        status: 'completed',
-        createdAt: '2026-10-12T12:00:00.000Z',
-        costEstimate: 0.123456,
-      );
+    testWidgets(
+      'renders execution list with workflow title, status chip, and metrics',
+      (tester) async {
+        final wf = createWorkflow(
+          id: 'wor_causal_01',
+          name: 'Causal Discovery Workflow',
+        );
+        final exec = createExecution(
+          id: 'exe_test_01',
+          workflowId: 'wor_causal_01',
+          status: 'completed',
+          createdAt: '2026-10-12T12:00:00.000Z',
+          costEstimate: 0.123456,
+        );
 
-      await tester.pumpWidget(
-        createTestWidget(
-          overrides: [
-            executionListProvider.overrideWith((ref) => Future.value([exec])),
-            availableWorkflowsProvider.overrideWith((ref) => Future.value([wf])),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(
+            overrides: [
+              executionListProvider.overrideWith((ref) => Future.value([exec])),
+              availableWorkflowsProvider.overrideWith(
+                (ref) => Future.value([wf]),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Check workflow title display
-      expect(find.textContaining('Causal Discovery Workflow'), findsOneWidget);
+        // Check workflow title display
+        expect(
+          find.textContaining('Causal Discovery Workflow'),
+          findsOneWidget,
+        );
 
-      // Check execution ID and status chip
-      expect(find.textContaining('exe_test_01'), findsOneWidget);
-      expect(find.text('COMPLETED'), findsOneWidget);
+        // Check execution ID and status chip
+        expect(find.textContaining('exe_test_01'), findsOneWidget);
+        expect(find.text('COMPLETED'), findsOneWidget);
 
-      // Check actions: Print, Replay, Delete
-      expect(find.byIcon(Icons.print), findsOneWidget);
-      expect(find.byIcon(Icons.replay), findsOneWidget);
-      expect(find.byIcon(Icons.delete), findsOneWidget);
-    });
+        // Check actions: Print, Replay, Delete
+        expect(find.byIcon(Icons.print), findsOneWidget);
+        expect(find.byIcon(Icons.replay), findsOneWidget);
+        expect(find.byIcon(Icons.delete), findsOneWidget);
+      },
+    );
 
-    testWidgets('negative boundary: renders ErrorView when execution list provider throws', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          overrides: [
-            executionListProvider.overrideWith(
-              (ref) => Future.error(Exception('Failed to load executions')),
-            ),
-            availableWorkflowsProvider.overrideWith((ref) => Future.value([])),
-          ],
-        ),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'negative boundary: renders ErrorView when execution list provider throws',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            overrides: [
+              executionListProvider.overrideWith(
+                (ref) => Future.error(Exception('Failed to load executions')),
+              ),
+              availableWorkflowsProvider.overrideWith(
+                (ref) => Future.value([]),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ErrorView), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
-      expect(find.byIcon(Icons.refresh), findsWidgets);
-    });
+        expect(find.byType(ErrorView), findsOneWidget);
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsWidgets);
+      },
+    );
 
-    testWidgets('boundary test: renders different status chips appropriately', (tester) async {
+    testWidgets('boundary test: renders different status chips appropriately', (
+      tester,
+    ) async {
       final execs = [
         createExecution(id: 'exe_pass', workflowId: 'wor_1', status: 'passed'),
         createExecution(id: 'exe_fail', workflowId: 'wor_1', status: 'failed'),

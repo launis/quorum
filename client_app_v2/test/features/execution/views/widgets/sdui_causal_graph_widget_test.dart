@@ -84,16 +84,17 @@ void main() {
     ),
   );
 
-  Widget createWidgetUnderTest(SduiCausalGraphBlock block, {Locale locale = const Locale('en')}) {
+  Widget createWidgetUnderTest(
+    SduiCausalGraphBlock block, {
+    Locale locale = const Locale('en'),
+  }) {
     return MaterialApp(
       theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
       home: Scaffold(
-        body: SingleChildScrollView(
-          child: SduiCausalGraphWidget(block: block),
-        ),
+        body: SingleChildScrollView(child: SduiCausalGraphWidget(block: block)),
       ),
     );
   }
@@ -109,43 +110,67 @@ void main() {
       ErrorWidget.builder = originalErrorBuilder;
     });
 
-    testWidgets('renders SduiCausalGraphWidget with full causal data successfully', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest(fullBlock));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders SduiCausalGraphWidget with full causal data successfully',
+      (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest(fullBlock));
+        await tester.pumpAndSettle();
 
-      // Summary text
-      expect(find.text('Causal Discovery & Fault Analysis: Root Cause Traced'), findsOneWidget);
+        // Summary text
+        expect(
+          find.text('Causal Discovery & Fault Analysis: Root Cause Traced'),
+          findsOneWidget,
+        );
 
-      // Intact badge
-      expect(find.text('8 / 10 Intact'), findsOneWidget);
+        // Intact badge
+        expect(find.text('8 / 10 Intact'), findsOneWidget);
 
-      // Critical Path header and nodes
-      expect(find.text('CRITICAL CAUSAL PATH'), findsOneWidget);
-      expect(find.textContaining('[atm_root_01]'), findsOneWidget);
-      expect(find.textContaining('[atm_child_02] Downstream'), findsOneWidget);
+        // Critical Path header and nodes
+        expect(find.text('CRITICAL CAUSAL PATH'), findsOneWidget);
+        expect(find.textContaining('[atm_root_01]'), findsOneWidget);
+        expect(
+          find.textContaining('[atm_child_02] Downstream'),
+          findsOneWidget,
+        );
 
-      // Root Causes section
-      expect(find.text('ROOT CAUSE DIAGNOSES'), findsOneWidget);
-      expect(find.text('Fault Chain: atm_root_01 → atm_child_02'), findsOneWidget);
-      expect(find.text('Ref: Section 2.4'), findsOneWidget);
-      expect(find.text('Penalty: -1.5 pts'), findsOneWidget);
+        // Root Causes section
+        expect(find.text('ROOT CAUSE DIAGNOSES'), findsOneWidget);
+        expect(
+          find.text('Fault Chain: atm_root_01 → atm_child_02'),
+          findsOneWidget,
+        );
+        expect(find.text('Ref: Section 2.4'), findsOneWidget);
+        expect(find.text('Penalty: -1.5 pts'), findsOneWidget);
 
-      // Prescriptive Remediations section
-      expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsOneWidget);
-      expect(find.text('Target [atm_child_02]: Enforce explicit schema contract.'), findsOneWidget);
-      expect(find.text('Estimated Impact: +1.5 pts'), findsOneWidget);
-    });
+        // Prescriptive Remediations section
+        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsOneWidget);
+        expect(
+          find.text('Target [atm_child_02]: Enforce explicit schema contract.'),
+          findsOneWidget,
+        );
+        expect(find.text('Estimated Impact: +1.5 pts'), findsOneWidget);
+      },
+    );
 
-    testWidgets('renders SduiCausalGraphWidget in Finnish locale correctly', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest(fullBlock, locale: const Locale('fi')));
+    testWidgets('renders SduiCausalGraphWidget in Finnish locale correctly', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createWidgetUnderTest(fullBlock, locale: const Locale('fi')),
+      );
       await tester.pumpAndSettle();
 
       // Summary text in Finnish
-      expect(find.text('Kausaalilöydökset ja virheanalyysi: Juurisyy jäljitetty'), findsOneWidget);
+      expect(
+        find.text('Kausaalilöydökset ja virheanalyysi: Juurisyy jäljitetty'),
+        findsOneWidget,
+      );
       expect(find.text('8 / 10 Intact'), findsOneWidget);
     });
 
-    testWidgets('opens CausalInspectorModal when clicking inspector button', (tester) async {
+    testWidgets('opens CausalInspectorModal when clicking inspector button', (
+      tester,
+    ) async {
       await tester.pumpWidget(createWidgetUnderTest(fullBlock));
       await tester.pumpAndSettle();
 
@@ -167,38 +192,39 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('renders minimal SduiCausalGraphWidget gracefully with empty lists', (tester) async {
-      const minimalBlock = SduiCausalGraphBlock(
-        id: 'blk_min',
-        summary: I18nText(
-          translations: {'en': 'Minimal Causal Summary'},
-        ),
-        intactClaimsCount: 5,
-        totalClaimsCount: 5,
-        criticalPathNodes: [],
-        criticalEdges: [],
-        rootCauseDiagnoses: [],
-        antiFluffAudit: AntiFluffAuditDto(
-          isolatedConceptCount: 0,
-          cycleDetected: false,
-          unsupportedClaimsCount: 0,
-          logicalCohesionScore: 1.0,
-          detectedHollowTerms: [],
-        ),
-        prescriptiveRemediations: [],
-        fairScoring: null,
-      );
+    testWidgets(
+      'renders minimal SduiCausalGraphWidget gracefully with empty lists',
+      (tester) async {
+        const minimalBlock = SduiCausalGraphBlock(
+          id: 'blk_min',
+          summary: I18nText(translations: {'en': 'Minimal Causal Summary'}),
+          intactClaimsCount: 5,
+          totalClaimsCount: 5,
+          criticalPathNodes: [],
+          criticalEdges: [],
+          rootCauseDiagnoses: [],
+          antiFluffAudit: AntiFluffAuditDto(
+            isolatedConceptCount: 0,
+            cycleDetected: false,
+            unsupportedClaimsCount: 0,
+            logicalCohesionScore: 1.0,
+            detectedHollowTerms: [],
+          ),
+          prescriptiveRemediations: [],
+          fairScoring: null,
+        );
 
-      await tester.pumpWidget(createWidgetUnderTest(minimalBlock));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidgetUnderTest(minimalBlock));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Minimal Causal Summary'), findsOneWidget);
-      expect(find.text('5 / 5 Intact'), findsOneWidget);
+        expect(find.text('Minimal Causal Summary'), findsOneWidget);
+        expect(find.text('5 / 5 Intact'), findsOneWidget);
 
-      // Empty sections should not be rendered
-      expect(find.text('CRITICAL CAUSAL PATH'), findsNothing);
-      expect(find.text('ROOT CAUSE DIAGNOSES'), findsNothing);
-      expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsNothing);
-    });
+        // Empty sections should not be rendered
+        expect(find.text('CRITICAL CAUSAL PATH'), findsNothing);
+        expect(find.text('ROOT CAUSE DIAGNOSES'), findsNothing);
+        expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsNothing);
+      },
+    );
   });
 }

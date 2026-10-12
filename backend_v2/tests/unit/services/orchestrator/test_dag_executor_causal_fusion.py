@@ -1053,7 +1053,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
                 TraceEvent(
                     step_name=step.id,
                     event_type="output",
-                    content=StepOutputContentDTO(data={"nodes": [node.model_dump(mode="json")], "edges": []}),
+                    content=StepOutputContentDTO(data=graph.model_dump(mode="json")),
                 )
             ]
         else:
@@ -1389,8 +1389,6 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         short_circuit_reason_tda_ids=[],
     )
 
-    from backend_v2.models.dtos.step_output import StepOutputDTO
-
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
         if step.id == "stp_1111222233334444":
@@ -1704,8 +1702,6 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
         prompt_compiler=MagicMock(),
     )
 
-    from backend_v2.models.dtos.step_output import StepOutputDTO
-
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
         if step.id == "stp_1111222233334444":
@@ -1713,9 +1709,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
                 TraceEvent(
                     step_name=step.id,
                     event_type="input",
-                    content=StepOutputContentDTO(
-                        data={"blk_1111222233334444": "invalid-graph-string"}
-                    ),
+                    content=StepOutputContentDTO(data={"blk_1111222233334444": "invalid-graph-string"}),
                 )
             ]
         return []
@@ -1742,5 +1736,3 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
             ErrorCodes.VALIDATION_FAILED,
             ErrorCodes.VALIDATION_FAILED.value,
         )
-
-

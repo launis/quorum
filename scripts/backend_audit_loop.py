@@ -90,8 +90,9 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
         parts = target_clean.split("/")
         filename = parts[-1]
 
+        test_paths: list[str] = []
         if "tests" in parts:
-            test_path = target_clean
+            test_paths = [target_clean]
             clean_name = filename.replace("test_", "", 1).removesuffix(".py")
             if "scripts" in parts:
                 if (Path("scripts") / f"_{clean_name}.py").exists():
@@ -160,7 +161,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                     candidates.append(f"{clean_base}.py")
             cov_filter_name = filename
 
-            test_paths: list[str] = []
+            test_paths = []
             if parts[0] == "scripts":
                 for cand in candidates:
                     cand_path = Path("backend_v2/tests/unit/scripts") / cand
@@ -176,7 +177,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                     # 1. Direct subfolder match
                     p = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / cand
                     if p.exists():
-                        test_paths.append(str(p).replace("\\", "/") )
+                        test_paths.append(str(p).replace("\\", "/"))
                         for sib in sorted(p.parent.glob(f"test_{clean_base}_*.py")):
                             sib_str = str(sib).replace("\\", "/")
                             if sib_str not in test_paths:

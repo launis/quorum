@@ -208,7 +208,9 @@ def test_main_cli_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsy
     assert "Theme Sovereignty Pass" in captured.out
 
 
-def test_main_cli_violations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_cli_violations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Verify main CLI with violations exits with code 1."""
     dirty_file = tmp_path / "dirty.dart"
     dirty_file.write_text("final c = Colors.red;\n", encoding="utf-8")

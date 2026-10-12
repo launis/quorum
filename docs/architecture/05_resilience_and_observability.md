@@ -99,6 +99,13 @@ Operational monitoring and status streaming incorporate resilient polling and re
 - **Regulatory Record-Keeping (EU AI Act Articles 12–15)**: The execution record acts as a legally auditable artifact capturing bi-temporal timestamps and actor identification (Article 12), verbatim prompt and theory snapshots in frozen context storage (Article 13), human-in-the-loop expert override fields on scorecard atoms (Article 14), and exact lexical grounding against source documents (Article 15).
 - **Client Deserialization Fail-Fast**: Client models strictly disallow unrecognized keys (`CheckedFromJsonException`), ensuring schema drift between services and client interfaces is detected immediately at boundary ingress rather than failing silently during rendering.
 
+### 2.15. Thread-Isolated Cycle Defense & Topological Fault Attribution Resilience
+Dynamic causal discovery and graph evaluation incorporate robust graph resilience, thread isolation, and deterministic fault isolation mechanisms:
+- **Thread-Isolated Cycle Detection**: Before executing topological wave evaluation, graph cycle detection is offloaded to a background worker thread via `asyncio.to_thread(list, nx.simple_cycles(g))`. This prevents deep iterative cycle finding from starving or blocking the asynchronous event loop on dense graphs. If cycles are detected, execution records the cycle cleanly to the topological payload (`cycle_detected = True`) without crashing the orchestrator.
+- **Topological Wave Crash Recovery**: Wave-based topological evaluation executes in discrete hierarchical dependency waves. If an evaluation wave encounters an unhandled exception or cycle fault, the wave is trapped, affected downstream nodes are transitioned to failure states, and the failure is recorded to the Dead Letter Queue.
+- **Bounded Upward Fault Attribution**: When an evaluation node fails or produces a diagnostic fault, the engine performs bounded upward traversal along the causal graph DAG edges. The traversal identifies the ultimate upstream originator (`root_cause_node_ids`) and isolates it from secondary cascading failures (`blame_parent_ids`). This prevents multi-point penalization and ensures fault metrics reflect true causal origins rather than downstream side-effects.
+- **Data Starvation & Empty Document Circuit Breakers**: The engine enforces fail-fast input validation prior to graph construction. Empty document payloads immediately trigger the `CAUSAL_DISCOVERY_EMPTY_DOCUMENT` circuit breaker, while pipelines lacking sufficient causal event pairs or structural connectivity trigger `CAUSAL_DISCOVERY_DATA_STARVATION`, terminating processing cleanly before allocating compute or LLM tokens.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

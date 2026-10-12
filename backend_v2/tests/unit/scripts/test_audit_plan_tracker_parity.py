@@ -215,7 +215,7 @@ def test_non_code_targets_excluded_from_hardening_check(tmp_path: Path) -> None:
 </execution_protocol>
 ```
 """
-    tracker_text = f"""<required_context_rules>
+    tracker_text = """<required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
 </required_context_rules>
 # Tracker: Non-code
@@ -283,7 +283,7 @@ def test_invalid_extension_and_test_file_in_hardening_checklist(tmp_path: Path) 
 </execution_protocol>
 ```
 """
-    tracker_text = f"""<required_context_rules>
+    tracker_text = """<required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
 </required_context_rules>
 # Tracker: Bad Extensions
