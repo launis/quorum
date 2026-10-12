@@ -286,6 +286,14 @@
     2. `@[backend_v2/workers/synthesis_tasks.py]`: Added RFC 7807 logging; added causal diagnosis injection verification unit tests in `test_synthesis_tasks.py`; verified 10/10 quality stages, 18 unit tests (100% coverage), verified 181 rules; committed in `14a77a1ce`.
     3. `@[backend_v2/workers/synthesis_worker.py]`: Hardened error handling with RFC 7807 logging; filtered non-ExecutionStep types in `_update_render_status` to prevent `ExecutionUpdateDTO` validation failures; decoupled starvation short-circuiting before trace projection; added unit tests covering happy path causal fusion, step_states payload, data starvation, and error handling in `test_synthesis_worker.py`; verified 10/10 quality stages, 11 unit tests (92% coverage), verified 181 rules; committed in `9c44dc548`.
   - All 3 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (26 backend files completed total).
+- Executed Tier 2 Backend Hardening Session 4 (`/tier5-resume` targeting `docs/epic/EPIC_154_tracker.md`):
+  - Audited and hardened the final 4 target files, closing Tier 2 Backend Hardening with 30/30 files verified:
+    1. `@[backend_v2/services/localization.py]`: Added unit test coverage for `ReportHeaderResolver.resolve_matrix_headers` in `test_localization.py` achieving 100% strict test coverage; passed 10/10 quality stages, verified 181 audit matrix rules; committed in `8711ec287`.
+    2. `@[backend_v2/models/dtos/export.py]`: Verified 13 unit tests in `test_export.py` achieving 100% line coverage; passed 10/10 quality stages, verified 181 audit matrix rules.
+    3. `@[backend_v2/services/export_service.py]`: Verified 30 unit tests in `test_export_service.py` achieving 90% line coverage; passed 10/10 quality stages, verified 181 audit matrix rules.
+    4. `@[scripts/audit_flutter_theme_sovereignty.py]`: Formatted code; created comprehensive unit test suite in `test_audit_flutter_theme_sovereignty.py` achieving 97% line coverage across 11 test cases; passed 10/10 quality stages, verified 181 audit matrix rules; committed in `91d733c44`.
+  - All 4 files marked `[x]` in `docs/epic/EPIC_154_tracker.md` (30/30 backend files completed total).
+  - Parent post-implementation gate `- [x] **[OK] Tier 2 Hardening (Backend):**` transitioned from `[NOK]` to `[OK]`.
 
 ## Learned
 - **StateProjector Snapshot Property Semantics**: `projector.snapshot` is a `@property` returning a fresh list built on the fly from `_snapshot`. Calling `projector.snapshot.append(...)` in tests does NOT modify `projector._snapshot`. Test mock events must emit `TraceEvent(..., event_type="input", content=StepOutputContentDTO(data={...}))` to populate `_snapshot` via `apply_delta`.
@@ -298,13 +306,9 @@
 - **ExecutionUpdateDTO Step States Invariance**: `ExecutionUpdateDTO.step_states` strictly requires `dict[str, ExecutionStep]`. When copying `step_states` from execution records, non-ExecutionStep entries must be filtered to prevent validation errors.
 - **RenderedSynthesisCache Extension Metrics Typing**: `RenderedSynthesisCache.extension_metrics` requires `ExtensionMetricsDTO | None`. Tests mocking `build_variance_metrics_and_task` must return `(None, ...)` rather than `([], ...)`.
 - **Data Starvation Short-Circuit Ordering**: Data starvation checks (`handle_starvation_if_detected`) must execute prior to `StateProjector` folding to ensure immediate short-circuiting without failing on empty or non-DTO trace events.
+- **Theme Sovereignty Multi-Violation Lines**: When testing static theme analysis scanners, lines combining multiple prohibited patterns (e.g., `TextStyle` containing `Colors.*`) emit distinct violations for each rule condition; test fixtures isolating single violations should avoid co-locating multiple forbidden patterns on the same source line.
 
 ## Remaining
-- Complete Tier 2 Hardening (Backend) on the remaining 4 target files:
-  - `@[backend_v2/services/localization.py]`
-  - `@[backend_v2/models/dtos/export.py]`
-  - `@[backend_v2/services/export_service.py]`
-  - `@[scripts/audit_flutter_theme_sovereignty.py]`
 - Subsequent post-implementation gates:
   - Tier 2 Hardening (Frontend) on 8 touched Flutter files:
     - `@[client_app_v2/lib/core/models/enums.dart]`
@@ -325,5 +329,6 @@
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="docs/epic/EPIC_154_tracker.md, backend_v2/services/localization.py" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+/tier5-resume --target="docs/epic/EPIC_154_tracker.md, client_app_v2/lib/core/models/enums.dart" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
 ```
+
