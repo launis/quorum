@@ -467,6 +467,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     String id,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    final fallbackLocale = Localizations.localeOf(context).languageCode;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
@@ -491,9 +492,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         'raw_inputs': oldExec['raw_inputs'],
         'profile_id':
             oldExec['output_profile_id'], // In Python it's output_profile_id inside ExecutionRecord
-        'target_locale':
-            metadata['target_locale'] ??
-            Localizations.localeOf(context).languageCode,
+        'target_locale': metadata['target_locale'] ?? fallbackLocale,
       };
 
       // 3. Post to create new execution
