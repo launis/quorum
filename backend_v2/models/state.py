@@ -30,7 +30,8 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
-from backend_v2.models.dtos.trace import TraceEventMetadataDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
+from backend_v2.models.enums import VirtualSystemStepID
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.models.execution_envelope import StepExecutionEnvelope
 from backend_v2.utils.pydantic_utils import inflate
@@ -649,10 +650,25 @@ class StateProjector:
                         self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
                 else:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
+            elif isinstance(content, TraceScoringPayloadDTO):
+                self._snapshot[event.step_name] = StepOutputContentDTO(
+                    data={VirtualSystemStepID.SCORING_RESULT.value: content.model_dump(mode="json")}
+                )
             elif type(content) is dict:
                 if "anti_fluff_audit" in content and "fair_scoring" in content and "graph" in content:
                     self._snapshot[event.step_name] = StepOutputContentDTO(
                         data={"fusion": CausalTdaFusionResultDTO.model_validate(content, strict=False)}
+                    )
+                elif VirtualSystemStepID.SCORING_RESULT.value in content:
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
+                elif "total_score" in content and ("final_score" in content or "aggregation_status" in content):
+                    scoring_payload = {k: v for k, v in content.items() if k in TraceScoringPayloadDTO.model_fields}
+                    meta_payload = {k: v for k, v in content.items() if k not in TraceScoringPayloadDTO.model_fields}
+                    self._snapshot[event.step_name] = StepOutputContentDTO(
+                        data={
+                            VirtualSystemStepID.SCORING_RESULT.value: scoring_payload,
+                            **meta_payload,
+                        }
                     )
                 else:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})

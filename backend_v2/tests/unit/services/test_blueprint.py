@@ -688,6 +688,51 @@ async def test_blueprint_scoring_payload_validation_succeeds_with_extra_fields(m
 
 
 @pytest.mark.asyncio
+async def test_blueprint_scoring_payload_flat_trace_normalization(mock_repo_sdui: AsyncMock) -> None:
+    """Test that StateProjector normalizes flat scoring trace into VirtualSystemStepID.SCORING_RESULT."""
+    from backend_v2.models.view.sdui import SduiScoreCardBlock
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_sdui,
+        workflow_repo=mock_repo_sdui,
+        comp_repo=mock_repo_sdui,
+        prompt_block_repo=mock_repo_sdui,
+        output_profile_repo=mock_repo_sdui,
+        identity_repo=mock_repo_sdui,
+        system_repo=mock_repo_sdui,
+    )
+
+    mock_execution = ExecutionRecord(
+        id="exe_1111222233334444",
+        workflow_id="wf_1234abcd1234abcd",
+        output_profile_id="prf_dddd1111dddd1111",
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                event_type="output",
+                step_name="step_scoring_flat",
+                content={
+                    "total_score": 9.8,
+                    "final_score": 9.8,
+                    "penalties_applied": [],
+                    "aggregation_status": "Flat Trace Average",
+                },
+            )
+        ],
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+    )
+    mock_repo_sdui.set_execution(mock_execution)
+
+    dto = await transformer.build_report_dto("exe_1111222233334444", accept_language="fi")
+    assert dto.global_score == 9.8
+
+    score_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiScoreCardBlock)]
+    assert len(score_blocks) == 1
+    assert score_blocks[0].global_score == 9.8
+
+
+@pytest.mark.asyncio
 async def test_blueprint_variance_validation_success(mock_repo_transformer: Any) -> None:
     """Test that build_report_dto computes variance validation using context variables."""
     mock_repo_transformer.set_execution(

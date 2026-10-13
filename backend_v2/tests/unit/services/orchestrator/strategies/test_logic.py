@@ -249,6 +249,51 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
         assert traces[0].content["payload"] == "hello"
 
 
+@pytest.mark.asyncio
+async def test_execute_with_trace_scoring_payload_dto(logic_strategy: LogicNodeStrategy) -> None:
+    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+    from backend_v2.models.enums import StepType, VirtualSystemStepID
+
+    step = StepRule.model_construct(id="step_scoring_1", task_blueprint="bp_score_123")
+    projector = StateProjector()
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+    )
+
+    step_def = {
+        "id": "stp_0123456789abcdef",
+        "slug": "scoring_slug",
+        "name": {"translations": {"en": "Scoring"}},
+        "hook": "apply_scoring_logic",
+        "description": {"translations": {"en": "Scoring Desc"}},
+        "type": StepType.LOGIC,
+    }
+    cast(InMemoryUnifiedWorkflowRepository, logic_strategy.workflow_repo).seed_raw_step(step.task_blueprint, step_def)
+
+    delta_instance = TraceScoringPayloadDTO(
+        total_score=9.8,
+        final_score=9.8,
+        penalties_applied=[],
+        aggregation_status="Commensurate Average",
+    )
+
+    with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
+        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=delta_instance))
+
+        traces = await logic_strategy.execute(step, projector, context)
+
+        assert len(traces) == 1
+        assert traces[0].event_type == "output"
+        scoring_payload = TraceScoringPayloadDTO.model_validate(
+            traces[0].content[VirtualSystemStepID.SCORING_RESULT.value]
+        )
+        assert scoring_payload.total_score == 9.8
+        assert traces[0].content["total_score"] == 9.8
+
+
 def test_logic_exports() -> None:
     from backend_v2.services.orchestrator.strategies import logic
 

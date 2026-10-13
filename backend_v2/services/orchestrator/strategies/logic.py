@@ -18,7 +18,8 @@ from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
-from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.enums import VirtualSystemStepID
 from backend_v2.models.state import StateProjector, StepOutputDTO, TraceEvent
 from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
@@ -209,7 +210,10 @@ class LogicNodeStrategy(NodeStrategy):
         final_outputs: dict[str, JsonValue] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
-            if isinstance(delta_val, BaseModel):
+            if isinstance(delta_val, TraceScoringPayloadDTO):
+                final_outputs[VirtualSystemStepID.SCORING_RESULT.value] = delta_val.model_dump(mode="json")
+                final_outputs.update(delta_val.model_dump(mode="json"))
+            elif isinstance(delta_val, BaseModel):
                 final_outputs.update(delta_val.model_dump(mode="json"))
         final_outputs["_step_metadata"] = {"task_blueprint": blueprint_id}
 
