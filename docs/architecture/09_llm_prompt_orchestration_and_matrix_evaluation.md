@@ -869,41 +869,42 @@ Quorum eliminates evidence drift by subjecting all LLM-extracted citations to mu
 ```mermaid
 graph TD
     CandidateQuote["LLM-Extracted Candidate Quote"] --> Normalization["Text Normalization with Original Index Mapping"]
-    Normalization --> PrimaryGate{"Primary Gate: str.find Exact Match?"}
+    Normalization --> PrimaryGate{"Stage 1: Normalized Exact Substring Fast-Path?"}
     
-    PrimaryGate -- "Yes" --> AcceptExact["Accept Quote (100% Lexical Match)"]
-    PrimaryGate -- "No" --> EntropyGate{"Entropy Gate: Length < 10 Characters?"}
+    PrimaryGate -- "Yes" --> AcceptExact["Accept Quote (100% Exact Lexical Match)"]
+    PrimaryGate -- "No" --> Stage2{"Stage 2: Length-Weighted RapidFuzz Match?"}
     
-    EntropyGate -- "Yes" --> Reject["SemanticEvidenceError: Strict Substring Required for Low-Entropy Strings"]
-    EntropyGate -- "No" --> FuzzyCheck{"Strictness < 100%?"}
+    Stage2 -- "Yes" --> AcceptFuzzy["Accept Quote (RapidFuzz Match)"]
+    Stage2 -- "No" --> StrictnessGate{"Strictness Level < 100?"}
     
-    FuzzyCheck -- "No" --> Reject
-    FuzzyCheck -- "Yes" --> LengthCheck{"Quote Length >= 30 Characters?"}
+    StrictnessGate -- "No (Strictness >= 100)" --> Reject["SemanticEvidenceError: Stage 3 Bypassed Under Absolute Strictness"]
+    StrictnessGate -- "Yes" --> Stage3{"Stage 3: Morphological Stemmed Sequence Match?"}
     
-    LengthCheck -- "Short (< 30 chars)" --> PartialRatio["fuzz.partial_ratio (Contiguity Enforced)"]
-    LengthCheck -- "Long (>= 30 chars)" --> TokenSetRatio["fuzz.token_set_ratio (OCR / Whitespace Tolerance)"]
+    Stage3 -- "Yes (Window Contiguity & Coverage Met)" --> AcceptStemmed["Accept Quote (Morphological Stemmed Sequence)"]
+    Stage3 -- "No" --> Stage4{"Stage 4: Coverage Safety Net Ratio >= 0.85?"}
     
-    PartialRatio --> ThresholdCheck{"Ratio >= Configured Threshold?"}
-    TokenSetRatio --> ThresholdCheck
-    
-    ThresholdCheck -- "Yes" --> AcceptFuzzy["Accept Quote (Controlled Fuzzy Match)"]
-    ThresholdCheck -- "No" --> Reject
+    Stage4 -- "Yes" --> AcceptCoverage["Accept Quote (Coverage Safety Net)"]
+    Stage4 -- "No" --> Reject
 ```
 
-### 6.2 Tiered Lexical Validation Pipeline
-The validation engine enforces a three-stage verification pipeline:
-1. **Primary Gate (Tiered Normalization Cascade & Anti-Ellipsis Substring Anchoring):**
+### 6.2 Multi-Stage Lexical Validation Pipeline
+The validation engine in `AnchorValidationService._is_lexically_valid` enforces a deterministic 4-stage verification pipeline:
+1. **Stage 1 (Normalized Exact Substring Fast-Path & Anti-Ellipsis Substring Anchoring):**
    * **Anti-Ellipsis Lexical Mandate:** Extracted candidate quotes must strictly consist of a single, continuous, unbroken character substring directly from the source material. Splicing separate sentences with ellipses (`...` or `…`) is strictly prohibited, ensuring that downstream verification engines execute exact lexical matching (`str.find`) without false-negative validation failures.
    * The candidate quote and target source document undergo a deterministic 4-tier normalization cascade (Literal Exact, Whitespace Normalized, HTML-Tag Normalized, and Markdown-Boundary-Relaxed).
-   * An exact substring search (`str.find`) is executed against the normalized source text.
-   * An exact character index map tracks the position from normalized text back to physical source document offsets. If an exact match is found, the quote is accepted immediately with zero fuzzy degradation.
-2. **Entropy Gate (Strict Boundary for Short Quotes):**
-   * If the candidate quote is less than 10 characters, fuzzy matching is strictly banned.
-   * Short strings (acronyms, single nouns, brief phrases) exhibit low informational entropy; allowing fuzzy approximation on short strings guarantees false-positive collisions across documents.
-3. **Controlled Fuzzy Fallback Gate:**
-   * RapidFuzz fallback is permitted if and only if the Primary Gate fails, the quote length is at least 10 characters, and the validation strictness threshold is below 100%.
-   * Short quotes (between 10 and 29 characters) utilize contiguous substring ratio matching (`partial_ratio`) to enforce unbroken phrasing.
-   * Long quotes (30 characters or greater) permit token-set matching (`token_set_ratio`) to accommodate minor OCR scanning artifacts, whitespace variances, or localized morphological suffixes without compromising semantic truth.
+   * An exact substring search (`str.find`) is executed against the normalized source text. If an exact match is found, the quote is accepted immediately with zero fuzzy degradation.
+2. **Stage 2 (Length-Weighted RapidFuzz):**
+   * Evaluates string distance against locale-specific fuzz thresholds (`get_lexical_fuzz_threshold(locale)`).
+   * Quotes shorter than 10 characters require 100% exact substring matching to prevent low-entropy false-positive collisions across documents.
+   * Short quotes (between 10 and 29 characters) enforce unbroken phrasing via contiguous substring ratio matching (`partial_ratio`), while long quotes (30 characters or greater) permit token-set matching (`token_set_ratio`).
+3. **Stage 3 (Morphological Stemmed Sequence Verification):**
+   * Resolves grammatical inflections across supported languages (such as Finnish noun cases, Swedish declensions, English conjugations, German endings, and Hungarian agglutinations) via pure-Python `StemmerService` wrapping Martin Porter algorithmic Snowball stemmers.
+   * *Candidate Window Discovery*: Scans source text for contiguous windows anchored to matching content stems.
+   * *Window Contiguity Guard*: Prohibits token spans exceeding quote length plus padding (`MAX_WINDOW_TOKEN_PADDING = 15` tokens or equivalent character bounds `quote_char_len + 150` characters), mathematically preventing stitching disparate words across distant paragraphs.
+   * *Entropy Gate*: Preserves short words strictly under 4 characters (`MIN_STEMMABLE_WORD_LENGTH = 4`) without morphological alteration, preventing false-positive stem collisions on short acronyms, stop words, and prepositions.
+   * *Absolute Strictness Invariant*: When execution strictness is absolute (`strictness_level >= 100` or `tier_threshold >= 100.0`), Stage 3 is unconditionally bypassed, enforcing 100% exact character matching.
+4. **Stage 4 (Coverage Safety Net):**
+   * Evaluates longest contiguous subsequence coverage via `difflib.SequenceMatcher` against `ValidationThresholdRatio.COVERAGE_SAFETY_NET`. If coverage meets or exceeds the threshold, the quote is accepted; otherwise, the verifier raises `SemanticEvidenceError` immediately.
 
 ### 6.3 Blind Extraction, Null Hypothesis Guardrails & Anti-Pattern Falsification
 Extraction models enforce invariant state consistency between assertion conclusions and evidence fields via strict schema validators:
