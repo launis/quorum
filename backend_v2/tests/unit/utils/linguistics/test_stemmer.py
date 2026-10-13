@@ -196,7 +196,6 @@ def test_stemmer_tokenize_and_stem_helpers() -> None:
     assert "tavoi" in stems
 
 
-
 def test_stemmer_punctuation_only_inputs() -> None:
     """Assert quotes or sources with only punctuation return is_match=False."""
     res_punct_quote = StemmerService.match_stemmed_subsequence("---", "Valid source", locale="fi")
@@ -217,5 +216,3 @@ def test_stemmer_continuous_normalized_source_matching() -> None:
     assert result.total_content_stems == 3
     assert len(result.matched_content_stems) == 3
     assert result.matched_source_span is not None
-
-

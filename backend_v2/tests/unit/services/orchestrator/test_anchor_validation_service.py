@@ -3,16 +3,6 @@ import pytest
 from backend_v2.exceptions import SemanticEvidenceError
 from backend_v2.models.enums import TargetSpeaker
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-from backend_v2.tests.unit.services.orchestrator.test_anchor_validation_atom_result import (
-    test_process_atom_evaluation_contextual_override_clears_quote,
-    test_process_atom_evaluation_mcp_source_match,
-    test_process_atom_evaluation_no_match_preserves_quote,
-    test_process_atom_evaluation_none_source_quote_skips_matching,
-    test_process_atom_evaluation_with_atom_result_dto,
-    test_process_atom_evaluation_with_inflected_quote_matching,
-)
-
-
 
 
 def test_anchor_validation_exact_match() -> None:
@@ -260,9 +250,7 @@ def test_anchor_validation_strictness_multiplier() -> None:
 
     # 3. Absolute strictness boundary test: under strictness level 100, inflected quote fails
     with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
-        AnchorValidationService.validate_evidence(
-            source_text, inflected_quote, strictness_level=100, locale="fi"
-        )
+        AnchorValidationService.validate_evidence(source_text, inflected_quote, strictness_level=100, locale="fi")
 
     # 4. Strictness 85 and 30 paths
     with pytest.raises(SemanticEvidenceError):
@@ -270,7 +258,6 @@ def test_anchor_validation_strictness_multiplier() -> None:
 
     with pytest.raises(SemanticEvidenceError):
         AnchorValidationService.validate_evidence("some text", ["completely different text"], strictness_level=30)
-
 
 
 def test_anchor_validation_no_tags_fallback() -> None:
@@ -339,8 +326,6 @@ def test_anchor_validation_provenance_empty_allowed_stream_fails() -> None:
     pdf_text = "<ai_draft_context>Model output here.</ai_draft_context>"
     with pytest.raises(SemanticEvidenceError, match="PROVENANCE_VIOLATION"):
         AnchorValidationService.validate_evidence(pdf_text, ["Model output"], target_speaker=TargetSpeaker.USER)
-
-
 
 
 def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None:

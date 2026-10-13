@@ -25,7 +25,6 @@ def _make_atom(
     )
 
 
-
 def test_process_atom_evaluation_with_atom_result_dto() -> None:
     atom = _make_atom(source_quote="valid quote here")
     source_docs = [
@@ -72,7 +71,6 @@ def test_process_atom_evaluation_with_inflected_quote_matching() -> None:
     assert result.source_quote == "johtajuus ja selkeät tavoitteet"
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning
-
 
 
 def test_process_atom_evaluation_contextual_override_clears_quote() -> None:

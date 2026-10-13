@@ -97,7 +97,7 @@
 
     <module path="backend_v2/utils/">
         <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
-        <key_domains>alias_engine.py, math_utils.py, ranked_round_robin.py, scoring/, finops_trace_analyzer.py</key_domains>
+        <key_domains>alias_engine.py, linguistics/ (stemmer.py - multilingual rule-based Snowball stemming, candidate window discovery, window contiguity guard, and entropy gate for citation grounding), math_utils.py, ranked_round_robin.py, scoring/, finops_trace_analyzer.py</key_domains>
     </module>
 
     <module path="backend_v2/ (root entrypoints)">
