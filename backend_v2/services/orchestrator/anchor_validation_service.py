@@ -157,21 +157,20 @@ class AnchorValidationService:
             )
             return False
 
-        base_threshold = get_lexical_fuzz_threshold(locale)
-
-        match strictness_level:
-            case level if level >= 100:
-                multiplier = 1.05
-            case level if level >= 85:
-                multiplier = 1.02
-            case level if level >= 50:
-                multiplier = 1.0
-            case level if level >= 30:
-                multiplier = 0.90
-            case _:
-                multiplier = 0.80
-
-        tier_threshold = min(100.0, base_threshold * multiplier)
+        if strictness_level >= 100:
+            tier_threshold = 100.0
+        else:
+            base_threshold = get_lexical_fuzz_threshold(locale)
+            match strictness_level:
+                case level if level >= 85:
+                    multiplier = 1.02
+                case level if level >= 50:
+                    multiplier = 1.0
+                case level if level >= 30:
+                    multiplier = 0.90
+                case _:
+                    multiplier = 0.80
+            tier_threshold = min(100.0, base_threshold * multiplier)
 
         if tier_threshold >= 100.0:
             logger.warning(
@@ -388,47 +387,36 @@ class AnchorValidationService:
         if atom.contextual_override:
             return atom.model_copy(update={"source_quote": None, "evaluation_reasoning": hydrated_reasoning})
 
-        def _is_match(doc_text: str, q_text: str) -> bool:
-            norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
-            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(q_text)
-            if not norm_quote:
-                return False
-            if norm_quote in norm_pdf:
-                return True
-            if len(q_text) < 10:
-                return False
-            base_threshold = get_lexical_fuzz_threshold(locale)
-
-            if strictness_level >= 100:
-                modifier = 15.0
-            elif strictness_level >= 85:
-                modifier = 10.0
-            elif strictness_level >= 50:
-                modifier = -5.0
-            elif strictness_level >= 30:
-                modifier = -20.0
-            else:
-                modifier = -35.0
-            tier_threshold = min(100.0, base_threshold + modifier)
-            if tier_threshold >= 100.0:
-                return False
-            score = AnchorValidationService.calculate_fuzzy_score(norm_quote, norm_pdf)
-            return score >= tier_threshold
-
         validated_quote = atom.source_quote
         if atom.source_quote is not None:
+            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(atom.source_quote)
             matched = False
             # 1. Match against static source documents
             if source_documents:
                 for doc in source_documents:
-                    if doc.text_content and doc.opaque_id and _is_match(doc.text_content, atom.source_quote):
-                        matched = True
-                        break
+                    if doc.text_content and doc.opaque_id:
+                        norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(doc.text_content)
+                        if AnchorValidationService._is_lexically_valid(
+                            quote=atom.source_quote,
+                            norm_quote=norm_quote,
+                            norm_text=norm_doc,
+                            strictness_level=strictness_level,
+                            locale=locale,
+                        ):
+                            matched = True
+                            break
 
             # 2. Match against dynamic MCP source texts
             if not matched and mcp_source_texts:
                 for mcp_text in mcp_source_texts.values():
-                    if _is_match(mcp_text, atom.source_quote):
+                    norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
+                    if AnchorValidationService._is_lexically_valid(
+                        quote=atom.source_quote,
+                        norm_quote=norm_quote,
+                        norm_text=norm_mcp,
+                        strictness_level=strictness_level,
+                        locale=locale,
+                    ):
                         matched = True
                         break
 

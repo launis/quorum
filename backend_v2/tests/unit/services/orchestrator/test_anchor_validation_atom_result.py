@@ -10,21 +10,20 @@ def _make_atom(
     contextual_override: bool = False,
     evaluation_reasoning: str | None = "a1 holds evidence",
 ) -> AtomResultDTO:
-    return AtomResultDTO.model_validate(
-        {
-            "tda_id": "tda_123",
-            "matrix_id": "mat_1",
-            "status": status,
-            "extracted_data": None,
-            "source_quote": source_quote,
-            "contextual_override": contextual_override,
-            "evaluation_reasoning": evaluation_reasoning,
-            "error_details": None,
-            "extensions": {},
-            "depends_on_tda_ids": [],
-            "short_circuit_reason_tda_ids": [],
-        }
+    return AtomResultDTO(
+        tda_id="tda_123",
+        matrix_id="mat_1",
+        status=status,
+        extracted_data=None,
+        source_quote=source_quote,
+        contextual_override=contextual_override,
+        evaluation_reasoning=evaluation_reasoning,
+        error_details=None,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
     )
+
 
 
 def test_process_atom_evaluation_with_atom_result_dto() -> None:
