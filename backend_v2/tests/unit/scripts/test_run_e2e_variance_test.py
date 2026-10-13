@@ -516,10 +516,11 @@ class TestWorkflowMatrixTelemetry:
         )
 
         all_wfs = resolve_all_workflows_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
-        assert len(all_wfs) == 6
+        assert len(all_wfs) == 7
         wf_ids = {w["workflow_id"] for w in all_wfs}
         assert "wf_03a1d71000000003" in wf_ids
         assert "wf_01a1d71000000001" in wf_ids
+        assert "wf_06a1d71000000001" in wf_ids
 
         # Untargeted resolution on multi-workflow DB returns None (no domain guessing)
         assert resolve_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json")) is None

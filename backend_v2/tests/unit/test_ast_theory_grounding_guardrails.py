@@ -24,7 +24,7 @@ def test_seed_matrices_have_no_epistemic_anchor_in_ai_description() -> None:
     matrix_blocks = [
         b for b in prompt_blocks if type(b) is dict and "category_id" in b and b["category_id"] == "matrix"
     ]
-    assert len(matrix_blocks) == 13, f"Expected 13 matrix blocks, found {len(matrix_blocks)}"
+    assert len(matrix_blocks) == 14, f"Expected 14 matrix blocks, found {len(matrix_blocks)}"
 
     for b in matrix_blocks:
         ai_desc = b["ai_description"] if "ai_description" in b and b["ai_description"] else ""
@@ -34,7 +34,7 @@ def test_seed_matrices_have_no_epistemic_anchor_in_ai_description() -> None:
 
 
 def test_seed_matrices_have_valid_theory_grounding() -> None:
-    """TC-AST-02: Asserts that all 13 matrix blocks have non-null theory_grounding with valid URL and citation."""
+    """TC-AST-02: Asserts that all 14 matrix blocks have non-null theory_grounding with valid URL and citation."""
     seed_file = Path("backend_v2/seed/seed_data.json")
     with seed_file.open(encoding="utf-8") as f:
         data = json.load(f)

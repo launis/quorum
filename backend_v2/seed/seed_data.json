@@ -7083,7 +7083,7 @@
       },
       "category_id": "matrix",
       "type": "float",
-      "is_evaluative": false,
+      "is_evaluative": true,
       "allow_decimals": true,
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
@@ -18952,6 +18952,1326 @@
       "allow_decimals": false,
       "is_lightweight_protocol": false,
       "instruction_text": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text. CRITICAL: When evaluations data contains exact_quote fields, you MUST weave these real user quotes into your narrative to ground every claim in concrete evidence. NEVER use academic framework names (Kahneman, Toulmin, Pearl, Goodhart, Popper) — translate all theoretical findings into plain business language about the user's actual content.\n- BILINGUAL OUTPUT MANDATE: Any structural headings or titles you generate within your output MUST be bilingual in Finnish and English (e.g., 'Yhteenveto / Summary')."
+    },
+    {
+      "id": "blk_7d8e9f0a1b2c3d4e",
+      "slug": "matrix_hacm",
+      "category_id": "matrix",
+      "type": "float",
+      "is_evaluative": true,
+      "allow_decimals": true,
+      "allow_contextual_override": true,
+      "is_lightweight_protocol": false,
+      "target_input_key": "chat_log",
+      "label": {
+        "translations": {
+          "fi": "Tekoälyn Ohjauksen ja Yhteistyön Auditointi (HACM)",
+          "en": "Human-AI Collaboration Matrix (HACM)"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Arvioi ihmisen ja tekoälyn vuorovaikutusta: kehystyksen tarkkuutta, kriittistä haastamista, kuraatiota ja metakognitiota.",
+          "en": "Audits human-AI interaction across framing, critical inquiry, active curation, and metacognition."
+        }
+      },
+      "output_extensions": [
+        "falsification",
+        "theory_link",
+        "risk_flag",
+        "coaching",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
+      ],
+      "theory_grounding": {
+        "source_url": "https://www.jstor.org/stable/j.ctt1v2xv4",
+        "citation_reference": "Sheridan, T. B., & Verplank, W. L. (1978). Human and Computer Control of Undersea Teleoperators. MIT Man-Machine Systems Laboratory; Parasuraman, R., Sheridan, T. B., & Wickens, C. D. (2000). A model for types and levels of human interaction with automation. IEEE Transactions on Systems, Man, and Cybernetics."
+      },
+      "ai_description": "OBJECTIVE:\nEvaluate the human operator's steering agency, framing architecture, critical inquiry, active curation, and metacognitive calibration in collaboration with generative AI.",
+      "computed_min": 1,
+      "computed_max": 5,
+      "rows": [
+        {
+          "label": {
+            "translations": {
+              "fi": "Kehotusarkkitehtuuri ja reunaehdot",
+              "en": "Framing Architecture & Constraints"
+            }
+          },
+          "ai_description": "Evaluates the human operator's capability to structure prompts, establish dialectic roles, and enforce negative operational constraints."
+        },
+        {
+          "label": {
+            "translations": {
+              "fi": "Kriittisyys ja oletusten haastaminen",
+              "en": "Epistemic Vigilance & Falsification"
+            }
+          },
+          "ai_description": "Evaluates the operator's active interrogation of AI assertions, demand for empirical sources, and counterfactual probing."
+        },
+        {
+          "label": {
+            "translations": {
+              "fi": "Kuraatio ja tiedon hakeminen",
+              "en": "Active Derivation & Curation"
+            }
+          },
+          "ai_description": "Evaluates cognitive sovereignty and selective curation: whether the operator actively derives and verifies final deliverables rather than passively delegating authorship."
+        },
+        {
+          "label": {
+            "translations": {
+              "fi": "Metakognitiivinen reflektointi",
+              "en": "Metacognitive Reflection"
+            }
+          },
+          "ai_description": "Evaluates the operator's self-awareness of cognitive limits, epistemic humility, and calibrated evaluation of AI capabilities."
+        }
+      ],
+      "columns": null,
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "translations": {
+              "fi": "Matkustaja (Passiivinen tilaaja)",
+              "en": "Passenger (Passive Delegator)"
+            }
+          },
+          "ai_label": "AUTOMATION BIAS & PASSIVE DELEGATION",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Perustehtävänanto ilman reunaehtoja",
+                  "en": "Basic Task Commissioning Without Constraints"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_682186093ed65428b0c2d3120a5c90ca",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author states a primary topic, subject, or desired outcome without operational guidelines or execution constraints.",
+                  "anchor_target": "Find initial task assignment or topic specification lacking constraints.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract the opening prompt or statement where the author defines the core task or topic for the AI to address.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an explicit task prompt stating the subject matter or topic without constraining parameters.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author provides highly detailed operational scaffolding and strict negative constraints.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Selvitä etätyön vaikutukset asiantuntijaorganisaatiossa ja tee yhteenveto.",
+                    "rejected": "Toimi talousasiantuntijana ja sovella seuraavia reunaehtoja ilman jargonia."
+                  },
+                  "syntactic_anchors": [
+                    "selvitä",
+                    "kirjoita",
+                    "tee",
+                    "kerro"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Tekoälyn aloitusehdotuksen välitön hyödyntäminen",
+                  "en": "Baseline Adoption of Initial AI Suggestions"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c4ec19d4b2dc5a3e8778181878ca03a6",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author adopts model suggestions or initial outputs as a starting baseline for task progression.",
+                  "anchor_target": "Find indications where author accepts or incorporates the AI initial response as baseline.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate prompts where the user accepts the generated draft as a premise to initiate or proceed with the task.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm that the user acknowledges or uses the AI's prior answer to move the task forward.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author entirely rejects or ignores the AI response to start an unrelated topic.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Käytä tätä taustatietoa seuraavassa toimeksiannossa etätyöpolitiikan laatimiseksi.",
+                    "rejected": "Unohda aiempi teksti kokonaan, vaihdetaan aihetta tekoälyn etiikkaan."
+                  },
+                  "syntactic_anchors": [
+                    "käytä tätä",
+                    "tämän pohjalta",
+                    "jatketaan tästä"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Sokea delegointi ja oraakkeliharha",
+                  "en": "Blind Delegation & Oracle Bias"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_459df67a331c58da96dc85b7398bfc3f",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author delegates autonomous strategic decisions or normative policy choices entirely to AI without boundaries or success criteria.",
+                  "anchor_target": "Find prompts delegating complete decision-making without criteria.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify instances where the author abdicates decision authority, asking the AI to decide what is right without guidelines.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the prompt delegates normative decisions without providing boundary conditions or evaluation rubrics.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author asks for options while specifying decision criteria or trade-off parameters.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Päätä puolestani mitkä toiminnot lakkautetaan ja kirjoita irtisanomiskirjeet heti.",
+                    "rejected": "Anna kolme vaihtoehtoista mallia resurssien uudelleenallokoimiseksi huomioiden TES-ehdot."
+                  },
+                  "syntactic_anchors": [
+                    "päätä puolestani",
+                    "tee päätös",
+                    "sano mitä teen"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Hallusinaation ja virheellisen väitteen kuittaaminen",
+                  "en": "Hallucination & Fabrication Ratification"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_e25d39fc8a7d5299ac3b1550a5cb1412",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author ratifies, endorses, or adopts unverified, fabricated, or mathematically flawed AI assertions without cognitive review.",
+                  "anchor_target": "Find uncritical acceptance of fabricated or contradictory statements.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract evidence showing the user explicitly endorsing a confabulated claim or false fact generated by the AI.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author incorporates or praises an unsubstantiated or incorrect AI assertion as true.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author questions, fact-checks, or demands sources for suspicious AI assertions.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Juuri näin, mainitsemasi vuoden 2019 etätyölaki velvoittaa meidät tähän tarkasti.",
+                    "rejected": "Tarkistapa tuo pykälä uudelleen, Suomen työsopimuslaissa ei ole mainitsemaasi etätyöpakkoa."
+                  },
+                  "syntactic_anchors": [
+                    "aivan totta",
+                    "juuri näin",
+                    "loistava havainto"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Mielistelyn ja myötäilyn kritiikitön hyväksyminen",
+                  "en": "Sycophantic Flattery Endorsement"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_ae0c4f43575055fdbff67ac01bbd6a8f",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author treats sycophantic model flattery, unearned validation, or superficial agreement as evidence of high analytical quality.",
+                  "anchor_target": "Find acceptance of sycophantic praise as substantive validation.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify instances where the author accepts excessive praise or flattering agreement without verifying substance.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the author relies on the model's flattering compliments rather than critical rigor.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author disregards conversational pleasantries and demands rigorous critical challenge.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Koska tekoäly kehui ideaani loistavaksi ja virheettömäksi, esitys on valmis johtoryhmälle.",
+                    "rejected": "Älä kehu ideaani, vaan toimi kriitikkona ja etsi kaikki mahdolliset heikkoudet."
+                  },
+                  "syntactic_anchors": [
+                    "kehui loistavaksi",
+                    "samaa mieltä",
+                    "oli vakuuttunut"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "translations": {
+              "fi": "Reaktiivinen viilaaja",
+              "en": "Reactive Tweaker"
+            }
+          },
+          "ai_label": "SUPERFICIAL FORMATTING & BUZZWORDS",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Pisteittäinen virheenkorjaus ja tarkennus",
+                  "en": "Isolated Typographical & Factual Correction"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_205d593f5123511fb5f3b6856a9824aa",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author identifies and rectifies isolated typographical, lexical, numerical, or localized factual errors in model output.",
+                  "anchor_target": "Find specific local corrections of spelling, wording, or factual errors.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract user directives pinpointing and correcting specific minor errors or factual slips in preceding output.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm that the user explicitly identifies a concrete typo, word choice, or numerical mistake to fix.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author asks for a complete rewrite without specifying any specific errors.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Korjaa kolmannesta kohdasta sana 'tulostavoite' muotoon 'vaikuttavuusmittari' ja korjaa prosentti.",
+                    "rejected": "Tee koko teksti kokonaan uudestaan paremmalla tyylillä."
+                  },
+                  "syntactic_anchors": [
+                    "korjaa",
+                    "muuta sana",
+                    "tarkenna",
+                    "kirjoitusvirhe"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Pituus-, muoto- ja layoutmääräykset",
+                  "en": "Format, Length & Medium Constraints"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_4552d66751fd5f3fb057a4535432ecb1",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author defines explicit document length, formatting structure, layout type, or medium constraints for the output.",
+                  "anchor_target": "Find structural instructions regarding length, document format, or layout.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify explicit constraints specifying page count, bullet points, memo layout, or word count limits.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the user specifies an explicit document length or visual layout format.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author requests output with no length, medium, or layout guidance.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Tee yhden sivun muistio johtoryhmälle selkeillä väliotsikoilla ilman jargonia.",
+                    "rejected": "Kirjoita tästä aiheesta laajasti kaikkea mahdollista mitä tiedät."
+                  },
+                  "syntactic_anchors": [
+                    "yhden sivun",
+                    "muistio",
+                    "tiivistä",
+                    "luettelomuodossa"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kosmeettinen fiksaatio ja asiasisällön ohittaminen",
+                  "en": "Superficial Formatting Fixation"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_a7557e3fc3c455b2a9f51ec48e8919d3",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author restricts iteration purely to superficial reformatting, layout, or cosmetic conversions without addressing substance.",
+                  "anchor_target": "Find repeated prompts obsessing over layout, table conversions, or cosmetic changes.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract turns where the author repeatedly alters tables to text or fiddles with cosmetics while ignoring logical gaps.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm that the author focuses exclusively on presentation formats without evaluating analytical substance.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author balances format adjustments with substantive questions and boundary revisions.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Poista taulukot ja kerro tekstinä. Muuta sitten teksti takaisin ranskalaisiksi viivoiksi.",
+                    "rejected": "Tiivistä taulukkoon, mutta tarkenna samalla miten kustannussäästöt lasketaan."
+                  },
+                  "syntactic_anchors": [
+                    "poista taulukko",
+                    "muuta tekstiksi",
+                    "muotoile uudelleen"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Taikasanaohjaus ilman toiminnallisia kriteerejä",
+                  "en": "Prompt Buzzwords & Magic Phrases"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d08f39bbc1045dcd965ccf26b3cb2639",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author attempts to enhance analytical depth purely via superficial buzzwords without providing domain constraints or operational rubrics.",
+                  "anchor_target": "Find buzzword-heavy prompt phrases lacking operational guidance.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify instances where author relies on role labels ('toimi huippuasiantuntijana') without specifying criteria.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the prompt contains buzzword roles without providing substantive context or rules.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author assigns a role while defining concrete analytical constraints and objectives.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Toimi maailman parhaana huipputalousasiantuntijana ja anna maagisen loistava vastaus.",
+                    "rejected": "Toimi talousasiantuntijana: analysoi kulurakenne ja vertaa sitä viime vuoden budjettiin."
+                  },
+                  "syntactic_anchors": [
+                    "toimi asiantuntijana",
+                    "ole huippuosaaja",
+                    "guru"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kiertely ja toistelu ilman suuntaa",
+                  "en": "Circular & Aimless Re-prompting"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_79ea8feb26d75fb7ac1f01bb6c7a98be",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author repeatedly re-prompts the model with vague circular phrasing when dissatisfied, failing to introduce concrete criteria.",
+                  "anchor_target": "Find circular re-prompts repeating dissatisfaction without concrete guidance.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate repeated turns where the author says 'try again' or 'make it better' without stating what is missing.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author issues circular re-generation requests lacking specific instructions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author explains exactly why the prior output failed and introduces concrete guidance.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Ei tämä vieläkään tunnu hyvältä, yritä uudestaan ja tee parempi versio.",
+                    "rejected": "Tulos on liian yleinen, koska siitä puuttuu opetusalan hybridimallin tuntijakauma."
+                  },
+                  "syntactic_anchors": [
+                    "yritä uudestaan",
+                    "ei ole hyvä",
+                    "tee parempi"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "translations": {
+              "fi": "Navigaattori (Kontekstin asettaja)",
+              "en": "Navigator (Context Setter)"
+            }
+          },
+          "ai_label": "CONTEXTUAL FRAMING & MULTI-PERSPECTIVE",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Moninäkökulmainen roolitus ja dialoginen kehystys",
+                  "en": "Multi-Perspective Dialectic Scaffolding"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_268faec20f56546d88385668a5c4fb89",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author constructs a multi-perspective dialectic instructing the model to evaluate topics across distinct organizational roles.",
+                  "anchor_target": "Find prompt instructions establishing multi-perspective debate or distinct roles.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract prompts instructing the AI to argue between distinct perspectives (e.g. CFO, HR, and Strategist).",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author mandates a multi-role dialogue or debate from distinct organizational viewpoints.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author requests only a single homogeneous viewpoint without internal dialectic.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Käy dialogia itsesi kanssa kolmesta eri näkökulmasta: talousjohtaja, HR ja pitkän aikavälin strategi.",
+                    "rejected": "Kirjoita yleinen kuvaus etätyön hyödyistä ja haitoista yrityksen kannalta."
+                  },
+                  "syntactic_anchors": [
+                    "käy dialogia",
+                    "eri näkökulmasta",
+                    "väittele",
+                    "kolmesta suunnasta"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Eksplisiittiset reunaehdot ja kielto-ohjaus",
+                  "en": "Negative Constraints & Explicit Prohibitions"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_7a2ebd6ca7a85f82a614e3aa86fb1257",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author establishes negative constraints, exclusion criteria, or forbidden assumptions, including anti-jargon rules.",
+                  "anchor_target": "Find explicit negative constraints, prohibitions, or exclusions in dialogue directives.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify prompts that forbid specific terms, exclude certain methods, or enforce operational boundaries.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the user defines explicit negative constraints or exclusions for the output.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author gives only open-ended affirmative prompts without any negative boundaries.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Kirjoita selvällä kielellä ilman konsulttijargonia, äläkä oleta että kaikilla on samat etätyömahdollisuudet.",
+                    "rejected": "Kirjoita kattava ja vapaamuotoinen selvitys käyttäen alan ammattikieltä."
+                  },
+                  "syntactic_anchors": [
+                    "ei jargonia",
+                    "älä käytä",
+                    "ota huomioon että ei voi"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Jäykkä sapluunadogmatismi",
+                  "en": "Rigid Template Dogmatism"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_62ed9de3204655fe90f6d560cf74a8ae",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author imposes an excessively rigid template that artificially suppresses relevant contextual nuances and substantive insights.",
+                  "anchor_target": "Find rigid template enforcement suppressing context.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract evidence of the user forcing answers into rigid boxes while discarding critical domain complexities.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm that the user enforces a rigid schema that blocks necessary nuances or exceptions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author adapts templates flexibly when complex trade-offs require nuanced explanation.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Älä selitä mitään poikkeuksia, täytä vain nämä kolme saraketta riippumatta tilanteen monimutkaisuudesta.",
+                    "rejected": "Käytä taulukkoa pääkohdille, mutta avaa poikkeustapaukset ja erityisehdot erikseen."
+                  },
+                  "syntactic_anchors": [
+                    "vain nämä sarakkeet",
+                    "älä selitä",
+                    "pysy kaavassa"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Passiivinen lopputuloksen hyväksyntä hienosta kehystyksestä huolimatta",
+                  "en": "Passive Output Acceptance Despite Advanced Scaffolding"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_f2e66fa087a859e08d5875f0252f447e",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author establishes a sophisticated prompt framework but uncritically accepts the generated output without follow-up inquiry.",
+                  "anchor_target": "Find reflection or prompts showing passive acceptance of output without challenge.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify where the author acknowledges accepting the final result too easily without stress-testing conclusions.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify evidence that the user accepted the model conclusion without independent validation or challenge.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author actively probes the model conclusion with devil's advocate testing.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Otin varmaan lopputuloksen vähän liian helposti annettuna enkä kyseenalaistanut johtopäätöksiä.",
+                    "rejected": "Haastoin lopputuloksen pyytämällä vasta-argumentteja ja tarkistin luvut itsenäisesti."
+                  },
+                  "syntactic_anchors": [
+                    "liian helposti annettuna",
+                    "hyväksyin suoraan",
+                    "en kyseenalaistanut"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Keinotekoinen jyrkkä vastakkainasettelu",
+                  "en": "Artificial Polarizing Dichotomy"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0aa7677d53c54c6a9982bdab82d1c60",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author forces artificial dichotomies between perspectives that are non-conflicting or mutually complementary in practice.",
+                  "anchor_target": "Find forced either-or polarization between complementary factors.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract prompts forcing false dichotomies between complementary concepts like productivity and wellbeing.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author artificially pits compatible goals against each other as mutually exclusive.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author explores integrative trade-offs rather than false either-or dilemmas.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Valitse kumpi on tärkeämpää: työntekijöiden terveys vai yrityksen tuottavuus, toista ei voi saada.",
+                    "rejected": "Miten työhyvinvointi ja tuottavuus voivat tukea toisiaan kestävässä etätyömallissa?"
+                  },
+                  "syntactic_anchors": [
+                    "joko tai",
+                    "kumpi on tärkeämpi",
+                    "eivät voi yhdistyä"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "translations": {
+              "fi": "Kuljettaja (Kriittinen haastaja)",
+              "en": "Driver (Critical Challenger)"
+            }
+          },
+          "ai_label": "EPISTEMIC VIGILANCE & FALSIFICATION",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Oletusten aktiivinen haastaminen ja paholaisen asianajaja",
+                  "en": "Active Assumption Challenging & Devil's Advocacy"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_dbfc7b0043c85b89ac2b37d18686a52c",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author interrogates model claims, demands counter-arguments, and tests edge cases using devil's advocate prompting.",
+                  "anchor_target": "Find devil's advocate directives and direct interrogation of assumptions.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract user directives explicitly demanding relentless criticism or counter-arguments against the proposal.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author commands the model to act as devil's advocate or probe foundational assumptions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author requests only corroboration or confirmation of initial ideas.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Toimi nyt paholaisen asianajajana ja anna säälimätöntä kritiikkiä omalle ehdotuksellesi.",
+                    "rejected": "Kerro miksi ehdotukseni on paras mahdollinen ja listaa lisää hyötyjä."
+                  },
+                  "syntactic_anchors": [
+                    "paholaisen asianajaja",
+                    "säälimätöntä kritiikkiä",
+                    "haasta"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Empiirisen ankkuroinnin ja luotettavuuden vaatimus",
+                  "en": "Empirical Grounding & Source Verification Demand"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_bb6810f572995a668296c3254603f9cc",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author commands the model to cite verifiable empirical research, statutory codes, or external benchmarks for claims.",
+                  "anchor_target": "Find explicit requests for verifiable sources, empirical research, and fact checks.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify prompts requiring the AI to disclose its factual sources, reliability limits, and empirical grounding.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the author demands verifiable empirical evidence and questions source reliability.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author accepts factual claims without asking for evidence or research basis.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Mihin faktoihin ja taustamateriaaleihin selvityksesi perustuu? Voiko niihin luottaa? Listaa lähteet.",
+                    "rejected": "Oletan että tiedät kaiken tarvittavan, joten jatketaan suoraan eteenpäin."
+                  },
+                  "syntactic_anchors": [
+                    "mihin faktoihin",
+                    "listaa lähteet",
+                    "voiko niihin luottaa"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Epävarmuuksien, raja-arvojen ja kynnysten esiin pakottaminen",
+                  "en": "Boundary, Threshold & Edge Case Probing"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_ee26a1989ad25215b3ff282eb9cf749b",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author explicitly requires the model to disclose failure modes, confidence limits, threshold conditions, and boundary edge cases.",
+                  "anchor_target": "Find testing of boundary conditions, minimum thresholds, or edge cases.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract queries investigating whether a specific quantitative threshold or boundary condition is sufficient.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm that the user tests threshold parameters and boundary conditions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author accepts general recommendations without testing sensitivity or threshold limits.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Riittääkö yksi läsnäolopäivä? Mikä puoltaisi esim. kahta tai useampaa läsnäolopäivää?",
+                    "rejected": "Hyväksytään annettu suositus läsnäolopäivistä sellaisenaan pohtimatta muita vaihtoehtoja."
+                  },
+                  "syntactic_anchors": [
+                    "riittääkö",
+                    "mikä puoltaisi",
+                    "raja-arvo"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Päämäärätön sokraattinen regressio",
+                  "en": "Aimless Socratic Meta-Regression"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_3b3503f7750255f994cc7408c083a28c",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author enters endless theoretical deconstruction and meta-questioning, preventing operational execution and decision closure.",
+                  "anchor_target": "Find endless meta-questioning preventing operational closure.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify cycles of infinite philosophical deconstruction where no operational decision is ever finalized.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the author traps the interaction in perpetual questioning without producing actionable output.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author questions deeply but converges onto concrete actionable decisions.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Mutta mitä tieto oikeastaan on? Määrittele ensin tietoisuuden olemus ennen kuin teemme mitään.",
+                    "rejected": "Kriittisen tarkastelun jälkeen valitsen mallin B ja laadin siitä toimeenpanosuunnitelman."
+                  },
+                  "syntactic_anchors": [
+                    "määrittele ensin olemus",
+                    "mitä tarkoittaa",
+                    "loputon pohdinta"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Valikoiva vahvistusharha ja tulosten suodatus",
+                  "en": "Selective Confirmation Bias & Evidence Filtering"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_018979f82caf580e9477567d5dc2084c",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author challenges model outputs selectively only when they contradict personal preconceived conclusions, accepting confirming claims blindly.",
+                  "anchor_target": "Find asymmetrical challenge directed only at unwelcome evidence.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract evidence of user dismissing uncomfortable facts while endorsing agreeable ones without standard.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author applies skepticism selectively to reject dissenting evidence while accepting bias-confirming claims.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author applies uniform epistemic standards regardless of whether findings align with expectations.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Hylkää tutkimus koska se osoittaa etätyön heikentävän yhteisöllisyyttä, etsi vain hyötyjä tukevia lähteitä.",
+                    "rejected": "Huomioi myös yhteisöllisyyden heikentymistä osoittavat tutkimukset osana kokonaisarviota."
+                  },
+                  "syntactic_anchors": [
+                    "etsi vain hyötyjä",
+                    "hylkää tuo tutkimus",
+                    "en halua kuulla"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "translations": {
+              "fi": "Arkkitehti (Aktiivinen haastaja)",
+              "en": "Architect (Active Challenger)"
+            }
+          },
+          "ai_label": "DISTRIBUTED COGNITION & SYNTHETIC CURATION",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Aktiivinen synteettinen kuraatio ja omistajuus",
+                  "en": "Active Synthetic Curation & Intellectual Ownership"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_8bed1688284c58c4bee48789954f993b",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author selectively derives, recombines, and curates AI generations to construct an authentic, context-tailored final deliverable.",
+                  "anchor_target": "Find evidence of author curating and synthesizing AI inputs into authentic work.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify where the author actively refines, edits, and integrates AI materials into an original deliverable.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author demonstrates genuine synthesis and curation rather than verbatim copying.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author delegates final synthesis wholesale and submits raw model generations verbatim.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Käytin tekoälyä sparraukseen, mutta kirjoitin loppumuistion itse yhdistäen eri näkökulmat.",
+                    "rejected": "Kopioin tekoälyn tuottaman vastauksen suoraan sellaisenaan loppuraportiksi."
+                  },
+                  "syntactic_anchors": [
+                    "kirjoitin itse",
+                    "yhdistin näkökulmat",
+                    "kurasin"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Jännitteiden ja strategisten kompromissien hallinta",
+                  "en": "Strategic Trade-off & Tension Governance"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_33db45ea2a425c0db51dfa210f4b9e80",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author identifies cross-dimensional tensions between AI suggestions and executes a reasoned trade-off decision.",
+                  "anchor_target": "Find explicit trade-off navigation between competing strategic priorities.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract instances where the author balances conflicting goals (wellbeing, culture, innovation, and economics).",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the author explicitly reconciles competing organizational objectives in decision framing.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author ignores conflicting constraints, assuming all goals can be maximized without sacrifice.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Tavoitteena on maksimoida työhyvinvointi, kulttuurin ylläpito, innovointi ja talous tasapainoisesti.",
+                    "rejected": "Talous on ainoa asia jolla on merkitystä, unohdetaan kaikki muut inhimilliset näkökulmat."
+                  },
+                  "syntactic_anchors": [
+                    "tasapaino",
+                    "kompromissi",
+                    "maksimoida"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kalibroitu metakognitio ja episteeminen nöyryys",
+                  "en": "Calibrated Metacognition & Epistemic Humility"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d8373d1c2d7d5ae8ae9b8bb7f7d96479",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author demonstrates precise awareness of own domain competence limits, AI boundaries, and interaction efficacy in reflection.",
+                  "anchor_target": "Find reflective text demonstrating honest calibration of own competence and AI limits.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract self-reflection where the author accurately evaluates the strengths and shortcomings of their prompting.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author demonstrates calibrated epistemic awareness and critical self-evaluation in reflection.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author exhibits uncalibrated hubris, claiming flawless execution without reflecting on shortcomings.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Kokeilin kolmen näkökulman lähestymistapaa. Olisin voinut asettaa reunaehtoja tiukemmin ja haastaa enemmän.",
+                    "rejected": "Ohjasin tekoälyä täydellisesti eikä prosessissa ollut mitään parannettavaa tai kehitettävää."
+                  },
+                  "syntactic_anchors": [
+                    "olisin voinut",
+                    "reunaehtoja tiukemmin",
+                    "kokeilin lähestymistapaa"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kognitiivinen imperialismi ja tiedon torjunta",
+                  "en": "Cognitive Imperialism & Fact Rejection"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c46faf1cc3fe5d49967ca6b54c6b7042",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author dismisses mathematically valid model evidence or external facts without justification, relying purely on unsubstantiated subjective intuition.",
+                  "anchor_target": "Find dogmatic rejection of valid empirical facts based purely on prejudice.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract instances where the author overrides verified data with subjective bias ('I just know better').",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify the author dismisses empirical evidence based purely on stubborn personal prejudice.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author challenges evidence with counter-data or reasoned methodological critique.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Tilastoilla ei ole väliä, tiedän itse parhaiten miten asiat ovat enkä aio muuttaa mieltäni.",
+                    "rejected": "Tutkimuksen otoskoko on liian pieni yleistettäväksi meidän organisaatiokokoomme."
+                  },
+                  "syntactic_anchors": [
+                    "ei tilastoilla väliä",
+                    "tiedän paremmin",
+                    "turha väittää vastaan"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kompleksisuuden ylikompensointi",
+                  "en": "Complexity Overcompensation & Obfuscation"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_a53df54d4c3e5db6b7fb532e568276fc",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "logical_expression": null,
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author designs an unnecessarily convoluted multi-step orchestration pipeline that destroys operational clarity and auditability.",
+                  "anchor_target": "Find excessively Byzantine prompt orchestration that obscures reasoning.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify overly complicated multi-layered prompt instructions that produce confusion rather than clarity.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author constructs an unworkable Byzantine prompt structure that hinders output clarity.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author constructs clear, modular, and audit-friendly prompt structures.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Käy 50-portainen roolileikki jossa jokainen agentti simuloi eri alakomitean sihteerin muistiinpanoja.",
+                    "rejected": "Käytä kolmea selkeää roolia: talous, henkilöstö ja strategia, ja tiivistä johtopäätökset."
+                  },
+                  "syntactic_anchors": [
+                    "50-portainen",
+                    "äärimmäisen monimutkainen",
+                    "kaikki mahdolliset roolit"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "workflows": [
@@ -20458,6 +21778,257 @@
       "security_penalty": 0.15,
       "post_hoc_penalty": 0.0,
       "passivity_penalty": 0.0
+    },
+    {
+      "id": "wf_06a1d71000000001",
+      "slug": "tekoalyn_kayton_ja_ohjauksen_auditointi",
+      "name": {
+        "translations": {
+          "fi": "Tekoälyn Käytön ja Ohjauksen Auditointi",
+          "en": "Human-AI Collaboration & Steering Audit"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Työnkulku, joka arvioi ihmisen tekemää ohjausta, kyseenalaistamista ja reflektointia tekoälyvuorovaikutuksessa. Keskittyy prosessiin ja vuorovaikutuksen laatuun lopputuotteen lisäksi.",
+          "en": "Workflow auditing human steering, critical questioning, and reflection in AI collaboration. Evaluates the interaction process and curation rather than assuming human authorship of the final deliverable."
+        }
+      },
+      "status": "active",
+      "version": 1,
+      "is_public": true,
+      "default_profile_id": "prf_06b1d71000000001",
+      "organization_id": "SYSTEM",
+      "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
+      "default_strictness_level": 50,
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0,
+      "enable_contextual_overrides": true,
+      "enable_semantic_smoothing": true,
+      "enable_eager_anonymization": true,
+      "system_audit_trail": true,
+      "historical_context_mode": "DISABLED",
+      "expected_inputs": [
+        {
+          "input_key": "chat_log",
+          "label": {
+            "translations": {
+              "fi": "Keskusteluhistoria (Chat)",
+              "en": "Conversation History (Chat)"
+            }
+          },
+          "required": true,
+          "is_chat_history": true,
+          "is_endorsed_deliverable": false,
+          "scan_for_performative_patterns": true,
+          "input_modes": [
+            "file",
+            "paste"
+          ],
+          "description": {
+            "translations": {
+              "fi": "Tähän liitetään käyttäjän ja tekoälyn välinen keskusteluloki, josta analysoidaan ohjauksen ja kehystyksen laatua.",
+              "en": "Attach the conversation history between user and AI to audit steering and framing quality."
+            }
+          },
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the interactive conversation history. Evaluate user prompts strictly for steering, framing, and questioning.",
+          "questionnaire_definition": []
+        },
+        {
+          "input_key": "product_text",
+          "label": {
+            "translations": {
+              "fi": "Lopputuote",
+              "en": "Product Deliverable"
+            }
+          },
+          "required": false,
+          "is_chat_history": false,
+          "is_endorsed_deliverable": true,
+          "scan_for_performative_patterns": true,
+          "input_modes": [
+            "file",
+            "paste"
+          ],
+          "description": {
+            "translations": {
+              "fi": "Valinnainen lopputuote, josta arvioidaan kausaalisia väitteitä ja kuraation autenttisuutta.",
+              "en": "Optional final deliverable used to audit causal arguments and authentic curation."
+            }
+          },
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: Final deliverable. Evaluate causal claims and determine derivation from conversation history.",
+          "questionnaire_definition": []
+        },
+        {
+          "input_key": "reflection_text",
+          "label": {
+            "translations": {
+              "fi": "Käyttäjän reflektio",
+              "en": "User Reflection"
+            }
+          },
+          "required": false,
+          "is_chat_history": false,
+          "is_endorsed_deliverable": false,
+          "scan_for_performative_patterns": true,
+          "input_modes": [
+            "file",
+            "paste",
+            "text"
+          ],
+          "description": {
+            "translations": {
+              "fi": "Käyttäjän itsearviointi ja reflektio prosessista, josta arvioidaan metakognitiivista kalibrointia.",
+              "en": "User's self-reflection on the process, evaluated for metacognitive calibration."
+            }
+          },
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: User reflection on interaction. Used to calibrate metacognitive self-awareness.",
+          "questionnaire_definition": []
+        },
+        {
+          "input_key": "assignment_context",
+          "label": {
+            "translations": {
+              "fi": "Tehtävänanto ja reunaehdot",
+              "en": "Assignment & Guidelines"
+            }
+          },
+          "required": false,
+          "is_chat_history": false,
+          "is_endorsed_deliverable": false,
+          "scan_for_performative_patterns": false,
+          "input_modes": [
+            "file",
+            "paste",
+            "assignment"
+          ],
+          "description": {
+            "translations": {
+              "fi": "Tehtävänanto ja reunaehdot, jotka ohjaavat arvioinnin kontekstia mutta joita ei lainata todisteina.",
+              "en": "Assignment brief and instructions providing normative boundaries."
+            }
+          },
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: Assignment criteria. Strictly quarantined from quote extraction.",
+          "questionnaire_definition": []
+        }
+      ],
+      "steps": [
+        {
+          "id": "sr_06c1d71000000001",
+          "task_blueprint": "sp_db849f9790984585",
+          "depends_on": [],
+          "input_mappings": {
+            "chat_log": "$inputs.chat_log",
+            "product_text": "$inputs.product_text",
+            "reflection_text": "$inputs.reflection_text",
+            "assignment_context": "$inputs.assignment_context"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d71000000002",
+          "task_blueprint": "sp_06c1d71000000001",
+          "depends_on": [
+            "sr_06c1d71000000001"
+          ],
+          "input_mappings": {
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d71000000003",
+          "task_blueprint": "sp_bd0b3054fe664960",
+          "depends_on": [
+            "sr_06c1d71000000001"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "assignment_context": "$inputs.assignment_context"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d7100000ca06",
+          "task_blueprint": "sp_06b1d7100000ca06",
+          "depends_on": [
+            "sr_06c1d71000000001"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log"
+          },
+          "expected_sdui_type": null,
+          "is_synthesis_source": false,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d71000000005",
+          "task_blueprint": "sp_192910b5f5a34c79",
+          "depends_on": [
+            "sr_06c1d71000000002",
+            "sr_06c1d71000000003",
+            "sr_06c1d7100000ca06"
+          ],
+          "input_mappings": {
+            "prior_analysis": "$steps"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": false,
+          "causal_source_step_id": "sr_06c1d7100000ca06",
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d71000000006",
+          "task_blueprint": "sp_d245365e4a274b9e",
+          "depends_on": [
+            "sr_06c1d71000000005"
+          ],
+          "input_mappings": {
+            "results": "$steps.sr_06c1d71000000005"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_06c1d71000000007",
+          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "depends_on": [
+            "sr_06c1d71000000006"
+          ],
+          "input_mappings": {
+            "results": "$steps.sr_06c1d71000000006",
+            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        }
+      ]
     }
   ],
   "steps": [
@@ -21471,6 +23042,81 @@
       "is_system_core": true,
       "cognitive_tier": "fast",
       "engine_type": "causal_discovery"
+    },
+    {
+      "id": "sp_06c1d71000000001",
+      "slug": "hacm_evaluator_step",
+      "organization_id": "SYSTEM",
+      "name": {
+        "translations": {
+          "fi": "Tekoälyohjauksen Arvioija",
+          "en": "Human-AI Collaboration Evaluator"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Arvioi käyttäjän tekoälyohjausta, kriittistä haastamista, kuraatiota ja reflektiota HACM-matriisin mukaisesti.",
+          "en": "Evaluates user AI steering, critical inquiry, curation, and reflection using HACM matrix."
+        }
+      },
+      "type": "llm",
+      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "criteria_block_ids": [
+        "blk_7d8e9f0a1b2c3d4e"
+      ],
+      "pre_hooks": [
+        "inject_step_metadata",
+        "atom_flattening_hook"
+      ],
+      "post_hooks": [
+        "matrix_scoring_hook",
+        "normalize_matrix_scores",
+        "enforce_passivity_penalty"
+      ],
+      "safety": "safe",
+      "allowed_mcp_tools": [],
+      "expected_inputs": [
+        "chat_log",
+        "product_text",
+        "reflection_text",
+        "assignment_context"
+      ],
+      "is_system_core": false,
+      "cognitive_tier": "fast",
+      "engine_type": "tda"
+    },
+    {
+      "id": "sp_06b1d7100000ca06",
+      "slug": "step_causal_discovery_hacm",
+      "organization_id": "SYSTEM",
+      "name": {
+        "translations": {
+          "fi": "Kausaalipäättelyn ja Argumentaation Louhinta",
+          "en": "Dynamic Causal Discovery & Argument Mining"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Louhii kausaaliväitteet, ohjausinterventiot ja riippuvuussuhteet tuotoksesta ja chat-lokista.",
+          "en": "Mines causal claims, steering interventions, and dependencies from product deliverable and chat log."
+        }
+      },
+      "type": "causal_discovery",
+      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "criteria_block_ids": [],
+      "pre_hooks": [
+        "inject_step_metadata"
+      ],
+      "post_hooks": [],
+      "safety": "safe",
+      "allowed_mcp_tools": [],
+      "expected_inputs": [
+        "product_text",
+        "chat_log"
+      ],
+      "is_system_core": true,
+      "cognitive_tier": "fast",
+      "engine_type": "causal_discovery"
     }
   ],
   "organizations": [
@@ -22269,6 +23915,135 @@
       "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
       "variance_target_block": "blk_fb15f8dcf23f4865"
+    },
+    {
+      "id": "prf_06b1d71000000001",
+      "slug": "tekoalyn_kayton_ja_ohjauksen_tulostusprofiili",
+      "workflow_id": "wf_06a1d71000000001",
+      "organization_id": "SYSTEM",
+      "name": {
+        "translations": {
+          "fi": "Tekoälyn Käytön ja Ohjauksen Profiili",
+          "en": "Human-AI Collaboration & Steering Profile"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Räätälöity tulostusprofiili tekoälyn ohjauksen, kyseenalaistamisen ja lopputuotteen hakemisen raportointiin.",
+          "en": "Dedicated output profile for reporting human AI steering, critical inquiry, and deliverable derivation."
+        }
+      },
+      "user_role_label": {
+        "translations": {
+          "fi": "Käyttäjärooli",
+          "en": "User Role"
+        }
+      },
+      "custom_preface": {
+        "translations": {
+          "fi": "**Raportti tekoälyn ohjauksesta ja yhteistyöstä**\n\nTämä raportti arvioi ihmisen ja tekoälyn vuorovaikutusprosessia: kehystyksen tarkkuutta, kriittistä haastamista, kuraatiota ja metakognitiivista reflektointia. Arviointi keskittyy ohjauksen laatuun ja lopputuotteen aktiiviseen jalostamiseen pelkän tekoälyavusteisen tekstin passiivisen hyväksymisen sijaan.",
+          "en": "**Report on Human-AI Collaboration and Steering**\n\nThis report evaluates the human-AI interaction process: framing precision, critical inquiry, active curation, and metacognitive reflection. The evaluation focuses on the quality of human steering and authentic deliverable derivation rather than passive delegation to generative AI."
+        }
+      },
+      "tone_instruction": "Act as a Practical Workplace Coach. Focus on steering agency, epistemic vigilance, and active deliverable curation. Emphasize the delta between prompt scaffolding and final deliverable derivation with actionable executive coaching advice.",
+      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the operator's interaction trajectory, framing maturity, dialectic delegation risks, and curation agency.\n- Specifically contrast operator prompt framing against downstream deliverable causal robustness and highlight where broken causal links originate from passive AI delegation.\n- Evaluate whether the operator fell into the Dialectic Delegation Trap or Curation Deficit.",
+      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on steering agency balance, passivity risks, and isolated dimension thresholds.\n- Provide clear, concise analytical takeaways for each evaluated dimension.",
+      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Contrast Human-AI Steering Agency against Causal Inference Robustness.\n- Classify the candidate into quadrants: Arkkitehti (Architect / High Steering & High Causal Grounding), Matkustaja (Passenger / Low Steering & Low Causal Grounding), Kokeilija (Sparrer / High Steering & Low Causal Grounding), and Analyytikko (Analyst / Low Steering & High Causal Grounding).",
+      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all 4 HACM dimensions (Framing, Criticality, Curation, Metacognition).\n- Synthesize macro balance and systemic interaction maturity.",
+      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a qualitative deep-dive synthesis analyzing conversational prompt nuances and interaction trajectories.\n- Highlight specific prompt turns and coaching takeaways.",
+      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground explanations directly in verified quotes and concrete textual evidence, explaining why each row received its score and citing specific prompt turns or deliverable derivation gaps.",
+      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Highlight actionable behavioral coaching steps across 4 distinct categories (Perustelu, Valmennus, Falsifikaatio, Korjaustoimenpiteet) grounded in causal graph remediations.",
+      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Detect performative buzzwords versus authentic steering by contrasting candidate self-reflection against physical chat logs and causal fault chains.",
+      "visible_metadata": [
+        "date",
+        "execution_id",
+        "organization",
+        "user",
+        "scoring_engine",
+        "strictness"
+      ],
+      "matrix_visible_columns": [
+        "label",
+        "distribution",
+        "row_explanation",
+        "criteria",
+        "normalized_score"
+      ],
+      "visible_block_extensions": [
+        "justification",
+        "coaching",
+        "falsification",
+        "remediation_steps"
+      ],
+      "visible_workflow_extensions": [
+        "variance_validation"
+      ],
+      "max_extension_items": 4,
+      "display_scale": "normalized_100",
+      "synthesis_length_constraint": 1000,
+      "row_explanation_length_constraint": 250,
+      "xai_length_constraint": 300,
+      "variance_length_constraint": 500,
+      "matrix_graph_length_constraint": 400,
+      "target_block_order": [
+        "metadata_block",
+        "executive_summary_block",
+        "global_score_block",
+        "synthesis_text_block",
+        "matrix_graphs_block",
+        "grouped_extensions_block",
+        "penalties_block",
+        "matrix_summary_table_block",
+        "variance_validation_block",
+        "printable_sources_block"
+      ],
+      "matrix_synthesis_groups": [
+        {
+          "id": "grp_06b1d71000000001",
+          "title": {
+            "translations": {
+              "fi": "Tekoälyohjauksen Kognitiivinen Tutka",
+              "en": "AI Steering Cognitive Radar"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e"
+          ],
+          "view_type": "1d_metrics"
+        },
+        {
+          "id": "grp_06b1d71000000002",
+          "title": {
+            "translations": {
+              "fi": "Ohjausote vs. Kausaalipäättelyn Lujuus",
+              "en": "Steering Agency vs. Causal Robustness"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_c5804a9143c34cb1"
+          ],
+          "view_type": "2d_compare"
+        },
+        {
+          "id": "grp_06b1d71000000003",
+          "title": {
+            "translations": {
+              "fi": "Kausaalipäättelyn ja Argumentaation Ydinmittarit",
+              "en": "Causal Inference & Argumentation Core Metrics"
+            }
+          },
+          "target_blocks": [
+            "blk_c5804a9143c34cb1"
+          ],
+          "view_type": "1d_metrics"
+        }
+      ],
+      "content_blocks": [],
+      "show_sources_summary_box": true,
+      "sources_display_mode": "verified_evidence",
+      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
     }
   ]
 }
