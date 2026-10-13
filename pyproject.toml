@@ -50,6 +50,7 @@ dependencies = [
     "ftfy>=6.3.1",
     "json-repair>=0.61.1",
     "openpyxl>=3.1.5",
+    "snowballstemmer>=2.2.0",
 ]
 
 [dependency-groups]
