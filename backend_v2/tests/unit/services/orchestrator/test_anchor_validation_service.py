@@ -9,7 +9,9 @@ from backend_v2.tests.unit.services.orchestrator.test_anchor_validation_atom_res
     test_process_atom_evaluation_no_match_preserves_quote,
     test_process_atom_evaluation_none_source_quote_skips_matching,
     test_process_atom_evaluation_with_atom_result_dto,
+    test_process_atom_evaluation_with_inflected_quote_matching,
 )
+
 
 
 
@@ -239,13 +241,36 @@ def test_anchor_validation_coverage_fallback() -> None:
 
 
 def test_anchor_validation_strictness_multiplier() -> None:
-    # Testing strictness 85 and 30 paths
-    # Just need to hit the lines in _is_lexically_valid
+    source_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin."
+    inflected_quote = ["johtajuus ja selkeät tavoitteet"]
+
+    # 1. Under strictness level 50, Finnish inflected quote matches via Stage 3 morphological stemming
+    extracted = AnchorValidationService.validate_evidence(
+        source_text, inflected_quote, strictness_level=50, locale="fi"
+    )
+    assert extracted is not None
+    assert len(extracted) == 1
+    assert extracted[0] == "johtajuus ja selkeät tavoitteet"
+
+    # 2. Negative test: completely different words fail fail-fast with SemanticEvidenceError
+    with pytest.raises(SemanticEvidenceError):
+        AnchorValidationService.validate_evidence(
+            source_text, ["talousarvio ja budjetti"], strictness_level=50, locale="fi"
+        )
+
+    # 3. Absolute strictness boundary test: under strictness level 100, inflected quote fails
+    with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
+        AnchorValidationService.validate_evidence(
+            source_text, inflected_quote, strictness_level=100, locale="fi"
+        )
+
+    # 4. Strictness 85 and 30 paths
     with pytest.raises(SemanticEvidenceError):
         AnchorValidationService.validate_evidence("some text", ["completely different text"], strictness_level=85)
 
     with pytest.raises(SemanticEvidenceError):
         AnchorValidationService.validate_evidence("some text", ["completely different text"], strictness_level=30)
+
 
 
 def test_anchor_validation_no_tags_fallback() -> None:

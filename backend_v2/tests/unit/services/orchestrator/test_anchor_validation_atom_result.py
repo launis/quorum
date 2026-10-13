@@ -49,6 +49,32 @@ def test_process_atom_evaluation_with_atom_result_dto() -> None:
     assert "doc_1" in result.evaluation_reasoning
 
 
+def test_process_atom_evaluation_with_inflected_quote_matching() -> None:
+    atom = _make_atom(source_quote="johtajuus ja selkeät tavoitteet")
+    source_docs = [
+        SourceDocumentContext(
+            opaque_id="doc_1",
+            text_content="Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin ja strategiaan.",
+            display_name="Doc 1",
+        )
+    ]
+    alias_map = {"a1": "doc_1"}
+
+    result = AnchorValidationService.process_atom_evaluation(
+        atom=atom,
+        alias_map=alias_map,
+        source_documents=source_docs,
+        mcp_source_texts=None,
+        locale="fi",
+        strictness_level=50,
+    )
+
+    assert result.source_quote == "johtajuus ja selkeät tavoitteet"
+    assert result.evaluation_reasoning is not None
+    assert "doc_1" in result.evaluation_reasoning
+
+
+
 def test_process_atom_evaluation_contextual_override_clears_quote() -> None:
     atom = AtomResultDTO(
         tda_id="tda_123",

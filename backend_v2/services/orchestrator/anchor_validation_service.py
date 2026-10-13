@@ -12,6 +12,7 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import TargetSpeaker, ValidationThresholdRatio
 from backend_v2.settings import get_lexical_fuzz_threshold
+from backend_v2.utils.linguistics.stemmer import StemmerService
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +190,29 @@ class AnchorValidationService:
                 },
             )
             return True
+
+        # Stage 3: Morphological Stemmed Sequence Verification (executed strictly when strictness_level < 100)
+        if strictness_level < 100:
+            stem_min_coverage = min(0.80, tier_threshold / 100.0)
+            stem_result = StemmerService.match_stemmed_subsequence(
+                quote=quote,
+                source_text=norm_text,
+                locale=locale,
+                min_coverage=stem_min_coverage,
+            )
+            if stem_result.is_match:
+                logger.warning(
+                    f"Lexical Verifier used Morphological Stemming for '{quote[:50]}...'. "
+                    f"Similarity {stem_result.similarity_score:.1f}% >= threshold {stem_min_coverage * 100.0:.1f}%",
+                    extra={
+                        "exact_quote_snippet": quote[:50],
+                        "rapidfuzz_score": score,
+                        "stem_similarity_score": stem_result.similarity_score,
+                        "matched_content_stems": stem_result.matched_content_stems,
+                        "strictness_level": strictness_level,
+                    },
+                )
+                return True
 
         safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
         matcher = difflib.SequenceMatcher(None, norm_quote, norm_text)

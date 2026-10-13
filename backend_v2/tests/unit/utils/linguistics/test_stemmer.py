@@ -205,3 +205,17 @@ def test_stemmer_punctuation_only_inputs() -> None:
     res_punct_src = StemmerService.match_stemmed_subsequence("Valid quote", "---", locale="fi")
     assert res_punct_src.is_match is False
 
+
+def test_stemmer_continuous_normalized_source_matching() -> None:
+    """Assert continuous normalized source text (spaces and diacritics stripped) matches inflected quotes."""
+    continuous_norm_source = "tyoryhmasitoutuijohtajuudessaanselkeisiintavoitteisiin"
+    quote = "johtajuus ja selkeät tavoitteet"
+
+    result = StemmerService.match_stemmed_subsequence(quote, continuous_norm_source, locale="fi")
+    assert result.is_match is True
+    assert result.similarity_score == 100.0
+    assert result.total_content_stems == 3
+    assert len(result.matched_content_stems) == 3
+    assert result.matched_source_span is not None
+
+

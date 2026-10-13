@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import ClassVar, Protocol
 
 from pydantic import BaseModel, ConfigDict
@@ -229,6 +230,21 @@ class StemmerService:
         return stemmer.stem_tokens(tokens)
 
     @staticmethod
+    def normalize_for_continuous(text: str) -> str:
+        """Normalize text to lowercase base-ASCII without non-alphanumeric characters.
+
+        Args:
+            text: Input string to normalize.
+
+        Returns:
+            Normalized lowercase ASCII string.
+        """
+        nfkc = unicodedata.normalize("NFKC", text)
+        nfd = unicodedata.normalize("NFD", nfkc)
+        base = "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+        return re.sub(r"[\W_]+", "", base.lower())
+
+    @staticmethod
     def match_stemmed_subsequence(
         quote: str,
         source_text: str,
@@ -324,6 +340,52 @@ class StemmerService:
                     best_span = " ".join(source_words[span_start:span_end])
                 if best_coverage >= 1.0:
                     break
+
+        # Stage 3.2: Continuous normalized text matching fallback (for whitespace-stripped or normalized text)
+        if best_coverage < min_coverage:
+            norm_source = StemmerService.normalize_for_continuous(source_text)
+            if norm_source:
+                quote_stem_pairs = [
+                    (s, StemmerService.normalize_for_continuous(s))
+                    for s in quote_stems
+                    if StemmerService.normalize_for_continuous(s)
+                ]
+                if quote_stem_pairs:
+                    quote_char_len = sum(len(w) for w in quote_words)
+                    max_char_span = quote_char_len + (MAX_WINDOW_TOKEN_PADDING * 10)
+
+                    for start_idx, (orig_start, norm_start) in enumerate(quote_stem_pairs):
+                        search_pos = 0
+                        candidate_count = 0
+                        while candidate_count < 50:
+                            found_pos = norm_source.find(norm_start, search_pos)
+                            if found_pos == -1:
+                                break
+                            candidate_count += 1
+
+                            curr_pos = found_pos + len(norm_start)
+                            matched_stems = [orig_start]
+                            first_offset = found_pos
+                            last_offset = curr_pos
+
+                            for orig_next, norm_next in quote_stem_pairs[start_idx + 1 :]:
+                                next_pos = norm_source.find(norm_next, curr_pos)
+                                if next_pos != -1:
+                                    candidate_end = next_pos + len(norm_next)
+                                    if (candidate_end - first_offset) <= max_char_span:
+                                        matched_stems.append(orig_next)
+                                        curr_pos = candidate_end
+                                        last_offset = candidate_end
+
+                            c_coverage = len(matched_stems) / total_content_stems
+                            if c_coverage > best_coverage:
+                                best_coverage = c_coverage
+                                best_matched_stems = matched_stems
+                                best_span = norm_source[first_offset:last_offset]
+                                if best_coverage >= 1.0:
+                                    break
+
+                            search_pos = found_pos + 1
 
         is_match = best_coverage >= min_coverage
         similarity_score = round(best_coverage * 100.0, 2)
