@@ -14,6 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.sdui_rules import MatrixGraphMinAxesDTO, MatrixGraphsAestheticsDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
+    MarkdownBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
@@ -88,20 +89,18 @@ class MatrixGraphsAdapter:
             has_renderable_content = len(axes) > 0 or len(section_blocks) > 0
 
             if has_renderable_content:
-                if len(section_blocks) > 0:
-                    blocks.extend(section_blocks)
-
                 # Route graph block emission by deterministic view_type
                 view_type = grp.view_type
+                graph_block: AnySduiBlock | None = None
                 if view_type in ("3d_matrix", "matrix3d"):
                     if len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
-                        blocks.append(SduiRadarChartBlock(title=grp.title, axes=axes))
+                        graph_block = SduiRadarChartBlock(title=grp.title, axes=axes)
                 elif view_type in ("2d_compare", "compare2d"):
                     if len(axes) >= MATRIX_GRAPHS_RULES["scatter"].min_axes:
-                        blocks.append(SduiScatterPlotBlock(title=grp.title, axes=axes[:2]))
+                        graph_block = SduiScatterPlotBlock(title=grp.title, axes=axes[:2])
                 elif view_type in ("1d_metrics", "metrics1d", "metrics"):
                     if len(axes) >= MATRIX_GRAPHS_RULES["metrics"].min_axes:
-                        blocks.append(SduiMetrics1DBlock(title=grp.title, axes=axes[:1]))
+                        graph_block = SduiMetrics1DBlock(title=grp.title, axes=axes[:1])
                 elif view_type in ("text_only", "textOnly"):
                     # Text-only synthesis group does not emit visual chart blocks
                     pass
@@ -117,5 +116,13 @@ class MatrixGraphsAdapter:
                         status_code=500,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     )
+
+                if graph_block is not None:
+                    blocks.append(graph_block)
+                elif grp.title is not None and len(section_blocks) > 0:
+                    blocks.append(MarkdownBlock(text=f"### {grp.title.resolve(context.locale)}"))
+
+                if len(section_blocks) > 0:
+                    blocks.extend(section_blocks)
 
         return blocks

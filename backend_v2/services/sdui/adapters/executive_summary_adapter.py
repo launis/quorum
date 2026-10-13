@@ -56,21 +56,32 @@ class ExecutiveSummaryAdapter:
                 (axis for axis in context.parsed_matrices.values() if axis.block_id == profile.user_role_target_block),
                 None,
             )
-            if target_matrix is not None and target_matrix.score is not None and target_matrix.level_names:
-                min_scale = 1
-                if target_matrix.scale_min is not None:
-                    min_scale = int(target_matrix.scale_min)
-                max_scale = 5
-                if target_matrix.scale_max is not None:
-                    max_scale = int(target_matrix.scale_max)
-                int_score = max(min_scale, min(max_scale, int(round(target_matrix.score))))
+            if target_matrix is not None:
+                effective_score = (
+                    target_matrix.raw_score if target_matrix.raw_score is not None else target_matrix.score
+                )
+                effective_min = (
+                    target_matrix.raw_scale_min if target_matrix.raw_scale_min is not None else target_matrix.scale_min
+                )
+                effective_max = (
+                    target_matrix.raw_scale_max if target_matrix.raw_scale_max is not None else target_matrix.scale_max
+                )
 
-                int_key = str(int_score)
-                float_key = str(float(int_score))
-                if int_key in target_matrix.level_names:
-                    role_val = target_matrix.level_names[int_key]
-                elif float_key in target_matrix.level_names:
-                    role_val = target_matrix.level_names[float_key]
+                if effective_score is not None and target_matrix.level_names:
+                    min_scale = 1
+                    if effective_min is not None:
+                        min_scale = int(effective_min)
+                    max_scale = 5
+                    if effective_max is not None:
+                        max_scale = int(effective_max)
+                    int_score = max(min_scale, min(max_scale, int(round(effective_score))))
+
+                    int_key = str(int_score)
+                    float_key = str(float(int_score))
+                    if int_key in target_matrix.level_names:
+                        role_val = target_matrix.level_names[int_key]
+                    elif float_key in target_matrix.level_names:
+                        role_val = target_matrix.level_names[float_key]
 
         # 3. ASSEMBLE: Construct role badge block if role was deterministically resolved
         if role_val:

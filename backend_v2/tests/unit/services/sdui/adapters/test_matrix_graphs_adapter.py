@@ -4,10 +4,12 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.sdui_rules import MatrixGraphsAestheticsDTO
 from backend_v2.models.enums import PresetView
 from backend_v2.models.view.sdui import (
+    MarkdownBlock,
     ParagraphBlock,
     SduiMetrics1DBlock,
     SduiRadarChartBlock,
@@ -318,10 +320,168 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
     )
     blocks = MatrixGraphsAdapter.build(context)
     assert len(blocks) == 2
-    assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "Section synthesis summary text."
-    assert isinstance(blocks[1], SduiMetrics1DBlock)
-    assert blocks[1].title == I18nText(translations={"en": "Synthesized Group"})
+    assert isinstance(blocks[0], SduiMetrics1DBlock)
+    assert blocks[0].title == I18nText(translations={"en": "Synthesized Group"})
+    assert isinstance(blocks[1], ParagraphBlock)
+    assert blocks[1].text == "Section synthesis summary text."
+
+
+def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
+    """Verify that text_only synthesis group emits MarkdownBlock title header before synthesis text."""
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test_text_only",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_aaaaaaaaaaaaaaaa",
+                title=I18nText(translations={"en": "Text Only Group", "fi": "Tekstiryhmä"}),
+                target_blocks=["m1"],
+                view_type=PresetView.TEXT_ONLY,
+            )
+        ],
+    )
+    cache = RenderedSynthesisCache(
+        section_syntheses={
+            "grp_aaaaaaaaaaaaaaaa": [
+                ParagraphBlock(text="Text-only qualitative narrative.", exact_quotes=[], citations=[])
+            ]
+        }
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=4.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Text Only Group"
+    assert isinstance(blocks[1], ParagraphBlock)
+    assert blocks[1].text == "Text-only qualitative narrative."
+
+
+def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> None:
+    """Verify that synthesis group with axes below chart threshold emits MarkdownBlock title header before synthesis text."""
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test_insufficient_axes",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_bbbbbbbbbbbbbbbb",
+                title=I18nText(translations={"en": "Radar Under Axes Group", "fi": "Tutka vajaat akselit"}),
+                target_blocks=["m1", "m2", "m3"],
+                view_type=PresetView.MATRIX_3D,
+            )
+        ],
+    )
+    cache = RenderedSynthesisCache(
+        section_syntheses={
+            "grp_bbbbbbbbbbbbbbbb": [
+                ParagraphBlock(text="Synthesis text when chart cannot be drawn.", exact_quotes=[], citations=[])
+            ]
+        }
+    )
+    # Only supply 1 parsed matrix, while radar chart requires 3 axes
+    context = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=3.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### Tutka vajaat akselit"
+    assert isinstance(blocks[1], ParagraphBlock)
+    assert blocks[1].text == "Synthesis text when chart cannot be drawn."
+
+
+def test_matrix_graphs_adapter_data_starvation_returns_empty() -> None:
+    """Verify that when context.is_data_starved is True, build() deterministically returns empty list."""
+    profile = OutputProfile(
+        id="prf_1234567890abcdef",
+        slug="test_starvation",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_cccccccccccccccc",
+                title=I18nText(translations={"en": "Starved Group"}),
+                target_blocks=["m1"],
+                view_type=PresetView.METRICS_1D,
+            )
+        ],
+    )
+    cache = RenderedSynthesisCache(
+        section_syntheses={
+            "grp_cccccccccccccccc": [ParagraphBlock(text="Starved synthesis text.", exact_quotes=[], citations=[])]
+        },
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="insufficient_tokens"),
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    assert blocks == []
 
 
 def test_matrix_graphs_adapter_explicit_view_types() -> None:
