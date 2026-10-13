@@ -24,7 +24,6 @@ from backend_v2.models.domain.metadata import (
 )
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.validation import ValidationResultDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
@@ -319,7 +318,6 @@ type HookPayloadDTO = (
     | MatrixHookResultDTO
     | SynthesisDistillationDTO
     | StepOutputDTO
-    | SanitizationResultDTO
     | BibliographyResultDTO
     | AnalystOutput
     | EvaluationResult

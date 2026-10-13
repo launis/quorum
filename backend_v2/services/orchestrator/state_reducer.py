@@ -18,7 +18,6 @@ from backend_v2.models.domain.metadata import (
 )
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.domain.validation import ValidationResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import (
@@ -247,9 +246,6 @@ def reduce_hook_delta(
         elif isinstance(delta, SynthesisDistillationDTO):
             base_vars = new_global_vars or GlobalContextVarsDTO()
             new_global_vars = base_vars.model_copy(update={"distillation": delta})
-        elif isinstance(delta, SanitizationResultDTO):
-            base_vars = new_global_vars or GlobalContextVarsDTO()
-            new_global_vars = base_vars.model_copy(update={"sanitization": delta})
         elif isinstance(delta, BibliographyResultDTO):
             base_vars = new_global_vars or GlobalContextVarsDTO()
             new_global_vars = base_vars.model_copy(update={"bibliography": delta})

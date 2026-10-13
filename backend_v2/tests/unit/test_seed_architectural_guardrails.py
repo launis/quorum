@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import pytest
 from pydantic import JsonValue
 
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -16,6 +17,7 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 
 SEED_FILE = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
@@ -305,9 +307,11 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
     assert len(i18n_records) >= 450, f"Expected >= 450 I18nText records in master seed, found {len(i18n_records)}"
 
     for path, record in i18n_records:
-        translations = record["translations"]
-        en_text = translations["en"].strip() if "en" in translations else ""
-        fi_text = translations["fi"].strip() if "fi" in translations else ""
+        raw_tr = record["translations"]
+        assert type(raw_tr) is dict
+        tr_map = {str(k): str(v) for k, v in raw_tr.items()}
+        en_text = tr_map["en"].strip() if "en" in tr_map else ""
+        fi_text = tr_map["fi"].strip() if "fi" in tr_map else ""
         assert en_text, f"I18nText at '{path}' has empty or missing 'en' translation"
         assert fi_text, f"I18nText at '{path}' has empty or missing 'fi' translation"
 
@@ -316,8 +320,11 @@ def test_seed_i18n_has_100_percent_bilingual_parity() -> None:
         if type(rec) is not dict or "translations" not in rec or type(rec["translations"]) is not dict:
             return False
         tr = rec["translations"]
-        has_en = "en" in tr and bool(tr["en"].strip())
-        has_fi = "fi" in tr and bool(tr["fi"].strip())
+        if type(tr) is not dict:
+            return False
+        tr_map = {str(k): str(v) for k, v in tr.items()}
+        has_en = "en" in tr_map and bool(tr_map["en"].strip())
+        has_fi = "fi" in tr_map and bool(tr_map["fi"].strip())
         return has_en and has_fi
 
     assert _is_valid_bilingual_i18n({"translations": {"en": "Hello", "fi": "Hei"}})
@@ -394,16 +401,22 @@ def test_model_registry_calibrated_limits() -> None:
         assert required_tiers.issubset(set(tier_defs.keys())), (
             f"Model registry '{reg_name}' must contain all required tiers: {required_tiers}"
         )
-        for tier_name, model_def in tier_defs.items():
-            max_tokens = model_def["max_tokens"] if "max_tokens" in model_def else 0
-            assert max_tokens >= 32768, (
-                f"Registry '{reg_name}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
-            )
+        for tier_name, raw_model_def in tier_defs.items():
+            if type(raw_model_def) is dict:
+                m_def = {str(k): v for k, v in raw_model_def.items()}
+                tokens = m_def["max_tokens"] if "max_tokens" in m_def else 0
+                if isinstance(tokens, (int, float)):
+                    assert tokens >= 32768, (
+                        f"Registry '{reg_name}' tier '{tier_name}' max_tokens {tokens} must be >= 32768"
+                    )
 
     # Anti-happy-path negative verification
     def validate_strategy_limits(strat_dict: Mapping[str, JsonValue]) -> bool:
-        tokens = strat_dict["max_tokens"] if "max_tokens" in strat_dict else 0
-        return bool(tokens >= 32768)
+        if "max_tokens" in strat_dict:
+            tokens = strat_dict["max_tokens"]
+            if isinstance(tokens, (int, float)):
+                return bool(tokens >= 32768)
+        return False
 
     assert validate_strategy_limits({"max_tokens": 32768, "temperature": 0.1})
     assert validate_strategy_limits({"max_tokens": 65536, "temperature": 0.2})
@@ -453,3 +466,45 @@ def test_synthesis_strategy_isolation() -> None:
     assert not validate_evaluative_isolation(
         {"category_id": "evaluator", "is_evaluative": True, "model_strategy": "synthesis"}
     )
+
+
+def test_no_step_declares_legacy_sanitize_text_pre_hook() -> None:
+    """Architectural Guardrail: No step blueprint may declare legacy 'sanitize_text' pre_hook.
+
+    All text sanitization and PII detection belongs sovereignly to the Ingress boundary
+    (Single Pipeline Invariant). Step blueprints must not contain legacy sanitize_text hooks.
+    """
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    raw_steps = data["steps"] if "steps" in data else []
+    assert raw_steps, "Steps collection in seed data must not be empty"
+
+    for step_data in raw_steps:
+        step = Step.model_validate(step_data)
+        assert "sanitize_text" not in step.pre_hooks, (
+            f"Step blueprint '{step.id}' declares legacy 'sanitize_text' in pre_hooks. "
+            "Text sanitization must execute strictly at the Ingress boundary."
+        )
+
+
+def test_spacy_language_models_installed() -> None:
+    """Architectural Guardrail: SpaCy models 'fi_core_news_lg' and 'en_core_web_lg' must be installed and loadable.
+
+    Validates that the required linguistic models are present in the environment for Ingress Linguistic Shield,
+    and asserts Fail-Fast behavior when attempting to load an uninstalled model.
+    """
+    import spacy
+
+    # Positive Verification: Authoritative models must load without error
+    nlp_fi = spacy.load("fi_core_news_lg")
+    assert nlp_fi is not None, "Failed to load fi_core_news_lg"
+    assert nlp_fi.lang == "fi", f"Expected language 'fi', got '{nlp_fi.lang}'"
+
+    nlp_en = spacy.load("en_core_web_lg")
+    assert nlp_en is not None, "Failed to load en_core_web_lg"
+    assert nlp_en.lang == "en", f"Expected language 'en', got '{nlp_en.lang}'"
+
+    # Anti-Happy-Path Negative Verification: Missing models must raise OSError (Fail-Fast)
+    with pytest.raises(OSError):
+        spacy.load("non_existent_language_model_fail_fast")

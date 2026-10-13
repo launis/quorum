@@ -51,6 +51,8 @@ dependencies = [
     "json-repair>=0.61.1",
     "openpyxl>=3.1.5",
     "snowballstemmer>=2.2.0",
+    "fi-core-news-lg @ https://github.com/explosion/spacy-models/releases/download/fi_core_news_lg-3.8.0/fi_core_news_lg-3.8.0-py3-none-any.whl",
+    "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
 ]
 
 [dependency-groups]

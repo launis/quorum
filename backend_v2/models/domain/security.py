@@ -7,94 +7,21 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, Self, override
+from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTraceDTO
-from backend_v2.models.dtos.inputs import IngressInputValue
 from backend_v2.models.enums import LaxRiskLevel, LaxSimulationType
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "InputProcessingOutputDTO",
-    "SanitizationResultDTO",
     "SecurityCheck",
-    "SecurityPayloadDTO",
 ]
-
-
-class SecurityPayloadDTO(V2CoreBase):
-    """Strict schema for inputs destined for text sanitization.
-
-    Attributes:
-        root: Raw state inputs.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    root: Annotated[
-        dict[str, IngressInputValue],
-        Field(default_factory=dict, description="Raw state inputs mapping."),
-    ]
-
-    @override
-    @classmethod
-    def model_validate(
-        cls,
-        obj: Any,
-        *,
-        strict: bool | None = None,
-        from_attributes: bool | None = None,
-        context: Any | None = None,
-        by_alias: bool | None = None,
-        by_name: bool | None = None,
-        extra: Any | None = None,
-    ) -> SecurityPayloadDTO:
-        """Validate and wrap arbitrary incoming payload into SecurityPayloadDTO.
-
-        Args:
-            obj: The object or raw dictionary payload to validate.
-            strict: Whether to enforce strict types.
-            from_attributes: Whether to extract attributes from objects.
-            context: Optional validation context.
-            by_alias: Whether to query by alias.
-            by_name: Whether to query by name.
-            extra: Extra validation configuration.
-
-        Returns:
-            Validated SecurityPayloadDTO instance.
-        """
-        if type(obj) is dict:
-            return cls(root=obj)
-        return super().model_validate(
-            obj,
-            strict=strict,
-            from_attributes=from_attributes,
-            context=context,
-            by_alias=by_alias,
-            by_name=by_name,
-            extra=extra,
-        )
-
-
-class SanitizationResultDTO(V2CoreBase):
-    """Result payload for text sanitization.
-
-    Attributes:
-        sanitized_inputs: Original keys mapped to sanitized values.
-        security_status: Overall status of the security check.
-        threat_detected: Flag indicating if a threat was detected.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    sanitized_inputs: Annotated[dict[str, str], Field(description="The inputs after sanitization")]
-    security_status: Annotated[str, Field(min_length=1, description="Status of the security check")]
-    threat_detected: Annotated[bool, Field(description="Whether a threat was detected")]
 
 
 class SecurityCheck(V2CoreBase):

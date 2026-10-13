@@ -21,7 +21,6 @@ from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.metadata import StepMetadataDTO
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import ScoringResultDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
@@ -128,10 +127,6 @@ class GlobalContextVarsDTO(V2CoreBase):
     bibliography: Annotated[
         BibliographyResultDTO | None,
         Field(default=None, description="Bibliography citations payload."),
-    ] = None
-    sanitization: Annotated[
-        SanitizationResultDTO | None,
-        Field(default=None, description="Sanitization payload."),
     ] = None
     llm_anomaly_retry_requested: Annotated[
         bool | None,

@@ -121,9 +121,7 @@ from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, Ret
 # 2. Agent Modules
 from backend_v2.models.domain.security import (
     InputProcessingOutputDTO,
-    SanitizationResultDTO,
     SecurityCheck,
-    SecurityPayloadDTO,
 )
 from backend_v2.models.domain.step import (
     ALLOWED_INPUT_MODES,
@@ -176,7 +174,6 @@ DOMAIN_REGISTRY = {
     "ProfilerOutput": ProfilerOutput,
     "InteractionAnalysis": InteractionAnalysis,
     # Hook Results
-    "SanitizationResultDTO": SanitizationResultDTO,
     "LinguisticsResult": LinguisticsResult,
     "BibliographyResult": BibliographyResult,
     "TextMetrics": TextMetrics,
@@ -204,8 +201,6 @@ __all__ = [
     "ValidationResult",
     "InputProcessingOutputDTO",
     "SecurityCheck",
-    "SecurityPayloadDTO",
-    "SanitizationResultDTO",
     "AnalystInput",
     "AnalystOutput",
     "AnalystDTO",

@@ -19,7 +19,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
-from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
+from backend_v2.models.domain.security import InputProcessingOutputDTO
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
@@ -39,7 +39,6 @@ MAX_TOTAL_PENALTY_RATIO: float = 0.40
 
 SCORING_PAYLOAD_KEYS: frozenset[str] = frozenset(
     {
-        "sanitization_result",
         "step_input_processing",
         "step_falsifier",
         "step_panel",
@@ -67,7 +66,6 @@ class ScoringPayloadWrapper(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, from_attributes=True)
 
-    sanitization_result: SanitizationResultDTO | None = None
     step_input_processing: InputProcessingOutputDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
@@ -80,7 +78,6 @@ class ScoringPayloadWrapper(V2CoreBase):
         """Returns True if at least one scoring payload field is present."""
         return any(
             (
-                self.sanitization_result is not None,
                 self.step_input_processing is not None,
                 self.step_falsifier is not None,
                 self.step_panel is not None,
@@ -226,7 +223,7 @@ def _extract_guard_flag(
     data: ExecutionInputsDTO | StateInputWrapper,
     global_context_vars: GlobalContextVarsDTO | None = None,
 ) -> bool | None:
-    """Extracts the security threat flag from the guard output in the state or global context.
+    """Extracts the security threat flag from the guard output in the state.
 
     Iterates over the V2 execution snapshot to find the input processing result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
@@ -238,14 +235,9 @@ def _extract_guard_flag(
     Returns:
         Boolean indicating if a threat was detected, or None if guard data is missing.
     """
-    if global_context_vars and global_context_vars.sanitization is not None:
-        return global_context_vars.sanitization.threat_detected
-
     for wrapper in _extract_payloads(data):
         if wrapper.step_input_processing and wrapper.step_input_processing.security_check:
             return wrapper.step_input_processing.security_check.threat_detected
-        elif wrapper.sanitization_result:
-            return wrapper.sanitization_result.threat_detected
 
     logger.info("[ScoringHook] security_check (Input Processing data) missing from state. Security step bypassed.")
     return None

@@ -30,7 +30,7 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
-from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
+from backend_v2.models.domain.security import InputProcessingOutputDTO, SecurityCheck
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -2662,12 +2662,22 @@ async def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
 
 
 @pytest.mark.asyncio
-async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> None:
-    """Test that apply_scoring_logic_hook extracts threat and falsifier data from SanitizationResult and StepPanelDTO."""
-    sanitization_dto = SanitizationResultDTO(
-        sanitized_inputs={"user_input": "Cleaned user input"},
-        security_status="PASS",
-        threat_detected=True,
+async def test_apply_scoring_logic_hook_with_input_processing_and_panel_dto() -> None:
+    """Test that apply_scoring_logic_hook extracts threat and falsifier data from InputProcessingOutputDTO and StepPanelDTO."""
+    input_processing_dto = InputProcessingOutputDTO(
+        thought_process="Analyzing input security...",
+        conclusion="Threat detected.",
+        confidence_score=0.95,
+        is_safe=False,
+        rejection_reason="Threat detected",
+        security_check=SecurityCheck(
+            threat_detected=True,
+            risk_level=LaxRiskLevel.HIGH,
+            risk_score=3.0,
+            simulation_score=1.0,
+            anonymized=False,
+            pii_findings=[],
+        ),
     )
     falsifier_dto = FalsifierData(
         stress_test_findings=[
@@ -2708,7 +2718,7 @@ async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> Non
                         step_id="st_sanit",
                         block_id="blk_sanit",
                         data_type="text",
-                        payload={"sanitization_result": sanitization_dto.model_dump(mode="json")},
+                        payload={"step_input_processing": input_processing_dto.model_dump(mode="json")},
                     ),
                     StepOutputDTO.model_construct(
                         step_id="st_panel",

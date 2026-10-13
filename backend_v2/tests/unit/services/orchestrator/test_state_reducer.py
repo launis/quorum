@@ -22,7 +22,6 @@ from backend_v2.models.domain.metadata import (
 )
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO, ReferenceDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.validation import ValidationResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
@@ -293,19 +292,9 @@ def test_reduce_hook_delta_analyst_and_evaluation_and_distillation() -> None:
     assert s3.global_context_vars.distillation.distilled_inputs == "compressed inputs"
 
 
-def test_reduce_hook_delta_security_and_references() -> None:
-    """Verify reduction of SanitizationResultDTO and BibliographyResultDTO."""
+def test_reduce_hook_delta_references() -> None:
+    """Verify reduction of BibliographyResultDTO."""
     state = _build_test_hook_state()
-
-    san_delta = HookDeltaDTO(
-        delta=SanitizationResultDTO(
-            sanitized_inputs={"user_text": "clean"}, security_status="CLEAN", threat_detected=False
-        )
-    )
-    s1, _ = reduce_hook_delta(state, san_delta)
-    assert s1.global_context_vars is not None
-    assert s1.global_context_vars.sanitization is not None
-    assert s1.global_context_vars.sanitization.security_status == "CLEAN"
 
     ref = ReferenceDTO(source_id="src_42", title="Architecture Spec", snippet="Section 3")
     bib_delta = HookDeltaDTO(delta=BibliographyResultDTO(references=[ref]))

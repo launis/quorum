@@ -18,7 +18,6 @@ from backend_v2.hooks import (
     metrics,
     references,
     scoring,
-    security,
     source_verification_hook,
     validation,
 )
@@ -37,7 +36,6 @@ __all__ = [
     "metrics",
     "references",
     "scoring",
-    "security",
     "source_verification_hook",
     "validation",
 ]

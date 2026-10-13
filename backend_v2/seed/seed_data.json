@@ -22403,7 +22403,6 @@
         "blk_80732a33fe1947ee"
       ],
       "pre_hooks": [
-        "sanitize_text",
         "verify_structure",
         "inject_step_metadata",
         "atom_flattening_hook"

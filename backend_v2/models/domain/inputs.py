@@ -21,7 +21,7 @@ from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHo
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO, TextMetricsDTO
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.references import BibliographyResultDTO
-from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
+from backend_v2.models.domain.security import InputProcessingOutputDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluationFactsDTO, HydratedAtomDTO
@@ -118,7 +118,6 @@ type DomainInputValue = Annotated[
     | GuidedReflectionInputDTO
     | StepMetadataDTO
     | LinguisticsResultDTO
-    | SanitizationResultDTO
     | InputProcessingOutputDTO
     | ProfilerMetricsDTO
     | TextMetricsDTO
