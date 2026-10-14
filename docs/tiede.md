@@ -67,13 +67,19 @@ where $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ evaluates the determinist
 
 *The Syntactic Provenance vs. Semantic Entailment Boundary:* An exact substring match $\text{find}(\mathcal{C}_i, \mathcal{D}) \neq -1$ provides *physical provenance*—irrefutable proof that citation $\mathcal{C}_i$ was not fabricated or spliced across disparate paragraphs. However, deterministic string matching is semantically blind: it proves the physical existence of characters, not that proposition $\tau_i$ logically follows from $\mathcal{C}_i$. In Quorum, this semantic gap is bridged without falling into second-order LLM stochasticity because **propositions $\tau_i$ are NOT freely invented by the model**. Instead, propositions are **pre-compiled, strictly typed evaluation criteria** defined in Single Source of Truth (SSOT) Behaviorally Anchored Rating Scale (BARS) rubrics (`seed_data.json`). The generative model is constrained to identifying the exact verbatim clause $\mathcal{C}_i$ satisfying the pre-defined target invariant $\tau_i$, backed by reasoning trace syntactic anchor triangulation and asymmetric Popperian falsification ($\pi_i = -1$). If physical containment or provenance fails in deterministic Python code, $\kappa_i = 0$ and the proposition fails closed unconditionally.
 
+*Symbolic Interface Grounding and Subword Entropy Suppression:* In physical persistence, propositions $a_i \in \mathcal{A}$ are addressed via high-entropy 128-bit identifiers ($\mathcal{I}_{\text{UUID}}$, specifically UUIDv4 hexadecimal strings). Directly exposing multi-token hexadecimal strings to autoregressive prompt contexts induces subword tokenization fragmentation (5–10 Byte-Pair Encoding subwords per identifier), triggering attention diffusion, positional degradation over extended contexts, and character transposition hallucinations during decoding. To isolate the generative sensor from persistent storage mechanics, the neurosymbolic boundary executes an ephemeral bijective alias morphism:
+
+$$\mu: \mathcal{I}_{\text{UUID}} \longleftrightarrow \mathcal{V}_{\text{alias}}, \quad \mathcal{V}_{\text{alias}} = \{a_0, a_1, \dots, a_{n-1}\}$$
+
+This morphism compresses each propositional target into an atomic single-token Attention Anchor ($a_k$). Concurrently, the generation grammar enforces constrained decoding via dynamic Pydantic `Literal` type definitions, bounding output logits to the closed categorical support $\mathcal{V}_{\text{alias}}$. Upon receipt, the runtime executes deterministic $\mathcal{O}(1)$ reverse hydration $\mu^{-1}(a_k)$ in pure Python (`AliasEngine`), raising a fail-fast validation exception (`AppException(422)`) if an unmapped alias prefix is hallucinated. This preserves single-token attention fidelity while guaranteeing mathematical referential integrity across the proposition graph.
+
 ### 2.2. Linked Atom Graph Structure and Root Node Typology
 
 The extracted atoms are structured into a directed, attributed multi-graph $\mathcal{G}_{\text{LAG}} = (\mathcal{A}, \mathcal{E}_{\text{dep}}, \mathcal{E}_{\text{temp}}, \mathcal{E}_{\text{causal}})$, where edge sets define logical dependency, temporal order, and inferred causal transmission.
 
 To avoid misclassifying legitimate foundational axioms, $\mathcal{G}_{\text{LAG}}$ partitions root nodes ($\text{InDegree}(a_i) = 0$) into two distinct epistemic classes:
 
-1. **Exogenous Boundary Axioms ($\mathcal{A}_{\text{axiom}}$):** Primitive operational constraints or historical baseline premises ($U_i$) that require no internal textual ancestors (e.g., establishing the scope of an external institutional report).
+1. **Exogenous Boundary Axioms ($\mathcal{A}_{\text{axiom}}$):** Primitive operational constraints or historical baseline premises ($U_i$) that require no internal textual ancestors (specifically establishing the scope of an external institutional report).
 2. **Unjustified Orphan Claims ($\mathcal{A}_{\text{orphan}}$):** Dependent inferential conclusions asserted without supporting evidence, warrants, or mediating causal links.
 
 ---
@@ -153,7 +159,7 @@ $$\Phi_v: \prod_{u \in \text{Parents}(v)} \mathcal{O}_u \times \mathcal{S}_{\tex
 
 ### 4.1.1. Deterministic NLI/Entailment and Eradication of Second-Order Hallucination
 
-A foundational failure mode in contemporary LLM evaluation (e.g., LLM-as-a-Judge, G-Eval, Self-RAG) is **Second-Order Hallucination** (*Quis custodiet ipsos custodes?*). If a secondary LLM is queried to determine whether a document entails a proposition ($P(\text{Entail} \mid \mathcal{D}, \tau_i)$), the verifier is itself an autoregressive stochastic sampler susceptible to sycophancy, confirmation bias, and the synthesis of *chimera quotes* (stitching isolated words across disparate paragraphs into a fabricated sentence).
+A foundational failure mode in contemporary LLM evaluation (including LLM-as-a-Judge, G-Eval, and Self-RAG) is **Second-Order Hallucination** (*Quis custodiet ipsos custodes?*). If a secondary LLM is queried to determine whether a document entails a proposition ($P(\text{Entail} \mid \mathcal{D}, \tau_i)$), the verifier is itself an autoregressive stochastic sampler susceptible to sycophancy, confirmation bias, and the synthesis of *chimera quotes* (stitching isolated words across disparate paragraphs into a fabricated sentence).
 
 To eliminate second-order hallucination, Quorum strips the LLM of judicial authority. Natural Language Inference (NLI) is decomposed into a **Tripartite Neurosymbolic Protocol**: the LLM operates strictly as a constrained syntactic sensor extracting proposition tuples, while propositional grounding and entailment are executed **exclusively in pure deterministic Python code** (`AnchorValidationService`):
 
@@ -165,7 +171,7 @@ To eliminate second-order hallucination, Quorum strips the LLM of judicial autho
    If matched, the exact verbatim string is sliced from the original immutable text, preventing case-folding or formatting drifts from fabricating false evidence.
 
 2. **Gate 2: Entropy Gate & Contiguity Guard (Chimera Quote Defense):**
-   * *Entropy Gate (< 10 chars):* Short quotes under 10 characters (e.g. isolated buzzwords) are strictly forbidden from fuzzy matching. 100% exact substring containment is required.
+   * *Entropy Gate (< 10 chars):* Short quotes under 10 characters (specifically isolated buzzwords) are strictly forbidden from fuzzy matching. 100% exact substring containment is required.
    * *Contiguity Guard (< 30 chars):* Short phrases enforce strict contiguous sequence matching (`fuzz.partial_ratio`), whereas longer spans ($\ge 30$ chars) evaluate token-set overlap (`fuzz.token_set_ratio`). This prevents the model from picking disparate words from different pages and presenting them as a continuous quote.
    * *Safety Ceiling (> 1000 chars):* Quotes exceeding 1000 characters trigger an immediate `SemanticEvidenceError` fail-fast crash to prevent prompt injection and quote stuffing.
 
@@ -179,11 +185,11 @@ To eliminate second-order hallucination, Quorum strips the LLM of judicial autho
 4. **Gate 4: Reasoning Trace Triangulation:**
    The model's Pydantic response requires an explicit reasoning trace $\mathcal{T}_i$ specifying an exact syntactic anchor (`[2. SYNTACTIC ANCHOR: "..."]`) and decision (`[5. VALIDATION DECISION: PASS/FAIL]`). Pure Python triangulation asserts three consistency invariants:
    * *Contradiction Ban:* If $\mathcal{T}_i$ concludes `FAIL`, but quote $\mathcal{C}_i$ is populated, the atom is rejected for logical contradiction.
-   * *Empty Anchor Ban:* If $\mathcal{T}_i$ declares `SYNTACTIC ANCHOR: NONE`, unanchored extraction fails closed.
+   * *Empty Anchor Ban:* If $\mathcal{T}_i$ declares `[2. SYNTACTIC ANCHOR: NONE]`, unanchored extraction fails closed.
    * *Hallucinated Anchor Ban:* The anchor string parsed from the trace must physically exist in the source document via `strict_match`; fabricated anchors trigger immediate rejection.
 
 5. **Gate 5: Calibrated Zero-Trust Strictness Curve and Morphological Stemming Cascade:**
-   Under Quorum's continuous strictness parameter $\theta \in [0, 100]$, the lexical predicate $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ executes a calibrated four-tier deterministic cascade when $\theta < 100$: (i) exact NFKC/NFD substring containment, (ii) length-stratified RapidFuzz similarity scaled by tier multipliers ($\times 0.80$ for $\theta < 30$, $\times 0.90$ for $\theta \in [30, 50)$, $\times 1.00$ for $\theta \in [50, 85)$, and $\times 1.02$ for $\theta \in [85, 100)$), (iii) multilingual rule-based Snowball morphological stemmed subsequence matching (`StemmerService.match_stemmed_subsequence`) to accommodate grammatical case inflections in highly agglutinative languages (such as Finnish), and (iv) contiguous longest-common-substring coverage verification (`difflib.SequenceMatcher`). At $\theta \ge 100$ (Absolute Zero-Trust), all non-exact tiers (ii)–(iv) are completely disabled, enforcing 100% exact normalized substring containment.
+   Under Quorum's continuous strictness parameter $\theta \in [0, 100]$, the lexical predicate $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ executes a calibrated four-tier deterministic cascade when $\theta < 100$: (i) exact NFKC/NFD substring containment, (ii) length-stratified RapidFuzz similarity scaled by tier multipliers ($\times 0.80$ for $\theta < 30$, $\times 0.90$ for $\theta \in [30, 50)$, $\times 1.00$ for $\theta \in [50, 85)$, and $\times 1.02$ for $\theta \in [85, 100)$), (iii) multilingual rule-based Snowball morphological stemmed subsequence matching (`StemmerService.match_stemmed_subsequence`) to accommodate grammatical case inflections in highly agglutinative languages (including Finnish), and (iv) contiguous longest-common-substring coverage verification (`difflib.SequenceMatcher`). At $\theta \ge 100$ (Absolute Zero-Trust), all non-exact tiers (ii)–(iv) are completely disabled, enforcing 100% exact normalized substring containment.
 
 Under this five-gate architecture, propositional grounding does not rely on LLM self-evaluation. An atom $\tau_i$ is accepted ($\kappa_i = 1$) if and only if all five deterministic Python gates succeed, bounding the false acceptance probability by the physical string collision rate $\epsilon_{\text{lexical}} \to 0$.
 
@@ -205,7 +211,7 @@ $$V_i = f_i(\mathbf{PA}_i, \mathbf{W}_i, U_i), \quad \mathbf{PA}_i \subseteq \ma
 
 A foundational question in NLP argumentation is: *Which computational system physically evaluates the downstream consequences of this structural intervention in discourse?* If a secondary LLM is re-prompted to judge whether claim $Y$ survives without premise $X$, the pipeline relapses into second-order stochasticity and confirmation bias.
 
-In Quorum, structural intervention is **NOT executed via LLM prompts or statistical regression**. The extracted discourse is compiled into a discrete Argument DAG $\mathcal{G}_{\text{LAG}} = (\mathcal{V}_{\text{atom}}, \mathcal{E}_{\text{deps}})$, and interventions are evaluated via **deterministic graph surgery and Assumption-Based Truth Maintenance Systems (ATMS)** (Doyle, 1979; de Kleer, 1986; Dung, 1995) implemented in pure Python (`TopologicalEvaluator` and `CausalDiscoveryEngine`), formalized in Algorithm 1:
+In Quorum, structural intervention is **NOT executed via LLM prompts or statistical regression**. The extracted discourse is compiled into a discrete Argument DAG $\mathcal{G}_{\text{LAG}} = (\mathcal{V}_{\text{atom}}, \mathcal{E}_{\text{deps}})$, and interventions are evaluated via **deterministic graph surgery and Assumption-Based Truth Maintenance Systems (ATMS)** (Doyle, 1979; de Kleer, 1986; Dung, 1995) implemented in pure Python, formalized in Algorithm 1 as the Unified Formal Specification:
 
 ```
 Algorithm 1: Discrete Structural Argument Surgery & Truth Maintenance (ATMS)
@@ -226,7 +232,7 @@ Output : Perturbed state mapping S*, Reachability Cascade Reach(X), Root Causes 
 10:        if C not in Vis then
 11:            // Evaluate Precondition & Warrant Gate under active topology semantics:
 12:            if mode == CONJUNCTIVE_AND then
-13:                // Strict Precondition Chain (TopologicalEvaluator): Any failed/blocked parent blocks C
+13:                // Forward Kahn Wave Scheduling (TopologicalEvaluator): Any antecedent failure blocks C
 14:                survives_gate <- forall P' in Parents(C, E_cut): S*[P'] == expected_status(P', C)
 15:            else
 16:                // Corroborative Warrant Redundancy: Alternative valid warrant shields C
@@ -247,11 +253,12 @@ Output : Perturbed state mapping S*, Reachability Cascade Reach(X), Root Causes 
 ================================================================================
 ```
 
-*Algorithmic Guarantees of Algorithm 1:*
+*Algorithmic Guarantees and Dual-Engine Physical Pipeline Mapping of Algorithm 1:*
 1. **Zero Second-Order LLM Calls:** Lines 7–28 operate in linear deterministic time $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$ over in-memory adjacency lists in pure Python. No stochastic LLM sampling occurs during perturbation evaluation.
 2. **Deterministic Edge Severing (Structural Graph Surgery):** Line 2 executes structural graph surgery ($\mathcal{G}_{\overline{X}}$) by pruning incoming edges in the adjacency structure while holding invariant the downstream topology.
-3. **Conjunctive vs. Disjunctive Truth Maintenance Semantics:** Lines 12–19 distinguish between two structural dependency topologies. In strict precondition chains (`CONJUNCTIVE_AND`, enforced in `TopologicalEvaluator.evaluate_graph`), every antecedent $P' \in \text{Parents}(C)$ is a necessary condition; if any parent enters `SYSTEM_ERROR`/`BLOCKED` or violates `expected_status`, $C$ deterministically short-circuits to `BLOCKED` or `N_A` (`short_circuit_reason_tda_ids`). Conversely, in corroborative argument graphs (`DISJUNCTIVE_OR`), dependent claim $C$ survives if supported by an independent alternative warrant $\mathbf{W}_{P'C}$ backed by an unperturbed parent ($\kappa = 1$).
-4. **Root Cause Attribution:** Line 29 uniquely identifies primary epistemic breakdown points (`root_cause_node_ids` where `blame_parent_ids == []`), differentiating root premise failures from downstream cascaded blocks without penalizing authors repeatedly for secondary effects.
+3. **Forward Kahn Wave Scheduling (`TopologicalEvaluator`):** Lines 12–14 enforce strict `CONJUNCTIVE_AND` precondition semantics during real-time forward DAG evaluation in `TopologicalEvaluator.evaluate_graph`. Every antecedent $P' \in \text{Parents}(C)$ is a necessary condition; if any parent enters `SYSTEM_ERROR`/`BLOCKED` or violates `expected_status`, child $C$ deterministically short-circuits to `BLOCKED` or `N_A` (`short_circuit_reason_tda_ids`), completely pruning child nodes from LLM batch evaluation.
+4. **Backward Fault Attribution & Root Cause Isolation (`CausalDiscoveryEngine`):** Line 29 is physically executed by `CausalDiscoveryEngine.execute`, which traverses inbound dependencies (`in_deps`) across evaluated argument structures. The engine isolates true epistemic breakdown points (`root_cause_node_ids`, where upstream nodes failed without failing parents) from secondary cascading errors (`blame_parent_ids`), ensuring authors are not penalized repeatedly for downstream consequences.
+5. **Corroborative Redundancy & Future Surgery Architecture:** Lines 16–18 formalize corroborative warrant redundancy (`DISJUNCTIVE_OR`), where alternative valid evidentiary warrants preserve claim truth values. In production architecture, real-time forward DAG evaluation and interactive counterfactual simulation are cleanly decoupled: `TopologicalEvaluator` maintains strict single responsibility over forward wave execution and mutation invariance, while interactive counterfactual surgery is partitioned to dedicated simulation services (specifically future StructuralSurgeryService).
 
 *Scope Disambiguation (Discrete ATMS Surgery vs. Observational Do-Calculus):* We explicitly repudiate any rhetorical conflation between **Discrete Structural Argument Surgery** and **Observational Confounding Adjustment via Pearl's Three Rules of Do-Calculus**. The classical do-calculus (Pearl, 1995, 2009) is an axiomatic apparatus designed for non-parametric identification of interventional probability distributions $P(Y \mid do(X))$ from non-experimental observational joint distributions $P(V)$ in the presence of unobserved statistical confounders. In Quorum's discrete text analysis, there are no observational probability distributions, random variables, or backdoor adjustment summations. Rather, Quorum utilizes Pearl's graph-theoretic definition of an intervention ($\mathcal{G}_{\overline{X}}$: severing incoming dependencies) strictly as an operational counterpart to de Kleer's (1986) premise retraction in an Assumption-Based Truth Maintenance System (ATMS). Algorithm 1 deterministically audits whether an author's conclusions possess independent evidentiary warrants ($\mathbf{W}$) or experience justification collapse when antecedent premises are invalidated.
 
@@ -321,6 +328,98 @@ $$\text{Score}(\rho) = \begin{cases} S_{\min} + \left( \rho^{\gamma(\theta)} \cd
 
 ```
 
+### 5.4. Multi-Matrix Orthogonal Scoring Space, Polarity Mechanics, and Two-Tier Governance
+
+While Equations (12)–(17) formulate the scoring kernel for an individual Behaviorally Anchored Rating Scale (BARS) matrix, Quorum's neurosymbolic evaluation engine is not bounded by a single evaluative lens. The platform implements a **Holistic Multi-Matrix Audit**, wherein an arbitrary set of process-, structural-, and domain-specific matrices (`docs/architecture/08_matrix_explanations.md`, `seed_data.json`) are scheduled concurrently within the cognitive graph ($\mathcal{G}_{\text{DAG}}$) under Zero-Code Domain Extensibility.
+
+#### 5.4.1. Two-Tier Scoring Hierarchy: Sovereign Kernel vs. Macro Governance
+
+To preserve mathematical purity and prevent cross-phase architectural pollution, Quorum enforces a strict separation of concerns through a two-tier scoring hierarchy:
+
+1. **Tier A: Sovereign Intra-Matrix Kernel (`UnifiedScoringEngine`):**
+   Equation (17) represents the sovereign intra-matrix scoring kernel implemented by `UnifiedScoringEngine.calculate`. It computes a pure mathematical evaluation bounded strictly by the evaluated matrix prompt block's extrema ($[S_{\min}, S_{\max}]$ derived via `computed_min` and `computed_max`). The kernel operates exclusively on atomic criteria within that single matrix, computing weighted capability ratio $\rho$ and intra-matrix anti-pattern falsification multiplier $\Pi_{\text{penalty}}$ under continuous strictness damping $\gamma(\theta)$. The kernel returns an immutable `ScoringResultDTO` containing the normalized score, per-level breakdown, and structured XAI audit trace. The intra-matrix kernel does not access external workflow state, execute database lookups, or apply macro-level penalties.
+
+2. **Tier B: Macro-Workflow Governance and Multi-Matrix Aggregation (`apply_scoring_logic_hook`):**
+   Multi-matrix scoring consolidation and workflow-level penalty governance are decoupled into the post-execution hook pipeline (`backend_v2/hooks/scoring/`):
+   * **Commensurate Normalization (`normalization_hook.py`):** Each evaluated matrix block projects its raw score into a normalized $[0.0, 100.0]$ scale via `normalize_matrix_scores_hook`:
+     $$\text{Normalized\_Score}_m = \left( \frac{\text{raw\_score}_m - \text{computed\_min}_m}{\text{computed\_max}_m - \text{computed\_min}_m} \right) \times 100.0$$
+   * **Macro-Workflow Penalty Governance (`falsifier_hook.py`):** The consolidated global score is calculated by `apply_scoring_logic_hook` as the unweighted arithmetic mean of normalized matrix scores, subjected to workflow-level deduction penalties:
+     $$\text{average\_score} = \frac{1}{N} \sum_{m=1}^N \text{Normalized\_Score}_m$$
+     $$\text{effective\_penalty} = \min(\text{total\_penalty}, P_{\max})$$
+     $$\text{global\_score} = \text{round}\left( \max(0.0, \; \text{average\_score} \times (1.0 - \text{effective\_penalty})), \; 1 \right)$$
+     where $P_{\max} = 0.40$ (40% maximum cumulative workflow deduction). Workflow penalties encompass three sovereign modalities configured in `Workflow`: security injection penalty (`security_penalty`), post-hoc excuse penalty (`post_hoc_penalty`), and passivity penalty (`passivity_penalty`).
+   * **Observer Hook Protocol (`passivity_hook.py`):** Behavioral passivity detection is decoupled from intra-matrix scoring math. In `enforce_passivity_penalty_hook`, the hook inspects matrix outputs (`MatrixAggregationStateDTO` or `LightweightMatrixOutput`). If a matrix resolves to its mathematical floor ($S_{\min}$) with zero positive capability hits above the baseline, the hook emits a semantic delta (`PassivityDetectionResultDTO(passivity_detected=True)`). When observed, `apply_scoring_logic_hook` applies the workflow's configured `passivity_penalty` at Tier B aggregation.
+
+#### 5.4.2. Holistic Multi-Matrix Audit in Orthogonal Vector Space ($\mathbf{\Psi}$)
+
+Restricting AI evaluation to a single diagnostic dimension produces structural blind spots. If auditing is confined strictly to the final artifact ($\sigma_i = \text{ASSISTANT}$), fluent autoregressive prose can achieve high marks even if the human operator acted as a completely passive passenger. Conversely, analyzing only conversational interaction ($\sigma_i = \text{USER}$) risks an **Illusion of Control**, wherein concise, confident prompting yields an epistemically hollow, Rung 1 deliverable.
+
+Quorum formalizes holistic evaluation as a $D$-dimensional orthogonal matrix vector $\mathcal{M} = (\mathcal{M}_1, \mathcal{M}_2, \dots, \mathcal{M}_D)$, where each matrix $\mathcal{M}_d$ interrogates discourse $\mathcal{D}$ from a distinct epistemic stance anchored to an XML-isolated speaker capsule ($\sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$):
+
+$$\mathbf{\Psi}(\mathcal{D}; \theta) = \begin{bmatrix} \text{Score}_{\mathcal{M}_1}\left(\rho_1, \Pi_{\text{penalty}}^{(1)}; \theta\right) \\ \text{Score}_{\mathcal{M}_2}\left(\rho_2, \Pi_{\text{penalty}}^{(2)}; \theta\right) \\ \vdots \\ \text{Score}_{\mathcal{M}_D}\left(\rho_D, \Pi_{\text{penalty}}^{(D)}; \theta\right) \end{bmatrix} \in \prod_{d=1}^D \left[ S_{\min}^{(d)}, S_{\max}^{(d)} \right] \tag{17a}$$
+
+In a complete audit workflow (`Workflow`), execution graph $\mathcal{G}_{\text{DAG}}$ partitions evaluation across three cross-validating epistemic layers executed concurrently via asynchronous coroutines (`asyncio.TaskGroup`) within the same Kahn topological wave $W_k$:
+
+1. **Human Agency & Collaboration Matrix ($\mathcal{M}_{\text{HACM}}, \sigma_i = \text{USER}$):** Targets the `<user_payload>` capsule, evaluating cognitive steering responsibility, boundary definition, adversarial challenging of AI drafts, and iterative refinement.
+2. **Epistemic & Causal Architecture Matrix ($\mathcal{M}_{\text{Causal}}, \sigma_i = \text{ASSISTANT}$):** Targets the `<ai_draft_context>` deliverable, measuring argument coherence, explicit Toulmin warrants ($\mathbf{W}_{XY}$), orphan claim density ($\mathcal{A}_{\text{orphan}}$), and counterfactual stress testing.
+3. **Domain Substance Matrix ($\mathcal{M}_{\text{Domain}}, \sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$):** Evaluates specialized task constraints—spanning legal claim management, strategic foresight, and statutory compliance—using the identical mathematical scoring kernel.
+
+While `apply_scoring_logic_hook` computes a commensurate scalar average for high-level governance, the Server-Driven UI presentation pipeline (`SduiMapperService`) preserves vector $\mathbf{\Psi}(\mathcal{D}; \theta)$ intact, exposing the **Agency-to-Outcome Divergence**:
+
+$$\Delta_{\text{agency-outcome}} = \left\vert{} \hat{S}(\mathcal{M}_{\text{HACM}}) - \hat{S}(\mathcal{M}_{\text{Domain/Causal}}) \right\vert{} \tag{17b}$$
+
+where $\hat{S}(\cdot) \in [0, 1]$ represents the normalized matrix score. An elevated divergence $\Delta_{\text{agency-outcome}}$ diagnoses either uncritical automation complacency (high outcome without human agency) or ineffective steering (active dialogue failing to materialize as structural deliverable quality).
+
+#### 5.4.3. Matrix-Specific Polarity Mechanics and Classical Theoretical Grounding
+
+Within every matrix $\mathcal{M}_d$, positive capability assertions ($\pi_i = +1$) and negative anti-pattern falsifiers ($\pi_i = -1$) enforce a **two-sided lexical proof burden** (`ExtractiveSensorService` & `AnchorValidationService`) grounded in **contrastive pair enforcement** (`ContrastivePairDTO`: `acceptable` vs. `rejected`):
+
+1. **Positive Capability Assertions ($\pi_i = +1$, `is_inverse=False`):**
+   * *Epistemic Role:* Measures constructive cognitive and professional competence across hierarchical BARS levels $l \in \{1, \dots, 5\}$.
+   * *Evidentiary Proof Burden:* The default state is unproven ($h_l = 0$). An assertion is accepted ($\omega(a_i) = \text{PASSED}$) only if the sensor extracts an exact verbatim quote $\mathcal{C}_i$ from target speaker $\sigma_i$ matching the positive anchor (`acceptable`), avoiding the negative distractor (`rejected`), and passing all five physical Python validation gates ($\kappa_i = 1$).
+   * *Mathematical Impact:* Accrues additively into weighted capability ratio $\rho = A / M$ (Equations 13–14) and is softened via piecewise power-curve damping $\rho^{\gamma(\theta)}$ (Equation 16).
+
+2. **Negative Anti-Pattern Assertions ($\pi_i = -1$, `is_inverse=True`):**
+   * *Epistemic Role:* Acts as a Popperian gatekeeper, actively searching for cognitive shortcuts, argumentation fallacies, uncritical delegation, and superficial fluency.
+   * *Evidentiary Proof Burden (Defense Against Hallucinated Penalties):* The default state is clean performance ($\Pi_{\text{penalty}} = 1.0$). The LLM cannot penalize by stochastic estimation: deduction $p_k \in (0, 1)$ triggers only if the sensor extracts an exact verbatim citation passing all five `AnchorValidationService` gates ($\kappa_i = 1$) proving the violation occurred. If lexical grounding fails ($\kappa_i = 0$), the penalty is dropped.
+   * *Mathematical Impact:* Verified anti-patterns deduct from the matrix score multiplicatively via $\Pi_{\text{penalty}} = \max(1 - P_{\max}, \prod_{k=1}^K (1 - p_k))$ (`falsifier_hook.py`, Equation 15), capped at $P_{\max} = 0.40$.
+
+In accordance with Quorum's architectural compendium (`docs/architecture/08_matrix_explanations.md`) and seed vault (`seed_data.json`), assertions are anchored to classical theoretical literature across two mutually exclusive rubric tracks:
+
+| Matrix Category & Speaker ($\sigma_i$) | Rubric Track | Classical Theoretical Grounding | Positive Capability Assertions ($\pi_i = +1$, BARS Tiers $l \in \{1, \dots, 5\}$) | Negative Anti-Pattern Falsifiers ($\pi_i = -1$, Malus Multiplier $\Pi_{\text{penalty}}$) |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Human Agency & Collaboration (HACM)**<br><br>$\sigma_i = \text{USER}$ | **Track A**<br>(Developmental) | **Sheridan & Verplank (1978)** (*Levels of Automation*),<br><br>**Parasuraman et al. (2000)**,<br><br>**Kahneman (2011)** (*System 1 vs. 2*),<br><br>**Buçinca et al. (2021)** (*Cognitive Forcing*) | **L1–L2:** Foundational task framing and contextual bounding.<br><br>**L3:** Explicit boundary constraints, persona assignment, and criteria setting.<br><br>**L4:** Active adversarial challenging of AI drafts and error correction.<br><br>**L5:** Metacognitive steering, hypothesis forcing, and sovereign synthesis direction. | **Automation Bias & Passive Delegation (`passivity_hook.py`):**<br><br>• Unconstrained "do this for me" task abdication.<br><br>• Blind rubber-stamping of first-draft outputs.<br><br>• Relinquishing critical verification responsibility.<br><br>• Vacuous conversational prompts lacking steering content. |
+| **2. Argumentative & Causal Structure (A-SCM)**<br><br>$\sigma_i = \text{ASSISTANT}$ | **Track B**<br>(Error Radar) | **Judea Pearl (2009)** (*Causal Ladder: Rungs 1–3*),<br><br>**Stephen Toulmin (1958)** (*Claim, Grounds, Warrant, Backing, Rebuttal*) | **L1–L2 (Rung 1):** Associative identification of variables and empirical correlations.<br><br>**L3 (Toulmin Warrant):** Explicit intermediate causal mechanism ($\mathbf{W}_{XY}$) justifying *why* $X \to Y$.<br><br>**L4 (Rung 2 Intervention):** Confounder isolation ($U$) and systemic policy side-effect modeling.<br><br>**L5 (Rung 3 Counterfactual):** "What-if" boundary stress tests, limit breaking, and opportunity cost analysis. | **Pseudo-Causality & Structural Collapse:**<br><br>• Conflating correlation with causation (bare trend listing).<br><br>• Orphan claims ($\mathcal{A}_{\text{orphan}}$) lacking evidentiary grounds or warrants ($\mathbf{W} = \emptyset$).<br><br>• Circular causal loops (`CYCLIC_DEPENDENCY_DETECTED`).<br><br>• Unqualified optimism omitting boundary exceptions (*Missing Rebuttal*). |
+| **3. Critical Thinking & Epistemic Rigor**<br><br>$\sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$ | **Track A & B**<br>(Hybrid) | **Benjamin Bloom (1956)** (*Cognitive Taxonomy*),<br><br>**Karl Popper (1959)** (*Empirical Falsifiability*) | **L1–L2 (Remember/Understand):** Nomenclature definition and baseline summarization.<br><br>**L3 (Apply/Analyze):** Deconstructing latent assumptions and identifying structural tensions.<br><br>**L4 (Evaluate):** Source critique, evidence weighting, and defining empirical falsification conditions.<br><br>**L5 (Create):** Synthesizing novel, empirically testable explanatory frameworks. | **Epistemic Immunization & Cognitive Biases (`falsifier_hook.py`):**<br><br>• Confirmation bias (discarding disconfirming evidence).<br><br>• Unfalsifiable tautologies and evasive non-committal prose.<br><br>• Substituting substantive depth with rhetorical buzzwords (*Jargon Load*). |
+| **4. Domain & Task-Specific Substance**<br><br>$\sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$ | **Track B**<br>(Substantive) | **Smith & Kendall (1963)** (*BARS Anchoring*) integrated with substantive domain theory (specifically: contract law, service recovery, or strategic foresight) | **L1–L2:** Addressing baseline factual parameters of the case or scenario.<br><br>**L3:** Proportionate response formulating standard operational remedies.<br><br>**L4:** Balancing legal/financial liability against stakeholder equity; root-cause remediation.<br><br>**L5:** Proactive systemic risk containment and strategic value creation. | **Substantive Professional Errors:**<br><br>• Defensive externalization or ignoring stakeholder grievances.<br><br>• Premature unhedged admission of legal/financial liability.<br><br>• Vacuous apologies lacking concrete operational action plans.<br><br>• Naive linear trend extrapolation presented as foresight. |
+
+#### 5.4.4. Design-Time Human Curation and Empirical Scope Boundaries
+
+The rigorous mapping above demonstrates why Quorum matrices are compiled through **Design-Time Human Curation** rather than unconstrained runtime LLM generation:
+
+1. **Immunity to Second-Order Hallucinations and Rice's Theorem:** As established in Sections 2.1 and 4.1.1, arbitrary semantic consequence ($\mathcal{C}_i \models \tau_i$) across unconstrained text is undecidable without stochastic evaluation. By binding every positive ($\pi_i = +1$) and negative ($\pi_i = -1$) criterion to a pre-compiled BARS rubric and strict contrastive pair (`ContrastivePairDTO`), the LLM is stripped of judicial authority and restricted to a deterministic syntactic sensor.
+2. **Psychometric Invariance and Regulatory Auditability:** Because evaluation matrices exist as versioned, immutable database entities (`ConfigDict(frozen=True)`), every execution is scored against an identical Lipschitz-stable benchmark (Equation 17), guaranteeing longitudinal repeatability across evaluation cohorts.
+3. **Classical Theories as Cognitive Compilers:** Domain architects need not invent evaluative dimensions ad-hoc in Quorum Studio (`bars_matrix_builder.dart`). Sheridan–Verplank, Toulmin, Pearl, Bloom, Popper, and Kahneman provide an established five-tier competence continuum ($\pi_i = +1$) and a canonical error taxonomy ($\pi_i = -1$). Domain experts map specialized terminology directly into these established structures, after which automated AST verification suites (`scripts/sanitize_seed_vault.py`, `test_matrix_anchoring_rules.py`) guarantee lexical anchorability and prevent overfitting.
+
+```
+      CLASSICAL THEORIES                 BARS MATRIX ARCHITECTURE
++----------------------------+       +----------------------------------+
+| Bloom (Remember / Describe)| ----> | Tiers 1-2 (π = +1):              |
+| Pearl Rung 1 (Association) |       | Baseline Recall & Association    |
++----------------------------+       +----------------------------------+
+| Toulmin (Claim-Data-Warrant| ----> | Tier 3 (π = +1):                 |
+| Sheridan-Verplank (Steer)  |       | Explicit Mechanism (W_XY)        |
++----------------------------+       +----------------------------------+
+| Pearl Rung 2-3 (Intervene  | ----> | Tiers 4-5 (π = +1):              |
+| & Counterfactual)          |       | Boundaries, Stress Tests & Risks |
++----------------------------+       +----------------------------------+
+| Popper (Falsification)     | ----> | Anti-Patterns (π = -1):          |
+| Kahneman (System 1 Bias)   |       | Passivity, Jargon & Fallacies    |
++----------------------------+       +----------------------------------+
+```
+
+*Empirical Scope Boundary and Prospective Cross-Domain Validation:* While the empirical case study in Chapter 8 examines a two-matrix configuration ($\mathcal{M}_{\text{HACM}}$ and $\mathcal{M}_{\text{Causal}}$) within strategic foresight, Quorum's data-driven matrix engine is architecturally domain-agnostic. In ongoing research and prospective validation campaigns, this multi-matrix space ($\mathbf{\Psi}$) is systematically applied to enterprise contract review, regulatory compliance audits, and multi-agent software engineering workflows across diverse organizational cohorts and foundation model families.
+
 ---
 
 ## 6. Architectural Principles and Verified Mathematical Properties
@@ -376,7 +475,9 @@ Because the lexical matcher is an exact, non-fuzzy string boundary invariant imp
 
 *Topological Derivation & System Mechanics:*
 
-1. **Discrete Graph Surgery via Truth Maintenance:** Rather than attempting observational density estimation via statistical do-calculus, discourse graph surgery is evaluated deterministically in pure Python (`TopologicalEvaluator` and `CausalDiscoveryEngine`). Applying structural intervention $\text{do}(X = \text{FAILED})$ severs incoming edges $\mathbf{PA}_X \to X$ in the adjacency structure ($\mathcal{G}_{\overline{X}}$) and clamps $X$'s state to `FAILED`, triggering ATMS label retraction across downstream dependencies.
+1. **Discrete Graph Surgery via Dual-Engine Truth Maintenance:** Rather than attempting observational density estimation via statistical do-calculus, discourse graph surgery and truth maintenance are evaluated deterministically in pure Python through decoupled dual-engine mechanics:
+   * **Forward Wave Scheduling and Reachability (`TopologicalEvaluator.evaluate_graph`):** Enforces Kahn topological wave execution under strict `CONJUNCTIVE_AND` precondition rules. Applying structural intervention $\text{do}(X = \text{FAILED})$ or observing an antecedent precondition mismatch severs forward validity, deterministically cascading downstream reachability $\text{Reach}(\mathcal{G}_{\overline{X}}, X)$ into `BLOCKED` or `N_A` states without LLM invocation.
+   * **Backward Blame Attribution and Root Cause Isolation (`CausalDiscoveryEngine.execute`):** Operates on the mined argument graph by traversing inbound causal edges (`in_deps`) via bounded breadth-first search. When downstream failures occur, the engine isolates upstream root causes ($\text{BlameParents}(X) = \emptyset$) from secondary cascade consequences ($\text{BlameParents}(Y) = \{ X \}$), preventing double-penalization.
 
 2. **Topological Asymmetry and Reachability:** Let $\text{Reach}(\mathcal{G}, v)$ denote the set of all nodes reachable via directed paths from $v$. The invariant $X \notin \text{Reach}(\mathcal{G}_{\overline{Y}}, Y)$ proves that premise $X$ is topologically upstream from outcome $Y$:
 
@@ -386,7 +487,7 @@ No backward causal flow exists in the authored discourse. Concurrently, $Y \in \
 
 $$(Y \not\!\perp_{\mathcal{G}_{\overline{X}}} X) \implies X \in \text{Ancestors}(Y) \tag{24}$$
 
-3. **Enthymemic Confounder Isolation via Grounded Warrants:** Suppose an unstated assumption $U_{\text{enthymeme}}$ creates a spurious correlation $X \leftarrow U_{\text{enthymeme}} \to Y$ (a rhetorical leap where the author omitted mediating operational steps). Under the discrete intervention $\text{do}(X = \text{FAILED})$, the path through $X$ is severed. If the author omitted explicit warrants ($\mathbf{W}_{XY} = \emptyset$), the topological fault evaluator detects that:
+3. **Enthymemic Confounder Isolation via Grounded Warrants:** Suppose an unstated assumption $U_{\text{enthymeme}}$ creates a spurious correlation $X \leftarrow U_{\text{enthymeme}} \to Y$ (a rhetorical leap where the author omitted mediating operational steps). Under the discrete intervention $\text{do}(X = \text{FAILED})$, the path through $X$ is severed. If the author omitted explicit warrants ($\mathbf{W}_{XY} = \emptyset$), `CausalDiscoveryEngine` detects that:
 
 $$\text{BlameParents}(Y) = \{ X \} \implies \text{Status}(Y) \gets \text{BLOCKED} \tag{25}$$
 
@@ -408,35 +509,37 @@ where $\xi$ represents stochastic semantic noise.
             Raw Stochastic Prompt
                       |
                       v
-        +---------------------------+
-        | Barrier 1: Ingress Layer  |
-        | - Strips prompt injection |
-        | - Indexes agency (σ_i)    |
-        +-------------+-------------+
-                      |
-                      v
-        +---------------------------+
-        | Barrier 2: TDA Grounding  |
-        | - Null hypothesis (κ = 0) |
-        | - Drops hallucinations    |
-        +-------------+-------------+
-                      |
-                      v
-        +---------------------------+
-        | Barrier 3: Falsification  |
-        | - Multi-provider voting   |
-        | - Penalty (Π_penalty)     |
-        +-------------+-------------+
-                      |
-                      v
-        +---------------------------+
-        | Barrier 4: Lipschitz Damp |
-        | - Power curve (γ = 1.25)  |
-        | - Bounds output variance  |
-        +-------------+-------------+
-                      |
-                      v
-          Deterministic Final State
+        +-----------------------------------------------+
+        | Barrier 1: Ingress Layer                      |
+        | - Strips prompt injection                     |
+        | - Indexes agency (σ_i)                        |
+        +-----------------------+-----------------------+
+                                |
+                                v
+        +-----------------------------------------------+
+        | Barrier 2: TDA Grounding                      |
+        | - Null hypothesis (κ = 0)                     |
+        | - Drops hallucinations                        |
+        +-----------------------+-----------------------+
+                                |
+                                v
+        +-----------------------------------------------+
+        | Barrier 3: Asymmetric Falsification & Bo3     |
+        | - Asymmetric Malus (π = -1)                   |
+        | - Single-Model Bo3 Ensemble                   |
+        | - Multiplicative Penalty (Π_penalty)          |
+        +-----------------------+-----------------------+
+                                |
+                                v
+        +-----------------------------------------------+
+        | Barrier 4: Aggregation & Lipschitz Damp       |
+        | - Commensurate Normalization                  |
+        | - Macro Scoring Governance (P_max = 0.40)     |
+        | - Power curve damping (γ = 1.25)              |
+        +-----------------------+-----------------------+
+                                |
+                                v
+                    Deterministic Final State
 
 ```
 
@@ -487,6 +590,8 @@ Linguistic analysis revealed a severe disparity between form and substance:
 * **Mechanical Phrase Load:** $0.00 / 2.0$ (Zero clichés or empty buzzwords detected).
 * **Cognitive Authenticity:** $1.47 / 3.0$ (Low, unreflective routine delegation).
 * **Form-to-Content Disparity Ratio:** $1.53$ (Verdict: **IN CONFLICT**).
+
+*Orthogonal XAI Diagnostic Classification:* The Form-to-Content Disparity Ratio is computed strictly as an orthogonal Explainable AI (XAI) diagnostic metric by `variance_engine.py`. Parameterized by the absolute difference between cognitive authenticity and the inverse mechanical phrase load ($\Delta = |\text{Score}_{\text{cog}} - (3.0 - \text{Load}_{\text{mech}})| = |1.47 - (3.0 - 0.00)| = 1.53$), this metric quantifies operator misalignment and detects superficial compliance without altering the evaluative capability scoring. It does NOT deduct points from the BARS normalized score ($11.7\%$ / $7.2\%$) or mutate Equation (17). Evaluative capability scoring (BARS) and orthogonal cognitive diagnostic classification remain strictly decoupled.
 
 The user formulated concise, jargon-free prompts (*"mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila"*), which created an **Illusion of Control**. The operator assumed the concise prompt guaranteed an analytically rigorous output. In reality, the AI's first associative draft was accepted without counterfactual testing, sensitivity analysis, or trade-off evaluation.
 
@@ -547,9 +652,12 @@ The user formulated concise, jargon-free prompts (*"mikä on sitran näkemys suu
 
 ## 10. Limitations and Practical Considerations
 
-1. **Computational Overhead and FinOps Allocation:** Multi-provider consensus voting and deterministic lexical verification (Architectural Property 1) combined with counterfactual branch expansion increase inference token costs. In production enterprise deployments, Quorum mitigates this through selective routing: lightweight models execute initial atomization, while heavy multi-provider ensembles are reserved for critical Level 4–5 causal nodes.
+1. **Computational Overhead and FinOps Allocation (Two-Tier Verification Strategy):** Parallel ensemble verification and deterministic lexical verification (Architectural Property 1) increase inference token consumption relative to unverified single-pass sampling. In Quorum, FinOps resource allocation and verification rigor are strictly partitioned into a Two-Tier Verification Architecture:
+   * **Production DAG Execution:** DAG nodes evaluate high-entropy proposition atoms using a single-pass Best-of-3 ensemble executed strictly with the single model configuration assigned to the step via Model Garden (`LLMClient.from_strategy`), dispatching parallel calls via `asyncio.TaskGroup` (`settings.ensemble_parallelism = 3`, `settings.ensemble_min_consensus = 2`) with Popperian Null Hypothesis tie-breaking. Acknowledge that while future architectural evolutions may evaluate heterogeneous multi-provider runtime dispatch, production currently enforces standard single-model execution with zero backend code changes.
+   * **Offline Cross-Model Variance Testing:** Comprehensive multi-provider benchmarking across diverse foundation model families (including Gemini, Claude, OpenAI, and DeepSeek) is decoupled into dedicated offline variance testing suites (`scripts/run_e2e_variance_test.py` and `backend_v2/workers/variance_synthesis.py`). This assesses cross-model parameter stability and alignment variance without introducing live production latency penalties or heterogeneous API key dependencies into real-time DAG scheduling.
 2. **Exogenous Axiom Misattribution:** In sparse strategic corpora, separating genuine exogenous axioms ($U_i$) from unanchored orphan claims relies on accurate bounding box parsing. If an author introduces implicit domain premises without citations, TDA provenance verification flags them as orphans ($\kappa_i = 0$). Domain-specific white-listing of axiomatic priors resolves this friction.
 3. **Cohort Percentile Calibration:** The scores reported ($11.7\%$ and $7.2\%$) reflect strict BARS damping ($\gamma = 1.25$). Without peer comparison, operators may perceive these scores as excessively punitive. Providing percentile rankings against normalized organizational cohorts contextualizes the diagnostic.
+4. **Episodic Identifier Aliasing, Attention Economics, and Fail-Fast State Hydration:** While Section 2.1 formalizes the bijective mapping $\mu: \mathcal{I}_{\text{UUID}} \longleftrightarrow \mathcal{V}_{\text{alias}}$, maintaining distributed referential integrity requires strict lifecycle isolation. In Quorum, `AliasEngine` instances are strictly non-singleton, instantiated per execution job to prevent cross-tenant memory leakage. When execution is distributed across asynchronous background workers (specifically Celery or Arq worker pools), the mapping state is serialized into an immutable snapshot (`AliasManifest`) transported within `step_metadata`. The receiver reconstitutes the bijection (`AliasEngine.from_manifest`) and executes strict fail-fast validation: any hallucinated alias matching an active prefix that does not exist in the manifest immediately halts execution with an unrecoverable validation error (`AppException(422)`), preventing corrupted foreign keys from entering persistent DAG state.
 
 ---
 
