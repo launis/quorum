@@ -158,7 +158,7 @@
         <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
         <tier id="5_handover" path="/tier5-session-handover">Session Handover Export for context transition.</tier>
         <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
-        <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing.</tier>
+        <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing and Auto-RCA triage.</tier>
         <tier id="7" path="/tier7-describe-architecture">As-Built architectural documentation from current codebase.</tier>
         <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming of rules and workflows.</tier>
         <tier id="8_audit_feature" path="/tier8-audit-feature">System 2 First Principles analysis, Panel of Experts audit, and red-teaming of proposed features.</tier>

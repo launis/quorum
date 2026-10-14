@@ -59,11 +59,11 @@ $$a_i = \langle \tau_i, \mathcal{C}_i, \sigma_i, \pi_i, \kappa_i \rangle \tag{4}
 * $\mathcal{C}_i \subset \Sigma^*$ is the spatial and contextual bounding box isolating the exact text span in $\mathcal{D}$ from which $\tau_i$ was derived.
 * $\sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$ is the speaker attribution index, separating human supervisory intent from model-generated synthetic drafts.
 * $\pi_i \in \{+1, -1\}$ is the evidentiary polarity index: $\pi_i = +1$ denotes a positive capability claim (demonstrating analytical competence), whereas $\pi_i = -1$ designates an asymmetric anti-pattern detector (identifying cognitive failure modes, fallacies, or uncritical adoption).
-* $\kappa_i \in \{0, 1\}$ is the lexical provenance anchoring index, governed by an uncompromising null hypothesis:
+* $\kappa_i \in \{0, 1\}$ is the lexical provenance anchoring index, governed by an uncompromising null hypothesis parameterized by strictness $\theta \in [0, 100]$:
 
-$$\kappa_i = \begin{cases} 1, & \text{find}(\text{Norm}(\mathcal{C}_i), \text{Norm}(\mathcal{D})) \neq -1 \;\land\; \text{Prov}(\mathcal{C}_i, \sigma_i) \;\land\; \text{Triangulate}(\mathcal{T}_i, \mathcal{C}_i) \\ 0, & \text{otherwise} \end{cases} \tag{5}$$
+$$\kappa_i = \begin{cases} 1, & \text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta) \;\land\; \text{Prov}(\mathcal{C}_i, \sigma_i) \;\land\; \text{Triangulate}(\mathcal{T}_i, \mathcal{C}_i) \\ 0, & \text{otherwise} \end{cases} \tag{5}$$
 
-where $\text{Norm}(\cdot)$ denotes Unicode NFKC diacritic decomposition and formatting strip, $\text{Prov}(\cdot)$ enforces structured XML speaker isolation, and $\text{Triangulate}(\cdot)$ validates internal CoT consistency against syntactic anchors.
+where $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ evaluates the deterministic lexical verification cascade (collapsing to exact normalized substring containment $\text{find}(\text{Norm}(\mathcal{C}_i), \text{Norm}(\mathcal{D})) \neq -1$ at $\theta \ge 100$, and incorporating bounded morphological stem-sequence verification for agglutinative inflections at $\theta < 100$), $\text{Norm}(\cdot)$ denotes Unicode NFKC/NFD diacritic decomposition and formatting strip, $\text{Prov}(\cdot)$ enforces structured XML speaker isolation, and $\text{Triangulate}(\cdot)$ validates internal CoT consistency against syntactic anchors.
 
 *The Syntactic Provenance vs. Semantic Entailment Boundary:* An exact substring match $\text{find}(\mathcal{C}_i, \mathcal{D}) \neq -1$ provides *physical provenance*—irrefutable proof that citation $\mathcal{C}_i$ was not fabricated or spliced across disparate paragraphs. However, deterministic string matching is semantically blind: it proves the physical existence of characters, not that proposition $\tau_i$ logically follows from $\mathcal{C}_i$. In Quorum, this semantic gap is bridged without falling into second-order LLM stochasticity because **propositions $\tau_i$ are NOT freely invented by the model**. Instead, propositions are **pre-compiled, strictly typed evaluation criteria** defined in Single Source of Truth (SSOT) Behaviorally Anchored Rating Scale (BARS) rubrics (`seed_data.json`). The generative model is constrained to identifying the exact verbatim clause $\mathcal{C}_i$ satisfying the pre-defined target invariant $\tau_i$, backed by reasoning trace syntactic anchor triangulation and asymmetric Popperian falsification ($\pi_i = -1$). If physical containment or provenance fails in deterministic Python code, $\kappa_i = 0$ and the proposition fails closed unconditionally.
 
@@ -149,7 +149,7 @@ $$\Phi_v: \prod_{u \in \text{Parents}(v)} \mathcal{O}_u \times \mathcal{S}_{\tex
 *Nomenclature Demarcation and Scope Calibration:* To prevent terminological confusion with *Topological Data Analysis* (TDA in applied mathematics and machine learning, which studies persistent homology, simplicial complexes, and Betti numbers $\beta_k$ over metric point clouds; Carlsson, 2009; Edelsbrunner & Harer, 2010), we explicitly clarify that in Quorum, the acronym **TDA** designates **Topological Directed Atoms** (and their associated dependency argumentation). The term *topological* is employed strictly in its foundational computer science and order-theoretic sense: Kahn's topological sorting (Kahn, 1962) on finite directed acyclic graphs inducing an Alexandroff topology and a specialization poset ($\mathcal{G}_{\text{LAG}}$). Quorum asserts no claims of computing algebraic homology groups or metric simplicial filtrations. Rather, TDA in Quorum denotes the **order-theoretic scheduling, exact lexical provenance, and cycle-free verification** of propositional claims:
 
 1. **Strict Lexical Grounding:** Proposition truth values are grounded directly in verbatim source evidence. Unanchored assertions fail closed ($\kappa_i = 0$).
-2. **Cycle Elimination and Poset Acyclicity:** Circular reasoning chains ($a_1 \implies a_2 \implies \dots \implies a_1$) violate epistemic partial order invariants. Rather than invoking homological machinery, circularities are detected via Tarjan's strongly connected components algorithm (Tarjan, 1972) and isolated prior to evaluation, enforcing strict directed acyclicity across the proposition graph. Strongly connected components lacking an anchored exogenous premise are quarantined as circular epistemic loops.
+2. **Cycle Elimination and Poset Acyclicity:** Circular reasoning chains ($a_1 \implies a_2 \implies \dots \implies a_1$) violate epistemic partial order invariants. Rather than invoking homological machinery, circularities and phantom edges (`UNRESOLVED_DEPENDENCY`) are detected prior to wave evaluation via Tarjan's strongly connected components and Johnson's elementary cycle enumeration algorithm (`nx.simple_cycles`; Tarjan, 1972; Johnson, 1975). Nodes participating in directed cycles are immediately quarantined (`CYCLIC_DEPENDENCY_DETECTED`), and any downstream nodes left unresolved after Kahn wave exhaustion are deterministically clamped to `BLOCKED`, enforcing strict directed acyclicity across the proposition graph.
 
 ### 4.1.1. Deterministic NLI/Entailment and Eradication of Second-Order Hallucination
 
@@ -166,13 +166,13 @@ To eliminate second-order hallucination, Quorum strips the LLM of judicial autho
 
 2. **Gate 2: Entropy Gate & Contiguity Guard (Chimera Quote Defense):**
    * *Entropy Gate (< 10 chars):* Short quotes under 10 characters (e.g. isolated buzzwords) are strictly forbidden from fuzzy matching. 100% exact substring containment is required.
-   * *Contiguity Guard (< 30 chars):* Short phrases enforce strict contiguous sequence matching (`fuzz.partial_ratio`). This prevents the model from picking disparate words from different pages and presenting them as a continuous quote.
+   * *Contiguity Guard (< 30 chars):* Short phrases enforce strict contiguous sequence matching (`fuzz.partial_ratio`), whereas longer spans ($\ge 30$ chars) evaluate token-set overlap (`fuzz.token_set_ratio`). This prevents the model from picking disparate words from different pages and presenting them as a continuous quote.
    * *Safety Ceiling (> 1000 chars):* Quotes exceeding 1000 characters trigger an immediate `SemanticEvidenceError` fail-fast crash to prevent prompt injection and quote stuffing.
 
 3. **Gate 3: Cross-Speaker Provenance Boundary Guard:**
-   Discourse is segmented into XML-fenced provenance capsules: `<user_payload>` for human supervisor inputs and `<ai_draft_context>` for model drafts. When evaluating human capability ($\sigma_i = \text{USER}$), candidate quotes must reside strictly inside `<user_payload>`:
+   Discourse is segmented into XML-fenced provenance capsules: `<user_payload>` for human supervisor inputs, `<ai_draft_context>` for model drafts, and `<assignment_context>` for task instructions. When evaluating human capability ($\sigma_i = \text{USER}$), candidate quotes must reside strictly inside `<user_payload>`:
    
-   $$\text{Prov}(\mathcal{C}_i, \sigma_i) = \mathbb{I}\left( \text{find}(\text{Norm}(\mathcal{C}_i), \text{Norm}(\mathcal{D}_{\text{speaker}})) \neq -1 \right)$$
+   $$\text{Prov}(\mathcal{C}_i, \sigma_i) = \mathbb{I}\left( \text{Lex}(\mathcal{C}_i, \mathcal{D}_{\text{speaker}}; \theta) = 1 \right)$$
    
    If an LLM quotes the AI assistant's draft to substantiate a human competence claim, the verifier halts with a `PROVENANCE_VIOLATION` error, mathematically preventing cross-speaker competence pollution.
 
@@ -180,10 +180,10 @@ To eliminate second-order hallucination, Quorum strips the LLM of judicial autho
    The model's Pydantic response requires an explicit reasoning trace $\mathcal{T}_i$ specifying an exact syntactic anchor (`[2. SYNTACTIC ANCHOR: "..."]`) and decision (`[5. VALIDATION DECISION: PASS/FAIL]`). Pure Python triangulation asserts three consistency invariants:
    * *Contradiction Ban:* If $\mathcal{T}_i$ concludes `FAIL`, but quote $\mathcal{C}_i$ is populated, the atom is rejected for logical contradiction.
    * *Empty Anchor Ban:* If $\mathcal{T}_i$ declares `SYNTACTIC ANCHOR: NONE`, unanchored extraction fails closed.
-   * *Hallucinated Anchor Ban:* The anchor string parsed from the trace must physically exist in the source document; fabricated anchors trigger immediate rejection.
+   * *Hallucinated Anchor Ban:* The anchor string parsed from the trace must physically exist in the source document via `strict_match`; fabricated anchors trigger immediate rejection.
 
-5. **Gate 5: Calibrated Zero-Trust Strictness Curve:**
-   Under Quorum's continuous strictness parameter $\theta \in [0, 100]$, fuzzy matching thresholds scale monotonically. At $\theta \ge 100$ (Absolute Zero-Trust), fuzzy fallback is completely disabled, enforcing 100% exact byte matching.
+5. **Gate 5: Calibrated Zero-Trust Strictness Curve and Morphological Stemming Cascade:**
+   Under Quorum's continuous strictness parameter $\theta \in [0, 100]$, the lexical predicate $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ executes a calibrated four-tier deterministic cascade when $\theta < 100$: (i) exact NFKC/NFD substring containment, (ii) length-stratified RapidFuzz similarity scaled by tier multipliers ($\times 0.80$ for $\theta < 30$, $\times 0.90$ for $\theta \in [30, 50)$, $\times 1.00$ for $\theta \in [50, 85)$, and $\times 1.02$ for $\theta \in [85, 100)$), (iii) multilingual rule-based Snowball morphological stemmed subsequence matching (`StemmerService.match_stemmed_subsequence`) to accommodate grammatical case inflections in highly agglutinative languages (such as Finnish), and (iv) contiguous longest-common-substring coverage verification (`difflib.SequenceMatcher`). At $\theta \ge 100$ (Absolute Zero-Trust), all non-exact tiers (ii)–(iv) are completely disabled, enforcing 100% exact normalized substring containment.
 
 Under this five-gate architecture, propositional grounding does not rely on LLM self-evaluation. An atom $\tau_i$ is accepted ($\kappa_i = 1$) if and only if all five deterministic Python gates succeed, bounding the false acceptance probability by the physical string collision rate $\epsilon_{\text{lexical}} \to 0$.
 
@@ -210,7 +210,8 @@ In Quorum, structural intervention is **NOT executed via LLM prompts or statisti
 ```
 Algorithm 1: Discrete Structural Argument Surgery & Truth Maintenance (ATMS)
 ================================================================================
-Input  : Argument DAG G = (V, E, W), perturbed node X in V, counterfactual state x* in {FAILED, BLOCKED}
+Input  : Argument DAG G = (V, E, W), perturbed node X in V, counterfactual state x* in {FAILED, BLOCKED},
+         gate semantics mode in {CONJUNCTIVE_AND, DISJUNCTIVE_OR}
 Output : Perturbed state mapping S*, Reachability Cascade Reach(X), Root Causes RC
 ================================================================================
 1: S* <- InitialStateMap(V)                          // Base status from lexical grounding Gate
@@ -223,28 +224,34 @@ Output : Perturbed state mapping S*, Reachability Cascade Reach(X), Root Causes 
 8:     curr <- Q.pop_front()
 9:     for each child C in Children(curr, E_cut) do
 10:        if C not in Vis then
-11:            // Warrant Independence Gate: Check if an alternative valid warrant exists
-12:            has_alternative_warrant <- exists P' in Parents(C, E_cut) \ Vis 
-13:                                       such that S*[P'] == PASSED and kappa(W_{P'C}) == 1
-14:            if not has_alternative_warrant then
-15:                S*[C] <- BLOCKED
-16:                Vis.add(C)
-17:                Cascade.append(C)
-18:                Q.push_back(C)
+11:            // Evaluate Precondition & Warrant Gate under active topology semantics:
+12:            if mode == CONJUNCTIVE_AND then
+13:                // Strict Precondition Chain (TopologicalEvaluator): Any failed/blocked parent blocks C
+14:                survives_gate <- forall P' in Parents(C, E_cut): S*[P'] == expected_status(P', C)
+15:            else
+16:                // Corroborative Warrant Redundancy: Alternative valid warrant shields C
+17:                survives_gate <- exists P' in Parents(C, E_cut) \ Vis
+18:                                 such that S*[P'] == PASSED and kappa(W_{P'C}) == 1
 19:            end if
-20:        end if
-21:    end for
-22: end while
-23: RC <- { v in V | S*[v] in {FAILED, BLOCKED} and BlameParents(v) == emptyset }
-24: return (S*, Cascade, RC)
+20:            if not survives_gate then
+21:                S*[C] <- BLOCKED                      // (or N_A on precondition mismatch)
+22:                Vis.add(C)
+23:                Cascade.append(C)
+24:                Q.push_back(C)
+25:            end if
+26:        end if
+27:    end for
+28: end while
+29: RC <- { v in V | S*[v] in {FAILED, BLOCKED} and BlameParents(v) == emptyset }
+30: return (S*, Cascade, RC)
 ================================================================================
 ```
 
 *Algorithmic Guarantees of Algorithm 1:*
-1. **Zero Second-Order LLM Calls:** Lines 7–22 operate in linear deterministic time $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$ over in-memory adjacency lists in pure Python. No stochastic LLM sampling occurs during perturbation evaluation.
+1. **Zero Second-Order LLM Calls:** Lines 7–28 operate in linear deterministic time $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$ over in-memory adjacency lists in pure Python. No stochastic LLM sampling occurs during perturbation evaluation.
 2. **Deterministic Edge Severing (Structural Graph Surgery):** Line 2 executes structural graph surgery ($\mathcal{G}_{\overline{X}}$) by pruning incoming edges in the adjacency structure while holding invariant the downstream topology.
-3. **Assumption-Based Truth Maintenance & Toulmin Warrant Protection:** Lines 12–13 implement assumption-based justification checking (de Kleer, 1986). Dependent claim $C$ survives if supported by an alternative valid warrant $\mathbf{W}_{P'C}$ backed by an unperturbed parent ($\kappa = 1$). If no valid alternative warrant exists, belief in $C$ is retracted, deterministically transitioning dependent nodes to `BLOCKED`.
-4. **Root Cause Attribution:** Line 23 uniquely identifies primary epistemic breakdown points, differentiating root premise failures from downstream cascaded blocks without penalizing authors repeatedly for secondary effects.
+3. **Conjunctive vs. Disjunctive Truth Maintenance Semantics:** Lines 12–19 distinguish between two structural dependency topologies. In strict precondition chains (`CONJUNCTIVE_AND`, enforced in `TopologicalEvaluator.evaluate_graph`), every antecedent $P' \in \text{Parents}(C)$ is a necessary condition; if any parent enters `SYSTEM_ERROR`/`BLOCKED` or violates `expected_status`, $C$ deterministically short-circuits to `BLOCKED` or `N_A` (`short_circuit_reason_tda_ids`). Conversely, in corroborative argument graphs (`DISJUNCTIVE_OR`), dependent claim $C$ survives if supported by an independent alternative warrant $\mathbf{W}_{P'C}$ backed by an unperturbed parent ($\kappa = 1$).
+4. **Root Cause Attribution:** Line 29 uniquely identifies primary epistemic breakdown points (`root_cause_node_ids` where `blame_parent_ids == []`), differentiating root premise failures from downstream cascaded blocks without penalizing authors repeatedly for secondary effects.
 
 *Scope Disambiguation (Discrete ATMS Surgery vs. Observational Do-Calculus):* We explicitly repudiate any rhetorical conflation between **Discrete Structural Argument Surgery** and **Observational Confounding Adjustment via Pearl's Three Rules of Do-Calculus**. The classical do-calculus (Pearl, 1995, 2009) is an axiomatic apparatus designed for non-parametric identification of interventional probability distributions $P(Y \mid do(X))$ from non-experimental observational joint distributions $P(V)$ in the presence of unobserved statistical confounders. In Quorum's discrete text analysis, there are no observational probability distributions, random variables, or backdoor adjustment summations. Rather, Quorum utilizes Pearl's graph-theoretic definition of an intervention ($\mathcal{G}_{\overline{X}}$: severing incoming dependencies) strictly as an operational counterpart to de Kleer's (1986) premise retraction in an Assumption-Based Truth Maintenance System (ATMS). Algorithm 1 deterministically audits whether an author's conclusions possess independent evidentiary warrants ($\mathbf{W}$) or experience justification collapse when antecedent premises are invalidated.
 
