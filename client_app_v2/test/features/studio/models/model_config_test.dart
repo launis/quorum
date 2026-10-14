@@ -136,9 +136,7 @@ void main() {
             'reasoning': {
               'provider': 'openai',
               'model_name': 'openai/gpt-5.4',
-              'additional_params': {
-                'reasoning_effort': 'medium',
-              },
+              'additional_params': {'reasoning_effort': 'medium'},
             },
           },
         };
@@ -156,13 +154,17 @@ void main() {
         // Test withReasoningEffort removal
         final cleared = updated.withReasoningEffort(null);
         expect(cleared.reasoningEffort, isNull);
-        expect(cleared.additionalParams.containsKey('reasoning_effort'), isFalse);
+        expect(
+          cleared.additionalParams.containsKey('reasoning_effort'),
+          isFalse,
+        );
 
         // Test serialization does NOT include root-level reasoning_effort
         final json = updated.toJson();
         expect(json.containsKey('reasoning_effort'), isFalse);
         expect(
-          (json['additional_params'] as Map<String, dynamic>?)?['reasoning_effort'],
+          (json['additional_params']
+              as Map<String, dynamic>?)?['reasoning_effort'],
           'high',
         );
       },

@@ -1817,6 +1817,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowAddStepBtn => 'Add Step';
 
   @override
+  String get workflowStepCloneBtn => 'Copy Step';
+
+  @override
   String get workflowRoleKeyLabel =>
       'Role Key (e.g. source_text, represents a global role)';
 

@@ -598,6 +598,7 @@
   "workflowAddInputBtn": "Lisää Syöte",
   "workflowStepsTitle": "Suoritusvaiheet (DAG-graafi)",
   "workflowAddStepBtn": "Lisää Vaihe",
+  "workflowStepCloneBtn": "Kopioi steppi",
   "workflowRoleKeyLabel": "Rooliavain (esim. source_text, edustaa globaalia roolia)",
   "workflowDescLabel": "Kuvaus",
   "workflowTypeString": "Merkkijono (Teksti)",

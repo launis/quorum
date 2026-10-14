@@ -11,7 +11,7 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 def test_reproduce_prompt_compiler_crash_on_raw_inputs() -> None:
     """Reproduces the exact runtime crash from backend_debug.log line 579.
-    
+
     When a step contains 'inputs': '$inputs' (which was injected by Flutter Studio _addStep),
     PromptCompiler.build_xml_context raises AppException because '$inputs' cannot resolve
     to any declared expected_input key ($inputs.<key>).
@@ -64,7 +64,7 @@ def test_reproduce_prompt_compiler_crash_on_raw_inputs() -> None:
 
 def test_dag_compiler_should_reject_generic_inputs_preflight() -> None:
     """Pre-flight Fail-Fast: DAGCompilerService must reject generic '$inputs' references.
-    
+
     Currently, DAGCompilerService has a blind spot:
         if root_namespace == "$inputs": continue
     which lets raw '$inputs' pass validation, causing runtime crashes during execution.
@@ -106,5 +106,8 @@ def test_dag_compiler_should_reject_generic_inputs_preflight() -> None:
     with pytest.raises(WorkflowCompilationError) as exc_info:
         DAGCompilerService.validate_workflow(wf)
 
-    assert "references unknown or generic input '$inputs'" in str(exc_info.value) or \
-           "generic" in str(exc_info.value) or "unknown" in str(exc_info.value)
+    assert (
+        "references unknown or generic input '$inputs'" in str(exc_info.value)
+        or "generic" in str(exc_info.value)
+        or "unknown" in str(exc_info.value)
+    )

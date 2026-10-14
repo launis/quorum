@@ -810,6 +810,7 @@
   "workflowAddInputBtn": "Add Input",
   "workflowStepsTitle": "Execution Steps (DAG Graph)",
   "workflowAddStepBtn": "Add Step",
+  "workflowStepCloneBtn": "Copy Step",
   "workflowRoleKeyLabel": "Role Key (e.g. source_text, represents a global role)",
   "workflowDescLabel": "Description",
   "workflowTypeString": "String (Text)",

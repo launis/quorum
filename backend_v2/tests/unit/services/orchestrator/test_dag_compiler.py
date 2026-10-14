@@ -143,7 +143,7 @@ def test_validate_workflow_success_and_valid_references() -> None:
                 id="st_0000000000000001",
                 depends_on=[],
                 task_blueprint="bp",
-                input_mappings={"doc": "$inputs.main_doc", "all_inp": "$inputs"},
+                input_mappings={"doc": "$inputs.main_doc"},
             ),
             StepRule(
                 id="st_0000000000000002",
@@ -168,6 +168,43 @@ def test_validate_workflow_success_and_valid_references() -> None:
         ],
     )
     DAGCompilerService.validate_workflow(wf)
+
+
+def test_validate_workflow_rejects_generic_inputs_reference() -> None:
+    """Negative test: DAGCompilerService rejects generic '$inputs' input mappings."""
+    wf = Workflow(
+        historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
+        id="wf_0000000000000001",
+        slug="test-workflow",
+        name="wf",
+        description="test",
+        status="active",
+        version=1,
+        default_profile_id="pf_0000000000000001",
+        steps=[
+            StepRule(
+                id="st_0000000000000001",
+                depends_on=[],
+                task_blueprint="bp",
+                input_mappings={"doc": "$inputs.main_doc", "all_inp": "$inputs"},
+            ),
+        ],
+        expected_inputs=[
+            ExpectedInput(
+                input_key="main_doc",
+                label=I18nText(translations={"en": "Doc"}),
+                description=I18nText(translations={"en": "Desc"}),
+                required=True,
+                input_modes=["text"],
+                is_chat_history=False,
+            )
+        ],
+    )
+    with pytest.raises(WorkflowCompilationError) as exc_info:
+        DAGCompilerService.validate_workflow(wf)
+
+    assert "references unknown or generic input '$inputs'" in str(exc_info.value)
 
 
 def test_validate_workflow_unknown_input_reference_raises() -> None:
@@ -203,7 +240,7 @@ def test_validate_workflow_unknown_input_reference_raises() -> None:
     )
     with pytest.raises(WorkflowCompilationError) as exc_info:
         DAGCompilerService.validate_workflow(wf)
-    assert "references unknown input '$inputs.unknown_doc'" in str(exc_info.value)
+    assert "references unknown or generic input '$inputs.unknown_doc'" in str(exc_info.value)
 
 
 def test_validate_workflow_unexecuted_step_reference_raises() -> None:

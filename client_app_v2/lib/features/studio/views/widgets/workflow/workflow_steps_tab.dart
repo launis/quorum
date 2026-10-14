@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -23,17 +24,102 @@ class WorkflowStepsTab extends StatelessWidget {
     required this.onChanged,
   });
 
+  int _findFirstZoneCIndex(List<StepRule> steps) {
+    for (int i = 1; i < steps.length; i++) {
+      final step = steps[i];
+      final bp = blueprints
+          .where((b) => b.id == step.taskBlueprint)
+          .firstOrNull;
+      if (bp != null && bp.isSystemCore) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   void _addStep() {
     final steps = List<StepRule>.from(workflow.steps);
-    steps.add(
-      StepRule(
-        id: 'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}',
-        taskBlueprint: '',
-        dependsOn: const [],
-        inputMappings: const {'inputs': r'$inputs'},
-      ),
+    final newId =
+        'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}';
+    final newStep = StepRule(
+      id: newId,
+      taskBlueprint: '',
+      dependsOn: steps.isNotEmpty ? [steps.first.id] : const <String>[],
+      inputMappings: const {},
+      isSynthesisSource: true,
     );
+
+    final zoneCIndex = _findFirstZoneCIndex(steps);
+    if (zoneCIndex != -1) {
+      steps.insert(zoneCIndex, newStep);
+      final zoneCStep = steps[zoneCIndex + 1];
+      if (!zoneCStep.dependsOn.contains(newId)) {
+        final updatedDependsOn = List<String>.from(zoneCStep.dependsOn)
+          ..add(newId);
+        steps[zoneCIndex + 1] = zoneCStep.copyWith(dependsOn: updatedDependsOn);
+      }
+    } else {
+      steps.add(newStep);
+    }
     onChanged(workflow.copyWith(steps: steps));
+  }
+
+  void _copyStep(int index) {
+    final steps = List<StepRule>.from(workflow.steps);
+    if (index < 0 || index >= steps.length) return;
+
+    final original = steps[index];
+    final clonedId =
+        'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}';
+    final clonedStep = original.copyWith(id: clonedId);
+
+    steps.insert(index + 1, clonedStep);
+
+    final zoneCIndex = _findFirstZoneCIndex(steps);
+    if (zoneCIndex != -1) {
+      final zoneCStep = steps[zoneCIndex];
+      if (!zoneCStep.dependsOn.contains(clonedId)) {
+        final updatedDependsOn = List<String>.from(zoneCStep.dependsOn)
+          ..add(clonedId);
+        steps[zoneCIndex] = zoneCStep.copyWith(dependsOn: updatedDependsOn);
+      }
+    }
+    onChanged(workflow.copyWith(steps: steps));
+  }
+
+  void _deleteStep(int index) {
+    final steps = List<StepRule>.from(workflow.steps);
+    if (index < 0 || index >= steps.length) return;
+
+    final deletedId = steps[index].id;
+    steps.removeAt(index);
+
+    final stepTargetPrefix = '\$steps.$deletedId';
+    final stepTargetSubPrefix = '\$steps.$deletedId.';
+
+    final cleanedSteps = steps.map((step) {
+      final newDependsOn = step.dependsOn
+          .where((id) => id != deletedId)
+          .toList();
+      final newMappings = Map<String, String>.fromEntries(
+        step.inputMappings.entries.where((e) {
+          final val = e.value;
+          return val != stepTargetPrefix &&
+              !val.startsWith(stepTargetSubPrefix);
+        }),
+      );
+      final newCausalId = step.causalSourceStepId == deletedId
+          ? null
+          : step.causalSourceStepId;
+
+      return step.copyWith(
+        dependsOn: newDependsOn,
+        inputMappings: newMappings,
+        causalSourceStepId: newCausalId,
+      );
+    }).toList();
+
+    onChanged(workflow.copyWith(steps: cleanedSteps));
   }
 
   @override
@@ -43,7 +129,7 @@ class WorkflowStepsTab extends StatelessWidget {
 
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -64,11 +150,11 @@ class WorkflowStepsTab extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             if (allSteps.isEmpty)
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(32.0),
+                  padding: const EdgeInsets.all(AppSpacing.s24),
                   child: Text(
                     l10n.studioWorkflowStepsEmpty,
                     style: TextStyle(
@@ -91,11 +177,8 @@ class WorkflowStepsTab extends StatelessWidget {
                   newSteps[entry.key] = updatedStep;
                   onChanged(workflow.copyWith(steps: newSteps));
                 },
-                onDelete: () {
-                  final newSteps = List<StepRule>.from(allSteps);
-                  newSteps.removeAt(entry.key);
-                  onChanged(workflow.copyWith(steps: newSteps));
-                },
+                onCopy: () => _copyStep(entry.key),
+                onDelete: () => _deleteStep(entry.key),
               );
             }),
           ],

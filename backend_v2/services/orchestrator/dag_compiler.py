@@ -56,15 +56,10 @@ class DAGCompilerService:
 
                 # Check $inputs
                 if root_namespace.startswith("$inputs"):
-                    # For $inputs, we check if the exact key "$inputs.doc_id" is declared,
-                    # or if it's the generic "$inputs" namespace which is always allowed.
-                    if root_namespace == "$inputs":
-                        continue
-
                     if root_namespace not in available_keys:
                         msg = (
-                            f"Step '{step.id}' references unknown input '{root_namespace}'. "
-                            f"Available inputs dynamically defined: {available_keys}"
+                            f"Step '{step.id}' references unknown or generic input '{root_namespace}'. "
+                            f"Available inputs dynamically defined: {sorted(available_keys)}"
                         )
                         logger.error("[DAGCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                         raise WorkflowCompilationError(step_id=step.id, message=msg)

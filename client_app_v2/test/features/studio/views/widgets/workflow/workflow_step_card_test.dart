@@ -102,6 +102,7 @@ void main() {
       required List<StepRule> allSteps,
       Function(StepRule)? onChanged,
       VoidCallback? onDelete,
+      VoidCallback? onCopy,
       Locale locale = const Locale('fi'),
     }) {
       return MaterialApp(
@@ -123,6 +124,7 @@ void main() {
                   l10n: l10n,
                   onChanged: onChanged ?? (_) {},
                   onDelete: onDelete ?? () {},
+                  onCopy: onCopy,
                 );
               },
             ),
@@ -146,8 +148,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 1. Delete button should NOT be rendered in Zone A
+        // 1. Delete and copy buttons should NOT be rendered in Zone A
         expect(find.byIcon(Icons.delete), findsNothing);
+        expect(find.byIcon(Icons.copy), findsNothing);
 
         // 2. System Core badge should be visible
         expect(
@@ -237,6 +240,66 @@ void main() {
       },
     );
 
+    testWidgets(
+      'Zone B renders copy button, triggers onCopy when clicked, and copy button is hidden in Zone A and Zone C',
+      (WidgetTester tester) async {
+        final step1 = const StepRule(
+          id: 'sr_step1',
+          taskBlueprint: 'sp_db849f9790984585',
+          isSynthesisSource: false,
+        );
+        final step2 = const StepRule(
+          id: 'sr_step2',
+          taskBlueprint: 'sp_agent_specialist_1',
+          dependsOn: ['sr_step1'],
+          isSynthesisSource: true,
+        );
+        final step3 = const StepRule(
+          id: 'sr_step3',
+          taskBlueprint: 'sp_192910b5f5a34c79', // System core
+          dependsOn: ['sr_step2'],
+          isSynthesisSource: true,
+        );
+
+        // 1. Zone A: copy button hidden
+        await tester.pumpWidget(
+          createTestWidget(
+            index: 0,
+            stepDef: step1,
+            allSteps: [step1, step2, step3],
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.copy), findsNothing);
+
+        // 2. Zone B: copy button rendered and clickable
+        bool copyTriggered = false;
+        await tester.pumpWidget(
+          createTestWidget(
+            index: 1,
+            stepDef: step2,
+            allSteps: [step1, step2, step3],
+            onCopy: () => copyTriggered = true,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.copy), findsOneWidget);
+        await tester.tap(find.byIcon(Icons.copy));
+        expect(copyTriggered, isTrue);
+
+        // 3. Zone C: copy button hidden
+        await tester.pumpWidget(
+          createTestWidget(
+            index: 2,
+            stepDef: step3,
+            allSteps: [step1, step2, step3],
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.copy), findsNothing);
+      },
+    );
+
     // Positive 3: Zone C (Pipeline Funnel Anchors)
     testWidgets(
       'Zone C renders locked system core funnel with XAI aggregator badge and zero manual inputs',
@@ -269,8 +332,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 1. Delete button hidden for Zone C
+        // 1. Delete and copy buttons hidden for Zone C
         expect(find.byIcon(Icons.delete), findsNothing);
+        expect(find.byIcon(Icons.copy), findsNothing);
 
         // 2. System Core badge visible
         expect(

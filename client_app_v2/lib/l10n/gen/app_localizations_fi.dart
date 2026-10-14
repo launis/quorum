@@ -1825,6 +1825,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowAddStepBtn => 'Lisää Vaihe';
 
   @override
+  String get workflowStepCloneBtn => 'Kopioi steppi';
+
+  @override
   String get workflowRoleKeyLabel =>
       'Rooliavain (esim. source_text, edustaa globaalia roolia)';
 

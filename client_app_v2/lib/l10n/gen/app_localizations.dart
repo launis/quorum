@@ -3422,6 +3422,12 @@ abstract class AppLocalizations {
   /// **'Add Step'**
   String get workflowAddStepBtn;
 
+  /// No description provided for @workflowStepCloneBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Step'**
+  String get workflowStepCloneBtn;
+
   /// No description provided for @workflowRoleKeyLabel.
   ///
   /// In en, this message translates to:
