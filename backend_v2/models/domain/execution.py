@@ -178,7 +178,7 @@ class ExecutionSummarySnapshot(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    strictness_level: int = Field(default=100, ge=1, description="Strictness level percentage for evaluation")
+    strictness_level: int = Field(default=100, ge=0, le=100, description="Strictness level percentage for evaluation")
     is_ensemble_run: bool = Field(default=False, description="Whether ensemble evaluation was active")
     is_degraded: bool = Field(default=False, description="Whether execution finished in a degraded state")
     system_concurrency_snapshot: dict[str, int] = Field(

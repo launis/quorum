@@ -286,6 +286,21 @@ void main() {
       expect(summary.systemConcurrencySnapshot, {'LLM_MAX_CHUNK_SIZE': 5000});
     });
 
+    test('instantiates with strictness_level: 0 (0% Free mode)', () {
+      final json = {
+        'strictness_level': 0,
+        'is_ensemble_run': false,
+        'is_degraded': false,
+        'system_concurrency_snapshot': <String, dynamic>{},
+      };
+
+      final summary = ExecutionSummarySnapshot.fromJson(json);
+      expect(summary.strictnessLevel, 0);
+      expect(summary.isEnsembleRun, isFalse);
+      expect(summary.isDegraded, isFalse);
+      expect(summary.systemConcurrencySnapshot, isEmpty);
+    });
+
     test('defaults are populated when empty json provided', () {
       final summary = ExecutionSummarySnapshot.fromJson({});
       expect(summary.strictnessLevel, 100);

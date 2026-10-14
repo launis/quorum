@@ -714,3 +714,32 @@ async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
     updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_zero_strictness_workflow_crash_reproduction() -> None:
+    """Reproduction test: Workflow with default_strictness_level=0 crashes worker on ExecutionSummarySnapshot."""
+    mock_workflow = _create_mock_workflow(strictness=0)
+    mock_record = _create_mock_record()
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0123456789abcdef",
+    )
+    assert result.status == "COMPLETED"
+

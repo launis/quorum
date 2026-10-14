@@ -128,6 +128,17 @@ def test_execution_summary_snapshot() -> None:
     assert snap.system_concurrency_snapshot == {}
 
 
+def test_execution_summary_snapshot_zero_strictness_boundary() -> None:
+    """ISTQB Boundary Test: ExecutionSummarySnapshot allows 0% Free strictness level (0-100%)."""
+    snap = ExecutionSummarySnapshot(
+        strictness_level=0,
+        is_ensemble_run=False,
+        is_degraded=False,
+    )
+    assert snap.strictness_level == 0
+
+
+
 def test_evaluated_matrix_context_dto() -> None:
     dto = EvaluatedMatrixContextDTO(
         evaluated_atoms={"atm_1": "PASSED"},
