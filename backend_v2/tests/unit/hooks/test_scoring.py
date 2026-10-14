@@ -27,7 +27,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
-from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.output_profile import MatrixSynthesisGroup, OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SecurityCheck
@@ -3402,3 +3402,529 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert isinstance(delta, TraceScoringPayloadDTO)
     assert delta.final_score == 90.0
+
+
+_TOULMIN_L1_01 = f"tda_{hashlib.md5(b'toulmin_l1_01').hexdigest()[:32]}"
+_TOULMIN_L1_02 = f"tda_{hashlib.md5(b'toulmin_l1_02').hexdigest()[:32]}"
+_TOULMIN_L2_01 = f"tda_{hashlib.md5(b'toulmin_l2_01').hexdigest()[:32]}"
+_TOULMIN_L3_01 = f"tda_{hashlib.md5(b'toulmin_l3_01').hexdigest()[:32]}"
+_TOULMIN_L4_01 = f"tda_{hashlib.md5(b'toulmin_l4_01').hexdigest()[:32]}"
+_TOULMIN_L5_01 = f"tda_{hashlib.md5(b'toulmin_l5_01').hexdigest()[:32]}"
+
+_TOULMIN_PB_ID = "blk_440a5fef9331451b"
+_TOULMIN_STEP_ID = "st_1111222233334444"
+_TOULMIN_WF_ID = "wor_1111222233334444"
+_TOULMIN_PROF_ID = "prof_1111222233334444"
+_TOULMIN_EXEC_ID = "exec_1111222233334444"
+_TOULMIN_ORG_ID = "org_1111222233334444"
+_TOULMIN_USER_ID = "usr_1111222233334444"
+_TOULMIN_PROTO_ID = "blk_573802341db9d68c"
+
+
+def _build_toulmin_dual_track_matrix(pb_id: str = _TOULMIN_PB_ID) -> AnyPromptBlock:
+    """Builds an in-memory Dual-Track Toulmin Argumentation matrix block (Track B).
+
+    Levels 1-2 are locked as pure error radars with inverse_evidence: True.
+    Levels 3-5 represent positive argumentative mastery capabilities.
+    """
+    scales = [
+        # Level 1: Pure error radar (inverse claims only)
+        MatrixScale(
+            score=1,
+            ai_label="Level 1 - Fatal Flaw",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Ad Hominem Fallacy", "fi": "Henkilöön menevä argumentti"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L1_01,
+                            concept_description="Ad hominem fallacy committed in argumentation.",
+                            inverse_evidence=True,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                ),
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Circular Reasoning", "fi": "Kehäpäättely"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L1_02,
+                            concept_description="Circular reasoning / tautological loop.",
+                            inverse_evidence=True,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                ),
+            ],
+        ),
+        # Level 2: Pure error radar (inverse claims only)
+        MatrixScale(
+            score=2,
+            ai_label="Level 2 - Weak Grounds",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Anecdotal Fallacy", "fi": "Anekdoottiharha"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L2_01,
+                            concept_description="Generalization derived from a single anecdote.",
+                            inverse_evidence=True,
+                            aggregation_mode="EXISTS",
+                        )
+                    ],
+                )
+            ],
+        ),
+        # Levels 3-5: Positive mastery capabilities
+        MatrixScale(
+            score=3,
+            ai_label="Level 3 - Solid Grounds",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Empirical Grounds", "fi": "Empiirinen perusta"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L3_01,
+                            concept_description="Provides empirical evidence or data grounding.",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                        )
+                    ],
+                )
+            ],
+        ),
+        MatrixScale(
+            score=4,
+            ai_label="Level 4 - Explicit Warrant",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Explicit Warrant", "fi": "Eksplisiittinen oikeutus"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L4_01,
+                            concept_description="Articulates a clear warrant connecting data to claim.",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                        )
+                    ],
+                )
+            ],
+        ),
+        MatrixScale(
+            score=5,
+            ai_label="Level 5 - Systematic Rebuttal",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(
+                        translations={"en": "Systematic Rebuttal", "fi": "Järjestelmällinen vastaväitteiden käsittely"}
+                    ),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=_TOULMIN_L5_01,
+                            concept_description="Identifies and systematically addresses rebuttals.",
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                        )
+                    ],
+                )
+            ],
+        ),
+    ]
+
+    pb_dict = {
+        "id": pb_id,
+        "slug": "matrix_toulmin_test",
+        "label": {"translations": {"en": "Toulmin Argumentation", "fi": "Toulminin argumentaatio"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "type": "float",
+        "category_id": PromptBlockCategory.MATRIX.value,
+        "ai_description": "Toulmin Argumentation Analysis",
+        "allow_contextual_override": True,
+        "scales": [s.model_dump(mode="json") for s in scales],
+    }
+    return PromptBlockAdapter.validate_python(pb_dict, strict=False)
+
+
+@pytest.mark.asyncio
+async def test_toulmin_error_radar_clean_baseline() -> None:
+    """Verify Track B: execution with zero detected errors receives 100% pass on inverse atoms.
+
+    Without positive mastery on Levels 3-5, clean baseline yields exactly math_min (1.0),
+    eliminating false-positive score inflation (the legacy 12.2% phantom score).
+    When full positive mastery on Levels 3-5 is demonstrated, score reaches 5.0.
+    """
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import HistoricalContextMode
+
+    pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)
+    step = Step(
+        id=_TOULMIN_STEP_ID,
+        slug="toulmin_step",
+        name=I18nText(translations={"en": "Step", "fi": "Step"}),
+        type="logic",
+        hook="matrix_scoring_hook",
+        extraction_protocol_block_id=_TOULMIN_PROTO_ID,
+        criteria_block_ids=[_TOULMIN_PB_ID],
+    )
+    wf = Workflow(
+        id=_TOULMIN_WF_ID,
+        slug="wf_toulmin",
+        name=I18nText(translations={"en": "WF", "fi": "WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        status="active",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        default_profile_id=_TOULMIN_PROF_ID,
+        default_strictness_level=50,
+        steps=[],
+    )
+    prof = OutputProfile(
+        id=_TOULMIN_PROF_ID,
+        slug="prof_toulmin",
+        workflow_id=_TOULMIN_WF_ID,
+        name=I18nText(translations={"en": "Profile", "fi": "Profile"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        display_scale="original",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0000000000000001",
+                title=I18nText(translations={"en": "Default", "fi": "Default"}),
+                target_blocks=["*"],
+            )
+        ],
+    )
+    exec_rec = ExecutionRecord(
+        id=_TOULMIN_EXEC_ID,
+        workflow_id=_TOULMIN_WF_ID,
+        organization_id=_TOULMIN_ORG_ID,
+        created_by=_TOULMIN_USER_ID,
+        output_profile_id=_TOULMIN_PROF_ID,
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        raw_inputs={},
+        execution_trace=[],
+        step_states={},
+        frozen_context={},
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.create_prompt_block(pb)
+    repo._prompt_blocks._storage[pb.id] = pb
+    await repo.save_step(step)
+    repo._workflows._steps[step.id] = step
+    await repo.save_workflow(wf)
+    repo._workflows._storage[wf.id] = wf
+    await repo.create_output_profile(prof)
+    repo._output_profiles._storage[prof.id] = prof
+    await repo.save_execution(exec_rec)
+    repo._executions._storage[exec_rec.id] = exec_rec
+
+    deps = _build_test_scoring_deps(repo)
+
+    # 1. Clean Baseline (Zero errors detected on L1-L2, but zero positive mastery on L3-L5)
+    evaluations_clean = [
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No ad hominem",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_02,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No circular reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L2_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No anecdotal reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L3_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="No empirical data",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L4_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="No warrant",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L5_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="No rebuttal",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+    ]
+
+    state_clean = HookState(
+        execution_id=_TOULMIN_EXEC_ID,
+        workflow_id=_TOULMIN_WF_ID,
+        step_id=_TOULMIN_STEP_ID,
+        task_blueprint=_TOULMIN_STEP_ID,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations_clean, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+
+    result_clean = await matrix_scoring_hook(state_clean, deps)
+    assert result_clean.success is True
+    delta_clean = (
+        result_clean.state_delta.delta
+        if isinstance(result_clean.state_delta, HookDeltaDTO)
+        else result_clean.state_delta
+    )
+    output_clean = delta_clean.matrix_outputs[_TOULMIN_PB_ID]
+
+    # In Track B, L1-L2 inverse atoms pass without committing errors
+    assert output_clean.evaluated_atoms[_TOULMIN_L1_01] == ExecutionStatus.PASSED
+    assert output_clean.evaluated_atoms[_TOULMIN_L1_02] == ExecutionStatus.PASSED
+    assert output_clean.evaluated_atoms[_TOULMIN_L2_01] == ExecutionStatus.PASSED
+    # Raw score is math_min (1.0) because zero positive capability points were awarded
+    assert output_clean.raw_score == 1.0
+
+    # 2. Expert (Clean L1-L2, plus full positive mastery on L3-L5)
+    evaluations_expert = [
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No ad hominem",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_02,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No circular reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L2_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No anecdotal reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L3_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Valid data",
+            source_quote="data quote",
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L4_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Valid warrant",
+            source_quote="warrant quote",
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L5_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Valid rebuttal",
+            source_quote="rebuttal quote",
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+    ]
+
+    state_expert = HookState(
+        execution_id=_TOULMIN_EXEC_ID,
+        workflow_id=_TOULMIN_WF_ID,
+        step_id=_TOULMIN_STEP_ID,
+        task_blueprint=_TOULMIN_STEP_ID,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations_expert, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    result_expert = await matrix_scoring_hook(state_expert, deps)
+    delta_expert = (
+        result_expert.state_delta.delta
+        if isinstance(result_expert.state_delta, HookDeltaDTO)
+        else result_expert.state_delta
+    )
+    output_expert = delta_expert.matrix_outputs[_TOULMIN_PB_ID]
+    assert output_expert.raw_score == 5.0
+
+
+@pytest.mark.asyncio
+async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
+    """Verify Track B: detecting a Level 1 fatal flaw suppresses Level 1 points and triggers malus deduction."""
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import HistoricalContextMode
+
+    pb = _build_toulmin_dual_track_matrix(_TOULMIN_PB_ID)
+    step = Step(
+        id=_TOULMIN_STEP_ID,
+        slug="toulmin_step",
+        name=I18nText(translations={"en": "Step", "fi": "Step"}),
+        type="logic",
+        hook="matrix_scoring_hook",
+        extraction_protocol_block_id=_TOULMIN_PROTO_ID,
+        criteria_block_ids=[_TOULMIN_PB_ID],
+    )
+    wf = Workflow(
+        id=_TOULMIN_WF_ID,
+        slug="wf_toulmin",
+        name=I18nText(translations={"en": "WF", "fi": "WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        status="active",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        default_profile_id=_TOULMIN_PROF_ID,
+        default_strictness_level=50,
+        steps=[],
+    )
+    prof = OutputProfile(
+        id=_TOULMIN_PROF_ID,
+        slug="prof_toulmin",
+        workflow_id=_TOULMIN_WF_ID,
+        name=I18nText(translations={"en": "Profile", "fi": "Profile"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        display_scale="original",
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0000000000000001",
+                title=I18nText(translations={"en": "Default", "fi": "Default"}),
+                target_blocks=["*"],
+            )
+        ],
+    )
+    exec_rec = ExecutionRecord(
+        id=_TOULMIN_EXEC_ID,
+        workflow_id=_TOULMIN_WF_ID,
+        organization_id=_TOULMIN_ORG_ID,
+        created_by=_TOULMIN_USER_ID,
+        output_profile_id=_TOULMIN_PROF_ID,
+        status=ExecutionStatus.PENDING,
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+        raw_inputs={},
+        execution_trace=[],
+        step_states={},
+        frozen_context={},
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.create_prompt_block(pb)
+    repo._prompt_blocks._storage[pb.id] = pb
+    await repo.save_step(step)
+    repo._workflows._steps[step.id] = step
+    await repo.save_workflow(wf)
+    repo._workflows._storage[wf.id] = wf
+    await repo.create_output_profile(prof)
+    repo._output_profiles._storage[prof.id] = prof
+    await repo.save_execution(exec_rec)
+    repo._executions._storage[exec_rec.id] = exec_rec
+
+    deps = _build_test_scoring_deps(repo)
+
+    # L1 fatal flaw committed! (status=FAILED on inverse claim -> error detected)
+    # L3 positive mastery also demonstrated (status=PASSED)
+    evaluations_flawed = [
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Ad hominem detected",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L1_02,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No circular reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L2_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="No anecdotal reasoning",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=True,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L3_01,
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Valid data",
+            source_quote="data quote",
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L4_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="No warrant",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+        AtomResultDTO(
+            tda_id=_TOULMIN_L5_01,
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="No rebuttal",
+            source_quote=None,
+            contextual_override=False,
+            is_inverse_evidence=False,
+        ),
+    ]
+
+    state_flawed = HookState(
+        execution_id=_TOULMIN_EXEC_ID,
+        workflow_id=_TOULMIN_WF_ID,
+        step_id=_TOULMIN_STEP_ID,
+        task_blueprint=_TOULMIN_STEP_ID,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations_flawed, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    result_flawed = await matrix_scoring_hook(state_flawed, deps)
+    assert result_flawed.success is True
+    delta_flawed = (
+        result_flawed.state_delta.delta
+        if isinstance(result_flawed.state_delta, HookDeltaDTO)
+        else result_flawed.state_delta
+    )
+    output_flawed = delta_flawed.matrix_outputs[_TOULMIN_PB_ID]
+
+    # Inverse atom failed (error detected)
+    assert output_flawed.evaluated_atoms[_TOULMIN_L1_01] == ExecutionStatus.FAILED
+    # Malus deduction (5% penalty multiplier 0.95 applied)
+    assert output_flawed.xai_log is not None
+    assert output_flawed.xai_log.engine_debug_trace["penalty_multiplier"] == 0.95
+    # Level 1 awards 0 positive points
+    assert output_flawed.level_breakdown is not None
+    assert output_flawed.level_breakdown["1.0"].hits == 0

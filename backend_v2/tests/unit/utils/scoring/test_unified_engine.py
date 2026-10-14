@@ -316,3 +316,75 @@ def test_unified_scoring_engine_malus_clamping_at_max_ratio() -> None:
     assert abs(res_clamped.xai_log.engine_debug_trace["penalty_multiplier"] - 0.60) < 1e-6
     expected_score = 1.0 + 0.60 * 4.0  # 3.40
     assert abs(res_clamped.score - expected_score) < 1e-6
+
+
+def test_dreyfus_cumulative_novice_scoring() -> None:
+    """Verify Dreyfus/Bloom cumulative novice scoring behavior (Track A).
+
+    A candidate fulfilling only Level 1 positive baseline capabilities in a 5-level matrix
+    (with 2 criteria per level, scale weights 1.0 to 5.0) receives:
+    - Linear points ratio: 2 * 1.0 / (2*1.0 + 2*2.0 + 2*3.0 + 2*4.0 + 2*5.0) = 2 / 30 = 6.67%.
+    - Under strictness 70% (exponent ~1.5071): (2/30)^1.5071 ≈ 1.66% (~1.7%).
+    - Under strictness 0% (exponent 1.0): exactly 2 / 30 ≈ 6.67%.
+    An expert fulfilling all levels 1-5 receives:
+    - 30 / 30 = 100.0% ratio, mapping to math_max (5.0 / 5.0 = 100.0%) across all strictness levels.
+    """
+    engine = UnifiedScoringEngine()
+    novice_stats = {
+        1.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        2.0: LevelStatsDTO(hits=0, total=2, dlqs=0),
+        3.0: LevelStatsDTO(hits=0, total=2, dlqs=0),
+        4.0: LevelStatsDTO(hits=0, total=2, dlqs=0),
+        5.0: LevelStatsDTO(hits=0, total=2, dlqs=0),
+    }
+
+    # Novice under 0% strictness (linear)
+    res_novice_linear = engine.calculate(stats=novice_stats, math_min=1.0, math_max=5.0, strictness_level=0)
+    linear_ratio = 2.0 / 30.0
+    assert abs(res_novice_linear.xai_log.engine_debug_trace["linear_ratio"] - linear_ratio) < 1e-6
+    expected_linear_score = 1.0 + linear_ratio * 4.0
+    assert abs(res_novice_linear.score - expected_linear_score) < 1e-6
+
+    # Novice under calibrated 70% strictness (exponent ~1.50714)
+    res_novice_70 = engine.calculate(stats=novice_stats, math_min=1.0, math_max=5.0, strictness_level=70)
+    exp_70 = 1.25 + (20.0 / 35.0) * 0.45
+    curved_ratio_70 = linear_ratio**exp_70
+    assert abs(res_novice_70.xai_log.engine_debug_trace["curved_ratio"] - curved_ratio_70) < 1e-6
+    # 1.66% ratio -> ~1.7%
+    assert 0.015 < curved_ratio_70 < 0.018
+    expected_score_70 = 1.0 + curved_ratio_70 * 4.0
+    assert abs(res_novice_70.score - expected_score_70) < 1e-6
+
+    # Expert fulfilling all levels 1-5 (100% hits)
+    expert_stats = {
+        1.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        2.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        3.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        4.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        5.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+    }
+    res_expert_70 = engine.calculate(stats=expert_stats, math_min=1.0, math_max=5.0, strictness_level=70)
+    assert abs(res_expert_70.score - 5.0) < 1e-6
+    assert abs(res_expert_70.xai_log.engine_debug_trace["curved_ratio"] - 1.0) < 1e-6
+
+
+def test_dreyfus_expert_satisfies_novice_invariant() -> None:
+    """Verify that an expert does not lose points on Level 1 (Cumulative Guttman Progression).
+
+    Under L1 ⊆ L2 ⊆ L3 ⊆ L4 ⊆ L5, positive novice capabilities are retained and validated.
+    The expert's Level 1 criteria contribute full positive points without being suppressed.
+    """
+    engine = UnifiedScoringEngine()
+    expert_stats = {
+        1.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        2.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        3.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        4.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+        5.0: LevelStatsDTO(hits=2, total=2, dlqs=0),
+    }
+    result = engine.calculate(stats=expert_stats, math_min=1.0, math_max=5.0, strictness_level=50)
+
+    # Level 1 breakdown shows 2/2 hits, contributing 2.0 weighted points
+    assert result.breakdown["1.0"].hits == 2
+    assert result.breakdown["1.0"].total == 2
+    assert result.score == 5.0

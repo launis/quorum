@@ -35,6 +35,7 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 
@@ -156,6 +157,123 @@ SPECIFIC_ATOM_HARMONIZATIONS: dict[str, tuple[str, str]] = {
         "The argument explicitly identifies specific structural flaws or methodological weaknesses in its own proposal or analysis.",
         "Locate and extract substantive statements where methodological weaknesses or analytical limitations of the proposal are detailed.",
     ),
+}
+
+
+class ClaimUpdateConfig(BaseModel):
+    """Configuration for updating a Track A Novice claim and assertion."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    label: I18nText
+    concept: str
+    rule: str
+
+
+class TrackAConfig(BaseModel):
+    """Configuration for refactoring a Track A matrix Level 1 scale."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    scale_name: I18nText
+    ai_label: str
+    claim_updates: dict[str, ClaimUpdateConfig]
+
+
+# Dual-Track Rubric Architecture: Track A Developmental Matrices configuration
+DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
+    "blk_f921c7c0989b47e8": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Muistaminen ja nimeäminen (Remembering)", "en": "Remembering and Naming (Novice)"}),
+        ai_label="NOVICE - DECLARATIVE RECALL",
+        claim_updates={
+            "tda_b36d3ec7b1f94fe9ad4b45795a8a104b": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Tiedon mekaaninen toistaminen ja nimeäminen", "en": "Mechanical Rote Recall and Naming"}),
+                concept="Standalone declarative recall of factual definitions or nomenclature without causal elaboration.",
+                rule="Locate and extract statements reciting a definition or nomenclature without elaborating on functional interactions or causal mechanisms.",
+            )
+        },
+    ),
+    "blk_7d8e9f0a1b2c3d4e": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Alustava ohjaus (Noviisi)", "en": "Preliminary Guidance (Novice)"}),
+        ai_label="NOVICE - BASELINE PROMPTING",
+        claim_updates={
+            "tda_682186093ed65428b0c2d3120a5c90ca": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Aiheen tai tehtävän alustava nimeäminen", "en": "Initial Identification of Core Topic or Task"}),
+                concept="Author states a primary topic, subject, or desired outcome without operational guidelines or execution constraints.",
+                rule="Locate and extract statements specifying a core topic, subject, or desired task outcome.",
+            ),
+            "tda_c4ec19d4b2dc5a3e8778181878ca03a6": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Tekoälyn aloitusehdotuksen hyödyntäminen", "en": "Baseline Utilization of AI Suggestions"}),
+                concept="Author adopts model suggestions or initial outputs as a starting baseline for task progression.",
+                rule="Locate and extract sections where author adopts model suggestions or initial outputs as starting baseline.",
+            ),
+        },
+    ),
+    "blk_53f32679aa514fcb": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Perusvuorovaikutus (Noviisi)", "en": "Basic Interaction (Novice)"}),
+        ai_label="NOVICE - BASIC INTERACTION",
+        claim_updates={
+            "tda_3ee4fe63a8ac50d24595bd3e90a6b016": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Perusvuorovaikutus ja tehtävän käynnistäminen", "en": "Basic Interaction and Task Initiation"}),
+                concept="Author opens interaction by stating a clear question, prompt, or task assignment for AI execution.",
+                rule="Locate and extract the initial prompt, inquiry, or question opening the interaction.",
+            ),
+            "tda_daf7e137f58333015ad078c35a873ecc": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Vastauksen vastaanotto ja perustason jatko-ohjaus", "en": "Response Reception and Baseline Follow-up"}),
+                concept="Author receives generative response and provides baseline follow-up or acknowledgment.",
+                rule="Locate and extract author follow-up acknowledging or building upon the generated output.",
+            ),
+        },
+    ),
+    "blk_ff72c2d79edb4ebf": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Pinnallinen arviointi (Noviisi)", "en": "Superficial Evaluation (Novice)"}),
+        ai_label="NOVICE - SUPERFICIAL EVALUATION",
+        claim_updates={
+            "tda_f93df8c0534f4d459c5c35c1ee717b54": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Pinnallinen arviointipäätös ja perusperustelu", "en": "Superficial Evaluation Decision with Basic Justification"}),
+                concept="Author provides an explicit pass/fail decision or initial assessment stance with basic justification.",
+                rule="Locate and extract an explicit pass/fail decision, rating, or evaluative stance accompanied by basic justification.",
+            )
+        },
+    ),
+    "blk_f6e286f050c94d60": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Alustava jäsentely (Noviisi)", "en": "Preliminary Structuring (Novice)"}),
+        ai_label="NOVICE - PRELIMINARY STRUCTURING",
+        claim_updates={
+            "tda_2f6c6565bf10f613d787c03fc97bfb91": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Kommunikatiivisen tavoitteen ja ydinteeman tunnistaminen", "en": "Identification of Communicative Goal and Core Theme"}),
+                concept="The text identifies the primary communicative goal, core theme, or foundational topic of the deliverable.",
+                rule="Locate and extract explicit statements identifying the communicative goal, primary topic, or core theme.",
+            )
+        },
+    ),
+    "blk_6b8c766185294f7e": TrackAConfig(
+        scale_name=I18nText(translations={"fi": "Peruskonsensus (Noviisi)", "en": "Basic Consensus (Novice)"}),
+        ai_label="NOVICE - BASIC CONSENSUS",
+        claim_updates={
+            "tda_7f4854aefcb144faa4ee448081ac0c03": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Peruskonsensus ja yhteisten havaintojen tunnistaminen", "en": "Basic Consensus and Shared Findings Identification"}),
+                concept="Identifies basic shared findings, consensus points, or common ground across evaluated viewpoints.",
+                rule="Locate and extract statements identifying shared findings, baseline consensus, or common themes across sources.",
+            ),
+            "tda_16f0d5b6d78dd7d15006bcc1bef2eb00": ClaimUpdateConfig(
+                label=I18nText(translations={"fi": "Suositusten kytkentä analyyttisiin havaintoihin", "en": "Traceable Connection Linking Recommendations to Analytical Findings"}),
+                concept="Documents identifiable evidentiary anchors or step references connecting recommendations back to analytical inputs.",
+                rule="Locate and extract clear, traceable references connecting specific recommendations to prior findings or analytical inputs.",
+            ),
+        },
+    ),
+}
+
+# Dual-Track Rubric Architecture: Track B Diagnostic Error Radars (Toulmin is golden reference blk_440a5fef9331451b)
+DUAL_TRACK_B_BLOCK_IDS: set[str] = {
+    "blk_c5804a9143c34cb1",  # matrix_causal_analyst
+    "blk_109dab5b6b3f403a",  # matrix_kahneman
+    "blk_b476f89fb732448c",  # matrix_falsifier
+    "blk_80732a33fe1947ee",  # matrix_taskguard
+    "blk_fb15f8dcf23f4865",  # matrix_archivist
+    "blk_c3bc5f3eb8e74110",  # matrix_causal_abductive
+    "blk_22e3598e06414409",  # matrix_epistemic_humility
 }
 
 
@@ -295,11 +413,21 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
                 b[field] = strip_raw_xml(b[field])
 
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
+            block_id = str(b.get("id", ""))
             scales = b["scales"] if "scales" in b else []
             if isinstance(scales, list):
                 new_scales: list[JsonValue] = []
                 for scale in scales:
                     s = dict(scale)
+                    score_val = s.get("score")
+
+                    # Track A Level 1 Refactoring
+                    cfg: TrackAConfig | None = None
+                    if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
+                        cfg = DUAL_TRACK_A_CONFIG[block_id]
+                        s["name"] = cfg.scale_name.model_dump()
+                        s["ai_label"] = cfg.ai_label
+
                     claims = s["claims"] if "claims" in s else []
                     if isinstance(claims, list):
                         new_claims: list[JsonValue] = []
@@ -307,10 +435,36 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
                             c = dict(claim)
                             assertions = c["tda_assertions"] if "tda_assertions" in c else []
                             if isinstance(assertions, list):
+                                # Filter claims based on Dual-Track rules
+                                if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
+                                    # Track A Level 1: Only positive baseline capabilities
+                                    has_pos = any(not a.get("inverse_evidence") for a in assertions if isinstance(a, dict))
+                                    if not has_pos:
+                                        continue  # Prune inverse claims from Level 1
+                                elif block_id in DUAL_TRACK_B_BLOCK_IDS and score_val in (1, 2):
+                                    # Track B Levels 1-2: Only inverse error radar claims
+                                    has_inv = any(a.get("inverse_evidence") for a in assertions if isinstance(a, dict))
+                                    if not has_inv:
+                                        continue  # Prune positive claims from Levels 1-2
+
                                 new_assertions: list[JsonValue] = []
                                 for assertion in assertions:
                                     a = dict(assertion)
                                     tda_id = str(a["tda_id"]) if "tda_id" in a else ""
+
+                                    # Dual-Track Invariants
+                                    if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
+                                        a["inverse_evidence"] = False
+                                        a["aggregation_mode"] = "ALL_MUST_COMPLY"
+                                        if cfg and tda_id in cfg.claim_updates:
+                                            u = cfg.claim_updates[tda_id]
+                                            c["label"] = u.label.model_dump()
+                                            a["concept_description"] = u.concept
+                                            a["extraction_rule"] = u.rule
+                                            mutated_atoms_count += 1
+                                    elif block_id in DUAL_TRACK_B_BLOCK_IDS and score_val in (1, 2):
+                                        a["inverse_evidence"] = True
+                                        a["aggregation_mode"] = "EXISTS"
 
                                     # Check specific harmonization first
                                     if tda_id in SPECIFIC_ATOM_HARMONIZATIONS:
@@ -397,13 +551,15 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
         w = dict(workflow)
         w.pop("ui_schema", None)
         w.pop("default_scoring_strategy", None)
-        w["default_strictness_level"] = 50
+        w_id = w.get("id")
+        if "default_strictness_level" not in w:
+            w["default_strictness_level"] = 70 if w_id == "wf_03a1d71000000003" else 50
         if "security_penalty" not in w:
-            w["security_penalty"] = 0.15 if w.get("id") == "wf_05a1d71000000005" else 0.0
+            w["security_penalty"] = 0.15 if w_id == "wf_05a1d71000000005" else 0.0
         if "post_hoc_penalty" not in w:
             w["post_hoc_penalty"] = 0.0
         if "passivity_penalty" not in w:
-            w["passivity_penalty"] = 0.0
+            w["passivity_penalty"] = 0.05 if w_id == "wf_03a1d71000000003" else 0.0
         validated_model = adapter_workflows.validate_python(w)
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
