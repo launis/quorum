@@ -38,11 +38,11 @@ When causal preconditions are violated, the topological engine short-circuits ex
 Graph structures undergo pre-flight topological verification prior to wave execution:
 - **Thread-Isolated Cycle Detection:** Cycle detection algorithms on the directional graph are offloaded to dedicated worker threads, ensuring heavy graph traversal never blocks the asynchronous event loop. Any participating nodes in detected cycles are marked with system errors, preventing infinite loops and event loop deadlocks.
 - **Phantom Edge Quarantine:** If an edge references a parent identifier missing from the graph definition, the dependent child is isolated and assigned an unresolved dependency status, preventing missing-key runtime exceptions during traversal.
-- **Stranded Node Resolution:** After all evaluable waves complete, any remaining pending nodes (such as nodes stranded behind cycles or unresolvable dependencies) are finalized with blocked statuses, ensuring that every node in the graph reaches an explicit terminal state.
+- **Stranded Node Resolution:** After all evaluable waves complete, any remaining pending nodes (specifically nodes stranded behind cycles or unresolvable dependencies) are finalized with blocked statuses, ensuring that every node in the graph reaches an explicit terminal state.
 
 ### 2.6. Extractive Sensor Service & Deterministic Pre-Flight Evaluation
 Micro-claim evaluation is managed by the extractive sensor service, enforcing a zero-reasoning principle on syntactic anchors:
-- **Deterministic Syntactic Pre-Flight:** Evaluates deterministic rules (such as literal keyword presence, negative phrase absence, and structural formatting checks) directly against source text before or without model invocation.
+- **Deterministic Syntactic Pre-Flight:** Evaluates deterministic rules (specifically literal keyword presence, negative phrase absence, and structural formatting checks) directly against source text before or without model invocation.
 - **Fuzzy Anchoring with Locale Sensitivity:** Syntactic anchor checks tolerate minor optical character recognition (OCR) artifacts and typographical errors through language-tuned fuzzy matching thresholds while requiring strict matching on short substrings.
 - **Bypass of High-Cognitive Steps:** When pre-flight deterministic rules definitively confirm or refute a claim, the result is recorded immediately, preserving model invocation budgets and execution latency.
 
@@ -51,8 +51,8 @@ For high-entropy analytical evaluations and structured matrix blocks, the sensor
 - **Structured Parallel Dispatch:** Three independent evaluation calls are executed concurrently in a structured task group using lightweight, high-speed models.
 - **Transient Error Tolerance:** Transient transport disconnects, rate limits, and service interruptions within individual ensemble calls are intercepted and tolerated without crashing the execution step. As long as the minimum consensus threshold of valid responses is met, evaluation proceeds normally.
 - **Majority Consensus Resolution:** When two or more ensemble responses agree on a status, that outcome is elected as the definitive consensus, preserving the verbatim evidence quote from the first agreeing vote.
-- **Epistemic Null Hypothesis Tie-Breaker:** In split or inconclusive votes (such as split outcomes across pass, fail, and error without a majority), ties are resolved deterministically using a pre-computed atom polarity map:
-  - *Inverse Assertions:* When verifying the absence of an error, anti-pattern, or negative behavior, the lack of conclusive proof resolves to passed under the legal and epistemic presumption of innocence. Furthermore, legitimate contextual exceptions (such as faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition, eliminating meta-cognitive oscillation from unconstrained contextual overrides.
+- **Epistemic Null Hypothesis Tie-Breaker:** In split or inconclusive votes (specifically split outcomes across pass, fail, and error without a majority), ties are resolved deterministically using a pre-computed atom polarity map:
+  - *Inverse Assertions:* When verifying the absence of an error, anti-pattern, or negative behavior, the lack of conclusive proof resolves to passed under the legal and epistemic presumption of innocence. Furthermore, legitimate contextual exceptions (specifically faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition, eliminating meta-cognitive oscillation from unconstrained contextual overrides.
   - *Positive Assertions:* When verifying the presence of concrete action, compliance, or substantiating evidence, the lack of conclusive proof resolves to failed under the Null Hypothesis.
   - *Quote Hallucination Ban:* In all tie-broken resolutions, source evidence quotes are strictly set to null, guaranteeing that unverified quotes are never synthesized or adopted from minority dissents.
 
@@ -82,7 +82,7 @@ All evidence quotes extracted by models undergo strict, multi-tiered lexical ver
 
 ### 2.9. Attention Anchoring & Deterministic Alias Isolation
 To protect model context windows from token bloat and prevent attention dilution, raw 32-character system identifiers are isolated from model prompts:
-- **Deterministic Alias Compilation:** The prompt engine translates physical atom identifiers and document paths into compact, indexed aliases (such as `a0`, `a1` for claims and `doc0`, `doc1` for sources).
+- **Deterministic Alias Compilation:** The prompt engine translates physical atom identifiers and document paths into compact, indexed aliases (specifically `a0`, `a1` for claims and `doc0`, `doc1` for sources).
 - **Service-Layer Hydration:** Models output structured results referencing these concise aliases. Upon receipt, the service layer validates the returned aliases against the active alias registry and hydrates them back to their authoritative system identifiers before updating graph states. Unrecognized aliases trigger immediate validation exceptions.
 
 ### 2.10. Multi-Channel Conversational Ingress & Geometry Extraction
@@ -99,7 +99,7 @@ The TDA evaluation engine executes strictly against predefined matrix assertions
 ### 2.12. Result Projection & Server-Driven UI Decoupling
 The graph engine maintains strict structural decoupling between internal execution states and presentation layers:
 - **Topological Flattening:** The result projector applies Kahn's topological sort to the evaluated graph, projecting dynamic execution states into a sequential array of lightweight evaluation result DTOs.
-- **Reference Offloading:** Static evidence (such as resolved claims, verified source quotes, chunk identifiers, and chronological sequence indices) is segregated into an independent reference dictionary keyed by atom identifier.
+- **Reference Offloading:** Static evidence (specifically resolved claims, verified source quotes, chunk identifiers, and chronological sequence indices) is segregated into an independent reference dictionary keyed by atom identifier.
 - **Zero Nested Tree Complexity:** By separating flat dynamic execution results from static hydrated references, presentation adapters and client renderers consume normalized, non-redundant payloads. This eliminates complex nested tree traversal and guarantees complete semantic parity across interactive user interfaces and static document exports.
 
 ### 2.13. Strongly Typed FlattenedAtom State Transit & Anonymous Tuple Eradication
@@ -107,6 +107,15 @@ All intermediate atom transit across graph aggregation, flattening, and topologi
 - **`FlattenedAtom` Domain Model**: Atom definitions are encapsulated within the immutable `FlattenedAtom` DTO carrying strongly typed properties: `atom_id`, `question`, `extraction_rule`, `anchor_target`, `is_inverse`, `target_speaker: TargetSpeaker = TargetSpeaker.USER`, `depends_on: tuple[CausalEdge, ...]`, `contrastive_example: ContrastivePairDTO | None`, `acceptance_criteria: tuple[AcceptanceCriterion, ...]`, `anti_patterns: tuple[AntiPattern, ...]`, and `syntactic_anchors: tuple[str, ...]`.
 - **Complete Eradication of Anonymous State Tuples**: Intermediate atom collections across graph hooks maintain direct typed mappings (`dict[str, FlattenedAtom]` for global deduplication and `list[FlattenedAtom]` for matrix collection arrays). Anonymous multi-element state tuples and positional indexing (`[0]`..`[5]`) are completely eradicated.
 - **Transitive Causal Graph Propagation**: Transitive causal dependency chains are resolved directly through typed model properties (`FlattenedAtom.depends_on`), guaranteeing compile-time type safety and preventing positional data transposition across DAG topological sorting waves.
+
+### 2.14. Decoupling of Evaluative Matrix TDA Atoms and Dynamic Causal Graph Propositions
+The graph engine enforces strict structural, mathematical, and semantic decoupling between predefined evaluative matrix TDA assertions and unmapped dynamic causal graph propositions:
+- **Evaluative Matrix TDA Atoms**: Predefined matrix assertions originating from the 14-matrix ontology in `seed_data.json` map directly to matrix scale levels (1–5). They follow the Dual-Track Rubric standard:
+  - *Track A (Developmental Progressive Mastery)*: Evaluates progressive capability. A passed atom (`result_status = 1`) awards 1.0 scoring points (`points_awarded: 1.0`), which directly increments the level hit ratio.
+  - *Track B (Diagnostic Two-Factor Orthogonal Malus Error Radars)*: Levels 1–2 operate as falsification error detectors (`is_inverse: true`, `is_inverse_evidence: true`). A detected error (`result_status = 1`) extracts an exact lexical citation and triggers orthogonal malus score deduction, but awards strictly 0.0 scoring points (`points_awarded: 0.0`), preventing error detections from accumulating false positive capability points. Clean levels (`result_status = 0`) award 0.0 points without penalty.
+- **Dynamic Causal Graph Propositions**: Factual micro-claims extracted during exploratory document processing or dynamic causal discovery operate outside predefined BARS matrix scales. In downstream export and presentation streams, these unmapped propositions are grouped under `Logiikkamatriisi = 'Kausaalipäättely'`:
+  - *Zero Point Accumulation Invariant*: Dynamic causal graph propositions verified as factual truth in the source text evaluate to `result_status = 1`, but carry strictly `points_awarded: 0.0`. They participate in topological dependency tracking and root cause attribution without altering matrix scoring totals.
+  - *Cross-Surface Scoring Identity*: The 22-column rectangular streaming export (`export_flat_csv`), corporate multi-tab Excel export, and Server-Driven UI forensic breakdown enforce this mathematical scoring identity: `points_awarded = 1.0 if (atom.status == PASSED and not is_inverse_claim) else 0.0`. This prevents unmapped dynamic propositions and diagnostic error detections from leaking into total capability scores in automated machine-learning and analytics pipelines.
 
 ## 3. Logical Data Flow
 ```mermaid

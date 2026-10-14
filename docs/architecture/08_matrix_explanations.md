@@ -16,21 +16,22 @@ Evaluation matrices operate as structured **Behaviorally Anchored Rating Scales 
 
 Every evaluation matrix is anchored in a rigorous academic theory, bound to an explicit cognitive evidence target (`product_text`, `chat_log`, or `all`), and assigned an immutable scale range.
 
-| Opaque Stripe ID | Slug | Matrix Name | Academic Grounding | Target Input | Override Allowed | Scale Range | Primary Evaluative Focus |
-| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| `blk_440a5fef9331451b` | `matrix_toulmin` | **Toulmin Argumentation Model** | Toulmin (1958) | `product_text` | **Yes** | 1 to 5 | Evidentiary backing, warrants, qualifiers, and rebuttal robustness in deliverable claims |
-| `blk_f921c7c0989b47e8` | `matrix_bloom` | **Bloom's Taxonomy** | Bloom (1956) | `product_text` | **Yes** | 1 to 6 | Cognitive depth, intellectual complexity, and conceptual creation in final work |
-| `blk_109dab5b6b3f403a` | `matrix_kahneman` | **Kahneman's Dual Process Theory** | Kahneman (2011) | `all` | **Yes** | 1 to 3 | Operational balance between System 1 intuitive heuristics and System 2 deliberate scrutiny |
-| `blk_53f32679aa514fcb` | `matrix_goodhart` | **Performativity & Goodhart's Law** | Goodhart (1975) | `chat_log` | **Yes** | 1 to 5 | Human-AI steering dynamics (Driver vs. Passenger) and resistance to metric gaming |
-| `blk_fb15f8dcf23f4865` | `matrix_archivist` | **Archival Compliance Audit** | ARMA (2014) | `all` | No | 1 to 5 | Information fidelity, source citation integrity, and fact preservation across workflow stages |
-| `blk_c5804a9143c34cb1` | `matrix_causal_analyst` | **Causal Inference & Abductive Reasoning Audit** | Pearl (2009) | `product_text` | No | 1 to 5 | Structural causal validity across Pearl's Ladder (Association, Intervention, Counterfactual) |
-| `blk_b476f89fb732448c` | `matrix_falsifier` | **Falsification Audit** | Popper (1963) | `all` | No | 1 to 4 | Epistemological rigor, vulnerability testing, and active refutation of own assumptions |
-| `blk_ff72c2d79edb4ebf` | `matrix_judge` | **Supreme Adjudicator** | Deming (1986) | `chat_log` | No | 1 to 5 | Executive process command, iterative steering discipline, and human ownership |
-| `blk_6b8c766185294f7e` | `matrix_xai_reporter` | **XAI Synthesis Reporter** | Lundberg & Lee (2017) | `all` | No | 1 to 3 | Cross-agent synthesis coherence, dialectical reconciliation, and explainable attribution |
-| `blk_80732a33fe1947ee` | `matrix_taskguard` | **Responsibility (Taskguard)** | OWASP (2023) | `all` | No | 1 to 5 | Mandate boundaries, safety containment, zero-trust input handling, and ethics |
-| `blk_c3bc5f3eb8e74110` | `matrix_causal_abductive` | **Causal & Abductive Integrity** | Pearl & Mackenzie (2018) | `all` | No | 1 to 5 | Anti-rationalization audit; exposes post-hoc justification and coincidental AI value |
-| `blk_f6e286f050c94d60` | `matrix_taskxai_clarity` | **Explainability & Transparency** | Lipton (2018) | `all` | No | 1 to 5 | Algorithmic interpretability, explicit variable weighting, and reconstructible causal chains |
-| `blk_22e3598e06414409` | `matrix_epistemic_humility` | **Epistemic Humility** | Tetlock (2005) | `all` | No | 1 to 5 | Probabilistic calibration, acknowledgment of unknown boundaries, and prudent hedging |
+| Opaque Stripe ID | Slug | Matrix Name | Rubric Track | Academic Grounding | Target Input | Override Allowed | Scale Range | Primary Evaluative Focus |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| `blk_440a5fef9331451b` | `matrix_toulmin` | **Toulmin Argumentation Model** | Track B (Error Radar) | Toulmin (1958) | `product_text` | **Yes** | 1 to 5 | Evidentiary backing, warrants, qualifiers, and rebuttal robustness in deliverable claims |
+| `blk_f921c7c0989b47e8` | `matrix_bloom` | **Bloom's Taxonomy** | Track A (Developmental) | Bloom (1956) | `product_text` | **Yes** | 1 to 6 | Cognitive depth, intellectual complexity, and conceptual creation in final work |
+| `blk_109dab5b6b3f403a` | `matrix_kahneman` | **Kahneman's Dual Process Theory** | Track B (Error Radar) | Kahneman (2011) | `all` | **Yes** | 1 to 3 | Operational balance between System 1 intuitive heuristics and System 2 deliberate scrutiny |
+| `blk_53f32679aa514fcb` | `matrix_goodhart` | **Performativity & Goodhart's Law** | Track A (Developmental) | Goodhart (1975) | `chat_log` | **Yes** | 1 to 5 | Human-AI steering dynamics (Driver vs. Passenger) and resistance to metric gaming |
+| `blk_7d8e9f0a1b2c3d4e` | `matrix_hacm` | **Human-AI Collaboration Matrix (HACM)** | Track A (Developmental) | Sheridan & Verplank (1978) | `chat_log` | **Yes** | 1 to 5 | Steering agency, framing architecture, critical inquiry, active curation, and metacognition |
+| `blk_fb15f8dcf23f4865` | `matrix_archivist` | **Archival Compliance Audit** | Track B (Error Radar) | ARMA (2014) | `all` | No | 1 to 5 | Information fidelity, source citation integrity, and fact preservation across workflow stages |
+| `blk_c5804a9143c34cb1` | `matrix_causal_analyst` | **Causal Inference & Abductive Reasoning Audit** | Track B (Error Radar) | Pearl (2009) | `product_text` | No | 1 to 5 | Structural causal validity across Pearl's Ladder (Association, Intervention, Counterfactual) |
+| `blk_b476f89fb732448c` | `matrix_falsifier` | **Falsification Audit** | Track B (Error Radar) | Popper (1963) | `all` | No | 1 to 4 | Epistemological rigor, vulnerability testing, and active refutation of own assumptions |
+| `blk_ff72c2d79edb4ebf` | `matrix_judge` | **Supreme Adjudicator** | Track A (Developmental) | Deming (1986) | `chat_log` | No | 1 to 5 | Executive process command, iterative steering discipline, and human ownership |
+| `blk_6b8c766185294f7e` | `matrix_xai_reporter` | **XAI Synthesis Reporter** | Track A (Developmental) | Lundberg & Lee (2017) | `all` | No | 1 to 3 | Cross-agent synthesis coherence, dialectical reconciliation, and explainable attribution |
+| `blk_80732a33fe1947ee` | `matrix_taskguard` | **Responsibility (Taskguard)** | Track B (Error Radar) | OWASP (2023) | `all` | No | 1 to 5 | Mandate boundaries, safety containment, zero-trust input handling, and ethics |
+| `blk_c3bc5f3eb8e74110` | `matrix_causal_abductive` | **Causal & Abductive Integrity** | Track B (Error Radar) | Pearl & Mackenzie (2018) | `all` | No | 1 to 5 | Anti-rationalization audit; exposes post-hoc justification and coincidental AI value |
+| `blk_f6e286f050c94d60` | `matrix_taskxai_clarity` | **Explainability & Transparency** | Track A (Developmental) | Lipton (2018) | `all` | No | 1 to 5 | Algorithmic interpretability, explicit variable weighting, and reconstructible causal chains |
+| `blk_22e3598e06414409` | `matrix_epistemic_humility` | **Epistemic Humility** | Track B (Error Radar) | Tetlock (2005) | `all` | No | 1 to 5 | Probabilistic calibration, acknowledgment of unknown boundaries, and prudent hedging |
 
 ---
 
@@ -68,7 +69,7 @@ Stephen Toulmin's model deconstructs practical arguments into distinct functiona
 Benjamin Bloom's taxonomy structures cognitive objectives across an escalating hierarchy of intellectual complexity. In analytical workflows, superficial AI usage results in low-order regurgitation, passive summarization, and mechanical restructuring. This matrix assesses the cognitive depth crystallized within the final deliverable, tracking the transition from basic recall to transformative synthesis and creative framework formulation.
 
 #### BARS Progression
-- **Level 1 (Remembering):** Mechanical rote recall, verbatim reproduction, and uncontextualized cataloging of raw facts. Error radars monitor categorical dogmatism without epistemic qualification; faithful summarization of explicitly cited external research or published studies is formally distinguished from personal ungrounded dogmatism through explicit anti-pattern boundaries.
+- **Level 1 (Remembering and Naming / Novice):** Declarative factual recall, mechanical reproduction, and baseline naming of domain nomenclature without deeper causal elaboration or functional mechanisms. Establishes the foundational positive capability baseline for Track A.
 - **Level 2 (Understanding):** Paraphrasing, summarizing, and basic interpretation of concepts without deeper structural analysis.
 - **Level 3 (Applying):** Direct application of established principles, rules, or procedural formulas to concrete operational contexts. Merely cataloging tactical recommendations, action lists, or organizational advice without explicitly naming and mapping an abstract governing rule or theoretical framework onto concrete mechanisms does not satisfy this level.
 - **Level 4 (Analyzing):** Deconstruction of complex systems into component parts, identification of hidden structural relationships, and distinguishing correlation from causation.
@@ -77,7 +78,7 @@ Benjamin Bloom's taxonomy structures cognitive objectives across an escalating h
 
 #### Context Target & Epistemic Justification
 - **Why `product_text`:** Bloom evaluates the level of cognitive processing materialized in the final work product. The intellectual value delivered to an organization is crystallized in the deliverable itself.
-- **Why other inputs would corrupt assessment:** Operators routinely use conversational chat for administrative, low-order tasks (such as formatting lists, fixing typographical errors, or retrieving snippets). Blending chat into the Bloom evaluation would artificially depress the cognitive score of a strategic deliverable simply because routine mechanical prompts were utilized during drafting.
+- **Why other inputs would corrupt assessment:** Operators routinely use conversational chat for administrative, low-order tasks (specifically formatting lists, fixing typographical errors, or retrieving snippets). Blending chat into the Bloom evaluation would artificially depress the cognitive score of a strategic deliverable simply because routine mechanical prompts were utilized during drafting.
 
 ---
 
@@ -111,7 +112,7 @@ Daniel Kahneman's dual-process model distinguishes between System 1 (fast, auton
 Goodhart's Law dictates that "when a measure becomes a target, it ceases to be a good measure." In modern human-AI interaction, performativity manifests as metric gaming, rhetorical ornamentation, and conversational sycophancy: operators prompt models to produce impressive-sounding jargon to satisfy superficial performance criteria rather than conducting substantive inquiry. This matrix evaluates whether the human operator acts as an active, critical driver or a passive passenger, steering clear of artificial performativity.
 
 #### BARS Progression
-- **Level 1 (Passive Passenger / Uncritical Delegation):** Passive acceptance of model generations, zero verification prompts, and surrender of analytical agency.
+- **Level 1 (Basic Interaction / Novice):** Foundational interaction initiation; author opens dialogue by stating an explicit question, prompt, or task assignment for AI execution. Establishes the baseline human-AI communicative presence for Track A.
 - **Level 2 (Cosmetic Editing / Superficial Corrections):** Interaction limited to surface-level formatting requests, stylistic polishing, and isolated error corrections without methodological steering.
 - **Level 3 (Operational Task Breakdown):** Structured linear task management, step-by-step milestone decomposition, and operational tracking of requirements.
 - **Level 4 (Metric Skepticism & Methodological Steering):** Active identification of Goodhart vulnerabilities, structured few-shot guidance, and pushback against model generalizations.
@@ -155,8 +156,8 @@ Anchored in ARMA International's Generally Accepted Recordkeeping Principles (In
 Judea Pearl's Causal Hierarchy defines three distinct levels of cognitive reasoning: Rung 1 (Association / Seeing: observational correlation), Rung 2 (Intervention / Doing: active manipulation and causal mechanisms), and Rung 3 (Counterfactuals / Imagining: retrospective simulation of alternative states). This matrix evaluates whether claims in the deliverable conflate statistical correlation with causal attribution or rigorously model transmission mechanisms, confounders, and counterfactual outcomes.
 
 #### BARS Progression
-- **Level 1 (Correlation Conflation / Post-Hoc Fallacy):** Conflating correlation with causation; asserting that temporal sequence implies causal dependency without mechanism.
-- **Level 2 (Oversimplified Single-Cause Attribution):** Acknowledging causation but attributing complex multi-variable phenomena to isolated, oversimplified primary causes.
+- **Level 1 (Correlation Conflation Error Radar / Fatal Flaw):** Diagnostic error radar monitoring fatal causal fallacies: asserting that temporal sequence implies causal dependency without identifying transmission mechanisms (`post-hoc ergo propter-hoc`). Falsifies claims via inverse evidence; clean baseline awards 0 capability points.
+- **Level 2 (Oversimplified Single-Cause Attribution Error Radar):** Diagnostic error radar monitoring reductionist single-cause attribution that disregards multi-causal interactions or confounding variables. Evaluated via inverse assertions; clean baseline awards 0 capability points.
 - **Level 3 (Mechanistic Description & Confounder Identification):** Explicit identification of transmission mechanisms and recognition of confounding variables (Rung 1/2 boundary).
 - **Level 4 (Intervention Modeling / Rung 2):** Formal modeling of active interventions, controlled variable isolation, and predicting outcomes under direct system manipulation.
 - **Level 5 (Counterfactual Testing / Rung 3):** Full counterfactual simulation ("What would have occurred had condition X not been introduced?"), structural causal graph evaluation, and formal refutation of alternative causal pathways.
@@ -177,8 +178,8 @@ Judea Pearl's Causal Hierarchy defines three distinct levels of cognitive reason
 Karl Popper's demarcation criterion asserts that scientific and rational inquiry proceeds through falsification rather than verification: hypotheses must make risky, testable predictions and actively seek potential refutations. In executive analysis, teams frequently fall into confirmation bias, seeking only data that validates their preferred strategy. This matrix measures the intensity of active vulnerability testing and self-criticism.
 
 #### BARS Progression
-- **Level 1 (Dogmatic Immunity & Confirmation Bias):** Ad-hoc immunization of claims against criticism; dogmatic assertions structured to be unfalsifiable; complete evasion of counter-evidence.
-- **Level 2 (Straw-Man Critique & Conditional Sycophancy):** Addressing only weak, superficial counter-arguments while leaving primary core assumptions unexamined.
+- **Level 1 (Dogmatic Immunity Error Radar / Fatal Flaw):** Diagnostic error radar monitoring ad-hoc immunization of claims against criticism, unfalsifiable assertions, and complete evasion of counter-evidence. Evaluated via inverse assertions; clean baseline awards 0 capability points.
+- **Level 2 (Straw-Man Critique Error Radar):** Diagnostic error radar monitoring cosmetic or self-serving counterarguments that leave core assumptions unexamined. Evaluated via inverse assertions; clean baseline awards 0 capability points.
 - **Level 3 (Passive Limitation Listing):** Standard cataloging of generic operational limitations without structural stress-testing of primary hypotheses.
 - **Level 4 (Active Boundary Testing & Structural Self-Criticism):** Formulation of explicit conditions under which the proposed strategy would fail; rigorous stress-testing against worst-case scenarios; proactive refutation of own assumptions.
 
@@ -198,7 +199,7 @@ Karl Popper's demarcation criterion asserts that scientific and rational inquiry
 Grounding quality management in W. Edwards Deming's Plan-Do-Check-Act (PDCA) cycle and executive accountability principles, this matrix evaluates human ownership of the analytical process: Did the human operator retain sovereign executive command, directing iterations and correcting drift, or did they abdicate intellectual authority to automated model generation?
 
 #### BARS Progression
-- **Level 1 (Abdication of Command):** Blind acceptance of model output without oversight; delegating strategic decision-making authority entirely to the AI.
+- **Level 1 (Superficial Evaluation / Novice):** Baseline evaluative stance; operator provides an explicit pass/fail decision or initial acceptance/rejection judgment with basic justification. Establishes the foundational human-in-the-loop presence for Track A without uncritical abdication.
 - **Level 2 (Reactive Patching):** Superficial, ad-hoc corrections following model errors without establishing systematic quality standards.
 - **Level 3 (Operational Constraint Definition):** Setting clear operational boundaries, providing targeted background context, and defining audience expectations.
 - **Level 4 (Methodological Governance & Review Gating):** Enforcing structured analytical methodology, establishing milestone review gates, and demanding substantive revisions.
@@ -318,6 +319,28 @@ Philip Tetlock's research on expert forecasting demonstrates that dogmatic certa
 
 ---
 
+### 3.14. Human-AI Collaboration Matrix (HACM)
+- **Opaque Stripe ID:** `blk_7d8e9f0a1b2c3d4e` | **Slug:** `matrix_hacm`
+- **Evaluation Target:** `chat_log` (Process Dialogue Only)
+- **BARS Levels:** 1 to 5 | **Contextual Override Permitted:** `True`
+- **Academic Grounding:** Sheridan, T. B., & Verplank, W. L. (1978). *Human and Computer Control of Undersea Teleoperators*. MIT Man-Machine Systems Laboratory; Parasuraman, R., Sheridan, T. B., & Wickens, C. D. (2000). A model for types and levels of human interaction with automation. *IEEE Transactions on Systems, Man, and Cybernetics*.
+
+#### Theoretical Grounding & Evaluative Focus
+Anchored in supervisory control and adaptive automation literature (Sheridan & Verplank, 1978; Parasuraman et al., 2000), the Human-AI Collaboration Matrix audits the operator's steering agency, framing architecture, critical inquiry, active curation, and metacognitive calibration across interaction cycles. Rather than treating AI collaboration as a single prompt-response transaction, HACM evaluates the human's ability to maintain executive control, calibrate automation levels, and iteratively steer generative models.
+
+#### BARS Progression
+- **Level 1 (Preliminary Guidance / Novice):** Foundational task framing; specifies clear core task, primary topic, and initial direction for AI execution. Establishes basic communicative agency for Track A.
+- **Level 2 (Active Prompt Refinement & Multi-Turn Steering):** Sequential task steering, providing clarifying instructions, and decomposing complex questions across multi-turn interactions.
+- **Level 3 (Analytical Verification & Critical Inquiry):** Systematic probing of AI outputs, requesting factual warrants, and actively challenging superficial assumptions.
+- **Level 4 (Methodological Scaffolding & Constraint Architecture):** Advanced prompt architecture with role definitions, boundary constraints, structural schemas, and counterfactual stress-testing.
+- **Level 5 (Sovereign Metacognitive Calibration & Co-Creation):** Complete human-in-the-loop governance; bidirectional cognitive synergy, critical synthesis of disparate outputs, and calibrated supervisory control.
+
+#### Context Target & Epistemic Justification
+- **Why `chat_log`:** Evaluates supervisory control, framing architecture, and critical challenge in the direct interactive dialogue between human operator and generative model.
+- **Why other inputs would corrupt assessment:** The final work product obscures the iterative steering dynamics, automated delegation, and corrective interventions that occurred throughout drafting.
+
+---
+
 ## 4. Matrix Explanation & Evidence Assembly Architecture
 
 The **Matrix Explanation** capability processes upstream DAG atom evaluations, extracts verified forensic evidence, curates unmet deficits, and synthesizes structured narrative justifications for presentation layers and executive reports.
@@ -378,7 +401,7 @@ In Server-Driven UI scorecard tables, each evaluated matrix axis displays a conc
 
 ### 5.1. 2D Cartesian Variance Plane
 The system models cognitive performance across a two-dimensional Cartesian plane:
-- **X-Axis (Cognitive Depth / Authenticity):** Represents the substantive cognitive depth score extracted deterministically from the designated evaluation matrix bound to `OutputProfile.variance_target_block` (e.g., `matrix_goodhart` for human-AI interaction or `matrix_archivist` for compliance audits), bounded within $[1.0, 3.0]$ and normalized to an interactive plot ratio $[0.0, 1.0]$.
+- **X-Axis (Cognitive Depth / Authenticity):** Represents the substantive cognitive depth score extracted deterministically from the designated evaluation matrix bound to `OutputProfile.variance_target_block` (specifically `matrix_goodhart` for human-AI interaction or `matrix_archivist` for compliance audits), bounded within $[1.0, 3.0]$ and normalized to an interactive plot ratio $[0.0, 1.0]$.
 - **Y-Axis (Mechanical Load / Jargon Density):** Represents the percentage of the evaluated text comprised of performative, hollow, or ungrounded consultative phrases ($[0.0, 100.0]$), normalized against the configured load ceiling.
 
 ```
@@ -503,7 +526,7 @@ The following matrix cross-references all six system workflows, their permanent 
     - `step_01_goodhart`: Executes Goodhart Matrix (`blk_53f32679aa514fcb`, [§3.4](#34-performativity--goodharts-law)) against `chat_log` to evaluate steering agency (Driver vs. Passenger).
     - `step_01_toulmin`: Executes Toulmin Matrix (`blk_440a5fef9331451b`, [§3.1](#31-toulmin-argumentation-model)) against `product_text` to verify evidential backing.
   - **Zone C:** `step_01_synthesis` compiles coaching feedback.
-- **Epistemic Rationales:** Focuses strictly on conversational steering dynamics and deliverable grounding. Excludes irrelevant administrative criteria (such as OWASP vulnerability scans or statutory archival retention).
+- **Epistemic Rationales:** Focuses strictly on conversational steering dynamics and deliverable grounding. Excludes irrelevant administrative criteria (specifically OWASP vulnerability scans or statutory archival retention).
 - **Output Profile & SDUI Visualization:** Utilizes supportive coaching tone. Displays two dedicated 1D metric cards (`grp_01e1d71000000001` Steering Dynamics and `grp_01e1d71000000002` Argumentation Rigor) highlighting concrete prompt reformulation guidance. Disables external source summaries (`show_sources_summary_box=false`).
 
 #### 7.2.3. Strategic Leadership & Decision Making (`wf_02a1d71000000002`)
@@ -595,25 +618,51 @@ Quorum completely eliminates this subjective vulnerability through **Bottom-Up E
 ### 8.2 Atom Flattening Hook (`atom_flattening_hook`)
 Prior to LLM prompt generation, the orchestration pipeline triggers the deterministic `atom_flattening_hook` (`backend_v2/hooks/atom_flattening.py`):
 1. **Multi-Scale Atom Extraction:** The hook iterates through all configured scale levels (`MatrixPromptBlock.scales`) for the target matrix block. For every `MatrixScale`, it traverses its `claims` and extracts all underlying `tda_assertions`.
-2. **Metadata Stripping & De-Scoring:** All level metadata, numerical score values (e.g., `score=1`, `score=5`), scale names, and target labels are systematically stripped from each assertion. Every assertion is converted into a neutral `FlattenedAtom` DTO containing solely the propositional question, extraction rule, syntactic anchors, and causal dependencies (`depends_on`).
+2. **Metadata Stripping & De-Scoring:** All level metadata, numerical score values (specifically `score=1`, `score=5`), scale names, and target labels are systematically stripped from each assertion. Every assertion is converted into a neutral `FlattenedAtom` DTO containing solely the propositional question, extraction rule, syntactic anchors, and causal dependencies (`depends_on`).
 3. **Stratified Sampling & Deterministic Shuffling:** When matrix sampling limits are configured in metadata (`matrix_sampling_strategy`), the hook samples proportionally across each scale level before performing Transitive Causal Closure to guarantee that parent causal assertions are never severed. The resulting atom collection is randomized using an execution-locked seed into a single blind list (`shuffled_atoms`).
 
 ### 8.3 Blind Multi-Scale Claim Execution
 The LLM receives the source documents alongside the randomized `shuffled_atoms` list mapped to opaque aliases (`a0`, `a1`, ...). The model has zero visibility into:
-- The score level associated with any individual atom (e.g., whether `a1` represents a Level 1 baseline check or a Level 5 advanced mastery criterion).
+- The score level associated with any individual atom (specifically whether `a1` represents a Level 1 baseline check or a Level 5 advanced mastery criterion).
 - The total number of scale levels or the overall structure of the matrix.
 
 The model evaluates each atom independently, determining strictly whether the empirical claim is substantiated in the source material (`is_true: bool`), providing verbatim textual evidence (`source_quote`) and reasoning. Every level of the matrix is thus actively and concurrently audited across the identical text.
 
 ### 8.4 Mathematical Bottom-Up Scoring & Distribution
-Once the model returns the batch evaluation results:
-1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level, the platform computes the exact hit ratio $k/N$, where $k$ is the number of passed atoms and $N$ is the total number of atoms evaluated for that scale (e.g., Level 1: 5/5, Level 2: 3/5, Level 3: 2/5).
-2. **Deterministic Composite Scoring:** The overall score (e.g., 1.9 / 3) is calculated mathematically by the UnifiedScoringEngine from the bottom up based on passed criteria and the continuous strictness level, completely free of LLM subjective discretion.
-3. **Downstream Specialization Feeding:** The raw atom results are preserved in `ExecutionRecord.execution_trace`, where intermediate reducers (`MatrixReducer`) extract them during DAG execution to isolate failures and feed diagnostic synthesis steps.
+Once the model returns batch evaluation results across flattened assertions:
+1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level $l \in \{1, \dots, L\}$, the platform computes the exact hit ratio:
+   $$\text{hit\_ratio}_l = \frac{k_l}{N_l}$$
+   where $k_l$ is the number of passed capability atoms and $N_l$ is the total number of evaluated atoms for that scale level.
+   - **Track A (Developmental Competence):** Level 1 represents foundational positive capability. Passing Level 1 awards positive points ($\text{hit\_ratio}_1 \times w_1$).
+   - **Track B (Diagnostic Error Radars):** Levels 1–2 represent inverse error detectors (`inverse_evidence = true`). Under the Null Hypothesis, clean evaluations (no errors detected) evaluate to `PASSED` but award **0 capability points** ($\text{hit\_ratio}_1 = 0.0, \text{hit\_ratio}_2 = 0.0$). Positive capability points accrue exclusively from Levels 3–5.
+
+2. **Weighted Level Aggregation & Linear Hit Ratio:** Across all configured scale levels with weights $w_l$ (where $w_l = \text{score}_l$):
+   $$\text{Raw\_Points} = \sum_{l=1}^{L} (\text{hit\_ratio}_l \times w_l)$$
+   $$\text{Max\_Points} = \sum_{l=1}^{L} w_l$$
+   $$\text{Linear\_Ratio} = \frac{\text{Raw\_Points}}{\text{Max\_Points}} = \frac{\sum_{l=1}^{L} (\text{hit\_ratio}_l \times w_l)}{\sum_{l=1}^{L} w_l}$$
+
+3. **Piecewise Continuous Exponent Dampening:** In `UnifiedScoringEngine`, the workflow-level continuous strictness setting $S \in [0, 100]$ maps to an exponential dampening curve $e(S)$:
+   - **Free ($0 \le S \le 50$):** $e(S) = 1.00 + \frac{S}{50} \times 0.25$ (from $1.00$ at $0\%$ to $1.25$ at $50\%$)
+   - **Normal to Strict ($50 < S \le 85$):** $e(S) = 1.25 + \frac{S - 50}{35} \times 0.45$ (from $1.25$ at $50\%$ through $1.5071$ at calibrated default $70\%$ to $1.70$ at $85\%$)
+   - **Strict to Absolute Zero-Trust ($85 < S \le 100$):** $e(S) = 1.70 + \frac{S - 85}{15} \times 0.50$ (from $1.70$ at $85\%$ to $2.20$ at $100\%$)
+
+   The dampened ratio and raw scale score are computed deterministically:
+   $$\text{Dampened\_Ratio} = (\text{Linear\_Ratio})^{e(S)}$$
+   $$\text{Raw\_Score} = \text{math\_min} + \text{Dampened\_Ratio} \times (\text{math\_max} - \text{math\_min})$$
+
+4. **Per-Matrix Normalization:** In `normalization_hook.py`, every matrix score is mapped to a standardized $[0.0, 100.0]$ range using its dynamically computed scale extrema ($\text{computed\_min}$ and $\text{computed\_max}$):
+   $$\text{Normalized\_Score}_m = \left(\frac{\text{Raw\_Score}_m - \text{computed\_min}_m}{\text{computed\_max}_m - \text{computed\_min}_m}\right) \times 100.0$$
+
+5. **Multi-Matrix Global Score Aggregation:** In `falsifier_hook.py` and `blueprint.py`, normalized matrix scores are aggregated into a single holistic `global_score` via unweighted arithmetic averaging, subject to capped automated penalties ($\text{MAX\_TOTAL\_PENALTY\_RATIO} = 0.40$):
+   $$\text{average\_score} = \frac{1}{N} \sum_{m=1}^{N} \text{Normalized\_Score}_m$$
+   $$\text{effective\_penalty} = \min(\text{total\_penalty}, 0.40)$$
+   $$\text{global\_score} = \text{round}(\max(0.0, \text{average\_score} \times (1.0 - \text{effective\_penalty})), 1)$$
+
+6. **Downstream Specialization Feeding:** The raw atom results are preserved in `ExecutionRecord.execution_trace`, where intermediate reducers (`MatrixReducer`) extract them during DAG execution to isolate failures and feed diagnostic synthesis steps.
 
 ### 8.5 Evidence Extraction Invariants & Provenance Sovereignty
 1. **Anti-Ellipsis Lexical Anchoring:** Extracted quotes (`source_quote`) must strictly consist of a single, continuous, unbroken character substring directly from the source material. Splicing separate sentences with ellipses (`...` or `…`) is prohibited, preserving exact lexical matching (`str.find`) in the downstream verification engine without false-negative validation failures.
-2. **Deterministic Anti-Pattern Falsification:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (such as faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, ensuring consistent, repeatable evaluation.
+2. **Deterministic Anti-Pattern Falsification:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (specifically faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, ensuring consistent, repeatable evaluation.
 3. **Endorsed Deliverable Provenance (`is_endorsed_deliverable`):** Deliverables configured with endorsed deliverable provenance designate the work as the candidate's formally submitted output. The candidate is fully entitled to incorporate AI-assisted phrasing, executive terminology, and domain jargon developed during the workflow without triggering Echo Parroting penalties, while observation-layer performative pattern scanning remains active for transparent telemetry.
 4. **Multi-Stage Lexical Validation & Morphological Stemmed Sequence Verification:** Lexical citation verification executes through a deterministic 4-stage pipeline in `AnchorValidationService._is_lexically_valid`: Stage 1 (Exact Substring Fast-Path), Stage 2 (Length-Weighted RapidFuzz), Stage 3 (Morphological Stemmed Sequence Verification via pure-Python `StemmerService` with Candidate Window Discovery, Window Contiguity Guard, Entropy Gate, and Absolute Strictness Bypass), and Stage 4 (Coverage Safety Net).
 

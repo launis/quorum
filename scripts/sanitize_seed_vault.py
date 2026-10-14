@@ -435,18 +435,6 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
                             c = dict(claim)
                             assertions = c["tda_assertions"] if "tda_assertions" in c else []
                             if isinstance(assertions, list):
-                                # Filter claims based on Dual-Track rules
-                                if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
-                                    # Track A Level 1: Only positive baseline capabilities
-                                    has_pos = any(not a.get("inverse_evidence") for a in assertions if isinstance(a, dict))
-                                    if not has_pos:
-                                        continue  # Prune inverse claims from Level 1
-                                elif block_id in DUAL_TRACK_B_BLOCK_IDS and score_val in (1, 2):
-                                    # Track B Levels 1-2: Only inverse error radar claims
-                                    has_inv = any(a.get("inverse_evidence") for a in assertions if isinstance(a, dict))
-                                    if not has_inv:
-                                        continue  # Prune positive claims from Levels 1-2
-
                                 new_assertions: list[JsonValue] = []
                                 for assertion in assertions:
                                     a = dict(assertion)

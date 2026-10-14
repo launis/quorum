@@ -742,4 +742,3 @@ async def test_execution_worker_zero_strictness_workflow_crash_reproduction() ->
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "COMPLETED"
-

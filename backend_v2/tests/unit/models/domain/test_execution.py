@@ -138,7 +138,6 @@ def test_execution_summary_snapshot_zero_strictness_boundary() -> None:
     assert snap.strictness_level == 0
 
 
-
 def test_evaluated_matrix_context_dto() -> None:
     dto = EvaluatedMatrixContextDTO(
         evaluated_atoms={"atm_1": "PASSED"},

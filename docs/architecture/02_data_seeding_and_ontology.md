@@ -11,7 +11,7 @@ The Data Seeding & Ontology layer establishes the declarative schemas, dynamic r
 All dynamic rules and criteria are modeled as a unified `PromptBlock` entity within the database. Polymorphic collection parsing automatically routes different categories of configuration data (`system_config`, `prompt_blocks`, `mcp_gateways`) into their respective Pydantic validation structures, ensuring typed domain validation before runtime execution.
 
 ### 2.2. Single Source of Truth (SSOT) Relational Persistence
-The central static data vault serves as the immutable structural authority for baseline entities. The underlying storage remains flat and relational across root collections, while backend APIs construct nested and stitched views (such as combining Workflows with Output Profiles) dynamically via dedicated response DTOs.
+The central static data vault serves as the immutable structural authority for baseline entities. The underlying storage remains flat and relational across root collections, while backend APIs construct nested and stitched views (specifically combining Workflows with Output Profiles) dynamically via dedicated response DTOs.
 
 ### 2.3. Dual-Tool Seed Governance & Sanitization Architecture
 Seed data quality and consistency are maintained through a decoupled inspection and transformation architecture:
@@ -50,10 +50,18 @@ Bibliographic references and academic provenance metadata are strictly decoupled
 Evaluation assertions and rubrics across the ontology define structured few-shot grounding via `ContrastivePairDTO`, encapsulating `acceptable` and `rejected` exemplars with enforced minimum length boundaries and equality conflict rejection. This eliminates unstructured string delimiters and manual prefix conventions from the seed vault, guaranteeing that every matrix atom provides a pristine, strongly typed boundary definition ready for prompt compilation and direct production deployment across all environments without runtime parsing shims.
 
 ### 2.13. Matrix Seed Vault Hardening & Anti-Pattern Standards
-High-entropy evaluation atoms across the 13 canonical matrices enforce deterministic anti-patterns and disambiguated multi-step acceptance criteria to eliminate subjective evaluation drift:
+High-entropy evaluation atoms across the 14 canonical matrices enforce deterministic anti-patterns and disambiguated multi-step acceptance criteria to eliminate subjective evaluation drift:
 - **Scaffolding and Prompt Parameter Disqualification**: Explicit anti-patterns disqualify user task briefings, problem constraints, headcount allocations, and external AI dispatch instructions from satisfying cognitive competence criteria.
 - **Cognitive Theory Hardening**: Atoms evaluating Bloom's Revised Taxonomy and Kahneman's Dual Process Theory enforce rigorous ontological boundaries. System 1 claims require demonstrated rule-of-thumb judgment rather than textbook definitions, while System 2 claims require active step-by-step cognitive calculation rather than passive retrospective review.
 - **Multi-Step Deductive Criteria**: High-entropy triage atoms specify sequential acceptance criteria requiring multi-stage causal mediators and empirical scrutiny of proxy performance indicators, ensuring consistent interpretation across multi-provider evaluation fleets.
+
+### 2.14. Dual-Track Matrix Schema & TDA Assertion Polarity Standards
+Evaluative matrices in the seed vault inherit from `PromptBlockBase` as strongly typed `MatrixPromptBlock` entities (`category_id: "matrix"`, `type: "float"`, `is_evaluative: true`), organizing assessment criteria into hierarchical `MatrixScale` levels containing Test-Driven Assertion (`TDAAssertion`) models:
+- **MatrixPromptBlock Structure**: Defines scale extrema (`computed_min`, `computed_max`), localizable labels (`I18nText`), target evidence inputs (`target_input_key`: `product_text`, `chat_log`, or `all`), academic theory grounding (`TheoryGrounding`), and an ordered collection of `MatrixScale` objects (`scales`).
+- **MatrixScale Hierarchy**: Each scale level defines a numerical `score` (specifically 1 to 5, or 1 to 6 for Bloom), localized scale names (`I18nText`), an evaluator directive (`ai_label`), and constituent `claims` grouping underlying `TDAAssertion` criteria.
+- **TDAAssertion Schema & Mandatory Polarity Constraints**:
+  - *Track A (Developmental Competence Matrices)*: Level 1 designates foundational Novice capability (`Alustava / Noviisi / Tunnistava`). All constituent TDA assertions MUST enforce `inverse_evidence: false` and `aggregation_mode: "ALL_MUST_COMPLY"`. Level 1 measures the presence of baseline capability and awards positive capability points. Inverting Level 1 into an error detector is strictly prohibited (Inverted Rubric Paradox ban).
+  - *Track B (Diagnostic Error Radar Matrices)*: Levels 1 and 2 operate strictly as error radars (`Kriittinen virhe / Vakava harhaluulo / Fatal Flaw`). All Level 1–2 TDA assertions MUST enforce `inverse_evidence: true` and `aggregation_mode: "EXISTS"`. Zero positive assertions are permitted on Levels 1–2. Under the Null Hypothesis, clean baseline passes award zero positive capability points, while detected errors trigger deterministic malus deductions.
 
 ## 3. Logical Data Flow
 ```mermaid

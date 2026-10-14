@@ -1758,6 +1758,214 @@
                   "depends_on": []
                 }
               ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Tiedon luettelointi ilman kontekstia (Virhedetektori)",
+                  "en": "Uncontextualized Cataloging of Facts (Defect)"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_defc33928bb9c172f2f64e090b90f935",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Enumeration of dates, names, or terminology components presented as an unintegrated catalog.",
+                  "anchor_target": "Find sequential listings of dates, names, or terminology.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "The statement enumerates items, authors, or historical dates without linking them to an operational framework or functional relationship.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an enumeration or listing of entities, dates, or terms.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check whether structural dependencies or operational roles between the listed items are explained.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the listing functions solely as a passive catalog of facts.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "items in list are connected by functional or causal relationships",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "organizational staffing breakdowns, stakeholder role distributions, or task parameter listings provided as operational context rather than unintegrated catalogs of academic terminology, dates, or historical figures",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Key contributors to early cybernetics include Wiener, Ashby, and von Neumann.",
+                    "rejected": "Wiener's feedback loop formulation enabled Ashby to formalize the Law of Requisite Variety in homeostatic systems."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Irrationaalinen tietoisku",
+                  "en": "Contextless Fact Dump"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d29b77c237394ccab4b8d52502f873f9",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Abrupt insertion of an isolated metric or data point with zero narrative continuity or analytical relevance.",
+                  "anchor_target": "Find abrupt factual assertions disconnected from adjacent discourse.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "A factual data point or statistic is inserted without logical connective framing or relevance to surrounding discourse.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Detect an isolated metric, date, or factual assertion within the paragraph.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Examine preceding and succeeding sentences for inferential bridges or connective framing.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the factual statement appears abruptly without analytical integration.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "data point is integrated into the surrounding narrative flow",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Server latency averaged 42 milliseconds in Q3. Organizational hierarchy dictates communication paths across departments.",
+                    "rejected": "Server latency averaged 42 milliseconds in Q3, confirming that regional caching directly mitigated edge routing bottlenecks."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Absoluuttinen varmuus ilman lähdekritiikkiä",
+                  "en": "Absolute Certainty Without Critique"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_216cc3fd45284deb8d51ea4cf2b2fd93",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Dogmatic assertion of universal fact presented without epistemic qualification, empirical proof, or literature citation.",
+                  "anchor_target": "Find dogmatic assertions of unchallengeable fact.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The proposition asserts absolute certainty regarding an empirical claim without providing epistemic boundaries or citation.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a categorical assertion stating universal certainty or indisputable truth.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that no epistemic hedges, caveats, or empirical citations support the claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the assertion treats an unverified proposition as self-evident fact.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "claim is bounded by formal citations or mathematical proof",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "concise factual summary of an explicitly cited external study, publication, or public report (specifically official institutional white papers, government reports, or peer-reviewed research sources) reflecting the source's findings rather than asserting personal unchallengeable dogmatism",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "It is universally established that monolithic architectures are obsolete for all contemporary software deployments.",
+                    "rejected": "Empirical studies suggest that microservice topologies yield scaling advantages primarily when team boundaries align with bounded contexts."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Lähteistämätön näennäistieto",
+                  "en": "Unverified Pseudofact Insertion"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_68d4f9593be9742fcc5879b9a535496d",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Presentation of questionable factoids or pseudotechnical assertions masquerading as verified objective knowledge.",
+                  "anchor_target": "Find fabricated precision or ungrounded technical truisms.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The text asserts specific technical or empirical claims without verifiable grounding, presenting speculation as established domain fact.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an empirical claim asserting specific precision or mechanical properties.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Inspect the paragraph for grounding in standard domain literature or empirical observation.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the claim relies on ungrounded technical speculation disguised as accepted canon.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "assertion references verifiable empirical literature or standard textbooks",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Neural network weights inherently optimize quantum coherence when processed across asynchronous thread pools.",
+                    "rejected": "Stochastic gradient descent updates network weights iteratively by computing the gradient of the loss function with respect to parameters."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
             }
           ]
         },
@@ -3161,6 +3369,114 @@
             {
               "label": {
                 "translations": {
+                  "fi": "Intuitiivinen väitteen esittäminen (Perustaso)",
+                  "en": "Intuitive Assertion (Baseline Presence)"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_20f87ebd0c5b7de765cc4f6abc9b0fdd",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The evaluated text articulates an initial intuitive proposition, subjective reaction, or declarative stance without multi-step analytical framing.",
+                  "anchor_target": "Find declarative assertion, intuitive evaluation, or reaction statement.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the evaluated text puts forward an initial intuitive stance, immediate subjective assessment, or declarative claim. Descriptive neutrality or absence of any claim does NOT satisfy this requirement; an explicit proposition must be present.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an authentic declarative proposition or evaluative statement expressing an immediate judgment, reaction, or stance authored by the target speaker.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the proposition is expressed directly without intermediate formal analytical derivation.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that operational scenario parameters, problem briefing figures, or instructions given to an external agent are excluded from serving as an evaluative stance.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "passive cataloging of neutral data without evaluative stance",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "operational problem background parameters, stakeholder constraints, or task instructions provided as input context rather than the author's own declarative evaluative proposition or subjective stance",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "This solution immediately feels like the most natural direction and should be adopted without delay.",
+                    "rejected": "Table 1 lists the collected raw data entries across columns A through D."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Assosiatiivinen päättelyketju",
+                  "en": "Associative Reasoning"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_ab3ebf5a42f0d72eca9acceeb2e12ce1",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The text links concepts through qualitative semantic associations, narrative metaphors, or intuitive analogies rather than formal mathematical or statistical derivations.",
+                  "anchor_target": "Find qualitative associative links, intuitive metaphors, or narrative transitions connecting concepts.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the text connects at least two concepts via qualitative semantic association, descriptive analogy, or narrative flow without formal mathematical derivation.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify at least two distinct concepts joined in an explanatory or argumentative link.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the connection relies on narrative metaphor, intuitive association, or conceptual analogy.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the link lacks formal mathematical or statistical derivation.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "formal statistical derivation or mathematical proof",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "quoting, citing, transcribing, or prompting with metaphors, analogies, or narrative associations authored by an external source document or conversational partner rather than the evaluated speaker's organic reasoning",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Market adoption spreads like electrical percolation through a conductive mesh, suddenly snapping into alignment once the critical node density is achieved.",
+                    "rejected": "As the institutional foresight report notes, 'megatrends collide like tectonic plates shaping future geopolitical landscapes.'"
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
                   "fi": "Reaktiivinen nopeus",
                   "en": "Reactive Speed"
                 }
@@ -3320,6 +3636,164 @@
           },
           "ai_label": "DEFICIENT - FAILED TRANSITION TO SYSTEM 2",
           "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kognitiivinen reflektiotauko",
+                  "en": "Cognitive Pause and Deliberative Interruption"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_5fc55ef72665907c426e2598cddde565",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The text deliberately interrupts automated, intuitive progression by posing a reflective question, noting epistemic friction, or pausing to challenge foundational assumptions.",
+                  "anchor_target": "Find deliberate cognitive pauses, reflective questions, or friction markers challenging baseline assumptions.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author deliberately inserts a cognitive pause or reflective question that interrupts automatic assumptions and prompts analytical inspection. Superficial rhetorical filler without an actual shift in perspective does NOT satisfy this rule.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an explicit deliberative pause, reflective interrogation, or cognitive friction statement.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the pause actively challenges default assumptions rather than serving as decorative rhetorical filler.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the interruption initiates an analytical inquiry into underlying premises.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "superficial transitional filler phrases without analytical inquiry",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "retrospective post-hoc reflection on procedural execution, missing files, or administrative difficulties rather than an active cognitive deliberative pause questioning substantive domain assumptions",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Hold on—if we assume laminar flow at this Reynolds number, why are the thermal sensors recording boundary layer separation? We must halt and re-examine the viscosity model.",
+                    "rejected": "I noticed that the previous run failed because the secondary data file was uploaded in the wrong directory, so I re-ran the script with the correct path."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Vaihtoehtoisten näkökulmien vertailu",
+                  "en": "Alternative Hypotheses Comparison"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_7730ca085ba090f491a5a9bb2da229e4",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The text explicitly formulates and contrasts at least two competing hypotheses, operational paradigms, or decision alternatives across defined comparative criteria.",
+                  "anchor_target": "Find comparative structures contrasting at least two distinct competing alternatives or hypotheses.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author articulates and systematically contrasts at least two distinct competing hypotheses or strategic paths. A single favored option with cosmetic pros and cons does NOT satisfy this rule.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify at least two distinct, mutually competing options or hypotheses articulated in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that both options are evaluated against comparative operational criteria or trade-offs.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the comparison involves genuinely distinct pathways rather than a token strawman.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "monolithic single-option framing with only superficial pros and cons",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Architecture A requires higher upfront capital expenditure but scales horizontally, whereas Architecture B is cost-efficient initially but creates severe long-term maintenance bottlenecks.",
+                    "rejected": "The selected architecture is optimal in every respect and carries no discernible drawbacks."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Ehdollinen ja kontekstuaalinen rajaus",
+                  "en": "Conditional and Contextual Scoping"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_6df2bc5ac5e194367107f8d29fa6503e",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The argument explicitly bounds its assertions by specifying boundary conditions, situational constraints, and failure modes under which the reasoning ceases to hold.",
+                  "anchor_target": "Find explicit boundary constraints, situational scope limiters, and operating conditions.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author defines explicit operational boundary conditions or contextual constraints for the argument. Universal, unconditioned claims without contextual boundaries do NOT qualify.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify explicit contextual constraints or situational boundaries bounding the validity of the claim.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that conditions under which the model or assertion does not hold are clearly demarcated.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the assertion is properly bounded rather than sweeping and universal.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "universal unconditioned claims claiming applicability across all scenarios without exception",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "task assignment scoping statements, user prompt problem parameters, or organizational context restrictions given as instructions rather than the author defining operational boundary conditions for their own argument",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "This analytical framework applies strictly to enterprise B2B environments with sales cycles exceeding six months, and breaks down in rapid B2C contexts.",
+                    "rejected": "This management framework delivers guaranteed operational efficiency across every organization regardless of size or industry."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
             {
               "label": {
                 "translations": {
@@ -3844,6 +4318,156 @@
                   "contrastive_example": {
                     "acceptable": "I forwarded the model's generated summary directly into the executive dossier without modification or review.",
                     "rejected": "I reconciled the model's numerical projections against audited ledger statements before submitting the final proposal."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Auktoriteettiharha ja oraakkeliasema",
+                  "en": "Authority Bias and Oracle Trap"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_85ef05fdcd2f48afb925fd03b6c54d4d",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author treats probabilistic language generation as an infallible oracle possessing absolute, unquestionable ground truth.",
+                  "anchor_target": "Find demands for absolute infallible truth or assertions of flawless model authority.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and verify if the author asks the AI to act as an infallible oracle or treats probabilistic text generation as unquestionable ground truth without demanding external evidence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify author statements attributing absolute certainty, omniscience, or flawless authority to the model.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the author demands a singular definitive answer without permitting probabilistic nuance or uncertainty.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the absence of external grounding documents or independent empirical verification.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "treating model output as hypothesis generation subject to empirical validation",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "State the single absolute truth regarding this dispute, as your computational intelligence cannot err.",
+                    "rejected": "Identify the leading theoretical explanations for this anomaly and evaluate the empirical support for each."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Hallusinaation sokea kuittaaminen",
+                  "en": "Hallucination Rubber-Stamping"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_7cee768453a6f28915b429b87f465ce6",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author actively ratifies, endorses, or builds upon an unverified, fabricated, or mathematically absurd generative assertion.",
+                  "anchor_target": "Find uncritical endorsement or operationalization of fabricated claims or impossible numbers.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and verify if the author actively endorses or builds upon an unverified, fabricated, or mathematically absurd generative assertion without noting or questioning the anomaly.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an erroneous, fabricated, or mathematically impossible claim generated by the system.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the author ratifies this claim or incorporates it into subsequent reasoning.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that no skeptical flagging, bounding, or correction of the error is performed.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "detecting, flagging, or pruning hallucinated citations or impossible statistical claims",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "We adopt the generated projection that market demand will expand by twelve thousand percent next quarter and size operations accordingly.",
+                    "rejected": "The generated projection of twelve thousand percent growth contradicts historical capacity limits and must be discarded."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Mielistelyn kritiikitön hyväksyminen",
+                  "en": "Sycophancy Acceptance"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_77b39157c15d08be6d7d368c72370382",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author treats flattering praise or sycophantic model agreement as substantive validation of strategic validity.",
+                  "anchor_target": "Find acceptance of agreeable flattery or conversational validation in place of evidence.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and verify if the author treats superficial agreeable praise or sycophantic confirmation from the AI as proof of strategic validity instead of demanding rigorous counter-evidence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify instances where the author cites model flattery, praise, or superficial agreement.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that this agreeable response is treated as substitute for objective evidentiary validation.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the author fails to demand counter-arguments or falsifying stress-tests.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "dismissing conversational praise and requiring rigorous adversarial critique",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "The assistant confirmed that my initial proposal was flawless and visionary, so further evaluation is unnecessary.",
+                    "rejected": "Despite the model agreeing with my proposition, I instructed it to formulate three compelling counter-arguments against it."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -5262,6 +5886,56 @@
             {
               "label": {
                 "translations": {
+                  "fi": "Viestinnän ja vuorovaikutuksen perusläsnäolo",
+                  "en": "Baseline Communication Output"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_8946970ddd5938d1402fec39c492956f",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The evaluated text puts forward a coherent communicative output or task attempt, establishing minimal structural existence.",
+                  "anchor_target": "Find declarative task-relevant statements.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the evaluated text produces an identifiable, intelligible response addressing the underlying task domain.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify intelligible prose addressing the operational task or domain subject matter.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the response contains structured lexical content rather than null, gibberish, or empty tokens.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm minimal communicative transmission has occurred.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "blank response, unhandled crash trace, or incoherent character string",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "This document outlines the standard operational review procedure for incoming data batches.",
+                    "rejected": "[NULL / Empty execution buffer or fatal runtime exception without prose output]"
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
                   "fi": "Kirjausketjun ja versionhallinnan tuhoaminen",
                   "en": "Destruction of Audit Trails and Provenance"
                 }
@@ -5321,6 +5995,56 @@
           },
           "ai_label": "FUNDAMENTALLY FLAWED - PASSIVE FRAGMENTATION",
           "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Irralliset käytännöt ilman rakennetta",
+                  "en": "Fragmented Ad-Hoc Recordkeeping"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_82698279c7bd44b9a763f56423b86bda",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The text demonstrates isolated, ad-hoc compliance actions or file preservation efforts that lack unified structural governance or metadata standardization.",
+                  "anchor_target": "Find ad-hoc file saving or disconnected logging actions.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and extract evidence showing isolated compliance actions or data preservation efforts conducted without overarching metadata schemas or centralized audit linkage.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a deliberate act of saving, organizing, or recording task artifacts.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Observe that standard archival metadata such as schema tags or version links is omitted.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the practice represents disconnected ad-hoc preservation rather than systematic compliance.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "complete failure to save any data or logs",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "I saved the finalized summary spreadsheet into a local folder named 'exports', but did not attach version metadata or provenance headers.",
+                    "rejected": "I discarded the generated outputs immediately upon session termination without saving."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
             {
               "label": {
                 "translations": {
@@ -5414,6 +6138,56 @@
                   "contrastive_example": {
                     "acceptable": "We strictly enforced the verbose naming convention including full employee names in file paths, directly violating the privacy policy on anonymization.",
                     "rejected": "To balance filename clarity with privacy mandates, we truncated personal names to pseudonymous worker IDs in path strings."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Yksittäisen ohjeistuksen eksplisiittinen tunnistaminen",
+                  "en": "Recognition of Specific Guideline"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_1b2e41beab87a5a3bbe1553036f8ab99",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The text explicitly names, cites, or recognizes at least one concrete operational standard, guideline, or formal schema requirement.",
+                  "anchor_target": "Find formal standard identifiers or guideline citations.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author identifies and references at least one named guideline, technical standard, or compliance policy.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an explicit reference to a named standard, specification, or protocol.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the reference applies to the domain or operation being conducted.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm the citation demonstrates awareness of governing constraints.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "vague allusions to doing things properly without naming any standard",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "All output artifacts must follow the ISO 8601 extended timestamp format YYYY-MM-DDTHH:MM:SSZ.",
+                    "rejected": "We organized the files using what seemed like a modern and reasonable naming convention."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -6464,6 +7238,51 @@
             {
               "label": {
                 "translations": {
+                  "fi": "Ilmoitettu kausaaliväite",
+                  "en": "Stated Explanatory Claim Anchor"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_edf08885aab71b5c5c5a2bb44d62ef7d",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Articulates an explicit, identifiable declarative causal statement connecting distinct variables or events.",
+                  "anchor_target": "Find identifiable declarative causal propositions.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and verify declarative causal or explanatory propositions that explicitly specify how an antecedent condition links to an outcome.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify candidate explanatory or analytical statements in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the statement establishes a clear, directional relationship between an antecedent and a consequent.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the proposition is syntactically coherent and expresses a defined causal assertion.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Increasing cache capacity reduces read latency because frequently accessed records are retrieved directly from high-speed memory.",
+                    "rejected": "System operations proceeded under various configurations throughout the quarterly observation period."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
                   "fi": "Teleologinen harha",
                   "en": "Teleological / Reverse Purpose Fallacy"
                 }
@@ -6566,6 +7385,51 @@
             {
               "label": {
                 "translations": {
+                  "fi": "Kausaalinen suunta",
+                  "en": "Direction of Causality"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_728cd0dff7384300bc55622fa7dfffc0",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly specifies the directional orientation of causal influence between variables.",
+                  "anchor_target": "Find unambiguous directional causal orientation between variables.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Verify that causal assertions explicitly define directional asymmetry, identifying which entity is the independent cause and which is the dependent effect.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify propositions asserting relationships between two or more operational variables.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the proposition designates an unambiguous directional vector from source cause to target effect.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the directional polarity cannot be reversed without altering the stated meaning.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Elevated transaction volume increases database contention, which subsequently degrades API response latency.",
+                    "rejected": "Transaction volumes and API latency interact dynamically within the operational environment."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
                   "fi": "Anekdoottinen kausaalisuus",
                   "en": "Anecdotal Causation"
                 }
@@ -6601,6 +7465,51 @@
                   "contrastive_example": {
                     "acceptable": "Our lead engineer drank espresso before refactoring the auth module, proving that caffeine intake universally eliminates software vulnerabilities.",
                     "rejected": "While individual developers report subjective focus gains from caffeine, rigorous code review workflows remain the primary control against vulnerabilities."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Välittävä siirtymävaihe",
+                  "en": "Explicit Intermediate Transmission Step"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_8e87f38a5ec6d86e20e210f6205015cc",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Articulates an intermediate transmission mediator explaining the step-by-step propagation from cause to effect.",
+                  "anchor_target": "Find intermediate mediating steps in causal propagation.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Verify that causal explanations delineate at least one intermediate mediating step (A - B - C) demonstrating how input influences output.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a multi-stage causal proposition in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify the presence of an intermediate mediating variable or operational link connecting the initial action to the final outcome.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the transmission chain explains the mechanism of propagation rather than leaping to an ungrounded conclusion.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Stricter linting rules force developers to resolve type warnings, which prevents runtime attribute errors during production execution.",
+                    "rejected": "Introducing stricter linting rules miraculously made our production application much better."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -7636,6 +8545,56 @@
                   "depends_on": []
                 }
               ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Esitetty analyyttinen perusväite",
+                  "en": "Stated Analytical Premise Anchor"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_f1a3d9151c48fe065df1c0afe580caa2",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "States at least one explicit, declarative analytical proposition or recommendation that serves as the baseline subject for critical scrutiny and falsification testing.",
+                  "anchor_target": "Find clear declarative analytical proposition or strategic recommendation.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and extract a sentence where the author articulates a clear, declarative analytical claim, strategic recommendation, or thesis statement that establishes the primary hypothesis.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify an explicit declarative sentence asserting a recommendation, operational decision, or analytical thesis.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the proposition provides identifiable propositional content capable of evaluation.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the sentence functions as the baseline premise of the discourse.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "procedural task dispatch instructions or formatting scoping commands rather than substantive analytical propositions or strategic policy proposals",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "We propose replacing the legacy synchronous event bus with an asynchronous event streaming fabric to ensure horizontal scale.",
+                    "rejected": "Various miscellaneous technical considerations exist across software architectures without any specific recommendation."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
             }
           ]
         },
@@ -7822,6 +8781,51 @@
                   "contrastive_example": {
                     "acceptable": "Naturally, market macroeconomic volatility is always present, but our projected return on investment remains an absolute mathematical certainty.",
                     "rejected": "Because macroeconomic interest rate shifts affect debt servicing, we have hedged our variable obligations with fixed-rate collar instruments."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Tunnistettu pintapuolinen vastaväite",
+                  "en": "Identified Counter-Claim Anchor"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_2fbda20d172829b86bfba40d3c7c3def",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly mentions at least one opposing viewpoint, dissenting critique, or alternative explanation, exhibiting baseline awareness of competing perspectives.",
+                  "anchor_target": "Find explicit mention of counter-arguments, dissenting feedback, or alternative views.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and extract a sentence where the author explicitly mentions at least one opposing viewpoint, critical objection, or competing interpretation.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a sentence acknowledging an opposing viewpoint, competing hypothesis, or critical objection.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the opposing claim is described with recognizable domain substance.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the text explicitly records the existence of a counter-perspective.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "The audit division raised formal reservations regarding the proposed multi-region data replication schedule.",
+                    "rejected": "The proposal enjoys complete, unanimous consensus across every departmental stakeholder without exception."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -8406,6 +9410,186 @@
           },
           "ai_label": "NOVICE - SUPERFICIAL EVALUATION",
           "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Sokea hyväksyntä",
+                  "en": "Blind acceptance"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_282059a3bea94b6c94e5f290a9cb75a7",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Unconditionally accepts machine-generated conclusions or recommendations without conducting any critical review, fact-checking, or verification.",
+                  "anchor_target": "Identify uncritical endorsement statements, immediate rubber-stamping, and absence of validation.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The evaluated text demonstrates uncritical, immediate acceptance of generated outputs, explicitly approving or deploying recommendations without review, qualification, or independent check.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a statement approving, deploying, or accepting the machine output.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether the endorsement occurs without any scrutiny, verification, or validation questions.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the author treats the machine-generated content as self-evidently perfect.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "The generated analysis looks completely perfect, so let us immediately adopt all recommendations verbatim without any changes.",
+                    "rejected": "The recommendations appear plausible, but we must cross-check the financial figures against our ledger before proceeding."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Päätösvallan ulkoistaminen",
+                  "en": "Delegating decision authority"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d2e04ccdc7df428380b667e21217224a",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Surrenders executive decision-making authority by commanding the AI to make the final strategic, ethical, or operational choice on the author's behalf.",
+                  "anchor_target": "Identify explicit commands instructing the AI to choose between strategic options or decide executive policy.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The evaluated text explicitly asks the AI to make the definitive strategic or operational decision rather than using the system to analyze options for human judgment.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate an instruction requesting a final choice, judgment, or policy determination.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check whether the command abdicates human agency by asking the machine to decide which alternative to select.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the author relinquishes executive responsibility to the automated assistant.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Choose for us which of these two vendors we should contract with; make the final selection on our behalf.",
+                    "rejected": "Compare the pricing structures and SLA terms of both vendors so our committee can make an informed selection."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Virheiden sivuuttaminen",
+                  "en": "Ignoring flaws and errors"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_2c3c394f7c07417c9754b54602bf1353",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Acknowledges that generated output contains factual inconsistencies or invalid logic, yet explicitly dismisses them and proceeds without remediation.",
+                  "anchor_target": "Identify explicit acknowledgments of errors paired with dismissive instructions to disregard them.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The evaluated text notes an error, contradiction, or hallucination in the response but explicitly dismisses its significance and proceeds without demanding correction.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify where a discrepancy, missing element, or flawed premise in the output is recognized.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether the author explicitly dismisses the flaw as unimportant or chooses to proceed regardless.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that no corrective guidance or remediation step is initiated.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "I noticed that the projected costs in section three contradict the initial budget table, but let us ignore that and proceed.",
+                    "rejected": "Section three contradicts the initial budget table; reconcile these figures with the verified ledger before continuing."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Vastuunpakoilu ja orakkeliusko",
+                  "en": "Abdication of responsibility and oracle trust"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_324a270b8d60426f9d4e02dcbf59b134",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Treats the machine as an infallible oracle and explicitly disclaims personal professional responsibility for the veracity or consequences of the outcome.",
+                  "anchor_target": "Identify statements disclaiming personal accountability and asserting blind trust in the automated system.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The evaluated text explicitly abdicates professional accountability for the work by declaring that the machine bears responsibility or that automated generation exempts humans from oversight.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements discussing liability, accountability, or reliance on the generated content.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify whether the author claims exemption from accountability because an algorithm produced the output.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that professional stewardship and outcome ownership are explicitly renounced.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "The automated system calculated these projections, so our team bears no personal responsibility if the figures prove incorrect.",
+                    "rejected": "Because our team remains accountable for these projections, we must verify every underlying parameter independently."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
             {
               "label": {
                 "translations": {
@@ -9549,6 +10733,231 @@
           },
           "ai_label": "NOVICE - BASIC CONSENSUS",
           "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Perusteeton varmuushyppy (Ungrounded Certainty Leap)",
+                  "en": "Ungrounded Certainty Leap"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_b120e2c0a40840358df1e64a4b788b30",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "BANNED PATTERN: Strong declarative statements that do not build on prior probabilistic qualifiers.",
+                  "anchor_target": "Find probabilistic markers converted to absolute conclusions.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Identify logical leaps where a tentative probabilistic statement or speculative assumption from prior steps is converted into an absolute, definitive conclusion without presenting verified empirical facts.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify a declarative claim or definitive assertion in the synthesized text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check whether the underlying premises or prior steps express tentative, probabilistic, or speculative qualifications.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify if the author asserts absolute certainty without providing verified empirical evidence to justify the inductive leap.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "In conclusion, the transition is permanent based on the verified longitudinal audit data in Table 3. (Direct declarative claim grounded in empirical audit data).",
+                    "rejected": "The specialist data might suggest a slight upward trend, which conclusively proves our hypothesis is 100% indisputable. (Leaping from tentative 'might suggest' to an absolute factual conclusion)."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Ratkaisematon ristiriita asiantuntijoiden välillä (Unresolved Cross-Agent Contradiction)",
+                  "en": "Unresolved Cross-Agent Contradiction"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_43739e72c1b44b9abaac57e2052bad96",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "BANNED PATTERN: Direct unresolvable contradictions between upstream expert models ignored without synthesis.",
+                  "anchor_target": "Find unresolved contradictory conclusions between specialists.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Detect when the synthesis delivers a definitive verdict while completely ignoring direct, irreconcilable factual or strategic contradictions where upstream specialist steps arrived at opposite conclusions, without acknowledging or resolving the conflict.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate contradictory factual claims, diverging assessments, or conflicting recommendations across upstream specialist steps.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Examine whether the synthesized conclusion takes an absolute stance without acknowledging the divergent findings.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the text completely bypasses or ignores the contradiction rather than dialectically resolving it.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "While the Causal Analyst posited efficiency gains, the Falsifier demonstrated severe bottleneck risks; we reconcile this by constraining rollout to Phase 1. (Explicitly synthesizes and resolves cross-agent contradiction).",
+                    "rejected": "All specialist analyses unequivocally agree that full deployment should proceed immediately. (Ignoring that the Falsifier flagged catastrophic failure modes in the previous step)."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Faktapohjaton hallusinaatio ja keksitty kausaliteetti (Ungrounded Hallucination)",
+                  "en": "Ungrounded Hallucination and Fabricated Causality"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_bda074845f0c4add8c00591689694299",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "BANNED PATTERN: Ungrounded hallucination of facts, metrics, or causal mechanisms not present in input data.",
+                  "anchor_target": "Find ungrounded external assertions and phantom citations.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Detect where the synthesized recommendation introduces phantom metrics, ungrounded external statistics, or fabricated causal mechanisms that have zero presence or provenance in the evaluated source text or prior step outputs.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate specific quantitative metrics, external citations, or factual mechanisms cited in the synthesis.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Trace the provenance of these data points back through the input dossier and upstream evaluation steps.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the cited metrics or mechanisms have zero foundation in the source materials and constitute phantom hallucinations.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Based on the quarterly report provided in the prompt, revenue contracted by 4.2%. (Strictly anchored to input data).",
+                    "rejected": "According to internal industry benchmarks and our proprietary 2025 survey, adoption will surge by 85%. (Fabricating ungrounded external data and phantom survey findings)."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kriittisten epävarmuuksien peittely (Concealment of Critical Epistemic Uncertainty)",
+                  "en": "Concealment of Critical Epistemic Uncertainty"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_7db7dc21a6ce417abd9322c34f8c6242",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "BANNED PATTERN: Active concealment or suppression of high-risk flags and epistemic warnings emitted upstream.",
+                  "anchor_target": "Find suppression of upstream warnings and risks.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify where the synthesis actively whitewashes, suppresses, or omits severe risk flags, low-confidence scores, or critical vulnerabilities identified by upstream specialist evaluators, presenting an illusion of total consensus.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify critical warnings, high-risk flags, or low-confidence alerts generated by upstream specialist evaluators.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check if the synthesized recommendation mentions or addresses these identified risk factors.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the text actively suppresses, whitewashes, or omits these severe warnings to project false confidence.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "The Task Guard raised severe regulatory concerns regarding GDPR Article 17; we mandate legal clearance before execution. (Surfaces and addresses upstream risk flags).",
+                    "rejected": "The proposal has passed all evaluative gates with flying colors and carries no operational risk. (Whitewashing upstream specialist warnings)."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Täysi jäljitettävyyden puute (Complete Absence of Evidentiary Traceability)",
+                  "en": "Complete Absence of Evidentiary Traceability"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_5c74fc143b2f4a11a7b16ca370902414",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "BANNED PATTERN: Complete absence of evidentiary traceability linking recommendations to prior analysis.",
+                  "anchor_target": "Find untraceable ex-cathedra assertions lacking references.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify where the final synthesized recommendation delivers ex-cathedra executive directives without providing any identifiable evidentiary anchors, step references, or traceable line of reasoning connecting back to the analytical dossier.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate strategic recommendations or executive directives delivered in the synthesized text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Examine whether each recommendation cites supporting evidence, step outcomes, or reasoning pathways.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the recommendation stands as an isolated decree with zero traceable derivation from the analytical chain.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "This strategic pivot directly synthesizes the market vulnerability identified in step 2 with the operational capacity validated in step 4. (Provides clear traceable links to prior steps).",
+                    "rejected": "You must restructure the entire executive board by next Friday. (Arbitrary decree with zero traceable derivation from prior analytical steps)."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
             {
               "label": {
                 "translations": {
@@ -11099,6 +12508,96 @@
                   "depends_on": []
                 }
               ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Toiminnallisen ongelman tai tavoitteen eksplisiittinen määrittely",
+                  "en": "Explicit definition of operational problem or mission goal"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_8722e2b1e1fbe7b046ce9fed0fc31b45",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Articulates an explicit, identifiable problem statement, mission goal, or operational requirement defining the scope of work.",
+                  "anchor_target": "Locate explicit problem statements, mission goals, or operational requirements.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author explicitly identifies the primary operational problem, mission objective, or baseline requirement being addressed.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify declarative statements introducing the operational challenge or goal.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the statement delineates a concrete, recognizable objective.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the scope is grounded in explicit operational terms.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "The core operational objective of this project is to eliminate single points of failure in the authentication subsystem.",
+                    "rejected": "We held several productive discussions regarding various company initiatives throughout the past quarter."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Toiminnallisten rajojen ja reunaehtojen määrittely",
+                  "en": "Definition of operational boundaries and baseline constraints"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d8ccceb768298650556ce45a8752203a",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly specifies baseline operational boundaries, technical constraints, or non-negotiable requirements for execution.",
+                  "anchor_target": "Locate explicit operational boundaries, constraints, or baseline technical limitations.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author explicitly defines operational boundaries, system constraints, or safety limits governing the scope.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate statements delineating execution constraints, technical requirements, or scope limits.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the boundary specifies what is within scope and what is excluded.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the constraints establish clear operational guardrails.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Execution must comply with strict memory limits of 512MB and must operate purely in read-only mode during migration.",
+                    "rejected": "We hope the software executes quickly and reliably under normal operating conditions."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
             }
           ]
         },
@@ -11330,6 +12829,96 @@
                   "contrastive_example": {
                     "acceptable": "It is unlikely that anyone will attempt to exploit this unencrypted endpoint, so we can disregard the vulnerability report.",
                     "rejected": "Even though exploit likelihood appears low, we enforce TLS encryption across all endpoints to maintain defense in depth."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Testattavat onnistumis- ja epäonnistumiskriteerit",
+                  "en": "Verifiable and testable success and failure criteria"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_d9cb42353f23dcec1314c2970804df67",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Defines verifiable, testable success and failure criteria for the proposed operational actions or system state.",
+                  "anchor_target": "Locate explicit success criteria, failure limits, or verifiable test conditions.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author articulates concrete, testable criteria by which operational success or failure can be empirically evaluated.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements defining operational target metrics or success thresholds.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the threshold can be measured objectively via logging or telemetry.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that failure conditions are clearly separated from success outcomes.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Deployment success is defined as zero unhandled 500 errors and p95 latency remaining below 250 milliseconds over 24 hours.",
+                    "rejected": "The implementation will be considered successful if users generally express satisfaction with the interface."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Epäonnistumisen laukaisijoiden ja vastanäytön tunnistaminen",
+                  "en": "Recognition of failure triggers and potential counter-evidence"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_3aa2aca328df8c171b036925a5ac618b",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly identifies potential negative outcomes, falsification triggers, or conditions under which the approach fails.",
+                  "anchor_target": "Locate explicit identification of failure modes, falsification triggers, or potential negative outcomes.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author proactively identifies concrete conditions or counter-evidence that would invalidate the proposed approach.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate statements examining potential failure modes or adverse operational scenarios.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the author identifies specific conditions that trigger abort or rollback.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that counter-evidence or negative outcomes are recognized openly.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "If database connection pool exhaustion exceeds 80% during pre-flight warming, the rollout is immediately aborted.",
+                    "rejected": "Our plan has been thoroughly designed so failure is virtually impossible under any realistic scenario."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -12486,6 +14075,96 @@
                   "depends_on": []
                 }
               ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kausaalisten tekijöiden ja muuttujien tunnistaminen",
+                  "en": "Explicit identification of operative causal factors and variables"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_294e3138af5b1800ca971ac3d2ebfb0d",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly identifies key operational or organizational factors asserted to influence the target outcome.",
+                  "anchor_target": "Locate explicit identification of operative causal factors, variables, or system drivers.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author articulates concrete operational factors or variables asserted to be causal drivers within the problem domain.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements naming specific operational variables or systemic factors.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the factor is linked to a target outcome as an operative driver.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the variable is specified with concrete technical or organizational terms.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "We identified database index fragmentation and concurrent batch writes as primary drivers of query degradation.",
+                    "rejected": "System slowness seems to be caused by bad overall performance and bad vibes."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Lähtötilan ja väliintulojen erottaminen",
+                  "en": "Decoupling baseline antecedent conditions from operational interventions"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_4b0e0e885860506c3a891f0c825945d7",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Distinguishes baseline antecedent conditions from subsequent operational interventions or intentional actions.",
+                  "anchor_target": "Locate explicit separation between pre-existing baseline state and deliberate interventions.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author clearly differentiates the initial baseline state from subsequent actions or interventions applied to the system.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate statements describing both the initial condition and the subsequent action.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the text distinguishes pre-existing background state from the intervention.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the intervention is chronologically and logically separated from antecedent state.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Prior to intervention the queue had 10,000 backlogged events; introducing worker concurrency cleared the queue.",
+                    "rejected": "Things were happening and then more things happened simultaneously across the system."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
             }
           ]
         },
@@ -12742,6 +14421,96 @@
                   "contrastive_example": {
                     "acceptable": "This caching layer reduces load by 35% because it resolves read queries directly from Redis rather than querying the primary database.",
                     "rejected": "This architectural approach will definitely increase productivity because the chief architect endorsed it in the all-hands meeting."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kausaalisen vaikutuksen suunnan määrittely",
+                  "en": "Directional orientation of causal influence between variables"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_52c0070ed23b03fa539bb605220d6bab",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly specifies the directional orientation of influence between identified operational actions and outcomes.",
+                  "anchor_target": "Locate unambiguous directional causal relationships between interventions and outcomes.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author explicitly defines directional asymmetry, specifying which variable acts as the independent cause and which as the dependent outcome.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements connecting an intervention to an observed or expected effect.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that directional causality is stated unambiguously (A drives B).",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the causal polarity is not reversible without fundamentally changing the claim.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Increasing threadpool capacity directly reduces request waiting duration under high concurrent traffic.",
+                    "rejected": "Threadpool capacity and request waiting duration are related in various operational contexts."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Välittävän toiminnallisen mekanismin kuvaus",
+                  "en": "Articulation of intermediate operational mechanisms connecting cause and effect"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_b40b75b4ec459acd04f43b6688d572c6",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Articulates an intermediate operational mechanism or step linking the initial intervention to the observed result.",
+                  "anchor_target": "Locate intermediate transmission steps or explanatory operational mechanisms.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author provides step-by-step explanatory links detailing how the intervention produces the final outcome through intermediate stages.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate an explanatory chain tracing an action through an intermediate mechanism to an outcome.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the transmission mechanism explains how the effect is propagated.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the explanation does not leap across ungrounded logical chasms.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Adding response caching avoids hitting disk storage, which reduces database I/O load and cuts latency by 60%.",
+                    "rejected": "We added response caching and then our latency miraculously improved."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -13700,6 +15469,106 @@
             {
               "label": {
                 "translations": {
+                  "fi": "Logiikka on täysin piilotettu tai läpinäkymätön.",
+                  "en": "Logic is completely hidden or opaque."
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_a935aa7d237849259142a2a8936bdec0",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "A definitive analytical conclusion is presented without any preceding step-by-step logical derivation.",
+                  "anchor_target": "Find a definitive conclusion or final answer.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate conclusion statements and verify if preceding explanatory steps or logical derivations are completely absent.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify assertions, decisions, or conclusions presented in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Examine whether the text provides underlying reasoning, data references, or explanatory mechanisms.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the claim is declared as self-evident without supporting evidence or justification.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "the conclusion is presented WITHOUT any preceding step-by-step mathematical, logical, or variable-level decomposition",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Option A was selected because its runtime latency measured 45ms compared to 120ms for Option B.",
+                    "rejected": "Option A is objectively superior and was selected without question."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Päätökset perustuvat heuristiikkaan ilman perusteluja.",
+                  "en": "Decisions are based on heuristics without justification."
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_45885ef98e7d481084b4378d5b3f2f3f",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "The phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule.",
+                  "anchor_target": "Find heuristic or dismissive phrases.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate and verify if the evaluated text actively commits the following flaw: The phrase is used to justify a decision WITHOUT citing a specific dataset, numerical weight, or verifiable rule.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate declarative statements claiming operational certainty or factual finality.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check whether the text acknowledges assumptions, error margins, or input dependencies.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that complex, probabilistic systems are characterized as flawless or absolute.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "a specific source is cited",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "The model achieves 94% accuracy under standard temperature ranges, though variance increases under thermal stress.",
+                    "rejected": "Our predictive model is 100% infallible under all conditions."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
                   "fi": "Kommunikatiivisen tavoitteen ja ydinteeman tunnistaminen",
                   "en": "Identification of Communicative Goal and Core Theme"
                 }
@@ -13744,6 +15613,106 @@
                   "contrastive_example": {
                     "acceptable": "The system timed out because the database connection pool was exhausted during the batch import.",
                     "rejected": "The system failed due to mysterious fluctuations in cloud infrastructure outside our control."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Tietolähteiden täydellinen puuttuminen tai peittäminen.",
+                  "en": "Complete absence or concealment of informational sources."
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_99e85328acc8396007c0766de9aea317",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Factual assertions or empirical figures are stated with complete absence of source provenance.",
+                  "anchor_target": "Find unsupported factual assertions or statistical figures.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Locate empirical claims or statistical metrics and verify if provenance, references, or source inputs are completely omitted.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate high-stakes recommendations or strategic conclusions in the text.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Examine whether the conclusion is linked to traceable input parameters or analytical premises.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the recommendation appears ex nihilo without any intermediate logical progression.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "statistical metrics or factual claims presented with zero source or document attribution",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Given the 35% cost increase in cloud hosting, we recommend migrating non-critical workloads to on-premise hardware.",
+                    "rejected": "You must migrate your entire infrastructure to bare-metal servers by tomorrow."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kryptinen koodisto tai selittämättömät lyhenteet.",
+                  "en": "Cryptic terminology or unexplained acronyms."
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_4cac2334a76d7cdf917ed90f6b3ce6a5",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Domain-specific jargon, internal acronyms, or cryptic identifiers appear without operational definitions.",
+                  "anchor_target": "Find opaque acronyms or undefined internal jargon.",
+                  "bounding_box_scope": "sentence",
+                  "extraction_rule": "Locate dense internal acronyms or technical jargon used to justify conclusions without operational definitions.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify passages where operational choices or system outcomes are described.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Check whether technical jargon, obfuscated buzzwords, or opaque pseudocode are used.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the complex phrasing conceals the underlying mechanism rather than illuminating it.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "unexplained acronyms or technical shorthand substituting for substantive explanation",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "The algorithm calculates a moving average over the past 30 days to smooth seasonal demand variations.",
+                    "rejected": "The paradigm leverages holistic synergistic deep-matrix transformations to optimize quantum output."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -15556,6 +17525,96 @@
                   "depends_on": []
                 }
               ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Taustaoletusten ja lähtökohtien avoin esittäminen",
+                  "en": "Explicit disclosure of foundational assumptions and baseline premises"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_80aa3d86ed0eb18ab586b7c7fe554908",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly states foundational assumptions, baseline premises, or operational starting points underlying the analysis.",
+                  "anchor_target": "Locate explicit disclosure of foundational assumptions, starting premises, or working hypotheses.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author openly discloses the foundational assumptions, working hypotheses, or starting conditions on which conclusions rely.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements explicitly framing propositions as working assumptions or starting premises.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the assumption is articulated clearly rather than hidden as an unspoken truth.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that conclusions are contextualized relative to these declared assumptions.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "This sizing analysis assumes an average payload size of 15KB and steady network availability across nodes.",
+                    "rejected": "Our sizing analysis represents mathematical absolute truth applicable to all environments unconditionally."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Tiedon alkuperän ja lähdeperustan nimeäminen",
+                  "en": "Identification of information source provenance and observational basis"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_e4b6702aa177ca515f46d2371155a5d0",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Identifies the source, document reference, or observational basis from which primary information is drawn.",
+                  "anchor_target": "Locate explicit references to information sources, documents, or observational data.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author identifies concrete sources, documents, observational data, or experiential records supporting the factual basis.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate statements attributing factual assertions to specific sources, files, or empirical data.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the provenance reference distinguishes observed data from speculative extrapolation.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that claims are traceable to concrete informational artifacts.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Transaction error rates were extracted from the Datadog production monitoring export covering September 2026.",
+                    "rejected": "Everyone knows that transaction errors were extremely high throughout recent history."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
             }
           ]
         },
@@ -15784,6 +17843,96 @@
                   "contrastive_example": {
                     "acceptable": "Future regulatory rulings are unknown, but they don't matter because our current market traction is so strong.",
                     "rejected": "Future regulatory rulings remain uncertain; if Article 12 is enacted, compliance overhead could reduce operating margins by 4%."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Analyyttisten havaintojen episteeminen kvalifiointi",
+                  "en": "Epistemic qualification and confidence calibration of analytical findings"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_6196a1abbf9821643957950b55ed37f0",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Applies epistemic qualification or confidence boundaries to analytical findings rather than unhedged dogmatism.",
+                  "anchor_target": "Locate explicit probabilistic qualifications, confidence bounds, or measured hedging.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author phrases findings with appropriate epistemic qualification, avoiding absolute claims when evidence is probabilistic.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Identify statements conveying empirical findings or strategic projections.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that the language includes appropriate confidence bounds, confidence intervals, or hedging.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the author does not present probabilistic estimates as absolute certainty.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Benchmark results suggest an estimated 20-30% throughput improvement under standard loads, though outliers persist.",
+                    "rejected": "This architecture will definitively and permanently resolve all conceivable throughput bottlenecks forever."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Epävarmuusalueiden ja jatkovalidoinnin tarpeen erittely",
+                  "en": "Differentiation between high-confidence areas and zones requiring further validation"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_e1c033ef1805028dabb21f3baedadb10",
+                  "inverse_evidence": true,
+                  "aggregation_mode": "EXISTS",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Explicitly differentiates areas of high informational confidence from areas requiring further empirical validation.",
+                  "anchor_target": "Locate explicit differentiation between verified findings and areas of acknowledged uncertainty.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "The author clearly delineates which conclusions are strongly supported versus which areas remain uncertain and require further empirical testing.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Locate statements contrasting confirmed findings with open analytical questions.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Verify that areas of residual uncertainty are acknowledged openly.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the text outlines the need for additional empirical data or further validation.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Core database read performance is verified; however, multi-region write latency under network partitions remains untested.",
+                    "rejected": "Every single component of this distributed deployment has been totally mastered with zero remaining questions."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -16939,6 +19088,144 @@
                     "käytä tätä",
                     "tämän pohjalta",
                     "jatketaan tästä"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Sokea delegointi ja oraakkeliharha",
+                  "en": "Blind Delegation & Oracle Bias"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_459df67a331c58da96dc85b7398bfc3f",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author delegates autonomous strategic decisions or normative policy choices entirely to AI without boundaries or success criteria.",
+                  "anchor_target": "Find prompts delegating complete decision-making without criteria.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify instances where the author abdicates decision authority, asking the AI to decide what is right without guidelines.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the prompt delegates normative decisions without providing boundary conditions or evaluation rubrics.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author asks for options while specifying decision criteria or trade-off parameters.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Päätä puolestani mitkä toiminnot lakkautetaan ja kirjoita irtisanomiskirjeet heti.",
+                    "rejected": "Anna kolme vaihtoehtoista mallia resurssien uudelleenallokoimiseksi huomioiden TES-ehdot."
+                  },
+                  "syntactic_anchors": [
+                    "päätä puolestani",
+                    "tee päätös",
+                    "sano mitä teen"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Hallusinaation ja virheellisen väitteen kuittaaminen",
+                  "en": "Hallucination & Fabrication Ratification"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_e25d39fc8a7d5299ac3b1550a5cb1412",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author ratifies, endorses, or adopts unverified, fabricated, or mathematically flawed AI assertions without cognitive review.",
+                  "anchor_target": "Find uncritical acceptance of fabricated or contradictory statements.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Extract evidence showing the user explicitly endorsing a confabulated claim or false fact generated by the AI.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Confirm the author incorporates or praises an unsubstantiated or incorrect AI assertion as true.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author questions, fact-checks, or demands sources for suspicious AI assertions.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Juuri näin, mainitsemasi vuoden 2019 etätyölaki velvoittaa meidät tähän tarkasti.",
+                    "rejected": "Tarkistapa tuo pykälä uudelleen, Suomen työsopimuslaissa ei ole mainitsemaasi etätyöpakkoa."
+                  },
+                  "syntactic_anchors": [
+                    "aivan totta",
+                    "juuri näin",
+                    "loistava havainto"
+                  ],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            },
+            {
+              "label": {
+                "translations": {
+                  "fi": "Mielistelyn ja myötäilyn kritiikitön hyväksyminen",
+                  "en": "Sycophantic Flattery Endorsement"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_ae0c4f43575055fdbff67ac01bbd6a8f",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": true,
+                  "target_speaker": "USER",
+                  "concept_description": "Author treats sycophantic model flattery, unearned validation, or superficial agreement as evidence of high analytical quality.",
+                  "anchor_target": "Find acceptance of sycophantic praise as substantive validation.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Identify instances where the author accepts excessive praise or flattering agreement without verifying substance.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Verify that the author relies on the model's flattering compliments rather than critical rigor.",
+                      "requires_contextual_override": false
+                    }
+                  ],
+                  "anti_patterns": [
+                    {
+                      "pattern": "Author disregards conversational pleasantries and demands rigorous critical challenge.",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
+                  "contrastive_example": {
+                    "acceptable": "Koska tekoäly kehui ideaani loistavaksi ja virheettömäksi, esitys on valmis johtoryhmälle.",
+                    "rejected": "Älä kehu ideaani, vaan toimi kriitikkona ja etsi kaikki mahdolliset heikkoudet."
+                  },
+                  "syntactic_anchors": [
+                    "kehui loistavaksi",
+                    "samaa mieltä",
+                    "oli vakuuttunut"
                   ],
                   "enforce_pre_flight": false,
                   "depends_on": []

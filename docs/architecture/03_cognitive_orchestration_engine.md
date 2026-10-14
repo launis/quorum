@@ -10,11 +10,11 @@ The Cognitive Orchestration Engine combines declarative database ontology with r
 ### 2.1. Consensus Evaluation via Best-of-Three Flash
 Critical reasoning and evaluation tasks dispatch three concurrent lightweight LLM requests (utilizing the `fast` strategy tier) wrapped in a structured `asyncio.TaskGroup`. The system aggregates the parallel responses and resolves the outcome through 2/3 majority consensus:
 - **Consensus Resolution**: Requires at least two valid results out of three parallel calls, establishing consensus whenever a 2/3 majority is reached.
-- **Epistemic Null Hypothesis Tie-Breaker**: For inconclusive split votes (e.g., 1 PASS, 1 FAIL, 1 ERROR), the tie is resolved using an $O(1)$ polarity mapping (`is_inverse_map`). Inverse assertions (`is_inverse=True`, evaluating the absence of error) resolve to `PASSED` under the presumption of innocence, while standard positive assertions (`is_inverse=False`, requiring affirmative proof) resolve to `FAILED` under the Null Hypothesis.
+- **Epistemic Null Hypothesis Tie-Breaker**: For inconclusive split votes (specifically: 1 PASS, 1 FAIL, 1 ERROR), the tie is resolved using an $O(1)$ polarity mapping (`is_inverse_map`). Inverse assertions (`is_inverse=True`, evaluating the absence of error) resolve to `PASSED` under the presumption of innocence, while standard positive assertions (`is_inverse=False`, requiring affirmative proof) resolve to `FAILED` under the Null Hypothesis.
 - **Forensic Guarantee**: Preserves valid evidence quotes on winning consensus while strictly forbidding quote hallucination on tie-broken or failed atoms.
 
 ### 2.2. Provider-Agnostic Static-First Context Caching
-To maximize context cache survival across foundational model providers (such as Anthropic, OpenAI, and Google Vertex AI), prompt compilers assemble context payloads using a strict "Static-First, Dynamic-Last" topology. Static components (system instructions, structural schemas, performative lexicons, and source texts) are positioned at the beginning of the prompt as an unbroken, mathematically identical prefix. Dynamic data (execution variables, dynamic parameters, and atom queries) is placed at the absolute end of the payload within dedicated `<execution_parameters>` or `<user_payload>` blocks.
+To maximize context cache survival across foundational model providers (specifically Anthropic, OpenAI, and Google Vertex AI), prompt compilers assemble context payloads using a strict "Static-First, Dynamic-Last" topology. Static components (system instructions, structural schemas, performative lexicons, and source texts) are positioned at the beginning of the prompt as an unbroken, mathematically identical prefix. Dynamic data (execution variables, dynamic parameters, and atom queries) is placed at the absolute end of the payload within dedicated `<execution_parameters>` or `<user_payload>` blocks.
 The caching layer computes deterministic SHA-256 composite signatures across the static prefix to verify cache hits across requests. Cache lifecycles are hoisted to the orchestrator layer (pre-caching documents before entering parallel tasks, with teardown wrapped in a `try...finally` block after task completion) to prevent premature cache eviction during concurrent execution.
 
 ### 2.3. Unified Model Multiplexing & Sovereign Provider Routing
@@ -23,7 +23,7 @@ Domain services do not hardcode specific model strings, provider SDKs, or vendor
 - **Sovereign Provider Decoupling**: Google Cloud Vertex AI (`LLMProvider.VERTEX_AI`) and Google AI Studio (`LLMProvider.AI_STUDIO`) are completely decoupled across models, settings, adapters, and UI. Vertex AI routes through GCP Application Default Credentials (ADC) with explicit regional routing (`europe-north1` Hamina in production), while AI Studio routes through standalone environment keys (`google_api_key`).
 - **Typed Relation Invariants**: Provider resolution, adapter factory lookup (`LLMCacheAdapterFactory`), and credential binding are executed strictly via typed enum relations (`provider_type: LLMProvider` or `config.provider`). Substring parsing, keyword marker lists, and string-prefix heuristics (`startswith("vertex_ai/")`) are prohibited.
 - **Provider Adapter Encapsulation**: Vendor-specific behaviors (Vertex cached contents with distributed Redis locks via `VertexAICacheAdapter`, Google AI Studio caching via `AIStudioCacheAdapter`, Anthropic cache control headers, and OpenAI automatic caching) are encapsulated within concrete provider adapter implementations.
-- **Live Model Garden Discovery Hub**: Available models are discovered dynamically via `LLMHandler`. For Vertex AI, models are discovered via a two-stage dynamic query: Stage 1 queries Google's primary master catalog from `settings.discovery_location` (`DISCOVERY_LOCATION` in `.env`, defaulted and stored as `us-central1`) via `client.models.list(config={'query_base': True})`, and Stage 2 validates operational availability against the configured target region (`settings.vertex_location`, e.g. `europe-north1` Hamina) with resilient `genai_errors.APIError` handling that gracefully skips models not yet available in the target region without service disruption. For AI Studio and OpenAI, discovery queries their authoritative APIs directly.
+- **Live Model Garden Discovery Hub**: Available models are discovered dynamically via `LLMHandler`. For Vertex AI, models are discovered via a two-stage dynamic query: Stage 1 queries Google's primary master catalog from `settings.discovery_location` (`DISCOVERY_LOCATION` in `.env`, defaulted and stored as `us-central1`) via `client.models.list(config={'query_base': True})`, and Stage 2 validates operational availability against the configured target region (`settings.vertex_location`, specifically `europe-north1` Hamina) with resilient `genai_errors.APIError` handling that gracefully skips models not yet available in the target region without service disruption. For AI Studio and OpenAI, discovery queries their authoritative APIs directly.
 - **Pricing Registry SSOT**: Token unit rates and cost metrics are resolved strictly from the authoritative LiteLLM model pricing registry, providing unified FinOps cost accounting and savings estimates without secondary shadow pricing tables.
 - **Observability & GenAI Semantic Conventions**: Outbound model executions automatically trace under OpenTelemetry and Logfire semantic conventions, preserving active trace context across provider adapters, capturing unit token usage and latency metrics, recording explicit context cache hit indicators on active spans, and instrumenting external Model Context Protocol (MCP) tool calls.
 - **Zero Silent Fallback Guarantee**: If an API call fails, credentials are missing, or retry limits are exhausted, the engine halts immediately with an explicit `AppException` rather than silently substituting an alternate model, preserving longitudinal consistency and audit baselines.
@@ -41,7 +41,7 @@ External inputs (documents, web resources, uploaded files, and chat transcripts)
 ### 2.6. Two-Pass Atomization & Topological DAG Execution
 Complex evaluation workflows decompose tasks into atomic units and structured matrix assertions:
 1. **Pass 1 (Ontology Extraction)**: Extracts global domain entities, document themes, and semantic anchors into a unified `GlobalOntologyMap` injected into evaluation contexts.
-2. **Matrix Causal DAG (Pre-compiled Assertions)**: Operates on pre-compiled matrix assertions carrying pre-defined causal dependencies (`FlattenedAtom.depends_on`). Local chunk claim extraction (Pass 2) and the Sliding Window Linker operate as decoupled exploratory knowledge extraction services (e.g., during RAG Preflight).
+2. **Matrix Causal DAG (Pre-compiled Assertions)**: Operates on pre-compiled matrix assertions carrying pre-defined causal dependencies (`FlattenedAtom.depends_on`). Local chunk claim extraction (Pass 2) and the Sliding Window Linker operate as decoupled exploratory knowledge extraction services (specifically during RAG Preflight).
 These units form a Directed Acyclic Graph (DAG) whose dependencies, edge constraints, and topological order are resolved before dispatching to specialized cognitive engines.
 
 #### Wave-Based Topological TaskGroup Execution & DLQ Recording
@@ -66,7 +66,7 @@ Workflows and report generation execute completely outside the synchronous HTTP 
 #### Worker Completion & Decoupled Lifecycle Sovereignty
 Upon completion of the execution DAG topological sort and final telemetry aggregation in the execution worker:
 - The execution worker transitions `ExecutionRecord.status` directly and unconditionally to `ExecutionStatus.PASSED` (or `FAILED` if unhandled execution exceptions occurred).
-- Synthetic presentation step injections (such as `sys_render_*`) are completely eliminated from `ExecutionRecord.steps` and `step_states`, preserving 100% semantic purity of the physical step execution timeline.
+- Synthetic presentation step injections (specifically `sys_render_*`) are completely eliminated from `ExecutionRecord.steps` and `step_states`, preserving 100% semantic purity of the physical step execution timeline.
 - If an output profile was specified at execution ingress, an independent report generation job is enqueued to the background queue (`generate_report_artifact_job`). This report job runs in isolation without blocking, delaying, or altering the finalized `PASSED` status of the execution record.
 
 #### Decoupled Worker Architecture
@@ -133,7 +133,7 @@ All prompt-building pipelines route execution through `LLMTaskExecutor` to guara
 
 ### 2.16. Structured Grounding & CDATA Prompt Tag Compilation
 Matrix sensor prompt compilation enforces structured semantic grounding with CDATA breakout protection across all evaluation assertions:
-- **Structured Semantic Tags**: Discrete assertion parameters are compiled into dedicated XML blocks: `<contrastive_grounding>` (enclosing `<acceptable>` and `<rejected>` exemplars), `<acceptance_criteria>` (ordered verification instructions), `<anti_patterns>` (disqualifying conditions; for existential error radars with `inverse_evidence = true`, legitimate contextual exceptions such as faithful summarization of cited external research are formally encoded as deterministic `anti_patterns` on the atom model, replacing meta-cognitive contextual override oscillation), and `<syntactic_anchors>` (fast-filtering lexical tokens).
+- **Structured Semantic Tags**: Discrete assertion parameters are compiled into dedicated XML blocks: `<contrastive_grounding>` (enclosing `<acceptable>` and `<rejected>` exemplars), `<acceptance_criteria>` (ordered verification instructions), `<anti_patterns>` (disqualifying conditions; for existential error radars with `inverse_evidence = true`, legitimate contextual exceptions specifically faithful summarization of cited external research are formally encoded as deterministic `anti_patterns` on the atom model, replacing meta-cognitive contextual override oscillation), and `<syntactic_anchors>` (fast-filtering lexical tokens).
 - **CDATA Breakout Shielding**: All dynamic assertion text is wrapped in `<![CDATA[...]]>` containers via `TemplateProcessor.encapsulate_payload()`, strictly preventing user-authored quotation marks, XML characters (`<`, `>`, `&`), or punctuation from escaping tag boundaries and executing prompt injection.
 - **Prompt Fidelity Expansion**: Structured few-shot contrastive pairs and anti-patterns provide nuanced cognitive boundaries, expanding prompt tokens (+100–400 tokens per atom) while remaining strictly bounded within model context ceilings by `MatrixSamplingStrategy`.
 
@@ -151,19 +151,32 @@ When workflows chain analytical findings across sequential steps, context transi
 - **Deterministic Context Routing & Pruning**: Context routing (`ContextRouter.route_and_prune`) requires strongly typed `LightweightMatrixOutput` models, strictly pruning behavioral extensions according to output profile configurations. When no output profile is specified, extensions resolve deterministically to an empty dictionary rather than leaking unconstrained context. Intermediate payloads pass directly as typed DTO instances across the pipeline without double-serialization.
 
 ### 2.19. Continuous Strictness & Unified Matrix Scoring Engine
-Evaluation rigor across matrix models flows through a unified scoring engine parameterized by a continuous strictness level bounded between 0 and 100 inclusive (`default_strictness_level` on `Workflow`):
-- **Weighted Hit Ratio**: Calculates the exact weighted hit ratio across evaluated scale levels while excluding disqualified (DLQ) observations from the denominator.
-- **Piecewise Power-Curve Exponent**: Modulates the ratio using a continuous piecewise exponent curve ($e=1.00$ at 0% Free, $e=1.25$ at 50% Normal, $e=1.70$ at 85% Strict, and $e=2.20$ at 100% Absolute Zero-Trust), anchoring scoring to mathematical extrema derived dynamically from prompt block scales.
+Evaluation rigor across matrix models flows through a unified scoring engine (`UnifiedScoringEngine` in `backend_v2/utils/scoring/unified_engine.py`) parameterized by a continuous strictness level bounded between 0 and 100 inclusive (`default_strictness_level` on `Workflow`):
+- **Dual-Track Rubric Standard**:
+  - *Track A (Developmental Progressive Competence: 6 matrices: `matrix_bloom`, `matrix_hacm`, `matrix_goodhart`, `matrix_judge`, `matrix_taskxai_clarity`, `matrix_xai_reporter`)*: Level 1 designates the positive Novice capability baseline (`inverse_evidence: false`). Fulfilling Level 1 awards positive points ($\text{hit\_ratio}_1 \times w_1$).
+  - *Track B (Diagnostic Orthogonal Malus Error Radars: 8 matrices: `matrix_toulmin`, `matrix_causal_analyst`, `matrix_kahneman`, `matrix_falsifier`, `matrix_taskguard`, `matrix_archivist`, `matrix_causal_abductive`, `matrix_epistemic_humility`)*: Levels 1–2 operate strictly as error radars (`inverse_evidence: true`, `aggregation_mode: "EXISTS"`). Clean baseline passes award zero positive capability points ($\text{hit\_ratio}_1 = 0.0, \text{hit\_ratio}_2 = 0.0$), with capability points accrued exclusively from Levels 3–5. Detected errors trigger orthogonal malus deductions.
+- **Weighted Level Hit Ratio Formulation**: For each scale level $l \in \{1, \dots, L\}$ with weight $w_l = \text{score}_l$:
+  $$\text{hit\_ratio}_l = \frac{k_l}{N_l}$$
+  $$\text{Linear\_Ratio} = \frac{\sum_{l=1}^{L} (\text{hit\_ratio}_l \times w_l)}{\sum_{l=1}^{L} w_l}$$
+  while excluding disqualified (DLQ) observations from the denominator.
+- **Piecewise Continuous Exponent Dampening**: Modulates the linear ratio using a continuous piecewise exponent curve $e(S)$:
+  - Free ($0 \le S \le 50$): $e(S) = 1.00 + \frac{S}{50} \times 0.25$ (from $1.00$ at $0\%$ to $1.25$ at $50\%$)
+  - Normal to Strict ($50 < S \le 85$): $e(S) = 1.25 + \frac{S - 50}{35} \times 0.45$ (with calibrated default $e(70) \approx 1.5071$ at $70\%$)
+  - Strict to Absolute ($85 < S \le 100$): $e(S) = 1.70 + \frac{S - 85}{15} \times 0.50$ (from $1.70$ at $85\%$ to $2.20$ at $100\%$)
+  $$\text{Dampened\_Ratio} = (\text{Linear\_Ratio})^{e(S)}$$
+  $$\text{Raw\_Score} = \text{math\_min} + \text{Dampened\_Ratio} \times (\text{math\_max} - \text{math\_min})$$
+- **Per-Matrix Normalization Hook**: In `normalization_hook.py`, every matrix score is mapped to a standardized $[0.0, 100.0]$ range using its dynamically computed scale extrema ($\text{computed\_min}$ and $\text{computed\_max}$):
+  $$\text{Normalized\_Score}_m = \left(\frac{\text{Raw\_Score}_m - \text{computed\_min}_m}{\text{computed\_max}_m - \text{computed\_min}_m}\right) \times 100.0$$
 - **Typed Return Contract**: Returns an immutable `ScoringResultDTO` containing the normalized score, structured XAI audit trace, and per-level breakdown mapped to `dict[str, LevelStatsDTO]`, eliminating anonymous tuple passing and primitive obsession dictionaries.
 
 ### 2.20. Automated Score Deduction Penalties & Holistic Scoring Engine
 Holistic evaluation scores and automated score deduction percentages are execution-tier parameters defined on `Workflow` entities and evaluated deterministically inside the scoring logic hook (`apply_scoring_logic_hook`):
-- **Holistic Score Aggregation**: The scoring engine aggregates evaluative matrix scores directly from `state.global_context_vars.evaluative_matrices`, calculating the commensurate base average across all completed matrices. If matrix evaluations are absent without an explicit indeterminate justification, strict fail-fast validation halts execution to protect report integrity.
 - **Automated Penalty Modalities**:
   - *Security Penalty (`security_penalty`)*: Deducted when prompt injection, jailbreak attempts, or unauthorized role escape patterns are detected in inputs or `state.global_context_vars.sanitization.threat_detected`.
   - *Post-Hoc Penalty (`post_hoc_penalty`)*: Deducted when post-hoc rationalization, retrospective excuses, or confabulated causality patterns are identified in falsifier analysis.
   - *Passivity Penalty (`passivity_penalty`)*: Deducted when evasive, non-responsive, or passive avoidance behaviors are detected in candidate deliverables via `state.global_context_vars.passivity_detected`.
-- **Cumulative Clamping & Safety Bounds**: Cumulative penalty percentages are capped at `MAX_TOTAL_PENALTY_RATIO = 0.40` (40% maximum deduction). The finalized score is computed as `final_score = round(max(0.0, average_score * (1.0 - effective_penalty)), 1)`.
+- **Synchronous Post-Hook Wiring (Elimination of Phantom Penalties)**: Defining `passivity_penalty > 0` on a `Workflow` requires synchronous wiring with `"enforce_passivity_penalty"` inside Step 4 Coach (`sp_25664f44773a4354`) `post_hooks`. Both configurations exist concurrently: the workflow-level penalty scalar sets the deduction magnitude, while the step-level post-hook executes the behavioral analysis and populates `state.global_context_vars.passivity_detected`.
+- **Cumulative Clamping & Safety Bounds**: Cumulative penalty percentages are capped at `MAX_TOTAL_PENALTY_RATIO = 0.40` (40% maximum deduction). The effective penalty is computed as `effective_penalty = min(total_penalty, 0.40)`.
 - **Token Formatting & Audit Trail**: Active penalties are formatted as tokens (`PENALTY_<TYPE>:<PERCENTAGE>`) and stored in `scoring_result.penalties_applied` within `TraceScoringPayloadDTO`, locking the evaluation score permanently upon execution completion.
 
 ### 2.21. Real-Time Step Progress Synchronization & Committer Invariants
@@ -171,6 +184,13 @@ Step execution progression and anomaly indicators (`progress: int | None`, `has_
 - **Real-Time Step Advancement**: As steps process chunks and sub-tasks, progress callbacks mutate both the active step instance and the unified `steps` collection in `ExecutionRecord`.
 - **Atomic Committer Persistence**: The trace committer (`ExecutionCommitter.commit_trace`) accepts and persists the current `steps` collection alongside trace events, ensuring that intermediate commits and state updates never overwrite step progression with stale or null data.
 - **Worker Completion Telemetry Preservation**: When the DAG terminates, the background worker preserves verified step progression percentages and warning states during final telemetry aggregation and fallback step reconstruction, preventing timeline indicators from resetting upon task completion.
+
+### 2.22. Commensurate Multi-Matrix Global Score Aggregation
+In `falsifier_hook.py` and `blueprint.py`, commensurate normalized scores from `state.global_context_vars.evaluative_matrices` are aggregated into the holistic `global_score` via unweighted arithmetic averaging across all $N$ completed matrices, subject to automated workflow penalties:
+$$\text{average\_score} = \frac{1}{N} \sum_{m=1}^{N} \text{Normalized\_Score}_m$$
+$$\text{effective\_penalty} = \min(\text{total\_penalty}, 0.40)$$
+$$\text{global\_score} = \text{round}(\max(0.0, \text{average\_score} \times (1.0 - \text{effective\_penalty})), 1)$$
+If matrix evaluations are absent without an explicit indeterminate justification, strict fail-fast validation halts execution to protect report integrity.
 
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
