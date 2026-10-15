@@ -1343,13 +1343,12 @@ class DAGExecutor:
                             strictness_level=workflow.default_strictness_level,
                             matrix_block_id=settings.causal_cohesion_matrix_block_id,
                         )
-                        events.extend(
+                        events.append(
                             TraceEvent(
                                 step_name=step_obj.causal_source_step_id,
                                 event_type="output",
-                                content=atom,
+                                content={"results": eval_dto.atom_results},
                             )
-                            for atom in eval_dto.atom_results
                         )
                         events.append(
                             TraceEvent(

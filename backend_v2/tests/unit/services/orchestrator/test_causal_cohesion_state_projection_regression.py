@@ -10,11 +10,13 @@ from __future__ import annotations
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StateProjector, TraceEvent
+from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 
 
 def test_state_projector_atom_result_dto_does_not_corrupt_snapshot() -> None:
@@ -205,3 +207,197 @@ def test_state_projector_unsupported_content_type_fails_fast() -> None:
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "Legacy flat trace detected" in exc_info.value.message
+
+
+def test_state_projector_results_dict_preserves_graph_and_accumulates_results() -> None:
+    """Verifies that TraceEvents containing {'results': [atoms]} preserve graph and populate results block."""
+    projector = StateProjector()
+    step_id = "sr_c4a5a1d15c00438a"
+
+    # Step emits initial graph
+    node = CausalNodeDTO(
+        node_id="nod_1",
+        claim="Claim 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    projector.apply_delta(
+        TraceEvent(
+            step_name=step_id,
+            event_type="output",
+            content=CausalGraphPayloadDTO(
+                nodes=[node],
+                edges=[],
+                root_cause_node_ids=[],
+                isolated_node_ids=[],
+            ),
+        )
+    )
+
+    atom_1 = AtomResultDTO(
+        tda_id="tda_1",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 1",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_2 = AtomResultDTO(
+        tda_id="tda_2",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 2",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+
+    projector.apply_delta(
+        TraceEvent(
+            step_name=step_id,
+            event_type="output",
+            content={"results": [atom_1, atom_2]},
+        )
+    )
+
+    snapshot = projector.snapshot
+    assert len(snapshot) == 2
+    by_block = {dto.block_id: dto for dto in snapshot}
+    assert "graph" in by_block
+    assert "results" in by_block
+    results_payload = by_block["results"].payload
+    assert isinstance(results_payload, list)
+    assert len(results_payload) == 2
+    assert results_payload[0] == atom_1
+    assert results_payload[1] == atom_2
+
+
+def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulates() -> None:
+    """Verifies that replaying a JSON trace with raw atom dicts inside {'results': [...]} deserializes cleanly."""
+    projector = StateProjector()
+    step_id = "sr_c4a5a1d15c00438a"
+
+    # Step emits initial graph
+    node = CausalNodeDTO(
+        node_id="nod_1",
+        claim="Claim 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    projector.apply_delta(
+        TraceEvent(
+            step_name=step_id,
+            event_type="output",
+            content=CausalGraphPayloadDTO(
+                nodes=[node],
+                edges=[],
+                root_cause_node_ids=[],
+                isolated_node_ids=[],
+            ),
+        )
+    )
+
+    atom_1 = AtomResultDTO(
+        tda_id="tda_1",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 1",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_2 = AtomResultDTO(
+        tda_id="tda_2",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.FAILED,
+        contextual_override=False,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 2",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+
+    # Content serialized from JSON trace as raw dictionaries
+    raw_content = {
+        "results": [
+            atom_1.model_dump(mode="json"),
+            atom_2.model_dump(mode="json"),
+        ]
+    }
+    projector.apply_delta(
+        TraceEvent(
+            step_name=step_id,
+            event_type="output",
+            content=raw_content,
+        )
+    )
+
+    snapshot = projector.snapshot
+    assert len(snapshot) == 2
+    by_block = {dto.block_id: dto for dto in snapshot}
+    assert "graph" in by_block
+    assert "results" in by_block
+    results_payload = by_block["results"].payload
+    assert isinstance(results_payload, list)
+    assert len(results_payload) == 2
+    assert results_payload[0] == atom_1
+    assert results_payload[1] == atom_2
+
+
+def test_matrix_reducer_extracts_causal_cohesion_when_wrapped_in_results() -> None:
+    """Verifies that MatrixReducer extracts evaluated matrices and atoms when wrapped in {'results': [...]}."""
+    step_id = "sr_c4a5a1d15c00438a"
+
+    atom_1 = AtomResultDTO(
+        tda_id="tda_1",
+        matrix_id="blk_cohesion_bars",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 1",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_2 = AtomResultDTO(
+        tda_id="tda_2",
+        matrix_id="blk_cohesion_bars",
+        status=ExecutionStatus.FAILED,
+        contextual_override=False,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 2",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+
+    events = [
+        TraceEvent(
+            step_name=step_id,
+            event_type="output",
+            content={"results": [atom_1, atom_2]},
+        )
+    ]
+    record = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id="wf_0000000000000001",
+        target_locale="en",
+        execution_trace=events,
+    )
+
+    reduced = MatrixReducer.reduce_matrix(record)
+    assert "blk_cohesion_bars" in [m.matrix_id for m in reduced.evaluated_matrices]
+    assert reduced.global_metrics["total_atoms"] == 2
+    assert reduced.global_metrics["evaluated"] == 2
+    assert len(reduced.reduced_atoms) == 1
+    assert reduced.reduced_atoms[0].tda_id == "tda_2"

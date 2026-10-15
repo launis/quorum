@@ -615,8 +615,12 @@ class StateProjector:
                     for item in raw_results:
                         if isinstance(item, AtomResultDTO):
                             results_list.append(item)
+                        elif type(item) is dict and "tda_id" in item and "matrix_id" in item:
+                            results_list.append(AtomResultDTO.model_validate(item, strict=False))
                 elif isinstance(raw_results, AtomResultDTO):
                     results_list.append(raw_results)
+                elif type(raw_results) is dict and "tda_id" in raw_results and "matrix_id" in raw_results:
+                    results_list.append(AtomResultDTO.model_validate(raw_results, strict=False))
             results_list.extend(atoms)
             new_data: dict[str, StepOutputContentValue] = dict(existing.data)
             new_data["results"] = results_list
@@ -703,8 +707,49 @@ class StateProjector:
                             **meta_payload,
                         }
                     )
+                elif "tda_id" in content and "matrix_id" in content:
+                    atom_dto = AtomResultDTO.model_validate(content, strict=False)
+                    self._append_atom_results(event.step_name, [atom_dto])
+                elif "results" in content and isinstance(content["results"], list):
+                    parsed_atoms: list[AtomResultDTO] = []
+                    is_atom_list = True
+                    for item in content["results"]:
+                        if isinstance(item, AtomResultDTO):
+                            parsed_atoms.append(item)
+                        elif type(item) is dict and "tda_id" in item and "matrix_id" in item:
+                            parsed_atoms.append(AtomResultDTO.model_validate(item, strict=False))
+                        else:
+                            is_atom_list = False
+                            break
+                    if is_atom_list:
+                        self._append_atom_results(event.step_name, parsed_atoms)
+                        if event.step_name in self._snapshot and len(content) > 1:
+                            existing = self._snapshot[event.step_name]
+                            new_data = dict(existing.data)
+                            for k, v in content.items():
+                                if k != "results":
+                                    new_data[str(k)] = v
+                            self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                    else:
+                        if event.step_name in self._snapshot:
+                            existing = self._snapshot[event.step_name]
+                            new_data = dict(existing.data)
+                            new_data.update({str(k): v for k, v in content.items()})
+                            self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                        else:
+                            self._snapshot[event.step_name] = StepOutputContentDTO(
+                                data={str(k): v for k, v in content.items()}
+                            )
                 else:
-                    self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
+                    if event.step_name in self._snapshot:
+                        existing = self._snapshot[event.step_name]
+                        new_data = dict(existing.data)
+                        new_data.update({str(k): v for k, v in content.items()})
+                        self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
+                    else:
+                        self._snapshot[event.step_name] = StepOutputContentDTO(
+                            data={str(k): v for k, v in content.items()}
+                        )
             else:
                 msg = (
                     f"Legacy flat trace detected for step '{event.step_name}'. "

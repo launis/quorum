@@ -398,13 +398,12 @@ def test_causal_cohesion_idempotency_set_guard() -> None:
             strictness_level=70,
             matrix_block_id=settings.causal_cohesion_matrix_block_id,
         )
-        emitted_events.extend(
+        emitted_events.append(
             TraceEvent(
                 step_name=causal_source_id,
                 event_type="output",
-                content=atom,
+                content={"results": dto1.atom_results},
             )
-            for atom in dto1.atom_results
         )
         emitted_events.append(
             TraceEvent(
@@ -419,11 +418,15 @@ def test_causal_cohesion_idempotency_set_guard() -> None:
     if causal_source_id not in evaluated_sources:
         pytest.fail("Second specialist must not evaluate an already evaluated causal source.")
 
-    # Assert exactly 5 atom output events and 1 context update decision event were emitted
-    atom_events = [e for e in emitted_events if isinstance(e.content, AtomResultDTO)]
+    # Assert exactly 1 wrapped atom output event and 1 context update decision event were emitted
+    output_events = [e for e in emitted_events if e.event_type == "output"]
     decision_events = [e for e in emitted_events if e.event_type == "decision"]
 
-    assert len(atom_events) == 5
+    assert len(output_events) == 1
+    assert type(output_events[0].content) is dict
+    assert "results" in output_events[0].content
+    assert len(output_events[0].content["results"]) == 5
+    assert all(isinstance(a, AtomResultDTO) for a in output_events[0].content["results"])
     assert len(decision_events) == 1
     assert decision_events[0].metadata is not None
     assert decision_events[0].metadata.is_context_update is True
