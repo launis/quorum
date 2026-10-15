@@ -1033,7 +1033,10 @@ class DAGExecutor:
                             step_obj.causal_source_step_id,
                         )
                         raise AppException(
-                            message="Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation.",
+                            message=(
+                                "Upstream causal discovery step produced 0 valid proposition nodes for "
+                                "downstream evaluation."
+                            ),
                             status_code=500,
                             details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION},
                         )
@@ -1059,7 +1062,8 @@ class DAGExecutor:
                                         break
                                     except ValidationError as err:
                                         logger.error(
-                                            "[DAGExecutor] %s: Failed to parse upstream causal graph from step output: %s",
+                                            "[DAGExecutor] %s: Failed to parse upstream causal graph "
+                                            "from step output: %s",
                                             ErrorCodes.VALIDATION_FAILED.name,
                                             err,
                                         )
@@ -1085,7 +1089,8 @@ class DAGExecutor:
                                         break
                                     except ValidationError as err:
                                         logger.error(
-                                            "[DAGExecutor] %s: Failed to parse upstream causal graph from trace event: %s",
+                                            "[DAGExecutor] %s: Failed to parse upstream causal graph "
+                                            "from trace event: %s",
                                             ErrorCodes.VALIDATION_FAILED.name,
                                             err,
                                         )
@@ -1119,7 +1124,8 @@ class DAGExecutor:
                                             break
                                         except ValidationError as err:
                                             logger.error(
-                                                "[DAGExecutor] %s: Failed to parse upstream causal graph from snapshot: %s",
+                                                "[DAGExecutor] %s: Failed to parse upstream causal graph "
+                                                "from snapshot: %s",
                                                 ErrorCodes.VALIDATION_FAILED.name,
                                                 err,
                                             )
@@ -1145,18 +1151,25 @@ class DAGExecutor:
                                             break
                                         except ValidationError as err:
                                             logger.error(
-                                                "[DAGExecutor] %s: Failed to parse upstream causal graph from snapshot payload: %s",
+                                                "[DAGExecutor] %s: Failed to parse upstream causal graph "
+                                                "from snapshot payload: %s",
                                                 ErrorCodes.VALIDATION_FAILED.name,
                                                 err,
                                             )
                                             raise AppException(
-                                                message=f"Failed to parse upstream causal graph from snapshot payload: {err}",
+                                                message=(
+                                                    "Failed to parse upstream causal graph from snapshot payload: "
+                                                    f"{err}"
+                                                ),
                                                 status_code=500,
                                                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
                                             ) from err
 
                     if upstream_graph is None or not upstream_graph.nodes:
-                        msg = "Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation."
+                        msg = (
+                            "Upstream causal discovery step produced 0 valid proposition nodes for "
+                            "downstream evaluation."
+                        )
                         logger.error("[DAGExecutor] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name, msg)
                         raise AppException(
                             message=msg,
