@@ -8,9 +8,23 @@ from pydantic import BaseModel, ValidationError
 import backend_v2.models.state as state_module
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.coach import BibliographyItem, CoachingPlan
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.judge import DimensionResultItem, JudgeOutput, JudgeScoreCard
 from backend_v2.models.domain.security import InputProcessingOutputDTO
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalTdaFusionResultDTO,
+    FairScoringBreakdownDTO,
+)
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.enums import ExecutionStatus, VirtualSystemStepID
 from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.models.state import (
     ErrorTraceEvent,
@@ -426,3 +440,204 @@ def test_trace_event_untyped_arbitrary_object_raises_validation_error() -> None:
                 "content": ArbitraryUnregisteredObject(),
             }
         )
+
+
+def test_workflow_state_get_context_val_none() -> None:
+    """Test get_context when key is present but value is None (line 371)."""
+    ws = WorkflowState(
+        workflow_id="wf_none00000000",
+        target_locale="fi",
+        context_variables={"variables": {"null_key": None}},
+    )
+    assert ws.get_context("null_key") is None
+
+
+def test_state_projector_apply_delta_execution_inputs_dto() -> None:
+    """Test apply_delta with ExecutionInputsDTO."""
+    inputs = ExecutionInputsDTO(
+        raw_inputs={"raw_text": "input document"},
+        dynamic_inputs={"param_1": 42},
+    )
+    event = TraceEvent(step_name="inputs", event_type="input", content=inputs)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 2
+    by_block = {dto.block_id: dto.payload for dto in results}
+    assert by_block["raw_text"] == "input document"
+    assert by_block["param_1"] == 42
+
+
+def test_state_projector_apply_delta_workflow_inputs() -> None:
+    """Test apply_delta with WorkflowInputs."""
+    inputs = WorkflowInputs(dynamic_inputs={"workflow_var": "val_1"})
+    event = TraceEvent(step_name="inputs", event_type="input", content=inputs)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == "workflow_var"
+    assert results[0].payload == "val_1"
+
+
+def test_state_projector_apply_delta_lightweight_matrix_dto() -> None:
+    """Test apply_delta with LightweightMatrixDTO."""
+    dto = LightweightMatrixDTO(execution_id="exe_test", reduced_atoms=[], global_metrics={})
+    event = TraceEvent(step_name="stp_matrix", event_type="output", content=dto)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == "reduced_atoms"
+    assert results[0].payload == []
+
+
+def test_state_projector_apply_delta_lightweight_matrix_output() -> None:
+    """Test apply_delta with LightweightMatrixOutput."""
+    dto = LightweightMatrixOutput(
+        raw_score=4.0,
+        normalized_score=80.0,
+        evaluated_atoms={},
+        extensions={},
+    )
+    event = TraceEvent(step_name="stp_output", event_type="output", content=dto)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == "stp_output"
+
+
+def test_state_projector_apply_delta_causal_graph_and_fusion() -> None:
+    """Test apply_delta with CausalGraphPayloadDTO and CausalTdaFusionResultDTO."""
+    node = CausalNodeDTO(
+        node_id="nod_1",
+        claim="Claim 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    graph = CausalGraphPayloadDTO(nodes=[node], edges=[])
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=0,
+        cycle_detected=False,
+        unsupported_claims_count=0,
+        logical_cohesion_score=0.9,
+        detected_hollow_terms=[],
+    )
+    fair = FairScoringBreakdownDTO(
+        independent_error_count=0,
+        cascading_fault_count=0,
+        raw_penalty_points=0.0,
+        deduplicated_penalty_points=0.0,
+        dampened_savings_points=0.0,
+    )
+    fusion = CausalTdaFusionResultDTO(
+        graph=graph,
+        anti_fluff_audit=audit,
+        fair_scoring=fair,
+    )
+
+    projector = StateProjector()
+    # 1. Apply graph
+    projector.apply_delta(TraceEvent(step_name="stp_causal", event_type="output", content=graph))
+    # 2. Apply fusion on same step
+    projector.apply_delta(TraceEvent(step_name="stp_causal", event_type="output", content=fusion))
+
+    results = projector.snapshot
+    assert len(results) == 2
+    by_block = {dto.block_id for dto in results}
+    assert "graph" in by_block
+    assert "fusion" in by_block
+
+    # 3. Apply fusion on fresh step
+    projector.apply_delta(TraceEvent(step_name="stp_fresh", event_type="output", content=fusion))
+    assert any(dto.step_id == "stp_fresh" for dto in projector.snapshot)
+
+
+def test_state_projector_apply_delta_trace_scoring_payload_dto() -> None:
+    """Test apply_delta with TraceScoringPayloadDTO."""
+    dto = TraceScoringPayloadDTO(
+        total_score=85.0,
+        final_score=85.0,
+        aggregation_status="passed",
+    )
+    event = TraceEvent(step_name="stp_score", event_type="output", content=dto)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == VirtualSystemStepID.SCORING_RESULT.value
+
+
+def test_state_projector_apply_delta_atom_results() -> None:
+    """Test apply_delta with AtomResultDTO and list of AtomResultDTO."""
+    atom_1 = AtomResultDTO(
+        tda_id="tda_1",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 1",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_2 = AtomResultDTO(
+        tda_id="tda_2",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 2",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+
+    projector = StateProjector()
+    projector.apply_delta(TraceEvent(step_name="stp_atoms", event_type="output", content=atom_1))
+    projector.apply_delta(TraceEvent(step_name="stp_atoms", event_type="output", content=[atom_2]))
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == "results"
+    assert isinstance(results[0].payload, list)
+    assert len(results[0].payload) == 2
+
+
+def test_state_projector_apply_delta_base_model() -> None:
+    """Test apply_delta with generic BaseModel."""
+    sample = SampleDTO(name="generic_model")
+    event = TraceEvent(step_name="stp_model", event_type="output", content=sample)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    assert len(results) == 1
+    assert results[0].block_id == "stp_model"
+    assert results[0].payload == {"name": "generic_model"}
+
+
+def test_state_projector_apply_delta_scoring_dict() -> None:
+    """Test apply_delta with total_score dict."""
+    payload = {
+        "total_score": 90.0,
+        "final_score": 88.0,
+        "aggregation_status": "passed",
+        "custom_meta": "extra",
+    }
+    event = TraceEvent(step_name="stp_dict_score", event_type="output", content=payload)
+    projector = StateProjector()
+    projector.apply_delta(event)
+
+    results = projector.snapshot
+    by_block = {dto.block_id for dto in results}
+    assert VirtualSystemStepID.SCORING_RESULT.value in by_block
+    assert "custom_meta" in by_block
+

@@ -24,10 +24,15 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
+from backend_v2.models.dtos.node_execution import (
+    NodeExecutionUpdateDTO,
+    StepOutputContentDTO,
+    StepOutputContentValue,
+)
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
@@ -473,7 +478,7 @@ class WorkflowState(ExecutionCoreFields):
         return self.get_context("step_judge_cognitive", JudgeOutput)
 
 
-type SnapshotValue = StepOutputContentDTO | object
+type SnapshotValue = StepOutputContentDTO
 
 
 class StateProjector:
@@ -488,7 +493,7 @@ class StateProjector:
         Args:
             trace: Optional list of TraceEvents to initialize snapshot.
         """
-        self._snapshot: dict[str, SnapshotValue] = {}
+        self._snapshot: dict[str, StepOutputContentDTO] = {}
         self._schema_version: int = 0
         self._trace_length: int = 0
         if trace:
@@ -594,6 +599,31 @@ class StateProjector:
                     ) from err
         return output
 
+    def _append_atom_results(self, step_name: str, atoms: list[AtomResultDTO]) -> None:
+        """Appends atom evaluation results to step snapshot, preserving existing block keys.
+
+        Args:
+            step_name: Name of the step emitting atom results.
+            atoms: List of evaluated AtomResultDTOs to append.
+        """
+        results_list: list[AtomResultDTO] = []
+        if step_name in self._snapshot:
+            existing = self._snapshot[step_name]
+            if "results" in existing.data:
+                raw_results = existing.data["results"]
+                if isinstance(raw_results, list):
+                    for item in raw_results:
+                        if isinstance(item, AtomResultDTO):
+                            results_list.append(item)
+                elif isinstance(raw_results, AtomResultDTO):
+                    results_list.append(raw_results)
+            results_list.extend(atoms)
+            new_data: dict[str, StepOutputContentValue] = dict(existing.data)
+            new_data["results"] = results_list
+            self._snapshot[step_name] = StepOutputContentDTO(data=new_data)
+        else:
+            self._snapshot[step_name] = StepOutputContentDTO(data={"results": atoms})
+
     def apply_delta(self, event: TraceEvent) -> None:
         """Applies a single Delta / Event to the in-memory cache.
 
@@ -631,28 +661,31 @@ class StateProjector:
             elif isinstance(content, CausalTdaFusionResultDTO):
                 if event.step_name in self._snapshot:
                     existing = self._snapshot[event.step_name]
-                    if isinstance(existing, StepOutputContentDTO):
-                        new_data = dict(existing.data)
-                        new_data["fusion"] = content
-                        self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
-                    else:
-                        self._snapshot[event.step_name] = StepOutputContentDTO(data={"fusion": content})
+                    new_data: dict[str, StepOutputContentValue] = dict(existing.data)
+                    new_data["fusion"] = content
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
                 else:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={"fusion": content})
             elif isinstance(content, CausalGraphPayloadDTO):
                 if event.step_name in self._snapshot:
                     existing = self._snapshot[event.step_name]
-                    if isinstance(existing, StepOutputContentDTO):
-                        new_data = dict(existing.data)
-                        new_data["graph"] = content
-                        self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
-                    else:
-                        self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
+                    new_data = dict(existing.data)
+                    new_data["graph"] = content
+                    self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
                 else:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={"graph": content})
             elif isinstance(content, TraceScoringPayloadDTO):
                 self._snapshot[event.step_name] = StepOutputContentDTO(
                     data={VirtualSystemStepID.SCORING_RESULT.value: content.model_dump(mode="json")}
+                )
+            elif isinstance(content, AtomResultDTO):
+                self._append_atom_results(event.step_name, [content])
+            elif isinstance(content, list) and all(isinstance(x, AtomResultDTO) for x in content):
+                atoms: list[AtomResultDTO] = [x for x in content if isinstance(x, AtomResultDTO)]
+                self._append_atom_results(event.step_name, atoms)
+            elif isinstance(content, BaseModel):
+                self._snapshot[event.step_name] = StepOutputContentDTO(
+                    data={event.step_name: content.model_dump(mode="json")}
                 )
             elif type(content) is dict:
                 if "anti_fluff_audit" in content and "fair_scoring" in content and "graph" in content:
@@ -673,7 +706,22 @@ class StateProjector:
                 else:
                     self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
             else:
-                self._snapshot[event.step_name] = content
+                msg = (
+                    f"Legacy flat trace detected for step '{event.step_name}'. "
+                    f"Unsupported or unstructured event content type '{type(content).__name__}'. "
+                    "Zero-Compromise Pledge forbids unstructured state projection."
+                )
+                logger.error(
+                    "[StateProjector] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    exc_info=True,
+                )
+                raise AppException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    message=msg,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker
             redacted_hash = "unknown"
