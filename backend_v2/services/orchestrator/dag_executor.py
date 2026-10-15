@@ -61,12 +61,13 @@ from backend_v2.models.dtos.causal_discovery import (
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
-from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.services.execution import create_execution_record
 from backend_v2.services.localization import set_language
+from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCohesionEvaluator
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.engines import ExecutionEngine, build_execution_engine
@@ -658,6 +659,7 @@ class DAGExecutor:
             prompt_compiler=self.compiler,
         )
         self.node_executor = NodeExecutor(deps=self.deps)
+        self._causal_cohesion_evaluator = CausalCohesionEvaluator()
 
     async def execute_workflow(
         self,
@@ -957,6 +959,7 @@ class DAGExecutor:
         steps_by_id = {step.id: step for step in workflow.steps}
         _update_lock = asyncio.Lock()
         _commit_lock = asyncio.Lock()
+        _evaluated_causal_sources: set[str] = set()
 
         async def _safe_commit(
             status_override: ExecutionStatus | None = None, error_override: str | None = None
@@ -1318,6 +1321,33 @@ class DAGExecutor:
                             content={"fusion": fusion_res},
                         )
                     )
+
+                    if step_obj.causal_source_step_id not in _evaluated_causal_sources:
+                        _evaluated_causal_sources.add(step_obj.causal_source_step_id)
+                        eval_dto = self._causal_cohesion_evaluator.evaluate_causal_cohesion(
+                            audit=fusion_res.anti_fluff_audit,
+                            total_nodes=len(upstream_graph.nodes),
+                            strictness_level=workflow.default_strictness_level,
+                            matrix_block_id=settings.causal_cohesion_matrix_block_id,
+                        )
+                        events.extend(
+                            TraceEvent(
+                                step_name=step_obj.causal_source_step_id,
+                                event_type="output",
+                                content=atom,
+                            )
+                            for atom in eval_dto.atom_results
+                        )
+                        events.append(
+                            TraceEvent(
+                                step_name=step_obj.causal_source_step_id,
+                                event_type="decision",
+                                metadata=TraceEventMetadataDTO(is_context_update=True),
+                                content=GlobalContextVarsDTO(
+                                    evaluative_matrices={eval_dto.matrix_block_id: eval_dto.score_result.score}
+                                ),
+                            )
+                        )
 
                 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
                 async with _update_lock:

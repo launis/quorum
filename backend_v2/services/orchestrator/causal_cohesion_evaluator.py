@@ -1,0 +1,182 @@
+"""Pure stateless service for evaluating causal reasoning and argument cohesion BARS matrix.
+
+Evaluates argument structural integrity, inferential cohesion, cycle avoidance,
+and isolated claim absence from AntiFluffAuditDTO topological graph telemetry into
+a deterministic BARS 1-5 scale and unified competence score.
+"""
+
+from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import ConfigDict, Field
+
+from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.settings import get_settings
+from backend_v2.utils.scoring.unified_engine import UnifiedScoringEngine
+
+__all__ = [
+    "CAUSAL_COHESION_TDA_IDS",
+    "CausalCohesionEvaluationDTO",
+    "CausalCohesionEvaluator",
+]
+
+CAUSAL_COHESION_TDA_IDS: tuple[str, ...] = (
+    "tda_c0a1e500000000000000000000000001",
+    "tda_c0a1e500000000000000000000000002",
+    "tda_c0a1e500000000000000000000000003",
+    "tda_c0a1e500000000000000000000000004",
+    "tda_c0a1e500000000000000000000000005",
+)
+
+
+class CausalCohesionEvaluationDTO(V2CoreBase):
+    """Typed evaluation result for the causal cohesion BARS matrix.
+
+    Attributes:
+        matrix_block_id: Opaque Stripe ID of the matrix.
+        atom_results: Atoms evaluated for BARS Levels 1-5.
+        level_stats: Level statistics mapping scale level string to LevelStatsDTO.
+        score_result: Unified score calculation result.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    matrix_block_id: Annotated[str, Field(description="Opaque Stripe ID of the matrix.")]
+    atom_results: Annotated[list[AtomResultDTO], Field(description="Atoms for Levels 1-5.")]
+    level_stats: Annotated[dict[str, LevelStatsDTO], Field(description="Level statistics.")]
+    score_result: Annotated[ScoringResultDTO, Field(description="Unified score calculation.")]
+
+
+class CausalCohesionEvaluator:
+    """Pure, stateless evaluator for argument causal cohesion BARS matrix.
+
+    Attributes:
+        _scoring_engine: UnifiedScoringEngine instance used for score calculations.
+    """
+
+    def __init__(self, scoring_engine: UnifiedScoringEngine | None = None) -> None:
+        """Initialize the causal cohesion evaluator.
+
+        Args:
+            scoring_engine: Optional UnifiedScoringEngine instance.
+        """
+        self._scoring_engine = scoring_engine or UnifiedScoringEngine()
+
+    def evaluate_causal_cohesion(
+        self,
+        audit: AntiFluffAuditDTO,
+        total_nodes: int,
+        strictness_level: int,
+        matrix_block_id: str,
+    ) -> CausalCohesionEvaluationDTO:
+        """Evaluate topological causal graph metrics into BARS 1-5 scale levels and unified score.
+
+        Enforces the Cumulative Guttman Invariant (Level k requires Level k-1 to pass),
+        zero-node Novice floor grounding, cycle defect grounding, and deterministic atom generation.
+
+        Args:
+            audit: AntiFluffAuditDTO containing topological metrics (cohesion, cycles, isolated nodes).
+            total_nodes: Total count of nodes in the upstream causal graph.
+            strictness_level: Continuous 0-100 workflow strictness level.
+            matrix_block_id: Mandatory non-nullable Opaque Stripe ID of the matrix block.
+
+        Returns:
+            CausalCohesionEvaluationDTO containing atom results, level stats, and score result.
+        """
+        settings = get_settings()
+
+        if total_nodes > 0:
+            isolated_ratio = audit.isolated_concept_count / total_nodes
+        else:
+            isolated_ratio = 1.0
+
+        # Cumulative Guttman Invariant: L1 subset L2 subset L3 subset L4 subset L5
+        l1_passed = True  # Novice floor is unconditional
+        l2_passed = (
+            l1_passed
+            and total_nodes > 0
+            and not audit.cycle_detected
+            and audit.logical_cohesion_score >= settings.causal_cohesion_l2_threshold
+        )
+        l3_passed = (
+            l2_passed
+            and audit.logical_cohesion_score >= settings.causal_cohesion_l3_threshold
+            and isolated_ratio <= settings.causal_cohesion_l3_isolation_max
+        )
+        l4_passed = (
+            l3_passed
+            and audit.logical_cohesion_score >= settings.causal_cohesion_l4_threshold
+            and isolated_ratio <= settings.causal_cohesion_l4_isolation_max
+        )
+        l5_passed = (
+            l4_passed
+            and audit.logical_cohesion_score >= settings.causal_cohesion_l5_threshold
+            and isolated_ratio <= settings.causal_cohesion_l5_isolation_max
+        )
+
+        passed_flags = (l1_passed, l2_passed, l3_passed, l4_passed, l5_passed)
+
+        atom_results: list[AtomResultDTO] = []
+        for level, passed in enumerate(passed_flags, 1):
+            tda_id = CAUSAL_COHESION_TDA_IDS[level - 1]
+            if passed:
+                atom = AtomResultDTO(
+                    tda_id=tda_id,
+                    matrix_id=matrix_block_id,
+                    status=ExecutionStatus.PASSED,
+                    contextual_override=True,
+                    is_inverse_evidence=False,
+                    source_quote=None,
+                    evaluation_reasoning=(
+                        f"Topological causal cohesion score {audit.logical_cohesion_score:.2f} "
+                        f"satisfies Level {level} threshold."
+                    ),
+                    extensions={},
+                    depends_on_tda_ids=[],
+                    short_circuit_reason_tda_ids=[],
+                )
+            else:
+                atom = AtomResultDTO(
+                    tda_id=tda_id,
+                    matrix_id=matrix_block_id,
+                    status=ExecutionStatus.FAILED,
+                    contextual_override=False,
+                    is_inverse_evidence=False,
+                    source_quote=None,
+                    evaluation_reasoning=(
+                        f"Topological causal cohesion score {audit.logical_cohesion_score:.2f} "
+                        f"does not satisfy Level {level} threshold."
+                    ),
+                    extensions={},
+                    depends_on_tda_ids=[],
+                    short_circuit_reason_tda_ids=[],
+                )
+            atom_results.append(atom)
+
+        level_stats: dict[str, LevelStatsDTO] = {
+            str(float(lvl)): LevelStatsDTO(
+                hits=1.0 if passed else 0.0,
+                total=1.0,
+                dlqs=0,
+            )
+            for lvl, passed in enumerate(passed_flags, 1)
+        }
+
+        score_result = self._scoring_engine.calculate(
+            stats={float(k): v for k, v in level_stats.items()},
+            math_min=1.0,
+            math_max=5.0,
+            strictness_level=strictness_level,
+        )
+
+        return CausalCohesionEvaluationDTO(
+            matrix_block_id=matrix_block_id,
+            atom_results=atom_results,
+            level_stats=level_stats,
+            score_result=score_result,
+        )
