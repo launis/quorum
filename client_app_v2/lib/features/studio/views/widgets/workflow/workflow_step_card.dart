@@ -100,9 +100,8 @@ class WorkflowStepCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowStepCount(index + 1),
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
                     if (isSystemCoreStep) ...[
@@ -118,8 +117,7 @@ class WorkflowStepCard extends StatelessWidget {
                         ),
                         child: Text(
                           l10n.studioSystemCoreBadge,
-                          style: TextStyle(
-                            fontSize: 11,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Theme.of(
                               context,
@@ -161,15 +159,14 @@ class WorkflowStepCard extends StatelessWidget {
                     children: [
                       Text(
                         l10n.studioWorkflowNodeIdOpaque,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       AppSpacing.h4,
                       SelectableText(
                         stepIdStr,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
                         ),
@@ -185,8 +182,7 @@ class WorkflowStepCard extends StatelessWidget {
                           children: [
                             Text(
                               l10n.studioWorkflowTaskProfileTitle,
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurfaceVariant,
@@ -195,9 +191,8 @@ class WorkflowStepCard extends StatelessWidget {
                             AppSpacing.h4,
                             Text(
                               getBlueprintLabel(stepDef.taskBlueprint),
-                              style: const TextStyle(
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -257,16 +252,14 @@ class WorkflowStepCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowStep1IngestionTitle,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
                       ),
                     ),
                     AppSpacing.h4,
                     Text(
                       l10n.studioWorkflowStep1IngestionSubtitle,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -282,8 +275,7 @@ class WorkflowStepCard extends StatelessWidget {
                       ),
                       child: Text(
                         l10n.studioWorkflowStep1OutputBadge,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: Theme.of(
                             context,
@@ -312,16 +304,14 @@ class WorkflowStepCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowZoneCAutoTitle,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
                       ),
                     ),
                     AppSpacing.h4,
                     Text(
                       l10n.studioWorkflowXaiReporterPayloadDesc,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -337,8 +327,7 @@ class WorkflowStepCard extends StatelessWidget {
                       ),
                       child: Text(
                         l10n.studioWorkflowXaiReporterAggregateBadge,
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w500,
                           color: Theme.of(
                             context,
@@ -355,13 +344,14 @@ class WorkflowStepCard extends StatelessWidget {
               // 1. Execution Order & Dependencies
               Text(
                 l10n.studioWorkflowExecutionOrderTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               AppSpacing.h2,
               Text(
                 l10n.studioWorkflowExecutionOrderSubtitle,
-                style: TextStyle(
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -369,7 +359,7 @@ class WorkflowStepCard extends StatelessWidget {
               if (previousSteps.isEmpty)
                 Text(
                   l10n.studioWorkflowNoDependencies,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 )
@@ -420,13 +410,14 @@ class WorkflowStepCard extends StatelessWidget {
               // Section 1: Atomized Materials ($inputs.*)
               Text(
                 l10n.studioWorkflowAtomicScopeTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               AppSpacing.h2,
               Text(
                 l10n.studioWorkflowAtomicScopeSubtitle,
-                style: TextStyle(
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -437,7 +428,7 @@ class WorkflowStepCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Text(
                     l10n.studioWorkflowNoSelectableInputs,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -500,13 +491,14 @@ class WorkflowStepCard extends StatelessWidget {
               if (dependsOn.isNotEmpty) ...[
                 Text(
                   l10n.studioWorkflowPriorStepsTitle,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 AppSpacing.h2,
                 Text(
                   l10n.studioWorkflowPriorStepsSubtitle,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),

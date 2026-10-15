@@ -116,7 +116,7 @@ def _valid_step(
 def _valid_workflow(
     wf_id: str = "wor_0123456789abcdef",
     slug: str = "wf_slug",
-    org_id: str = "org_123",
+    org_id: str | None = "org_123",
     status: str = "active",
     model_registry_id: str = "sys_e26807f3bfa3454d",
 ) -> Workflow:
@@ -984,3 +984,41 @@ async def test_clone_workflow_corrupted_profile_raises_validation_failed(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+async def test_clone_workflow_remaps_causal_source_step_id(
+    workflow_service: StudioWorkflowService,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
+    admin_token: TokenData,
+) -> None:
+    """Tests that cloning a workflow remaps causal_source_step_id and preserves relational consistency."""
+    causal_step = StepRule(
+        id="rul_1111222233334444",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=[],
+        input_mappings={},
+    )
+    specialist_step = StepRule(
+        id="rul_5555666677778888",
+        task_blueprint="sp_0123456789abcdef",
+        depends_on=["rul_1111222233334444"],
+        causal_source_step_id="rul_1111222233334444",
+        input_mappings={},
+    )
+    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123").model_copy(
+        update={"steps": [causal_step, specialist_step]}
+    )
+    await mock_workflow_repo.save_workflow(wf)
+
+    cloned_wf = await workflow_service.clone_workflow(admin_token, wf.id)
+
+    assert cloned_wf.id != wf.id
+    assert len(cloned_wf.steps) == 2
+    cloned_causal = cloned_wf.steps[0]
+    cloned_specialist = cloned_wf.steps[1]
+
+    assert cloned_causal.id != causal_step.id
+    assert cloned_specialist.id != specialist_step.id
+    assert cloned_specialist.depends_on == [cloned_causal.id]
+    assert cloned_specialist.causal_source_step_id == cloned_causal.id

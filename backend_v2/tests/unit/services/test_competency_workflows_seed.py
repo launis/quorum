@@ -7,6 +7,7 @@ baseline workflow non-regression, and ISTQB negative boundary conditions.
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 import pydantic
 import pytest
@@ -50,7 +51,7 @@ EXPECTED_PROFILE_IDS = [
 ]
 
 
-def load_seed_data():
+def load_seed_data() -> Any:
     """Load raw seed_data.json from workspace.
 
     Returns:

@@ -102,10 +102,26 @@ class WorkflowCloner {
       }
       step['input_mappings'] = newMappings;
 
+      // 3. Re-route `causal_source_step_id`
+      final oldCausalSource = step['causal_source_step_id']?.toString();
+      if (oldCausalSource != null && oldCausalSource.isNotEmpty) {
+        final newCausalSource = idMap[oldCausalSource];
+        if (newCausalSource == null) {
+          throw const AppException(
+            type: 'https://api.quorum.fi/errors/workflow-clone-failed',
+            title: 'Clone Failed',
+            status: 400,
+            detail: 'Causal source step ID could not be remapped.',
+            extensions: {'error_code': 'WORKFLOW_CLONE_FAILED'},
+          );
+        }
+        step['causal_source_step_id'] = newCausalSource;
+      }
+
       steps[i] = step;
     }
 
-    // 3. Re-route bindings in `output_profiles`
+    // 4. Re-route bindings in `output_profiles`
     if (cloned.containsKey('output_profiles')) {
       final blueprintsRaw = cloned['output_profiles'];
       final blueprints = blueprintsRaw is Map ? blueprintsRaw : {};
@@ -138,6 +154,21 @@ class WorkflowCloner {
             title: 'Clone Failed',
             status: 400,
             detail: 'Dependency points to a missing/invalid step.',
+            extensions: {'error_code': 'WORKFLOW_CLONE_FAILED'},
+          );
+        }
+      }
+
+      final causalSourceRaw = stepMap['causal_source_step_id']?.toString();
+      if (causalSourceRaw != null && causalSourceRaw.isNotEmpty) {
+        if (!validNewIds.contains(causalSourceRaw) ||
+            !dependsOn.contains(causalSourceRaw)) {
+          throw const AppException(
+            type: 'https://api.quorum.fi/errors/workflow-clone-failed',
+            title: 'Clone Failed',
+            status: 400,
+            detail:
+                'Causal source step ID must exist in valid new steps and depends_on.',
             extensions: {'error_code': 'WORKFLOW_CLONE_FAILED'},
           );
         }

@@ -378,11 +378,17 @@ class StudioWorkflowService:
                     new_mappings[k] = new_v
                 else:
                     new_mappings[k] = v
+            new_causal_source = (
+                sr_mapping[step_cfg.causal_source_step_id]
+                if step_cfg.causal_source_step_id and step_cfg.causal_source_step_id in sr_mapping
+                else step_cfg.causal_source_step_id
+            )
             new_step = step_cfg.model_copy(
                 update={
                     "id": sr_mapping[step_cfg.id],
                     "depends_on": new_depends,
                     "input_mappings": new_mappings,
+                    "causal_source_step_id": new_causal_source,
                 }
             )
             new_steps.append(new_step)

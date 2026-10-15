@@ -39,8 +39,9 @@ class WorkflowStepsTab extends StatelessWidget {
 
   void _addStep() {
     final steps = List<StepRule>.from(workflow.steps);
+    final uuidHex = const Uuid().v4().replaceAll('-', '');
     final newId =
-        'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}';
+        'sr_${uuidHex.length >= 16 ? uuidHex.substring(0, 16) : uuidHex.padRight(16, '0')}';
     final newStep = StepRule(
       id: newId,
       taskBlueprint: '',
@@ -69,8 +70,9 @@ class WorkflowStepsTab extends StatelessWidget {
     if (index < 0 || index >= steps.length) return;
 
     final original = steps[index];
+    final uuidHex = const Uuid().v4().replaceAll('-', '');
     final clonedId =
-        'sr_${const Uuid().v4().replaceAll('-', '').substring(0, 16)}';
+        'sr_${uuidHex.length >= 16 ? uuidHex.substring(0, 16) : uuidHex.padRight(16, '0')}';
     final clonedStep = original.copyWith(id: clonedId);
 
     steps.insert(index + 1, clonedStep);
@@ -138,8 +140,7 @@ class WorkflowStepsTab extends StatelessWidget {
               children: [
                 Text(
                   l10n.studioWorkflowStepsDependencies,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -157,7 +158,7 @@ class WorkflowStepsTab extends StatelessWidget {
                   padding: const EdgeInsets.all(AppSpacing.s24),
                   child: Text(
                     l10n.studioWorkflowStepsEmpty,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),

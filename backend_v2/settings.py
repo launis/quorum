@@ -360,6 +360,30 @@ class Settings(BaseSettings):
     causal_secondary_fault_dampening: Annotated[
         float, Field(default=0.25, description="Penalty dampening factor for cascading secondary faults")
     ] = 0.25
+    causal_cohesion_matrix_block_id: Annotated[
+        str, Field(default="blk_c0a1e50000000001", description="Default PromptBlock ID for causal cohesion BARS matrix")
+    ] = "blk_c0a1e50000000001"
+    causal_cohesion_l2_threshold: Annotated[
+        float, Field(default=0.40, description="Minimum logical cohesion score for Level 2 BARS threshold")
+    ] = 0.40
+    causal_cohesion_l3_threshold: Annotated[
+        float, Field(default=0.60, description="Minimum logical cohesion score for Level 3 BARS threshold")
+    ] = 0.60
+    causal_cohesion_l4_threshold: Annotated[
+        float, Field(default=0.80, description="Minimum logical cohesion score for Level 4 BARS threshold")
+    ] = 0.80
+    causal_cohesion_l5_threshold: Annotated[
+        float, Field(default=0.90, description="Minimum logical cohesion score for Level 5 BARS threshold")
+    ] = 0.90
+    causal_cohesion_l3_isolation_max: Annotated[
+        float, Field(default=0.20, description="Maximum isolated concept ratio for Level 3 BARS threshold")
+    ] = 0.20
+    causal_cohesion_l4_isolation_max: Annotated[
+        float, Field(default=0.10, description="Maximum isolated concept ratio for Level 4 BARS threshold")
+    ] = 0.10
+    causal_cohesion_l5_isolation_max: Annotated[
+        float, Field(default=0.05, description="Maximum isolated concept ratio for Level 5 BARS threshold")
+    ] = 0.05
     two_pass_atomizer_packet_size: Annotated[
         int, Field(default=50, description="Default block count per chunk packet in two-pass atomizer")
     ] = 50

@@ -160,7 +160,7 @@ def compute_causal_tda_fusion_result(
         if node.node_id in atom_by_id:
             atom = atom_by_id[node.node_id]
             node_status = ExecutionStatus.FAILED
-            if atom.status.value == "PASSED":
+            if atom.status == ExecutionStatus.PASSED:
                 node_status = ExecutionStatus.PASSED
             score_val = node.tda_score
             if evaluative_matrices and atom.matrix_id and atom.matrix_id in evaluative_matrices:
