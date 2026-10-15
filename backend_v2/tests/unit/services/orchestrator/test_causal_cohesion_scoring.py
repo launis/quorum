@@ -69,6 +69,13 @@ def test_causal_cohesion_level_5_full_mastery(evaluator: CausalCohesionEvaluator
         assert atom.evaluation_reasoning is not None and len(atom.evaluation_reasoning.strip()) > 0
 
     assert pytest.approx(result.score_result.score, 0.01) == 5.00
+    assert len(result.hydrated_references) == 5
+    for tda_id in CAUSAL_COHESION_TDA_IDS:
+        assert tda_id in result.hydrated_references
+        assert result.hydrated_references[tda_id].sdui_component == "boolean_card"
+    assert result.matrix_output.raw_score == result.score_result.score
+    assert result.matrix_output.level_breakdown is not None
+    assert len(result.matrix_output.level_breakdown) == 5
 
 
 def test_causal_cohesion_level_4_strong_cohesion(evaluator: CausalCohesionEvaluator) -> None:
@@ -402,7 +409,11 @@ def test_causal_cohesion_idempotency_set_guard() -> None:
             TraceEvent(
                 step_name=causal_source_id,
                 event_type="output",
-                content={"results": dto1.atom_results},
+                content={
+                    "results": dto1.atom_results,
+                    "hydrated_references": dto1.hydrated_references,
+                    dto1.matrix_block_id: dto1.matrix_output.model_dump(mode="json"),
+                },
             )
         )
         emitted_events.append(
@@ -425,7 +436,10 @@ def test_causal_cohesion_idempotency_set_guard() -> None:
     assert len(output_events) == 1
     assert type(output_events[0].content) is dict
     assert "results" in output_events[0].content
+    assert "hydrated_references" in output_events[0].content
+    assert settings.causal_cohesion_matrix_block_id in output_events[0].content
     assert len(output_events[0].content["results"]) == 5
+    assert len(output_events[0].content["hydrated_references"]) == 5
     assert all(isinstance(a, AtomResultDTO) for a in output_events[0].content["results"])
     assert len(decision_events) == 1
     assert decision_events[0].metadata is not None

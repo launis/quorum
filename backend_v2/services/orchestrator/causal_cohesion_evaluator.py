@@ -12,14 +12,16 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.unified_engine import UnifiedScoringEngine
 
 __all__ = [
+    "CAUSAL_COHESION_CLAIMS",
     "CAUSAL_COHESION_TDA_IDS",
     "CausalCohesionEvaluationDTO",
     "CausalCohesionEvaluator",
@@ -33,6 +35,14 @@ CAUSAL_COHESION_TDA_IDS: tuple[str, ...] = (
     "tda_c0a1e500000000000000000000000005",
 )
 
+CAUSAL_COHESION_CLAIMS: tuple[str, ...] = (
+    "Circular reasoning or under 40% logical cohesion",
+    "Cohesion 40–59%, multiple orphan premise chains",
+    "Cohesion 60–79%, core premises linked to conclusions, limited isolated nodes",
+    "Cohesion 80–89%, deep and consistent argument structure",
+    "Cohesion >= 90%, 0 cycles, under 5% isolated claims, extensive interconnectedness",
+)
+
 
 class CausalCohesionEvaluationDTO(V2CoreBase):
     """Typed evaluation result for the causal cohesion BARS matrix.
@@ -42,6 +52,8 @@ class CausalCohesionEvaluationDTO(V2CoreBase):
         atom_results: Atoms evaluated for BARS Levels 1-5.
         level_stats: Level statistics mapping scale level string to LevelStatsDTO.
         score_result: Unified score calculation result.
+        hydrated_references: Hydrated atom references for BARS levels.
+        matrix_output: Matrix scorecard payload for domain parsing.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -50,6 +62,14 @@ class CausalCohesionEvaluationDTO(V2CoreBase):
     atom_results: Annotated[list[AtomResultDTO], Field(description="Atoms for Levels 1-5.")]
     level_stats: Annotated[dict[str, LevelStatsDTO], Field(description="Level statistics.")]
     score_result: Annotated[ScoringResultDTO, Field(description="Unified score calculation.")]
+    hydrated_references: Annotated[
+        dict[str, HydratedAtomDTO],
+        Field(description="Hydrated atom references for BARS levels."),
+    ]
+    matrix_output: Annotated[
+        TraceMatrixPayloadDTO,
+        Field(description="Matrix scorecard payload for domain parsing."),
+    ]
 
 
 class CausalCohesionEvaluator:
@@ -174,9 +194,32 @@ class CausalCohesionEvaluator:
             strictness_level=strictness_level,
         )
 
+        hydrated_references: dict[str, HydratedAtomDTO] = {
+            tda_id: HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim=claim,
+                source_quote=None,
+            )
+            for tda_id, claim in zip(CAUSAL_COHESION_TDA_IDS, CAUSAL_COHESION_CLAIMS, strict=True)
+        }
+
+        matrix_output = TraceMatrixPayloadDTO(
+            raw_score=score_result.score,
+            normalized_score=score_result.score,
+            level_breakdown=level_stats,
+            justification=(
+                f"Topological argument cohesion: score {audit.logical_cohesion_score:.2f}, "
+                f"{audit.isolated_concept_count} isolated concepts, cycle_detected={audit.cycle_detected}."
+            ),
+            evaluated_atoms={a.tda_id: a.status for a in atom_results},
+            allowed_extensions=[],
+        )
+
         return CausalCohesionEvaluationDTO(
             matrix_block_id=matrix_block_id,
             atom_results=atom_results,
             level_stats=level_stats,
             score_result=score_result,
+            hydrated_references=hydrated_references,
+            matrix_output=matrix_output,
         )

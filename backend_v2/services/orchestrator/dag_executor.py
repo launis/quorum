@@ -1347,7 +1347,11 @@ class DAGExecutor:
                             TraceEvent(
                                 step_name=step_obj.causal_source_step_id,
                                 event_type="output",
-                                content={"results": eval_dto.atom_results},
+                                content={
+                                    "results": eval_dto.atom_results,
+                                    "hydrated_references": eval_dto.hydrated_references,
+                                    eval_dto.matrix_block_id: eval_dto.matrix_output.model_dump(mode="json"),
+                                },
                             )
                         )
                         events.append(

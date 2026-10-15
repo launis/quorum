@@ -728,7 +728,15 @@ class StateProjector:
                             new_data = dict(existing.data)
                             for k, v in content.items():
                                 if k != "results":
-                                    new_data[str(k)] = v
+                                    if (
+                                        k == "hydrated_references"
+                                        and "hydrated_references" in existing.data
+                                        and type(existing.data["hydrated_references"]) is dict
+                                        and type(v) is dict
+                                    ):
+                                        new_data[str(k)] = {**existing.data["hydrated_references"], **v}
+                                    else:
+                                        new_data[str(k)] = v
                             self._snapshot[event.step_name] = StepOutputContentDTO(data=new_data)
                     else:
                         if event.step_name in self._snapshot:
