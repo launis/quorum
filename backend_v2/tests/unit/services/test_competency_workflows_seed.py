@@ -86,11 +86,15 @@ def test_baseline_monolithic_workflow_preserved() -> None:
     assert mono_wf.default_profile_id == "prf_5d6e7f8091a2b3c4"
     assert mono_prf.workflow_id == "wf_9d68c573802341db"
 
-    # 1. Exact 13-step topology and 6 matrix groups
-    assert len(mono_wf.steps) == 13, f"Expected exactly 13 steps in monolith workflow, got {len(mono_wf.steps)}"
-    assert len(mono_prf.matrix_synthesis_groups) == 6, (
-        f"Expected exactly 6 matrix synthesis groups, got {len(mono_prf.matrix_synthesis_groups)}"
+    # 1. Exact 14-step topology and 7 matrix groups
+    assert len(mono_wf.steps) == 14, f"Expected exactly 14 steps in monolith workflow, got {len(mono_wf.steps)}"
+    assert len(mono_prf.matrix_synthesis_groups) == 7, (
+        f"Expected exactly 7 matrix synthesis groups, got {len(mono_prf.matrix_synthesis_groups)}"
     )
+    assert "printable_sources_block" not in mono_prf.target_block_order, (
+        "printable_sources_block must be excluded from target_block_order"
+    )
+    assert mono_prf.show_sources_summary_box is False, "show_sources_summary_box must be False"
 
     # 2. Assert pruned step IDs are absent
     pruned_step_ids = {
@@ -114,24 +118,29 @@ def test_baseline_monolithic_workflow_preserved() -> None:
         "sr_566e3209a60444d3",  # Evaluator (Bloom)
         "sr_0228db320e8f41bb",  # Coach (Goodhart)
         "sr_b4c328df1c4141c6",  # Critic (Lipton)
+        "sr_f1c1d71000000002",  # AI Steering Evaluator
     }
     assert zone_b_step_ids.issubset(step_ids), f"Missing Zone B steps: {zone_b_step_ids - step_ids}"
 
     for step in mono_wf.steps:
         if step.id in zone_b_step_ids:
-            expected_deps = [ingress_id, "sr_c4a5a1d15c00438a"] if step.id == "sr_4d2272d8b4864847" else [ingress_id]
+            expected_deps = (
+                [ingress_id, "sr_c4a5a1d15c00438a"]
+                if step.id in ("sr_4d2272d8b4864847", "sr_f1c1d71000000002")
+                else [ingress_id]
+            )
             assert step.depends_on == expected_deps, (
                 f"Zone B step {step.id} must depend strictly on {expected_deps}, got {step.depends_on}"
             )
             assert "prior_analysis" not in step.input_mappings, f"Zone B step {step.id} must not map prior_analysis"
 
-    # 4. Assert Zone C XAI reporter depends on all 8 Zone B steps
+    # 4. Assert Zone C XAI reporter depends on all 9 Zone B steps
     xai_step = next(s for s in mono_wf.steps if s.id == "sr_5f3dd7712a7f4bb3")
     assert set(xai_step.depends_on) == zone_b_step_ids, (
-        "XAI reporter sr_5f3dd7712a7f4bb3 must depend on all 8 Zone B specialists"
+        "XAI reporter sr_5f3dd7712a7f4bb3 must depend on all 9 Zone B specialists"
     )
 
-    # 5. Assert all 6 matrix synthesis groups have valid grp_ IDs and exact cardinalities
+    # 5. Assert all 7 matrix synthesis groups have valid grp_ IDs and exact cardinalities
     expected_group_cardinalities: dict[PresetView | str, int] = {
         PresetView.METRICS_1D: 1,
         PresetView.COMPARE_2D: 2,
@@ -309,7 +318,9 @@ def test_output_profiles_scoring_configuration() -> None:
     for wf in workflows.values():
         wf_model = Workflow.model_validate(wf)
         assert wf_model.default_strictness_level is not None
-        assert wf_model.default_strictness_level in (50, 70)
+        assert wf_model.default_strictness_level in (0, 50, 70)
+
+    assert workflows["wf_9d68c573802341db"]["default_strictness_level"] == 0
 
 
 def test_negative_profile_missing_scoring_config_detected() -> None:

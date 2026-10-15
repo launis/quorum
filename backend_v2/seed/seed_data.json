@@ -20246,6 +20246,293 @@
       ],
       "computed_min": 1,
       "computed_max": 5
+    },
+    {
+      "id": "blk_c0a1e50000000001",
+      "slug": "matrix_causal_cohesion",
+      "label": {
+        "translations": {
+          "fi": "Argumentaation Kausaalinen Eheys ja Koheesio",
+          "en": "Causal Reasoning & Argument Cohesion"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Arvioi argumentaation rakenteellista eheyttä, päättelyketjujen koheesiota, kehäpäätelmien puuttumista ja irtonaisten väitteiden vähäisyyttä.",
+          "en": "Evaluates argument structural integrity, inferential cohesion, cycle avoidance, and isolated claim absence."
+        }
+      },
+      "output_extensions": [
+        "falsification",
+        "theory_link",
+        "risk_flag",
+        "coaching",
+        "remediation_steps",
+        "emotional_sentiment",
+        "confidence",
+        "source_id"
+      ],
+      "theory_grounding": {
+        "source_url": "https://doi.org/10.1017/CBO9780511803161",
+        "citation_reference": "Pearl, J. (2009). Causality: Models, Reasoning, and Inference (2nd ed.). Cambridge University Press; Spirtes, P., Glymour, C. N., & Scheines, R. (2000). Causation, Prediction, and Search. MIT Press."
+      },
+      "category_id": "matrix",
+      "type": "float",
+      "is_evaluative": true,
+      "allow_decimals": true,
+      "allow_contextual_override": true,
+      "is_lightweight_protocol": false,
+      "target_input_key": "chat_log",
+      "ai_description": "OBJECTIVE:\nEvaluate the structural integrity, inferential cohesion, cycle avoidance, and topological grounding of causal argument networks derived from deliverable discourse.",
+      "scales": [
+        {
+          "score": 1,
+          "name": {
+            "translations": {
+              "fi": "Fragmentoitunut (Heikko)",
+              "en": "Fragmented (Weak)"
+            }
+          },
+          "ai_label": "NOVICE - FRAGMENTED CAUSAL REASONING",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Kehäpäätelmiä tai alle 40% looginen koheesio",
+                  "en": "Circular reasoning or under 40% logical cohesion"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0a1e500000000000000000000000001",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": false,
+                  "target_speaker": "USER",
+                  "concept_description": "Baseline causal argument structure exhibiting fragmentation, disconnected reasoning, or cyclic dependencies.",
+                  "anchor_target": "System metric evaluation: logical cohesion < 40% or presence of circular argument cycles.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Evaluate if causal argument graph exhibits baseline novice reasoning.",
+                      "requires_contextual_override": true
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Claims are fragmented with loose premises or circular reasoning.",
+                    "rejected": "Strong systematic causal network with validated inference chains."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 2,
+          "name": {
+            "translations": {
+              "fi": "Katkeileva (Välttävä)",
+              "en": "Discontinuous (Passable)"
+            }
+          },
+          "ai_label": "PASSABLE - DISCONTINUOUS INFERENCE",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Koheesio 40–59%, useita orpoja premissiketjuja",
+                  "en": "Cohesion 40–59%, multiple orphan premise chains"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0a1e500000000000000000000000002",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": false,
+                  "target_speaker": "USER",
+                  "concept_description": "Passable causal argument structure reaching at least 40% logical cohesion with zero cycles.",
+                  "anchor_target": "System metric evaluation: logical cohesion >= 40% and cycle_detected == False.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Evaluate if causal argument graph reaches at least 40% logical cohesion without cycles.",
+                      "requires_contextual_override": true
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Causal reasoning connects key steps with at least 40% cohesion.",
+                    "rejected": "Severe fragmentation below 40% or circular claims."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 3,
+          "name": {
+            "translations": {
+              "fi": "Looginen perusrunko (Kohtalainen)",
+              "en": "Basic Logical Framework (Moderate)"
+            }
+          },
+          "ai_label": "MODERATE - BASIC LOGICAL FRAMEWORK",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Koheesio 60–79%, peruspremissit kytketty johtopäätöksiin, vähän saarekkeita",
+                  "en": "Cohesion 60–79%, core premises linked to conclusions, limited isolated nodes"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0a1e500000000000000000000000003",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": false,
+                  "target_speaker": "USER",
+                  "concept_description": "Moderate causal argument structure reaching at least 60% cohesion, 0 cycles, and isolated claims <= 20%.",
+                  "anchor_target": "System metric evaluation: logical cohesion >= 60%, cycle_detected == False, isolated_ratio <= 20%.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Evaluate if causal argument graph reaches at least 60% cohesion with limited isolated concepts.",
+                      "requires_contextual_override": true
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Coherent logical framework connecting premises to conclusions.",
+                    "rejected": "Orphaned claims exceeding 20% of graph or low cohesion."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 4,
+          "name": {
+            "translations": {
+              "fi": "Systemaattinen verkko (Vahva)",
+              "en": "Systematic Network (Strong)"
+            }
+          },
+          "ai_label": "STRONG - SYSTEMATIC CAUSAL NETWORK",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Koheesio 80–89%, syvällinen ja johdonmukainen argumenttirakenne",
+                  "en": "Cohesion 80–89%, deep and consistent argument structure"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0a1e500000000000000000000000004",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": false,
+                  "target_speaker": "USER",
+                  "concept_description": "Strong causal argument structure reaching at least 80% cohesion, 0 cycles, and isolated claims <= 10%.",
+                  "anchor_target": "System metric evaluation: logical cohesion >= 80%, cycle_detected == False, isolated_ratio <= 10%.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Evaluate if causal argument graph reaches at least 80% cohesion with minimal isolated concepts.",
+                      "requires_contextual_override": true
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Highly coherent causal network with deep, unbroken chain of inference.",
+                    "rejected": "Discontinuous jumps or isolated claims exceeding 10%."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "score": 5,
+          "name": {
+            "translations": {
+              "fi": "Monitasoinen synteesi (Erinomainen)",
+              "en": "Multi-Layered Synthesis (Excellent)"
+            }
+          },
+          "ai_label": "EXCELLENT - COMPREHENSIVE CAUSAL SYNTHESIS",
+          "claims": [
+            {
+              "label": {
+                "translations": {
+                  "fi": "Koheesio >= 90%, 0 kehää, alle 5% saarekkeita, laaja kytkeytyneisyys",
+                  "en": "Cohesion >= 90%, 0 cycles, under 5% isolated claims, extensive interconnectedness"
+                }
+              },
+              "tda_assertions": [
+                {
+                  "tda_id": "tda_c0a1e500000000000000000000000005",
+                  "inverse_evidence": false,
+                  "aggregation_mode": "ALL_MUST_COMPLY",
+                  "evaluation_track": "COGNITIVE_JUDGEMENT",
+                  "facts_to_find": [],
+                  "high_entropy": false,
+                  "target_speaker": "USER",
+                  "concept_description": "Mastery causal argument structure reaching at least 90% cohesion, 0 cycles, and isolated claims <= 5%.",
+                  "anchor_target": "System metric evaluation: logical cohesion >= 90%, cycle_detected == False, isolated_ratio <= 5%.",
+                  "bounding_box_scope": "paragraph",
+                  "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
+                  "acceptance_criteria": [
+                    {
+                      "instruction": "Evaluate if causal argument graph demonstrates multi-layered synthesis with near-perfect cohesion.",
+                      "requires_contextual_override": true
+                    }
+                  ],
+                  "anti_patterns": [],
+                  "contrastive_example": {
+                    "acceptable": "Comprehensive causal synthesis with zero cycles and <= 5% isolated claims.",
+                    "rejected": "Any logical discontinuity or isolated claims > 5%."
+                  },
+                  "syntactic_anchors": [],
+                  "enforce_pre_flight": false,
+                  "depends_on": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "computed_min": 1,
+      "computed_max": 5
     }
   ],
   "workflows": [
@@ -20270,7 +20557,7 @@
       "default_profile_id": "prf_5d6e7f8091a2b3c4",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
+      "default_strictness_level": 0,
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
       "passivity_penalty": 0.0,
@@ -20515,6 +20802,24 @@
           "ui_pos_y": 0.0
         },
         {
+          "id": "sr_f1c1d71000000002",
+          "task_blueprint": "sp_06c1d71000000001",
+          "depends_on": [
+            "sr_f0a26d17cc9b48a7",
+            "sr_c4a5a1d15c00438a"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": true,
+          "causal_source_step_id": "sr_c4a5a1d15c00438a",
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
           "id": "sr_5f3dd7712a7f4bb3",
           "task_blueprint": "sp_192910b5f5a34c79",
           "depends_on": [
@@ -20525,7 +20830,8 @@
             "sr_02b7cc1e7c2a4a62",
             "sr_566e3209a60444d3",
             "sr_0228db320e8f41bb",
-            "sr_b4c328df1c4141c6"
+            "sr_b4c328df1c4141c6",
+            "sr_f1c1d71000000002"
           ],
           "input_mappings": {
             "prior_analysis": "$steps"
@@ -23282,8 +23588,7 @@
         "grouped_extensions_block",
         "penalties_block",
         "matrix_summary_table_block",
-        "variance_validation_block",
-        "printable_sources_block"
+        "variance_validation_block"
       ],
       "matrix_synthesis_groups": [
         {
@@ -23369,10 +23674,24 @@
             "blk_6b8c766185294f7e"
           ],
           "view_type": "1d_metrics"
+        },
+        {
+          "id": "grp_f1c1d71000000001",
+          "title": {
+            "translations": {
+              "en": "Human-AI Steering & Causal Argument Cohesion",
+              "fi": "Tekoälyohjaus ja argumentaation kausaalinen eheys"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_c0a1e50000000001"
+          ],
+          "view_type": "2d_compare"
         }
       ],
       "content_blocks": [],
-      "show_sources_summary_box": true,
+      "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
       "variance_target_block": "blk_53f32679aa514fcb",
       "user_role_target_block": "blk_53f32679aa514fcb"
@@ -24024,6 +24343,20 @@
             "blk_c5804a9143c34cb1"
           ],
           "view_type": "1d_metrics"
+        },
+        {
+          "id": "grp_06b1d71000000004",
+          "title": {
+            "translations": {
+              "fi": "Tekoälyohjaus ja Argumentaation Kausaalinen Eheys",
+              "en": "AI Steering & Causal Argument Cohesion"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_c0a1e50000000001"
+          ],
+          "view_type": "2d_compare"
         }
       ],
       "content_blocks": [],
