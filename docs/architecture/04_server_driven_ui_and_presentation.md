@@ -198,6 +198,15 @@ Presentation rendering across all four surfaces (UI, PDF, Excel, and CSV) operat
    - Mathematical scoring identity: `points_awarded_val = 1.0 if (atom.status == PASSED and not is_inverse_claim) else 0.0`.
    - Total mathematical insulation for automated ML/data pipelines: `SUM(Saadut pisteet)` never accumulates error detections as points.
 
+### 2.14. Studio Workflow Step Topology & Specialist Causal Governance
+Quorum Studio workflow authoring surfaces (`WorkflowStepsTab`, `WorkflowStepCard`) enforce 100% engine symmetry, responsive topological sequencing, and strict relational integrity:
+- **100% Engine Card Symmetry**: All workflow execution nodes (including `EngineType.causalDiscovery`) are fully visible and editable as first-class Step Cards with explicit status badges, input mapping lists, and dependency chips.
+- **Append-to-Zone-B Authoring Flow**: Adding specialist steps appends them directly before the first Zone C funnel anchor (`_findFirstZoneCIndex`), guaranteeing upstream execution ordering without manual drag-and-drop complexity.
+- **Specialist Causal Source Selector & Full-Duplex Reactive Synchronization**: Specialist steps with upstream causal discovery nodes expose a dedicated causal source selector (`DropdownButtonFormField<String>`). Selecting or modifying the causal source automatically updates `stepDef.dependsOn`, adding the causal source ID to dependencies and pruning obsolete ones.
+- **Defensive Dropdown Value Guard**: Dropdown values enforce defensive scoping: `(stepDef.causalSourceStepId != null && allowedCausalIds.contains(stepDef.causalSourceStepId)) ? stepDef.causalSourceStepId : null`, preventing Flutter dropdown assertion crashes when referencing unmapped or deleted steps.
+- **Cascading Step Deletion Referential Integrity**: Deleting a workflow step automatically scans all remaining steps; if any step referenced the deleted step as its `causalSourceStepId`, the pointer is reset to `null` while preserving the step definition.
+- **Flutter Theme Sovereignty**: All Studio workflow authoring widgets derive typography and color metrics strictly from `Theme.of(context).textTheme` and `Theme.of(context).colorScheme`, eradicating raw `TextStyle` instantiations, while static UI labels resolve through Axis 1 compile-time `.arb` localization keys (`studioWorkflowCausalSourceLabel`, `studioWorkflowCausalSourceNone`).
+
 ## 3. Logical Data Flow & Rendering Pipeline
 ```mermaid
 flowchart TB

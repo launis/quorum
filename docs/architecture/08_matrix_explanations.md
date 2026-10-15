@@ -32,6 +32,33 @@ Every evaluation matrix is anchored in a rigorous academic theory, bound to an e
 | `blk_c3bc5f3eb8e74110` | `matrix_causal_abductive` | **Causal & Abductive Integrity** | Track B (Error Radar) | Pearl & Mackenzie (2018) | `all` | No | 1 to 5 | Anti-rationalization audit; exposes post-hoc justification and coincidental AI value |
 | `blk_f6e286f050c94d60` | `matrix_taskxai_clarity` | **Explainability & Transparency** | Track A (Developmental) | Lipton (2018) | `all` | No | 1 to 5 | Algorithmic interpretability, explicit variable weighting, and reconstructible causal chains |
 | `blk_22e3598e06414409` | `matrix_epistemic_humility` | **Epistemic Humility** | Track B (Error Radar) | Tetlock (2005) | `all` | No | 1 to 5 | Probabilistic calibration, acknowledgment of unknown boundaries, and prudent hedging |
+| `blk_c0a1e50000000001` | `matrix_causal_cohesion` | **Causal Reasoning & Argument Cohesion** | Track A (Developmental) | Pearl (2009); Spirtes et al. (2000) | `chat_log` | **Yes** | 1 to 5 | Argument structural integrity, inferential cohesion, cycle avoidance, and isolated claim absence across causal graphs |
+
+The system classifies all fifteen (15) evaluation matrices into two distinct rubric tracks:
+1. **Track A (Developmental Competence Matrices, 7 matrices):** Bloom (`blk_f921c7c0989b47e8`), Goodhart (`blk_53f32679aa514fcb`), HACM (`blk_7d8e9f0a1b2c3d4e`), Supreme Adjudicator (`blk_ff72c2d79edb4ebf`), XAI Reporter (`blk_6b8c766185294f7e`), Clarity (`blk_f6e286f050c94d60`), and Causal Cohesion (`blk_c0a1e50000000001`). Level 1 represents foundational positive capability (`inverse_evidence = false`, `aggregation_mode = ALL_MUST_COMPLY`), awarding positive capability points under the Cumulative Guttman Invariant ($L_1 \subset L_2 \subset L_3 \subset L_4 \subset L_5$). Points accrue progressively as higher competency levels are demonstrated.
+2. **Track B (Diagnostic Error Radar Matrices, 8 matrices):** Toulmin (`blk_440a5fef9331451b`), Kahneman (`blk_109dab5b6b3f403a`), Archivist (`blk_fb15f8dcf23f4865`), Causal Analyst (`blk_c5804a9143c34cb1`), Falsifier (`blk_b476f89fb732448c`), Taskguard (`blk_80732a33fe1947ee`), Causal & Abductive Integrity (`blk_c3bc5f3eb8e74110`), and Epistemic Humility (`blk_22e3598e06414409`). Levels 1 and 2 operate strictly as existential error radars (`inverse_evidence = true`, `aggregation_mode = EXISTS`). Under the Null Hypothesis, clean evaluations award zero positive capability points on Levels 1–2 ($\text{hit\_ratio}_1 = 0.0, \text{hit\_ratio}_2 = 0.0$), while positive capability points accrue from affirmative criteria on Levels 3–5 (`inverse_evidence = false`). Detected errors trigger deterministic malus deductions or scale grounding.
+
+### 2.1. Evaluative Scoring Participation & Role Differentiation
+
+Both Track A and Track B matrices compute scores and directly affect assessment outcomes when configured as evaluative, but their participation in the holistic `global_score` is governed strictly by the `is_evaluative: bool` domain property:
+
+1. **Evaluative Scoring Matrices (`is_evaluative: true`, 10 matrices):**
+   - **Track A:** Bloom (`blk_f921c7c0989b47e8`), Clarity (`blk_f6e286f050c94d60`), HACM (`blk_7d8e9f0a1b2c3d4e`), and Causal Cohesion (`blk_c0a1e50000000001`).
+   - **Track B:** Toulmin (`blk_440a5fef9331451b`), Kahneman (`blk_109dab5b6b3f403a`), Causal Analyst (`blk_c5804a9143c34cb1`), Falsifier (`blk_b476f89fb732448c`), Epistemic Humility (`blk_22e3598e06414409`), and Causal & Abductive Integrity (`blk_c3bc5f3eb8e74110`).
+   - *Scoring Pipeline:* Each evaluative matrix executes through `UnifiedScoringEngine` to produce a raw score mapped between its scale extrema (`computed_min` and `computed_max`). The score is normalized to $[0.0, 100.0]$ via `normalization_hook.py` and stored in `GlobalContextVarsDTO.evaluative_matrices`. The downstream scoring hook (`apply_scoring_logic_hook`) computes the unweighted arithmetic mean across all active evaluative matrices to establish the base `global_score` before workflow penalty deductions. Thus, evaluative matrices from both Track A and Track B contribute directly and commensurately to the candidate's final numerical rating.
+
+2. **Specialized Structural Matrices (`is_evaluative: false`, 5 matrices):**
+   - **Track A:** Goodhart (`blk_53f32679aa514fcb`), Supreme Adjudicator (`blk_ff72c2d79edb4ebf`), and XAI Reporter (`blk_6b8c766185294f7e`).
+   - **Track B:** Archivist (`blk_fb15f8dcf23f4865`) and Taskguard (`blk_80732a33fe1947ee`).
+   - *Specialized Roles:* These matrices are intentionally decoupled from the arithmetic mean in `apply_scoring_logic_hook` to prevent diluting substantive domain ratings with procedural or orthogonal signals:
+     - `matrix_goodhart` (`blk_53f32679aa514fcb`): Serves as the authoritative X-axis coordinate (`variance_target_block`) on the 2D Cartesian Variance Validation Plane, measuring cognitive steering depth against performative jargon density.
+     - `matrix_taskguard` (`blk_80732a33fe1947ee`): Serves as an OWASP zero-trust containment auditor; detected violations trigger a direct proportional score deduction (`security_penalty: 0.15`) against `global_score` rather than contributing positive capability points.
+     - `matrix_archivist` (`blk_fb15f8dcf23f4865`): Operates as a statutory recordkeeping compliance audit checklist.
+     - `matrix_judge` (`blk_ff72c2d79edb4ebf`): Evaluates executive human-in-the-loop steering discipline and PDCA process command.
+     - `matrix_xai_reporter` (`blk_6b8c766185294f7e`): Verifies dialectical consensus and traceable evidential attribution across upstream specialist steps.
+
+> [!IMPORTANT]
+> **Canonical Opaque ID Relational Invariant**: Entity slugs (specifically: `matrix_bloom`, `matrix_goodhart`) are strictly human-readable editorial aliases. In accordance with Quorum's architectural SSOT, slug values MUST NEVER be used as relational foreign keys, step criteria references (`criteria_block_ids`), output profile selectors (`variance_target_block`), or dictionary keys in state transit (`evaluative_matrices`). ALL entity relationships and runtime state mappings are keyed strictly and sovereignly by canonical opaque Stripe IDs (`blk_...`).
 
 ---
 
@@ -341,6 +368,28 @@ Anchored in supervisory control and adaptive automation literature (Sheridan & V
 
 ---
 
+### 3.15. Causal Reasoning & Argument Cohesion
+- **Opaque Stripe ID:** `blk_c0a1e50000000001` | **Slug:** `matrix_causal_cohesion`
+- **Evaluation Target:** `chat_log` (Topological Graph Telemetry from Ingress / Dynamic Causal Discovery)
+- **BARS Levels:** 1 to 5 | **Contextual Override Permitted:** `True`
+- **Academic Grounding:** Pearl, J. (2009). *Causality: Models, Reasoning, and Inference* (2nd ed.). Cambridge University Press; Spirtes, P., Glymour, C. N., & Scheines, R. (2000). *Causation, Prediction, and Search*. MIT Press.
+
+#### Theoretical Grounding & Evaluative Focus
+Grounded in Judea Pearl's structural causal models and Spirtes, Glymour, and Scheines' algorithmic causal discovery literature, this matrix audits the topological integrity, inferential cohesion, cycle avoidance, and claim connectedness of causal argument networks extracted from discourse. In complex strategic analysis, superficial argumentation frequently masks circular reasoning, orphaned premises, or disconnected assertions behind persuasive rhetoric. Rather than relying on subjective LLM grading, this matrix evaluates structural argument graphs deterministically from mathematical graph metrics (`AntiFluffAuditDTO`), enforcing the Cumulative Guttman Invariant across an affirmative 5-level developmental competence scale.
+
+#### BARS Progression
+- **Level 1 (Fragmented / Weak / Novice):** Baseline causal argument structure exhibiting fragmented reasoning, disconnected claims, or circular dependencies (logical cohesion < 40%). Establishes the foundational affirmative capability baseline for Track A ($L_1 \subset L_2 \subset L_3 \subset L_4 \subset L_5$). Empty proposition graphs (`total_nodes == 0`) and cyclic dependencies (`cycle_detected == True`) ground safely at this Novice baseline without arithmetic exceptions.
+- **Level 2 (Discontinuous / Passable):** Passable causal argument structure reaching at least 40% logical cohesion (`causal_cohesion_l2_threshold = 0.40`), containing at least one verified graph node (`total_nodes > 0`), and completely free of circular argument cycles (`cycle_detected == False`).
+- **Level 3 (Basic Logical Framework / Moderate):** Moderate causal argument structure reaching at least 60% logical cohesion (`causal_cohesion_l3_threshold = 0.60`), satisfying Level 2 criteria, containing zero cycles, and restricting isolated or orphaned concepts to at most 20% of total graph nodes (`isolated_ratio <= 0.20`, `causal_cohesion_l3_isolation_max = 0.20`). Core premises are systematically linked to conclusions.
+- **Level 4 (Systematic Network / Strong):** Strong causal argument structure reaching at least 80% logical cohesion (`causal_cohesion_l4_threshold = 0.80`), satisfying Level 3 criteria, containing zero cycles, and restricting isolated concepts to at most 10% of total graph nodes (`isolated_ratio <= 0.10`, `causal_cohesion_l4_isolation_max = 0.10`). Deep, unbroken inference chains and systematic reasoning structure.
+- **Level 5 (Multi-Layered Synthesis / Mastery):** Exemplary causal argument structure reaching at least 90% logical cohesion (`causal_cohesion_l5_threshold = 0.90`), satisfying Level 4 criteria, containing zero cycles, and restricting isolated concepts to at most 5% of total graph nodes (`isolated_ratio <= 0.05`, `causal_cohesion_l5_isolation_max = 0.05`). Demonstrates extensive interconnectedness, multi-layered synthesis, and near-perfect inferential cohesion across the entire argument topology.
+
+#### Context Target & Epistemic Justification
+- **Why Topological Graph Telemetry (0-Token LLM Contract):** Evaluated deterministically from upstream causal discovery step outputs (`CausalDiscoveryEngine` via `CausalCohesionEvaluator`). The matrix is strictly excluded from LLM `criteria_block_ids`, consuming zero additional model tokens, preventing prompt bloat, eliminating duplicate atom collisions, and avoiding lexical quote errors.
+- **Why Subjective LLM Grading Would Corrupt Assessment:** Generative LLMs exhibit severe halo effects and cannot reliably execute cycle detection or combinatorial graph cohesion algorithms within textual prompts. Evaluating structural graph metrics through deterministic mathematical algorithms guarantees 100% reproducible scoring, strict cycle grounding, and exact threshold enforcement across runs.
+
+---
+
 ## 4. Matrix Explanation & Evidence Assembly Architecture
 
 The **Matrix Explanation** capability processes upstream DAG atom evaluations, extracts verified forensic evidence, curates unmet deficits, and synthesizes structured narrative justifications for presentation layers and executive reports.
@@ -475,7 +524,7 @@ flowchart TD
 
 ## 7. Modular Competency Workflows & Evaluative Matrix Bindings
 
-Quorum orchestrates evaluation through six (6) production workflows: one comprehensive baseline audit workflow and five targeted modular competency workflows. Each workflow binds a tailored subset of the academic evaluation matrices defined in Sections 2 and 3, specifies dynamic ingress input contracts, and produces a Server-Driven UI (SDUI) Output Profile calibrated for a distinct organizational role and task domain.
+Quorum orchestrates evaluation through seven (7) production workflows: one comprehensive baseline audit workflow and six targeted modular competency workflows. Each workflow binds a tailored subset of the academic evaluation matrices defined in Sections 2 and 3, specifies dynamic ingress input contracts, and produces a Server-Driven UI (SDUI) Output Profile calibrated for a distinct organizational role and task domain.
 
 All workflows adhere to the **3-Zone Workflow Governance Standard**:
 1. **Zone A (Ingestion Anchor):** Normalizes, validates, and partitions raw source texts into typed context slots.
@@ -486,16 +535,17 @@ All workflows adhere to the **3-Zone Workflow Governance Standard**:
 
 ### 7.1. Workflow to Matrix Mapping Compendium
 
-The following matrix cross-references all six system workflows, their permanent Opaque Stripe IDs, bound academic matrices, required ingress inputs, and corresponding architectural profile identifiers.
+The following matrix cross-references all seven system workflows, their permanent Opaque Stripe IDs, bound academic matrices, required ingress inputs, and corresponding architectural profile identifiers.
 
 | Workflow ID | Workflow Slug & Name | Output Profile ID | Evaluated Academic Matrices | Bound Section Refs | Target Ingress Inputs | Preset View Topologies |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `wf_9d68c573802341db` | `holistic_evaluation`<br>**Kokonaisvaltainen auditointi** | `prf_5d6e7f8091a2b3c4` | All 13 Matrices | [§3.1–§3.13](#3-detailed-matrix-profiles--epistemic-input-justifications) | `chat_log`<br>`product_text`<br>`reflection_text` | `1d_metrics`<br>`2d_compare` |
+| `wf_9d68c573802341db` | `holistic_evaluation`<br>**Kokonaisvaltainen auditointi** | `prf_5d6e7f8091a2b3c4` | All 11 Active Audit Matrices | [§3.1–§3.4, §3.6–§3.7, §3.9, §3.12–§3.15](#3-detailed-matrix-profiles--epistemic-input-justifications) | `chat_log`<br>`product_text`<br>`reflection_text` | `1d_metrics`<br>`2d_compare` |
 | `wf_01a1d71000000001` | `tekoalyajokortti_vuorovaikutus_ohjaus`<br>**Tekoälyajokortti: Vuorovaikutus ja Ohjaus** | `prf_01b1d71000000001` | Goodhart (`blk_53f32679aa514fcb`)<br>Toulmin (`blk_440a5fef9331451b`) | [§3.4](#34-performativity--goodharts-law)<br>[§3.1](#31-toulmin-argumentation-model) | `chat_log`<br>`product_text` | `1d_metrics` |
 | `wf_02a1d71000000002` | `strateginen_johtaminen_paatoksenteko`<br>**Strateginen Johtaminen ja Päätöksenteko** | `prf_02b1d71000000002` | Goodhart (`blk_53f32679aa514fcb`)<br>Toulmin (`blk_440a5fef9331451b`)<br>Causal Analyst (`blk_c5804a9143c34cb1`)<br>Falsifier (`blk_b476f89fb732448c`) | [§3.4](#34-performativity--goodharts-law)<br>[§3.1](#31-toulmin-argumentation-model)<br>[§3.6](#36-causal-inference--abductive-reasoning-audit)<br>[§3.7](#37-falsification-audit) | `assignment_context`<br>`chat_log`<br>`product_text`<br>`reflection_text` | `2d_compare` |
 | `wf_03a1d71000000003` | `syvallinen_ongelmanratkaisu_kognitio`<br>**Syvällinen Ongelmanratkaisu ja Kognitio** | `prf_03b1d71000000003` | Bloom (`blk_f921c7c0989b47e8`)<br>Kahneman (`blk_109dab5b6b3f403a`)<br>Goodhart (`blk_53f32679aa514fcb`) | [§3.2](#32-blooms-taxonomy)<br>[§3.3](#33-kahnemans-dual-process-theory)<br>[§3.4](#34-performativity--goodharts-law) | `assignment_context`<br>`chat_log`<br>`product_text`<br>`reflection_text` | `3d_matrix` |
 | `wf_04a1d71000000004` | `faktantarkistus_tiedon_etsinta`<br>**Faktantarkistus ja Tiedon Etsintä** | `prf_04b1d71000000004` | Epistemic Humility (`blk_22e3598e06414409`)<br>Archivist (`blk_fb15f8dcf23f4865`)<br>Toulmin (`blk_440a5fef9331451b`) | [§3.13](#313-epistemic-humility)<br>[§3.5](#35-archival-compliance-audit)<br>[§3.1](#31-toulmin-argumentation-model) | `source_evidence`<br>`chat_log`<br>`product_text` | `1d_metrics` |
 | `wf_05a1d71000000005` | `hallinnollinen_eettinen_audit`<br>**Hallinnollinen ja Eettinen Audit** | `prf_05b1d71000000005` | Taskguard (`blk_80732a33fe1947ee`)<br>Clarity (`blk_f6e286f050c94d60`)<br>Archivist (`blk_fb15f8dcf23f4865`) | [§3.10](#310-responsibility-taskguard)<br>[§3.12](#312-explainability--transparency)<br>[§3.5](#35-archival-compliance-audit) | `compliance_framework`<br>`product_text`<br>`source_evidence` | `1d_metrics` |
+| `wf_06a1d71000000001` | `tekoalyn_kayton_ja_ohjauksen_auditointi`<br>**Tekoälyn Käytön ja Ohjauksen Auditointi** | `prf_06b1d71000000001` | HACM (`blk_7d8e9f0a1b2c3d4e`)<br>Causal Analyst (`blk_c5804a9143c34cb1`)<br>Causal Cohesion (`blk_c0a1e50000000001`)<br>Goodhart (`blk_53f32679aa514fcb`)<br>XAI Reporter (`blk_6b8c766185294f7e`) | [§3.14](#314-human-ai-collaboration-matrix-hacm)<br>[§3.6](#36-causal-inference--abductive-reasoning-audit)<br>[§3.15](#315-causal-reasoning--argument-cohesion)<br>[§3.4](#34-performativity--goodharts-law)<br>[§3.9](#39-xai-synthesis-reporter) | `chat_log`<br>`product_text`<br>`reflection_text`<br>`assignment_context` | `1d_metrics`<br>`2d_compare` |
 
 ---
 
@@ -508,11 +558,21 @@ The following matrix cross-references all six system workflows, their permanent 
   - `chat_log`: Conversation history with the AI (`required=True`, `is_chat_history=True`).
   - `product_text`: Deliverable text, analytical report, or generated asset (`required=False`, `is_chat_history=False`).
   - `reflection_text`: Reflective self-assessment or contextual notes (`required=False`, `is_chat_history=False`).
-- **Topological Architecture (12 Steps):**
-  - **Zone A:** Ingestion step normalizes text chunks.
-  - **Zone B (8 Specialists in Parallel Wave 1):** Executes canonical matrix blocks across Kahneman, Toulmin, Popper, Pearl, Tetlock, Bloom, Goodhart, and Lipton.
-  - **Zone C:** XAI reporter and synthesis steps reconcile specialist evaluations into global executive synthesis.
-- **Output Profile & SDUI Visualization:** Combines 1D metric and 2D comparison views across 6 synthesis groups. Renders full report block order including executive summary, global scores, Cartesian variance validation plane, security penalty warnings, and verified source citations (`show_sources_summary_box=true`).
+- **Topological Architecture (14 Steps):**
+  - **Zone A:** `step_input_processing` (`sr_f0a26d17cc9b48a7`) normalizes raw input texts.
+  - **Zone B (10 Specialist & Causal Discovery Steps in Parallel Waves):**
+    - `sr_5a8ae009eee44fe2`: Kahneman's Dual Process Theory (`blk_109dab5b6b3f403a`, [§3.3](#33-kahnemans-dual-process-theory)).
+    - `sr_87f408aeee64462f`: Toulmin Argumentation Model (`blk_440a5fef9331451b`, [§3.1](#31-toulmin-argumentation-model)).
+    - `sr_d56fb84fbe13463a`: Popperian Falsification Audit (`blk_b476f89fb732448c`, [§3.7](#37-falsification-audit)).
+    - `sr_c4a5a1d15c00438a`: Dynamic Causal Discovery (`step_causal_discovery_kokonaisvaltainen`), evaluating argument graph cohesion via Causal Cohesion BARS Matrix (`blk_c0a1e50000000001`, [§3.15](#315-causal-reasoning--argument-cohesion)).
+    - `sr_4d2272d8b4864847`: Pearl Causal Inference & Abductive Reasoning (`blk_c5804a9143c34cb1`, [§3.6](#36-causal-inference--abductive-reasoning-audit)).
+    - `sr_02b7cc1e7c2a4a62`: Tetlock Epistemic Humility (`blk_22e3598e06414409`, [§3.13](#313-epistemic-humility)).
+    - `sr_566e3209a60444d3`: Bloom's Taxonomy (`blk_f921c7c0989b47e8`, [§3.2](#32-blooms-taxonomy)).
+    - `sr_0228db320e8f41bb`: Goodhart's Law & Steering Agency (`blk_53f32679aa514fcb`, [§3.4](#34-performativity--goodharts-law)).
+    - `sr_b4c328df1c4141c6`: Explainability & Transparency (`blk_f6e286f050c94d60`, [§3.12](#312-explainability--transparency)).
+    - `sr_f1c1d71000000002`: Human-AI Collaboration Matrix HACM (`blk_7d8e9f0a1b2c3d4e`, [§3.14](#314-human-ai-collaboration-matrix-hacm)).
+  - **Zone C (Funnel Anchors):** `sr_5f3dd7712a7f4bb3` (XAI Synthesis Reporter, `blk_6b8c766185294f7e`, [§3.9](#39-xai-synthesis-reporter)), `sr_2fa56dc36614469a` (aggregation), and `sr_9e8d7c6b5a40312b` (synthesis generation) reconcile specialist evaluations into global executive synthesis.
+- **Output Profile & SDUI Visualization:** Combines 1D metric and 2D comparison views across 7 synthesis groups (including `grp_f1c1d71000000001` Human-AI Steering & Causal Argument Cohesion comparing HACM and Causal Cohesion). Renders full report block order including executive summary, global scores, Cartesian variance validation plane, security penalty warnings, and verified source citations (`show_sources_summary_box=true`).
 
 #### 7.2.2. AI Driving License: Interaction & Steering (`wf_01a1d71000000001`)
 - **Profile ID:** `prf_01b1d71000000001` | **Slug:** `tekoalyajokortti_vuorovaikutus_ohjaus`
@@ -608,6 +668,33 @@ The following matrix cross-references all six system workflows, their permanent 
 - **Epistemic Rationales:** Restricts evaluation to administrative, statutory, and safety compliance. Implements zero-trust containment verification with automated penalty scoring.
 - **Output Profile & SDUI Visualization:** Adopts a neutral, objective compliance auditor persona. Organizes audit findings into three 1D metric groups (`grp_05e1d71000000001` Constraint & Safety Audit, `grp_05e1d71000000002` Explainability & Transparency, and `grp_05e1d71000000003` Regulatory Retention). Applies a mandatory security penalty factor (`security_penalty: 0.15`), activates compliance variance detection (`visible_workflow_extensions: ["variance_validation"]`), and suppresses non-statutory summary boxes (`show_sources_summary_box=false`).
 
+#### 7.2.7. Human-AI Collaboration & Steering Audit (`wf_06a1d71000000001`)
+- **Profile ID:** `prf_06b1d71000000001` | **Slug:** `tekoalyn_kayton_ja_ohjauksen_tulostusprofiili`
+- **User Category & Purpose:** Specialized process and steering audit evaluating human supervisory control, prompt framing architecture, critical inquiry, and causal argument cohesion in AI collaboration. Designed for enterprise knowledge workers, educators, product managers, and analytical specialists auditing iterative prompt engineering and collaborative agency.
+- **Dynamic Ingress Specifications:**
+  - `chat_log`: Conversation history between user and AI (`required=True`, `is_chat_history=True`). Evaluated for steering dynamics, constraint framing, and prompt refinement.
+  - `product_text`: Product deliverable (`required=False`, `is_chat_history=False`, `is_endorsed_deliverable=True`). Evaluates causal argument networks and authentic curation under endorsed deliverable provenance.
+  - `reflection_text`: User self-reflection on the interaction process (`required=False`, `is_chat_history=False`). Evaluated for metacognitive calibration.
+  - `assignment_context`: Assignment brief and guidelines (`required=False`, `is_chat_history=False`). Strictly quarantined from evidence quote extraction.
+- **Tri-Zone Context Governance:**
+  - **Zone A Ingestion (`sr_06c1d71000000001`):** Ingests and normalizes chat log, product text, user reflection, and assignment context.
+  - **Zone B Specialists (5 Steps in Parallel & Causal Discovery Waves):**
+    - `sr_06c1d71000000002`: Human-AI Collaboration Matrix HACM (`blk_7d8e9f0a1b2c3d4e`, [§3.14](#314-human-ai-collaboration-matrix-hacm)) evaluating supervisory control and framing architecture.
+    - `sr_06c1d71000000003`: Causal Inference & Abductive Reasoning (`blk_c5804a9143c34cb1`, [§3.6](#36-causal-inference--abductive-reasoning-audit)) evaluating Pearl's causal ladder.
+    - `sr_06c1d7100000ca06`: Dynamic Causal Discovery (`step_causal_discovery_hacm`), generating topological argument graphs and evaluating argument structure via Causal Cohesion BARS Matrix (`blk_c0a1e50000000001`, [§3.15](#315-causal-reasoning--argument-cohesion)).
+    - `sr_06c1d71000000004`: Goodhart Matrix (`blk_53f32679aa514fcb`, [§3.4](#34-performativity--goodharts-law)) auditing Driver vs. Passenger steering agency.
+    - `sr_06c1d71000000005`: XAI Synthesis Reporter (`blk_6b8c766185294f7e`, [§3.9](#39-xai-synthesis-reporter)) reconciling specialist findings.
+  - **Zone C Funnel Anchors (2 Steps):**
+    - `sr_06c1d71000000006`: Report aggregation (`sp_d245365e4a274b9e`) collecting all specialist payloads.
+    - `sr_06c1d71000000007`: Synthesis generation (`synthesis_generation`) compiling executive coaching feedback and strategic recommendations.
+- **Epistemic Rationales:** Decouples human interaction and steering agency from passive deliverable generation. Evaluates whether the operator exercised genuine supervisory governance over the AI model, with topological argument graphs verifying that final assertions form a cohesive, non-circular inferential network.
+- **Output Profile & SDUI Visualization:** Features an insightful Human-AI Collaboration Coach persona. Displays findings across four dedicated synthesis groups:
+  - `grp_06b1d71000000001`: AI Steering Cognitive Radar (1D metrics, targeting `matrix_hacm`).
+  - `grp_06b1d71000000002`: Steering Agency vs. Causal Robustness (2D Cartesian comparison, targeting `matrix_hacm` and `matrix_causal_analyst`).
+  - `grp_06b1d71000000003`: Causal Inference & Argumentation Core Metrics (1D metrics, targeting `matrix_causal_analyst`).
+  - `grp_06b1d71000000004`: AI Steering & Causal Argument Cohesion (2D Cartesian comparison, targeting `matrix_hacm` and `matrix_causal_cohesion`).
+  Activates standard matrix visible columns (`STANDARD_MATRIX_VISIBLE_COLUMNS`) and verified evidence summaries.
+
 ## 8. Zero-Trust Blind Flattening & Empirical Bottom-Up Evaluation Architecture
 
 ### 8.1 The Zero-Trust Blind Evaluation Principle
@@ -633,7 +720,7 @@ Once the model returns batch evaluation results across flattened assertions:
 1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level $l \in \{1, \dots, L\}$, the platform computes the exact hit ratio:
    $$\text{hit\_ratio}_l = \frac{k_l}{N_l}$$
    where $k_l$ is the number of passed capability atoms and $N_l$ is the total number of evaluated atoms for that scale level.
-   - **Track A (Developmental Competence):** Level 1 represents foundational positive capability. Passing Level 1 awards positive points ($\text{hit\_ratio}_1 \times w_1$).
+   - **Track A (Developmental Competence):** Level 1 represents foundational positive capability. Passing Level 1 awards positive points ($\text{hit\_ratio}_1 \times w_1$) under the Cumulative Guttman Invariant ($L_1 \subset L_2 \subset L_3 \subset L_4 \subset L_5$). For pure system-evaluated metric matrices (specifically `matrix_causal_cohesion`), evaluation executes deterministically from graph telemetry under a 0-token LLM contract.
    - **Track B (Diagnostic Error Radars):** Levels 1–2 represent inverse error detectors (`inverse_evidence = true`). Under the Null Hypothesis, clean evaluations (no errors detected) evaluate to `PASSED` but award **0 capability points** ($\text{hit\_ratio}_1 = 0.0, \text{hit\_ratio}_2 = 0.0$). Positive capability points accrue exclusively from Levels 3–5.
 
 2. **Weighted Level Aggregation & Linear Hit Ratio:** Across all configured scale levels with weights $w_l$ (where $w_l = \text{score}_l$):
@@ -665,9 +752,3 @@ Once the model returns batch evaluation results across flattened assertions:
 2. **Deterministic Anti-Pattern Falsification:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (specifically faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, ensuring consistent, repeatable evaluation.
 3. **Endorsed Deliverable Provenance (`is_endorsed_deliverable`):** Deliverables configured with endorsed deliverable provenance designate the work as the candidate's formally submitted output. The candidate is fully entitled to incorporate AI-assisted phrasing, executive terminology, and domain jargon developed during the workflow without triggering Echo Parroting penalties, while observation-layer performative pattern scanning remains active for transparent telemetry.
 4. **Multi-Stage Lexical Validation & Morphological Stemmed Sequence Verification:** Lexical citation verification executes through a deterministic 4-stage pipeline in `AnchorValidationService._is_lexically_valid`: Stage 1 (Exact Substring Fast-Path), Stage 2 (Length-Weighted RapidFuzz), Stage 3 (Morphological Stemmed Sequence Verification via pure-Python `StemmerService` with Candidate Window Discovery, Window Contiguity Guard, Entropy Gate, and Absolute Strictness Bypass), and Stage 4 (Coverage Safety Net).
-
-### Toulmin Argumentation Model
-
-The Toulmin Argumentation Model evaluation matrix is mathematically grounded in Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press.. It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks.
-
-Operationally, the matrix controls evaluation precision through targeted parameters including contextual override permissions (allow_contextual_override=True) and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict distinction between universal structural invariants requiring chunk compliance and specialized existential error radars.
