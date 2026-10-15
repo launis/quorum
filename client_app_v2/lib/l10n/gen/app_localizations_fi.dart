@@ -5338,4 +5338,10 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get causalRemediationLabel => 'Korjausehdotus';
+
+  @override
+  String get studioWorkflowCausalSourceLabel => 'Kausaalipäättelyn lähde';
+
+  @override
+  String get studioWorkflowCausalSourceNone => 'Ei käytössä';
 }

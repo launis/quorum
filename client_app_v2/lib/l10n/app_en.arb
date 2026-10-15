@@ -2627,6 +2627,8 @@
   "causalInspectorTitle": "Causal Graph Inspector",
   "causalRootCauseBadge": "Root Cause",
   "causalCascadingFaultBadge": "Cascading Fault",
-  "causalRemediationLabel": "Prescriptive Remediation"
+  "causalRemediationLabel": "Prescriptive Remediation",
+  "studioWorkflowCausalSourceLabel": "Causal Discovery Source",
+  "studioWorkflowCausalSourceNone": "None"
 }
 

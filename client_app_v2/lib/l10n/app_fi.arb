@@ -1914,5 +1914,7 @@
   "causalInspectorTitle": "Kausaaligraafin tarkastin",
   "causalRootCauseBadge": "Juurisyy",
   "causalCascadingFaultBadge": "Kerrannaisvirhe",
-  "causalRemediationLabel": "Korjausehdotus"
+  "causalRemediationLabel": "Korjausehdotus",
+  "studioWorkflowCausalSourceLabel": "Kausaalipäättelyn lähde",
+  "studioWorkflowCausalSourceNone": "Ei käytössä"
 }

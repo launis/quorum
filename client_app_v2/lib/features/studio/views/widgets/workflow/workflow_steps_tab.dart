@@ -3,6 +3,7 @@ import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:uuid/uuid.dart';
 import 'workflow_step_card.dart';
 
@@ -30,7 +31,7 @@ class WorkflowStepsTab extends StatelessWidget {
       final bp = blueprints
           .where((b) => b.id == step.taskBlueprint)
           .firstOrNull;
-      if (bp != null && bp.isSystemCore) {
+      if (bp != null && bp.isSystemCore && bp.engineType != EngineType.causalDiscovery) {
         return i;
       }
     }
@@ -138,12 +139,16 @@ class WorkflowStepsTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.studioWorkflowStepsDependencies,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    l10n.studioWorkflowStepsDependencies,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                AppSpacing.w16,
                 OutlinedButton.icon(
                   onPressed: _addStep,
                   icon: const Icon(Icons.add),

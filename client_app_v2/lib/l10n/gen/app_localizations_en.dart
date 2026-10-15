@@ -5298,4 +5298,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get causalRemediationLabel => 'Prescriptive Remediation';
+
+  @override
+  String get studioWorkflowCausalSourceLabel => 'Causal Discovery Source';
+
+  @override
+  String get studioWorkflowCausalSourceNone => 'None';
 }

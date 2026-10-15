@@ -9557,6 +9557,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Prescriptive Remediation'**
   String get causalRemediationLabel;
+
+  /// No description provided for @studioWorkflowCausalSourceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Causal Discovery Source'**
+  String get studioWorkflowCausalSourceLabel;
+
+  /// No description provided for @studioWorkflowCausalSourceNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get studioWorkflowCausalSourceNone;
 }
 
 class _AppLocalizationsDelegate
