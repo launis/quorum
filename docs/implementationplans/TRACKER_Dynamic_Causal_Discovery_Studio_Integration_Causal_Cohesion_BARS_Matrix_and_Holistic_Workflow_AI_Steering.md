@@ -27,7 +27,7 @@
   - [x] Step 2: Seed Data Vault Mutation
   - [x] Step 3: Backend Deterministic BARS Evaluation
   - [x] Step 4: Frontend Localization and Studio Step Symmetry
-  - [ ] Step 5: Frontend Specialist Causal Source Selector
+  - [x] Step 5: Frontend Specialist Causal Source Selector
   - [ ] Step 6: Universal Quality Gate and Cross-System Audit
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Dynamic_Causal_Discovery_Studio_Integration_Causal_Cohesion_BARS_Matrix_and_Holistic_Workflow_AI_Steering.md] @[docs/implementationplans/TRACKER_Dynamic_Causal_Discovery_Studio_Integration_Causal_Cohesion_BARS_Matrix_and_Holistic_Workflow_AI_Steering.md]`
 
@@ -90,8 +90,8 @@
 | REQ-010 | Causal Cohesion BARS Unit Tests (write comprehensive unit tests in test_causal_cohesion_scoring.py verifying all 5 BARS thresholds, zero-node grounding, cyclic defect grounding, concurrent execution idempotency, and dynamic matrix binding) | Step 3 | Done |
 | REQ-011 | Dual-Axis Studio Localization Parity (add studioWorkflowCausalSourceLabel and studioWorkflowCausalSourceNone keys to app_fi.arb and app_en.arb, and run flutter gen-l10n) | Step 4 | Done |
 | REQ-012 | Studio 100% Engine Card Symmetry & Append-to-Zone-B Lifecycle (ensure all execution nodes are visible in WorkflowStepsTab, update _findFirstZoneCIndex, and maintain cascading referential integrity on node removal) | Step 4 | Done |
-| REQ-013 | Studio Specialist Causal Source Selector & Defensive Value Guard (add DropdownButtonFormField for causalSourceStepId in WorkflowStepCard, implement defensive initialValue guard, and enforce Full-Duplex Reactive Synchronization) | Step 5 | Pending |
-| REQ-014 | Studio Causal Source Widget Tests (update workflow_step_card_test.dart verifying dropdown rendering, defensive value guard, dependency synchronization, and chip deselection auto-reset) | Step 5 | Pending |
+| REQ-013 | Studio Specialist Causal Source Selector & Defensive Value Guard (add DropdownButtonFormField for causalSourceStepId in WorkflowStepCard, implement defensive initialValue guard, and enforce Full-Duplex Reactive Synchronization) | Step 5 | Done |
+| REQ-014 | Studio Causal Source Widget Tests (update workflow_step_card_test.dart verifying dropdown rendering, defensive value guard, dependency synchronization, and chip deselection auto-reset) | Step 5 | Done |
 | REQ-015 | Universal Quality Gate & Cross-System Completion Gate (execute backend_audit_loop.py, flutter_audit_loop.py, audit_database_atoms.py, and audit_markdown_boundaries.py) | Step 6 | Pending |
 
 # Session Handover Context

@@ -4,6 +4,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/models/enums.dart';
 
 /// **WorkflowStepCard**
 ///
@@ -61,6 +62,26 @@ class WorkflowStepCard extends StatelessWidget {
 
     final dependsOn = List<String>.from(stepDef.dependsOn);
     final mappings = Map<String, String>.from(stepDef.inputMappings);
+
+    final upstreamCausalSteps = index > 0
+        ? allSteps.sublist(0, index).where((s) {
+            final bp = blueprints
+                .where((b) => b.id == s.taskBlueprint)
+                .firstOrNull;
+            return bp != null && bp.engineType == EngineType.causalDiscovery;
+          }).toList()
+        : <StepRule>[];
+
+    final bool isCurrentCausalDiscovery =
+        currentBlueprint?.engineType == EngineType.causalDiscovery;
+    final bool showCausalSourceSelector =
+        !isCurrentCausalDiscovery && upstreamCausalSteps.isNotEmpty;
+
+    final allowedCausalIds = upstreamCausalSteps.map((s) => s.id).toSet();
+    final effectiveCausalSourceValue = (stepDef.causalSourceStepId != null &&
+            allowedCausalIds.contains(stepDef.causalSourceStepId))
+        ? stepDef.causalSourceStepId
+        : null;
 
     String getBlueprintLabel(String stepId) {
       if (stepId.isEmpty) return '';
@@ -391,18 +412,78 @@ class WorkflowStepCard extends StatelessWidget {
                       selected: isSelected,
                       onSelected: (bool selected) {
                         final newDependsOn = List<String>.from(dependsOn);
+                        String? newCausalId = stepDef.causalSourceStepId;
                         if (selected) {
                           if (!newDependsOn.contains(prevId)) {
                             newDependsOn.add(prevId);
                           }
                         } else {
                           newDependsOn.remove(prevId);
+                          if (prevId == stepDef.causalSourceStepId) {
+                            newCausalId = null;
+                          }
                         }
-                        update(stepDef.copyWith(dependsOn: newDependsOn));
+                        update(
+                          stepDef.copyWith(
+                            dependsOn: newDependsOn,
+                            causalSourceStepId: newCausalId,
+                          ),
+                        );
                       },
                     );
                   }).toList(),
                 ),
+
+              if (showCausalSourceSelector) ...[
+                AppSpacing.h16,
+                DropdownButtonFormField<String?>(
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: l10n.studioWorkflowCausalSourceLabel,
+                  ),
+                  initialValue: effectiveCausalSourceValue,
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        l10n.studioWorkflowCausalSourceNone,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    ...upstreamCausalSteps.map((s) {
+                      final label = getBlueprintLabel(s.taskBlueprint);
+                      return DropdownMenuItem<String?>(
+                        value: s.id,
+                        child: Text(
+                          label.isNotEmpty ? label : s.id,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (newCausalId) {
+                    final newDependsOn = List<String>.from(stepDef.dependsOn);
+                    final oldCausalId = stepDef.causalSourceStepId;
+
+                    if (oldCausalId != null && oldCausalId != newCausalId) {
+                      newDependsOn.remove(oldCausalId);
+                    }
+
+                    if (newCausalId != null) {
+                      if (!newDependsOn.contains(newCausalId)) {
+                        newDependsOn.add(newCausalId);
+                      }
+                    }
+
+                    update(
+                      stepDef.copyWith(
+                        causalSourceStepId: newCausalId,
+                        dependsOn: newDependsOn,
+                      ),
+                    );
+                  },
+                ),
+              ],
 
               AppSpacing.h16,
 

@@ -61,6 +61,28 @@ void main() {
           hook: 'aggregate_xai',
           isSystemCore: true,
         ),
+        const NodeStrategy.causalDiscovery(
+          id: 'sp_causal_discovery_1',
+          slug: 'causal_discovery_1',
+          name: I18nText(
+            translations: {
+              'en': 'Causal Discovery Alpha',
+              'fi': 'Kausaalipäättely Alfa',
+            },
+          ),
+          engineType: EngineType.causalDiscovery,
+        ),
+        const NodeStrategy.causalDiscovery(
+          id: 'sp_causal_discovery_2',
+          slug: 'causal_discovery_2',
+          name: I18nText(
+            translations: {
+              'en': 'Causal Discovery Beta',
+              'fi': 'Kausaalipäättely Beta',
+            },
+          ),
+          engineType: EngineType.causalDiscovery,
+        ),
       ];
 
       mockGlobalInputs = [
@@ -525,5 +547,286 @@ void main() {
         expect(deleteAttempted, isFalse);
       },
     );
+
+    group('Specialist Causal Source Selector & Full-Duplex Reactive Sync Tests', () {
+      testWidgets(
+        'Renders DropdownButtonFormField for causal source when upstream causal discovery steps exist, excluding causal steps themselves',
+        (WidgetTester tester) async {
+          final stepInput = const StepRule(
+            id: 'sr_step1',
+            taskBlueprint: 'sp_db849f9790984585',
+            isSynthesisSource: false,
+          );
+          final stepCausal = const StepRule(
+            id: 'sr_causal_alpha',
+            taskBlueprint: 'sp_causal_discovery_1',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          final stepSpecialist = const StepRule(
+            id: 'sr_specialist_coach',
+            taskBlueprint: 'sp_agent_specialist_1',
+            dependsOn: ['sr_step1', 'sr_causal_alpha'],
+            causalSourceStepId: 'sr_causal_alpha',
+            isSynthesisSource: true,
+          );
+
+          // 1. Verify causal step itself (index 1) does NOT render the causal source selector
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 1,
+              stepDef: stepCausal,
+              allSteps: [stepInput, stepCausal, stepSpecialist],
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byType(DropdownButtonFormField<String?>), findsNothing);
+
+          // 2. Verify specialist step (index 2) DOES render the causal source selector with items
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 2,
+              stepDef: stepSpecialist,
+              allSteps: [stepInput, stepCausal, stepSpecialist],
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final causalDropdownFinder = find.byType(
+            DropdownButtonFormField<String?>,
+          );
+          expect(causalDropdownFinder, findsOneWidget);
+
+          // Tap dropdown to verify items
+          await tester.tap(causalDropdownFinder);
+          await tester.pumpAndSettle();
+
+          final menuItemFinder = find.descendant(
+            of: find.byType(DropdownMenuItem<String?>),
+            matching: find.byType(Text),
+          );
+          final menuItemTexts = tester
+              .widgetList<Text>(menuItemFinder)
+              .map((t) => t.data)
+              .toList();
+
+          expect(menuItemTexts, contains('Ei käytössä'));
+          expect(menuItemTexts, contains('Kausaalipäättely Alfa'));
+        },
+      );
+
+      testWidgets(
+        'Defensive value guard resolves malformed/non-upstream causal source ID safely to null without crashing',
+        (WidgetTester tester) async {
+          final stepInput = const StepRule(
+            id: 'sr_step1',
+            taskBlueprint: 'sp_db849f9790984585',
+            isSynthesisSource: false,
+          );
+          final stepCausal = const StepRule(
+            id: 'sr_causal_alpha',
+            taskBlueprint: 'sp_causal_discovery_1',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          // Malformed step referencing non-existent or downstream causal source
+          final stepSpecialistMalformed = const StepRule(
+            id: 'sr_specialist_coach',
+            taskBlueprint: 'sp_agent_specialist_1',
+            dependsOn: ['sr_step1'],
+            causalSourceStepId: 'sr_corrupted_id_9999',
+            isSynthesisSource: true,
+          );
+
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 2,
+              stepDef: stepSpecialistMalformed,
+              allSteps: [stepInput, stepCausal, stepSpecialistMalformed],
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Must render cleanly without throwing Flutter assertion errors
+          final causalDropdownFinder = find.byType(
+            DropdownButtonFormField<String?>,
+          );
+          expect(causalDropdownFinder, findsOneWidget);
+
+          // Verify initialValue safely rendered as None ('Ei käytössä')
+          expect(find.text('Ei käytössä'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Full-Duplex Reactive Sync: swapping causal source from Step A to Step B prunes Step A from dependsOn and appends Step B',
+        (WidgetTester tester) async {
+          final stepInput = const StepRule(
+            id: 'sr_step1',
+            taskBlueprint: 'sp_db849f9790984585',
+            isSynthesisSource: false,
+          );
+          final stepCausalA = const StepRule(
+            id: 'sr_causal_alpha',
+            taskBlueprint: 'sp_causal_discovery_1',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          final stepCausalB = const StepRule(
+            id: 'sr_causal_beta',
+            taskBlueprint: 'sp_causal_discovery_2',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          final stepSpecialist = const StepRule(
+            id: 'sr_specialist_coach',
+            taskBlueprint: 'sp_agent_specialist_1',
+            dependsOn: ['sr_step1', 'sr_causal_alpha'],
+            causalSourceStepId: 'sr_causal_alpha',
+            isSynthesisSource: true,
+          );
+
+          StepRule? updatedStep;
+
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 3,
+              stepDef: stepSpecialist,
+              allSteps: [stepInput, stepCausalA, stepCausalB, stepSpecialist],
+              onChanged: (step) => updatedStep = step,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final causalDropdownFinder = find.byType(
+            DropdownButtonFormField<String?>,
+          );
+          expect(causalDropdownFinder, findsOneWidget);
+
+          // Open dropdown and tap 'Kausaalipäättely Beta'
+          await tester.tap(causalDropdownFinder);
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Kausaalipäättely Beta').last);
+          await tester.pumpAndSettle();
+
+          expect(updatedStep, isNotNull);
+          expect(updatedStep!.causalSourceStepId, equals('sr_causal_beta'));
+          expect(updatedStep!.dependsOn.contains('sr_causal_alpha'), isFalse);
+          expect(updatedStep!.dependsOn.contains('sr_causal_beta'), isTrue);
+          expect(
+            updatedStep!.dependsOn,
+            equals(['sr_step1', 'sr_causal_beta']),
+          );
+        },
+      );
+
+      testWidgets(
+        'Full-Duplex Reactive Sync: selecting None in causal dropdown resets causalSourceStepId to null and removes causal step from dependsOn',
+        (WidgetTester tester) async {
+          final stepInput = const StepRule(
+            id: 'sr_step1',
+            taskBlueprint: 'sp_db849f9790984585',
+            isSynthesisSource: false,
+          );
+          final stepCausalA = const StepRule(
+            id: 'sr_causal_alpha',
+            taskBlueprint: 'sp_causal_discovery_1',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          final stepSpecialist = const StepRule(
+            id: 'sr_specialist_coach',
+            taskBlueprint: 'sp_agent_specialist_1',
+            dependsOn: ['sr_step1', 'sr_causal_alpha'],
+            causalSourceStepId: 'sr_causal_alpha',
+            isSynthesisSource: true,
+          );
+
+          StepRule? updatedStep;
+
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 2,
+              stepDef: stepSpecialist,
+              allSteps: [stepInput, stepCausalA, stepSpecialist],
+              onChanged: (step) => updatedStep = step,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final causalDropdownFinder = find.byType(
+            DropdownButtonFormField<String?>,
+          );
+          expect(causalDropdownFinder, findsOneWidget);
+
+          // Open dropdown and tap 'Ei käytössä'
+          await tester.tap(causalDropdownFinder);
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Ei käytössä').last);
+          await tester.pumpAndSettle();
+
+          expect(updatedStep, isNotNull);
+          expect(updatedStep!.causalSourceStepId, isNull);
+          expect(updatedStep!.dependsOn.contains('sr_causal_alpha'), isFalse);
+          expect(updatedStep!.dependsOn, equals(['sr_step1']));
+        },
+      );
+
+      testWidgets(
+        'Full-Duplex Reactive Sync: deselecting dependency chip matching active causal source auto-resets causalSourceStepId to null',
+        (WidgetTester tester) async {
+          final stepInput = const StepRule(
+            id: 'sr_step1',
+            taskBlueprint: 'sp_db849f9790984585',
+            isSynthesisSource: false,
+          );
+          final stepCausalA = const StepRule(
+            id: 'sr_causal_alpha',
+            taskBlueprint: 'sp_causal_discovery_1',
+            dependsOn: ['sr_step1'],
+            isSynthesisSource: false,
+          );
+          final stepSpecialist = const StepRule(
+            id: 'sr_specialist_coach',
+            taskBlueprint: 'sp_agent_specialist_1',
+            dependsOn: ['sr_step1', 'sr_causal_alpha'],
+            causalSourceStepId: 'sr_causal_alpha',
+            isSynthesisSource: true,
+          );
+
+          StepRule? updatedStep;
+
+          await tester.pumpWidget(
+            createTestWidget(
+              index: 2,
+              stepDef: stepSpecialist,
+              allSteps: [stepInput, stepCausalA, stepSpecialist],
+              onChanged: (step) => updatedStep = step,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Find the FilterChip for 'Kausaalipäättely Alfa' (sr_causal_alpha)
+          final causalChipFinder = find.widgetWithText(
+            FilterChip,
+            'Kausaalipäättely Alfa',
+          );
+          expect(causalChipFinder, findsOneWidget);
+
+          // Tap the chip to deselect it
+          await tester.tap(causalChipFinder);
+          await tester.pumpAndSettle();
+
+          expect(updatedStep, isNotNull);
+          // Must have pruned sr_causal_alpha from dependsOn
+          expect(updatedStep!.dependsOn.contains('sr_causal_alpha'), isFalse);
+          expect(updatedStep!.dependsOn, equals(['sr_step1']));
+          // Must have automatically reset causalSourceStepId to null to prevent 422 crash!
+          expect(updatedStep!.causalSourceStepId, isNull);
+        },
+      );
+    });
   });
 }
