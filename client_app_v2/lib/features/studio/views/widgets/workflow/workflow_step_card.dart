@@ -78,7 +78,8 @@ class WorkflowStepCard extends StatelessWidget {
         !isCurrentCausalDiscovery && upstreamCausalSteps.isNotEmpty;
 
     final allowedCausalIds = upstreamCausalSteps.map((s) => s.id).toSet();
-    final effectiveCausalSourceValue = (stepDef.causalSourceStepId != null &&
+    final effectiveCausalSourceValue =
+        (stepDef.causalSourceStepId != null &&
             allowedCausalIds.contains(stepDef.causalSourceStepId))
         ? stepDef.causalSourceStepId
         : null;
@@ -138,12 +139,13 @@ class WorkflowStepCard extends StatelessWidget {
                         ),
                         child: Text(
                           l10n.studioSystemCoreBadge,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimaryContainer,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                              ),
                         ),
                       ),
                     ],
@@ -203,18 +205,18 @@ class WorkflowStepCard extends StatelessWidget {
                           children: [
                             Text(
                               l10n.studioWorkflowTaskProfileTitle,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                             AppSpacing.h4,
                             Text(
                               getBlueprintLabel(stepDef.taskBlueprint),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -365,9 +367,9 @@ class WorkflowStepCard extends StatelessWidget {
               // 1. Execution Order & Dependencies
               Text(
                 l10n.studioWorkflowExecutionOrderTitle,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               AppSpacing.h2,
               Text(
@@ -491,9 +493,9 @@ class WorkflowStepCard extends StatelessWidget {
               // Section 1: Atomized Materials ($inputs.*)
               Text(
                 l10n.studioWorkflowAtomicScopeTitle,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               AppSpacing.h2,
               Text(
@@ -572,9 +574,9 @@ class WorkflowStepCard extends StatelessWidget {
               if (dependsOn.isNotEmpty) ...[
                 Text(
                   l10n.studioWorkflowPriorStepsTitle,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 AppSpacing.h2,
                 Text(

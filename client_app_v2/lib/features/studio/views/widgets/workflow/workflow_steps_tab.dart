@@ -31,7 +31,9 @@ class WorkflowStepsTab extends StatelessWidget {
       final bp = blueprints
           .where((b) => b.id == step.taskBlueprint)
           .firstOrNull;
-      if (bp != null && bp.isSystemCore && bp.engineType != EngineType.causalDiscovery) {
+      if (bp != null &&
+          bp.isSystemCore &&
+          bp.engineType != EngineType.causalDiscovery) {
         return i;
       }
     }
