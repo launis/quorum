@@ -39,7 +39,10 @@ class AdapterContext(BaseModel):
     org_name: str | None
     parsed_matrices: Annotated[
         dict[str, MatrixScorecardRowDTO],
-        Field(default_factory=dict, description="Parsed scorecard rows by matrix block ID."),
+        Field(
+            default_factory=dict,
+            description="Parsed scorecard rows keyed by composite step-block ID (step_id_block_id) or prompt block ID.",
+        ),
     ]
     mcp_tools_map: Annotated[
         dict[str, AllowedMCPTool],

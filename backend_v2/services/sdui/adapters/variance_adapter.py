@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -218,18 +218,28 @@ class VarianceAdapter:
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-        if target_block_id not in context.parsed_matrices:
+        target_matrix = next(
+            (axis for axis in context.parsed_matrices.values() if axis.block_id == target_block_id),
+            None,
+        )
+        if target_matrix is None:
+            available_blocks: list[JsonValue] = [
+                b for b in sorted({axis.block_id for axis in context.parsed_matrices.values()})
+            ]
             msg = (
                 f"Variance target block '{target_block_id}' not found in evaluated scorecard matrices. "
-                f"Available evaluated matrices: {sorted(context.parsed_matrices.keys())}."
+                f"Available evaluated matrices: {available_blocks}."
             )
             logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "target_block_id": target_block_id},
+                details={
+                    "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
+                    "target_block_id": target_block_id,
+                    "available_matrices": available_blocks,
+                },
             )
-        target_matrix = context.parsed_matrices[target_block_id]
         scale_min = target_matrix.scale_min
         scale_max = target_matrix.scale_max
         if scale_min is None or scale_max is None or scale_max <= scale_min:
@@ -245,24 +255,52 @@ class VarianceAdapter:
         axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", context.locale)
         axis_mech_title = LocalizationService.translate("axis_mechanical_load_title", context.locale)
 
-        x_axis = MatrixScorecardRowDTO.model_validate(
-            {
-                "block_id": "axis_cognitive_depth",
-                "name": axis_cog_title,
-                "label_i18n": I18nText(
-                    translations={
-                        "fi": LocalizationService.translate("axis_cognitive_depth_title", "fi"),
-                        "en": LocalizationService.translate("axis_cognitive_depth_title", "en"),
-                    }
-                ),
-                "row_explanation": "",
-                "is_evaluative": False,
-                "score": auth_score_rounded,
-                "scale_min": scale_min,
-                "scale_max": scale_max,
-                "ui_plot_ratio": round(max(0.0, min(1.0, (auth_score_rounded - scale_min) / scale_range)), 4),
-            },
-            strict=False,
+        x_axis = MatrixScorecardRowDTO(
+            block_id="axis_cognitive_depth",
+            name=axis_cog_title,
+            label_i18n=I18nText(
+                translations={
+                    "fi": LocalizationService.translate("axis_cognitive_depth_title", "fi"),
+                    "en": LocalizationService.translate("axis_cognitive_depth_title", "en"),
+                }
+            ),
+            description=None,
+            score=auth_score_rounded,
+            raw_score=auth_score_rounded,
+            raw_scale_min=scale_min,
+            raw_scale_max=scale_max,
+            score_display_label=None,
+            scale_min=scale_min,
+            scale_max=scale_max,
+            normalized_score=None,
+            true_atoms=None,
+            total_atoms=None,
+            row_explanation="",
+            evidence_type=None,
+            cited_source_id=None,
+            cited_text_quote=None,
+            cited_web_citation=None,
+            cited_source_title=None,
+            cited_source_url=None,
+            context_target=None,
+            context_target_label=None,
+            remediation_steps=None,
+            coaching=None,
+            falsification=None,
+            confidence=None,
+            inner_sdui_blocks=[],
+            contextual_override=None,
+            semantic_reasoning=None,
+            level_breakdown=None,
+            level_names=None,
+            ui_plot_ratio=round(max(0.0, min(1.0, (auth_score_rounded - scale_min) / scale_range)), 4),
+            ui_boundary_labels={},
+            is_evaluative=False,
+            allow_contextual_override=False,
+            used_evidence_ids=[],
+            evaluated_atoms=[],
+            clustered_row_sources=[],
+            tda_state=None,
         )
 
         settings = get_settings()
@@ -281,24 +319,52 @@ class VarianceAdapter:
             )
             mech_score = phrase_count_rounded
 
-        y_axis = MatrixScorecardRowDTO.model_validate(
-            {
-                "block_id": "axis_mechanical_load",
-                "name": axis_mech_title,
-                "label_i18n": I18nText(
-                    translations={
-                        "fi": LocalizationService.translate("axis_mechanical_load_title", "fi"),
-                        "en": LocalizationService.translate("axis_mechanical_load_title", "en"),
-                    }
-                ),
-                "row_explanation": "",
-                "is_evaluative": False,
-                "score": mech_score,
-                "scale_min": 0.0,
-                "scale_max": settings.variance_max_performative_cap,
-                "ui_plot_ratio": round(max(0.0, min(1.0, normalized_load / settings.variance_max_performative_cap)), 4),
-            },
-            strict=False,
+        y_axis = MatrixScorecardRowDTO(
+            block_id="axis_mechanical_load",
+            name=axis_mech_title,
+            label_i18n=I18nText(
+                translations={
+                    "fi": LocalizationService.translate("axis_mechanical_load_title", "fi"),
+                    "en": LocalizationService.translate("axis_mechanical_load_title", "en"),
+                }
+            ),
+            description=None,
+            score=mech_score,
+            raw_score=mech_score,
+            raw_scale_min=0.0,
+            raw_scale_max=settings.variance_max_performative_cap,
+            score_display_label=None,
+            scale_min=0.0,
+            scale_max=settings.variance_max_performative_cap,
+            normalized_score=None,
+            true_atoms=None,
+            total_atoms=None,
+            row_explanation="",
+            evidence_type=None,
+            cited_source_id=None,
+            cited_text_quote=None,
+            cited_web_citation=None,
+            cited_source_title=None,
+            cited_source_url=None,
+            context_target=None,
+            context_target_label=None,
+            remediation_steps=None,
+            coaching=None,
+            falsification=None,
+            confidence=None,
+            inner_sdui_blocks=[],
+            contextual_override=None,
+            semantic_reasoning=None,
+            level_breakdown=None,
+            level_names=None,
+            ui_plot_ratio=round(max(0.0, min(1.0, normalized_load / settings.variance_max_performative_cap)), 4),
+            ui_boundary_labels={},
+            is_evaluative=False,
+            allow_contextual_override=False,
+            used_evidence_ids=[],
+            evaluated_atoms=[],
+            clustered_row_sources=[],
+            tda_state=None,
         )
 
         scatter_block = SduiQuadrantMatrixBlock(
@@ -322,7 +388,9 @@ class VarianceAdapter:
                 ParagraphBlock(
                     text=f"{lbl_mech}: {int(phrase_count_rounded)} {unit_pcs}", exact_quotes=[], citations=[]
                 ),
-                ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded} / {scale_max:.1f}", exact_quotes=[], citations=[]),
+                ParagraphBlock(
+                    text=f"{lbl_cog}: {auth_score_rounded} / {scale_max:.1f}", exact_quotes=[], citations=[]
+                ),
                 ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_jargon}: {jargon_display}", exact_quotes=[], citations=[]),
             ]

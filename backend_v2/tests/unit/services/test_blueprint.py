@@ -1481,8 +1481,26 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     """Verify that if step_detector is missing in cv, authenticity_evaluation falls back to folded trace extraction."""
     from datetime import datetime, timezone
 
+    from backend_v2.models.domain.matrix import MatrixScale
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+
+    pb = MatrixPromptBlock(
+        id="blk_fb15f8dcf23f4865",
+        slug="matrix-archivist",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        label=I18nText(translations={"en": "Label"}),
+        description=I18nText(translations={"en": "Desc"}),
+        is_evaluative=True,
+        scales=[
+            MatrixScale(score=1, name=I18nText(translations={"en": "Min"}), ai_label="MIN"),
+            MatrixScale(score=100, name=I18nText(translations={"en": "Max"}), ai_label="MAX"),
+        ],
+    )
+    mock_repo_transformer.set_prompt_blocks([pb])
 
     mock_repo_transformer.set_execution(
         ExecutionRecord(
@@ -1492,19 +1510,25 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
             output_profile_id="prf_dddd1111dddd1111",
             profile_syntheses={
                 "prf_dddd1111dddd1111": RenderedSynthesisCache(
+                    row_explanations={"blk_fb15f8dcf23f4865": "Archivist explanation."},
                     extension_metrics=ExtensionMetricsDTO(
                         authenticity_score=85.0,
                         performative_phrases_count=0,
                         variance_score=0.0,
                         alignment_verdict="ALIGNED",
-                    )
+                    ),
                 )
             },
             execution_trace=[
                 TraceEvent(
                     step_name="stp_1234abcd1234abcd",
-                    event_type="decision",
-                    content={"blk_mock_id": {"raw_score": 85.0}},
+                    event_type="output",
+                    content={
+                        "blk_fb15f8dcf23f4865": {
+                            "raw_score": 85.0,
+                            "justification": "Fallback trace test.",
+                        }
+                    },
                     timestamp=datetime.now(timezone.utc),
                     v=1,
                 )
@@ -3488,18 +3512,25 @@ async def test_blueprint_variance_target_block_adherence(
     """Test contract 2: variance validation block renders correctly adhering to OutputProfile.variance_target_block."""
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.matrix import MatrixScale
     from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
     from backend_v2.models.enums import (
+        BlockDataType,
         ExecutionStatus,
+        PromptBlockCategory,
         TargetBlockType,
         XaiExtensionType,
     )
     from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import TraceEvent
 
     variance_target_id = "blk_0000000000000001"
+    step_rule_id = "sr_0000000000000001"
     profile = OutputProfile(
         id="prf_0000000000000002",
         slug="variance-profile",
@@ -3523,11 +3554,26 @@ async def test_blueprint_variance_target_block_adherence(
         version=1,
         historical_context_mode="DISABLED",
         expected_inputs=[],
-        steps=[],
+        steps=[StepRule(id=step_rule_id, task_blueprint="step_0000000000000001")],
+    )
+
+    pb = MatrixPromptBlock(
+        id=variance_target_id,
+        slug="variance-target",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        label=I18nText(translations={"en": "Cognitive Depth"}),
+        description=I18nText(translations={"en": "Cognitive Depth"}),
+        is_evaluative=True,
+        scales=[
+            MatrixScale(score=1, name=I18nText(translations={"en": "Low"}), ai_label="LOW"),
+            MatrixScale(score=3, name=I18nText(translations={"en": "High"}), ai_label="HIGH"),
+        ],
     )
 
     cache = RenderedSynthesisCache(
         section_syntheses={},
+        row_explanations={variance_target_id: "Cognitive depth explanation."},
         extension_metrics=ExtensionMetricsDTO(
             authenticity_score=2.5,
             performative_phrases_count=3.0,
@@ -3546,7 +3592,18 @@ async def test_blueprint_variance_target_block_adherence(
         completion_tokens=50,
         reasoning_tokens=20,
         dag_cost_usd=0.02,
-        execution_trace=[],
+        execution_trace=[
+            TraceEvent(
+                event_type="output",
+                step_name=step_rule_id,
+                content={
+                    variance_target_id: {
+                        "raw_score": 2.5,
+                        "justification": "Adherence test.",
+                    }
+                },
+            )
+        ],
         target_locale="fi",
         profile_syntheses={profile.id: cache},
     )
@@ -3554,7 +3611,7 @@ async def test_blueprint_variance_target_block_adherence(
     mock_repo_transformer.set_output_profiles([profile])
     mock_repo_transformer.set_workflow(wf)
     mock_repo_transformer.set_execution(exec_record)
-    mock_repo_transformer.set_prompt_blocks([])
+    mock_repo_transformer.set_prompt_blocks([pb])
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,

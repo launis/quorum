@@ -467,7 +467,9 @@ def test_variance_adapter_missing_target_block_in_matrices_raises_configuration_
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},  # Target block missing
+        parsed_matrices={
+            "sr_step01_blk_other": _create_matrix_row(block_id="blk_other"),
+        },
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -476,6 +478,7 @@ def test_variance_adapter_missing_target_block_in_matrices_raises_configuration_
     assert exc_info.value.status_code == 500
     assert "not found in evaluated scorecard matrices" in exc_info.value.message
     assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+    assert exc_info.value.details["available_matrices"] == ["blk_other"]
 
 
 def test_variance_adapter_target_block_unset_raises_configuration_error() -> None:
@@ -620,3 +623,47 @@ def test_build_malformed_linguistics_raises_internal_server_error() -> None:
     assert exc_info.value.status_code == 500
     assert "Failed to parse linguistics from context_variables" in exc_info.value.message
     assert exc_info.value.details["error_code"] == "INTERNAL_SERVER_ERROR"
+
+
+def test_variance_adapter_resolves_target_block_with_composite_matrix_key() -> None:
+    """Regression test: VarianceAdapter must resolve target block when parsed_matrices has composite keys (step_id_block_id)."""
+    target_block_id = "blk_0123456789abcdef"
+    composite_key = f"sr_a8f1d71000000003_{target_block_id}"
+    profile = _create_profile()
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.8,
+            performative_phrases_count=0.0,
+            variance_score=0.0,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "sr_a8f1d71000000002_blk_c0a1e50000000001": _create_matrix_row(
+                block_id="blk_c0a1e50000000001", score=1.5, scale_min=1.0, scale_max=3.0
+            ),
+            composite_key: _create_matrix_row(
+                block_id=target_block_id, score=2.8, scale_min=1.0, scale_max=3.0
+            ),
+        },
+    )
+
+    blocks = VarianceAdapter.build(context)
+    assert len(blocks) >= 4
+    quadrant = blocks[2]
+    assert isinstance(quadrant, SduiQuadrantMatrixBlock)
+    assert quadrant.axes[0].scale_min == 1.0
+    assert quadrant.axes[0].scale_max == 3.0
+    assert quadrant.axes[0].score == 2.8
+
