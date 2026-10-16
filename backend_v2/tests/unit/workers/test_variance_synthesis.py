@@ -11,19 +11,46 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO, PerformativePatternDTO
+from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.variance_synthesis import (
     VarianceExplanationResult,
     build_variance_metrics_and_task,
 )
 
 TARGET_BLOCK_ID = "blk_0123456789abcdef01"
+
+
+def _make_matrix_prompt_block(
+    block_id: str = TARGET_BLOCK_ID,
+    computed_max: int = 3,
+) -> MatrixPromptBlock:
+    return MatrixPromptBlock(
+        id=block_id,
+        slug="test_matrix",
+        label=I18nText(translations={"en": "Test Matrix"}),
+        description=I18nText(translations={"en": "Test Description"}),
+        scales=[
+            MatrixScale(score=1, ai_label="POOR", claims=[]),
+            MatrixScale(score=computed_max if computed_max > 0 else 1, ai_label="EXCELLENT", claims=[]),
+        ],
+        computed_min=1,
+        computed_max=computed_max,
+    )
+
+
+async def _make_fake_repo(target_block: MatrixPromptBlock | None = None) -> InMemoryUnifiedWorkflowRepository:
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    await fake_repo.create_prompt_block(target_block or _make_matrix_prompt_block())
+    return fake_repo
 
 
 def _make_execution(
@@ -82,7 +109,7 @@ async def test_build_variance_metrics_none_profile() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    m, t = await build_variance_metrics_and_task(AsyncMock(), rec, None, "en", None, dummy_sem)
+    m, t = await build_variance_metrics_and_task(await _make_fake_repo(), rec, None, "en", None, dummy_sem)
     assert m is None
     assert t is None
 
@@ -96,7 +123,7 @@ async def test_build_variance_metrics_no_variance_extension() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    m, t = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+    m, t = await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert m is None
     assert t is None
 
@@ -119,7 +146,7 @@ async def test_build_variance_metrics_missing_target_block_raises() -> None:
         return await coro
 
     with pytest.raises(AppException) as exc_info:
-        await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 400
     assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
 
@@ -133,7 +160,7 @@ async def test_build_variance_metrics_missing_metrics_returns_none() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    m, t = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+    m, t = await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert m is None
     assert t is None
 
@@ -155,7 +182,7 @@ async def test_build_variance_metrics_corrupted_linguistics_raises() -> None:
         return await coro
 
     with pytest.raises(AppException) as exc_info:
-        await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
@@ -186,9 +213,73 @@ async def test_build_variance_metrics_corrupted_matrix_output_raises() -> None:
         return await coro
 
     with pytest.raises(AppException) as exc_info:
-        await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+
+
+@pytest.mark.asyncio
+async def test_build_variance_metrics_target_block_not_found_raises_configuration_error() -> None:
+    """Negative: target prompt block not found in repository raises CONFIGURATION_ERROR."""
+    pat = PerformativePatternDTO(pattern_id="pat_1", detected_phrase="phrase", category="filler")
+    ling = LinguisticsResultDTO(performative_patterns=[pat], total_word_count=100)
+    mat = LightweightMatrixOutput(raw_score=2.5)
+    rec = _make_execution(
+        context_vars={"step_linguistics": ling.model_dump(mode="json")},
+        trace_events=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name="st",
+                content={TARGET_BLOCK_ID: mat.model_dump(mode="json")},
+            )
+        ],
+    )
+    prof = _make_profile(has_ext=True, target_block=TARGET_BLOCK_ID)
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    with pytest.raises(AppException) as exc_info:
+        await build_variance_metrics_and_task(fake_repo, rec, prof, "en", None, dummy_sem)
+    assert exc_info.value.status_code == 500
+    assert "not found in repository" in exc_info.value.message
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+
+
+@pytest.mark.asyncio
+async def test_build_variance_metrics_target_block_invalid_extrema_raises_configuration_error() -> None:
+    """Negative: target prompt block with non-positive computed_max raises CONFIGURATION_ERROR."""
+    pat = PerformativePatternDTO(pattern_id="pat_1", detected_phrase="phrase", category="filler")
+    ling = LinguisticsResultDTO(performative_patterns=[pat], total_word_count=100)
+    mat = LightweightMatrixOutput(raw_score=2.5)
+    rec = _make_execution(
+        context_vars={"step_linguistics": ling.model_dump(mode="json")},
+        trace_events=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name="st",
+                content={TARGET_BLOCK_ID: mat.model_dump(mode="json")},
+            )
+        ],
+    )
+    prof = _make_profile(has_ext=True, target_block=TARGET_BLOCK_ID)
+    invalid_block = _make_matrix_prompt_block(computed_max=0)
+    fake_repo = InMemoryUnifiedWorkflowRepository()
+    await fake_repo.create_prompt_block(invalid_block)
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    with pytest.raises(AppException) as exc_info:
+        await build_variance_metrics_and_task(fake_repo, rec, prof, "en", None, dummy_sem)
+    assert exc_info.value.status_code == 500
+    assert "lacks valid scale extrema definitions" in exc_info.value.message
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
 
 
 @pytest.mark.asyncio
@@ -215,7 +306,7 @@ async def test_build_variance_metrics_missing_directive_returns_metrics_only() -
         return await coro
 
     with patch("backend_v2.workers.variance_synthesis.LLMClient.from_tier", return_value=AsyncMock()):
-        metrics, task = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        metrics, task = await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
     assert isinstance(metrics, ExtensionMetricsDTO)
     assert metrics.authenticity_score == 2.5
     assert metrics.performative_phrases_count == 1.0
@@ -256,7 +347,7 @@ async def test_build_variance_metrics_full_success_with_tone_and_budget() -> Non
         return await coro
 
     with patch("backend_v2.workers.variance_synthesis.LLMClient.from_tier", return_value=mock_client):
-        metrics, task = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", "reg_123", dummy_sem)
+        metrics, task = await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", "reg_123", dummy_sem)
         assert isinstance(metrics, ExtensionMetricsDTO)
         assert metrics.authenticity_score == 2.8
         assert metrics.performative_phrases_count == 2.0
@@ -308,7 +399,7 @@ async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
         return await coro
 
     with patch("backend_v2.workers.variance_synthesis.LLMClient.from_tier", return_value=mock_client):
-        metrics, task = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        metrics, task = await build_variance_metrics_and_task(await _make_fake_repo(), rec, prof, "en", None, dummy_sem)
         assert isinstance(metrics, ExtensionMetricsDTO)
         assert metrics.authenticity_score == 2.2
         assert metrics.performative_phrases_count == 1.0

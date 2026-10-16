@@ -1197,29 +1197,34 @@ class DAGExecutor:
                 if step_def and (
                     "atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks
                 ):
-                    try:
-                        lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
+                    has_evaluated_atoms = any(exec_record.step_states.values()) or any(
+                        evt.event_type == "output" and evt.step_name != "matrix_reducer"
+                        for evt in exec_record.execution_trace
+                    )
+                    if has_evaluated_atoms:
+                        try:
+                            lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
-                        reduce_event = TraceEvent(
-                            step_name="matrix_reducer", event_type="output", content=lightweight_matrix
-                        )
-
-                        async with _update_lock:
-                            exec_record.execution_trace.append(reduce_event)
-                            projector.apply_delta(reduce_event)
-
-                            new_cv = exec_record.context_variables.with_update(
-                                __MATRIX_REDUCER_OUTPUT__=lightweight_matrix
+                            reduce_event = TraceEvent(
+                                step_name="matrix_reducer", event_type="output", content=lightweight_matrix
                             )
-                            exec_record = exec_record.model_copy(update={"context_variables": new_cv})
-                        logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
-                    except Exception as e:
-                        logger.error(
-                            "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True
-                        )
-                        raise WorkflowExecutionError(
-                            step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
-                        ) from e
+
+                            async with _update_lock:
+                                exec_record.execution_trace.append(reduce_event)
+                                projector.apply_delta(reduce_event)
+
+                                new_cv = exec_record.context_variables.with_update(
+                                    __MATRIX_REDUCER_OUTPUT__=lightweight_matrix
+                                )
+                                exec_record = exec_record.model_copy(update={"context_variables": new_cv})
+                            logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
+                        except Exception as e:
+                            logger.error(
+                                "[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True
+                            )
+                            raise WorkflowExecutionError(
+                                step_id=step_id, task_key=step_obj.task_blueprint, original_error=e
+                            ) from e
 
                 async with _update_lock:
                     exec_record = exec_record.transition_step(

@@ -289,3 +289,136 @@ def test_matrix_summary_table_adapter_respects_visible_columns() -> None:
     assert isinstance(table_block, SduiMatrixTableBlock)
     assert table_block.matrix_visible_columns == custom_cols
     assert set(table_block.matrix_column_labels.keys()) == set(custom_cols)
+
+
+def test_all_seed_output_profiles_variance_dynamic_scale_parity() -> None:
+    """Parameterized test verifying all OutputProfiles in seed_data.json have dynamic scale parity."""
+    import json
+    from pathlib import Path
+
+    from pydantic import TypeAdapter
+
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+    from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+    from backend_v2.models.enums import XaiExtensionType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.view.sdui import SduiGridBlock, SduiQuadrantMatrixBlock
+    from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
+
+    seed_path = Path("backend_v2/seed/seed_data.json")
+    assert seed_path.exists(), "seed_data.json must exist"
+    with open(seed_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    profiles = TypeAdapter(list[OutputProfile]).validate_python(data["output_profiles"])
+    assert len(profiles) > 0, "No output profiles found in seed_data.json"
+
+    # Build prompt blocks lookup map
+    prompt_blocks = {}
+    for raw_pb in data["prompt_blocks"]:
+        pb = PromptBlockAdapter.validate_python(raw_pb)
+        prompt_blocks[pb.id] = pb
+
+    for prof in profiles:
+        has_variance = (
+            XaiExtensionType.VARIANCE_VALIDATION in prof.visible_workflow_extensions
+            or "variance_validation_block" in prof.target_block_order
+        )
+
+        if not has_variance:
+            # Verify profiles without variance validation do not emit spurious variance blocks
+            ctx = AdapterContext(
+                execution=None,
+                locale="en",
+                penalties_applied=[],
+                mcp_audit_map=None,
+                global_score=None,
+                profile=prof,
+                profile_cache=None,
+                user_name=None,
+                org_name=None,
+                parsed_matrices={},
+            )
+            blocks = VarianceAdapter.build(ctx)
+            assert len(blocks) == 0, f"Profile '{prof.id}' without variance validation emitted spurious blocks: {blocks}"
+            continue
+
+        # For profiles where variance validation is enabled:
+        assert prof.variance_target_block, f"Profile '{prof.id}' has variance active but variance_target_block is empty"
+        assert (
+            prof.variance_target_block in prompt_blocks
+        ), f"Profile '{prof.id}' variance_target_block '{prof.variance_target_block}' not found in seed vault"
+
+        target_pb = prompt_blocks[prof.variance_target_block]
+        assert isinstance(
+            target_pb, MatrixPromptBlock
+        ), f"Target block '{prof.variance_target_block}' must be a MatrixPromptBlock, got {type(target_pb)}"
+        assert target_pb.computed_max is not None and target_pb.computed_max > 0, (
+            f"Target block '{prof.variance_target_block}' has invalid computed_max: {target_pb.computed_max}"
+        )
+
+        expected_scale_max = float(target_pb.computed_max)
+        expected_scale_min = float(target_pb.computed_min or 1.0)
+
+        # Build mock evaluation record and parsed_matrices
+        score_val = (expected_scale_min + expected_scale_max) / 2.0
+        parsed_mat = {
+            prof.variance_target_block: MatrixScorecardRowDTO(
+                block_id=prof.variance_target_block,
+                name="Target Matrix",
+                score=score_val,
+                scale_min=expected_scale_min,
+                scale_max=expected_scale_max,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "Target Matrix"}),
+                row_explanation="Evaluated target matrix",
+            )
+        }
+        cache = RenderedSynthesisCache(
+            extension_metrics=ExtensionMetricsDTO(
+                authenticity_score=score_val,
+                performative_phrases_count=0.0,
+                variance_score=0.1,
+                alignment_verdict="ALIGNED",
+            ),
+        )
+        exec_rec = ExecutionRecord(
+            id="exe_0123456789abcdef01",
+            workflow_id=prof.workflow_id,
+            output_profile_id=prof.id,
+            execution_trace=[],
+            context_variables={},
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+        )
+        ctx = AdapterContext(
+            execution=exec_rec,
+            locale="en",
+            penalties_applied=[],
+            mcp_audit_map=None,
+            global_score=None,
+            profile=prof,
+            profile_cache=cache,
+            user_name=None,
+            org_name=None,
+            parsed_matrices=parsed_mat,
+        )
+
+        blocks = VarianceAdapter.build(ctx)
+        assert len(blocks) > 0, f"Profile '{prof.id}' failed to emit variance blocks"
+
+        # Assert scale extrema dynamically anchored to target matrix's true extrema
+        quadrant = next((b for b in blocks if isinstance(b, SduiQuadrantMatrixBlock)), None)
+        assert quadrant is not None, f"Profile '{prof.id}' did not emit SduiQuadrantMatrixBlock"
+        cog_axis = quadrant.axes[0]
+        assert cog_axis.scale_max == expected_scale_max
+        assert cog_axis.scale_min == expected_scale_min
+
+        grid = next((b for b in blocks if isinstance(b, SduiGridBlock)), None)
+        assert grid is not None, f"Profile '{prof.id}' did not emit SduiGridBlock"
+        # If scale_max is not 3.0 (e.g. HACM scale is 5.0), verify no hardcoded '/ 3.0'
+        if expected_scale_max != 3.0:
+            assert f"/ {expected_scale_max:.1f}" in grid.items[1].text
+            assert "/ 3.0" not in grid.items[1].text

@@ -22,14 +22,16 @@ logger = logging.getLogger(__name__)
 def calculate_mechanical_cognitive_variance(
     llm_authenticity_score: float,
     performative_phrases_count: int,
+    max_cognitive_score: float,
     total_word_count: int | None = None,
 ) -> VarianceEngineResultDTO:
     """Calculate the absolute variance between mechanical linguistics and cognitive assessment.
 
     Args:
-        llm_authenticity_score: Authenticity score given by the cognitive agent (1.0 to 3.0).
+        llm_authenticity_score: Authenticity score given by the cognitive agent.
         performative_phrases_count: Number of performative filler phrases detected mechanically.
         total_word_count: Total word count of scanned text for length-invariant density calculation.
+        max_cognitive_score: Maximum baseline cognitive score from target matrix extrema.
 
     Returns:
         A VarianceEngineResultDTO containing:
@@ -92,6 +94,21 @@ def calculate_mechanical_cognitive_variance(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
+    if (
+        isinstance(max_cognitive_score, bool)
+        or not isinstance(max_cognitive_score, (int, float))
+        or max_cognitive_score <= 0.0
+        or math.isnan(max_cognitive_score)
+        or math.isinf(max_cognitive_score)
+    ):
+        msg = f"max_cognitive_score must be a positive finite float, got {max_cognitive_score}."
+        logger.error("[VarianceEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
     settings = get_settings()
 
     if total_word_count is not None and total_word_count > 0:
@@ -101,15 +118,14 @@ def calculate_mechanical_cognitive_variance(
             settings.variance_max_performative_cap,
         )
     else:
-        # MIGRATION BRIDGE: Raw count fallback for backward compatibility when total_word_count is omitted
         normalized_performative_count = min(
             (performative_phrases_count / settings.variance_performative_normalizer)
             * settings.variance_max_performative_cap,
             settings.variance_max_performative_cap,
         )
 
-    # Dampener target value
-    target_cognitive_dampener = settings.variance_max_cognitive_score - normalized_performative_count
+    # Dampener target value dynamically anchored to target matrix extrema
+    target_cognitive_dampener = float(max_cognitive_score) - normalized_performative_count
 
     # Absolute variance
     variance = abs(llm_authenticity_score - target_cognitive_dampener)

@@ -27,6 +27,9 @@ void main() {
     final jsonMap = jsonDecode(jsonStr) as Map<String, dynamic>;
     final payload = ReportDataDto.fromJson(jsonMap);
 
+    final originalErrorBuilder = ErrorWidget.builder;
+    addTearDown(() => ErrorWidget.builder = originalErrorBuilder);
+
     // CRITICAL: Call tester.ensureSemantics() before rendering
     final semanticsHandle = tester.ensureSemantics();
 

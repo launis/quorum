@@ -696,3 +696,96 @@ async def test_causal_discovery_multi_hop_blame_propagation(
     assert "tda_11111111" in node_map["tda_44444444"].blame_parent_ids
     assert "tda_22222222" in node_map["tda_44444444"].blame_parent_ids
     assert "tda_33333333" in node_map["tda_44444444"].blame_parent_ids
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_duplicate_paragraphs_must_have_unique_block_ids(
+    mock_client: MagicMock, mock_prompt_compiler: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify that identical paragraphs in source document receive strictly unique block IDs."""
+    engine = CausalDiscoveryEngine(prompt_compiler=mock_prompt_compiler)
+    source_text = "Unique paragraph one.\n\nDuplicate header.\n\nUnique paragraph two.\n\nDuplicate header."
+    request = create_engine_request(source_text, mock_client, mock_prompt_compiler)
+
+    captured_hydrated_text: list[str] = []
+    mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    u0 = TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+    u1 = TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
+
+    class SpyTwoPassAtomizer:
+        def __init__(self, executor: Any) -> None:
+            self.executor = executor
+
+        async def execute_phase_0(
+            self, client: Any, hydrated_text: str, progress_callback: Any = None
+        ) -> tuple[GlobalOntologyMap, TokenUsage]:
+            captured_hydrated_text.append(hydrated_text)
+            return mock_ontology, u0
+
+        async def execute_phase_1(
+            self, client: Any, hydrated_text: str, ontology: Any, progress_callback: Any = None
+        ) -> tuple[list[ExtractedAtom], TokenUsage]:
+            atom = ExtractedAtom(
+                reasoning="R",
+                resolved_claim="C",
+                is_logical_deduction=True,
+                source_quote=None,
+                tda_id="tda_11111111",
+                source_id="chunk_0",
+                source_sequence_index=0,
+            )
+            return [atom], u1
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.TwoPassAtomizer",
+        SpyTwoPassAtomizer,
+    )
+
+    mock_linker = MagicMock()
+    mock_linked_node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            reasoning="R",
+            resolved_claim="C",
+            is_logical_deduction=True,
+            source_quote=None,
+            tda_id="tda_11111111",
+            source_id="chunk_0",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+    u_link = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_linker.link_graph = AsyncMock(return_value=([mock_linked_node], u_link))
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.SlidingWindowLinker",
+        lambda window_size, overlap: mock_linker,
+    )
+
+    await engine.execute(request)
+
+    assert len(captured_hydrated_text) == 1
+    hydrated = captured_hydrated_text[0]
+    import re
+
+    block_ids = re.findall(r"\[(B\d+)\]", hydrated)
+    assert len(block_ids) == 4
+    # All 4 paragraphs must have unique, monotonically increasing IDs: B0, B1, B2, B3
+    assert len(set(block_ids)) == 4, f"Duplicate block IDs detected: {block_ids}"
+    assert block_ids == ["B0", "B1", "B2", "B3"]
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_empty_document_raises_422(
+    mock_client: MagicMock, mock_prompt_compiler: MagicMock
+) -> None:
+    """Verify that empty or whitespace-only documents trigger fail-fast HTTP 422."""
+    engine = CausalDiscoveryEngine(prompt_compiler=mock_prompt_compiler)
+    request = create_engine_request("   \n\n   \n\n   ", mock_client, mock_prompt_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(request)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value
+
+

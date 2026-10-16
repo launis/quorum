@@ -14,6 +14,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -73,7 +74,8 @@ async def build_variance_metrics_and_task(
 
     Raises:
         AppException: ErrorCodes.CONFIGURATION_ERROR if variance validation is active
-            but variance_target_block is unset in the output profile.
+            but variance_target_block is unset in the output profile, or target block is missing
+            or lacks valid scale extrema definitions.
         AppException: ErrorCodes.VALIDATION_FAILED if step_linguistics or lightweight
             matrix outputs in trace events are corrupted and fail model validation.
     """
@@ -208,10 +210,29 @@ async def build_variance_metrics_and_task(
         )
         return None, None
 
+    target_block = await repo.get_prompt_block(target_block_id)
+    if not target_block:
+        msg = f"Target prompt block '{target_block_id}' not found in repository."
+        logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    if not isinstance(target_block, MatrixPromptBlock) or target_block.computed_max is None or target_block.computed_max <= 0.0:
+        msg = f"Target prompt block '{target_block_id}' lacks valid scale extrema definitions."
+        logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
         llm_authenticity_score=authenticity_score,
         performative_phrases_count=performative_phrases_count,
         total_word_count=total_word_count,
+        max_cognitive_score=float(target_block.computed_max),
     )
     jargon_density = 0.0
     if total_word_count is not None and total_word_count > 0:

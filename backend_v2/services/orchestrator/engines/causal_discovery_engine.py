@@ -32,7 +32,6 @@ from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindow
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 from backend_v2.settings import get_settings
-from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +87,20 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     },
                 )
 
-            # Step 3.1 / 3.2: Paragraph Indexing and AliasEngine setup
-            alias_engine = AliasEngine()
+            # Step 3.1 / 3.2: Paragraph Indexing (Strictly Positional & Monotonic)
             paragraphs = [p.strip() for p in document_text.split("\n\n") if p.strip()]
-            hydrated_text = "\n\n".join(f"[{alias_engine.register(p, prefix='B')}] {p}" for p in paragraphs)
+            if not paragraphs:
+                msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
+                logger.error("[CausalDiscoveryEngine] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={
+                        "error_code": ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value,
+                        "step_id": request.step.id,
+                    },
+                )
+            hydrated_text = "\n\n".join(f"[B{i}] {p}" for i, p in enumerate(paragraphs))
 
             llm_executor = LLMTaskExecutor(
                 self._compiler,

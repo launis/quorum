@@ -573,3 +573,78 @@ def test_extract_inputs_from_record_variations() -> None:
     )
     extracted_dict = _extract_inputs_from_record(rec_dict)
     assert extracted_dict.dynamic_inputs == {"file_b": "content from dict"}
+
+
+@pytest.mark.asyncio
+async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
+    preflight_service: RAGPreflightService,
+) -> None:
+    """Verify that identical paragraphs in RAG candidate inputs receive strictly unique block IDs."""
+    import re
+    from backend_v2.tests.unit.services.orchestrator.test_rag_preflight_service import make_valid_step_def
+
+    step_rule = StepRule(
+        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+    )
+    step_def = make_valid_step_def()
+    text_content = (
+        "Unique paragraph one with sufficient length for preflight analysis.\n\n"
+        "Duplicate header line for testing.\n\n"
+        "Unique paragraph two with sufficient length for preflight analysis.\n\n"
+        "Duplicate header line for testing."
+    )
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef",
+        workflow_id="wf_1234567890abcdef",
+        output_profile_id="prof_1234567890abcdef",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content}),
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+    )
+
+    captured_hydrated_text: list[str] = []
+
+    atom = DraftExtractedAtom(
+        draft_id="atm_1234567890abcdef",
+        reasoning="Test",
+        resolved_claim="Test",
+        is_logical_deduction=False,
+        source_quote="Unique paragraph one.",
+        source_sequence_index=0,
+    )
+
+    with (
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
+        patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
+    ):
+        mock_client = AsyncMock()
+        mock_client_factory.return_value = mock_client
+        mock_atomizer = mock_atomizer_cls.return_value
+
+        async def mock_execute_phase_0(
+            client: Any, hydrated_text: str, progress_callback: Any = None
+        ) -> tuple[Any, TokenUsage]:
+            captured_hydrated_text.append(hydrated_text)
+            return {}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+
+        mock_atomizer.execute_phase_0 = mock_execute_phase_0
+        mock_atomizer.execute_phase_1_drafts = AsyncMock(
+            return_value=(
+                DraftAtomList(atoms=[atom]),
+                TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+            )
+        )
+
+        await preflight_service.execute(
+            target_step=step_rule,
+            step_def=step_def,
+            exec_record=exec_record,
+            emit_progress=AsyncMock(),
+        )
+
+    assert len(captured_hydrated_text) == 1
+    block_ids = re.findall(r"\[(B\d+)\]", captured_hydrated_text[0])
+    assert len(block_ids) == 4
+    assert len(set(block_ids)) == 4, f"Duplicate block IDs detected: {block_ids}"
+    assert block_ids == ["B0", "B1", "B2", "B3"]
+

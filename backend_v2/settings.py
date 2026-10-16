@@ -501,9 +501,6 @@ class Settings(BaseSettings):
     variance_threshold_misaligned: Annotated[
         float, Field(default=0.5, description="Variance threshold above which scores are considered misaligned")
     ] = 0.5
-    variance_max_cognitive_score: Annotated[
-        float, Field(default=3.0, description="Maximum baseline cognitive score before dampening")
-    ] = 3.0
     variance_max_performative_cap: Annotated[
         float, Field(default=2.0, description="Maximum performative penalty cap on dampening scale")
     ] = 2.0

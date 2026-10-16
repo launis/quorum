@@ -7,6 +7,7 @@ import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from fastapi import status
 from pydantic import BaseModel
 
 from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
@@ -21,7 +22,6 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
 from backend_v2.settings import get_settings
-from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -232,12 +232,16 @@ class RAGPreflightService:
                 int(processed_files / total_files * 100),
             )
 
-            alias_engine = AliasEngine()
             paragraphs = [p.strip() for p in text_content.split("\n\n") if p.strip()]
-            numbered_lines = []
-            for p in paragraphs:
-                block_id = alias_engine.register(p, prefix="B")
-                numbered_lines.append(f"[{block_id}] {p}")
+            if not paragraphs:
+                msg = f"RAG preflight cannot extract knowledge from empty paragraph structure in file '{key}'."
+                logger.error("[RAGPreflightService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "file_key": key},
+                )
+            numbered_lines = [f"[B{i}] {p}" for i, p in enumerate(paragraphs)]
             hydrated_text = "\n\n".join(numbered_lines)
 
             base_progress = (processed_files / total_files) * 100

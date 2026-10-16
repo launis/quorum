@@ -11,42 +11,88 @@ def test_calculate_mechanical_cognitive_variance_validation() -> None:
     """Verify that type and value validation raises appropriate AppException."""
     # Test invalid performative_phrases_count negative value
     with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count=-1)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=-1, max_cognitive_score=3.0
+        )
 
     # Test invalid performative_phrases_count string type
     with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count="5")
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count="5", max_cognitive_score=3.0
+        )
 
     # Test invalid performative_phrases_count boolean type
     with pytest.raises(AppException, match="performative_phrases_count must be a non-negative integer."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=2.0, performative_phrases_count=True)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=True, max_cognitive_score=3.0
+        )
 
     # Test invalid llm_authenticity_score string type
     with pytest.raises(AppException, match="llm_authenticity_score must be a float or int."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score="2.0", performative_phrases_count=5)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score="2.0", performative_phrases_count=5, max_cognitive_score=3.0
+        )
 
     # Test invalid llm_authenticity_score boolean type
     with pytest.raises(AppException, match="llm_authenticity_score must be a float or int."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=True, performative_phrases_count=5)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=True, performative_phrases_count=5, max_cognitive_score=3.0
+        )
 
 
 def test_calculate_mechanical_cognitive_variance_nan_infinity_validation() -> None:
     """ISTQB negative partition tests: Verify NaN, +Infinity, and -Infinity trigger AppException."""
     with pytest.raises(AppException, match="llm_authenticity_score cannot be NaN or Infinity."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=float("nan"), performative_phrases_count=0)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=float("nan"), performative_phrases_count=0, max_cognitive_score=3.0
+        )
 
     with pytest.raises(AppException, match="llm_authenticity_score cannot be NaN or Infinity."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=float("inf"), performative_phrases_count=0)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=float("inf"), performative_phrases_count=0, max_cognitive_score=3.0
+        )
 
     with pytest.raises(AppException, match="llm_authenticity_score cannot be NaN or Infinity."):
-        calculate_mechanical_cognitive_variance(llm_authenticity_score=float("-inf"), performative_phrases_count=0)
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=float("-inf"), performative_phrases_count=0, max_cognitive_score=3.0
+        )
+
+
+def test_variance_engine_invalid_max_cognitive_score_raises_bad_request() -> None:
+    """Verify non-positive, non-finite, and invalid types for max_cognitive_score raise HTTP 400."""
+    with pytest.raises(AppException, match="max_cognitive_score must be a positive finite float"):
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=0, max_cognitive_score=0.0
+        )
+
+    with pytest.raises(AppException, match="max_cognitive_score must be a positive finite float"):
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=0, max_cognitive_score=-3.0
+        )
+
+    with pytest.raises(AppException, match="max_cognitive_score must be a positive finite float"):
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=0, max_cognitive_score=float("nan")
+        )
+
+    with pytest.raises(AppException, match="max_cognitive_score must be a positive finite float"):
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=0, max_cognitive_score=float("inf")
+        )
+
+    with pytest.raises(AppException, match="max_cognitive_score must be a positive finite float"):
+        calculate_mechanical_cognitive_variance(
+            llm_authenticity_score=2.0, performative_phrases_count=0, max_cognitive_score=True
+        )
 
 
 def test_calculate_mechanical_cognitive_variance_aligned() -> None:
     """Verify alignment verdict is ALIGNED when variance is within limits."""
     # 0 performative count -> target_cognitive_dampener = 3.0
     # LLM score 3.0 -> variance = 0.0 -> ALIGNED
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=3.0, performative_phrases_count=0)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=3.0, performative_phrases_count=0, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.ALIGNED
     assert result.variance_score == 0.0
     assert result.mechanical_metric_ref == "performative_phrases_count"
@@ -55,13 +101,17 @@ def test_calculate_mechanical_cognitive_variance_aligned() -> None:
     # Variance < 0.5 (e.g. variance = 0.4) -> ALIGNED
     # 5 performative count -> normalized_performative_count = 1.0 -> target_cognitive_dampener = 2.0
     # LLM score 2.4 -> variance = 0.4 -> ALIGNED
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=2.4, performative_phrases_count=5)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=2.4, performative_phrases_count=5, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.ALIGNED
     assert result.variance_score == 0.4
 
     # 5 performative count -> target_cognitive_dampener = 2.0
     # LLM score 1.6 -> variance = 0.4 -> ALIGNED
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=1.6, performative_phrases_count=5)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=1.6, performative_phrases_count=5, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.ALIGNED
     assert result.variance_score == 0.4
 
@@ -70,13 +120,17 @@ def test_calculate_mechanical_cognitive_variance_sycophancy() -> None:
     """Verify alignment verdict is MISALIGNED_SYCOPHANCY when variance is high and LLM score > target."""
     # 5 performative count -> target_cognitive_dampener = 2.0
     # LLM score 2.5 -> variance = 0.5 -> MISALIGNED_SYCOPHANCY
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=2.5, performative_phrases_count=5)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=2.5, performative_phrases_count=5, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
     assert result.variance_score == 0.5
 
     # 10 performative count -> normalized_performative_count = 2.0 -> target_cognitive_dampener = 1.0
     # LLM score 3.0 -> variance = 2.0 -> MISALIGNED_SYCOPHANCY
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=3.0, performative_phrases_count=10)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=3.0, performative_phrases_count=10, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
     assert result.variance_score == 2.0
 
@@ -85,7 +139,9 @@ def test_calculate_mechanical_cognitive_variance_misaligned() -> None:
     """Verify alignment verdict is MISALIGNED when variance is high and LLM score < target."""
     # 5 performative count -> target_cognitive_dampener = 2.0
     # LLM score 1.5 -> variance = 0.5 -> MISALIGNED
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=1.5, performative_phrases_count=5)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=1.5, performative_phrases_count=5, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.MISALIGNED
     assert result.variance_score == 0.5
 
@@ -95,7 +151,9 @@ def test_calculate_mechanical_cognitive_variance_cap() -> None:
     # 20 performative count -> normalized_performative_count = min(4.0, 2.0) = 2.0
     # target_cognitive_dampener = 3.0 - 2.0 = 1.0
     # LLM score 1.0 -> variance = 0.0 -> ALIGNED
-    result = calculate_mechanical_cognitive_variance(llm_authenticity_score=1.0, performative_phrases_count=20)
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=1.0, performative_phrases_count=20, max_cognitive_score=3.0
+    )
     assert result.alignment_verdict == AlignmentVerdict.ALIGNED
     assert result.variance_score == 0.0
 
@@ -103,12 +161,16 @@ def test_calculate_mechanical_cognitive_variance_cap() -> None:
 def test_calculate_mechanical_cognitive_variance_boundary_values() -> None:
     """ISTQB boundary value analysis: score=0.0 and score=100.0."""
     # Boundary: lower score = 0.0, performative_phrases_count = 0 -> dampener = 3.0, variance = 3.0 -> MISALIGNED
-    result_low = calculate_mechanical_cognitive_variance(llm_authenticity_score=0.0, performative_phrases_count=0)
+    result_low = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=0.0, performative_phrases_count=0, max_cognitive_score=3.0
+    )
     assert result_low.alignment_verdict == AlignmentVerdict.MISALIGNED
     assert result_low.variance_score == 3.0
 
     # Boundary: extreme high score = 100.0, count = 10 -> dampener = 1.0, variance = 99.0 -> MISALIGNED_SYCOPHANCY
-    result_high = calculate_mechanical_cognitive_variance(llm_authenticity_score=100.0, performative_phrases_count=10)
+    result_high = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=100.0, performative_phrases_count=10, max_cognitive_score=3.0
+    )
     assert result_high.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
     assert result_high.variance_score == 99.0
 
@@ -125,6 +187,7 @@ def test_calculate_mechanical_cognitive_variance_with_density_invariance() -> No
     result_long = calculate_mechanical_cognitive_variance(
         llm_authenticity_score=2.85,
         performative_phrases_count=2,
+        max_cognitive_score=3.0,
         total_word_count=1500,
     )
     assert result_long.alignment_verdict == AlignmentVerdict.ALIGNED
@@ -136,6 +199,7 @@ def test_calculate_mechanical_cognitive_variance_with_density_invariance() -> No
     result_short = calculate_mechanical_cognitive_variance(
         llm_authenticity_score=2.85,
         performative_phrases_count=2,
+        max_cognitive_score=3.0,
         total_word_count=40,
     )
     assert result_short.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
@@ -149,7 +213,44 @@ def test_calculate_mechanical_cognitive_variance_density_cap() -> None:
     result = calculate_mechanical_cognitive_variance(
         llm_authenticity_score=1.0,
         performative_phrases_count=10,
+        max_cognitive_score=3.0,
         total_word_count=50,
     )
     assert result.alignment_verdict == AlignmentVerdict.ALIGNED
     assert result.variance_score == 0.0
+
+
+def test_calculate_mechanical_cognitive_variance_hacm_scale() -> None:
+    """Verify dynamic scale anchoring for HACM matrix (scale 1.0 - 5.0)."""
+    # 0 performative count -> target_cognitive_dampener = 5.0
+    # LLM score 4.8 -> variance = 0.2 -> ALIGNED
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=4.8,
+        performative_phrases_count=0,
+        max_cognitive_score=5.0,
+    )
+    assert result.alignment_verdict == AlignmentVerdict.ALIGNED
+    assert result.variance_score == 0.2
+
+    # 10 performative count -> normalized_count = 2.0 -> target_cognitive_dampener = 3.0
+    # LLM score 4.5 -> variance = 1.5 -> MISALIGNED_SYCOPHANCY
+    result_syc = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=4.5,
+        performative_phrases_count=10,
+        max_cognitive_score=5.0,
+    )
+    assert result_syc.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
+    assert result_syc.variance_score == 1.5
+
+
+def test_calculate_mechanical_cognitive_variance_bloom_scale() -> None:
+    """Verify dynamic scale anchoring for Bloom matrix (scale 1.0 - 6.0)."""
+    # 0 performative count -> target_cognitive_dampener = 6.0
+    # LLM score 5.9 -> variance = 0.1 -> ALIGNED
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=5.9,
+        performative_phrases_count=0,
+        max_cognitive_score=6.0,
+    )
+    assert result.alignment_verdict == AlignmentVerdict.ALIGNED
+    assert result.variance_score == 0.1

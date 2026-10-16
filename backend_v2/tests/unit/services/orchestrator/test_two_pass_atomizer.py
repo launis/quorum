@@ -253,16 +253,16 @@ async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, moc
         mock_draft_list,
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
-    with pytest.raises(ValueError, match="outside the assigned packet"):
-        await atomizer._extract_atoms_from_chunk(
-            client=mock_client,
-            compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
-            start_b="B0",
-            end_b="B1",
-            packet_keys=["B0", "B1"],
-            chunk_index=0,
-            hydrated_text="[B0] text\n\n[B1] text2",
-        )
+    result, usage = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
+        start_b="B0",
+        end_b="B1",
+        packet_keys=["B0", "B1"],
+        chunk_index=0,
+        hydrated_text="[B0] text\n\n[B1] text2",
+    )
+    assert len(result) == 0
 
 
 @pytest.mark.asyncio
@@ -434,3 +434,48 @@ async def test_two_pass_atomizer_helpers_reject_unexpected_semaphore_kwarg(mock_
             hydrated_text="[B0] text",
             **semaphore_kwarg,
         )
+
+
+@pytest.mark.asyncio
+async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock_executor, mock_client, settings_mock):
+    """Verify that an atom referencing a block outside the chunk's packet_keys is dropped with a warning, not crashing."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="Valid atom",
+                resolved_claim="Claim in packet",
+                source_block_id="B0",
+                draft_id="a0",
+                is_logical_deduction=False,
+            ),
+            LLMDraftAtom(
+                reasoning="Corrupted atom outside packet",
+                resolved_claim="Claim out of bounds",
+                source_block_id="B99",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    result, usage = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B1",
+        packet_keys=["B0", "B1"],
+        chunk_index=0,
+        hydrated_text="[B0] valid text\n\n[B1] more text",
+    )
+
+    assert len(result) == 1
+    assert result[0].resolved_claim == "Claim in packet"
+    assert result[0].source_quote == "valid text"
+

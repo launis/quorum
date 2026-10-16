@@ -559,3 +559,65 @@ async def test_execute_starvation_propagates_is_inverse_flag_error_path(
     assert nodes_arg[0].atom.is_inverse is True
     assert nodes_arg[1].atom.tda_id == "tda_5555666677778888"
     assert nodes_arg[1].atom.is_inverse is False
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+async def test_tda_duplicate_paragraphs_monotonic_block_ids(
+    mock_task_executor: MagicMock,
+    mock_atomizer: MagicMock,
+    mock_dag_executor: MagicMock,
+    mock_projector: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Verify that identical paragraphs in TDA source text receive strictly unique block IDs."""
+    import re
+    from typing import Any
+
+    captured_hydrated_text: list[str] = []
+
+    async def mock_execute_phase_0(*args: Any, **kwargs: Any) -> tuple[str, TokenUsage]:
+        if len(args) >= 2:
+            captured_hydrated_text.append(str(args[1]))
+        elif "hydrated_text" in kwargs:
+            captured_hydrated_text.append(str(kwargs["hydrated_text"]))
+        return "mock_ontology", TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+
+    mock_atomizer.return_value.execute_phase_0.side_effect = mock_execute_phase_0
+    mock_dag_executor.return_value.execute_graph = AsyncMock(
+        return_value=({}, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0))
+    )
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
+
+    source_text = "Unique paragraph one.\n\nDuplicate header.\n\nUnique paragraph two.\n\nDuplicate header."
+    req = engine_request.model_copy(update={"global_source_text": source_text})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    await engine.execute(req)
+
+    assert len(captured_hydrated_text) == 1
+    block_ids = re.findall(r"\[(B\d+)\]", captured_hydrated_text[0])
+    assert len(block_ids) == 4
+    assert len(set(block_ids)) == 4, f"Duplicate block IDs detected: {block_ids}"
+    assert block_ids == ["B0", "B1", "B2", "B3"]
+
+
+@pytest.mark.asyncio
+async def test_tda_empty_document_raises_422(
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Verify that empty or whitespace-only documents trigger fail-fast HTTP 422 in TDA."""
+    req = engine_request.model_copy(update={"global_source_text": "   \n\n   \n\n   "})
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(req)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+

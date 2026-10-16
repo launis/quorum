@@ -2,7 +2,7 @@
 
 Covers positive 2D scatter matrix generation, sycophancy detection,
 fallback and localized synthesis paragraphs, 4-metric grid, bullet phrases,
-and negative validation exception branches.
+dynamic scale extrema anchoring, and negative validation exception branches.
 """
 
 import pytest
@@ -13,6 +13,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.view.sdui import (
@@ -51,6 +52,24 @@ def _create_execution(
         context_variables={"variables": context_vars} if context_vars is not None else {},
         target_locale="fi",
         metadata=ExecutionMetadata(),
+    )
+
+
+def _create_matrix_row(
+    block_id: str = "blk_0123456789abcdef",
+    score: float = 2.8,
+    scale_min: float = 1.0,
+    scale_max: float = 3.0,
+) -> MatrixScorecardRowDTO:
+    return MatrixScorecardRowDTO(
+        block_id=block_id,
+        name="Test Matrix",
+        score=score,
+        scale_min=scale_min,
+        scale_max=scale_max,
+        is_evaluative=True,
+        label_i18n=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
+        row_explanation="Test explanation",
     )
 
 
@@ -199,7 +218,7 @@ def test_build_aligned_success() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=2.8, scale_min=1.0, scale_max=3.0)},
     )
 
     blocks = VarianceAdapter.build(context)
@@ -265,7 +284,7 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)},
     )
 
     blocks = VarianceAdapter.build(context)
@@ -333,7 +352,7 @@ def test_build_with_jargon_density_calibrates_y_axis_and_grid() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)},
     )
 
     blocks = VarianceAdapter.build(context)
@@ -346,6 +365,193 @@ def test_build_with_jargon_density_calibrates_y_axis_and_grid() -> None:
     grid = blocks[3]
     assert isinstance(grid, SduiGridBlock)
     assert "2 (5.0/100w)" in grid.items[3].text
+
+
+def test_build_dynamic_scale_hacm_5_scale() -> None:
+    """Verify dynamic scale extrema anchoring for HACM matrix (scale 1.0 - 5.0)."""
+    profile = _create_profile()
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=4.5,
+            performative_phrases_count=0.0,
+            variance_score=0.5,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=4.5, scale_min=1.0, scale_max=5.0)},
+    )
+
+    blocks = VarianceAdapter.build(context)
+    quadrant = blocks[2]
+    assert isinstance(quadrant, SduiQuadrantMatrixBlock)
+    assert quadrant.axes[0].scale_min == 1.0
+    assert quadrant.axes[0].scale_max == 5.0
+    assert quadrant.axes[0].score == 4.5
+    assert quadrant.axes[0].ui_plot_ratio == 0.875  # (4.5 - 1.0) / (5.0 - 1.0) = 3.5 / 4.0 = 0.875
+
+    grid = blocks[3]
+    assert isinstance(grid, SduiGridBlock)
+    assert "4.5 / 5.0" in grid.items[1].text
+    assert "/ 3.0" not in grid.items[1].text
+
+
+def test_build_dynamic_scale_bloom_6_scale() -> None:
+    """Verify dynamic scale extrema anchoring for Bloom matrix (scale 1.0 - 6.0)."""
+    profile = _create_profile()
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=5.5,
+            performative_phrases_count=0.0,
+            variance_score=0.5,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=5.5, scale_min=1.0, scale_max=6.0)},
+    )
+
+    blocks = VarianceAdapter.build(context)
+    quadrant = blocks[2]
+    assert isinstance(quadrant, SduiQuadrantMatrixBlock)
+    assert quadrant.axes[0].scale_min == 1.0
+    assert quadrant.axes[0].scale_max == 6.0
+    assert quadrant.axes[0].score == 5.5
+    assert quadrant.axes[0].ui_plot_ratio == 0.9  # (5.5 - 1.0) / (6.0 - 1.0) = 4.5 / 5.0 = 0.9
+
+    grid = blocks[3]
+    assert isinstance(grid, SduiGridBlock)
+    assert "5.5 / 6.0" in grid.items[1].text
+    assert "/ 3.0" not in grid.items[1].text
+
+
+def test_variance_adapter_missing_target_block_in_matrices_raises_configuration_error() -> None:
+    """Negative: target block missing from parsed_matrices raises CONFIGURATION_ERROR."""
+    profile = _create_profile()
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.0,
+            performative_phrases_count=0.0,
+            variance_score=0.0,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},  # Target block missing
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        VarianceAdapter.build(context)
+
+    assert exc_info.value.status_code == 500
+    assert "not found in evaluated scorecard matrices" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+def test_variance_adapter_target_block_unset_raises_configuration_error() -> None:
+    """Negative: variance_target_block unset in profile raises CONFIGURATION_ERROR."""
+    profile = OutputProfile.model_construct(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block=None,
+    )
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.0,
+            performative_phrases_count=0.0,
+            variance_score=0.0,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext.model_construct(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row()},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        VarianceAdapter.build(context)
+
+    assert exc_info.value.status_code == 500
+    assert "requires 'variance_target_block'" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+def test_variance_adapter_invalid_scale_extrema_raises_configuration_error() -> None:
+    """Negative: target matrix with scale_max <= scale_min raises CONFIGURATION_ERROR."""
+    profile = _create_profile()
+    execution = _create_execution()
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.0,
+            performative_phrases_count=0.0,
+            variance_score=0.0,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    # scale_max (1.0) <= scale_min (3.0)
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(scale_min=3.0, scale_max=1.0)},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        VarianceAdapter.build(context)
+
+    assert exc_info.value.status_code == 500
+    assert "invalid scale boundaries" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "CONFIGURATION_ERROR"
 
 
 def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -370,7 +576,7 @@ def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.M
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.5, scale_min=1.0, scale_max=3.0)},
     )
 
     # Empty VARIANCE_RULES to force a KeyError lookup failure
@@ -405,7 +611,7 @@ def test_build_malformed_linguistics_raises_internal_server_error() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={},
+        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=2.5, scale_min=1.0, scale_max=3.0)},
     )
 
     with pytest.raises(AppException) as exc_info:

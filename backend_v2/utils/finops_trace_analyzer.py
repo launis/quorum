@@ -5,7 +5,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
+
+sys_root = str(Path(__file__).resolve().parent.parent.parent)
+if sys_root not in sys.path:
+    sys.path.insert(0, sys_root)
+
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter

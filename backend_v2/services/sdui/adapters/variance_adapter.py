@@ -209,6 +209,39 @@ class VarianceAdapter:
                     ) from e
 
         # 4. CONSTRUCT 2D AXES & SCATTER PLOT BLOCK
+        target_block_id = context.profile.variance_target_block
+        if not target_block_id:
+            msg = f"OutputProfile '{context.profile.id}' requires 'variance_target_block' when variance validation is active."
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+        if target_block_id not in context.parsed_matrices:
+            msg = (
+                f"Variance target block '{target_block_id}' not found in evaluated scorecard matrices. "
+                f"Available evaluated matrices: {sorted(context.parsed_matrices.keys())}."
+            )
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "target_block_id": target_block_id},
+            )
+        target_matrix = context.parsed_matrices[target_block_id]
+        scale_min = target_matrix.scale_min
+        scale_max = target_matrix.scale_max
+        if scale_min is None or scale_max is None or scale_max <= scale_min:
+            msg = f"Target matrix '{target_block_id}' has invalid scale boundaries: min={scale_min}, max={scale_max}."
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+        scale_range = scale_max - scale_min
+
         axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", context.locale)
         axis_mech_title = LocalizationService.translate("axis_mechanical_load_title", context.locale)
 
@@ -225,9 +258,9 @@ class VarianceAdapter:
                 "row_explanation": "",
                 "is_evaluative": False,
                 "score": auth_score_rounded,
-                "scale_min": 1.0,
-                "scale_max": 3.0,
-                "ui_plot_ratio": round(max(0.0, min(1.0, (auth_score_rounded - 1.0) / 2.0)), 4),
+                "scale_min": scale_min,
+                "scale_max": scale_max,
+                "ui_plot_ratio": round(max(0.0, min(1.0, (auth_score_rounded - scale_min) / scale_range)), 4),
             },
             strict=False,
         )
@@ -289,7 +322,7 @@ class VarianceAdapter:
                 ParagraphBlock(
                     text=f"{lbl_mech}: {int(phrase_count_rounded)} {unit_pcs}", exact_quotes=[], citations=[]
                 ),
-                ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded} / 3.0", exact_quotes=[], citations=[]),
+                ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded} / {scale_max:.1f}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_jargon}: {jargon_display}", exact_quotes=[], citations=[]),
             ]

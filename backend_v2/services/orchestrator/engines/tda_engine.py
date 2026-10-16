@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, override
 
+from fastapi import status
+
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -20,7 +22,6 @@ from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.result_projector import ResultProjector
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
-from backend_v2.utils.alias_engine import AliasEngine
 
 if TYPE_CHECKING:
     pass
@@ -137,12 +138,16 @@ class TDAEngine(ExecutionEngine):
 
             global_source_text = request.global_source_text
 
-            alias_engine = AliasEngine()
             paragraphs = [p.strip() for p in global_source_text.split("\n\n") if p.strip()]
-            numbered_lines = []
-            for p in paragraphs:
-                block_id = alias_engine.register(p, prefix="B")
-                numbered_lines.append(f"[{block_id}] {p}")
+            if not paragraphs:
+                msg = f"TDA evaluation cannot execute on an empty text document for Step '{request.step.id}'."
+                logger.error("[TDAEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": request.step.id},
+                )
+            numbered_lines = [f"[B{i}] {p}" for i, p in enumerate(paragraphs)]
             hydrated_text = "\n\n".join(numbered_lines)
 
             async def phase_0_progress_matrix(completed: int, total: int) -> None:

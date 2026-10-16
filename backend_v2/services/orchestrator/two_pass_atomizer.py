@@ -29,7 +29,6 @@ from backend_v2.services.orchestrator.prompts.atom_extraction import (
     build_phase_1_system_prompt,
 )
 from backend_v2.settings import get_settings
-from backend_v2.utils.alias_engine import AliasEngine
 
 __all__ = ["TwoPassAtomizer"]
 
@@ -62,7 +61,9 @@ class TwoPassAtomizer:
         block_keys: list[str] = []
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
-                block_keys.append(line[1 : line.find("]")])
+                b_key = line[1 : line.find("]")]
+                if b_key.startswith("B") and b_key[1:].isdigit():
+                    block_keys.append(b_key)
 
         packets: list[ChunkPacketDTO] = []
         if not block_keys:
@@ -295,9 +296,9 @@ class TwoPassAtomizer:
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
                 b_id = line[1 : line.find("]")]
-                text = line[line.find("]") + 2 :]
-                local_alias_map[b_id] = text
-        alias_engine = AliasEngine(alias_map=local_alias_map)
+                if b_id.startswith("B") and b_id[1:].isdigit():
+                    text = line[line.find("]") + 2 :]
+                    local_alias_map[b_id] = text
 
         final_atoms: list[ExtractedAtom] = []
         for draft in draft_result.atoms:
@@ -310,28 +311,25 @@ class TwoPassAtomizer:
                     continue
                 clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
                 if clean_id not in packet_keys:
-                    logger.error(
-                        "Packet boundary violation: %s not in packet [%s, %s]",
-                        clean_id,
-                        start_b,
-                        end_b,
-                        extra={"error_code": "PACKET_BOUNDARY_VIOLATION"},
+                    logger.warning(
+                        "corrupted_atom_dropped: block_id_outside_packet_boundary",
+                        extra={
+                            "reason": "block_id_outside_packet_boundary",
+                            "block_id": clean_id,
+                            "packet": f"{start_b}-{end_b}",
+                        },
                     )
-                    raise ValueError(f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!")
+                    continue
 
-                exact_quote = None
-                if clean_id in alias_engine.alias_map:
-                    exact_quote = alias_engine.alias_map[clean_id]
-                else:
-                    logger.warning("AliasEngine hallucination detected for %s: %s", tda_id, clean_id)
-
-                if not exact_quote:
+                if clean_id not in local_alias_map:
                     logger.warning(
                         "Anchor Hydration failed for %s. LLM hallucinated block ID: %s",
                         tda_id,
                         draft.source_block_id,
                     )
                     continue
+
+                exact_quote = local_alias_map[clean_id]
 
             final_atoms.append(
                 ExtractedAtom(
@@ -474,9 +472,9 @@ class TwoPassAtomizer:
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
                 b_id = line[1 : line.find("]")]
-                text = line[line.find("]") + 2 :]
-                local_alias_map[b_id] = text
-        alias_engine = AliasEngine(alias_map=local_alias_map)
+                if b_id.startswith("B") and b_id[1:].isdigit():
+                    text = line[line.find("]") + 2 :]
+                    local_alias_map[b_id] = text
 
         final_drafts: list[DraftExtractedAtom] = []
         for draft in draft_result.atoms:
@@ -509,15 +507,11 @@ class TwoPassAtomizer:
                 )
                 continue
 
-            exact_quote = None
-            if clean_id in alias_engine.alias_map:
-                exact_quote = alias_engine.alias_map[clean_id]
-            else:
-                logger.warning("AliasEngine hallucination detected for %s: %s", clean_id, clean_id)
-
-            if not exact_quote:
+            if clean_id not in local_alias_map:
                 logger.warning("corrupted_atom_dropped", extra={"reason": "hallucinated_block_id_not_found"})
                 continue
+
+            exact_quote = local_alias_map[clean_id]
 
             final_drafts.append(
                 DraftExtractedAtom(
