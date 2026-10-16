@@ -478,4 +478,3 @@ async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock
     assert len(result) == 1
     assert result[0].resolved_claim == "Claim in packet"
     assert result[0].source_quote == "valid text"
-

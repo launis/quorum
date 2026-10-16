@@ -787,5 +787,3 @@ async def test_causal_discovery_empty_document_raises_422(
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value
-
-

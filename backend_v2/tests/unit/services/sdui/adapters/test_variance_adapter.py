@@ -653,9 +653,7 @@ def test_variance_adapter_resolves_target_block_with_composite_matrix_key() -> N
             "sr_a8f1d71000000002_blk_c0a1e50000000001": _create_matrix_row(
                 block_id="blk_c0a1e50000000001", score=1.5, scale_min=1.0, scale_max=3.0
             ),
-            composite_key: _create_matrix_row(
-                block_id=target_block_id, score=2.8, scale_min=1.0, scale_max=3.0
-            ),
+            composite_key: _create_matrix_row(block_id=target_block_id, score=2.8, scale_min=1.0, scale_max=3.0),
         },
     )
 
@@ -666,4 +664,3 @@ def test_variance_adapter_resolves_target_block_with_composite_matrix_key() -> N
     assert quadrant.axes[0].scale_min == 1.0
     assert quadrant.axes[0].scale_max == 3.0
     assert quadrant.axes[0].score == 2.8
-

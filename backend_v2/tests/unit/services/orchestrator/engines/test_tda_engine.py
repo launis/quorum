@@ -620,4 +620,3 @@ async def test_tda_empty_document_raises_422(
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

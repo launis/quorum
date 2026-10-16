@@ -219,7 +219,11 @@ async def build_variance_metrics_and_task(
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
-    if not isinstance(target_block, MatrixPromptBlock) or target_block.computed_max is None or target_block.computed_max <= 0.0:
+    if (
+        not isinstance(target_block, MatrixPromptBlock)
+        or target_block.computed_max is None
+        or target_block.computed_max <= 0.0
+    ):
         msg = f"Target prompt block '{target_block_id}' lacks valid scale extrema definitions."
         logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise AppException(

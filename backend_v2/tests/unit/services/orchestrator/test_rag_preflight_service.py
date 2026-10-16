@@ -581,6 +581,7 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
 ) -> None:
     """Verify that identical paragraphs in RAG candidate inputs receive strictly unique block IDs."""
     import re
+
     from backend_v2.tests.unit.services.orchestrator.test_rag_preflight_service import make_valid_step_def
 
     step_rule = StepRule(
@@ -647,4 +648,3 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
     assert len(block_ids) == 4
     assert len(set(block_ids)) == 4, f"Duplicate block IDs detected: {block_ids}"
     assert block_ids == ["B0", "B1", "B2", "B3"]
-

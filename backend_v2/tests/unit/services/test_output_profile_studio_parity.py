@@ -342,19 +342,21 @@ def test_all_seed_output_profiles_variance_dynamic_scale_parity() -> None:
                 parsed_matrices={},
             )
             blocks = VarianceAdapter.build(ctx)
-            assert len(blocks) == 0, f"Profile '{prof.id}' without variance validation emitted spurious blocks: {blocks}"
+            assert len(blocks) == 0, (
+                f"Profile '{prof.id}' without variance validation emitted spurious blocks: {blocks}"
+            )
             continue
 
         # For profiles where variance validation is enabled:
         assert prof.variance_target_block, f"Profile '{prof.id}' has variance active but variance_target_block is empty"
-        assert (
-            prof.variance_target_block in prompt_blocks
-        ), f"Profile '{prof.id}' variance_target_block '{prof.variance_target_block}' not found in seed vault"
+        assert prof.variance_target_block in prompt_blocks, (
+            f"Profile '{prof.id}' variance_target_block '{prof.variance_target_block}' not found in seed vault"
+        )
 
         target_pb = prompt_blocks[prof.variance_target_block]
-        assert isinstance(
-            target_pb, MatrixPromptBlock
-        ), f"Target block '{prof.variance_target_block}' must be a MatrixPromptBlock, got {type(target_pb)}"
+        assert isinstance(target_pb, MatrixPromptBlock), (
+            f"Target block '{prof.variance_target_block}' must be a MatrixPromptBlock, got {type(target_pb)}"
+        )
         assert target_pb.computed_max is not None and target_pb.computed_max > 0, (
             f"Target block '{prof.variance_target_block}' has invalid computed_max: {target_pb.computed_max}"
         )
