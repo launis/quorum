@@ -49,44 +49,12 @@ DEDICATED_BLUEPRINTS: list[BlueprintSpecDTO] = [
         downstream_fusion_step_id="sr_4d2272d8b4864847",
     ),
     BlueprintSpecDTO(
-        id="sp_01b1d7100000ca01",
-        slug="step_causal_discovery_vuorovaikutus",
-        expected_inputs=["product_text", "chat_log"],
-        workflow_id="wf_01a1d71000000001",
-        step_rule_id="sr_01c1d7100000ca01",
-        downstream_fusion_step_id="sr_01c1d71000000003",
-    ),
-    BlueprintSpecDTO(
-        id="sp_02b1d7100000ca02",
-        slug="step_causal_discovery_strateginen",
+        id="sp_c4a5a1d15c00438a",
+        slug="step_causal_discovery_kokonaisvaltainen",
         expected_inputs=["product_text", "reflection_text"],
-        workflow_id="wf_02a1d71000000002",
-        step_rule_id="sr_02c1d7100000ca02",
-        downstream_fusion_step_id="sr_02c1d71000000004",
-    ),
-    BlueprintSpecDTO(
-        id="sp_03b1d7100000ca03",
-        slug="step_causal_discovery_ongelmanratkaisu",
-        expected_inputs=["product_text", "reflection_text"],
-        workflow_id="wf_03a1d71000000003",
-        step_rule_id="sr_03c1d7100000ca03",
-        downstream_fusion_step_id="sr_03c1d71000000002",
-    ),
-    BlueprintSpecDTO(
-        id="sp_04b1d7100000ca04",
-        slug="step_causal_discovery_faktantarkistus",
-        expected_inputs=["product_text", "source_evidence"],
-        workflow_id="wf_04a1d71000000004",
-        step_rule_id="sr_04c1d7100000ca04",
-        downstream_fusion_step_id="sr_04c1d71000000004",
-    ),
-    BlueprintSpecDTO(
-        id="sp_05b1d7100000ca05",
-        slug="step_causal_discovery_eettinen",
-        expected_inputs=["product_text", "source_evidence"],
-        workflow_id="wf_05a1d71000000005",
-        step_rule_id="sr_05c1d7100000ca05",
-        downstream_fusion_step_id="sr_05c1d71000000003",
+        workflow_id="wf_a8f1d71000000001",
+        step_rule_id="sr_a8f1d71000000002",
+        downstream_fusion_step_id="sr_a8f1d71000000003",
     ),
 ]
 
@@ -103,7 +71,7 @@ def seed_buffer() -> ValidatedSeedBufferDTO:
 def test_dedicated_causal_blueprints_pydantic_schema(
     seed_buffer: ValidatedSeedBufferDTO,
 ) -> None:
-    """Positive Test 1: Validate each of the 6 dedicated blueprints against Step Pydantic schema."""
+    """Positive Test 1: Validate each dedicated blueprint against Step Pydantic schema."""
     step_dict = {s.id: s for s in seed_buffer.steps}
 
     for spec in DEDICATED_BLUEPRINTS:
@@ -123,7 +91,7 @@ def test_dedicated_causal_blueprints_pydantic_schema(
 def test_workflows_contain_dedicated_causal_step_rules(
     seed_buffer: ValidatedSeedBufferDTO,
 ) -> None:
-    """Positive Test 2: Validate that all 6 workflows contain the dedicated step rule and downstream fusion wiring."""
+    """Positive Test 2: Validate workflows declaring causal discovery contain dedicated step rule and downstream fusion wiring."""
     wf_dict = {w.id: w for w in seed_buffer.workflows}
 
     for spec in DEDICATED_BLUEPRINTS:

@@ -20874,70 +20874,44 @@
       "historical_context_mode": "DISABLED"
     },
     {
-      "id": "wf_01a1d71000000001",
-      "slug": "tekoalyajokortti_vuorovaikutus_ohjaus",
+      "id": "wf_a8f1d71000000001",
+      "slug": "tekoalyohjauksen_ja_argumentaation_tasmaauditointi",
       "name": {
         "translations": {
-          "fi": "Tekoälyajokortti: Vuorovaikutus ja Ohjaus",
-          "en": "AI Driving License: Interaction & Steering"
+          "fi": "Tekoälyohjauksen ja Argumentaation Täsmäauditointi",
+          "en": "Targeted AI Steering & Argumentation Audit"
         }
       },
       "description": {
         "translations": {
-          "fi": "Käyttäjän arjen tekoäly- ja promptausosaamisen kehittämiseen tarkoitettu ketterä työnkulku. Arviointi vaatii lähtötietoina täyden tekoälykeskustelun (Chat-loki) sekä syntyneen lopputuotoksen (Product-teksti). Työnkulku arvioi Goodhartin lain (1975) mukaisesti, toimiiko käyttäjä vuorovaikutuksessa aktiivisena ohjaajana (Driver) vai passiivisena myötäilijänä (Passenger), sekä Toulminin argumentaatiomallin (1958) nojalla, ovatko lopputuotoksen väitteet ja toimenpiteet kestävästi perusteltuja. Tavoitteena on antaa käyttäjälle kannustava, selkeä ja suoraan arjessa sovellettava palaute konkreettisilla kehotemuotoiluilla varustettuna.",
-          "en": "An agile evaluation workflow designed to build and verify foundational human-AI interaction and prompting competencies. The evaluation requires two primary inputs: the complete prompt dialogue (Chat Log) and the resulting deliverable (Product Text). Anchored in Goodhart's Law (1975), the workflow assesses whether the operator acts as an active, critical driver or a passive passenger, while Toulmin's Argumentation Model (1958) evaluates the evidentiary backing and logical cohesion of deliverable claims. The goal is to produce an encouraging, actionable scorecard that guides the user toward rigorous prompt steering and grounded output formulation."
+          "fi": "Tekoälyohjauksen, argumentaatiotarkkuuden ja kognitiivisen syvyyden 5-matriisin täsmäauditointi kausaalisella eheyden arvioinnilla.",
+          "en": "Targeted 5-matrix audit evaluating human-AI steering, argumentation rigor, cognitive depth, and dynamic causal cohesion."
         }
       },
       "status": "active",
       "version": 1,
       "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_01b1d71000000001",
+      "default_profile_id": "prf_a8f1d71000000001",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
+      "default_strictness_level": 0,
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
       "passivity_penalty": 0.0,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
-      "system_audit_trail": false,
+      "system_audit_trail": true,
       "expected_inputs": [
-        {
-          "input_key": "chat_log",
-          "label": {
-            "translations": {
-              "fi": "Keskusteluhistoria (Chat)",
-              "en": "Conversation History (Chat)"
-            }
-          },
-          "required": true,
-          "is_chat_history": true,
-          "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Tuo keskustelu käyttämäsi tekoälyn (esim. ChatGPT, Google Gemini, Claude) kanssa PDF-tiedostona tai liitä se suoraan tekstinä leikepöydältä.",
-              "en": "Attach conversation with your AI tool (e.g. ChatGPT, Google Gemini, Claude) as a PDF file or paste directly as text from clipboard."
-            }
-          },
-          "ai_description": "PROMPT DIALOGUE DIRECTIVE: Analyze the user's iterative prompt instructions and steering behavior to determine if they actively guide the AI or passively accept outputs.",
-          "questionnaire_definition": []
-        },
         {
           "input_key": "product_text",
           "label": {
             "translations": {
               "fi": "Lopputuote",
-              "en": "Product / Deliverable"
+              "en": "Product"
             }
           },
-          "required": true,
+          "required": false,
           "is_chat_history": false,
           "scan_for_performative_patterns": true,
           "is_endorsed_deliverable": true,
@@ -20951,171 +20925,7 @@
               "en": "Attach the final output of the audited process (e.g. PDF document or plain text)."
             }
           },
-          "ai_description": "DELIVERABLE DIRECTIVE: Analyze the synthesized deliverable for logical cohesion, claim grounding, and argumentation rigor.",
-          "questionnaire_definition": []
-        }
-      ],
-      "steps": [
-        {
-          "id": "sr_01c1d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
-          "depends_on": [],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d71000000002",
-          "task_blueprint": "sp_25664f44773a4354",
-          "depends_on": [
-            "sr_01c1d71000000001"
-          ],
-          "input_mappings": {
-            "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d7100000ca01",
-          "task_blueprint": "sp_01b1d7100000ca01",
-          "depends_on": [
-            "sr_01c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log"
-          },
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d71000000003",
-          "task_blueprint": "sp_8daee218c6b14f02",
-          "depends_on": [
-            "sr_01c1d71000000001",
-            "sr_01c1d7100000ca01"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "causal_source_step_id": "sr_01c1d7100000ca01",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d71000000004",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_01c1d71000000002",
-            "sr_01c1d71000000003"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d71000000005",
-          "task_blueprint": "sp_d245365e4a274b9e",
-          "depends_on": [
-            "sr_01c1d71000000004"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_01c1d71000000004"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_01c1d71000000006",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
-          "depends_on": [
-            "sr_01c1d71000000005"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_01c1d71000000005",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        }
-      ],
-      "historical_context_mode": "DISABLED"
-    },
-    {
-      "id": "wf_02a1d71000000002",
-      "slug": "strateginen_johtaminen_paatoksenteko",
-      "name": {
-        "translations": {
-          "fi": "Strateginen Johtaminen ja Päätöksenteko",
-          "en": "Strategic Leadership & Decision Making"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Johdon strategisten muistioiden ja päätöksenteon laadun arviointiin kehitetty vaativa työnkulku. Analysoi Goodhartin, Toulminin, Pearlin (2009) kausaalimallinnuksen ja Popperin (1963) falsifioinnin avulla, nojaako suunnitelma aitoon kausaalipäättelyyn ja kestääkö se kriittistä kumoamista.",
-          "en": "An advanced evaluation workflow tailored for executive strategic memos and decision-making quality. Anchored in Goodhart, Toulmin, Pearl (2009) Rung 2 causal modeling, and Popper (1963) falsification to assess whether strategic initiatives rest on sound causal mechanisms or performative rhetoric."
-        }
-      },
-      "status": "active",
-      "version": 1,
-      "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_02b1d71000000002",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
-      "enable_contextual_overrides": true,
-      "enable_semantic_smoothing": false,
-      "enable_eager_anonymization": false,
-      "system_audit_trail": false,
-      "expected_inputs": [
-        {
-          "input_key": "assignment_context",
-          "label": {
-            "translations": {
-              "fi": "Tehtävänanto ja Reunaehdot",
-              "en": "Assignment Context & Framing"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "assignment",
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Liitä tähän tehtävänanto, taustadokumentti tai organisaation reunaehdot (esim. toimialakonteksti, tavoitteet ja rajoitteet) tiedostona tai tekstinä.",
-              "en": "Attach the assignment framing, background document, or organizational constraints (e.g. industry context, goals, and boundaries) as a file or plain text."
-            }
-          },
-          "ai_description": "CONTEXT DIRECTIVE: Optional background framing describing organizational boundary conditions, industry dynamics, and constraints.",
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the final target output of the audited process. It must be evaluated strictly on its own merits without assuming any external context or hidden intentions. Treat this as the definitive end-result of the cognitive process.",
           "questionnaire_definition": []
         },
         {
@@ -21140,32 +20950,7 @@
               "en": "Attach conversation with your AI tool (e.g. ChatGPT, Google Gemini, Claude) as a PDF file or paste directly as text from clipboard."
             }
           },
-          "ai_description": "STEERING DIRECTIVE: The exploratory and sparring dialogue between executive and AI model.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "product_text",
-          "label": {
-            "translations": {
-              "fi": "Lopputuote",
-              "en": "Product / Deliverable"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": true,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Tähän liitetään auditoitavan prosessin varsinainen tuotos (esim. strateginen muistio, tiekartta tai päätösesitys).",
-              "en": "Attach the core operational roadmap, executive memo, or strategic policy initiative."
-            }
-          },
-          "ai_description": "STRATEGIC DELIVERABLE DIRECTIVE: The core operational roadmap, executive memo, or policy initiative.",
+          "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
           "questionnaire_definition": []
         },
         {
@@ -21179,256 +20964,6 @@
           "required": false,
           "is_chat_history": false,
           "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Vastaa lyhyesti reflektiokysymyksiin tai liitä itsearviointi strategisista kompromisseista ja dilemmoista.",
-              "en": "Answer reflection questions briefly or attach self-assessment on strategic dilemmas and trade-offs."
-            }
-          },
-          "ai_description": "META-COGNITIVE DIRECTIVE: Optional post-hoc reflection on strategic dilemmas and trade-offs.",
-          "questionnaire_definition": []
-        }
-      ],
-      "steps": [
-        {
-          "id": "sr_02c1d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
-          "depends_on": [],
-          "input_mappings": {
-            "assignment_context": "$inputs.assignment_context",
-            "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000002",
-          "task_blueprint": "sp_25664f44773a4354",
-          "depends_on": [
-            "sr_02c1d71000000001"
-          ],
-          "input_mappings": {
-            "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000003",
-          "task_blueprint": "sp_8daee218c6b14f02",
-          "depends_on": [
-            "sr_02c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d7100000ca02",
-          "task_blueprint": "sp_02b1d7100000ca02",
-          "depends_on": [
-            "sr_02c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000004",
-          "task_blueprint": "sp_bd0b3054fe664960",
-          "depends_on": [
-            "sr_02c1d71000000001",
-            "sr_02c1d7100000ca02"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "assignment_context": "$inputs.assignment_context"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "causal_source_step_id": "sr_02c1d7100000ca02",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000005",
-          "task_blueprint": "sp_6f40b964895c426b",
-          "depends_on": [
-            "sr_02c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000006",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_02c1d71000000002",
-            "sr_02c1d71000000003",
-            "sr_02c1d71000000004",
-            "sr_02c1d71000000005"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000007",
-          "task_blueprint": "sp_d245365e4a274b9e",
-          "depends_on": [
-            "sr_02c1d71000000006"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_02c1d71000000006"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_02c1d71000000008",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
-          "depends_on": [
-            "sr_02c1d71000000007"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_02c1d71000000007",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
-            "assignment_context": "$inputs.assignment_context"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        }
-      ],
-      "historical_context_mode": "DISABLED"
-    },
-    {
-      "id": "wf_03a1d71000000003",
-      "slug": "syvallinen_ongelmanratkaisu_kognitio",
-      "name": {
-        "translations": {
-          "fi": "Syvällinen Ongelmanratkaisu ja Kognitio",
-          "en": "Deep Problem Solving & Cognition"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Kognitiivisen syvyyden, heurististen vinoumien ja luovan käsitteenmuodostuksen analysointiin kehitetty työnkulku. Arvioi Bloomin taksonomian luomistason, Kahnemanin kaksoisprosessimallin (Systeemi 1 vs. 2) ja Goodhartin ohjauslaadun avulla ongelmanratkaisun autenttisuutta ja älyllistä kitkaa.",
-          "en": "A cognitive evaluation workflow analyzing problem-solving depth, heuristic biases, and conceptual breakthrough innovation. Evaluates Bloom (1956) creation taxonomy, Kahneman (2011) dual-process deliberation, and Goodhart steering to detect authentic epistemic friction."
-        }
-      },
-      "status": "active",
-      "version": 1,
-      "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_03b1d71000000003",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 70,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.05,
-      "enable_contextual_overrides": true,
-      "enable_semantic_smoothing": false,
-      "enable_eager_anonymization": false,
-      "system_audit_trail": false,
-      "expected_inputs": [
-        {
-          "input_key": "assignment_context",
-          "label": {
-            "translations": {
-              "fi": "Tehtävänanto ja Reunaehdot",
-              "en": "Assignment Context & Framing"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "assignment",
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Liitä tähän tehtävänanto, taustadokumentti tai haasteen määrittely (tiedostona tai tekstinä).",
-              "en": "Attach the assignment framing, background document, or problem space definition (as file or text)."
-            }
-          },
-          "ai_description": "PROBLEM FRAMING DIRECTIVE: The architectural framing, conceptual challenge, or problem space.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "chat_log",
-          "label": {
-            "translations": {
-              "fi": "Keskusteluhistoria (Chat)",
-              "en": "Conversation History (Chat)"
-            }
-          },
-          "required": true,
-          "is_chat_history": true,
-          "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Tuo keskustelu käyttämäsi tekoälyn kanssa PDF-tiedostona tai liitä se suoraan tekstinä leikepöydältä.",
-              "en": "Attach conversation with your AI tool as a PDF file or paste directly as text from clipboard."
-            }
-          },
-          "ai_description": "IDEATION ARC DIRECTIVE: Exploratory dialogue tracking cognitive shifts, hypotheses, and intellectual friction.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "product_text",
-          "label": {
-            "translations": {
-              "fi": "Lopputuote",
-              "en": "Product / Deliverable"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": true,
           "is_endorsed_deliverable": true,
           "input_modes": [
             "file",
@@ -21436,48 +20971,22 @@
           ],
           "description": {
             "translations": {
-              "fi": "Tähän liitetään ehdotettu konseptuaalinen viitekehys, ratkaisumalli tai arkkitehtuurituotos.",
-              "en": "Attach the proposed conceptual framework, architecture, or creative solution."
+              "fi": "Vastaa lyhyesti reflektiokysymyksiin tai liitä oppimispäiväkirja (tiedostona tai tekstinä).",
+              "en": "Answer reflection questions briefly or attach learning journal (as file or text)."
             }
           },
-          "ai_description": "SYNTHESIS DIRECTIVE: The proposed conceptual framework, architecture, or creative solution.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "reflection_text",
-          "label": {
-            "translations": {
-              "fi": "Reflektiodokumentti",
-              "en": "Reflection"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Vastaa lyhyesti reflektiokysymyksiin tai liitä itsearviointi kognitiivisista vinoumista ja oletusten purkamisesta.",
-              "en": "Answer reflection questions briefly or attach self-assessment on cognitive biases and trade-offs."
-            }
-          },
-          "ai_description": "REFLECTIVE DIRECTIVE: Self-assessment of cognitive biases, trade-offs, and conceptual pivots.",
+          "ai_description": "META-COGNITIVE EVIDENCE DIRECTIVE: This artifact contains the human operator's post-hoc reflection on the interaction. Analyze this to establish the operator's self-awareness, critical distance, and theoretical grounding regarding the process. Evaluate if the reflection aligns transparently with the actual events logged in the chat history.",
           "questionnaire_definition": []
         }
       ],
       "steps": [
         {
-          "id": "sr_03c1d71000000001",
+          "id": "sr_a8f1d71000000001",
           "task_blueprint": "sp_db849f9790984585",
           "depends_on": [],
           "input_mappings": {
-            "assignment_context": "$inputs.assignment_context",
-            "chat_log": "$inputs.chat_log",
             "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
           "expected_sdui_type": "markdown",
@@ -21486,555 +20995,62 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_03c1d7100000ca03",
-          "task_blueprint": "sp_03b1d7100000ca03",
+          "id": "sr_a8f1d71000000002",
+          "task_blueprint": "sp_c4a5a1d15c00438a",
           "depends_on": [
-            "sr_03c1d71000000001"
+            "sr_a8f1d71000000001"
           ],
           "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "reflection_text": "$inputs.reflection_text"
+            "chat_log": "$inputs.chat_log",
+            "product_text": "$inputs.product_text"
           },
           "is_synthesis_source": false,
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_03c1d71000000002",
+          "id": "sr_a8f1d71000000003",
+          "task_blueprint": "sp_06c1d71000000001",
+          "depends_on": [
+            "sr_a8f1d71000000001",
+            "sr_a8f1d71000000002"
+          ],
+          "input_mappings": {
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "causal_source_step_id": "sr_a8f1d71000000002",
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_a8f1d71000000004",
           "task_blueprint": "sp_f22db9f1dde048b7",
           "depends_on": [
-            "sr_03c1d71000000001",
-            "sr_03c1d7100000ca03"
+            "sr_a8f1d71000000001"
           ],
           "input_mappings": {
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "causal_source_step_id": "sr_03c1d7100000ca03",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_03c1d71000000003",
-          "task_blueprint": "sp_b5c751d1cbe24735",
-          "depends_on": [
-            "sr_03c1d71000000001"
-          ],
-          "input_mappings": {
-            "chat_log": "$inputs.chat_log",
             "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_03c1d71000000004",
-          "task_blueprint": "sp_25664f44773a4354",
-          "depends_on": [
-            "sr_03c1d71000000001"
-          ],
-          "input_mappings": {
-            "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_03c1d71000000005",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_03c1d71000000002",
-            "sr_03c1d71000000003",
-            "sr_03c1d71000000004"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_03c1d71000000006",
-          "task_blueprint": "sp_d245365e4a274b9e",
-          "depends_on": [
-            "sr_03c1d71000000005"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_03c1d71000000005"
-          },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_03c1d71000000007",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
-          "depends_on": [
-            "sr_03c1d71000000006"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_03c1d71000000006",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
-            "assignment_context": "$inputs.assignment_context"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        }
-      ],
-      "historical_context_mode": "DISABLED"
-    },
-    {
-      "id": "wf_04a1d71000000004",
-      "slug": "faktantarkistus_tiedon_etsinta",
-      "name": {
-        "translations": {
-          "fi": "Faktantarkistus ja Tiedon Etsintä",
-          "en": "Fact-Checking & Empirical Research"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Tiedonhaun todennukseen, viitteiden eheyteen ja empiirisen aineiston verifiointiin tarkoitettu tutkiva työnkulku. Arvioi Tetlockin episteemisen nöyryyden kalibraation, ARMA-arkistostandardin ja Toulminin perustelumallin avulla, nojaako tutkimusraportti todennettuun maaperädataan ja paljastaako se hallusinaatiot.",
-          "en": "An investigative empirical evaluation workflow tailored for information retrieval verification, citation fidelity, and factual anchoring. Leverages Tetlock epistemic calibration, ARMA archival principles, and Toulmin warranting to verify claims against empirical ground truth."
-        }
-      },
-      "status": "active",
-      "version": 1,
-      "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_04b1d71000000004",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
-      "enable_contextual_overrides": true,
-      "enable_semantic_smoothing": false,
-      "enable_eager_anonymization": false,
-      "system_audit_trail": false,
-      "expected_inputs": [
-        {
-          "input_key": "source_evidence",
-          "label": {
-            "translations": {
-              "fi": "Lähdeaineisto ja Faktapohja",
-              "en": "Source Evidence & Ground Truth"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "assignment",
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Liitä tähän todennettu tausta-aineisto, viitedokumentti tai tutkimusdata (PDF-tiedostona tai tekstinä), johon lopputuotoksen väitteitä verrataan.",
-              "en": "Attach verified reference material, ground truth documents, or empirical research data (as PDF or text) against which deliverable claims are verified."
-            }
-          },
-          "ai_description": "GROUND TRUTH DIRECTIVE: Primary source material, verified documents, or reference data serving as empirical ground truth.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "chat_log",
-          "label": {
-            "translations": {
-              "fi": "Keskusteluhistoria (Chat)",
-              "en": "Conversation History (Chat)"
-            }
-          },
-          "required": true,
-          "is_chat_history": true,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Tiedonhaun ja lähteiden suodattamisen keskusteluhistoria PDF-tiedostona tai tekstinä leikepöydältä.",
-              "en": "Information retrieval dialogue showing search queries, filtering, and synthesis behavior as PDF or text."
-            }
-          },
-          "ai_description": "RETRIEVAL DIRECTIVE: Information retrieval dialogue showing search queries, filtering, and synthesis behavior.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "product_text",
-          "label": {
-            "translations": {
-              "fi": "Lopputuote",
-              "en": "Product / Deliverable"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": true,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Arvioitava tutkimusraportti, selvitys tai tuotosdokumentti (tiedostona tai tekstinä).",
-              "en": "Evaluated research summary, report, or findings document (as file or text)."
-            }
-          },
-          "ai_description": "EVIDENCE REPORT DIRECTIVE: Evaluated research summary, report, or findings document.",
-          "questionnaire_definition": []
-        }
-      ],
-      "steps": [
-        {
-          "id": "sr_04c1d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
-          "depends_on": [],
-          "input_mappings": {
-            "source_evidence": "$inputs.source_evidence",
-            "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000002",
-          "task_blueprint": "sp_76eedbc020274f66",
-          "depends_on": [
-            "sr_04c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "source_evidence": "$inputs.source_evidence"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000003",
-          "task_blueprint": "sp_7f9649114d2344dc",
-          "depends_on": [
-            "sr_04c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "source_evidence": "$inputs.source_evidence"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d7100000ca04",
-          "task_blueprint": "sp_04b1d7100000ca04",
-          "depends_on": [
-            "sr_04c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "source_evidence": "$inputs.source_evidence"
-          },
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000004",
-          "task_blueprint": "sp_8daee218c6b14f02",
-          "depends_on": [
-            "sr_04c1d71000000001",
-            "sr_04c1d7100000ca04"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "causal_source_step_id": "sr_04c1d7100000ca04",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000005",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_04c1d71000000002",
-            "sr_04c1d71000000003",
-            "sr_04c1d71000000004"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000006",
-          "task_blueprint": "sp_d245365e4a274b9e",
-          "depends_on": [
-            "sr_04c1d71000000005"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_04c1d71000000005"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_04c1d71000000007",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
-          "depends_on": [
-            "sr_04c1d71000000006"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_04c1d71000000006",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        }
-      ],
-      "historical_context_mode": "DISABLED"
-    },
-    {
-      "id": "wf_05a1d71000000005",
-      "slug": "hallinnollinen_eettinen_audit",
-      "name": {
-        "translations": {
-          "fi": "Hallinnollinen ja Eettinen Audit",
-          "en": "Compliance, Governance & Mandate Safety"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Lainsäädännöllisen vaatimustenmukaisuuden, eettisen mandaatin ja turvallisuusrajojen zero-trust -auditointiin erikoistunut työnkulku. Arvioi Taskguard-rajojen, selitettävyyden ja arkistointivelvoitteiden toteutumista vertaamalla tuotosta suoraan annettuun sääntelykehykseen.",
-          "en": "A zero-trust administrative compliance and mandate safety audit workflow. Evaluates policy actions against governing legal frameworks using Taskguard boundary enforcement, explainability standards, and regulatory retention mandates."
-        }
-      },
-      "status": "active",
-      "version": 1,
-      "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_05b1d71000000005",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
-      "security_penalty": 0.15,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
-      "enable_contextual_overrides": true,
-      "enable_semantic_smoothing": false,
-      "enable_eager_anonymization": false,
-      "system_audit_trail": false,
-      "expected_inputs": [
-        {
-          "input_key": "compliance_framework",
-          "label": {
-            "translations": {
-              "fi": "Sääntely- ja Hallintokehys",
-              "en": "Compliance & Governance Framework"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "assignment",
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Liitä tähän sovellettava lainsäädäntöstandardi, eettinen ohjeistus tai organisaatiopolitiikka (tiedostona tai tekstinä), jota vasten toimintaa auditoidaan.",
-              "en": "Attach the governing compliance standard, regulatory framework, or organizational policy (as file or text) against which policies and decisions are audited."
-            }
-          },
-          "ai_description": "MANDATE DIRECTIVE: The governing compliance standard, legal framework, or organizational policy.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "product_text",
-          "label": {
-            "translations": {
-              "fi": "Lopputuote",
-              "en": "Product / Deliverable"
-            }
-          },
-          "required": true,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": true,
-          "input_modes": [
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Arvioitava toimenpide, toimintaohje, päätösluonnos tai linjausteksti.",
-              "en": "Evaluated executive decision, operational guidelines, or automated policy draft."
-            }
-          },
-          "ai_description": "POLICY ACTION DIRECTIVE: Evaluated executive decision, operational guidelines, or automated policy draft.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "source_evidence",
-          "label": {
-            "translations": {
-              "fi": "Lähdeaineisto ja Faktapohja",
-              "en": "Source Evidence & Ground Truth"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "assignment",
-            "file",
-            "paste"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Valinnaiset sääntelyliitteet, auditointilogit tai täydentävät tausta-asiakirjat.",
-              "en": "Optional annexes, audit logs, or supplementary regulatory context."
-            }
-          },
-          "ai_description": "SUPPORTING EVIDENCE DIRECTIVE: Optional annexes, audit logs, or supplementary context.",
-          "questionnaire_definition": []
-        }
-      ],
-      "steps": [
-        {
-          "id": "sr_05c1d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
-          "depends_on": [],
-          "input_mappings": {
-            "compliance_framework": "$inputs.compliance_framework",
-            "product_text": "$inputs.product_text",
-            "source_evidence": "$inputs.source_evidence"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d71000000002",
-          "task_blueprint": "sp_ddb7cf7c8a0245d4",
-          "depends_on": [
-            "sr_05c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "compliance_framework": "$inputs.compliance_framework"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d7100000ca05",
-          "task_blueprint": "sp_05b1d7100000ca05",
-          "depends_on": [
-            "sr_05c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "source_evidence": "$inputs.source_evidence"
-          },
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d71000000003",
+          "id": "sr_a8f1d71000000005",
           "task_blueprint": "sp_dfc365994fa944b2",
           "depends_on": [
-            "sr_05c1d71000000001",
-            "sr_05c1d7100000ca05"
+            "sr_a8f1d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
-            "compliance_framework": "$inputs.compliance_framework"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "causal_source_step_id": "sr_05c1d7100000ca05",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d71000000004",
-          "task_blueprint": "sp_7f9649114d2344dc",
-          "depends_on": [
-            "sr_05c1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "compliance_framework": "$inputs.compliance_framework"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d71000000005",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_05c1d71000000002",
-            "sr_05c1d71000000003",
-            "sr_05c1d71000000004"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_05c1d71000000006",
-          "task_blueprint": "sp_d245365e4a274b9e",
-          "depends_on": [
-            "sr_05c1d71000000005"
-          ],
-          "input_mappings": {
-            "results": "$steps.sr_05c1d71000000005"
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
@@ -22042,13 +21058,46 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_05c1d71000000007",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "id": "sr_a8f1d71000000006",
+          "task_blueprint": "sp_8daee218c6b14f02",
           "depends_on": [
-            "sr_05c1d71000000006"
+            "sr_a8f1d71000000001"
           ],
           "input_mappings": {
-            "results": "$steps.sr_05c1d71000000006",
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_a8f1d71000000007",
+          "task_blueprint": "sp_d245365e4a274b9e",
+          "depends_on": [
+            "sr_a8f1d71000000003",
+            "sr_a8f1d71000000004",
+            "sr_a8f1d71000000005",
+            "sr_a8f1d71000000006"
+          ],
+          "input_mappings": {
+            "results": "$steps"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_a8f1d71000000008",
+          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "depends_on": [
+            "sr_a8f1d71000000007"
+          ],
+          "input_mappings": {
+            "results": "$steps.sr_a8f1d71000000007",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
@@ -22060,37 +21109,61 @@
       "historical_context_mode": "DISABLED"
     },
     {
-      "id": "wf_06a1d71000000001",
-      "slug": "tekoalyn_kayton_ja_ohjauksen_auditointi",
+      "id": "wf_b9e2d71000000002",
+      "slug": "tekoalyohjauksen_ja_kognition_ydinauditointi",
       "name": {
         "translations": {
-          "fi": "Tekoälyn Käytön ja Ohjauksen Auditointi",
-          "en": "Human-AI Collaboration & Steering Audit"
+          "fi": "Tekoälyohjauksen ja Kognition Ydinauditointi",
+          "en": "AI Steering & Cognitive Core Audit"
         }
       },
       "description": {
         "translations": {
-          "fi": "Työnkulku, joka arvioi ihmisen tekemää ohjausta, kyseenalaistamista ja reflektointia tekoälyvuorovaikutuksessa. Keskittyy prosessiin ja vuorovaikutuksen laatuun lopputuotteen lisäksi.",
-          "en": "Workflow auditing human steering, critical questioning, and reflection in AI collaboration. Evaluates the interaction process and curation rather than assuming human authorship of the final deliverable."
+          "fi": "Ketterä 4-matriisin ydinauditointiketju, joka arvioi tekoälyohjauksen, analyyttisen syvyyden, argumentaatiotarkkuuden ja avoimuuden ilman kausaalilaskennan viivettä.",
+          "en": "Agile 4-matrix core audit chain evaluating AI steering agency, analytical depth, argument rigor, and transparency without causal graph overhead."
         }
       },
       "status": "active",
       "version": 1,
       "is_public": true,
-      "organization_id": "SYSTEM",
-      "default_profile_id": "prf_06b1d71000000001",
+      "default_profile_id": "prf_b9e2d71000000002",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "model_registry_id": "sys_e26807f3bfa3454d",
-      "default_strictness_level": 50,
+      "default_strictness_level": 0,
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
       "passivity_penalty": 0.0,
       "enable_contextual_overrides": true,
-      "enable_semantic_smoothing": true,
-      "enable_eager_anonymization": true,
+      "enable_semantic_smoothing": false,
+      "enable_eager_anonymization": false,
       "system_audit_trail": true,
       "expected_inputs": [
         {
+          "input_key": "product_text",
+          "label": {
+            "translations": {
+              "fi": "Lopputuote",
+              "en": "Product"
+            }
+          },
+          "required": false,
+          "is_chat_history": false,
+          "scan_for_performative_patterns": true,
+          "is_endorsed_deliverable": true,
+          "input_modes": [
+            "file",
+            "paste"
+          ],
+          "description": {
+            "translations": {
+              "fi": "Tähän liitetään auditoitavan prosessin varsinainen tuotos (esim. PDF-dokumentti tai suora teksti).",
+              "en": "Attach the final output of the audited process (e.g. PDF document or plain text)."
+            }
+          },
+          "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the final target output of the audited process. It must be evaluated strictly on its own merits without assuming any external context or hidden intentions. Treat this as the definitive end-result of the cognitive process.",
+          "questionnaire_definition": []
+        },
+        {
           "input_key": "chat_log",
           "label": {
             "translations": {
@@ -22108,19 +21181,19 @@
           ],
           "description": {
             "translations": {
-              "fi": "Tähän liitetään käyttäjän ja tekoälyn välinen keskusteluloki, josta analysoidaan ohjauksen ja kehystyksen laatua.",
-              "en": "Attach the conversation history between user and AI to audit steering and framing quality."
+              "fi": "Tuo keskustelu käyttämäsi tekoälyn (esim. ChatGPT, Google Gemini, Claude) kanssa PDF-tiedostona tai liitä se suoraan tekstinä leikepöydältä.",
+              "en": "Attach conversation with your AI tool (e.g. ChatGPT, Google Gemini, Claude) as a PDF file or paste directly as text from clipboard."
             }
           },
-          "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the interactive conversation history. Evaluate user prompts strictly for steering, framing, and questioning.",
+          "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
           "questionnaire_definition": []
         },
         {
-          "input_key": "product_text",
+          "input_key": "reflection_text",
           "label": {
             "translations": {
-              "fi": "Lopputuote",
-              "en": "Product Deliverable"
+              "fi": "Reflektiodokumentti",
+              "en": "Reflection"
             }
           },
           "required": false,
@@ -22133,89 +21206,53 @@
           ],
           "description": {
             "translations": {
-              "fi": "Valinnainen lopputuote, josta arvioidaan kausaalisia väitteitä ja kuraation autenttisuutta.",
-              "en": "Optional final deliverable used to audit causal arguments and authentic curation."
+              "fi": "Vastaa lyhyesti reflektiokysymyksiin tai liitä oppimispäiväkirja (tiedostona tai tekstinä).",
+              "en": "Answer reflection questions briefly or attach learning journal (as file or text)."
             }
           },
-          "ai_description": "SOURCE EVIDENCE DIRECTIVE: Final deliverable. Evaluate causal claims and determine derivation from conversation history.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "reflection_text",
-          "label": {
-            "translations": {
-              "fi": "Käyttäjän reflektio",
-              "en": "User Reflection"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": true,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste",
-            "text"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Käyttäjän itsearviointi ja reflektio prosessista, josta arvioidaan metakognitiivista kalibrointia.",
-              "en": "User's self-reflection on the process, evaluated for metacognitive calibration."
-            }
-          },
-          "ai_description": "SOURCE EVIDENCE DIRECTIVE: User reflection on interaction. Used to calibrate metacognitive self-awareness.",
-          "questionnaire_definition": []
-        },
-        {
-          "input_key": "assignment_context",
-          "label": {
-            "translations": {
-              "fi": "Tehtävänanto ja reunaehdot",
-              "en": "Assignment & Guidelines"
-            }
-          },
-          "required": false,
-          "is_chat_history": false,
-          "scan_for_performative_patterns": false,
-          "is_endorsed_deliverable": false,
-          "input_modes": [
-            "file",
-            "paste",
-            "assignment"
-          ],
-          "description": {
-            "translations": {
-              "fi": "Tehtävänanto ja reunaehdot, jotka ohjaavat arvioinnin kontekstia mutta joita ei lainata todisteina.",
-              "en": "Assignment brief and instructions providing normative boundaries."
-            }
-          },
-          "ai_description": "SOURCE EVIDENCE DIRECTIVE: Assignment criteria. Strictly quarantined from quote extraction.",
+          "ai_description": "META-COGNITIVE EVIDENCE DIRECTIVE: This artifact contains the human operator's post-hoc reflection on the interaction. Analyze this to establish the operator's self-awareness, critical distance, and theoretical grounding regarding the process. Evaluate if the reflection aligns transparently with the actual events logged in the chat history.",
           "questionnaire_definition": []
         }
       ],
       "steps": [
         {
-          "id": "sr_06c1d71000000001",
+          "id": "sr_b9e2d71000000001",
           "task_blueprint": "sp_db849f9790984585",
           "depends_on": [],
           "input_mappings": {
-            "chat_log": "$inputs.chat_log",
             "product_text": "$inputs.product_text",
-            "reflection_text": "$inputs.reflection_text",
-            "assignment_context": "$inputs.assignment_context"
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
           },
           "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
+          "is_synthesis_source": false,
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_06c1d71000000002",
+          "id": "sr_b9e2d71000000002",
           "task_blueprint": "sp_06c1d71000000001",
           "depends_on": [
-            "sr_06c1d71000000001"
+            "sr_b9e2d71000000001"
           ],
           "input_mappings": {
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "causal_source_step_id": null,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_b9e2d71000000003",
+          "task_blueprint": "sp_f22db9f1dde048b7",
+          "depends_on": [
+            "sr_b9e2d71000000001"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
@@ -22225,15 +21262,15 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_06c1d71000000003",
-          "task_blueprint": "sp_bd0b3054fe664960",
+          "id": "sr_b9e2d71000000004",
+          "task_blueprint": "sp_dfc365994fa944b2",
           "depends_on": [
-            "sr_06c1d71000000001"
+            "sr_b9e2d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
             "chat_log": "$inputs.chat_log",
-            "assignment_context": "$inputs.assignment_context"
+            "reflection_text": "$inputs.reflection_text"
           },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
@@ -22241,62 +21278,32 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_06c1d7100000ca06",
-          "task_blueprint": "sp_06b1d7100000ca06",
+          "id": "sr_b9e2d71000000005",
+          "task_blueprint": "sp_8daee218c6b14f02",
           "depends_on": [
-            "sr_06c1d71000000001"
+            "sr_b9e2d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log"
-          },
-          "is_synthesis_source": false,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_06c1d71000000004",
-          "task_blueprint": "sp_25664f44773a4354",
-          "depends_on": [
-            "sr_06c1d71000000001"
-          ],
-          "input_mappings": {
             "chat_log": "$inputs.chat_log",
-            "product_text": "$inputs.product_text",
             "reflection_text": "$inputs.reflection_text"
           },
-          "expected_sdui_type": "markdown",
+          "expected_sdui_type": "grid",
           "is_synthesis_source": true,
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_06c1d71000000005",
-          "task_blueprint": "sp_192910b5f5a34c79",
-          "depends_on": [
-            "sr_06c1d71000000002",
-            "sr_06c1d71000000003",
-            "sr_06c1d7100000ca06",
-            "sr_06c1d71000000004"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": false,
-          "causal_source_step_id": "sr_06c1d7100000ca06",
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_06c1d71000000006",
+          "id": "sr_b9e2d71000000006",
           "task_blueprint": "sp_d245365e4a274b9e",
           "depends_on": [
-            "sr_06c1d71000000005",
-            "sr_06c1d71000000004"
+            "sr_b9e2d71000000002",
+            "sr_b9e2d71000000003",
+            "sr_b9e2d71000000004",
+            "sr_b9e2d71000000005"
           ],
           "input_mappings": {
-            "results": "$steps.sr_06c1d71000000005"
+            "results": "$steps"
           },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
@@ -22304,14 +21311,13 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_06c1d71000000007",
+          "id": "sr_b9e2d71000000007",
           "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
           "depends_on": [
-            "sr_06c1d71000000006",
-            "sr_06c1d71000000004"
+            "sr_b9e2d71000000006"
           ],
           "input_mappings": {
-            "results": "$steps.sr_06c1d71000000006",
+            "results": "$steps.sr_b9e2d71000000006",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
@@ -23560,7 +22566,6 @@
         "label",
         "distribution",
         "row_explanation",
-        "criteria",
         "normalized_score"
       ],
       "visible_block_extensions": [
@@ -23693,573 +22698,47 @@
       "content_blocks": [],
       "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_53f32679aa514fcb",
-      "user_role_target_block": "blk_53f32679aa514fcb"
+      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
     },
     {
-      "id": "prf_01b1d71000000001",
-      "slug": "tekoalyajokortti_vuorovaikutus_ohjaus_profiili",
-      "workflow_id": "wf_01a1d71000000001",
+      "id": "prf_a8f1d71000000001",
+      "slug": "tekoalyohjauksen_ja_argumentaation_tasmaauditointi_profiili",
+      "workflow_id": "wf_a8f1d71000000001",
       "organization_id": "SYSTEM",
       "name": {
         "translations": {
-          "fi": "Tekoälyajokortti: Vuorovaikutus ja Ohjaus",
-          "en": "AI Driving License: Interaction & Steering"
+          "fi": "Tekoälyohjauksen ja Argumentaation Täsmäauditointi",
+          "en": "Targeted AI Steering & Argumentation Audit"
         }
       },
       "description": {
         "translations": {
-          "fi": "Ketterä arviointiraportti arjen promptaus- ja ohjausosaamisen todentamiseen.",
-          "en": "Agile evaluation report verifying foundational human-AI interaction and prompting competencies."
-        }
-      },
-      "custom_preface": {
-        "translations": {
-          "fi": "**Tekoälyajokortti: Vuorovaikutus ja Ohjaus**\n\nTämä raportti mittaa ja todentaa käytännön vuorovaikutustaitojasi generatiivisen tekoälyn ohjaajana. Arviointi keskittyy kolmeen keskeiseen kyvykkyysalueeseen:\n\n- **Kehotemuotoilu**: Kuinka täsmällisesti, kontekstitietoisesti ja tavoitteellisesti muotoilet syötteesi?\n- **Iteratiivinen ohjaus**: Miten ohjaat tekoälyn päättelyä ja korjaat sen suuntaa vuorovaikutuksen edetessä?\n- **Kriittinen validointi**: Miten tunnistat tekoälyn harhautumat ja varmistat lopputuloksen laadun (Human-in-the-Loop)?\n\nArviointi pohjautuu Goodhartin lain ja Toulminin argumentaatiomallin periaatteisiin. Raportin konkreettiset kehitysvinkit auttavat sinua siirtymään passiivisesta vastaanottajasta aktiiviseksi tekoälyn strategiseksi ohjaajaksi.",
-          "en": "**AI Driving License: Interaction & Steering**\n\nThis report measures and verifies your practical interaction skills as a director of generative AI systems. The evaluation focuses on three key competency areas:\n\n- **Prompt Engineering**: How precisely, context-sensitively, and purposefully do you formulate your inputs?\n- **Iterative Steering**: How do you steer AI reasoning and calibrate direction across multi-turn interactions?\n- **Critical Validation**: How do you detect model hallucinations and verify output quality (Human-in-the-Loop)?\n\nThe evaluation is grounded in Goodhart's law and Toulmin's argumentation framework. The actionable coaching takeaways in this report help you shift from a passive passenger to an active, strategic AI director."
-        }
-      },
-      "tone_instruction": "Act as an encouraging and structured AI interaction coach. Provide concrete prompt refactorings, iterative steering strategies, and tactical interaction guidance.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the user's fundamental prompt interaction competency, iterative steering habits, and critical evaluation of AI responses.\n- Structure the summary into clear, encouraging coaching paragraphs highlighting user agency (Driver vs Passenger).\n- Clearly identify primary prompting strengths, passive acceptance vulnerabilities, and immediate actionable improvement areas.",
-      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Evaluate Goodhart prompt steering discipline and Toulmin argumentation rigor as distinct competency dimensions.\n- For each dimension, explain the observed performance level and provide a practical, high-impact prompting recommendation.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, single-sentence causal explanation for each evaluated matrix row score.\n- Ground the justification directly in the user's prompt wording or deliverable text evidence.",
-      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize diagnostic extensions, prompt reformulation tips, and interactive steering techniques.\n- Highlight concrete examples of how to pivot from passive acceptance to proactive AI steering.",
-      "visible_metadata": [
-        "date",
-        "execution_id",
-        "organization",
-        "user",
-        "scoring_engine",
-        "strictness"
-      ],
-      "matrix_visible_columns": [
-        "label",
-        "distribution",
-        "row_explanation",
-        "criteria",
-        "normalized_score"
-      ],
-      "visible_block_extensions": [
-        "justification",
-        "coaching",
-        "falsification",
-        "remediation_steps"
-      ],
-      "visible_workflow_extensions": [],
-      "max_extension_items": 3,
-      "display_scale": "original",
-      "synthesis_length_constraint": 1000,
-      "row_explanation_length_constraint": 250,
-      "xai_length_constraint": 300,
-      "matrix_graph_length_constraint": 400,
-      "target_block_order": [
-        "metadata_block",
-        "global_score_block",
-        "executive_summary_block",
-        "matrix_graphs_block",
-        "grouped_extensions_block",
-        "printable_sources_block"
-      ],
-      "matrix_synthesis_groups": [
-        {
-          "id": "grp_01e1d71000000001",
-          "title": {
-            "translations": {
-              "fi": "Ohjausdynamiikka",
-              "en": "Steering Dynamics"
-            }
-          },
-          "target_blocks": [
-            "blk_53f32679aa514fcb"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_01e1d71000000002",
-          "title": {
-            "translations": {
-              "fi": "Argumentaatiolujuus",
-              "en": "Argumentation Rigor"
-            }
-          },
-          "target_blocks": [
-            "blk_440a5fef9331451b"
-          ],
-          "view_type": "1d_metrics"
-        }
-      ],
-      "content_blocks": [],
-      "show_sources_summary_box": false,
-      "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_53f32679aa514fcb",
-      "user_role_target_block": "blk_53f32679aa514fcb"
-    },
-    {
-      "id": "prf_02b1d71000000002",
-      "slug": "strateginen_johtaminen_paatoksenteko_profiili",
-      "workflow_id": "wf_02a1d71000000002",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Strateginen Johtaminen ja Päätöksenteko",
-          "en": "Strategic Leadership & Decision Making"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Johdon strateginen analyysi- ja sparrausraportti päätöksenteon ja kausaalivaikutusten tueksi.",
-          "en": "Executive strategic analysis and coaching report evaluating decision quality and causal trade-offs."
-        }
-      },
-      "custom_preface": {
-        "translations": {
-          "fi": "**Strateginen Johtaminen ja Päätöksenteko**\n\nTämä raportti tarjoaa johdon strategisen analyysin päätöksenteon laadusta, skenaarioajattelusta ja kausaalivaikutusten hallinnasta. Arviointi pureutuu kolmeen strategiseen ulottuvuuteen:\n\n- **Skenaariolujuus**: Miten kattavasti vaihtoehtoiset tulevaisuusskenaariot ja markkinadynamiikat on huomioitu?\n- **Kausaalivaikutukset**: Tunnistatko toisen ja kolmannen asteen järjestelmävaikutukset sekä piilevät riippuvuudet?\n- **Päätöksenteon ankkurointi**: Miten vankasti strategiset valinnat on perusteltu ja suojattu kognitiivisilta harhoilta?\n\nAnalyysi perustuu systeemidynamiikkaan ja Judea Pearlin kausaalipäättelyn teoriaan. Raportti toimii johdon sparraustyökaluna strategisten riskien tunnistamisessa ja hallitustasoisen päätöksenteon kirkastamisessa.",
-          "en": "**Strategic Leadership & Decision Making**\n\nThis report provides an executive-level strategic analysis of decision quality, scenario planning, and causal impact governance. The evaluation investigates three strategic dimensions:\n\n- **Scenario Robustness**: How comprehensively are alternative future scenarios and market dynamics accounted for?\n- **Causal Impacts**: Do you identify second- and third-order systemic effects and hidden dependencies?\n- **Decision Anchoring**: How soundly are strategic choices substantiated and shielded against cognitive biases?\n\nThe analysis is grounded in systems dynamics and Judea Pearl's theory of causal inference. The report serves as an executive sparring tool for uncovering strategic blind spots and elevating board-level decision-making."
-        }
-      },
-      "tone_instruction": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis on organizational realities and decision impacts.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize executive-level decision quality, strategic foresight, causal intervention robustness, and vulnerability to falsification.\n- Highlight organizational trade-offs, systemic risks, and governance implications in authoritative executive prose.\n- Provide strategic counsel on strengthening executive steering and refuting unspoken organizational assumptions.",
-      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze systemic tension and cross-dimensional trade-offs between prompt steering and claim backing (Goodhart vs Toulmin), and between causal mechanisms and empirical falsification (Pearl vs Popper).\n- Highlight strategic alignment, blind spots, and points of structural leverage across axes.",
-      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Provide a deep qualitative exploration of the executive deliverable and strategic sparring dialogue.\n- Detail the sophistication of organizational context integration, dilemma navigation, and leadership intentionality.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate an incisive causal explanation for each score, grounded in the strategic memorandum and dialogue evidence.\n- Articulate the operational and strategic impact of the observed reasoning.",
-      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize executive risk mitigation options, stress-testing protocols, and organizational governance interventions.\n- Detail high-leverage recommendations for executive board and strategy committee presentations.",
-      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate cognitive variance to differentiate authentic strategic deliberation from performative corporate jargon.\n- Assess whether policy proposals exhibit genuine conceptual depth and structural realism.",
-      "visible_metadata": [
-        "date",
-        "execution_id",
-        "organization",
-        "user",
-        "scoring_engine",
-        "strictness"
-      ],
-      "matrix_visible_columns": [
-        "label",
-        "distribution",
-        "row_explanation",
-        "criteria",
-        "normalized_score"
-      ],
-      "visible_block_extensions": [
-        "justification",
-        "coaching",
-        "falsification",
-        "remediation_steps"
-      ],
-      "visible_workflow_extensions": [
-        "variance_validation"
-      ],
-      "max_extension_items": 3,
-      "display_scale": "original",
-      "synthesis_length_constraint": 1000,
-      "row_explanation_length_constraint": 250,
-      "xai_length_constraint": 300,
-      "variance_length_constraint": 500,
-      "matrix_graph_length_constraint": 400,
-      "target_block_order": [
-        "metadata_block",
-        "executive_summary_block",
-        "global_score_block",
-        "synthesis_text_block",
-        "matrix_graphs_block",
-        "grouped_extensions_block",
-        "penalties_block",
-        "matrix_summary_table_block",
-        "variance_validation_block",
-        "printable_sources_block"
-      ],
-      "matrix_synthesis_groups": [
-        {
-          "id": "grp_02e1d71000000001",
-          "title": {
-            "translations": {
-              "fi": "Strateginen lujuus ja ohjaus",
-              "en": "Strategic Rigor & Steering"
-            }
-          },
-          "target_blocks": [
-            "blk_53f32679aa514fcb",
-            "blk_440a5fef9331451b"
-          ],
-          "view_type": "2d_compare"
-        },
-        {
-          "id": "grp_02e1d71000000002",
-          "title": {
-            "translations": {
-              "fi": "Kausaalisuus ja haavoittuvuudet",
-              "en": "Causality & Vulnerabilities"
-            }
-          },
-          "target_blocks": [
-            "blk_c5804a9143c34cb1",
-            "blk_b476f89fb732448c"
-          ],
-          "view_type": "2d_compare"
-        }
-      ],
-      "content_blocks": [],
-      "show_sources_summary_box": false,
-      "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_53f32679aa514fcb",
-      "user_role_target_block": "blk_53f32679aa514fcb"
-    },
-    {
-      "id": "prf_03b1d71000000003",
-      "slug": "syvallinen_ongelmanratkaisu_kognitio_profiili",
-      "workflow_id": "wf_03a1d71000000003",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Syvällinen Ongelmanratkaisu ja Kognitio",
-          "en": "Deep Problem Solving & Cognition"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Kognitiivisen syvyyden ja luovan ongelmanratkaisun auditointiraportti.",
-          "en": "Cognitive depth and creative problem-solving audit report."
-        }
-      },
-      "custom_preface": {
-        "translations": {
-          "fi": "**Syvällinen Ongelmanratkaisu ja Kognitio**\n\nTämä raportti auditoi kognitiivista syvyyttä, ongelmanratkaisun arkkitehtuuria ja ajattelun luovaa kitkaa. Arvioinnissa analysoidaan kolmea ajattelun tasoa:\n\n- **Käsitteellinen syvyys**: Pureudutaanko ongelman juurisyihin ja perusoletuksiin (First Principles) pintatason sijaan?\n- **Lateraalinen ajattelu**: Miten luovasti ja ennakkoluulottomasti eri näkökulmia ja ratkaisupolkuja yhdistellään?\n- **Kognitiiviset vinoumat**: Tunnistetaanko heuristiset oikotiet, vahvistusharhat ja ajattelun sokeat pisteet?\n\nPohjana käytetään Kahnemanin kaksoisprosessiteoriaa (Systeemi 1 ja 2) sekä Bloomin taksonomian ylemmän tason synteesikykyä. Raportti haastaa kognitiivista mukavuusaluettasi ja tukee läpimurtoinnovaatioiden syntymistä.",
-          "en": "**Deep Problem Solving & Cognition**\n\nThis report audits cognitive depth, problem-solving architecture, and the generative friction of creative thought. The evaluation analyzes three levels of cognition:\n\n- **Conceptual Depth**: Do you investigate root causes and foundational assumptions (First Principles) rather than surface symptoms?\n- **Lateral Thinking**: How creatively and unconstrainedly do you synthesize diverse perspectives and solution vectors?\n- **Cognitive Biases**: Are heuristic shortcuts, confirmation bias, and cognitive blind spots actively recognized?\n\nGrounded in Kahneman's dual-process theory (System 1 and 2) and Bloom's taxonomy of higher-order cognitive synthesis. This report challenges your intellectual comfort zone to foster breakthrough paradigm shifts."
-        }
-      },
-      "tone_instruction": "Act as a Cognitive Strategy and Innovation Coach. Challenge underlying assumptions, diagnose cognitive blind spots, and foster breakthrough ideation with constructive provocation.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize cognitive problem-solving architecture, epistemic depth, and conceptual innovation across ideation arcs.\n- Evaluate the balance between fast heuristic intuition (System 1) and deliberative analytic rigor (System 2).\n- Pinpoint breakthrough conceptual leaps, cognitive fixation risks, and metacognitive awareness.",
-      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Synthesize the holistic cognitive geometry across Bloom taxonomy creation, Kahneman dual-process deliberation, and Goodhart steering discipline.\n- Diagnose cognitive imbalances, intellectual comfort zones, and structural dimensions requiring deeper cognitive strain.",
-      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a qualitative deep-dive synthesis into creative architecture and conceptual friction.\n- Highlight breakthrough ideation pivots and cognitive framing evolution.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a precise cognitive explanation for each row score, citing specific mental model pivots, heuristic traps, or conceptual synthesis evidence.",
-      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Provide diagnostic insights into cognitive blind spots, intellectual bias mitigation techniques, and creative reframing methods.\n- Outline concrete exercises to elevate problem framing from operational synthesis to paradigm creation.",
-      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Audit cognitive variance to detect authentic epistemic struggle versus regurgitated boilerplate patterns.\n- Validate cognitive authenticity through lexical novelty and intellectual friction markers.",
-      "visible_metadata": [
-        "date",
-        "execution_id",
-        "organization",
-        "user",
-        "scoring_engine",
-        "strictness"
-      ],
-      "matrix_visible_columns": [
-        "label",
-        "distribution",
-        "row_explanation",
-        "criteria",
-        "normalized_score"
-      ],
-      "visible_block_extensions": [
-        "justification",
-        "coaching",
-        "falsification",
-        "remediation_steps"
-      ],
-      "visible_workflow_extensions": [
-        "variance_validation"
-      ],
-      "max_extension_items": 3,
-      "display_scale": "original",
-      "synthesis_length_constraint": 1000,
-      "row_explanation_length_constraint": 250,
-      "xai_length_constraint": 300,
-      "variance_length_constraint": 500,
-      "matrix_graph_length_constraint": 400,
-      "target_block_order": [
-        "metadata_block",
-        "executive_summary_block",
-        "global_score_block",
-        "synthesis_text_block",
-        "matrix_graphs_block",
-        "grouped_extensions_block",
-        "matrix_summary_table_block",
-        "variance_validation_block",
-        "printable_sources_block"
-      ],
-      "matrix_synthesis_groups": [
-        {
-          "id": "grp_03e1d71000000001",
-          "title": {
-            "translations": {
-              "fi": "Kognitiivinen syvyys ja heuristiikat",
-              "en": "Cognitive Depth & Heuristics"
-            }
-          },
-          "target_blocks": [
-            "blk_f921c7c0989b47e8",
-            "blk_109dab5b6b3f403a",
-            "blk_53f32679aa514fcb"
-          ],
-          "view_type": "3d_matrix"
-        }
-      ],
-      "content_blocks": [],
-      "show_sources_summary_box": false,
-      "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_53f32679aa514fcb",
-      "user_role_target_block": "blk_53f32679aa514fcb"
-    },
-    {
-      "id": "prf_04b1d71000000004",
-      "slug": "faktantarkistus_tiedon_etsinta_profiili",
-      "workflow_id": "wf_04a1d71000000004",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Faktantarkistus ja Tiedon Etsintä",
-          "en": "Fact-Checking & Empirical Research"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Tutkiva faktantarkistusraportti lähdeviitteiden, empiirisen näytön ja luotettavuuden varmistamiseen.",
-          "en": "Investigative fact-checking report verifying citation integrity, empirical evidence, and factual reliability."
-        }
-      },
-      "custom_preface": {
-        "translations": {
-          "fi": "**Faktantarkistus ja Tiedon Etsintä**\n\nTämä raportti toimii tutkivana auditointina tiedon luotettavuuden, lähdekritiikin ja empiirisen näytön todentamiseksi. Arviointi tarkastelee kolmea tiedon eheyden pilaria:\n\n- **Lähdekritiikki**: Ovatko käytetyt lähteet primaareja, vertaisarvioituja ja riippumattomasti todennettavissa?\n- **Hallusinaatioiden paljastaminen**: Erotetaanko faktapohjainen todistusaineisto tekoälyn keksimistä väitteistä ja vääristymistä?\n- **Episteeminen tarkkuus**: Vastaako väitteiden varmuusaste suoraan niille esitettyä empiiristä näyttöä (Epistemic Humility)?\n\nAuditointi perustuu Karl Popperin falsifioitavuuskriteeriin ja tieteellisen tiedonhankinnan periaatteisiin. Raportti antaa armottoman ja lahjomattoman kuvan tuotoksen luotettavuudesta ja lähdeviitteiden eheydestä.",
-          "en": "**Fact-Checking & Empirical Research**\n\nThis report functions as an investigative audit verifying evidentiary integrity, source criticism, and empirical grounding. The evaluation examines three pillars of informational truth:\n\n- **Source Criticism**: Are referenced sources primary, peer-reviewed, and independently verifiable?\n- **Hallucination Detection**: Is factual evidence rigorously separated from AI confabulations and synthetic distortions?\n- **Epistemic Calibration**: Does the degree of asserted certainty correspond strictly to the empirical evidence presented?\n\nGrounded in Karl Popper's falsification criterion and the epistemological principles of empirical research. This report delivers an uncompromising audit of research reliability and evidentiary integrity."
-        }
-      },
-      "tone_instruction": "Act as an Investigative Auditor and Fact-Checking Specialist. Uncompromisingly uncover hallucinations, ungrounded confidence claims, and citation deficiencies with epistemic skepticism.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize empirical truth-seeking rigor, evidentiary verification status, and citation integrity across the research product.\n- Highlight verified factual claims, ungrounded assertions, epistemic overconfidence anomalies, and source provenance fidelity.\n- Deliver an uncompromising investigative verdict on the factual reliability of the evaluated work.",
-      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Independently evaluate Epistemic Humility calibration, Archival citation completeness, and Toulmin evidential warranting.\n- Detail exact evidentiary vulnerabilities, unsupported certainty claims, and documentation gaps for each evaluated axis.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a strict evidentiary justification for each score, explicitly contrasting verified source evidence against evaluated deliverable claims.",
-      "visible_metadata": [
-        "date",
-        "execution_id",
-        "organization",
-        "user",
-        "scoring_engine",
-        "strictness"
-      ],
-      "matrix_visible_columns": [
-        "label",
-        "distribution",
-        "row_explanation",
-        "criteria",
-        "normalized_score"
-      ],
-      "visible_block_extensions": [
-        "justification",
-        "coaching",
-        "falsification",
-        "remediation_steps"
-      ],
-      "visible_workflow_extensions": [],
-      "max_extension_items": 3,
-      "display_scale": "original",
-      "synthesis_length_constraint": 1000,
-      "row_explanation_length_constraint": 250,
-      "matrix_graph_length_constraint": 400,
-      "target_block_order": [
-        "metadata_block",
-        "executive_summary_block",
-        "global_score_block",
-        "matrix_graphs_block",
-        "matrix_summary_table_block",
-        "printable_sources_block"
-      ],
-      "matrix_synthesis_groups": [
-        {
-          "id": "grp_04e1d71000000001",
-          "title": {
-            "translations": {
-              "fi": "Episteeminen kalibraatio",
-              "en": "Epistemic Calibration"
-            }
-          },
-          "target_blocks": [
-            "blk_22e3598e06414409"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_04e1d71000000002",
-          "title": {
-            "translations": {
-              "fi": "Arkistollinen eheys",
-              "en": "Archival Integrity"
-            }
-          },
-          "target_blocks": [
-            "blk_fb15f8dcf23f4865"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_04e1d71000000003",
-          "title": {
-            "translations": {
-              "fi": "Argumentaatiolujuus",
-              "en": "Argumentation Rigor"
-            }
-          },
-          "target_blocks": [
-            "blk_440a5fef9331451b"
-          ],
-          "view_type": "1d_metrics"
-        }
-      ],
-      "content_blocks": [],
-      "show_sources_summary_box": true,
-      "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_22e3598e06414409"
-    },
-    {
-      "id": "prf_05b1d71000000005",
-      "slug": "hallinnollinen_eettinen_audit_profiili",
-      "workflow_id": "wf_05a1d71000000005",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Hallinnollinen ja Eettinen Audit",
-          "en": "Compliance, Governance & Mandate Safety"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Riippumaton compliance- ja turvallisuusauditointiraportti säännöstenmukaisuuden valvontaan.",
-          "en": "Independent compliance and safety audit report evaluating regulatory adherence and mandate containment."
-        }
-      },
-      "custom_preface": {
-        "translations": {
-          "fi": "**Hallinnollinen ja Eettinen Audit**\n\nTämä raportti tarjoaa riippumattoman ja neutraalin auditointiarvion toiminnan säännöstenmukaisuudesta, eettisistä reunaehdoista ja mandaattiturvallisuudesta. Arviointi kohdistuu kolmeen valvonta-alueeseen:\n\n- **Mandaatin noudattaminen**: Pysyykö toiminta annettujen toimivaltuuksien ja ohjeistettujen tehtävärajojen sisällä?\n- **Sääntely ja compliance**: Täyttyvätkö sovellettavat säädökset, tietosuojavaatimukset ja eettiset reunaehdot (mm. EU AI Act)?\n- **Läpinäkyvyys ja jäljitettävyys**: Onko jokainen päätös ja toimenpide auditoitavissa ja todennettavissa historiatietojen perusteella?\n\nAuditointi soveltaa zero-trust -periaatetta ja viranomaistason valvontastandardeja. Raportti luo selkeän tilannekuvan sääntelyriskeistä, poikkeamista sekä vaadittavista hallinnollisista korjaustoimenpiteistä.",
-          "en": "**Compliance, Governance & Mandate Safety**\n\nThis report provides an independent, neutral audit assessment of regulatory compliance, ethical boundaries, and mandate safety. The evaluation focuses on three governance areas:\n\n- **Mandate Containment**: Does execution remain strictly within designated authority limits and operational boundaries?\n- **Regulatory Compliance**: Are statutory governance frameworks, privacy standards, and ethical mandates (e.g. EU AI Act) fulfilled?\n- **Transparency & Traceability**: Is every decision and procedural step auditable and verifiable through immutable audit trails?\n\nApplying a zero-trust posture and administrative regulatory standards, this report establishes an objective baseline of systemic risks, non-compliance findings, and mandatory corrective actions."
-        }
-      },
-      "tone_instruction": "Act as an Independent Governance and Compliance Auditor. Evaluate systemic risks, mandate adherence, and ethical constraints neutrally under a strict zero-trust posture.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize regulatory compliance posture, mandate containment integrity, and transparency across evaluated policy actions.\n- Enumerate compliance breaches, safety boundary violations, penalty determinations, and zero-trust audit findings.\n- Deliver a formal administrative audit synthesis with prioritized corrective actions.",
-      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Independently evaluate Taskguard boundary containment, Clarity explainability, and Archivist regulatory record retention.\n- Report specific regulatory compliance gaps, policy deviations, and governance risks per metric.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate an objective administrative audit finding for each score, linking observed actions directly to governing compliance clauses.",
-      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Detail formal compliance remediation mandates, corrective action deadlines, and audit escalation protocols.\n- Provide zero-trust remediation steps to restore full administrative and ethical alignment.",
-      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate compliance variance to detect artificial policy compliance, obfuscation tactics, or evasive phrasing.\n- Ensure policy commitments reflect binding operational adherence rather than performative declarations.",
-      "visible_metadata": [
-        "date",
-        "execution_id",
-        "organization",
-        "user",
-        "scoring_engine",
-        "strictness"
-      ],
-      "matrix_visible_columns": [
-        "label",
-        "distribution",
-        "row_explanation",
-        "criteria",
-        "normalized_score"
-      ],
-      "visible_block_extensions": [
-        "justification",
-        "coaching",
-        "falsification",
-        "remediation_steps"
-      ],
-      "visible_workflow_extensions": [
-        "variance_validation"
-      ],
-      "max_extension_items": 3,
-      "display_scale": "original",
-      "synthesis_length_constraint": 1000,
-      "row_explanation_length_constraint": 250,
-      "xai_length_constraint": 300,
-      "variance_length_constraint": 500,
-      "matrix_graph_length_constraint": 400,
-      "target_block_order": [
-        "metadata_block",
-        "executive_summary_block",
-        "global_score_block",
-        "matrix_graphs_block",
-        "penalties_block",
-        "matrix_summary_table_block",
-        "variance_validation_block",
-        "printable_sources_block"
-      ],
-      "matrix_synthesis_groups": [
-        {
-          "id": "grp_05e1d71000000001",
-          "title": {
-            "translations": {
-              "fi": "Rajoite- ja turvallisuusauditointi",
-              "en": "Constraint & Safety Audit"
-            }
-          },
-          "target_blocks": [
-            "blk_80732a33fe1947ee"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_05e1d71000000002",
-          "title": {
-            "translations": {
-              "fi": "Selitettävyys ja läpinäkyvyys",
-              "en": "Explainability & Transparency"
-            }
-          },
-          "target_blocks": [
-            "blk_f6e286f050c94d60"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_05e1d71000000003",
-          "title": {
-            "translations": {
-              "fi": "Säännöstenmukainen säilytys",
-              "en": "Regulatory Retention"
-            }
-          },
-          "target_blocks": [
-            "blk_fb15f8dcf23f4865"
-          ],
-          "view_type": "1d_metrics"
-        }
-      ],
-      "content_blocks": [],
-      "show_sources_summary_box": false,
-      "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_fb15f8dcf23f4865"
-    },
-    {
-      "id": "prf_06b1d71000000001",
-      "slug": "tekoalyn_kayton_ja_ohjauksen_tulostusprofiili",
-      "workflow_id": "wf_06a1d71000000001",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Tekoälyn Käytön ja Ohjauksen Profiili",
-          "en": "Human-AI Collaboration & Steering Profile"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Räätälöity tulostusprofiili tekoälyn ohjauksen, kyseenalaistamisen ja lopputuotteen hakemisen raportointiin.",
-          "en": "Dedicated output profile for reporting human AI steering, critical inquiry, and deliverable derivation."
+          "fi": "5-matriisin täsmäauditointiraportti tekoälyohjauksen laadusta, argumentaation lujuudesta, kognitiivisesta syvyydestä ja kausaalisesta eheydestä.",
+          "en": "Targeted 5-matrix audit report evaluating AI steering agency, argumentation rigor, cognitive depth, and causal argument cohesion."
         }
       },
       "user_role_label": {
         "translations": {
-          "fi": "Käyttäjärooli",
-          "en": "User Role"
+          "en": "User Role",
+          "fi": "Käyttäjärooli"
         }
       },
       "custom_preface": {
         "translations": {
-          "fi": "**Raportti tekoälyn ohjauksesta ja yhteistyöstä**\n\nTämä raportti arvioi ihmisen ja tekoälyn vuorovaikutusprosessia: kehystyksen tarkkuutta, kriittistä haastamista, kuraatiota ja metakognitiivista reflektointia. Arviointi keskittyy ohjauksen laatuun ja lopputuotteen aktiiviseen jalostamiseen pelkän tekoälyavusteisen tekstin passiivisen hyväksymisen sijaan.",
-          "en": "**Report on Human-AI Collaboration and Steering**\n\nThis report evaluates the human-AI interaction process: framing precision, critical inquiry, active curation, and metacognitive reflection. The evaluation focuses on the quality of human steering and authentic deliverable derivation rather than passive delegation to generative AI."
+          "fi": "**Tekoälyohjauksen ja argumentaation täsmäauditointi**\n\nTämä raportti analysoi vuorovaikutustasi tekoälyn kanssa ja arvioi viiden keskeisen ulottuvuuden kautta ohjausotettasi, argumentaatiotasi ja ajattelusi laatua:\n\n- **Tekoälyohjaus (HACM)**: Toimitko matkustajana vai aktiivisena arkkitehtina?\n- **Argumentaatiolujuus (Toulmin)**: Miten vahvasti väitteesi ja johtopäätöksesi on ankkuroitu?\n- **Kognitiivinen syvyys (Bloom)**: Onko työskentely pelkkää pintatason toistoa vai syvällistä analyysiä?\n- **Viestinnän avoimuus (Avoimuus)**: Miten avoimesti ja selkeästi perustelet näkemyksesi?\n- **Kausaalinen eheys**: Muodostavatko argumenttisi johdonmukaisen ja katkeamattoman päättelyketjun?\n\nTutka- ja matriisivisualisoinnit tarjoavat selkeän kokonaiskuvan osaamisestasi ja konkreettiset kehityssuositukset.",
+          "en": "**Targeted AI Steering & Argumentation Audit Report**\n\nThis report analyzes your interaction with AI across five core dimensions to evaluate steering agency, argumentation rigor, and cognitive depth:\n\n- **Human-AI Steering (HACM)**: Are you acting as a passive passenger or an active architect?\n- **Argumentation Rigor (Toulmin)**: How strongly substantiated are your claims and conclusions?\n- **Cognitive Depth (Bloom)**: Does the deliverable reflect surface-level retrieval or deep synthesis?\n- **Communication Transparency**: How clearly and transparently are rationales presented?\n- **Causal Cohesion**: Do your arguments form a coherent, unbroken chain of reasoning?\n\nThe radar and quadrant visualizations provide an executive overview of your competencies with actionable coaching recommendations."
         }
       },
-      "tone_instruction": "Act as a Practical Workplace Coach. Focus on steering agency, epistemic vigilance, and active deliverable curation. Emphasize the delta between prompt scaffolding and final deliverable derivation with actionable executive coaching advice.",
-      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the operator's interaction trajectory, framing maturity, dialectic delegation risks, and curation agency.\n- Specifically contrast operator prompt framing against downstream deliverable causal robustness and highlight where broken causal links originate from passive AI delegation.\n- Evaluate whether the operator fell into the Dialectic Delegation Trap or Curation Deficit.",
-      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on steering agency balance, passivity risks, and isolated dimension thresholds.\n- Provide clear, concise analytical takeaways for each evaluated dimension.",
-      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Contrast Human-AI Steering Agency against Causal Inference Robustness.\n- Classify the candidate into quadrants: Arkkitehti (Architect / High Steering & High Causal Grounding), Matkustaja (Passenger / Low Steering & Low Causal Grounding), Kokeilija (Sparrer / High Steering & Low Causal Grounding), and Analyytikko (Analyst / Low Steering & High Causal Grounding).",
-      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all 4 HACM dimensions (Framing, Criticality, Curation, Metacognition).\n- Synthesize macro balance and systemic interaction maturity.",
-      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a qualitative deep-dive synthesis analyzing conversational prompt nuances and interaction trajectories.\n- Highlight specific prompt turns and coaching takeaways.",
-      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground explanations directly in verified quotes and concrete textual evidence, explaining why each row received its score and citing specific prompt turns or deliverable derivation gaps.",
-      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Highlight actionable behavioral coaching steps across 4 distinct categories (Perustelu, Valmennus, Falsifikaatio, Korjaustoimenpiteet) grounded in causal graph remediations.",
-      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Detect performative buzzwords versus authentic steering by contrasting candidate self-reflection against physical chat logs and causal fault chains.",
+      "tone_instruction": "Act as a Practical Workplace Coach. Write in clear, straightforward, and engaging plain language suitable for everyday office professionals. Use simple sentence structures, avoid academic jargon or corporate buzzwords, and focus on concrete, actionable takeaways. Explain complex ideas with relatable workplace examples and practical tips rather than theoretical or academic literature.",
+      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.",
+      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.",
+      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.",
+      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all evaluated dimensions in the radar geometry.\n- Synthesize macro patterns, capability imbalances, and systemic maturity.",
+      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a narrative, qualitative deep-dive synthesis based on the textual evidence and qualitative observations.\n- Highlight nuances, contextual subtleties, and qualitative coaching takeaways.",
+      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground the explanation directly in the verified quotes and concrete textual evidence.\n- Explain why the score is justified based on the presence or absence of core criteria.",
+      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize explainable AI highlights, diagnostic extensions, and remediation recommendations.\n- Highlight actionable development points, key risks, and concrete next steps.",
+      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate the cognitive variance, performativity risk, and authenticity of the analyzed text.\n- Assess whether responses reflect authentic cognitive reasoning versus performative keyword compliance.\n- Provide an objective summary of linguistic signals and authenticity scores.",
       "visible_metadata": [
         "date",
         "execution_id",
@@ -24272,7 +22751,6 @@
         "label",
         "distribution",
         "row_explanation",
-        "criteria",
         "normalized_score"
       ],
       "visible_block_extensions": [
@@ -24300,70 +22778,191 @@
         "grouped_extensions_block",
         "penalties_block",
         "matrix_summary_table_block",
-        "variance_validation_block",
-        "printable_sources_block"
+        "variance_validation_block"
       ],
       "matrix_synthesis_groups": [
         {
-          "id": "grp_06b1d71000000001",
+          "id": "grp_a8f1d71000000001",
           "title": {
             "translations": {
-              "fi": "Tekoälyohjauksen Kognitiivinen Tutka",
-              "en": "AI Steering Cognitive Radar"
-            }
-          },
-          "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_06b1d71000000002",
-          "title": {
-            "translations": {
-              "fi": "Ohjausote vs. Kausaalipäättelyn Lujuus",
-              "en": "Steering Agency vs. Causal Robustness"
+              "fi": "Tekoälyohjauksen ja Argumentaation Tutka",
+              "en": "AI Steering & Argumentation Radar"
             }
           },
           "target_blocks": [
             "blk_7d8e9f0a1b2c3d4e",
-            "blk_c5804a9143c34cb1"
+            "blk_440a5fef9331451b",
+            "blk_f921c7c0989b47e8",
+            "blk_f6e286f050c94d60",
+            "blk_c0a1e50000000001"
+          ],
+          "view_type": "3d_matrix"
+        },
+        {
+          "id": "grp_a8f1d71000000002",
+          "title": {
+            "translations": {
+              "fi": "Tekoälyohjauksen Maturiteettikartta (Arkkitehti-malli)",
+              "en": "AI Steering Agency & Cognitive Maturity"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_f921c7c0989b47e8"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_06b1d71000000003",
+          "id": "grp_a8f1d71000000003",
           "title": {
             "translations": {
-              "fi": "Kausaalipäättelyn ja Argumentaation Ydinmittarit",
-              "en": "Causal Inference & Argumentation Core Metrics"
+              "fi": "Faktapohjaisuus vs. Johtoryhmäviestintä",
+              "en": "Argument Rigor vs. Executive Communication"
             }
           },
           "target_blocks": [
-            "blk_c5804a9143c34cb1"
-          ],
-          "view_type": "1d_metrics"
-        },
-        {
-          "id": "grp_06b1d71000000004",
-          "title": {
-            "translations": {
-              "fi": "Tekoälyohjaus ja Argumentaation Kausaalinen Eheys",
-              "en": "AI Steering & Causal Argument Cohesion"
-            }
-          },
-          "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_c0a1e50000000001"
+            "blk_440a5fef9331451b",
+            "blk_f6e286f050c94d60"
           ],
           "view_type": "2d_compare"
         }
       ],
       "content_blocks": [],
-      "show_sources_summary_box": true,
+      "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
       "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
-      "user_role_target_block": "blk_53f32679aa514fcb"
+      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
+    },
+    {
+      "id": "prf_b9e2d71000000002",
+      "slug": "tekoalyohjauksen_ja_kognition_ydinauditointi_profiili",
+      "workflow_id": "wf_b9e2d71000000002",
+      "organization_id": "SYSTEM",
+      "name": {
+        "translations": {
+          "fi": "Tekoälyohjauksen ja Kognition Ydinauditointi",
+          "en": "AI Steering & Cognitive Core Audit"
+        }
+      },
+      "description": {
+        "translations": {
+          "fi": "Ketterä 4-matriisin ydinauditointiraportti, joka keskittyy tekoälyohjauksen, analyyttisen syvyyden, argumentaation ja avoimuuden arviointiin ilman kausaalilaskennan viivettä.",
+          "en": "Agile 4-matrix core audit report evaluating AI steering agency, analytical depth, argument rigor, and transparency without causal graph overhead."
+        }
+      },
+      "user_role_label": {
+        "translations": {
+          "en": "User Role",
+          "fi": "Käyttäjärooli"
+        }
+      },
+      "custom_preface": {
+        "translations": {
+          "fi": "**Tekoälyohjauksen ja kognition ydinauditointi**\n\nTämä raportti tarjoaa nopean ja tarkan analyysin tekoälyvuorovaikutuksestasi neljän kognitiivisen päämatriisin avulla:\n\n- **Tekoälyohjaus (HACM)**: Ohjaatko tekoälyä tavoitteellisesti vai vietkö sen tuotoksia eteenpäin kritiikittömästi?\n- **Argumentaatiotarkkuus (Toulmin)**: Ovatko perustelusi loogisia ja kestäviä?\n- **Ajattelun syvyys (Bloom)**: Heijastaako työskentely korkean tason ongelmanratkaisua?\n- **Läpinäkyvyys ja avoimuus**: Ovatko johtopäätökset selkeitä ja perusteltuja?\n\nRaportin visualisoinnit ja suositukset ohjaavat sinua kehittymään tekoälyn itsenäiseksi ja kriittiseksi ohjaajaksi.",
+          "en": "**AI Steering & Cognitive Core Audit Report**\n\nThis report delivers an agile, high-precision evaluation of your AI collaboration across four cognitive core matrices:\n\n- **Human-AI Steering (HACM)**: Do you purposefully direct AI or passively accept outputs?\n- **Argument Rigor (Toulmin)**: Are your arguments robust, logical, and grounded?\n- **Cognitive Depth (Bloom)**: Does the interaction demonstrate high-order analytical problem solving?\n- **Transparency & Communication**: Are reasoning and premises openly communicated?\n\nThe visual charts and coaching takeaways guide your evolution into a strategic and critical AI director."
+        }
+      },
+      "tone_instruction": "Act as a Practical Workplace Coach. Write in clear, straightforward, and engaging plain language suitable for everyday office professionals. Use simple sentence structures, avoid academic jargon or corporate buzzwords, and focus on concrete, actionable takeaways. Explain complex ideas with relatable workplace examples and practical tips rather than theoretical or academic literature.",
+      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.",
+      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.",
+      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.",
+      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all evaluated dimensions in the radar geometry.\n- Synthesize macro patterns, capability imbalances, and systemic maturity.",
+      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a narrative, qualitative deep-dive synthesis based on the textual evidence and qualitative observations.\n- Highlight nuances, contextual subtleties, and qualitative coaching takeaways.",
+      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground the explanation directly in the verified quotes and concrete textual evidence.\n- Explain why the score is justified based on the presence or absence of core criteria.",
+      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize explainable AI highlights, diagnostic extensions, and remediation recommendations.\n- Highlight actionable development points, key risks, and concrete next steps.",
+      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate the cognitive variance, performativity risk, and authenticity of the analyzed text.\n- Assess whether responses reflect authentic cognitive reasoning versus performative keyword compliance.\n- Provide an objective summary of linguistic signals and authenticity scores.",
+      "visible_metadata": [
+        "date",
+        "execution_id",
+        "organization",
+        "user",
+        "scoring_engine",
+        "strictness"
+      ],
+      "matrix_visible_columns": [
+        "label",
+        "distribution",
+        "row_explanation",
+        "normalized_score"
+      ],
+      "visible_block_extensions": [
+        "justification",
+        "coaching",
+        "falsification",
+        "remediation_steps"
+      ],
+      "visible_workflow_extensions": [
+        "variance_validation"
+      ],
+      "max_extension_items": 4,
+      "display_scale": "normalized_100",
+      "synthesis_length_constraint": 1000,
+      "row_explanation_length_constraint": 250,
+      "xai_length_constraint": 300,
+      "variance_length_constraint": 500,
+      "matrix_graph_length_constraint": 400,
+      "target_block_order": [
+        "metadata_block",
+        "executive_summary_block",
+        "global_score_block",
+        "synthesis_text_block",
+        "matrix_graphs_block",
+        "grouped_extensions_block",
+        "penalties_block",
+        "matrix_summary_table_block",
+        "variance_validation_block"
+      ],
+      "matrix_synthesis_groups": [
+        {
+          "id": "grp_b9e2d71000000001",
+          "title": {
+            "translations": {
+              "fi": "Kognitiivisen Ytimen Tutka",
+              "en": "Cognitive Core Radar"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_440a5fef9331451b",
+            "blk_f921c7c0989b47e8",
+            "blk_f6e286f050c94d60"
+          ],
+          "view_type": "3d_matrix"
+        },
+        {
+          "id": "grp_b9e2d71000000002",
+          "title": {
+            "translations": {
+              "fi": "Tekoälyohjauksen Maturiteettikartta (Arkkitehti-malli)",
+              "en": "AI Steering Agency & Cognitive Maturity"
+            }
+          },
+          "target_blocks": [
+            "blk_7d8e9f0a1b2c3d4e",
+            "blk_f921c7c0989b47e8"
+          ],
+          "view_type": "2d_compare"
+        },
+        {
+          "id": "grp_b9e2d71000000003",
+          "title": {
+            "translations": {
+              "fi": "Faktapohjaisuus vs. Johtoryhmäviestintä",
+              "en": "Argument Rigor vs. Executive Communication"
+            }
+          },
+          "target_blocks": [
+            "blk_440a5fef9331451b",
+            "blk_f6e286f050c94d60"
+          ],
+          "view_type": "2d_compare"
+        }
+      ],
+      "content_blocks": [],
+      "show_sources_summary_box": false,
+      "sources_display_mode": "verified_evidence",
+      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
     }
   ]
 }

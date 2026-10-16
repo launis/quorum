@@ -166,9 +166,9 @@ class MatrixSynthesisGroup(V2CoreBase):
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
         elif self.view_type == PresetView.MATRIX_3D:
-            if num_blocks != 3:
+            if num_blocks < 3:
                 msg = (
-                    f"MatrixSynthesisGroup '{self.id}': view_type '3d_matrix' requires exactly 3 target blocks, "
+                    f"MatrixSynthesisGroup '{self.id}': view_type '3d_matrix' requires at least 3 target blocks, "
                     f"but received {num_blocks} ({self.target_blocks})."
                 )
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)

@@ -26,28 +26,19 @@ SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
 EXPECTED_WORKFLOW_IDS = [
     "wf_9d68c573802341db",  # Monolithic baseline (preservation mandate)
-    "wf_01a1d71000000001",  # AI Driving License
-    "wf_02a1d71000000002",  # Strategic Leadership
-    "wf_03a1d71000000003",  # Deep Problem Solving
-    "wf_04a1d71000000004",  # Fact-Checking & Empirical Research
-    "wf_05a1d71000000005",  # Compliance & Governance
+    "wf_a8f1d71000000001",  # Targeted AI Steering & Argumentation Audit
+    "wf_b9e2d71000000002",  # AI Steering & Cognitive Core Audit
 ]
 
 COMPETENCY_WORKFLOW_IDS = [
-    "wf_01a1d71000000001",
-    "wf_02a1d71000000002",
-    "wf_03a1d71000000003",
-    "wf_04a1d71000000004",
-    "wf_05a1d71000000005",
+    "wf_a8f1d71000000001",
+    "wf_b9e2d71000000002",
 ]
 
 EXPECTED_PROFILE_IDS = [
     "prf_5d6e7f8091a2b3c4",  # Monolithic baseline profile
-    "prf_01b1d71000000001",
-    "prf_02b1d71000000002",
-    "prf_03b1d71000000003",
-    "prf_04b1d71000000004",
-    "prf_05b1d71000000005",
+    "prf_a8f1d71000000001",  # Targeted AI Steering profile
+    "prf_b9e2d71000000002",  # AI Steering Cognitive Core profile
 ]
 
 
@@ -265,6 +256,79 @@ def test_output_profiles_binding_and_preset_views() -> None:
             )
 
 
+def test_output_profiles_criteria_column_absent_in_seed_defaults() -> None:
+    """Verify that 'criteria' is absent from matrix_visible_columns across all 3 default seed profiles."""
+    seed_data = load_seed_data()
+    profiles = {p["id"]: p for p in seed_data["output_profiles"]}
+
+    for prf_id in EXPECTED_PROFILE_IDS:
+        assert prf_id in profiles, f"OutputProfile {prf_id} missing from seed_data.json"
+        prf_model = OutputProfile.model_validate(profiles[prf_id])
+        assert "criteria" not in prf_model.matrix_visible_columns, (
+            f"Profile '{prf_id}' must NOT contain 'criteria' in matrix_visible_columns"
+        )
+        assert prf_model.matrix_visible_columns == [
+            "label",
+            "distribution",
+            "row_explanation",
+            "normalized_score",
+        ], f"Profile '{prf_id}' matrix_visible_columns mismatch"
+
+
+def test_default_seed_profiles_baseline_uniformity() -> None:
+    """Verify that all 3 default seed profiles share identical baseline configuration."""
+    seed_data = load_seed_data()
+    profiles = {p["id"]: p for p in seed_data["output_profiles"]}
+
+    baseline_prf = OutputProfile.model_validate(profiles["prf_5d6e7f8091a2b3c4"])
+
+    for prf_id in ["prf_a8f1d71000000001", "prf_b9e2d71000000002"]:
+        prf = OutputProfile.model_validate(profiles[prf_id])
+        assert prf.visible_metadata == baseline_prf.visible_metadata
+        assert prf.visible_block_extensions == baseline_prf.visible_block_extensions
+        assert prf.visible_workflow_extensions == baseline_prf.visible_workflow_extensions
+        assert prf.max_extension_items == 4
+        assert prf.display_scale == baseline_prf.display_scale
+        assert prf.target_block_order == baseline_prf.target_block_order
+        assert prf.synthesis_length_constraint == 1000
+        assert prf.row_explanation_length_constraint == 250
+        assert prf.xai_length_constraint == 300
+        assert prf.variance_length_constraint == 500
+        assert prf.matrix_graph_length_constraint == 400
+        assert prf.show_sources_summary_box is False
+        assert prf.sources_display_mode == "verified_evidence"
+        assert prf.user_role_target_block == "blk_7d8e9f0a1b2c3d4e"
+        assert prf.variance_target_block == "blk_7d8e9f0a1b2c3d4e"
+        assert prf.tone_instruction == baseline_prf.tone_instruction
+        assert prf.executive_summary_directive == baseline_prf.executive_summary_directive
+        assert prf.matrix_1d_synthesis_directive == baseline_prf.matrix_1d_synthesis_directive
+        assert prf.matrix_2d_synthesis_directive == baseline_prf.matrix_2d_synthesis_directive
+        assert prf.matrix_3d_synthesis_directive == baseline_prf.matrix_3d_synthesis_directive
+        assert prf.matrix_text_synthesis_directive == baseline_prf.matrix_text_synthesis_directive
+        assert prf.row_explanation_directive == baseline_prf.row_explanation_directive
+        assert prf.xai_synthesis_directive == baseline_prf.xai_synthesis_directive
+        assert prf.variance_synthesis_directive == baseline_prf.variance_synthesis_directive
+
+
+def test_dynamic_profile_configurability_invariant() -> None:
+    """Verify TC-PRF-002: Dynamic Profile Configurability Invariant.
+
+    Custom profiles may include 'criteria' and custom block orders without code-level restriction.
+    """
+    custom_profile_payload = {
+        "id": "prf_c1d2e3f400000001",
+        "slug": "custom_evaluation_profile",
+        "workflow_id": "wf_9d68c573802341db",
+        "name": {"translations": {"fi": "Mukautettu profiili", "en": "Custom Profile"}},
+        "matrix_visible_columns": ["label", "criteria", "distribution", "normalized_score"],
+        "target_block_order": ["matrix_summary_table_block"],
+        "matrix_synthesis_groups": [],
+    }
+    custom_prf = OutputProfile.model_validate(custom_profile_payload)
+    assert "criteria" in custom_prf.matrix_visible_columns
+    assert custom_prf.matrix_visible_columns == ["label", "criteria", "distribution", "normalized_score"]
+
+
 def test_baseline_profile_custom_preface_not_truncated() -> None:
     """Verify baseline profile prf_5d6e7f8091a2b3c4 English preface is complete without ellipsis."""
     seed_data = load_seed_data()
@@ -343,8 +407,8 @@ def test_negative_invalid_unmapped_inputs_reference_fails_dag() -> None:
     """ISTQB Negative Test 1: Step mapping referencing un-declared input key triggers DAG compilation error."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_01a1d71000000001" in workflows, "Workflow wf_01a1d71000000001 missing"
-    raw_wf = dict(workflows["wf_01a1d71000000001"])
+    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_a8f1d71000000001"])
 
     # Corrupt step input_mappings to reference non-existent input key $inputs.non_existent_key
     steps_copy = [dict(s) for s in raw_wf["steps"]]
@@ -363,8 +427,8 @@ def test_negative_circular_step_dependency_fails_dag() -> None:
     """ISTQB Negative Test 2: Circular dependency in workflow steps triggers DAG cycle error."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_01a1d71000000001" in workflows, "Workflow wf_01a1d71000000001 missing"
-    raw_wf = dict(workflows["wf_01a1d71000000001"])
+    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_a8f1d71000000001"])
 
     steps_copy = [dict(s) for s in raw_wf["steps"]]
     # Introduce circular dependency: step 0 depends on step 1, step 1 depends on step 0
@@ -386,8 +450,8 @@ def test_negative_raw_xml_in_ai_description_rejected() -> None:
     """ISTQB Negative Test 3: Raw XML tags in ai_description fail validation rule assertion."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_01a1d71000000001" in workflows, "Workflow wf_01a1d71000000001 missing"
-    raw_wf = dict(workflows["wf_01a1d71000000001"])
+    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_a8f1d71000000001"])
 
     # Corrupt expected_inputs with raw XML tag
     inputs_copy = [dict(i) for i in raw_wf["expected_inputs"]]
@@ -487,9 +551,9 @@ def test_tavily_search_selective_routing_governance() -> None:
     steps = {s["id"]: s for s in seed_data["steps"]}
 
     # Workflows requiring empirical research & falsification
-    research_wf_ids = ["wf_04a1d71000000004", "wf_02a1d71000000002"]
+    research_wf_ids = ["wf_9d68c573802341db"]
     # Workflows evaluating internal prompt dialogues, cognitive depth, or static compliance
-    internal_wf_ids = ["wf_01a1d71000000001", "wf_03a1d71000000003", "wf_05a1d71000000005"]
+    internal_wf_ids = ["wf_a8f1d71000000001", "wf_b9e2d71000000002"]
 
     for wf_id in research_wf_ids:
         assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data.json"
@@ -527,7 +591,7 @@ def test_negative_tavily_in_non_research_workflow_rejected() -> None:
     workflows = {w["id"]: w for w in seed_data["workflows"]}
     steps = {s["id"]: s for s in seed_data["steps"]}
 
-    internal_wf_ids = ["wf_01a1d71000000001", "wf_03a1d71000000003", "wf_05a1d71000000005"]
+    internal_wf_ids = ["wf_a8f1d71000000001", "wf_b9e2d71000000002"]
     for wf_id in internal_wf_ids:
         assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data.json"
         wf_model = Workflow.model_validate(workflows[wf_id])
@@ -540,76 +604,51 @@ def test_negative_tavily_in_non_research_workflow_rejected() -> None:
 
 
 def test_competency_workflow_assignment_context_governance() -> None:
-    """Verify Tri-Zone assignment_context input modes and Zone C step 7 mapping across competency workflows."""
+    """Verify assignment_context modality governance and contextual overrides across retained workflows."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
 
-    # 1. Assert wf_02 and wf_03 declare complete input_modes ["assignment", "file", "paste"]
-    for wf_id in ["wf_02a1d71000000002", "wf_03a1d71000000003"]:
+    # 1. Assert all 3 retained workflows have enable_contextual_overrides=True
+    for wf_id in EXPECTED_WORKFLOW_IDS:
         assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data"
         wf = Workflow.model_validate(workflows[wf_id])
-        assignment_inputs = [ei for ei in wf.expected_inputs if ei.input_key == "assignment_context"]
-        assert len(assignment_inputs) == 1, f"Workflow {wf_id} must define exactly one 'assignment_context' input"
-        ei = assignment_inputs[0]
-        assert "assignment" in ei.input_modes, f"Workflow {wf_id} assignment_context must declare 'assignment' mode"
-        assert set(ei.input_modes) == {"assignment", "file", "paste"}, (
-            f"Workflow {wf_id} assignment_context must declare ['assignment', 'file', 'paste'], got {ei.input_modes}"
+        assert wf.enable_contextual_overrides is True, f"Workflow {wf_id} must have enable_contextual_overrides=True"
+
+    # 2. Verify ExpectedInput assignment governance invariants on model level
+    valid_assignment = ExpectedInput.model_validate(
+        {
+            "input_key": "assignment_context",
+            "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},
+            "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
+            "input_modes": ["assignment", "file", "paste"],
+            "required": True,
+        }
+    )
+    assert valid_assignment.is_assignment is True
+    assert valid_assignment.is_chat_history is False
+
+    # 3. Assert mutual exclusivity of assignment mode with is_chat_history=True
+    with pytest.raises(ValidationError, match=r"[Aa]ssignment"):
+        ExpectedInput.model_validate(
+            {
+                "input_key": "assignment_context",
+                "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},
+                "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
+                "input_modes": ["assignment"],
+                "is_chat_history": True,
+                "required": True,
+            }
         )
-        assert ei.is_assignment is True, f"Workflow {wf_id} ExpectedInput.is_assignment predicate must return True"
-        assert ei.is_chat_history is False, f"Workflow {wf_id} assignment_context cannot be chat history"
 
-    # 2. Assert wf_03 step 7 (sr_03c1d71000000007) maps assignment_context under input_mappings
-    wf_03 = Workflow.model_validate(workflows["wf_03a1d71000000003"])
-    step_7 = next((s for s in wf_03.steps if s.id == "sr_03c1d71000000007"), None)
-    assert step_7 is not None, "Step sr_03c1d71000000007 missing from wf_03"
-    assert "assignment_context" in step_7.input_mappings, (
-        f"Step sr_03c1d71000000007 in wf_03 must map 'assignment_context', got {step_7.input_mappings}"
-    )
-    assert step_7.input_mappings["assignment_context"] == "$inputs.assignment_context"
-    assert step_7.is_synthesis_source is True
-
-    # 3. Assert wf_02 step 4 (sr_02c1d71000000004) and step 8 (sr_02c1d71000000008) preserve assignment_context mapping
-    wf_02 = Workflow.model_validate(workflows["wf_02a1d71000000002"])
-    step_4 = next((s for s in wf_02.steps if s.id == "sr_02c1d71000000004"), None)
-    assert step_4 is not None, "Step sr_02c1d71000000004 missing from wf_02"
-    assert "assignment_context" in step_4.input_mappings, (
-        f"Step sr_02c1d71000000004 in wf_02 must map 'assignment_context', got {step_4.input_mappings}"
-    )
-    assert step_4.input_mappings["assignment_context"] == "$inputs.assignment_context"
-
-    step_8 = next((s for s in wf_02.steps if s.id == "sr_02c1d71000000008"), None)
-    assert step_8 is not None, "Step sr_02c1d71000000008 missing from wf_02"
-    assert "assignment_context" in step_8.input_mappings, (
-        f"Step sr_02c1d71000000008 in wf_02 must map 'assignment_context', got {step_8.input_mappings}"
-    )
-    assert step_8.input_mappings["assignment_context"] == "$inputs.assignment_context"
-
-    # 4. Assert external normative frameworks declare complete input_modes ["assignment", "file", "paste"]
-    wf_04 = Workflow.model_validate(workflows["wf_04a1d71000000004"])
-    se_04 = next((ei for ei in wf_04.expected_inputs if ei.input_key == "source_evidence"), None)
-    assert se_04 is not None, "source_evidence missing from wf_04"
-    assert set(se_04.input_modes) == {"assignment", "file", "paste"}
-    assert se_04.is_assignment is True
-
-    wf_05 = Workflow.model_validate(workflows["wf_05a1d71000000005"])
-    cf_05 = next((ei for ei in wf_05.expected_inputs if ei.input_key == "compliance_framework"), None)
-    assert cf_05 is not None, "compliance_framework missing from wf_05"
-    assert set(cf_05.input_modes) == {"assignment", "file", "paste"}
-    assert cf_05.is_assignment is True
-    se_05 = next((ei for ei in wf_05.expected_inputs if ei.input_key == "source_evidence"), None)
-    assert se_05 is not None, "source_evidence missing from wf_05"
-    assert set(se_05.input_modes) == {"assignment", "file", "paste"}
-    assert se_05.is_assignment is True
-
-    # 5. Assert enable_contextual_overrides is True across all competency workflows
-    for wf_id in [
-        "wf_01a1d71000000001",
-        "wf_02a1d71000000002",
-        "wf_03a1d71000000003",
-        "wf_04a1d71000000004",
-        "wf_05a1d71000000005",
-    ]:
-        wf_model = Workflow.model_validate(workflows[wf_id])
-        assert wf_model.enable_contextual_overrides is True, (
-            f"Workflow {wf_id} must have enable_contextual_overrides=True"
+    # 4. Assert mutual exclusivity of assignment mode with is_endorsed_deliverable=True
+    with pytest.raises(ValidationError, match=r"[Aa]ssignment"):
+        ExpectedInput.model_validate(
+            {
+                "input_key": "assignment_context",
+                "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},
+                "description": {"translations": {"fi": "Kuvaus", "en": "Description"}},
+                "input_modes": ["assignment"],
+                "is_endorsed_deliverable": True,
+                "required": True,
+            }
         )

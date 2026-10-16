@@ -177,7 +177,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
             view_type=PresetView.COMPARE_2D,
         )
 
-    # 3D with 3 blocks: ok; with 2 blocks: raises
+    # 3D with >= 3 blocks: ok; with 2 blocks: raises
     g3 = MatrixSynthesisGroup(
         id="grp_0123456789abcdef",
         title=title,
@@ -186,7 +186,15 @@ def test_matrix_synthesis_group_cardinality() -> None:
     )
     assert len(g3.target_blocks) == 3
 
-    with pytest.raises(ValueError, match="requires exactly 3 target blocks"):
+    g4 = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=title,
+        target_blocks=["blk_1", "blk_2", "blk_3", "blk_4"],
+        view_type=PresetView.MATRIX_3D,
+    )
+    assert len(g4.target_blocks) == 4
+
+    with pytest.raises(ValueError, match="requires at least 3 target blocks"):
         MatrixSynthesisGroup(
             id="grp_0123456789abcdef",
             title=title,

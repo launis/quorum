@@ -524,15 +524,10 @@ async def generate_profile_synthesis_and_pdf_task(
         user_role_val: str | None = None
         user_role_just: str | None = None
         exec_dto = exec_reduction.exec_dto
-        if exec_dto is not None:
-            user_role_val = exec_dto.user_role
-            user_role_just = exec_dto.user_role_justification
         if active_profile_dto and active_profile_dto.user_role_target_block:
             user_role_val, user_role_just = extract_user_role_from_trace(
                 execution=execution,
                 role_target_block_id=active_profile_dto.user_role_target_block,
-                default_role=user_role_val,
-                default_justification=user_role_just,
             )
 
         cited_sources: list[str] = []

@@ -4,7 +4,7 @@ Strict definition of allowed types to enforce the No-String Mandate.
 
 from dataclasses import dataclass
 from enum import Enum, IntEnum, StrEnum
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import Field
 
@@ -659,6 +659,31 @@ class RoleClassification(StrEnum):
     NAVIGATOR = "ROLE_NAVIGATOR"
     DRIVER = "ROLE_DRIVER"
     ARCHITECT = "ROLE_ARCHITECT"
+
+    @classmethod
+    def from_score(cls, score: float | int) -> Self:
+        """Map a numeric matrix evaluation score to a deterministic user agency role.
+
+        Clamps score to 1-5 integer bounds:
+        - <= 2: PASSENGER
+        - 3: NAVIGATOR
+        - 4: DRIVER
+        - 5: ARCHITECT
+
+        Args:
+            score: Raw numeric score from evaluated matrix.
+
+        Returns:
+            RoleClassification enum member corresponding to clamped score.
+        """
+        clamped = max(1, min(5, int(round(float(score)))))
+        if clamped <= 2:
+            return cls.PASSENGER
+        if clamped == 3:
+            return cls.NAVIGATOR
+        if clamped == 4:
+            return cls.DRIVER
+        return cls.ARCHITECT
 
     @property
     def l10n_key(self) -> str:

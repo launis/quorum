@@ -13,7 +13,7 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -101,7 +101,7 @@ class BaseInMemoryRepository[T: BaseModel]:
         self._faults: dict[str, tuple[Exception, int | None]] = {}
         self._call_counts: dict[str, int] = {}
 
-    def _clone(self, item: T) -> T:
+    def _clone[ItemT](self, item: ItemT) -> ItemT:
         """Deep-clone a Pydantic model preserving exact polymorphism."""
         if isinstance(item, BaseModel):
             return item.model_copy(deep=True)
@@ -997,7 +997,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         result: list[SystemConfigModelRegistry] = []
         for reg_key, reg in self._model_registries.items():
             reg_id = reg.id if isinstance(reg, SystemConfigModelRegistry) else reg_key
-            if reg_id not in seen_ids:
+            if reg_id not in seen_ids and isinstance(reg, SystemConfigModelRegistry):
                 seen_ids.add(reg_id)
                 result.append(self._clone(reg))
         return result
@@ -1092,7 +1092,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
         if event_data.organization_id is not None:
             ctx["organization_id"] = event_data.organization_id
         if event_data.details is not None:
-            ctx["details"] = event_data.details
+            ctx["details"] = cast(JsonValue, event_data.details)
         entry = AuditLogEntry(
             timestamp=ts,
             level="INFO",

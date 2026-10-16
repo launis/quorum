@@ -119,19 +119,15 @@ logger = logging.getLogger(__name__)
 def extract_user_role_from_trace(
     execution: ExecutionRecord,
     role_target_block_id: str,
-    default_role: str | None = None,
-    default_justification: str | None = None,
 ) -> tuple[str | None, str | None]:
     """Extract user role and justification deterministically from evaluated matrix score.
 
     Args:
         execution: Authoritative execution record holding execution trace events.
         role_target_block_id: Target block ID to extract matrix evaluation from.
-        default_role: Optional fallback role classification string.
-        default_justification: Optional fallback justification description.
 
     Returns:
-        A tuple of (user_role, user_role_justification).
+        A tuple of (user_role, user_role_justification), or (None, None) if not found.
 
     Raises:
         AppException: If a corrupted LightweightMatrixOutput is encountered in the trace (ErrorCodes.VALIDATION_FAILED).
@@ -140,11 +136,7 @@ def extract_user_role_from_trace(
     if execution.execution_trace:
         for event in execution.execution_trace:
             if event.event_type == "output":
-                if isinstance(event.content, LightweightMatrixOutput):
-                    if event.content.raw_score is not None:
-                        role_raw_score = float(event.content.raw_score)
-                        break
-                elif type(event.content) is dict and role_target_block_id in event.content:
+                if type(event.content) is dict and role_target_block_id in event.content:
                     raw_val = event.content[role_target_block_id]
                     if isinstance(raw_val, LightweightMatrixOutput):
                         role_mat_out = raw_val
@@ -169,21 +161,14 @@ def extract_user_role_from_trace(
                         role_raw_score = float(role_mat_out.raw_score)
                         break
     if role_raw_score is not None:
-        clamped_score = max(1, min(5, int(round(role_raw_score))))
-        _role_score_map: dict[int, RoleClassification] = {
-            1: RoleClassification.PASSENGER,
-            2: RoleClassification.PASSENGER,
-            3: RoleClassification.NAVIGATOR,
-            4: RoleClassification.DRIVER,
-            5: RoleClassification.ARCHITECT,
-        }
-        user_role_val = _role_score_map[clamped_score].value
+        role_enum = RoleClassification.from_score(role_raw_score)
+        user_role_val = role_enum.value
         user_role_just = (
             f"Derived deterministically from evaluated matrix '{role_target_block_id}' score {role_raw_score}."
         )
         return user_role_val, user_role_just
 
-    return default_role, default_justification
+    return None, None
 
 
 def process_executive_summary_result(

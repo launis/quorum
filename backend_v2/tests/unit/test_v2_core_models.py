@@ -350,15 +350,18 @@ def test_matrix_synthesis_group_cardinality_validation() -> None:
         )
     assert "view_type '2d_compare' requires exactly 2 target blocks" in str(exc.value)
 
-    # 3D radar: exactly 3 blocks
+    # 3D radar: at least 3 blocks
     MatrixSynthesisGroup(
         id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3"], view_type=PresetView.MATRIX_3D
+    )
+    MatrixSynthesisGroup(
+        id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3", "b4"], view_type=PresetView.MATRIX_3D
     )
     with pytest.raises(ValidationError) as exc:
         MatrixSynthesisGroup(
             id="grp_3333333333333333", title=title, target_blocks=["b1", "b2"], view_type=PresetView.MATRIX_3D
         )
-    assert "view_type '3d_matrix' requires exactly 3 target blocks" in str(exc.value)
+    assert "view_type '3d_matrix' requires at least 3 target blocks" in str(exc.value)
 
     # Text only: at least 1 block
     MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY)

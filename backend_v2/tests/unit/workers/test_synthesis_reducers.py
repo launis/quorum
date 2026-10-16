@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import JsonValue
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
@@ -53,7 +54,7 @@ def _make_execution(trace_events: list[TraceEvent] | None = None) -> ExecutionRe
 
 def test_extract_user_role_from_trace_lightweight_output() -> None:
     """Test extract_user_role_from_trace with LightweightMatrixOutput content."""
-    matrix_out = LightweightMatrixOutput(raw_score=4.2, evaluated_atoms={})
+    matrix_out = LightweightMatrixOutput(raw_score=4.2, evaluated_atoms={}, extensions={})
     evt = TraceEvent(
         v=1,
         step_name="step_test",
@@ -69,7 +70,7 @@ def test_extract_user_role_from_trace_lightweight_output() -> None:
 
 def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
     """Test extract_user_role_from_trace with dict containing role_target_block_id."""
-    matrix_out = LightweightMatrixOutput(raw_score=5.0, evaluated_atoms={})
+    matrix_out = LightweightMatrixOutput(raw_score=5.0, evaluated_atoms={}, extensions={})
     evt = TraceEvent(
         v=1,
         step_name="step_test",
@@ -84,12 +85,13 @@ def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
 
 def test_extract_user_role_from_trace_raw_dict_hydration() -> None:
     """Test extract_user_role_from_trace hydrating raw dict into LightweightMatrixOutput."""
+    raw_payload: dict[str, JsonValue] = {"raw_score": 1.0, "evaluated_atoms": {}}
     evt = TraceEvent(
         v=1,
         step_name="step_test",
         timestamp=datetime.now(timezone.utc),
         event_type="output",
-        content={"blk_role": {"raw_score": 1.0, "evaluated_atoms": {}}},
+        content={"blk_role": raw_payload},
     )
     exec_rec = _make_execution([evt])
     role, _ = extract_user_role_from_trace(exec_rec, "blk_role")
@@ -98,12 +100,13 @@ def test_extract_user_role_from_trace_raw_dict_hydration() -> None:
 
 def test_extract_user_role_from_trace_corrupted_dict_raises() -> None:
     """Test extract_user_role_from_trace fails fast on malformed dictionary."""
+    corrupted_payload: dict[str, JsonValue] = {"raw_score": "not-a-number", "evaluated_atoms": 123}
     evt = TraceEvent(
         v=1,
         step_name="step_test",
         timestamp=datetime.now(timezone.utc),
         event_type="output",
-        content={"blk_role": {"raw_score": "not-a-number", "evaluated_atoms": 123}},
+        content={"blk_role": corrupted_payload},
     )
     exec_rec = _make_execution([evt])
     with pytest.raises(AppException) as exc_info:
@@ -111,12 +114,12 @@ def test_extract_user_role_from_trace_corrupted_dict_raises() -> None:
     assert exc_info.value.status_code == 500
 
 
-def test_extract_user_role_from_trace_missing_returns_default() -> None:
-    """Test extract_user_role_from_trace returns fallback when block is missing."""
+def test_extract_user_role_from_trace_missing_returns_none() -> None:
+    """Test extract_user_role_from_trace returns (None, None) when block is missing."""
     exec_rec = _make_execution([])
-    role, just = extract_user_role_from_trace(exec_rec, "blk_role", default_role="guest", default_justification="none")
-    assert role == "guest"
-    assert just == "none"
+    role, just = extract_user_role_from_trace(exec_rec, "blk_role")
+    assert role is None
+    assert just is None
 
 
 def test_process_executive_summary_result_empty() -> None:
@@ -150,6 +153,7 @@ def test_process_executive_summary_result_with_budget() -> None:
     res = process_executive_summary_result((exec_res, usage), prof)
     assert res.exec_dto is not None
     assert len(res.blocks) == 1
+    assert isinstance(res.blocks[0], ParagraphBlock)
     assert len(res.blocks[0].text) <= 100 or "..." in res.blocks[0].text
     assert res.cost_usd == 0.005
     assert res.total_tokens == 30
@@ -203,6 +207,7 @@ def test_process_row_explanations_result() -> None:
     item = SynthesisRowExplanationDTO(
         matrix_id="alias_mat",
         row_explanation="Detailed causal explanation for why this row was scored this way in the workflow.",
+        curated_quotes=[],
     )
     mat_res = MatrixExplanationsResult(explanations=[item])
     usage = TokenUsage(total_tokens=20, prompt_tokens=8, completion_tokens=12, cost_usd=0.003)
@@ -452,13 +457,18 @@ def test_extract_user_role_from_trace_invalid_entry_continues() -> None:
         content={"blk_role": 123},
     )
     rec = _make_execution([evt])
-    role, just = extract_user_role_from_trace(rec, "blk_role", default_role="default")
-    assert role == "default"
+    role, just = extract_user_role_from_trace(rec, "blk_role")
+    assert role is None
+    assert just is None
 
 
 def test_process_row_explanations_result_real_id_fallback() -> None:
     """Test process_row_explanations_result falls back to real_matrix_id lookup."""
-    item = SynthesisRowExplanationDTO(matrix_id="real_mat_123", row_explanation="Explanation for real matrix.")
+    item = SynthesisRowExplanationDTO(
+        matrix_id="real_mat_123",
+        row_explanation="Explanation for real matrix.",
+        curated_quotes=[],
+    )
     mat_res = MatrixExplanationsResult(explanations=[item])
     ctx_dto = MatrixExplanationContextDTO(
         matrix_id="alias_mat",

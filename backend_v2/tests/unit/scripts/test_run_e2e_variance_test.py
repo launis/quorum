@@ -462,49 +462,40 @@ class TestWorkflowMatrixTelemetry:
 
         telemetry = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="wf_03a1d71000000003",
+            workflow_id="wf_9d68c573802341db",
         )
         assert telemetry is not None
-        assert telemetry["workflow_id"] == "wf_03a1d71000000003"
-        assert telemetry["strictness_level"] == 70
-        assert abs(telemetry["strictness_exponent"] - 1.5071) < 0.001
+        assert telemetry["workflow_id"] == "wf_9d68c573802341db"
+        assert telemetry["strictness_level"] == 0
+        assert abs(telemetry["strictness_exponent"] - 1.0) < 0.001
         assert telemetry["enable_contextual_overrides"] is True
         assert telemetry["security_penalty"] == 0.0
         assert telemetry["post_hoc_penalty"] == 0.0
-        assert telemetry["passivity_penalty"] == 0.05
+        assert telemetry["passivity_penalty"] == 0.0
 
-        assert telemetry["total_matrices"] == 4
-        assert telemetry["total_scales"] == 17
-        assert telemetry["total_atoms"] == 88
-        assert telemetry["total_high_entropy_atoms"] == 88
+        assert telemetry["total_matrices"] == 10
+        assert telemetry["total_scales"] == 46
+        assert telemetry["total_atoms"] == 237
+        assert telemetry["total_high_entropy_atoms"] == 237
 
         steps = {s["step_rule_id"]: s for s in telemetry["steps"]}
-        assert len(steps) == 8
+        assert len(steps) == 14
 
-        # Step 2: Archivist (Bloom)
-        archivist = steps["sr_03c1d71000000002"]
-        assert archivist["cognitive_tier"] == "deep"
-        assert archivist["model_strategy"] == "deep"
-        assert len(archivist["matrices"]) == 1
-        bloom = archivist["matrices"][0]
-        assert bloom["block_id"] == "blk_f921c7c0989b47e8"
-        assert bloom["computed_min"] == 1
-        assert bloom["computed_max"] == 6
-        assert len(bloom["scales"]) == 6
-        assert bloom["total_atoms"] == 30
-        assert bloom["high_entropy_atoms"] == 30
-
-        # Step 3: Analyst (Kahneman)
-        analyst = steps["sr_03c1d71000000003"]
+        # Step 2: Analyst (Kahneman)
+        analyst = steps["sr_5a8ae009eee44fe2"]
+        assert analyst["cognitive_tier"] == "deep"
         assert analyst["model_strategy"] == "deep"
         assert len(analyst["matrices"]) == 1
         kahneman = analyst["matrices"][0]
         assert kahneman["block_id"] == "blk_109dab5b6b3f403a"
+        assert kahneman["computed_min"] == 1
+        assert kahneman["computed_max"] == 3
         assert len(kahneman["scales"]) == 3
         assert kahneman["total_atoms"] == 15
+        assert kahneman["high_entropy_atoms"] == 15
 
-        # Step 6: Scoring Engine (Logic hook)
-        scoring = steps["sr_03c1d71000000006"]
+        # Step 13: Scoring Engine (Logic hook)
+        scoring = steps["sr_2fa56dc36614469a"]
         assert scoring["type"] == "logic"
         assert len(scoring["matrices"]) == 0
 
@@ -516,11 +507,11 @@ class TestWorkflowMatrixTelemetry:
         )
 
         all_wfs = resolve_all_workflows_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
-        assert len(all_wfs) == 7
+        assert len(all_wfs) == 3
         wf_ids = {w["workflow_id"] for w in all_wfs}
-        assert "wf_03a1d71000000003" in wf_ids
-        assert "wf_01a1d71000000001" in wf_ids
-        assert "wf_06a1d71000000001" in wf_ids
+        assert "wf_9d68c573802341db" in wf_ids
+        assert "wf_a8f1d71000000001" in wf_ids
+        assert "wf_b9e2d71000000002" in wf_ids
 
         # Untargeted resolution on multi-workflow DB returns None (no domain guessing)
         assert resolve_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json")) is None
@@ -535,18 +526,18 @@ class TestWorkflowMatrixTelemetry:
 
         telemetry_by_id = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="wf_05a1d71000000005",
+            workflow_id="wf_a8f1d71000000001",
         )
         assert telemetry_by_id is not None
-        assert telemetry_by_id["workflow_id"] == "wf_05a1d71000000005"
-        assert telemetry_by_id["security_penalty"] == 0.15
+        assert telemetry_by_id["workflow_id"] == "wf_a8f1d71000000001"
+        assert telemetry_by_id["total_matrices"] == 4
 
         telemetry_by_slug = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="syvallinen_ongelmanratkaisu_kognitio",
+            workflow_id="kokonaisvaltainen_auditointi",
         )
         assert telemetry_by_slug is not None
-        assert telemetry_by_slug["workflow_id"] == "wf_03a1d71000000003"
+        assert telemetry_by_slug["workflow_id"] == "wf_9d68c573802341db"
 
     def test_print_workflow_matrix_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify print_workflow_matrix_telemetry outputs formatted telemetry cleanly."""
@@ -555,7 +546,7 @@ class TestWorkflowMatrixTelemetry:
         print_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
         captured = capsys.readouterr().out
         assert "Työnkulun ja Arviointimatriisien Parametrit" in captured
-        assert "Sovereign Strictness:     50%" in captured
+        assert "Sovereign Strictness:     0%" in captured
         assert "Bloomin Taksonomia" in captured
         assert "Kahnemanin Kaksoisprosessiteoria" in captured
         assert "Deterministinen UnifiedScoringEngine" in captured

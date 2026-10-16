@@ -3,7 +3,11 @@ import pytest
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
-from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+from backend_v2.models.dtos.causal_discovery import (
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalTdaFusionResultDTO,
+)
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import ExecutionStatus, RoleClassification, TargetBlockType
 from backend_v2.models.view.sdui import BulletListBlock, BulletListItem, ParagraphBlock, SduiCausalGraphBlock
@@ -14,10 +18,14 @@ from backend_v2.services.sdui.adapters.executive_summary_adapter import Executiv
 def _make_matrix_row(
     block_id: str = "blk_53f32679aa514fcb",
     score: float | None = 4.0,
+    raw_score: float | None = None,
     scale_min: float | None = 1.0,
     scale_max: float | None = 5.0,
+    raw_scale_max: float | None = None,
     level_names: dict[str, str] | None = None,
 ) -> MatrixScorecardRowDTO:
+    if raw_score is None:
+        raw_score = score
     if level_names is None:
         level_names = {
             "1": "Matkustaja (Sokea usko)",
@@ -32,6 +40,9 @@ def _make_matrix_row(
         label_i18n=I18nText(translations={"fi": "Aktiivinen ohjaus", "en": "Active Guidance"}),
         description=None,
         score=score,
+        raw_score=raw_score,
+        raw_scale_min=None,
+        raw_scale_max=raw_scale_max,
         score_display_label=None,
         scale_min=scale_min,
         scale_max=scale_max,
@@ -67,6 +78,29 @@ def _make_matrix_row(
     )
 
 
+def _make_context(
+    profile: OutputProfile,
+    locale: str = "fi",
+    parsed_matrices: dict[str, MatrixScorecardRowDTO] | None = None,
+    profile_cache: RenderedSynthesisCache | None = None,
+    causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None,
+) -> AdapterContext:
+    return AdapterContext(
+        execution=None,
+        locale=locale,
+        penalties_applied=[],
+        mcp_audit_map=None,
+        mcp_tools_map={},
+        global_score=None,
+        profile=profile,
+        profile_cache=profile_cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices=parsed_matrices if parsed_matrices is not None else {},
+        causal_result=causal_result,
+    )
+
+
 def test_build_valid_role_returns_paragraph_block() -> None:
     """Test successful translation of user role into a ParagraphBlock."""
     profile = OutputProfile(
@@ -80,23 +114,16 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         user_role_target_block="blk_53f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=3.0)
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"sr_0228db320e8f41bb_blk_53f32679aa514fcb": matrix_row},
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "**Rooli:** Navigaattori (Pintapuolinen)"
+    assert blocks[0].text == "**Rooli:** Navigaattori"
 
 
 def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
@@ -123,16 +150,10 @@ def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
             ]
         },
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"sr_0228db320e8f41bb_blk_53f32679aa514fcb": matrix_row},
     )
 
@@ -168,16 +189,10 @@ def test_build_legacy_unmapped_section_key_ignored_negative() -> None:
             ]
         },
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"sr_0228db320e8f41bb_blk_53f32679aa514fcb": matrix_row},
     )
 
@@ -195,12 +210,8 @@ def test_build_missing_user_role_returns_empty_list() -> None:
         user_role_justification="",
         section_syntheses={},
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=OutputProfile(
             id="prf_0123456789abcdef0123456789abcdef",
             slug="test",
@@ -211,8 +222,6 @@ def test_build_missing_user_role_returns_empty_list() -> None:
             user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         ),
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
     )
 
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -232,16 +241,9 @@ def test_build_valid_role_with_default_label() -> None:
         user_role_target_block="blk_53f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0, level_names={"4": "Driver"})
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"sr_0228db320e8f41bb_blk_53f32679aa514fcb": matrix_row},
     )
 
@@ -266,16 +268,10 @@ def test_build_starved_returns_empty() -> None:
         data_starvation=DataStarvationEvent(total_atoms=0, reason="insufficient_tokens"),
         user_role=RoleClassification.DRIVER.value,
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert blocks == []
@@ -291,16 +287,9 @@ def test_build_none_profile_cache_returns_empty_list() -> None:
         content_blocks=[],
         target_block_order=[],
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert blocks == []
@@ -330,22 +319,15 @@ def test_build_matrix_target_block_resolves_deterministic_role_badge() -> None:
         user_role_target_block="blk_53f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0)
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "**Käyttäjärooli:** Kuljettaja (Kriittinen ohjaaja)"
+    assert blocks[0].text == "**Käyttäjärooli:** Ohjaaja"
 
 
 def test_build_matrix_target_block_resolves_bilingual_english() -> None:
@@ -367,38 +349,31 @@ def test_build_matrix_target_block_resolves_bilingual_english() -> None:
         "5": "Architect (Active Challenger)",
     }
     matrix_row = _make_matrix_row(score=4.0, level_names=en_levels)
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "**User Role:** Driver (Critical Guide)"
+    assert blocks[0].text == "**User Role:** Driver"
 
 
 @pytest.mark.parametrize(
     ("score", "expected_role_suffix"),
     [
-        (0.2, "Matkustaja (Sokea usko)"),
-        (1.0, "Matkustaja (Sokea usko)"),
-        (2.4, "Reaktiivinen huomioija"),
-        (3.4, "Navigaattori (Pintapuolinen)"),
-        (3.7, "Kuljettaja (Kriittinen ohjaaja)"),
-        (5.0, "Arkkitehti (Aktiivinen haastaja)"),
-        (5.8, "Arkkitehti (Aktiivinen haastaja)"),
+        (0.2, "Matkustaja"),
+        (1.0, "Matkustaja"),
+        (2.4, "Matkustaja"),
+        (3.4, "Navigaattori"),
+        (3.7, "Ohjaaja"),
+        (5.0, "Arkkitehti"),
+        (5.8, "Arkkitehti"),
     ],
 )
 def test_build_matrix_target_block_clamping_boundary_scores(score: float, expected_role_suffix: str) -> None:
-    """Test boundary scores clamping to integer bounds [1, 5] and mapping to level names."""
+    """Test boundary scores clamping to integer bounds [1, 5] and mapping to canonical enum names."""
     profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
@@ -409,22 +384,46 @@ def test_build_matrix_target_block_clamping_boundary_scores(score: float, expect
         user_role_target_block="blk_53f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=score)
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
     assert blocks[0].text == f"**Käyttäjärooli:** {expected_role_suffix}"
+
+
+def test_role_classification_extreme_boundary_clamping() -> None:
+    """TC-ROLE-005: Negative test for extreme boundary clamping in RoleClassification."""
+    assert RoleClassification.from_score(-10.0) == RoleClassification.PASSENGER
+    assert RoleClassification.from_score(99.0) == RoleClassification.ARCHITECT
+
+
+def test_build_matrix_target_block_custom_levels_not_leaked() -> None:
+    """TC-ROLE-002: Negative test ensuring custom level_names from prompt do not leak into role badge."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        user_role_target_block="blk_53f32679aa514fcb",
+    )
+    custom_levels = {"1": "Perusvuorovaikutus (Noviisi)"}
+    matrix_row = _make_matrix_row(score=1.0, level_names=custom_levels)
+    context = _make_context(
+        locale="fi",
+        profile=profile,
+        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+    )
+    blocks = ExecutiveSummaryAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], ParagraphBlock)
+    assert blocks[0].text == "**Käyttäjärooli:** Matkustaja"
+    assert "Perusvuorovaikutus" not in blocks[0].text
 
 
 def test_build_matrix_target_block_missing_from_parsed_matrices_omits_badge() -> None:
@@ -438,16 +437,9 @@ def test_build_matrix_target_block_missing_from_parsed_matrices_omits_badge() ->
         target_block_order=[],
         user_role_target_block="blk_53f32679aa514fcb",
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -473,16 +465,10 @@ def test_build_matrix_target_block_score_none_omits_badge_gracefully() -> None:
             ]
         },
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -503,26 +489,19 @@ def test_build_matrix_target_block_float_key_lookup() -> None:
         user_role_target_block="blk_53f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0, level_names={"4.0": "Driver Float Key"})
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "**User Role:** Driver Float Key"
+    assert blocks[0].text == "**User Role:** Driver"
 
 
-def test_build_matrix_target_block_level_names_empty_omits_badge() -> None:
-    """Test that empty level_names in target matrix omits badge without error."""
+def test_build_matrix_target_block_raw_score_none_omits_badge() -> None:
+    """Test that None raw_score in target matrix omits badge without error."""
     profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test",
@@ -532,17 +511,10 @@ def test_build_matrix_target_block_level_names_empty_omits_badge() -> None:
         target_block_order=[],
         user_role_target_block="blk_53f32679aa514fcb",
     )
-    matrix_row = _make_matrix_row(score=4.0, level_names={})
-    context = AdapterContext(
-        execution=None,
+    matrix_row = _make_matrix_row(score=None, raw_score=None, level_names={})
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -565,22 +537,15 @@ def test_build_matrix_target_block_with_composite_step_block_id_key() -> None:
         score=4.0,
         level_names={"4": "Driver (Critical Guide)"},
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="en",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
-        profile_cache=None,
-        user_name=None,
-        org_name=None,
         parsed_matrices={"sr_0228db320e8f41bb_blk_53f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
-    assert blocks[0].text == "**User Role:** Driver (Critical Guide)"
+    assert blocks[0].text == "**User Role:** Driver"
 
 
 def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None:
@@ -599,16 +564,10 @@ def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None
         user_role_justification="Derived deterministically",
         section_syntheses={},
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
         parsed_matrices={},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
@@ -651,23 +610,17 @@ def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
                 ParagraphBlock(text="Narrative intro", exact_quotes=[], citations=[]),
                 BulletListBlock(
                     items=[
-                        BulletListItem(text="Strategic recommendation 1"),
-                        BulletListItem(text="Strategic recommendation 2"),
+                        BulletListItem(text="Strategic recommendation 1", exact_quotes=[], citations=[]),
+                        BulletListItem(text="Strategic recommendation 2", exact_quotes=[], citations=[]),
                     ]
                 ),
             ]
         }
     )
-    context = AdapterContext(
-        execution=None,
+    context = _make_context(
         locale="fi",
-        penalties_applied=[],
-        mcp_audit_map=None,
-        global_score=None,
         profile=profile,
         profile_cache=cache,
-        user_name=None,
-        org_name=None,
         parsed_matrices={},
         causal_result=causal_payload,
     )
