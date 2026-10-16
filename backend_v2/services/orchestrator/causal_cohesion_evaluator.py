@@ -179,10 +179,14 @@ class CausalCohesionEvaluator:
             atom_results.append(atom)
 
         level_stats: dict[str, LevelStatsDTO] = {
-            str(float(lvl)): LevelStatsDTO(
-                hits=1.0 if passed else 0.0,
-                total=1.0,
+            str(lvl): LevelStatsDTO(
+                hits=1 if passed else 0,
+                total=1,
                 dlqs=0,
+                pos_hits=1 if passed else 0,
+                pos_total=1,
+                inv_clean=0,
+                inv_total=0,
             )
             for lvl, passed in enumerate(passed_flags, 1)
         }

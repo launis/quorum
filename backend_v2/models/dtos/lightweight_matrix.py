@@ -66,13 +66,21 @@ class LevelStatsDTO(V2CoreBase):
         hits: Number of passing criteria at this level.
         total: Total number of criteria at this level.
         dlqs: Number of items that hit the dead letter queue (defaults to 0).
+        pos_hits: Affirmative passing criteria at this level.
+        pos_total: Affirmative total criteria at this level.
+        inv_clean: Inverse clean criteria at this level.
+        inv_total: Inverse total criteria at this level.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    hits: Annotated[int | float, Field(description="Number of passing criteria at this level")]
-    total: Annotated[int | float, Field(description="Total number of criteria at this level")]
-    dlqs: Annotated[int, Field(default=0, description="Number of items that hit the dead letter queue")] = 0
+    hits: Annotated[int, Field(ge=0, description="Number of passing criteria at this level")]
+    total: Annotated[int, Field(ge=0, description="Total number of criteria at this level")]
+    dlqs: Annotated[int, Field(default=0, ge=0, description="Number of items that hit the dead letter queue")] = 0
+    pos_hits: Annotated[int, Field(default=0, ge=0, description="Affirmative passing criteria at this level")] = 0
+    pos_total: Annotated[int, Field(default=0, ge=0, description="Affirmative total criteria at this level")] = 0
+    inv_clean: Annotated[int, Field(default=0, ge=0, description="Inverse clean criteria at this level")] = 0
+    inv_total: Annotated[int, Field(default=0, ge=0, description="Inverse total criteria at this level")] = 0
 
 
 class MatrixAggregationStateDTO(V2CoreBase):
@@ -107,6 +115,10 @@ class MatrixAggregationStateDTO(V2CoreBase):
     atom_quotes: Annotated[
         list[QuoteEvidenceDTO],
         Field(default_factory=list, description="List of QuoteEvidenceDTO instances."),
+    ]
+    display_stats: Annotated[
+        dict[str, LevelStatsDTO],
+        Field(default_factory=dict, description="Map of level key to empirical LevelStatsDTO."),
     ]
 
 

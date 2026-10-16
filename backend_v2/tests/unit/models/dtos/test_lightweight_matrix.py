@@ -44,10 +44,18 @@ def test_level_stats_dto_defaults_and_fields() -> None:
     assert dto_default.total == 5
     assert dto_default.dlqs == 0
 
-    dto_explicit = LevelStatsDTO(hits=2.5, total=10.0, dlqs=2)
-    assert dto_explicit.hits == 2.5
-    assert dto_explicit.total == 10.0
+    dto_explicit = LevelStatsDTO(hits=2, total=10, dlqs=2, pos_hits=1, pos_total=5, inv_clean=1, inv_total=5)
+    assert dto_explicit.hits == 2
+    assert dto_explicit.total == 10
     assert dto_explicit.dlqs == 2
+    assert dto_explicit.pos_hits == 1
+    assert dto_explicit.pos_total == 5
+    assert dto_explicit.inv_clean == 1
+    assert dto_explicit.inv_total == 5
+
+    # Rejection of float counts under strict integer typing
+    with pytest.raises(ValidationError):
+        LevelStatsDTO.model_validate({"hits": 2.5, "total": 10})
 
     # Negative extra forbidden
     with pytest.raises(ValidationError):

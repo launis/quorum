@@ -889,8 +889,12 @@ async def test_matrix_scoring_hook_blank_page_and_inverse_penalties(matrix_setup
     assert delta_blank.matrix_outputs[pb_id].raw_score == 1.0
     assert delta_blank.matrix_outputs[pb_id].level_breakdown is not None
     for s_dto in delta_blank.matrix_outputs[pb_id].level_breakdown.values():
-        assert s_dto.total == 0
-        assert s_dto.hits == 0
+        assert s_dto.total == 2
+        assert s_dto.hits == 2
+        assert s_dto.pos_total == 0
+        assert s_dto.pos_hits == 0
+        assert s_dto.inv_total == 2
+        assert s_dto.inv_clean == 2
 
     # 2. 2 failed inverse claims record 2 penalties (0.05 deductions)
     inv_evals_with_failures = [

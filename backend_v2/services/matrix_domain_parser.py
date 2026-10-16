@@ -19,7 +19,7 @@ from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
 from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO, ScorecardAtomCollectionDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -36,6 +36,58 @@ logger = logging.getLogger(__name__)
 
 class MatrixDomainParser:
     """Domain Orchestrator for parsing LLM trace results into MatrixScorecardRowDTOs."""
+
+    @staticmethod
+    def _format_level_distribution(lvl_data: LevelStatsDTO, locale: str) -> str:
+        """Formats the empirical scale distribution according to Model B architecture.
+
+        Args:
+            lvl_data: The LevelStatsDTO containing decomposed affirmative and inverse counts.
+            locale: Language string ('fi' or 'en').
+
+        Returns:
+            Formatted distribution string adhering to Dumb Painter SDUI contract.
+        """
+        k_pos = lvl_data.pos_hits
+        n_pos = lvl_data.pos_total
+        k_clean = lvl_data.inv_clean
+        n_inv = lvl_data.inv_total
+
+        is_en = locale.startswith("en")
+        skills_word = "skills" if is_en else "taitoa"
+        purity_word = "purity" if is_en else "puhtaus"
+        defect_singular = "defect" if is_en else "virhe"
+        defect_plural = "defects" if is_en else "virhettä"
+
+        # Rule 1: Pure Capability Level (N_pos > 0 and N_inv == 0)
+        if n_pos > 0 and n_inv == 0:
+            if n_pos == 1:
+                return f"{k_pos}/{n_pos}"
+            return f"{k_pos}/{n_pos} {skills_word}"
+
+        # Rule 2: Pure Error Radar Level (N_pos == 0 and N_inv > 0)
+        if n_pos == 0 and n_inv > 0:
+            d_inv = n_inv - k_clean
+            if d_inv == 0:
+                return f"{purity_word} {k_clean}/{n_inv}"
+            defect_label = defect_singular if d_inv == 1 else defect_plural
+            return f"{purity_word} {k_clean}/{n_inv} (⚠️ {d_inv} {defect_label})"
+
+        # Rule 3: Hybrid Level (N_pos > 0 and N_inv > 0)
+        if n_pos > 0 and n_inv > 0:
+            skills_part = f"{k_pos}/{n_pos}" if n_pos == 1 else f"{k_pos}/{n_pos} {skills_word}"
+            d_inv = n_inv - k_clean
+            if d_inv == 0:
+                purity_part = f"{purity_word} {k_clean}/{n_inv}"
+            else:
+                defect_label = defect_singular if d_inv == 1 else defect_plural
+                purity_part = f"{purity_word} {k_clean}/{n_inv} (⚠️ {d_inv} {defect_label})"
+            return f"{skills_part}, {purity_part}"
+
+        # Rule 5: Unpartitioned Count Normalization (N_pos == 0 and N_inv == 0)
+        hits = int(lvl_data.hits)
+        total = int(lvl_data.total)
+        return f"{hits}/{total}"
 
     @staticmethod
     def _clean_hallucinated_numbers(text: str) -> str:
@@ -323,9 +375,7 @@ class MatrixDomainParser:
                             c_key = str(int(f_lvl))
                         else:
                             c_key = str(lvl_key)
-                        hits = lvl_data.hits
-                        total = lvl_data.total
-                        clean_level_dict[c_key] = f"{hits}/{total}"
+                        clean_level_dict[c_key] = MatrixDomainParser._format_level_distribution(lvl_data, locale)
                     except ValueError as v_err:
                         logger.error(
                             "[MatrixDomainParser] %s: Fail-Fast: Invalid level key '%s' in matrix breakdown for '%s'.",

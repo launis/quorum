@@ -346,6 +346,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         for pb_id, pb_model in matrix_blocks:
             scales = pb_model.scales
             block_scale_stats: dict[float, LevelStatsDTO] = {}
+            block_display_stats: dict[str, LevelStatsDTO] = {}
             block_missing_atoms: list[str] = []
             block_evaluated_atoms: dict[str, ExecutionStatus] = {}
             block_atom_quotes: list[QuoteEvidenceDTO] = []
@@ -354,7 +355,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             for scale in scales:
                 s_val = float(scale.score)
-                block_scale_stats[s_val] = LevelStatsDTO(hits=0, total=0, dlqs=0)
+                s_key = str(int(s_val)) if s_val.is_integer() else str(s_val)
+                block_scale_stats[s_val] = LevelStatsDTO(
+                    hits=0, total=0, dlqs=0, pos_hits=0, pos_total=0, inv_clean=0, inv_total=0
+                )
+                block_display_stats[s_key] = LevelStatsDTO(
+                    hits=0, total=0, dlqs=0, pos_hits=0, pos_total=0, inv_clean=0, inv_total=0
+                )
 
                 claims = scale.claims
                 for claim in claims:
@@ -458,32 +465,107 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                             # Record the logic outcomes
                             cur_stat = block_scale_stats[s_val]
+                            cur_display = block_display_stats[s_key]
                             is_inverse_claim = bool(tda.inverse_evidence)
                             if is_inverse_claim:
                                 # Two-Factor Orthogonal Scoring: inverse assertions are error detectors
                                 if final_state == "DLQ":
                                     block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs + 1,
+                                        pos_hits=cur_display.pos_hits,
+                                        pos_total=cur_display.pos_total,
+                                        inv_clean=cur_display.inv_clean,
+                                        inv_total=cur_display.inv_total + 1,
+                                    )
                                 elif final_state == "TRUE":
                                     block_evaluated_atoms[aid] = ExecutionStatus.PASSED
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits + 1,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs,
+                                        pos_hits=cur_display.pos_hits,
+                                        pos_total=cur_display.pos_total,
+                                        inv_clean=cur_display.inv_clean + 1,
+                                        inv_total=cur_display.inv_total + 1,
+                                    )
                                 else:
                                     block_evaluated_atoms[aid] = ExecutionStatus.FAILED
                                     block_penalties_detected.append(0.05)
                                     block_missing_atoms.append(text)
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs,
+                                        pos_hits=cur_display.pos_hits,
+                                        pos_total=cur_display.pos_total,
+                                        inv_clean=cur_display.inv_clean,
+                                        inv_total=cur_display.inv_total + 1,
+                                    )
                             else:
                                 if final_state == "DLQ":
                                     block_evaluated_atoms[aid] = ExecutionStatus.SYSTEM_ERROR
-                                    block_scale_stats[s_val] = cur_stat.model_copy(
-                                        update={"total": cur_stat.total + 1, "dlqs": cur_stat.dlqs + 1}
+                                    block_scale_stats[s_val] = LevelStatsDTO(
+                                        hits=cur_stat.hits,
+                                        total=cur_stat.total + 1,
+                                        dlqs=cur_stat.dlqs + 1,
+                                        pos_hits=cur_stat.pos_hits,
+                                        pos_total=cur_stat.pos_total + 1,
+                                        inv_clean=cur_stat.inv_clean,
+                                        inv_total=cur_stat.inv_total,
+                                    )
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs + 1,
+                                        pos_hits=cur_display.pos_hits,
+                                        pos_total=cur_display.pos_total + 1,
+                                        inv_clean=cur_display.inv_clean,
+                                        inv_total=cur_display.inv_total,
                                     )
                                     block_missing_atoms.append(f"{text} (DLQ - Unscorable)")
                                 elif final_state == "TRUE":
                                     block_evaluated_atoms[aid] = ExecutionStatus.PASSED
-                                    block_scale_stats[s_val] = cur_stat.model_copy(
-                                        update={"total": cur_stat.total + 1, "hits": cur_stat.hits + 1}
+                                    block_scale_stats[s_val] = LevelStatsDTO(
+                                        hits=cur_stat.hits + 1,
+                                        total=cur_stat.total + 1,
+                                        dlqs=cur_stat.dlqs,
+                                        pos_hits=cur_stat.pos_hits + 1,
+                                        pos_total=cur_stat.pos_total + 1,
+                                        inv_clean=cur_stat.inv_clean,
+                                        inv_total=cur_stat.inv_total,
+                                    )
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits + 1,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs,
+                                        pos_hits=cur_display.pos_hits + 1,
+                                        pos_total=cur_display.pos_total + 1,
+                                        inv_clean=cur_display.inv_clean,
+                                        inv_total=cur_display.inv_total,
                                     )
                                 else:
                                     block_evaluated_atoms[aid] = ExecutionStatus.FAILED
-                                    block_scale_stats[s_val] = cur_stat.model_copy(update={"total": cur_stat.total + 1})
+                                    block_scale_stats[s_val] = LevelStatsDTO(
+                                        hits=cur_stat.hits,
+                                        total=cur_stat.total + 1,
+                                        dlqs=cur_stat.dlqs,
+                                        pos_hits=cur_stat.pos_hits,
+                                        pos_total=cur_stat.pos_total + 1,
+                                        inv_clean=cur_stat.inv_clean,
+                                        inv_total=cur_stat.inv_total,
+                                    )
+                                    block_display_stats[s_key] = LevelStatsDTO(
+                                        hits=cur_display.hits,
+                                        total=cur_display.total + 1,
+                                        dlqs=cur_display.dlqs,
+                                        pos_hits=cur_display.pos_hits,
+                                        pos_total=cur_display.pos_total + 1,
+                                        inv_clean=cur_display.inv_clean,
+                                        inv_total=cur_display.inv_total,
+                                    )
                                     block_missing_atoms.append(text)
 
             aggregation_states[pb_id] = MatrixAggregationStateDTO(
@@ -492,6 +574,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 extensions=block_matrix_extensions,
                 missing_atoms=block_missing_atoms,
                 atom_quotes=block_atom_quotes,
+                display_stats=block_display_stats,
             )
             block_penalties[pb_id] = block_penalties_detected
 
@@ -514,7 +597,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             if is_indeterminate:
                 raw_score = math_min
-                formatted_breakdown = None
                 xai_log = None
                 justification = (
                     f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
@@ -532,7 +614,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 )
                 raw_score = scoring_result.score
                 xai_log = scoring_result.xai_log
-                formatted_breakdown = scoring_result.breakdown
                 justification = "Calculated via UnifiedScoringEngine."
 
             block_allowed_extensions: list[LaxXaiExtensionType] | None = None
@@ -557,7 +638,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             matrix_output = LightweightMatrixOutput(
                 raw_score=raw_score,
                 normalized_score=None,
-                level_breakdown=formatted_breakdown,
+                level_breakdown=None if is_indeterminate else block_state.display_stats,
                 justification=justification,
                 xai_log=xai_log,
                 evaluated_atoms=block_state.evaluated_atoms,

@@ -129,7 +129,18 @@ class UnifiedScoringEngine(ScoringEngineProtocol):
         )
         log_lines.append(f"Final Score: {score:.2f} (Mapped to scale {math_min}-{math_max})")
 
-        level_breakdown = {str(k): LevelStatsDTO(hits=v.hits, total=v.total, dlqs=v.dlqs) for k, v in stats.items()}
+        level_breakdown = {
+            str(k): LevelStatsDTO(
+                hits=v.hits,
+                total=v.total,
+                dlqs=v.dlqs,
+                pos_hits=v.pos_hits,
+                pos_total=v.pos_total,
+                inv_clean=v.inv_clean,
+                inv_total=v.inv_total,
+            )
+            for k, v in stats.items()
+        }
 
         engine_debug_trace = {
             "engine": "unified",
