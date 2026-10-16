@@ -413,6 +413,7 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
     'Referential Integrity Error: Missing keys in hydrated_references: {...}'
     """
     from datetime import datetime, timezone
+
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.dtos.atom_result import HydratedAtomDTO
     from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
@@ -497,4 +498,3 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
     )
     assert len(report_dto.results) == 5
     assert len(report_dto.hydrated_references) == 5
-

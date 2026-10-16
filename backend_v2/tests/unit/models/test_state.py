@@ -640,4 +640,3 @@ def test_state_projector_apply_delta_scoring_dict() -> None:
     by_block = {dto.block_id for dto in results}
     assert VirtualSystemStepID.SCORING_RESULT.value in by_block
     assert "custom_meta" in by_block
-
