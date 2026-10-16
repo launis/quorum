@@ -44,6 +44,15 @@ Complex evaluation workflows decompose tasks into atomic units and structured ma
 2. **Matrix Causal DAG (Pre-compiled Assertions)**: Operates on pre-compiled matrix assertions carrying pre-defined causal dependencies (`FlattenedAtom.depends_on`). Local chunk claim extraction (Pass 2) and the Sliding Window Linker operate as decoupled exploratory knowledge extraction services (specifically during RAG Preflight).
 These units form a Directed Acyclic Graph (DAG) whose dependencies, edge constraints, and topological order are resolved before dispatching to specialized cognitive engines.
 
+#### Document Paragraph Indexing & Boundary Monotonicity
+Ingested source text across discovery and preflight engines (`CausalDiscoveryEngine`, `TDAEngine`, `RAGPreflightService`) is indexed using strictly sequential, 0-indexed integer identifiers (`[B{i}] {paragraph}`). Because paragraph markers represent physical geometric positions rather than deduplicated domain entities, natural-language prose is never passed to `AliasEngine` for block registration. If an ingestion payload lacks valid paragraph structure, the engine triggers immediate Fail-Fast with `HTTP 422 Unprocessable Content`.
+
+#### Packet Boundary Defense & Fault-Tolerant Atom Filtering
+In `TwoPassAtomizer`, chunk packet boundaries enforce contiguous ranges (`start_block_id` to `end_block_id`), validated by format verification (`key.startswith("B") and key[1:].isdigit()`). When an extraction task produces an atom citing a block identifier outside the assigned packet bounds, `TwoPassAtomizer` logs a structured warning (`corrupted_atom_dropped`) and continues processing remaining valid atoms in the chunk rather than raising an unhandled `ValueError` that terminates the parallel `asyncio.TaskGroup`.
+
+#### MatrixReducer Pre-Evaluation Gating
+In `DAGExecutor`, invocation of `MatrixReducer.reduce_matrix(exec_record)` is strictly gated on the presence of evaluated atoms across step execution records. If an execution terminates prior to atom evaluation (such as during preflight validation failures), `MatrixReducer` is bypassed, eliminating synthetic empty reductions and duplicate execution warnings.
+
 #### Wave-Based Topological TaskGroup Execution & DLQ Recording
 Macro step execution within `DAGExecutor` organizes workflow steps into Kahn's topological waves. Independent steps within each wave execute concurrently inside a structured `asyncio.TaskGroup`. When a step fails or is cancelled, the wave traps the failure via PEP 758 bracketless `except*` handlers, deterministically terminates sibling coroutines, and commits all cancelled and unreached steps to the Dead Letter Queue (DLQ) via `_dlq_record_step_failure`, guaranteeing that no step remains stranded in an unresolved `PENDING` state.
 

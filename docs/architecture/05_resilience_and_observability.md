@@ -22,6 +22,8 @@ To prevent premature failure of long-running evaluations, tasks encountering tra
 ### 2.3. Structured Concurrency & Failure Isolation
 All asynchronous routines are orchestrated through structured task groups, eliminating detached background tasks and silent zombie coroutines. When a subtask within a task group fails with an unhandled exception, the task group automatically cancels all remaining sibling coroutines, preventing leaked memory, lingering database locks, and runaway model invocation costs. Parallel exceptions are collected into typed exception groups and evaluated using native split-exception handling.
 
+Within parallel chunk extractions (`TwoPassAtomizer`), probabilistic citations that fall outside assigned packet bounds are treated as local validation events rather than fatal server exceptions: out-of-packet atoms are logged with structured warnings (`corrupted_atom_dropped`) and pruned, allowing the worker to continue extracting remaining valid atoms without raising unhandled exceptions that tear down the parallel `asyncio.TaskGroup`.
+
 Concurrency limits are governed across decoupled operational tiers:
 - **Macro-Level Workflow Limiter:** Regulates global worker throughput in the Arq background daemon (`settings.max_concurrent_workflows`).
 - **Micro-Level Provider Throttling Pool:** Governs concurrent outbound model invocations within `LiteLLMProvider` via a dynamic semaphore pool configured from provider RPM settings, dynamically shielding external provider APIs from rate limits.

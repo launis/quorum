@@ -18,8 +18,8 @@ Unconstrained LLM generation in evaluative workflows suffers from three systemic
 To eliminate these vulnerabilities, Quorum enforces the **Four-Layer Clean Stack** hierarchy:
 * **Layer 1: Static System Directives & Epistemic Protocols:** Static prefix defining strict evaluator posture, null-hypothesis tie-breakers, procedural prompt disqualification, document metadata disqualification, Metacognitive Safe Harbor, and quote invariants.
 * **Layer 2: Theory Grounding & Epistemic Context:** Explicit academic citations and domain objectives framing the cognitive audit.
-* **Layer 3: Massive Context Target:** Raw source materials (transcripts, deliverables, logs) encapsulated inside bounded XML tags.
-* **Layer 4: Dynamic Execution Parameters:** Runtime batch assertions (TDA atoms) mapped to deterministic opaque aliases (`a0`, `a1`), isolated at the absolute tail of the message payload.
+* **Layer 3: Massive Context Target:** Raw source materials (transcripts, deliverables, logs) encapsulated inside bounded XML tags. Source texts enforce strictly positional, monotonic paragraph indexing (`[B{i}] {paragraph}`) representing physical text coordinates across documents. This physical index format guarantees that duplicate sentences or repeated section headers retain unique spatial coordinates without reverse-lookup alias collisions.
+* **Layer 4: Dynamic Execution Parameters:** Runtime batch assertions (TDA atoms) and discrete document entity identifiers mapped to deterministic opaque aliases (`a0`, `a1`, `src_0`) via `AliasEngine`, isolated at the absolute tail of the message payload. These Attention Anchors compress UUIDs and isolate internal system keys from LLM attention heads, maintaining a strict 1:1 bijective map for discrete entities while prose text relies exclusively on monotonic paragraph markers.
 
 Layers 1 through 3 constitute an immutable prefix that achieves **95%+ Context Caching efficiency** across providers, while Layer 4 isolates runtime variability.
 
