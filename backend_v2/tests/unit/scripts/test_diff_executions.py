@@ -19,6 +19,7 @@ from backend_v2.models.domain.matrix import ContrastivePairDTO
 from scripts.diff_executions import (
     UNICODE_SPACE_REGISTRY,
     AtomEvaluationSnapshotDTO,
+    ClusterBootstrapMetricsDTO,
     DiffReportSnapshotDTO,
     DisagreementRootCause,
     EvidenceDistributionDTO,
@@ -31,6 +32,7 @@ from scripts.diff_executions import (
     UserDocumentationVolumeDTO,
     WorkflowProvenanceDTO,
     _inspect_input_file,
+    calculate_cluster_bootstrapped_kappa,
     calculate_cohens_kappa,
     calculate_entropy,
     calculate_fleiss_kappa,
@@ -1570,3 +1572,117 @@ def test_diff_executions_main_cli_delegation(monkeypatch: pytest.MonkeyPatch) ->
 
     assert called["execution_ids"] == ["exe_1", "exe_2"]
     assert called["output_file"] == "custom_report.md"
+
+
+class TestClusterBootstrapKappa:
+    """ISTQB test suite for cluster-bootstrapped Cohen's Kappa adjusting for intra-cluster correlation."""
+
+    def test_calculate_cluster_bootstrapped_kappa_reproducible_positive(self) -> None:
+        """TC-BOOT-01: Verifies deterministic bootstrap kappa with positive intra-cluster correlation.
+
+        Uses 10 synthetic clusters matching Table 2 atom distributions (220 atoms total),
+        evaluating reproducibility, standard error inflation, and percentile confidence intervals.
+        """
+        cluster_sizes = [25, 25, 30, 25, 5, 25, 25, 30, 25, 5]
+        clusters: dict[str, list[list[str]]] = {}
+        atom_counter = 0
+        disagreement_clusters = {1: 2, 3: 2, 6: 2, 8: 2}
+
+        for c_i, size in enumerate(cluster_sizes):
+            items: list[list[str]] = []
+            disagreements_needed = disagreement_clusters[c_i] if c_i in disagreement_clusters else 0
+            for s_idx in range(size):
+                atom_counter += 1
+                if s_idx < disagreements_needed:
+                    items.append(["PASSED", "FAILED"])
+                else:
+                    if atom_counter % 5 in (0, 1, 2):
+                        items.append(["PASSED", "PASSED"])
+                    else:
+                        items.append(["FAILED", "FAILED"])
+            clusters[f"cluster_{c_i}"] = items
+
+        res1 = calculate_cluster_bootstrapped_kappa(clusters, ["PASSED", "FAILED"], b_samples=2000, seed=42)
+        res2 = calculate_cluster_bootstrapped_kappa(clusters, ["PASSED", "FAILED"], b_samples=2000, seed=42)
+
+        # Reproducibility verification
+        assert res1.kappa == res2.kappa
+        assert res1.cluster_se == res2.cluster_se
+        assert res1.ci_lower == res2.ci_lower
+        assert res1.ci_upper == res2.ci_upper
+
+        # TC-BOOT-01 contract assertions
+        assert res1.kappa > 0.90
+        assert 0.020 <= res1.cluster_se <= 0.035
+        assert 1.05 <= res1.se_inflation_factor <= 1.25
+        assert res1.num_clusters == 10
+        assert res1.total_items == 220
+        assert res1.b_samples == 2000
+        assert res1.ci_lower < res1.ci_upper
+
+        # Immutability and extra="forbid" contract validation
+        assert isinstance(res1, ClusterBootstrapMetricsDTO)
+        with pytest.raises(ValidationError):
+            ClusterBootstrapMetricsDTO.model_validate(
+                {
+                    "kappa": 0.9,
+                    "cluster_se": 0.02,
+                    "ci_lower": 0.85,
+                    "ci_upper": 0.95,
+                    "b_samples": 2000,
+                    "num_clusters": 10,
+                    "total_items": 220,
+                    "se_inflation_factor": 1.1,
+                    "unauthorized_field": "forbidden",
+                }
+            )
+
+    def test_calculate_cluster_bootstrapped_kappa_single_cluster_raises_negative(self) -> None:
+        """TC-BOOT-02: Verifies fail-fast ValueError when fewer than 2 clusters are provided."""
+        single_cluster = {"single_cluster": [["PASSED", "PASSED"]] * 20}
+        with pytest.raises(
+            ValueError, match="Cluster bootstrap requires at least 2 clusters for non-parametric resampling."
+        ):
+            calculate_cluster_bootstrapped_kappa(single_cluster, ["PASSED", "FAILED"])
+
+    def test_calculate_cluster_bootstrapped_kappa_invalid_pair_length_negative(self) -> None:
+        """TC-BOOT-03: Verifies fail-fast ValueError when any rating item does not contain exactly 2 ratings."""
+        invalid_clusters = {
+            "c1": [["PASSED", "PASSED"]],
+            "c2": [["PASSED", "PASSED", "FAILED"]],
+        }
+        with pytest.raises(ValueError, match="Each state item must contain exactly 2 ratings."):
+            calculate_cluster_bootstrapped_kappa(invalid_clusters, ["PASSED", "FAILED"])
+
+    def test_calculate_cluster_bootstrapped_kappa_empty_boundary(self) -> None:
+        """TC-BOOT-04: Verifies boundary handling for empty clusters mapping and 0 total items."""
+        # Empty mapping
+        res_empty = calculate_cluster_bootstrapped_kappa({}, ["PASSED", "FAILED"])
+        assert res_empty.kappa == 0.0
+        assert res_empty.cluster_se == 0.0
+        assert res_empty.ci_lower == 0.0
+        assert res_empty.ci_upper == 0.0
+        assert res_empty.b_samples == 2000
+        assert res_empty.num_clusters == 0
+        assert res_empty.total_items == 0
+        assert res_empty.se_inflation_factor == 1.0
+
+        # Clusters with 0 items
+        res_zero = calculate_cluster_bootstrapped_kappa({"c1": [], "c2": []}, ["PASSED", "FAILED"])
+        assert res_zero.total_items == 0
+        assert res_zero.kappa == 0.0
+        assert res_zero.cluster_se == 0.0
+        assert res_zero.se_inflation_factor == 1.0
+
+    def test_calculate_cluster_bootstrapped_kappa_unanimous_concordance_boundary(self) -> None:
+        """TC-BOOT-05: Verifies singularity boundary when raters achieve 100% unanimous agreement."""
+        clusters = {
+            "c1": [["PASSED", "PASSED"]] * 25,
+            "c2": [["PASSED", "PASSED"]] * 25,
+        }
+        res = calculate_cluster_bootstrapped_kappa(clusters, ["PASSED", "FAILED"])
+        assert res.kappa == 1.0
+        assert res.cluster_se == 0.0
+        assert res.ci_lower == 1.0
+        assert res.ci_upper == 1.0
+        assert res.se_inflation_factor == 1.0

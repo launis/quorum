@@ -25,6 +25,7 @@ import io
 import json
 import math
 import os
+import random
 import re
 import subprocess
 import sys
@@ -48,6 +49,7 @@ from backend_v2.settings import get_settings
 __all__ = [
     "AtomEvaluationSnapshotDTO",
     "BlockHeatmapDTO",
+    "ClusterBootstrapMetricsDTO",
     "DiffReportSnapshotDTO",
     "DisagreementRootCause",
     "EvidenceDistributionDTO",
@@ -65,6 +67,7 @@ __all__ = [
     "UNICODE_SPACE_REGISTRY",
     "UserDocumentationVolumeDTO",
     "WorkflowProvenanceDTO",
+    "calculate_cluster_bootstrapped_kappa",
     "calculate_cohens_kappa",
     "calculate_entropy",
     "calculate_fleiss_kappa",
@@ -132,6 +135,21 @@ class KappaMetricsDTO(BaseModel):
     observed_agreement: float
     expected_agreement: float
     marginal_bias: float | None = None
+
+
+class ClusterBootstrapMetricsDTO(BaseModel):
+    """Immutable cluster-bootstrapped Kappa reliability metrics container."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    kappa: float
+    cluster_se: float
+    ci_lower: float
+    ci_upper: float
+    b_samples: int
+    num_clusters: int
+    total_items: int
+    se_inflation_factor: float
 
 
 class BlockOutcomeCountsDTO(BaseModel):
@@ -775,6 +793,148 @@ def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[s
         observed_agreement=observed_agreement,
         expected_agreement=expected_agreement,
         marginal_bias=marginal_bias,
+    )
+
+
+def calculate_cluster_bootstrapped_kappa(
+    clusters: Mapping[str, list[list[str]]],
+    categories: list[str],
+    b_samples: int = 2000,
+    seed: int = 42,
+) -> ClusterBootstrapMetricsDTO:
+    """Calculate cluster-bootstrapped Cohen's Kappa adjusting for intra-cluster correlation.
+
+    Resamples intact clusters with replacement to preserve intra-cluster correlation structures
+    arising from shared LLM reasoning context or document batches.
+
+    Args:
+        clusters: Mapping of cluster identifier to list of 2-element rating state pairs.
+        categories: Authoritative category labels, specifically: ['PASSED', 'FAILED', 'SYSTEM_ERROR'].
+        b_samples: Number of non-parametric bootstrap resamples (default 2000).
+        seed: Deterministic pseudo-random generator seed for reproducible audits.
+
+    Returns:
+        ClusterBootstrapMetricsDTO with point kappa, cluster SE, percentile CI, and inflation factor.
+
+    Raises:
+        ValueError: If len(clusters) < 2 (insufficient clusters for resampling) or
+            if any rating pair does not contain exactly 2 ratings.
+    """
+    total_items = sum(len(items) for items in clusters.values())
+    if len(clusters) == 0 or total_items == 0:
+        return ClusterBootstrapMetricsDTO(
+            kappa=0.0,
+            cluster_se=0.0,
+            ci_lower=0.0,
+            ci_upper=0.0,
+            b_samples=b_samples,
+            num_clusters=len(clusters) if total_items > 0 else 0,
+            total_items=0,
+            se_inflation_factor=1.0,
+        )
+
+    if len(clusters) < 2:
+        msg = "Cluster bootstrap requires at least 2 clusters for non-parametric resampling."
+        raise ValueError(msg)
+
+    for items in clusters.values():
+        for pair in items:
+            if len(pair) != 2:
+                msg = "Each state item must contain exactly 2 ratings."
+                raise ValueError(msg)
+
+    all_pairs = [pair for items in clusters.values() for pair in items]
+    naive_dto = calculate_cohens_kappa(all_pairs, categories)
+    kappa_point = naive_dto.kappa
+    se_naive = naive_dto.standard_error
+
+    if naive_dto.observed_agreement >= 1.0 or naive_dto.expected_agreement >= 1.0:
+        return ClusterBootstrapMetricsDTO(
+            kappa=kappa_point,
+            cluster_se=0.0,
+            ci_lower=max(-1.0, min(1.0, kappa_point)),
+            ci_upper=max(-1.0, min(1.0, kappa_point)),
+            b_samples=b_samples,
+            num_clusters=len(clusters),
+            total_items=total_items,
+            se_inflation_factor=1.0,
+        )
+
+    cat_to_idx = {cat: idx for idx, cat in enumerate(categories)}
+    num_classes = len(categories)
+
+    # Pre-aggregate contingency matrices per cluster for O(K * C^2) resampling performance
+    cluster_matrices: list[list[list[int]]] = []
+    cluster_keys = list(clusters.keys())
+    for c_key in cluster_keys:
+        matrix = [[0] * num_classes for _ in range(num_classes)]
+        for pair in clusters[c_key]:
+            p0, p1 = pair[0], pair[1]
+            if p0 in cat_to_idx and p1 in cat_to_idx:
+                matrix[cat_to_idx[p0]][cat_to_idx[p1]] += 1
+        cluster_matrices.append(matrix)
+
+    k_clusters = len(cluster_matrices)
+    rng = random.Random(seed)
+    boot_kappas: list[float] = []
+
+    for _ in range(b_samples):
+        resampled_indices = [rng.randrange(k_clusters) for _ in range(k_clusters)]
+        m_boot = [[0] * num_classes for _ in range(num_classes)]
+        for c_idx in resampled_indices:
+            c_mat = cluster_matrices[c_idx]
+            for i in range(num_classes):
+                for j in range(num_classes):
+                    m_boot[i][j] += c_mat[i][j]
+
+        n_boot = sum(m_boot[i][j] for i in range(num_classes) for j in range(num_classes))
+        if n_boot == 0:
+            continue
+
+        po_boot = sum(m_boot[i][i] for i in range(num_classes)) / n_boot
+        row_sums = [sum(m_boot[i][j] for j in range(num_classes)) for i in range(num_classes)]
+        col_sums = [sum(m_boot[i][j] for i in range(num_classes)) for j in range(num_classes)]
+        pe_boot = sum((row_sums[i] / n_boot) * (col_sums[i] / n_boot) for i in range(num_classes))
+
+        if pe_boot >= 1.0 or po_boot >= 1.0:
+            k_val = 1.0
+        else:
+            k_val = (po_boot - pe_boot) / (1.0 - pe_boot)
+        boot_kappas.append(k_val)
+
+    if not boot_kappas:
+        return ClusterBootstrapMetricsDTO(
+            kappa=kappa_point,
+            cluster_se=0.0,
+            ci_lower=kappa_point,
+            ci_upper=kappa_point,
+            b_samples=b_samples,
+            num_clusters=len(clusters),
+            total_items=total_items,
+            se_inflation_factor=1.0,
+        )
+
+    mean_k = sum(boot_kappas) / len(boot_kappas)
+    var_k = sum((k_val - mean_k) ** 2 for k_val in boot_kappas) / (len(boot_kappas) - 1) if len(boot_kappas) > 1 else 0.0
+    cluster_se = math.sqrt(max(0.0, var_k))
+
+    boot_kappas.sort()
+    low_idx = int(0.025 * len(boot_kappas))
+    high_idx = int(0.975 * len(boot_kappas))
+    ci_lower = max(-1.0, min(1.0, boot_kappas[low_idx]))
+    ci_upper = max(-1.0, min(1.0, boot_kappas[min(high_idx, len(boot_kappas) - 1)]))
+
+    inflation = (cluster_se / se_naive) if se_naive > 0.0 else 1.0
+
+    return ClusterBootstrapMetricsDTO(
+        kappa=kappa_point,
+        cluster_se=cluster_se,
+        ci_lower=ci_lower,
+        ci_upper=ci_upper,
+        b_samples=b_samples,
+        num_clusters=len(clusters),
+        total_items=total_items,
+        se_inflation_factor=inflation,
     )
 
 

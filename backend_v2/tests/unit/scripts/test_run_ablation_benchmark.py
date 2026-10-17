@@ -24,6 +24,7 @@ from scripts.run_ablation_benchmark import (
     calculate_chimera_rate,
     calculate_dlq_rate,
     calculate_pass_rate,
+    compute_cluster_bootstrapped_kappa_for_runs,
     compute_cohens_kappa_for_runs,
     format_table_5_markdown,
     main,
@@ -306,7 +307,7 @@ def test_ablation_table_5_markdown_formatting() -> None:
     assert "| **5. Monolithic Step-Level LLM-as-a-Judge** | 220 |" in md_output
 
     # Check caption
-    assert "**Table 5:** Component ablation study across 220 paired atom evaluations" in md_output
+    assert "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output
 
 
 def test_ablation_source_text_lexical_verification() -> None:
@@ -425,3 +426,117 @@ def test_ablation_physical_production_trace_baseline() -> None:
     runner_b = AblationBenchmarkRunner(case_filter="pair_b", selected_configs=[1], runs=1, dry_run=False)
     result_b = runner_b.run_configuration(1)
     assert result_b.total_atoms == 110
+
+
+def test_ablation_cluster_bootstrapped_kappa_computation_positive() -> None:
+    """TC-BOOT-06: Verifies cluster-bootstrapped Cohen's Kappa computation on ablation benchmark runs.
+
+    Exercises dry-run ablation execution with 2 runs across 220 atoms grouped into 10 step clusters,
+    confirming non-null cluster standard error, valid percentile CI bounds, and inflation factor >= 1.0.
+    """
+    runner = AblationBenchmarkRunner(case_filter="both", selected_configs=[1], runs=2, dry_run=True)
+    result = runner.run_configuration(1)
+
+    assert result.config_id == 1
+    assert result.total_atoms == 220
+    assert result.runs == 2
+
+    # Cluster-bootstrapped statistical assertions
+    assert result.cluster_se is not None
+    assert result.cluster_se > 0.0
+    assert result.ci_cluster_lower is not None
+    assert result.ci_cluster_upper is not None
+    assert result.ci_cluster_lower < result.ci_cluster_upper
+    assert result.se_inflation_factor is not None
+    assert result.se_inflation_factor > 0.90
+
+    # Physical trace verification where intra-cluster correlation yields inflation factor >= 1.0
+    runner_phys = AblationBenchmarkRunner(case_filter="both", selected_configs=[1], runs=2, dry_run=False)
+    result_phys = runner_phys.run_configuration(1)
+    assert result_phys.cluster_se is not None and result_phys.cluster_se > 0.0
+    assert result_phys.se_inflation_factor is not None
+    assert result_phys.se_inflation_factor >= 1.0
+
+    # Also directly test compute_cluster_bootstrapped_kappa_for_runs with fail-fast unmapped atom check
+    evals1 = [
+        AblationAtomEvaluationDTO(
+            tda_id="atom_1",
+            raw_is_true=True,
+            source_quote="Quote 1",
+            is_chimera=False,
+            status=ExecutionStatus.PASSED,
+        ),
+        AblationAtomEvaluationDTO(
+            tda_id="atom_2",
+            raw_is_true=False,
+            source_quote=None,
+            is_chimera=False,
+            status=ExecutionStatus.FAILED,
+        ),
+    ]
+    evals2 = list(evals1)
+
+    # Negative test: unmapped atom raises ValueError
+    with pytest.raises(ValueError, match="Atom identifier 'atom_2' is not mapped to any step cluster."):
+        compute_cluster_bootstrapped_kappa_for_runs(evals1, evals2, {"atom_1": "cluster_1"})
+
+    # Positive test: mapped atoms calculate cluster bootstrap
+    mapping = {"atom_1": "cluster_1", "atom_2": "cluster_2"}
+    dto = compute_cluster_bootstrapped_kappa_for_runs(evals1, evals2, mapping, b_samples=100)
+    assert dto.kappa == 1.0
+    assert dto.num_clusters == 2
+
+
+def test_format_table_5_markdown_with_cluster_ci_boundary() -> None:
+    """TC-BOOT-07: Verifies Table 5 Markdown formatting for both populated cluster CIs and None boundaries."""
+    # Case 1: Populated cluster CI
+    res_populated = AblationConfigResultDTO(
+        config_id=1,
+        name="Full Quorum (Bo3 + Lexical Firewall)",
+        runs=2,
+        total_atoms=220,
+        observed_agreement=96.36,
+        cohens_kappa=0.9453,
+        ci_lower=0.9120,
+        ci_upper=0.9786,
+        chimera_rate_pct=0.0,
+        pass_rate_pct=52.7,
+        dlq_rate_pct=0.0,
+        cluster_se=0.0210,
+        ci_cluster_lower=0.8950,
+        ci_cluster_upper=0.9850,
+        se_inflation_factor=1.15,
+    )
+
+    md_populated = format_table_5_markdown([res_populated])
+    assert "| Experimental Configuration | Evaluated Atoms ($N$) |" in md_populated
+    assert "| :--- | :---: |" in md_populated
+    assert (
+        "| **1. Full Quorum (Bo3 + Lexical Firewall)** | 220 | 96.36% | 0.9453 | [0.9120, 0.9786] (Cluster: [0.8950, 0.9850]) | 0.0% | 52.7% | 0.0% |"
+        in md_populated
+    )
+    assert "Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation" in md_populated
+
+    # Case 2: Boundary with None cluster metrics (e.g. single run)
+    res_none = AblationConfigResultDTO(
+        config_id=1,
+        name="Full Quorum (Bo3 + Lexical Firewall)",
+        runs=1,
+        total_atoms=220,
+        observed_agreement=0.0,
+        cohens_kappa=0.0,
+        ci_lower=0.0,
+        ci_upper=0.0,
+        chimera_rate_pct=0.0,
+        pass_rate_pct=52.7,
+        dlq_rate_pct=0.0,
+        cluster_se=None,
+        ci_cluster_lower=None,
+        ci_cluster_upper=None,
+        se_inflation_factor=None,
+    )
+
+    md_none = format_table_5_markdown([res_none])
+    assert "| **1. Full Quorum (Bo3 + Lexical Firewall)** | 220 | 0.00% | 0.0000 | [0.0000, 0.0000] |" in md_none
+    assert "(Cluster:" not in md_none
+    assert "Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation" not in md_none

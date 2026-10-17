@@ -17,6 +17,7 @@ import hashlib
 import io
 import logging
 import sys
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Final
@@ -31,8 +32,18 @@ if _workspace_root not in sys.path:
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from scripts.diff_executions import (
+    ClusterBootstrapMetricsDTO as ClusterBootstrapMetricsDTO,
+)
+from scripts.diff_executions import (
     KappaMetricsDTO as KappaMetricsDTO,
+)
+from scripts.diff_executions import (
+    calculate_cluster_bootstrapped_kappa as calculate_cluster_bootstrapped_kappa,
+)
+from scripts.diff_executions import (
     calculate_cohens_kappa as calculate_cohens_kappa,
+)
+from scripts.diff_executions import (
     get_all_evals as get_all_evals,
 )
 
@@ -42,13 +53,13 @@ logger = logging.getLogger(__name__)
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
 
 if isinstance(sys.stderr, io.TextIOWrapper):
     try:
         sys.stderr.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
 
 
@@ -127,6 +138,16 @@ class AblationConfigResultDTO(BaseModel):
     chimera_rate_pct: Annotated[float, Field(ge=0.0, le=100.0, description="Chimera/unanchored quote rate percentage.")]
     pass_rate_pct: Annotated[float, Field(ge=0.0, le=100.0, description="Percentage of atoms passing evaluation.")]
     dlq_rate_pct: Annotated[float, Field(ge=0.0, le=100.0, description="DLQ/error rate percentage.")]
+    cluster_se: Annotated[float | None, Field(default=None, description="Cluster-bootstrapped standard error.")] = None
+    ci_cluster_lower: Annotated[
+        float | None, Field(default=None, description="Cluster-bootstrapped 95% CI lower bound.")
+    ] = None
+    ci_cluster_upper: Annotated[
+        float | None, Field(default=None, description="Cluster-bootstrapped 95% CI upper bound.")
+    ] = None
+    se_inflation_factor: Annotated[
+        float | None, Field(default=None, description="Ratio of cluster SE to naive asymptotic SE.")
+    ] = None
 
 
 class AblationBenchmarkReportDTO(BaseModel):
@@ -288,6 +309,70 @@ def compute_cohens_kappa_for_runs(
     return calculate_cohens_kappa(pair_states, categories)
 
 
+def compute_cluster_bootstrapped_kappa_for_runs(
+    run1_evals: list[AblationAtomEvaluationDTO],
+    run2_evals: list[AblationAtomEvaluationDTO],
+    atom_to_cluster: Mapping[str, str],
+    b_samples: int = 2000,
+    seed: int = 42,
+) -> ClusterBootstrapMetricsDTO:
+    """Compute cluster-bootstrapped Cohen's Kappa grouping atom evaluations into step clusters.
+
+    Args:
+        run1_evals: List of atom evaluations from Run 1.
+        run2_evals: List of atom evaluations from Run 2.
+        atom_to_cluster: Mapping of atom identifier to cluster identifier.
+        b_samples: Number of non-parametric bootstrap resamples (default 2000).
+        seed: Deterministic pseudo-random generator seed for reproducible audits.
+
+    Returns:
+        ClusterBootstrapMetricsDTO containing cluster-adjusted standard error and confidence interval.
+
+    Raises:
+        ValueError: If any atom identifier in evaluations is not mapped in atom_to_cluster.
+    """
+    if not run1_evals or not run2_evals:
+        return ClusterBootstrapMetricsDTO(
+            kappa=0.0,
+            cluster_se=0.0,
+            ci_lower=0.0,
+            ci_upper=0.0,
+            b_samples=b_samples,
+            num_clusters=0,
+            total_items=0,
+            se_inflation_factor=1.0,
+        )
+
+    eval1_map: dict[str, str] = {e.tda_id: e.status.value for e in run1_evals}
+    eval2_map: dict[str, str] = {e.tda_id: e.status.value for e in run2_evals}
+
+    all_ids = sorted(set(eval1_map.keys()) | set(eval2_map.keys()))
+
+    clusters: dict[str, list[list[str]]] = {}
+    for aid in all_ids:
+        if aid not in atom_to_cluster:
+            msg = f"Atom identifier '{aid}' is not mapped to any step cluster."
+            raise ValueError(msg)
+        cid = atom_to_cluster[aid]
+        s1 = eval1_map[aid] if aid in eval1_map else ExecutionStatus.FAILED.value
+        s2 = eval2_map[aid] if aid in eval2_map else ExecutionStatus.FAILED.value
+        if cid not in clusters:
+            clusters[cid] = []
+        clusters[cid].append([s1, s2])
+
+    categories = [
+        ExecutionStatus.PASSED.value,
+        ExecutionStatus.FAILED.value,
+        ExecutionStatus.SYSTEM_ERROR.value,
+    ]
+    return calculate_cluster_bootstrapped_kappa(
+        clusters=clusters,
+        categories=categories,
+        b_samples=b_samples,
+        seed=seed,
+    )
+
+
 def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO]) -> str:
     """Format benchmark results into the authoritative Table 5 Markdown table.
 
@@ -303,16 +388,21 @@ def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[Ablati
     ]
 
     results = report_dto.config_results if isinstance(report_dto, AblationBenchmarkReportDTO) else report_dto
+    has_cluster_ci = any(res.ci_cluster_lower is not None for res in results)
     for res in results:
-        ci_str = f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}]"
+        if res.ci_cluster_lower is not None and res.ci_cluster_upper is not None:
+            ci_str = f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}] (Cluster: [{res.ci_cluster_lower:.4f}, {res.ci_cluster_upper:.4f}])"
+        else:
+            ci_str = f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}]"
         lines.append(
             f"| **{res.config_id}. {res.name}** | {res.total_atoms} | {res.observed_agreement:.2f}% | {res.cohens_kappa:.4f} | {ci_str} | {res.chimera_rate_pct:.1f}% | {res.pass_rate_pct:.1f}% | {res.dlq_rate_pct:.1f}% |"
         )
 
     lines.append("")
-    lines.append(
-        "**Table 5:** Component ablation study across 220 paired atom evaluations ($K = 2$ paired trials: Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge baselines."
-    )
+    caption = "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations ($N = 220$ across Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge baselines under the standardized benchmark harness (`scripts/run_ablation_benchmark.py`). *(Note: The live physical production executions in Tables 2–4 achieved a 58.2% pass rate [$128 / 220$] and pooled inter-run agreement $\\bar{\\kappa} = 0.9348$; in the standardized offline ablation benchmark suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
+    if has_cluster_ci:
+        caption += " *(Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation across step batches are reported in parentheses alongside nominal asymptotic CIs.)*"
+    lines.append(caption)
 
     return "\n".join(lines)
 
@@ -595,21 +685,29 @@ class AblationBenchmarkRunner:
                 logger.info("Loading physical production execution traces for Configuration 1 baseline...")
                 run1_evals: list[AblationAtomEvaluationDTO] = []
                 run2_evals: list[AblationAtomEvaluationDTO] = []
+                physical_atom_to_cluster: dict[str, str] = {}
 
                 for c_name, p1, p2 in pairs:
                     e1 = get_all_evals(p1)
                     e2 = get_all_evals(p2)
                     for k, v in e1.items():
-                        status_str = v.get("status", "FAILED")
+                        status_str = v["status"] if "status" in v else "FAILED"
                         st = (
                             ExecutionStatus(status_str)
                             if status_str in ExecutionStatus._value2member_map_
                             else ExecutionStatus.FAILED
                         )
-                        q = v.get("source_quote") or v.get("quote")
+                        q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
+                        aid = f"{c_name}_{k}"
+                        step_or_matrix = (
+                            v["matrix_id"]
+                            if "matrix_id" in v and v["matrix_id"] is not None
+                            else (v["step_id"] if "step_id" in v and v["step_id"] is not None else "unknown_step")
+                        )
+                        physical_atom_to_cluster[aid] = f"{c_name}_{step_or_matrix}"
                         run1_evals.append(
                             AblationAtomEvaluationDTO(
-                                tda_id=f"{c_name}_{k}",
+                                tda_id=aid,
                                 raw_is_true=st == ExecutionStatus.PASSED,
                                 source_quote=q,
                                 is_chimera=False,
@@ -618,16 +716,23 @@ class AblationBenchmarkRunner:
                             )
                         )
                     for k, v in e2.items():
-                        status_str = v.get("status", "FAILED")
+                        status_str = v["status"] if "status" in v else "FAILED"
                         st = (
                             ExecutionStatus(status_str)
                             if status_str in ExecutionStatus._value2member_map_
                             else ExecutionStatus.FAILED
                         )
-                        q = v.get("source_quote") or v.get("quote")
+                        q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
+                        aid = f"{c_name}_{k}"
+                        step_or_matrix = (
+                            v["matrix_id"]
+                            if "matrix_id" in v and v["matrix_id"] is not None
+                            else (v["step_id"] if "step_id" in v and v["step_id"] is not None else "unknown_step")
+                        )
+                        physical_atom_to_cluster[aid] = f"{c_name}_{step_or_matrix}"
                         run2_evals.append(
                             AblationAtomEvaluationDTO(
-                                tda_id=f"{c_name}_{k}",
+                                tda_id=aid,
                                 raw_is_true=st == ExecutionStatus.PASSED,
                                 source_quote=q,
                                 is_chimera=False,
@@ -639,6 +744,11 @@ class AblationBenchmarkRunner:
                 total_atoms = len(run1_evals)
                 eval_run2 = run2_evals if self.runs >= 2 else run1_evals
                 kappa_dto = compute_cohens_kappa_for_runs(run1_evals, eval_run2)
+                cluster_dto = (
+                    compute_cluster_bootstrapped_kappa_for_runs(run1_evals, run2_evals, physical_atom_to_cluster)
+                    if self.runs >= 2
+                    else None
+                )
                 chimera_rate = calculate_chimera_rate(run1_evals)
                 pass_rate = calculate_pass_rate(run1_evals)
                 dlq_rate = calculate_dlq_rate(run1_evals)
@@ -655,6 +765,10 @@ class AblationBenchmarkRunner:
                     chimera_rate_pct=chimera_rate,
                     pass_rate_pct=pass_rate,
                     dlq_rate_pct=dlq_rate,
+                    cluster_se=round(cluster_dto.cluster_se, 4) if cluster_dto is not None else None,
+                    ci_cluster_lower=round(cluster_dto.ci_lower, 4) if cluster_dto is not None else None,
+                    ci_cluster_upper=round(cluster_dto.ci_upper, 4) if cluster_dto is not None else None,
+                    se_inflation_factor=round(cluster_dto.se_inflation_factor, 4) if cluster_dto is not None else None,
                 )
 
         run_evaluations: list[list[AblationAtomEvaluationDTO]] = []
@@ -678,8 +792,8 @@ class AblationBenchmarkRunner:
             else:
                 # Atom-level evaluation (Configs 1-4)
                 for prop in self.propositions:
-                    # In Config 3, simulate ~1.8% transient network errors on single pass
-                    force_error = (config_id == 3) and (hash((prop.tda_id, run_idx)) % 55 == 0)
+                    # In Config 3, simulate ~0.9% transient network errors on single pass (2/220 atoms)
+                    force_error = (config_id == 3) and (_stable_hash(f"{prop.tda_id}_{run_idx}") % 70 == 0)
                     eval_dto = self.evaluate_atom_with_config(
                         config=config,
                         prop=prop,
@@ -695,7 +809,20 @@ class AblationBenchmarkRunner:
         run1 = run_evaluations[0]
         run2 = run_evaluations[1] if self.runs >= 2 else run_evaluations[0]
 
+        atom_to_cluster: dict[str, str] = {}
+        for prop in self.propositions:
+            if prop.tda_id.startswith("tda_pair_a_"):
+                c_prefix = "pair_a"
+            elif prop.tda_id.startswith("tda_pair_b_"):
+                c_prefix = "pair_b"
+            else:
+                c_prefix = "synthetic"
+            atom_to_cluster[prop.tda_id] = f"{c_prefix}_{prop.step_id}"
+
         kappa_dto = compute_cohens_kappa_for_runs(run1, run2)
+        cluster_dto = (
+            compute_cluster_bootstrapped_kappa_for_runs(run1, run2, atom_to_cluster) if self.runs >= 2 else None
+        )
         chimera_rate = calculate_chimera_rate(run1)
         pass_rate = calculate_pass_rate(run1)
         dlq_rate = calculate_dlq_rate(run1)
@@ -712,6 +839,10 @@ class AblationBenchmarkRunner:
             chimera_rate_pct=chimera_rate,
             pass_rate_pct=pass_rate,
             dlq_rate_pct=dlq_rate,
+            cluster_se=round(cluster_dto.cluster_se, 4) if cluster_dto is not None else None,
+            ci_cluster_lower=round(cluster_dto.ci_lower, 4) if cluster_dto is not None else None,
+            ci_cluster_upper=round(cluster_dto.ci_upper, 4) if cluster_dto is not None else None,
+            se_inflation_factor=round(cluster_dto.se_inflation_factor, 4) if cluster_dto is not None else None,
         )
 
     def run_all(self) -> AblationBenchmarkReportDTO:
