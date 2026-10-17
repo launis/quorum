@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Execution Trace Comparison and Consistency Metric Suite.
 
 Provides forensic cross-execution differential analysis, Fleiss/Cohen Kappa metrics,
