@@ -27,7 +27,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionStepState, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.matrix import FlattenedAtom
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
 from backend_v2.models.dtos.causal_discovery import (
@@ -49,6 +49,28 @@ from backend_v2.services.orchestrator.dag_executor import (
     transform_causal_nodes_to_atoms,
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+
+def _create_test_graph(
+    nodes: list[CausalNodeDTO],
+    edges: list[CausalEdgeDTO] | None = None,
+    root_cause_node_ids: list[str] | None = None,
+    cycle_detected: bool = False,
+    isolated_node_ids: list[str] | None = None,
+    partition_node_ids: dict[str, list[str]] | None = None,
+    edge_root_causes: list[str] | None = None,
+) -> CausalGraphPayloadDTO:
+    """Helper to instantiate CausalGraphPayloadDTO with all default collections for tests."""
+    return CausalGraphPayloadDTO(
+        nodes=nodes,
+        edges=edges if edges is not None else [],
+        root_cause_node_ids=root_cause_node_ids if root_cause_node_ids is not None else [],
+        cycle_detected=cycle_detected,
+        isolated_node_ids=isolated_node_ids if isolated_node_ids is not None else [],
+        partition_node_ids=partition_node_ids if partition_node_ids is not None else {},
+        edge_root_causes=edge_root_causes if edge_root_causes is not None else [],
+    )
+
 
 # ---------------------------------------------------------------------------
 # Test Fixtures
@@ -243,7 +265,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
         steps=[step_causal, step_tda],
     )
 
-    empty_graph = CausalGraphPayloadDTO(
+    empty_graph = _create_test_graph(
         nodes=[],
         edges=[],
         root_cause_node_ids=[],
@@ -374,7 +396,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         blame_parent_ids=["tda_0000000000000001"],
         dependent_child_ids=[],
     )
-    valid_graph = CausalGraphPayloadDTO(
+    valid_graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -473,7 +495,7 @@ def test_fair_scoring_deduplication_applies_dampening() -> None:
         target_id="tda_0000000000000002",
         reasoning="Causal dependency",
     )
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[edge],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -553,7 +575,7 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
     )
     edge1 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
     edge2 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000003", reasoning="r2")
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge1, edge2],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -605,7 +627,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
         dependent_child_ids=[],
     )
     edge = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge],
         root_cause_node_ids=[],
@@ -665,7 +687,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         steps=[step_causal],
     )
 
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[
             CausalNodeDTO(
                 node_id="tda_0000000000000001",
@@ -742,7 +764,7 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         paragraph_ref="P2",
         tda_score=3.0,
     )
-    graph = CausalGraphPayloadDTO(nodes=[node1, node2], edges=[])
+    graph = _create_test_graph(nodes=[node1, node2], edges=[])
 
     atom1 = AtomResultDTO(
         tda_id="nod_1111222233334444",
@@ -751,6 +773,8 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         source_quote="Quote 1",
         evaluation_reasoning="Valid claim verified",
         extracted_data=ExtractedValueDTO(value=4.8),
+        extensions={},
+        depends_on_tda_ids=[],
         short_circuit_reason_tda_ids=[],
     )
     atom2 = AtomResultDTO(
@@ -759,6 +783,8 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         status=ExecutionStatus.FAILED,
         evaluation_reasoning="Failed evidence",
         extracted_data=ExtractedValueDTO(value=1.5),
+        extensions={},
+        depends_on_tda_ids=[],
         short_circuit_reason_tda_ids=[],
     )
 
@@ -794,7 +820,7 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_causal_slug",
         status="draft",
@@ -886,7 +912,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_cascade_slug",
         status="draft",
@@ -988,7 +1014,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_causal_fusion_slug",
         status="draft",
@@ -1044,7 +1070,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
         paragraph_ref="P1",
         tda_score=2.0,
     )
-    graph = CausalGraphPayloadDTO(nodes=[node], edges=[])
+    graph = _create_test_graph(nodes=[node], edges=[])
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
@@ -1074,6 +1100,8 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
                         source_quote="Quote 1",
                         evaluation_reasoning="Passed valid claim",
                         extracted_data=ExtractedValueDTO(value=4.5),
+                        extensions={},
+                        depends_on_tda_ids=[],
                         short_circuit_reason_tda_ids=[],
                     ),
                 ),
@@ -1116,7 +1144,7 @@ async def test_dag_executor_input_delta_variants() -> None:
         },
     )
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_delta_slug",
         status="draft",
@@ -1215,7 +1243,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_causal_fusion_invalid",
         status="draft",
@@ -1321,7 +1349,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_snap_slug",
         status="draft",
@@ -1377,7 +1405,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         paragraph_ref="P1",
         tda_score=2.0,
     )
-    graph = CausalGraphPayloadDTO(nodes=[node], edges=[])
+    graph = _create_test_graph(nodes=[node], edges=[])
 
     atom = AtomResultDTO(
         tda_id="nod_1111222233334444",
@@ -1386,6 +1414,8 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         source_quote="Quote 1",
         evaluation_reasoning="Passed valid claim",
         extracted_data=ExtractedValueDTO(value=4.5),
+        extensions={},
+        depends_on_tda_ids=[],
         short_circuit_reason_tda_ids=[],
     )
 
@@ -1443,7 +1473,7 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
     )
 
     workflow = Workflow.model_construct(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_missing_source_slug",
         status="draft",
@@ -1537,7 +1567,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
     )
 
     workflow = Workflow.model_construct(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_failed_causal_slug",
         status="draft",
@@ -1652,7 +1682,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_snap_err_slug",
         status="draft",
@@ -1736,3 +1766,296 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
             ErrorCodes.VALIDATION_FAILED,
             ErrorCodes.VALIDATION_FAILED.value,
         )
+
+
+# ---------------------------------------------------------------------------
+# Contracts: Dynamic Deliverable Subgraph Induction & Exogenous Boundary Axiom
+# ---------------------------------------------------------------------------
+
+
+def _create_expected_input(
+    input_key: str,
+    *,
+    is_chat_history: bool = False,
+    is_endorsed_deliverable: bool = False,
+    is_assignment: bool = False,
+) -> ExpectedInput:
+    """Helper to instantiate ExpectedInput with closed-set input modes."""
+    modes = ["assignment"] if is_assignment else ["text"]
+    return ExpectedInput(
+        input_key=input_key,
+        label=I18nText(translations={"en": input_key}),
+        description=I18nText(translations={"en": input_key}),
+        required=True,
+        input_modes=modes,
+        is_chat_history=is_chat_history,
+        is_endorsed_deliverable=is_endorsed_deliverable,
+    )
+
+
+def _create_test_node(
+    node_id: str,
+    claim: str,
+    *,
+    source_quote: str | None = None,
+    paragraph_ref: str | None = None,
+    status: ExecutionStatus = ExecutionStatus.PASSED,
+    source_input_key: str | None = None,
+    blame_parent_ids: list[str] | None = None,
+    dependent_child_ids: list[str] | None = None,
+) -> CausalNodeDTO:
+    """Helper to instantiate CausalNodeDTO with default collections."""
+    return CausalNodeDTO(
+        node_id=node_id,
+        claim=claim,
+        source_quote=source_quote,
+        paragraph_ref=paragraph_ref,
+        status=status,
+        source_input_key=source_input_key,
+        blame_parent_ids=blame_parent_ids if blame_parent_ids is not None else [],
+        dependent_child_ids=dependent_child_ids if dependent_child_ids is not None else [],
+    )
+
+
+def _create_test_edge(
+    source_id: str,
+    target_id: str,
+    reasoning: str = "Causal dependency link",
+) -> CausalEdgeDTO:
+    """Helper to instantiate CausalEdgeDTO with reasoning."""
+    return CausalEdgeDTO(
+        source_id=source_id,
+        target_id=target_id,
+        reasoning=reasoning,
+    )
+
+
+def test_causal_fusion_deliverable_subgraph_induction() -> None:
+    """Verifies isolated dialogue nodes do not inflate deliverable isolated count.
+
+    Also asserts total_deliverable_nodes equals deliverable node count.
+    """
+    node_d1 = _create_test_node(
+        node_id="tda_d100000000000001",
+        claim="Deliverable core claim 1",
+        source_quote="Quote 1",
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="deliverable",
+    )
+    node_d2 = _create_test_node(
+        node_id="tda_d200000000000002",
+        claim="Deliverable core claim 2",
+        source_quote="Quote 2",
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="deliverable",
+    )
+    node_chat = _create_test_node(
+        node_id="tda_c100000000000003",
+        claim="Isolated conversational claim",
+        source_quote="Quote 3",
+        paragraph_ref="[B2]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="chat",
+    )
+    edge = _create_test_edge(
+        source_id="tda_d100000000000001",
+        target_id="tda_d200000000000002",
+    )
+    graph = _create_test_graph(
+        nodes=[node_d1, node_d2, node_chat],
+        edges=[edge],
+        partition_node_ids={
+            "deliverable": ["tda_d100000000000001", "tda_d200000000000002"],
+            "chat": ["tda_c100000000000003"],
+        },
+    )
+    expected_inputs = [
+        _create_expected_input("deliverable", is_endorsed_deliverable=True),
+        _create_expected_input("chat", is_chat_history=True),
+    ]
+
+    fusion = compute_causal_tda_fusion_result(
+        graph=graph,
+        expected_inputs=expected_inputs,
+    )
+
+    # Deliverable subgraph has 2 nodes: d1 and d2 connected by edge.
+    # node_chat is isolated in the dialogue partition but MUST NOT inflate deliverable isolated count.
+    assert fusion.total_deliverable_nodes == 2
+    assert fusion.anti_fluff_audit.isolated_concept_count == 0
+    assert fusion.anti_fluff_audit.logical_cohesion_score == 1.0
+
+
+def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
+    """Verifies cross-document incoming edge gives exogenous support preventing isolated status.
+
+    Cross-document edge (X_dialogue -> Y_deliverable) gives InDegree_cross(Y) > 0,
+    so Y is not isolated, while X is excluded from V_deliverable.
+    """
+    node_chat = _create_test_node(
+        node_id="tda_c100000000000001",
+        claim="Dialogue context assumption",
+        source_quote="Chat quote",
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="chat",
+    )
+    node_deliv = _create_test_node(
+        node_id="tda_d100000000000002",
+        claim="Deliverable final recommendation",
+        source_quote="Deliverable quote",
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="deliverable",
+    )
+    cross_edge = _create_test_edge(
+        source_id="tda_c100000000000001",
+        target_id="tda_d100000000000002",
+    )
+    graph = _create_test_graph(
+        nodes=[node_chat, node_deliv],
+        edges=[cross_edge],
+        partition_node_ids={
+            "chat": ["tda_c100000000000001"],
+            "deliverable": ["tda_d100000000000002"],
+        },
+    )
+    expected_inputs = [
+        _create_expected_input("deliverable", is_endorsed_deliverable=True),
+        _create_expected_input("chat", is_chat_history=True),
+    ]
+
+    fusion = compute_causal_tda_fusion_result(
+        graph=graph,
+        expected_inputs=expected_inputs,
+    )
+
+    # Exogenous Boundary Axiom: node_deliv receives exogenous support from chat,
+    # so deliverable isolated count is 0, and total_deliverable_nodes is 1 (chat excluded).
+    assert fusion.total_deliverable_nodes == 1
+    assert fusion.anti_fluff_audit.isolated_concept_count == 0
+    assert fusion.anti_fluff_audit.logical_cohesion_score == 1.0
+
+
+def test_causal_fusion_topological_denominator_dilution_prevention() -> None:
+    """Verifies isolated ratio is computed against total_deliverable_nodes, not full graph nodes.
+
+    Prevents dilution where large conversational histories artificially suppress isolated ratio.
+    """
+    # 10 deliverable nodes: d0..d7 chained, d8 and d9 isolated
+    deliverable_nodes: list[CausalNodeDTO] = []
+    edges: list[CausalEdgeDTO] = []
+    for i in range(10):
+        nid = f"tda_deliv00000000{i:02d}"
+        deliverable_nodes.append(
+            _create_test_node(
+                node_id=nid,
+                claim=f"Deliverable claim {i}",
+                source_quote=f"Quote {i}",
+                paragraph_ref=f"[B{i}]",
+                status=ExecutionStatus.PASSED,
+                source_input_key="deliverable",
+            )
+        )
+    for i in range(7):
+        edges.append(
+            _create_test_edge(
+                source_id=f"tda_deliv00000000{i:02d}",
+                target_id=f"tda_deliv00000000{i + 1:02d}",
+            )
+        )
+
+    # 50 dialogue nodes all unlinked / isolated in dialogue
+    chat_nodes: list[CausalNodeDTO] = []
+    for i in range(50):
+        nid = f"tda_chat00000000{i:02d}"
+        chat_nodes.append(
+            _create_test_node(
+                node_id=nid,
+                claim=f"Chat message {i}",
+                source_quote=f"Chat quote {i}",
+                paragraph_ref=f"[B{10 + i}]",
+                status=ExecutionStatus.PASSED,
+                source_input_key="chat",
+            )
+        )
+
+    graph = _create_test_graph(
+        nodes=deliverable_nodes + chat_nodes,
+        edges=edges,
+        partition_node_ids={
+            "deliverable": [n.node_id for n in deliverable_nodes],
+            "chat": [n.node_id for n in chat_nodes],
+        },
+    )
+    expected_inputs = [
+        _create_expected_input("deliverable", is_endorsed_deliverable=True),
+        _create_expected_input("chat", is_chat_history=True),
+    ]
+
+    fusion = compute_causal_tda_fusion_result(
+        graph=graph,
+        expected_inputs=expected_inputs,
+    )
+
+    # Deliverable has exactly 10 nodes, 2 isolated (d8, d9)
+    # Ratio = 1.0 - (2 / 10) = 0.80.
+    # If denominator were diluted by full graph (60 nodes), ratio would be 1.0 - (2 / 60) = 0.9667.
+    assert fusion.total_deliverable_nodes == 10
+    assert fusion.anti_fluff_audit.isolated_concept_count == 2
+    assert fusion.anti_fluff_audit.logical_cohesion_score == 0.8
+
+
+def test_causal_fusion_unflagged_inputs_positive_deliverable_resolution() -> None:
+    """Verifies positive set resolution selects non-chat, non-assignment input keys when unflagged."""
+    node_report = _create_test_node(
+        node_id="tda_rep000000000001",
+        claim="Executive report claim",
+        source_quote="Report quote",
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="main_report",
+    )
+    node_chat = _create_test_node(
+        node_id="tda_cht000000000002",
+        claim="Interview dialogue claim",
+        source_quote="Chat quote",
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="interview_chat",
+    )
+    node_brief = _create_test_node(
+        node_id="tda_brf000000000003",
+        claim="Task brief directive claim",
+        source_quote="Brief quote",
+        paragraph_ref="[B2]",
+        status=ExecutionStatus.PASSED,
+        source_input_key="task_brief",
+    )
+    graph = _create_test_graph(
+        nodes=[node_report, node_chat, node_brief],
+        edges=[],
+        partition_node_ids={
+            "main_report": ["tda_rep000000000001"],
+            "interview_chat": ["tda_cht000000000002"],
+            "task_brief": ["tda_brf000000000003"],
+        },
+    )
+    # None have is_endorsed_deliverable=True.
+    expected_inputs = [
+        _create_expected_input("main_report"),  # text mode, not chat, not assignment
+        _create_expected_input("interview_chat", is_chat_history=True),
+        _create_expected_input("task_brief", is_assignment=True),
+    ]
+
+    fusion = compute_causal_tda_fusion_result(
+        graph=graph,
+        expected_inputs=expected_inputs,
+    )
+
+    # main_report resolves as deliverable key; chat and brief are excluded.
+    assert fusion.total_deliverable_nodes == 1
+    assert fusion.anti_fluff_audit.isolated_concept_count == 1
+    assert fusion.anti_fluff_audit.logical_cohesion_score == 0.0

@@ -45,7 +45,7 @@ from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, E
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.prompt_blocks import PromptBlock
-from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -131,6 +131,7 @@ def compute_causal_tda_fusion_result(
     evaluative_matrices: dict[str, float] | None = None,
     evaluated_atoms: list[AtomResultDTO] | None = None,
     dampening_factor: float | None = None,
+    expected_inputs: list[ExpectedInput] | None = None,
 ) -> CausalTdaFusionResultDTO:
     """Computes composite fusion result executing five stakeholder benefit pipelines.
 
@@ -146,6 +147,7 @@ def compute_causal_tda_fusion_result(
         evaluative_matrices: Optional mapping of matrix IDs to evaluated scores.
         evaluated_atoms: Optional list of evaluated AtomResultDTO instances.
         dampening_factor: Optional penalty dampening factor (defaults to settings value).
+        expected_inputs: Optional list of ExpectedInput configurations to induce deliverable subgraph.
 
     Returns:
         CausalTdaFusionResultDTO combining graph and all five analytical facets.
@@ -200,21 +202,54 @@ def compute_causal_tda_fusion_result(
                     )
                 )
 
-    # 3. Anti-Fluff Shield
-    isolated_count = len(projected_graph.isolated_node_ids)
+    # 3. Anti-Fluff Shield: Induce Deliverable Subgraph and evaluate Exogenous Boundary Axiom
+    deliverable_keys: set[str] = set()
+    if expected_inputs:
+        deliverable_keys = {ei.input_key for ei in expected_inputs if ei.is_endorsed_deliverable}
+        if not deliverable_keys:
+            deliverable_keys = {
+                ei.input_key
+                for ei in expected_inputs
+                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
+            }
+
+    deliverable_nodes: list[CausalNodeDTO]
+    if deliverable_keys:
+        deliverable_nodes = [n for n in projected_graph.nodes if n.source_input_key in deliverable_keys]
+    else:
+        deliverable_nodes = list(projected_graph.nodes)
+
+    deliverable_node_ids = {n.node_id for n in deliverable_nodes}
+
+    # Exogenous Boundary Axiom: incoming cross-document edges prevent isolated status
+    deliverable_isolated_count = 0
+    for node in deliverable_nodes:
+        nid = node.node_id
+        has_internal_link = any(
+            (e.source_id == nid and e.target_id in deliverable_node_ids and e.target_id != nid)
+            or (e.target_id == nid and e.source_id in deliverable_node_ids and e.source_id != nid)
+            for e in projected_graph.edges
+        )
+        has_exogenous_support = any(
+            e.target_id == nid and e.source_id not in deliverable_node_ids
+            for e in projected_graph.edges
+        )
+        if not has_internal_link and not has_exogenous_support:
+            deliverable_isolated_count += 1
+
     cycle = projected_graph.cycle_detected
-    unsupported_count = sum(1 for n in projected_graph.nodes if not n.source_quote)
-    total_nodes = len(projected_graph.nodes)
-    if total_nodes == 0:
+    unsupported_count = sum(1 for n in deliverable_nodes if not n.source_quote)
+    total_deliverable_nodes = len(deliverable_nodes)
+    if total_deliverable_nodes == 0:
         cohesion = 1.0
     else:
-        connected_ratio = max(0.0, 1.0 - (isolated_count / total_nodes))
+        connected_ratio = max(0.0, 1.0 - (deliverable_isolated_count / total_deliverable_nodes))
         if cycle:
             connected_ratio *= 0.5
         cohesion = round(connected_ratio, 4)
 
     anti_fluff_audit = AntiFluffAuditDTO(
-        isolated_concept_count=isolated_count,
+        isolated_concept_count=deliverable_isolated_count,
         cycle_detected=cycle,
         unsupported_claims_count=unsupported_count,
         logical_cohesion_score=cohesion,
@@ -278,6 +313,7 @@ def compute_causal_tda_fusion_result(
         anti_fluff_audit=anti_fluff_audit,
         prescriptive_remediations=prescriptive_remediations,
         fair_scoring=fair_scoring,
+        total_deliverable_nodes=total_deliverable_nodes,
     )
 
 
@@ -1306,23 +1342,31 @@ class DAGExecutor:
 
                 if step_obj.causal_source_step_id is not None and upstream_graph is not None:
                     evaluated_atoms: list[AtomResultDTO] = []
+                    atom_adapter = TypeAdapter(AtomResultDTO)
                     for evt in events:
                         match evt.content:
                             case AtomResultDTO() as single_atom:
                                 evaluated_atoms.append(single_atom)
-                            case _:
-                                if type(evt.content) is dict and "results" in evt.content:
-                                    raw_results = evt.content["results"]
-                                    if type(raw_results) is list:
+                            case StepOutputContentDTO() as step_out:
+                                if "results" in step_out.data:
+                                    raw_results = step_out.data["results"]
+                                    if isinstance(raw_results, list):
                                         for item in raw_results:
                                             match item:
                                                 case AtomResultDTO() as item_atom:
                                                     evaluated_atoms.append(item_atom)
                                                 case _:
-                                                    if type(item) is dict:
-                                                        evaluated_atoms.append(
-                                                            AtomResultDTO.model_validate(item, strict=False)
-                                                        )
+                                                    evaluated_atoms.append(atom_adapter.validate_python(item))
+                            case _:
+                                if type(evt.content) is dict and "results" in evt.content:
+                                    raw_results = evt.content["results"]
+                                    if isinstance(raw_results, list):
+                                        for item in raw_results:
+                                            match item:
+                                                case AtomResultDTO() as item_atom:
+                                                    evaluated_atoms.append(item_atom)
+                                                case _:
+                                                    evaluated_atoms.append(atom_adapter.validate_python(item))
                     atoms_arg: list[AtomResultDTO] | None = None
                     if evaluated_atoms:
                         atoms_arg = evaluated_atoms
@@ -1331,6 +1375,7 @@ class DAGExecutor:
                         evaluative_matrices=global_context_vars.evaluative_matrices,
                         evaluated_atoms=atoms_arg,
                         dampening_factor=settings.causal_secondary_fault_dampening,
+                        expected_inputs=workflow.expected_inputs,
                     )
                     events.append(
                         TraceEvent(
@@ -1344,7 +1389,7 @@ class DAGExecutor:
                         _evaluated_causal_sources.add(step_obj.causal_source_step_id)
                         eval_dto = self._causal_cohesion_evaluator.evaluate_causal_cohesion(
                             audit=fusion_res.anti_fluff_audit,
-                            total_nodes=len(upstream_graph.nodes),
+                            total_nodes=fusion_res.total_deliverable_nodes,
                             strictness_level=workflow.default_strictness_level,
                             matrix_block_id=settings.causal_cohesion_matrix_block_id,
                         )

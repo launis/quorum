@@ -42,6 +42,28 @@ from backend_v2.services.orchestrator.dag_executor import (
 )
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
+
+def _create_test_graph(
+    nodes: list[CausalNodeDTO],
+    edges: list[CausalEdgeDTO] | None = None,
+    root_cause_node_ids: list[str] | None = None,
+    cycle_detected: bool = False,
+    isolated_node_ids: list[str] | None = None,
+    partition_node_ids: dict[str, list[str]] | None = None,
+    edge_root_causes: list[str] | None = None,
+) -> CausalGraphPayloadDTO:
+    """Helper to instantiate CausalGraphPayloadDTO with all default collections for tests."""
+    return CausalGraphPayloadDTO(
+        nodes=nodes,
+        edges=edges if edges is not None else [],
+        root_cause_node_ids=root_cause_node_ids if root_cause_node_ids is not None else [],
+        cycle_detected=cycle_detected,
+        isolated_node_ids=isolated_node_ids if isolated_node_ids is not None else [],
+        partition_node_ids=partition_node_ids if partition_node_ids is not None else {},
+        edge_root_causes=edge_root_causes if edge_root_causes is not None else [],
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test Fixtures
 # ---------------------------------------------------------------------------
@@ -235,7 +257,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
         steps=[step_causal, step_tda],
     )
 
-    empty_graph = CausalGraphPayloadDTO(
+    empty_graph = _create_test_graph(
         nodes=[],
         edges=[],
         root_cause_node_ids=[],
@@ -366,7 +388,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         blame_parent_ids=["tda_0000000000000001"],
         dependent_child_ids=[],
     )
-    valid_graph = CausalGraphPayloadDTO(
+    valid_graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -465,7 +487,7 @@ def test_fair_scoring_deduplication_applies_dampening() -> None:
         target_id="tda_0000000000000002",
         reasoning="Causal dependency",
     )
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[edge],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -545,7 +567,7 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
     )
     edge1 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
     edge2 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000003", reasoning="r2")
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge1, edge2],
         root_cause_node_ids=["tda_0000000000000001"],
@@ -597,7 +619,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
         dependent_child_ids=[],
     )
     edge = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge],
         root_cause_node_ids=[],
@@ -657,7 +679,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         steps=[step_causal],
     )
 
-    graph = CausalGraphPayloadDTO(
+    graph = _create_test_graph(
         nodes=[
             CausalNodeDTO(
                 node_id="tda_0000000000000001",
