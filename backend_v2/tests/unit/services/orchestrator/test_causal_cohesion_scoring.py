@@ -7,6 +7,8 @@ cognitive atom validation, and DAGExecutor fusion idempotency.
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -547,3 +549,138 @@ def test_causal_cohesion_strategic_foresight_cross_case_calibration(
     assert res_calibrated.atom_results[1].status == ExecutionStatus.PASSED
     assert res_calibrated.atom_results[2].status == ExecutionStatus.PASSED
     assert pytest.approx(res_calibrated.score_result.score, 0.02) == 2.60
+
+
+def test_causal_cohesion_ast_monotonic_chain_verified() -> None:
+    """Verify via AST analysis that CausalCohesionEvaluator enforces monotonic Guttman inheritance.
+
+    Guarantees mathematically that:
+    1. l2_passed depends directly on l1_passed
+    2. l3_passed depends directly on l2_passed
+    3. l4_passed depends directly on l3_passed
+    4. l5_passed depends strictly on l4_passed (and does NOT skip to l3_passed)
+    """
+    evaluator_path = Path("backend_v2/services/orchestrator/causal_cohesion_evaluator.py")
+    assert evaluator_path.exists(), f"Target evaluator file missing: {evaluator_path}"
+
+    tree = ast.parse(evaluator_path.read_text(encoding="utf-8"))
+
+    # Locate evaluate_causal_cohesion method
+    eval_method: ast.FunctionDef | None = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "evaluate_causal_cohesion":
+            eval_method = node
+            break
+
+    assert eval_method is not None, "Method evaluate_causal_cohesion not found in AST"
+
+    # Collect variable assignment dependencies for level flags
+    assignments: dict[str, list[str]] = {}
+    for stmt in eval_method.body:
+        if isinstance(stmt, ast.Assign):
+            for target in stmt.targets:
+                if isinstance(target, ast.Name) and target.id in {
+                    "l1_passed",
+                    "l2_passed",
+                    "l3_passed",
+                    "l4_passed",
+                    "l5_passed",
+                }:
+                    names = [n.id for n in ast.walk(stmt.value) if isinstance(n, ast.Name)]
+                    assignments[target.id] = names
+
+    # Invariants verification
+    assert "l2_passed" in assignments, "l2_passed assignment not found in AST"
+    assert "l1_passed" in assignments["l2_passed"], "l2_passed MUST depend on l1_passed"
+
+    assert "l3_passed" in assignments, "l3_passed assignment not found in AST"
+    assert "l2_passed" in assignments["l3_passed"], "l3_passed MUST depend on l2_passed"
+
+    assert "l4_passed" in assignments, "l4_passed assignment not found in AST"
+    assert "l3_passed" in assignments["l4_passed"], "l4_passed MUST depend on l3_passed"
+
+    assert "l5_passed" in assignments, "l5_passed assignment not found in AST"
+    # Strict Guttman Invariant: l5_passed MUST depend on l4_passed and NOT skip to l3_passed
+    assert "l4_passed" in assignments["l5_passed"], "l5_passed MUST depend directly on l4_passed"
+    assert "l3_passed" not in assignments["l5_passed"], (
+        "ANTI-PATTERN: l5_passed directly references l3_passed, skipping l4_passed prerequisite!"
+    )
+
+
+def test_causal_cohesion_level_4_failure_blocks_level_5(
+    evaluator: CausalCohesionEvaluator,
+) -> None:
+    """Verify that Level 4 failure strictly prevents Level 5 from passing.
+
+    Constructs a scenario where logical cohesion (0.95) satisfies Level 5 threshold (>= 0.90),
+    but isolated ratio (0.15) exceeds Level 4 threshold (<= 0.10). Because Level 4 fails,
+    Level 5 MUST also evaluate to FAILED.
+    """
+    settings = get_settings()
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=3,
+        cycle_detected=False,
+        unsupported_claims_count=0,
+        logical_cohesion_score=0.95,
+        detected_hollow_terms=[],
+    )
+
+    # total_nodes = 20 -> isolated_ratio = 3/20 = 0.15
+    # L3 passes (<= 0.20), but L4 fails (0.15 > 0.10)
+    result = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=20,
+        strictness_level=70,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+
+    assert result.atom_results[0].status == ExecutionStatus.PASSED  # L1
+    assert result.atom_results[1].status == ExecutionStatus.PASSED  # L2
+    assert result.atom_results[2].status == ExecutionStatus.PASSED  # L3
+    assert result.atom_results[3].status == ExecutionStatus.FAILED  # L4 (0.15 > 0.10)
+    assert result.atom_results[4].status == ExecutionStatus.FAILED  # L5 MUST be FAILED (inherited)
+
+
+def test_causal_cohesion_monotonic_inheritance_invariant(
+    evaluator: CausalCohesionEvaluator,
+) -> None:
+    """Verify prefix-monotonicity across all BARS levels: once FAILED, all subsequent levels FAIL.
+
+    Tests multiple boundary conditions to ensure no non-monotonic transition (e.g. PASS -> FAIL -> PASS)
+    can ever occur in causal cohesion evaluation.
+    """
+    settings = get_settings()
+    test_cases = [
+        # (cohesion, isolated_count, total_nodes, cycle_detected)
+        (0.20, 0, 10, False),  # Fails at L2
+        (0.50, 5, 20, False),  # Passes L2, fails L3 (isolation 0.25 > 0.20)
+        (0.85, 3, 20, False),  # Passes L3, fails L4 (isolation 0.15 > 0.10)
+        (0.95, 1, 20, False),  # Passes L4, fails L5 (isolation 0.05 vs max 0.05 - boundary)
+        (0.95, 0, 20, False),  # Passes all L1..L5
+        (0.99, 0, 20, True),  # Cycle detected -> fails at L2, clamps to L1
+    ]
+
+    for cohesion, iso_count, nodes, cycle in test_cases:
+        audit = AntiFluffAuditDTO(
+            isolated_concept_count=iso_count,
+            cycle_detected=cycle,
+            unsupported_claims_count=0,
+            logical_cohesion_score=cohesion,
+            detected_hollow_terms=[],
+        )
+        res = evaluator.evaluate_causal_cohesion(
+            audit=audit,
+            total_nodes=nodes,
+            strictness_level=0,
+            matrix_block_id=settings.causal_cohesion_matrix_block_id,
+        )
+
+        statuses = [a.status == ExecutionStatus.PASSED for a in res.atom_results]
+        # Verify prefix-monotonicity: True, ..., True, False, ..., False
+        seen_false = False
+        for passed in statuses:
+            if not passed:
+                seen_false = True
+            elif seen_false:
+                pytest.fail(f"Non-monotonic tier inheritance detected: {statuses}")
+
