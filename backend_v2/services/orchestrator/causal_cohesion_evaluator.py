@@ -13,10 +13,14 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
-from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalGraphPayloadDTO,
+    CausalRootCauseDiagnosisDTO,
+)
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+from backend_v2.models.enums import CausalRootCauseType, ExecutionStatus, SDUIComponentType
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.unified_engine import UnifiedScoringEngine
 
@@ -86,6 +90,63 @@ class CausalCohesionEvaluator:
             scoring_engine: Optional UnifiedScoringEngine instance.
         """
         self._scoring_engine = scoring_engine or UnifiedScoringEngine()
+
+    def diagnose_root_causes(
+        self,
+        graph: CausalGraphPayloadDTO,
+    ) -> list[CausalRootCauseDiagnosisDTO]:
+        """Diagnose root cause faults attributing node failures vs warrant grounding failures (Algorithm 1).
+
+        Separates independent node intrinsic failures (RC_node) from inferential warrant/edge
+        grounding failures (RC_edge). When a parent premise is valid (PASSED) but the child is failed,
+        or the edge key is explicitly registered in edge_root_causes, the fault is attributed as
+        WARRANT_GROUNDING_FAILURE. Otherwise, cascading failures are attributed as NODE_FAILURE.
+
+        Args:
+            graph: CausalGraphPayloadDTO containing argument nodes, edges, and edge root causes.
+
+        Returns:
+            List of CausalRootCauseDiagnosisDTO entries with typed root_cause_type.
+        """
+        diagnoses: list[CausalRootCauseDiagnosisDTO] = []
+        node_map = {n.node_id: n for n in graph.nodes}
+        edge_failures = set(graph.edge_root_causes)
+
+        for node in graph.nodes:
+            if node.blame_parent_ids:
+                paragraph_ref = ""
+                if node.paragraph_ref is not None:
+                    paragraph_ref = node.paragraph_ref
+
+                for parent_id in node.blame_parent_ids:
+                    edge_key = f"{parent_id}->{node.node_id}"
+                    parent_is_passed = False
+                    if parent_id in node_map:
+                        parent_node = node_map[parent_id]
+                        if parent_node.status == ExecutionStatus.PASSED:
+                            parent_is_passed = True
+
+                    is_warrant_failure = edge_key in edge_failures or parent_is_passed
+                    if is_warrant_failure:
+                        rc_type = CausalRootCauseType.WARRANT_GROUNDING_FAILURE
+                        explanation = (
+                            f"Inferential warrant failure on dependency from '{parent_id}' to '{node.node_id}'."
+                        )
+                    else:
+                        rc_type = CausalRootCauseType.NODE_FAILURE
+                        explanation = f"Cascading failure caused by root issue in parent '{parent_id}'."
+
+                    diagnoses.append(
+                        CausalRootCauseDiagnosisDTO(
+                            failing_node_id=node.node_id,
+                            root_cause_parent_id=parent_id,
+                            paragraph_ref=paragraph_ref,
+                            explanation=explanation,
+                            penalty_points=1.0,
+                            root_cause_type=rc_type,
+                        )
+                    )
+        return diagnoses
 
     def evaluate_causal_cohesion(
         self,

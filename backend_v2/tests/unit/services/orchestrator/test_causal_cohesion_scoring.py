@@ -17,9 +17,12 @@ from backend_v2.core.hook_registry import GlobalContextVarsDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
+    CausalEdgeDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
 )
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import CausalRootCauseType, ExecutionStatus
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
     CAUSAL_COHESION_TDA_IDS,
@@ -27,6 +30,27 @@ from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
     CausalCohesionEvaluator,
 )
 from backend_v2.settings import get_settings
+
+
+def _create_test_graph(
+    nodes: list[CausalNodeDTO],
+    edges: list[CausalEdgeDTO] | None = None,
+    root_cause_node_ids: list[str] | None = None,
+    cycle_detected: bool = False,
+    isolated_node_ids: list[str] | None = None,
+    partition_node_ids: dict[str, list[str]] | None = None,
+    edge_root_causes: list[str] | None = None,
+) -> CausalGraphPayloadDTO:
+    """Helper to instantiate CausalGraphPayloadDTO with complete collections for tests."""
+    return CausalGraphPayloadDTO(
+        nodes=nodes,
+        edges=edges if edges is not None else [],
+        root_cause_node_ids=root_cause_node_ids if root_cause_node_ids is not None else [],
+        cycle_detected=cycle_detected,
+        isolated_node_ids=isolated_node_ids if isolated_node_ids is not None else [],
+        partition_node_ids=partition_node_ids if partition_node_ids is not None else {},
+        edge_root_causes=edge_root_causes if edge_root_causes is not None else [],
+    )
 
 
 @pytest.fixture
@@ -684,3 +708,108 @@ def test_causal_cohesion_monotonic_inheritance_invariant(
             elif seen_false:
                 pytest.fail(f"Non-monotonic tier inheritance detected: {statuses}")
 
+
+def test_causal_cohesion_algorithm_1_warrant_vs_node_failure(evaluator: CausalCohesionEvaluator) -> None:
+    """Verify Algorithm 1 attributes warrant grounding failure when parent premise is valid."""
+    parent_node = CausalNodeDTO(
+        node_id="tda_p000000000000001",
+        claim="Valid premise assertion",
+        source_quote="Quote 1",
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_c000000000000002"],
+    )
+    child_node = CausalNodeDTO(
+        node_id="tda_c000000000000002",
+        claim="Dependent conclusion with ungrounded inferential leap",
+        source_quote="Quote 2",
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_p000000000000001"],
+        dependent_child_ids=[],
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_p000000000000001",
+        target_id="tda_c000000000000002",
+        reasoning="Ungrounded inferential leap",
+    )
+    graph = _create_test_graph(
+        nodes=[parent_node, child_node],
+        edges=[edge],
+        edge_root_causes=["tda_p000000000000001->tda_c000000000000002"],
+    )
+
+    diagnoses = evaluator.diagnose_root_causes(graph)
+
+    assert len(diagnoses) == 1
+    diag = diagnoses[0]
+    assert diag.failing_node_id == "tda_c000000000000002"
+    assert diag.root_cause_parent_id == "tda_p000000000000001"
+    assert diag.root_cause_type == CausalRootCauseType.WARRANT_GROUNDING_FAILURE
+    assert "Inferential warrant failure" in diag.explanation
+
+
+def test_causal_cohesion_algorithm_1_cascading_node_failure(evaluator: CausalCohesionEvaluator) -> None:
+    """Verify Algorithm 1 attributes node failure when upstream parent premise is refuted."""
+    parent_node = CausalNodeDTO(
+        node_id="tda_p000000000000001",
+        claim="Refuted premise assertion",
+        source_quote=None,
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_c000000000000002"],
+    )
+    child_node = CausalNodeDTO(
+        node_id="tda_c000000000000002",
+        claim="Dependent conclusion blocked by invalid parent premise",
+        source_quote="Quote 2",
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_p000000000000001"],
+        dependent_child_ids=[],
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_p000000000000001",
+        target_id="tda_c000000000000002",
+        reasoning="Direct dependency link",
+    )
+    graph = _create_test_graph(
+        nodes=[parent_node, child_node],
+        edges=[edge],
+        edge_root_causes=[],
+    )
+
+    diagnoses = evaluator.diagnose_root_causes(graph)
+
+    assert len(diagnoses) == 1
+    diag = diagnoses[0]
+    assert diag.failing_node_id == "tda_c000000000000002"
+    assert diag.root_cause_parent_id == "tda_p000000000000001"
+    assert diag.root_cause_type == CausalRootCauseType.NODE_FAILURE
+    assert "Cascading failure caused by root issue in parent" in diag.explanation
+
+
+def test_causal_cohesion_subgraph_cumulative_guttman_invariant(evaluator: CausalCohesionEvaluator) -> None:
+    """Verify Cumulative Guttman Invariant holds strictly over deliverable subgraph denominator."""
+    settings = get_settings()
+    # Deliverable subgraph: 10 deliverable nodes, 1 isolated (10% isolation), cohesion 0.85
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=1,
+        cycle_detected=False,
+        unsupported_claims_count=0,
+        logical_cohesion_score=0.85,
+        detected_hollow_terms=[],
+    )
+
+    res = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=10,
+        strictness_level=50,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+
+    statuses = [a.status == ExecutionStatus.PASSED for a in res.atom_results]
+    # L1, L2, L3, L4 pass; L5 fails (0.10 isolation > 0.05 L5 max)
+    assert statuses == [True, True, True, True, False]

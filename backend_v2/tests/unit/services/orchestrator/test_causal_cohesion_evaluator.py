@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from backend_v2.tests.unit.services.orchestrator.test_causal_cohesion_scoring import (
     evaluator,
+    test_causal_cohesion_algorithm_1_cascading_node_failure,
+    test_causal_cohesion_algorithm_1_warrant_vs_node_failure,
     test_causal_cohesion_ast_monotonic_chain_verified,
     test_causal_cohesion_cognitive_atom_validation,
     test_causal_cohesion_cumulative_guttman_invariant,
@@ -20,11 +22,14 @@ from backend_v2.tests.unit.services.orchestrator.test_causal_cohesion_scoring im
     test_causal_cohesion_level_5_full_mastery,
     test_causal_cohesion_mandatory_matrix_block_id,
     test_causal_cohesion_monotonic_inheritance_invariant,
+    test_causal_cohesion_subgraph_cumulative_guttman_invariant,
     test_causal_cohesion_zero_node_grounding,
 )
 
 __all__ = [
     "evaluator",
+    "test_causal_cohesion_algorithm_1_cascading_node_failure",
+    "test_causal_cohesion_algorithm_1_warrant_vs_node_failure",
     "test_causal_cohesion_ast_monotonic_chain_verified",
     "test_causal_cohesion_cognitive_atom_validation",
     "test_causal_cohesion_cumulative_guttman_invariant",
@@ -38,5 +43,6 @@ __all__ = [
     "test_causal_cohesion_level_5_full_mastery",
     "test_causal_cohesion_mandatory_matrix_block_id",
     "test_causal_cohesion_monotonic_inheritance_invariant",
+    "test_causal_cohesion_subgraph_cumulative_guttman_invariant",
     "test_causal_cohesion_zero_node_grounding",
 ]

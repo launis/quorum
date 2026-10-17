@@ -184,23 +184,8 @@ def compute_causal_tda_fusion_result(
 
     projected_graph = graph.model_copy(update={"nodes": updated_nodes})
 
-    # 2. Root Cause Attribution
-    root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO] = []
-    for node in projected_graph.nodes:
-        if node.blame_parent_ids:
-            paragraph_ref = ""
-            if node.paragraph_ref is not None:
-                paragraph_ref = node.paragraph_ref
-            for parent_id in node.blame_parent_ids:
-                root_cause_diagnoses.append(
-                    CausalRootCauseDiagnosisDTO(
-                        failing_node_id=node.node_id,
-                        root_cause_parent_id=parent_id,
-                        paragraph_ref=paragraph_ref,
-                        explanation=f"Cascading failure caused by root issue in parent '{parent_id}'.",
-                        penalty_points=1.0,
-                    )
-                )
+    # 2. Root Cause Attribution: Diagnoses cascading failures via Algorithm 1
+    root_cause_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
 
     # 3. Anti-Fluff Shield: Induce Deliverable Subgraph and evaluate Exogenous Boundary Axiom
     deliverable_keys: set[str] = set()
