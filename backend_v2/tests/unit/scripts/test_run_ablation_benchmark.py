@@ -8,6 +8,7 @@ monolithic step-judge evaluation, transient error DLQ recovery, and Table 5 Mark
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -26,6 +27,7 @@ from scripts.run_ablation_benchmark import (
     calculate_pass_rate,
     compute_cluster_bootstrapped_kappa_for_runs,
     compute_cohens_kappa_for_runs,
+    format_ablation_table_markdown,
     format_table_5_markdown,
     main,
     run_ablation_benchmark,
@@ -287,10 +289,10 @@ def test_ablation_transient_error_dlq_recovery() -> None:
 
 
 def test_ablation_table_5_markdown_formatting() -> None:
-    """Verifies that Table 5 Markdown output conforms strictly to paper publication requirements."""
+    """Verifies that Table Markdown output conforms strictly to paper publication requirements."""
     runner = AblationBenchmarkRunner(case_filter="both", selected_configs=[1, 2, 3, 4, 5], runs=2, dry_run=True)
     report = runner.run_all()
-    md_output = format_table_5_markdown(report)
+    md_output = format_ablation_table_markdown(report, table_num=7)
 
     # Check header columns
     assert (
@@ -306,8 +308,12 @@ def test_ablation_table_5_markdown_formatting() -> None:
     assert "| **4. Atom-level Unconstrained LLM-as-a-Judge** | 220 |" in md_output
     assert "| **5. Monolithic Step-Level LLM-as-a-Judge** | 220 |" in md_output
 
-    # Check caption
-    assert "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output
+    # Check caption for Table 7
+    assert "**Table 7:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output
+
+    # Verify legacy format_table_5_markdown alias outputs Table 5
+    md_output_5 = format_table_5_markdown(report)
+    assert "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output_5
 
 
 def test_ablation_source_text_lexical_verification() -> None:
@@ -389,7 +395,7 @@ def test_ablation_run_benchmark_file_persistence(tmp_path: Path) -> None:
     report_md = run_ablation_benchmark(args_md)
     assert Path(md_file).exists()
     assert report_md.config_results[0].total_atoms == 110
-    assert "Table 5" in Path(md_file).read_text(encoding="utf-8")
+    assert "Table 7" in Path(md_file).read_text(encoding="utf-8")
 
 
 def test_ablation_main_cli_entrypoint(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -397,7 +403,7 @@ def test_ablation_main_cli_entrypoint(monkeypatch: pytest.MonkeyPatch, capsys: p
     exit_code_md = main(["--dry-run", "--case", "pair_a", "--config", "1", "--runs", "1"])
     assert exit_code_md == 0
     captured_md = capsys.readouterr()
-    assert "Table 5" in captured_md.out
+    assert "Table 7" in captured_md.out
 
     exit_code_json = main(["--dry-run", "--case", "pair_a", "--config", "1", "--runs", "1", "--output-format", "json"])
     assert exit_code_json == 0
@@ -508,14 +514,14 @@ def test_format_table_5_markdown_with_cluster_ci_boundary() -> None:
         se_inflation_factor=1.15,
     )
 
-    md_populated = format_table_5_markdown([res_populated])
+    md_populated = format_ablation_table_markdown([res_populated], table_num=7)
     assert "| Experimental Configuration | Evaluated Atoms ($N$) |" in md_populated
     assert "| :--- | :---: |" in md_populated
     assert (
         "| **1. Full Quorum (Bo3 + Lexical Firewall)** | 220 | 96.36% | 0.9453 | [0.9120, 0.9786] (Cluster: [0.8950, 0.9850]) | 0.0% | 52.7% | 0.0% |"
         in md_populated
     )
-    assert "Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation" in md_populated
+    assert "Methodological Note on Cluster Bootstrap Resampling: In Table 7" in md_populated
 
     # Case 2: Boundary with None cluster metrics (e.g. single run)
     res_none = AblationConfigResultDTO(
@@ -536,7 +542,71 @@ def test_format_table_5_markdown_with_cluster_ci_boundary() -> None:
         se_inflation_factor=None,
     )
 
-    md_none = format_table_5_markdown([res_none])
+    md_none = format_ablation_table_markdown([res_none], table_num=7)
     assert "| **1. Full Quorum (Bo3 + Lexical Firewall)** | 220 | 0.00% | 0.0000 | [0.0000, 0.0000] |" in md_none
     assert "(Cluster:" not in md_none
-    assert "Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation" not in md_none
+    assert "Methodological Note on Cluster Bootstrap Resampling" not in md_none
+
+
+def test_compute_cluster_bootstrapped_kappa_empty_evals() -> None:
+    """Verifies that empty evaluations return zero metrics without crashing."""
+    res = compute_cluster_bootstrapped_kappa_for_runs([], [], atom_to_cluster={})
+    assert res.kappa == 0.0
+    assert res.num_clusters == 0
+    assert res.cluster_se == 0.0
+
+
+def test_ablation_config_all_flag() -> None:
+    """Verifies that --config all executes all 5 configurations in order."""
+    args = build_arg_parser().parse_args(["--dry-run", "--config", "all", "--runs", "1"])
+    report = run_ablation_benchmark(args)
+    assert len(report.config_results) == 5
+    assert [c.config_id for c in report.config_results] == [1, 2, 3, 4, 5]
+
+
+def test_ablation_export_manifest_standalone(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies standalone manifest export via CLI entrypoint."""
+    out_file = str(tmp_path / "test_manifest.json")
+    code = main(["--export-manifest", "beta_sem", "--manifest-output", out_file, "--manifest-sample-size", "5"])
+    assert code == 0
+    assert Path(out_file).exists()
+    captured = capsys.readouterr()
+    assert "Successfully exported audit manifest" in captured.out
+
+
+def test_ablation_export_manifest_during_benchmark(tmp_path: Path) -> None:
+    """Verifies manifest export combined with benchmark execution."""
+    out_file = str(tmp_path / "test_manifest.csv")
+    args = build_arg_parser().parse_args(
+        [
+            "--dry-run",
+            "--config",
+            "1",
+            "--runs",
+            "1",
+            "--export-manifest",
+            "chimera",
+            "--manifest-format",
+            "csv",
+            "--manifest-output",
+            out_file,
+            "--manifest-sample-size",
+            "5",
+        ]
+    )
+    report = run_ablation_benchmark(args)
+    assert report is not None
+    assert Path(out_file).exists()
+
+
+def test_ablation_main_cli_error_handling(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies graceful exception handling and stderr logging in main CLI entrypoint."""
+
+    def _mock_run(*args: Any, **kwargs: Any) -> Any:
+        raise ValueError("Simulated benchmark failure")
+
+    monkeypatch.setattr("scripts.run_ablation_benchmark.run_ablation_benchmark", _mock_run)
+    code = main(["--dry-run", "--config", "1"])
+    assert code == 1
+    captured = capsys.readouterr()
+    assert "ERROR: Simulated benchmark failure" in captured.err

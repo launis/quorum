@@ -376,7 +376,14 @@ class Settings(BaseSettings):
         float, Field(default=0.90, description="Minimum logical cohesion score for Level 5 BARS threshold")
     ] = 0.90
     causal_cohesion_l3_isolation_max: Annotated[
-        float, Field(default=0.20, description="Maximum isolated concept ratio for Level 3 BARS threshold")
+        float,
+        Field(
+            default=0.20,
+            description=(
+                "Maximum isolated concept ratio for Level 3 BARS threshold (baseline SSOT: 0.20; "
+                "exploratory calibrated profile: 0.30 for strategic scoping axioms)"
+            ),
+        ),
     ] = 0.20
     causal_cohesion_l4_isolation_max: Annotated[
         float, Field(default=0.10, description="Maximum isolated concept ratio for Level 4 BARS threshold")

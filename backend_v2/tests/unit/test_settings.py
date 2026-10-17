@@ -386,8 +386,8 @@ def test_two_pass_atomizer_dynamic_packet_size() -> None:
     mock_executor = MagicMock(spec=LLMTaskExecutor)
     atomizer = TwoPassAtomizer(executor=mock_executor)
 
-    # 120 blocks: [blk_0] text \n\n [blk_1] text ...
-    hydrated_lines = [f"[{f'blk_{i:04d}'}] Block text {i}" for i in range(120)]
+    # 120 blocks: [B0000] text \n\n [B0001] text ...
+    hydrated_lines = [f"[B{i:04d}] Block text {i}" for i in range(120)]
     hydrated_text = "\n\n".join(hydrated_lines)
 
     # When packet_size is None, should resolve to get_settings().two_pass_atomizer_packet_size == 50
@@ -396,8 +396,8 @@ def test_two_pass_atomizer_dynamic_packet_size() -> None:
     assert len(packets[0].packet_keys) == 50
     assert len(packets[1].packet_keys) == 50
     assert len(packets[2].packet_keys) == 20
-    assert packets[0].start_block == "blk_0000"
-    assert packets[0].end_block == "blk_0049"
+    assert packets[0].start_block == "B0000"
+    assert packets[0].end_block == "B0049"
 
     # Explicit packet_size parameter takes precedence
     custom_packets = atomizer._calculate_packets(hydrated_text, packet_size=20)

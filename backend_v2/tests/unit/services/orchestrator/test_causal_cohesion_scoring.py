@@ -446,3 +446,104 @@ def test_causal_cohesion_idempotency_set_guard() -> None:
     assert decision_events[0].metadata.is_context_update is True
     assert isinstance(decision_events[0].content, GlobalContextVarsDTO)
     assert decision_events[0].content.evaluative_matrices == {settings.causal_cohesion_matrix_block_id: 5.0}
+
+
+def test_causal_cohesion_l3_isolation_baseline_boundary_passed(evaluator: CausalCohesionEvaluator) -> None:
+    """Verify that isolated concept ratio exactly at the SSOT baseline ceiling (20.0%) passes Level 3."""
+    settings = get_settings()
+    # 6 isolated out of 30 = 20.0% (<= 20% L3 isolation max SSOT default)
+    # cohesion 0.70 (>= 0.60 L3)
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=6,
+        cycle_detected=False,
+        unsupported_claims_count=1,
+        logical_cohesion_score=0.70,
+        detected_hollow_terms=[],
+    )
+
+    result = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=30,
+        strictness_level=0,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+
+    # Levels 1-3 PASSED, Levels 4-5 FAILED
+    assert result.atom_results[0].status == ExecutionStatus.PASSED
+    assert result.atom_results[1].status == ExecutionStatus.PASSED
+    assert result.atom_results[2].status == ExecutionStatus.PASSED
+    assert result.atom_results[3].status == ExecutionStatus.FAILED
+    assert result.atom_results[4].status == ExecutionStatus.FAILED
+    assert pytest.approx(result.score_result.score, 0.02) == 2.60
+
+
+def test_causal_cohesion_l3_isolation_baseline_boundary_failed(evaluator: CausalCohesionEvaluator) -> None:
+    """Verify that isolated concept ratio exceeding the SSOT baseline ceiling (> 20.0%) fails Level 3."""
+    settings = get_settings()
+    # 7 isolated out of 30 = 23.3% (> 20% L3 isolation max SSOT default)
+    # cohesion 0.70 (>= 0.60 L3, but blocked by isolation ceiling)
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=7,
+        cycle_detected=False,
+        unsupported_claims_count=1,
+        logical_cohesion_score=0.70,
+        detected_hollow_terms=[],
+    )
+
+    result = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=30,
+        strictness_level=0,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+
+    # Levels 1-2 PASSED, Level 3 FAILED due to isolation violation (halts at Level 2)
+    assert result.atom_results[0].status == ExecutionStatus.PASSED
+    assert result.atom_results[1].status == ExecutionStatus.PASSED
+    assert result.atom_results[2].status == ExecutionStatus.FAILED
+    assert result.atom_results[3].status == ExecutionStatus.FAILED
+    assert result.atom_results[4].status == ExecutionStatus.FAILED
+    assert pytest.approx(result.score_result.score, 0.02) == 1.80
+
+
+def test_causal_cohesion_strategic_foresight_cross_case_calibration(
+    evaluator: CausalCohesionEvaluator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify cross-case calibration behavior on dense strategic discourse (Pair B / Sitra scenario).
+
+    Under baseline SSOT (max isolation 0.20), Pair B (isolation ~24%) fails Level 3 and halts at Level 2 (1.80/5.0).
+    Under exploratory calibrated profile (max isolation 0.30), Pair B passes Level 3 (2.60/5.0).
+    """
+    settings = get_settings()
+    # Dense strategic discourse model: 250 nodes, 60 isolated claims (24.0%), cohesion 0.75
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=60,
+        cycle_detected=False,
+        unsupported_claims_count=5,
+        logical_cohesion_score=0.75,
+        detected_hollow_terms=[],
+    )
+
+    # 1. Baseline SSOT Evaluation (isolation max = 0.20) -> Halts at Level 2
+    res_baseline = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=250,
+        strictness_level=0,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+    assert res_baseline.atom_results[1].status == ExecutionStatus.PASSED
+    assert res_baseline.atom_results[2].status == ExecutionStatus.FAILED
+    assert pytest.approx(res_baseline.score_result.score, 0.02) == 1.80
+
+    # 2. Exploratory Calibrated Profile (isolation max = 0.30) -> Passes Level 3
+    monkeypatch.setattr(settings, "causal_cohesion_l3_isolation_max", 0.30)
+    res_calibrated = evaluator.evaluate_causal_cohesion(
+        audit=audit,
+        total_nodes=250,
+        strictness_level=0,
+        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+    )
+    assert res_calibrated.atom_results[1].status == ExecutionStatus.PASSED
+    assert res_calibrated.atom_results[2].status == ExecutionStatus.PASSED
+    assert pytest.approx(res_calibrated.score_result.score, 0.02) == 2.60

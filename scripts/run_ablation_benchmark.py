@@ -1,7 +1,7 @@
 """Dedicated Research Driver & Component Ablation Benchmark Platform.
 
 This script executes the component ablation benchmark study for Section 8.5
-(Table 5: Component Ablation across 220 Atom Evaluations) of the Quorum
+(Table 7: Component Ablation across 220 Atom Evaluations) of the Quorum
 research paper (docs/tiede.md) across five distinct experimental configurations:
 1. Full Quorum Architecture (Bo3 + Lexical Firewall)
 2. Quorum without Lexical Firewall (Bo3 only, Unanchored)
@@ -151,14 +151,17 @@ class AblationConfigResultDTO(BaseModel):
 
 
 class AblationBenchmarkReportDTO(BaseModel):
-    """Comprehensive benchmark report containing metadata and Table 5 Markdown."""
+    """Comprehensive benchmark report containing metadata and Table 7 Markdown."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     timestamp: Annotated[str, Field(description="ISO-8601 execution timestamp.")]
     case_filter: Annotated[str, Field(description="Evaluated case dataset filter (pair_a, pair_b, or both).")]
     config_results: Annotated[list[AblationConfigResultDTO], Field(description="Per-configuration benchmark results.")]
-    table_5_markdown: Annotated[str, Field(description="Generated Table 5 Markdown table string.")]
+    table_markdown: Annotated[str, Field(description="Generated Table 7 Markdown table string.")]
+    table_5_markdown: Annotated[
+        str | None, Field(default=None, description="Legacy alias for generated Table 7 Markdown table string.")
+    ] = None
 
 
 CONFIGURATIONS: Final[dict[int, AblationConfigDTO]] = {
@@ -381,11 +384,15 @@ def compute_cluster_bootstrapped_kappa_for_runs(
     )
 
 
-def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO]) -> str:
-    """Format benchmark results into the authoritative Table 5 Markdown table.
+def format_ablation_table_markdown(
+    report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO],
+    table_num: int = 7,
+) -> str:
+    """Format benchmark results into the authoritative Table Markdown table.
 
     Args:
         report_dto: Comprehensive benchmark report DTO or list of config results.
+        table_num: Publication table number for caption (default 7).
 
     Returns:
         Formatted Markdown table ready for publication in docs/tiede.md.
@@ -417,18 +424,18 @@ def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[Ablati
 
     lines.append("")
     caption = (
-        "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations "
+        f"**Table {table_num}:** Component ablation benchmark study across 220 proposition atom evaluations "
         "($N = 220$ across Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) "
         "evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, "
         "atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge "
         "baselines under the standardized benchmark harness (`scripts/run_ablation_benchmark.py`). "
-        "*(Note: The live physical production executions in Tables 2–4 achieved a 58.2% pass rate [$128 / 220$] "
+        "*(Note: The live physical production executions in Tables 2–6 achieved a 58.2% pass rate [$128 / 220$] "
         "and pooled inter-run agreement $\\bar{\\kappa} = 0.9348$; in the standardized offline ablation benchmark "
-        "suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
+        f"suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
     )
     if has_cluster_ci:
         caption += (
-            " *(Methodological Note on Cluster Bootstrap Resampling: In Table 5, cluster-adjusted 95% CIs are"
+            f" *(Methodological Note on Cluster Bootstrap Resampling: In Table {table_num}, cluster-adjusted 95% CIs are"
             " estimated via a hierarchical two-stage cluster bootstrap—resampling $K = 10$ step clusters with"
             " replacement, followed by within-cluster atom resampling with replacement across"
             " $B = 2,000$ iterations—with conservative floor truncation"
@@ -443,6 +450,18 @@ def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[Ablati
     lines.append(caption)
 
     return "\n".join(lines)
+
+
+def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO]) -> str:
+    """Legacy alias formatting ablation table with table_num=5 for backward compatibility.
+
+    Args:
+        report_dto: Comprehensive benchmark report DTO or list of config results.
+
+    Returns:
+        Formatted Table 5 Markdown table.
+    """
+    return format_ablation_table_markdown(report_dto, table_num=5)
 
 
 class AblationBenchmarkRunner:
@@ -887,20 +906,21 @@ class AblationBenchmarkRunner:
         """Execute the benchmark across all selected configurations.
 
         Returns:
-            Comprehensive AblationBenchmarkReportDTO including generated Table 5.
+            Comprehensive AblationBenchmarkReportDTO including generated Table 7.
         """
         results: list[AblationConfigResultDTO] = []
         for cfg_id in sorted(self.selected_configs):
             res_dto = self.run_configuration(cfg_id)
             results.append(res_dto)
 
-        # Format Table 5 Markdown and directly instantiate report without model_copy mutation
-        table_md = format_table_5_markdown(results)
+        # Format Table 7 Markdown and directly instantiate report without model_copy mutation
+        table_md = format_ablation_table_markdown(results, table_num=7)
 
         return AblationBenchmarkReportDTO(
             timestamp=datetime.now(timezone.utc).isoformat(),
             case_filter=self.case_filter,
             config_results=results,
+            table_markdown=table_md,
             table_5_markdown=table_md,
         )
 
@@ -911,7 +931,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     Returns:
         Configured argparse.ArgumentParser.
     """
-    parser = argparse.ArgumentParser(description="Quorum Component Ablation Benchmark Driver (Section 8.5, Table 5).")
+    parser = argparse.ArgumentParser(description="Quorum Component Ablation Benchmark Driver (Section 8.5, Table 7).")
     parser.add_argument(
         "--case",
         choices=["pair_a", "pair_b", "both"],
@@ -986,7 +1006,7 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
         Generated AblationBenchmarkReportDTO.
     """
     # Handle optional audit manifest generation and export
-    if getattr(args, "export_manifest", None):
+    if args.export_manifest:
         from scripts.audit_manifest_generator import (
             ManifestFormat,
             ManifestType,
@@ -1042,7 +1062,7 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
         if args.output_format == "json":
             out_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
         else:
-            out_path.write_text(report.table_5_markdown, encoding="utf-8")
+            out_path.write_text(report.table_markdown, encoding="utf-8")
         logger.info("Ablation benchmark report persisted to %s", out_path)
 
     return report
@@ -1101,7 +1121,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.output_format == "json":
             print(report.model_dump_json(indent=2))
         else:
-            print(report.table_5_markdown)
+            print(report.table_markdown)
 
         return 0
     except (RuntimeError, ValueError, OSError, KeyError) as e:
