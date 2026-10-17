@@ -21,7 +21,7 @@ class AnchorValidationService:
     """TDD-testable service for deterministic evidence anchoring using strict substring matching.
 
     Enforces a strict Fail-Fast architecture. If lexical validation fails,
-    a SemanticEvidenceError is raised immediately to eliminate LLM hallucinations.
+    a SemanticEvidenceError is raised immediately to eliminate fabricated quote hallucinations and enforce physical citation provenance.
     """
 
     @staticmethod

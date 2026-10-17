@@ -383,3 +383,23 @@ def test_anchor_validation_empty_and_punctuation_quotes_fail_lexical_validation(
     valid_quote = "valid document text"
     norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(valid_quote)
     assert AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50) is True
+
+
+def test_anchor_validation_process_atom_evaluation_suite() -> None:
+    """Verifies that AnchorValidationService.process_atom_evaluation executes fully."""
+    from backend_v2.tests.unit.services.orchestrator.test_anchor_validation_atom_result import (
+        test_process_atom_evaluation_contextual_override_clears_quote,
+        test_process_atom_evaluation_mcp_source_match,
+        test_process_atom_evaluation_no_match_preserves_quote,
+        test_process_atom_evaluation_none_source_quote_skips_matching,
+        test_process_atom_evaluation_with_atom_result_dto,
+        test_process_atom_evaluation_with_inflected_quote_matching,
+    )
+
+    test_process_atom_evaluation_with_atom_result_dto()
+    test_process_atom_evaluation_with_inflected_quote_matching()
+    test_process_atom_evaluation_contextual_override_clears_quote()
+    test_process_atom_evaluation_no_match_preserves_quote()
+    test_process_atom_evaluation_mcp_source_match()
+    test_process_atom_evaluation_none_source_quote_skips_matching()
+

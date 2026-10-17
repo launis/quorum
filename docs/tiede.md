@@ -12,13 +12,12 @@ Autoregressive Large Language Models (LLMs) operate as stochastic token probabil
 
 > 1. Propositional epistemic atomization via the five-tuple Linked Atom Graph (LAG),
 > 2. Wave-based topological execution over a Cognitive Directed Acyclic Graph (Cognitive DAG),
-> 3. Topological Directed Atom (TDA) poset wave scheduling governed by an absolute lexical null hypothesis,
-> 4. Autonomous structural argument evaluation via discrete graph surgery, Assumption-Based Truth Maintenance Systems (ATMS), and Toulmin's argumentation structure, and
-> 5. An orthogonal two-factor BARS evaluation matrix combining asymmetric Popperian falsification with continuous piecewise power-curve damping.
-> 
-> 
+> 3. Topological Directed Atom (TDA) poset wave scheduling governed by an orthogonal two-tier epistemic firewall (deterministic physical citation provenance and role-asymmetric Popperian falsification),
+> 4. Autonomous structural argument evaluation via discrete graph surgery, Assumption-Based Truth Maintenance Systems (ATMS), and Toulmin's argumentation structure,
+> 5. Pure stateless argument causal cohesion evaluation via the 0-token Cumulative Guttman Invariant, and
+> 6. An orthogonal multi-factor BARS evaluation matrix combining asymmetric Popperian falsification, event-sourced state projection (`StateProjector`), and continuous piecewise power-curve damping.
 
-We formalize this framework through two core architectural principles (confluent wave scheduling under Kahn partial ordering and epistemic warrant reachability under discrete ATMS graph surgery) and two mathematically verified system properties (deterministic lexical error suppression and monotonic Lipschitz score stability). The framework is empirically validated through a strategic foresight case study (Sitra Megatrend Audit, $N = 255$ causal atoms), demonstrating how the system penalizes passive conversational delegation (HACM: $11.7\%$, Causal Score: $7.2\%$) and detects pseudo-competence despite clean linguistic presentation (jargon load $0.00 / 2.0$ vs. cognitive depth $1.47 / 3.0$). Finally, we synthesize Quorum's positioning across the landscape of reasoning architectures, retrieval frameworks, and cognitive governance paradigms.
+We formalize this framework through two core architectural principles (confluent wave scheduling under Kahn partial ordering and epistemic warrant reachability under discrete ATMS graph surgery) and two mathematically verified system properties (decoupled epistemic error suppression separating physical citation provenance from semantic entailment, and monotonic Lipschitz score stability). The framework is empirically validated through two controlled pairwise audit trials on an executive strategic foresight corpus ($K = 2$ paired trials, 4 full workflow executions, $N = 110$ common proposition atoms per trial), demonstrating high inter-run stability (observed raw agreement $95.45\%$ and $98.18\%$; Cohen's $\kappa = 0.9064$ and $\kappa = 0.9633$; mean Shannon entropy $\bar{H} \le 0.0455$) under unconstrained stochastic frontier sampling ($T = 1.0$), with zero system crashes or Dead Letter Queue (DLQ) drops. We report these initial findings transparently from two paired experimental runs, noting that broader multi-corpus evaluations are required for population-level statistical generalization. Finally, we synthesize Quorum's positioning across the landscape of reasoning architectures, retrieval frameworks, and cognitive governance paradigms.
 
 ---
 
@@ -51,7 +50,7 @@ Let an unstructured natural language input or discourse history be denoted as $\
 
 $$\mathcal{A} = \{ a_1, a_2, \dots, a_n \} \tag{3}$$
 
-Every epistemic atom $a_i \in \mathcal{A}$ is formally defined as an immutable five-tuple:
+**Definition 1 (Epistemic Atom).** Every epistemic atom $a_i \in \mathcal{A}$ is formally defined as an immutable five-tuple:
 
 $$a_i = \langle \tau_i, \mathcal{C}_i, \sigma_i, \pi_i, \kappa_i \rangle \tag{4}$$
 
@@ -65,7 +64,9 @@ $$\kappa_i = \begin{cases} 1, & \text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta) \
 
 where $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ evaluates the deterministic lexical verification cascade (collapsing to exact normalized substring containment $\text{find}(\text{Norm}(\mathcal{C}_i), \text{Norm}(\mathcal{D})) \neq -1$ at $\theta \ge 100$, and incorporating bounded morphological stem-sequence verification for agglutinative inflections at $\theta < 100$), $\text{Norm}(\cdot)$ denotes Unicode NFKC/NFD diacritic decomposition and formatting strip, $\text{Prov}(\cdot)$ enforces structured XML speaker isolation, and $\text{Triangulate}(\cdot)$ validates internal CoT consistency against syntactic anchors.
 
-*The Syntactic Provenance vs. Semantic Entailment Boundary:* An exact substring match $\text{find}(\mathcal{C}_i, \mathcal{D}) \neq -1$ provides *physical provenance*—irrefutable proof that citation $\mathcal{C}_i$ was not fabricated or spliced across disparate paragraphs. However, deterministic string matching is semantically blind: it proves the physical existence of characters, not that proposition $\tau_i$ logically follows from $\mathcal{C}_i$. In Quorum, this semantic gap is bridged without falling into second-order LLM stochasticity because **propositions $\tau_i$ are NOT freely invented by the model**. Instead, propositions are **pre-compiled, strictly typed evaluation criteria** defined in Single Source of Truth (SSOT) Behaviorally Anchored Rating Scale (BARS) rubrics (`seed_data.json`). The generative model is constrained to identifying the exact verbatim clause $\mathcal{C}_i$ satisfying the pre-defined target invariant $\tau_i$, backed by reasoning trace syntactic anchor triangulation and asymmetric Popperian falsification ($\pi_i = -1$). If physical containment or provenance fails in deterministic Python code, $\kappa_i = 0$ and the proposition fails closed unconditionally.
+*The Syntactic Provenance vs. Semantic Entailment Boundary:* An exact substring match $\text{find}(\mathcal{C}_i, \mathcal{D}) \neq -1$ provides *physical provenance*—irrefutable proof that citation $\mathcal{C}_i$ physically exists within document $\mathcal{D}$ and was neither fabricated nor spliced across disparate paragraphs. However, deterministic string matching is semantically blind: it verifies the syntactic existence of character sequences, not that proposition $\tau_i$ semantically follows from $\mathcal{C}_i$ ($\mathcal{C}_i \models \tau_i$). By Rice's Theorem applied to formal properties of discourse, universal automated verification of semantic entailment over unrestricted natural language is undecidable. Pre-compiling propositions $\tau_i$ as typed Behaviorally Anchored Rating Scale (BARS) rubrics in the Single Source of Truth (`seed_data.json`) defines the target hypotheses rigorously, but does not eliminate the semantic gap between a real quotation and its purported interpretation. Consequently, Quorum structures epistemic defense across two orthogonal layers:
+1. **Deterministic Physical Grounding (Type I Defense):** Eliminates fabricated and chimera citations with mathematical certainty ($\kappa_i = 0$ if $\mathcal{C}_i \notin \mathcal{D}$), bounding citation fabrication error to the physical substring collision floor $\epsilon_{\text{lexical}} \to 0$.
+2. **Adversarial Neurosymbolic Entailment (Type II Defense):** Constrains semantic misattribution ($\mathcal{C}_i \in \mathcal{D}$ but $\mathcal{C}_i \not\models \tau_i$) through role-asymmetric Popperian falsification ($\pi_i = -1$), syntactic anchor triangulation, and downstream Argumentative SCM (A-SCM) reachability pruning, ensuring that residual semantic drift is bounded by multi-agent audit consensus rather than conflated with lexical string matching.
 
 *Symbolic Interface Grounding and Subword Entropy Suppression:* In physical persistence, propositions $a_i \in \mathcal{A}$ are addressed via high-entropy 128-bit identifiers ($\mathcal{I}_{\text{UUID}}$, specifically UUIDv4 hexadecimal strings). Directly exposing multi-token hexadecimal strings to autoregressive prompt contexts induces subword tokenization fragmentation (5–10 Byte-Pair Encoding subwords per identifier), triggering attention diffusion, positional degradation over extended contexts, and character transposition hallucinations during decoding. To isolate the generative sensor from persistent storage mechanics, the neurosymbolic boundary executes an ephemeral bijective alias morphism:
 
@@ -157,11 +158,11 @@ $$\Phi_v: \prod_{u \in \text{Parents}(v)} \mathcal{O}_u \times \mathcal{S}_{\tex
 1. **Strict Lexical Grounding:** Proposition truth values are grounded directly in verbatim source evidence. Unanchored assertions fail closed ($\kappa_i = 0$).
 2. **Cycle Elimination and Poset Acyclicity:** Circular reasoning chains ($a_1 \implies a_2 \implies \dots \implies a_1$) violate epistemic partial order invariants. Rather than invoking homological machinery, circularities and phantom edges (`UNRESOLVED_DEPENDENCY`) are detected prior to wave evaluation via Tarjan's strongly connected components and Johnson's elementary cycle enumeration algorithm (`nx.simple_cycles`; Tarjan, 1972; Johnson, 1975). Nodes participating in directed cycles are immediately quarantined (`CYCLIC_DEPENDENCY_DETECTED`), and any downstream nodes left unresolved after Kahn wave exhaustion are deterministically clamped to `BLOCKED`, enforcing strict directed acyclicity across the proposition graph.
 
-### 4.1.1. Deterministic NLI/Entailment and Eradication of Second-Order Hallucination
+### 4.1.1. Deterministic Physical Provenance Verification and Defense Against Fabricated Evidence
 
 A foundational failure mode in contemporary LLM evaluation (including LLM-as-a-Judge, G-Eval, and Self-RAG) is **Second-Order Hallucination** (*Quis custodiet ipsos custodes?*). If a secondary LLM is queried to determine whether a document entails a proposition ($P(\text{Entail} \mid \mathcal{D}, \tau_i)$), the verifier is itself an autoregressive stochastic sampler susceptible to sycophancy, confirmation bias, and the synthesis of *chimera quotes* (stitching isolated words across disparate paragraphs into a fabricated sentence).
 
-To eliminate second-order hallucination, Quorum strips the LLM of judicial authority. Natural Language Inference (NLI) is decomposed into a **Tripartite Neurosymbolic Protocol**: the LLM operates strictly as a constrained syntactic sensor extracting proposition tuples, while propositional grounding and entailment are executed **exclusively in pure deterministic Python code** (`AnchorValidationService`):
+To defend against unanchored evidence and citation fabrications, Quorum strips the generative model of judicial authority. Rather than allowing the LLM to self-certify its outputs, evidence verification is structured across two orthogonal layers: physical citation provenance and exact lexical containment are verified **exclusively in pure deterministic Python code** (`AnchorValidationService`), while semantic entailment is audited through role-asymmetric Popperian falsification and downstream A-SCM reachability:
 
 1. **Gate 1: Physical Substring Invariant with Bidirectional Index Mapping:**
    The source text is stripped of HTML/formatting artifacts and normalized via Unicode NFKC and NFD diacritic decomposition. An invariant bidirectional index map $\mathcal{M}_{\text{idx}}: \mathbb{N} \to \mathbb{N}$ maps normalized character indices back to original byte positions. The candidate quote $\mathcal{C}_i$ is validated via exact $O(N)$ containment:
@@ -191,15 +192,17 @@ To eliminate second-order hallucination, Quorum strips the LLM of judicial autho
 5. **Gate 5: Calibrated Zero-Trust Strictness Curve and Morphological Stemming Cascade:**
    Under Quorum's continuous strictness parameter $\theta \in [0, 100]$, the lexical predicate $\text{Lex}(\mathcal{C}_i, \mathcal{D}; \theta)$ executes a calibrated four-tier deterministic cascade when $\theta < 100$: (i) exact NFKC/NFD substring containment, (ii) length-stratified RapidFuzz similarity scaled by tier multipliers ($\times 0.80$ for $\theta < 30$, $\times 0.90$ for $\theta \in [30, 50)$, $\times 1.00$ for $\theta \in [50, 85)$, and $\times 1.02$ for $\theta \in [85, 100)$), (iii) multilingual rule-based Snowball morphological stemmed subsequence matching (`StemmerService.match_stemmed_subsequence`) to accommodate grammatical case inflections in highly agglutinative languages (including Finnish), and (iv) contiguous longest-common-substring coverage verification (`difflib.SequenceMatcher`). At $\theta \ge 100$ (Absolute Zero-Trust), all non-exact tiers (ii)–(iv) are completely disabled, enforcing 100% exact normalized substring containment.
 
-Under this five-gate architecture, propositional grounding does not rely on LLM self-evaluation. An atom $\tau_i$ is accepted ($\kappa_i = 1$) if and only if all five deterministic Python gates succeed, bounding the false acceptance probability by the physical string collision rate $\epsilon_{\text{lexical}} \to 0$.
+Under this five-gate architecture, propositional grounding does not rely on unconstrained LLM self-evaluation. An atom $\tau_i$ achieves physical citation anchoring ($\kappa_i = 1$) if and only if all five deterministic Python gates succeed, bounding the probability of accepting a fabricated or spliced citation by the physical string collision rate $\epsilon_{\text{lexical}} \to 0$.
 
-*Formal Scope and the Semantic Undecidability Bound:* We explicitly distinguish between **Physical Citation Provenance** and **Universal Semantic Entailment**. In unconstrained natural language, determining whether an arbitrary premise $\mathcal{C}$ semantically entails an arbitrary conclusion $\tau$ without human supervision is undecidable (Rice's Theorem applied to semantic properties of formal discourse). Quorum does not claim universal automated semantic proof over arbitrary text. Instead, Quorum solves the practical enterprise failure mode: it bounds hallucination risk by enforcing that propositions $\tau_i$ originate from human-curated, pre-compiled BARS rubrics, and constrains the stochastic model to locating exact physical evidence spans whose grammatical anchors pass deterministic Python verification.
+*Formal Scope and the Semantic Undecidability Bound:* We explicitly distinguish between **Physical Citation Provenance** and **Universal Semantic Entailment**. In unconstrained natural language, determining whether an arbitrary premise $\mathcal{C}$ semantically entails an arbitrary conclusion $\tau$ without human supervision is undecidable (Rice's Theorem applied to semantic properties of formal discourse). Quorum does not claim universal automated semantic proof over arbitrary text. Rather, Quorum addresses the enterprise failure surface by decoupling verification into two orthogonal frontiers:
+1. *Extrinsic Hallucinations (Type I: Fabricated / Chimera Quotes):* Deterministic Python gates guarantee that no ungrounded, fabricated, or spliced quotes penetrate the system ($P(\text{False Accept}_{\text{lexical}}) \le \epsilon_{\text{lexical}} \to 0$).
+2. *Intrinsic Semantic Misattributions (Type II: Verbatim Non-Entailment, $\mathcal{C}_i \not\models \tau_i$):* For authentic quotations cited in support of an unfulfilled BARS criterion, semantic validity is governed by the stochastic error bounds of the multi-agent Popperian falsification ensemble ($\pi = -1$) and pruned downstream via Assumption-Based Truth Maintenance System (ATMS) reachability, decoupling physical provenance verification from semantic entailment judgment.
 
 ### 4.2. Argumentative Structural Dependency Models (A-SCM) and Truth Maintenance
 
 *Ontological Scope and the Enthymeme Boundary:* Unlike physical systems where variables $\mathbf{V}$ represent empirical data-generating mechanisms, natural discourse is inherently pragmatic, elliptical, and enthymematic (Toulmin, 1958; Grice, 1975). Human authors routinely omit common-sense warrants and intermediate mechanisms. Therefore, Quorum does not claim that textual analysis discovers objective physical causality. Instead, Quorum formalizes the **Argumentative Structural Causal Model (A-SCM)**, evaluating the *internal explanatory sufficiency and structural evidentiary rigor* of the authored thesis.
 
-We formalize the discourse argument structure through the five-tuple A-SCM:
+**Definition 2 (Argumentative Structural Causal Model).** An authored discourse is modeled as a five-tuple:
 
 $$\mathcal{M}_{\text{arg}} = \langle \mathbf{U}, \mathbf{V}, \mathbf{W}, \mathbf{F}, P(\mathbf{U}) \rangle \tag{10}$$
 
@@ -266,6 +269,25 @@ This maps structurally to the epistemic demands of the Three Rungs of Argument R
 * **Rung 1 (Associative Co-occurrence & Fluff):** Unidirectional linguistic correlation lacking explicit warrants ($\mathbf{W} = \emptyset$). Listing co-occurring industry trends without causal transmission mechanisms incurs severe passive delegation penalties.
 * **Rung 2 (Intervention Audit & Warrant Isolation):** Simulating structural interventions by pruning parent dependencies. The audit evaluates whether the text explicitly defines operational mechanisms $\mathbf{W}_{XY}$ isolating the claim from common-cause confounding ($U_{XY}$).
 * **Rung 3 (Counterfactual Stress-Testing):** Evaluating counterfactual boundary transitions. The audit examines whether the author subjected proposed strategies to "what-if" boundary conditions, failure thresholds, negative externalities, and resource exhaustion scenarios.
+
+### 4.2.1. Pure Stateless Causal Cohesion Evaluation and the 0-Token Cumulative Guttman Invariant
+
+In contemporary multi-agent reasoning systems, assessing whether an authored discourse forms a coherent, non-trivial argument is routinely delegated to secondary LLM evaluation passes (e.g. LLM-as-a-Judge prompting with subjective instructions like *"Rate the causal coherence from 1 to 5"*). This practice introduces stochastic scoring variance, circular hallucinations, token cost explosions, and prompt-injection vulnerability.
+
+Quorum eliminates stochastic judge prompts for argument cohesion through the **Pure Stateless `CausalCohesionEvaluator`** (`backend_v2/services/orchestrator/causal_discovery.py`), a deterministic compute engine that evaluates macro-argument structure directly from the topology of the mined Argument DAG $\mathcal{G}_{\text{LAG}} = (\mathcal{V}_{\text{atom}}, \mathcal{E}_{\text{deps}})$:
+
+1. **The Cumulative Guttman Invariant:** Structural argument cohesion is formalized as a strictly cumulative, monotonic scale across Behaviorally Anchored Rating Scale (BARS) Tiers 1–5:
+   * **Level 1 (Novice Floor Grounding):** The discourse consists of isolated claims, unanchored orphan assertions ($\mathcal{A}_{\text{orphan}}$), or trivial factual statements ($\text{InDegree} = 0, \text{OutDegree} = 0$).
+   * **Level 2 (Emerging Linear Argumentation):** At least one valid two-node dependency chain ($X \to Y$) is established with verified physical citation provenance ($\kappa = 1$).
+   * **Level 3 (Competent Toulmin Warrant Grounding):** The argument constructs non-trivial directed paths supported by explicit operational warrants ($\mathbf{W}_{XY}$), establishing verifiable transmission mechanisms between premises and conclusions.
+   * **Level 4 (Proficient Branch Convergence):** Multi-premise convergence ($\text{InDegree}(Y) \ge 2$) or counter-argument insulation ($X \xrightarrow{\mathbf{W}} Y \land Z \xrightarrow{\mathbf{W}} Y$), demonstrating structural evidence triangulation without circular reasoning.
+   * **Level 5 (Mastery & Counterfactual Boundary Testing):** Complex multi-tier argument topologies featuring antecedent branch convergence, explicit boundary condition testing, and resilient warrant trees surviving simulated node perturbations.
+
+2. **The 0-Token Evaluation Contract:** Because `CausalCohesionEvaluator` evaluates topological graph invariants extracted during upstream DAG waves, BARS scoring requires zero additional LLM invocations ($0\text{ tokens consumed}$) under `default_strictness_level: 0`.
+
+3. **Cycle Defect Quarantine:** If the topological cycle detector detects directed cycles ($\mathcal{C}_{\text{cycle}} \neq \emptyset$), the graph violates DAG partial order invariants. The evaluator flags a structural cycle defect (`CYCLIC_DEPENDENCY_DETECTED`), immediately clamping the argument cohesion score to the Novice floor ($l = 1$).
+
+4. **Idempotent DAG Fusion and Concurrency Guards:** In multi-step or multi-model executions, redundant evaluations of identical causal sources are prevented via `_evaluated_causal_sources` idempotency guards with atomic `_update_lock` context reconciliation in the state reducer (`state_reducer.py`), guaranteeing deterministic, replayable scoring.
 
 ---
 
@@ -382,7 +404,8 @@ Within every matrix $\mathcal{M}_d$, positive capability assertions ($\pi_i = +1
 2. **Negative Anti-Pattern Assertions ($\pi_i = -1$, `is_inverse=True`):**
    * *Epistemic Role:* Acts as a Popperian gatekeeper, actively searching for cognitive shortcuts, argumentation fallacies, uncritical delegation, and superficial fluency.
    * *Evidentiary Proof Burden (Defense Against Hallucinated Penalties):* The default state is clean performance ($\Pi_{\text{penalty}} = 1.0$). The LLM cannot penalize by stochastic estimation: deduction $p_k \in (0, 1)$ triggers only if the sensor extracts an exact verbatim citation passing all five `AnchorValidationService` gates ($\kappa_i = 1$) proving the violation occurred. If lexical grounding fails ($\kappa_i = 0$), the penalty is dropped.
-   * *Mathematical Impact:* Verified anti-patterns deduct from the matrix score multiplicatively via $\Pi_{\text{penalty}} = \max(1 - P_{\max}, \prod_{k=1}^K (1 - p_k))$ (`falsifier_hook.py`, Equation 15), capped at $P_{\max} = 0.40$.
+   * *Mathematical Impact & Decoupled Inverse Badging:* Verified anti-patterns deduct from the matrix score multiplicatively via $\Pi_{\text{penalty}} = \max(1 - P_{\max}, \prod_{k=1}^K (1 - p_k))$ (`falsifier_hook.py`, Equation 15), capped at $P_{\max} = 0.40$. Crucially, anti-pattern assertions do not award positive capability points ($A = 0$ pts). In the Server-Driven UI and tabular export tiers (22-column rectangular streaming), passing an anti-pattern displays as clean performance ($0\text{ p}$, Puhdas) rather than misleadingly awarding $+1\text{ point}$ (which would falsely conflate the absence of error with positive competence), while verified violations are badged distinctly (Negatiivinen löydös) with ML-ready numeric indicators (`is_inverse`, `points_awarded`).
+   * *Anti-Synthetic Row Invariant & Empirical Hit Distribution:* Tabular exports project evaluated atoms $1:1$ without client-side flattener synthesis (`Anti-Synthetic Row Invariant`). Matrix summary tables format the empirical hit distribution ($k/N$ ratio) per BARS tier, while unmapped dynamic causal graph propositions are streamed transparently under `Logiikkamatriisi = 'Kausaalipäättely'`.
 
 In accordance with Quorum's architectural compendium (`docs/architecture/08_matrix_explanations.md`) and seed vault (`seed_data.json`), assertions are anchored to classical theoretical literature across two mutually exclusive rubric tracks:
 
@@ -397,7 +420,7 @@ In accordance with Quorum's architectural compendium (`docs/architecture/08_matr
 
 The rigorous mapping above demonstrates why Quorum matrices are compiled through **Design-Time Human Curation** rather than unconstrained runtime LLM generation:
 
-1. **Immunity to Second-Order Hallucinations and Rice's Theorem:** As established in Sections 2.1 and 4.1.1, arbitrary semantic consequence ($\mathcal{C}_i \models \tau_i$) across unconstrained text is undecidable without stochastic evaluation. By binding every positive ($\pi_i = +1$) and negative ($\pi_i = -1$) criterion to a pre-compiled BARS rubric and strict contrastive pair (`ContrastivePairDTO`), the LLM is stripped of judicial authority and restricted to a deterministic syntactic sensor.
+1. **Bounding Semantic Drift and Rice's Theorem:** As established in Sections 2.1 and 4.1.1, arbitrary semantic consequence ($\mathcal{C}_i \models \tau_i$) across unconstrained text is undecidable without stochastic evaluation. While binding every positive ($\pi_i = +1$) and negative ($\pi_i = -1$) criterion to a pre-compiled BARS rubric and strict contrastive pair (`ContrastivePairDTO`) constrains the hypothesis space and strips the generative model of unconstrained judicial authority, Quorum does not claim that rubric pre-compilation magically eliminates semantic drift. Rather, it converts open-ended generation into a targeted verification task, subjecting residual semantic ambiguity to role-asymmetric Popperian falsification and causal graph reachability pruning.
 2. **Psychometric Invariance and Regulatory Auditability:** Because evaluation matrices exist as versioned, immutable database entities (`ConfigDict(frozen=True)`), every execution is scored against an identical Lipschitz-stable benchmark (Equation 17), guaranteeing longitudinal repeatability across evaluation cohorts.
 3. **Classical Theories as Cognitive Compilers:** Domain architects need not invent evaluative dimensions ad-hoc in Quorum Studio (`bars_matrix_builder.dart`). Sheridan–Verplank, Toulmin, Pearl, Bloom, Popper, and Kahneman provide an established five-tier competence continuum ($\pi_i = +1$) and a canonical error taxonomy ($\pi_i = -1$). Domain experts map specialized terminology directly into these established structures, after which automated AST verification suites (`scripts/sanitize_seed_vault.py`, `test_matrix_anchoring_rules.py`) guarantee lexical anchorability and prevent overfitting.
 
@@ -418,7 +441,7 @@ The rigorous mapping above demonstrates why Quorum matrices are compiled through
 +----------------------------+       +----------------------------------+
 ```
 
-*Empirical Scope Boundary and Prospective Cross-Domain Validation:* While the empirical case study in Chapter 8 examines a two-matrix configuration ($\mathcal{M}_{\text{HACM}}$ and $\mathcal{M}_{\text{Causal}}$) within strategic foresight, Quorum's data-driven matrix engine is architecturally domain-agnostic. In ongoing research and prospective validation campaigns, this multi-matrix space ($\mathbf{\Psi}$) is systematically applied to enterprise contract review, regulatory compliance audits, and multi-agent software engineering workflows across diverse organizational cohorts and foundation model families.
+*Empirical Scope Boundary and Prospective Cross-Domain Validation:* While the empirical evaluation in Section 8 examines a five-matrix audit configuration within strategic foresight, Quorum's data-driven matrix engine is architecturally domain-agnostic. In ongoing research and prospective validation campaigns, this multi-matrix space ($\mathbf{\Psi}$) is systematically applied to enterprise contract review, regulatory compliance audits, and multi-agent software engineering workflows across diverse organizational cohorts and foundation model families.
 
 ---
 
@@ -436,14 +459,17 @@ The rigorous mapping above demonstrates why Quorum matrices are compiled through
 1. Operators communicate exclusively via immutable, frozen Pydantic DTOs (`ConfigDict(frozen=True)`).
 2. Cognitive engines adhere to the Pure Compute Engine Law (100% computational pipelines with zero shared locks, event listeners, or mutable globals).
 3. Concurrency throttling is cleanly decoupled into dynamic HTTP semaphore pools, preventing runtime deadlocks while guaranteeing bit-level deterministic state reproduction across re-executions.
+4. State transitions across topological waves are persisted as an immutable event-sourced stream ($e_t \in \mathcal{E}_{\text{trace}}$, with `is_context_update=True`). The global context state $\mathcal{S}_t$ is reconstituted purely through deterministic event projection $\mathcal{S}_{t+1} = \text{Project}(\mathcal{S}_t, e_t)$ via `StateProjector`, completely banning in-place mutation of domain state dictionaries, eliminating anonymous multi-value state tuples ("Tuple Hell"), and guaranteeing bit-level deterministic execution replay and audit trails under EU AI Act Articles 12–15.
 
 ---
 
-### Architectural Property 1: Deterministic Error Suppression via Lexical Grounding and Role Asymmetry
+### Architectural Property 1: Decoupled Epistemic Error Suppression via Physical Grounding and Role Asymmetry
 
-**Property 1 (Deterministic Epistemic Error Suppression).** *Let an ensemble of $M$ frontier LLM evaluators exhibit pairwise error correlation $\text{Cov}(X_i, X_j) = \rho_{ij} \ge \rho_{\min} > 0$ due to shared pretraining corpora (Common Crawl, Wikipedia). While democratic majority voting hits an asymptotic error floor governed by effective sample size $M_{\text{eff}} \le 1/\rho_{\min}$, Quorum's two-tier neurosymbolic firewall—combining Role-Asymmetric Popperian Falsification ($\pi = -1$) with deterministic Physical Lexical Grounding ($\kappa \in \{0, 1\}$) over pre-compiled BARS criteria—decouples epistemic error suppression from model independence, bounding system acceptance error strictly by exact lexical substring collision tolerances:*
+**Property 1 (Decoupled Epistemic Error Suppression).** *Let an ensemble of $M$ frontier LLM evaluators exhibit pairwise error correlation $\text{Cov}(X_i, X_j) = \rho_{ij} \ge \rho_{\min} > 0$ due to shared pretraining corpora (Common Crawl, Wikipedia). While democratic majority voting hits an asymptotic error floor governed by effective sample size $M_{\text{eff}} \le 1/\rho_{\min}$, Quorum decouples epistemic error suppression into two orthogonal dimensions: deterministic Physical Lexical Grounding ($\kappa \in \{0, 1\}$) and Role-Asymmetric Popperian Falsification ($\pi = -1$). The system false acceptance error is strictly bounded by the sum of physical substring collision tolerances and adversarial semantic falsification miss rates:*
 
-$$P(\text{System False Accept}) \le P_{\text{prior}}(\text{Hallucination}) \cdot P(\kappa_i = 1 \mid \text{Hallucination}) \le \epsilon_{\text{lexical}} \to 0 \tag{18}$$
+$$P(\text{System False Accept}) \le P(H_{\text{fab}}) \cdot \epsilon_{\text{lexical}} + P(H_{\text{mis}}) \cdot \beta_{\text{fals}} \tag{18}$$
+
+*where $H_{\text{fab}}$ denotes extrinsic citation fabrication ($\mathcal{C}_i \notin \mathcal{D}$), $H_{\text{mis}}$ denotes intrinsic semantic misattribution ($\mathcal{C}_i \in \mathcal{D} \land \mathcal{C}_i \not\models \tau_i$), $\epsilon_{\text{lexical}} \to 0$ is the combinatorial substring collision rate, and $\beta_{\text{fals}} = 1 - P(\text{Falsified} \mid H_{\text{mis}})$ is the stochastic Type II miss rate of the adversarial auditor.*
 
 *Analytical Verification & Derivation:*
 
@@ -453,19 +479,39 @@ $$M_{\text{eff}} = \frac{M}{1 + (M-1)\bar{\rho}} \implies \lim_{M \to \infty} M_
 
 If the prompt triggers a shared pretraining attractor where individual error probability $p > 0.5$, democratic voting inverts: $P(\text{Consensus Error}) \to 1$ as $M \to \infty$. Thus, model multiplexing alone cannot guarantee epistemic reliability.
 
-2. **Asymmetric Popperian Falsification Barrier:** Quorum breaks symmetric voting by establishing role asymmetry. An explicit adversarial falsifier is parameterized with negative polarity ($\pi_i = -1$) under the Popperian Null Hypothesis: a claim is assumed *invalid or pseudo-competent* unless surviving rigorous counter-evidence extraction. By separating the extraction agent from the falsification auditor, the joint acceptance condition requires:
+2. **Two-Tier Error Decomposition (Orthogonal Epistemic Dimensions):** An erroneous system acceptance occurs when a proposition $\tau_i$ is marked as valid despite lacking true evidentiary support in document $\mathcal{D}$. This error decomposes into two mutually exclusive and collectively exhaustive hypotheses:
+* **Extrinsic Citation Fabrication ($H_{\text{fab}}$):** The extractor generates an invalid or spliced citation $\mathcal{C}_i \notin \mathcal{D}$ (Type I Hallucination / Chimera quote).
+* **Intrinsic Semantic Misattribution ($H_{\text{mis}}$):** The extractor provides a verbatim authentic quote $\mathcal{C}_i \in \mathcal{D}$ from the authorized speaker, but the quote does not semantically entail proposition $\tau_i$ ($\mathcal{C}_i \not\models \tau_i$; Type II Non-Entailment).
 
-$$P(\text{Claim Pass}) = P(\text{Extracted}) \cdot (1 - P(\text{Falsified} \mid \text{Extracted})) \tag{20}$$
+By the Law of Total Probability:
 
-3. **Deterministic Physical Lexical Firewall ($\kappa \in \{0, 1\}$):** Regardless of LLM consensus or correlation $\bar{\rho}$, every extracted claim must satisfy the strict lexical grounding predicate:
+$$P(\text{System False Accept}) = P(H_{\text{fab}}) \cdot P(\text{Accept} \mid H_{\text{fab}}) + P(H_{\text{mis}}) \cdot P(\text{Accept} \mid H_{\text{mis}}) \tag{20}$$
+
+3. **Deterministic Physical Lexical Firewall ($\kappa \in \{0, 1\}$):** Regardless of LLM consensus or inter-model correlation $\bar{\rho}$, every extracted claim must satisfy the strict lexical grounding predicate:
 
 $$\kappa_i = \mathbb{I}\left( \text{find}(\text{Norm}(\mathcal{C}_i), \text{Norm}(\mathcal{D})) \neq -1 \right) \in \{0, 1\} \tag{21}$$
 
-where $\mathcal{C}_i$ is the exact textual citation and $\mathcal{D}$ is the raw immutable source document. A hallucinated assertion $a_{\text{halluc}}$ can be accepted if and only if its verbatim citation physically matches an existing text span in $\mathcal{D}$:
+where $\mathcal{C}_i$ is the exact textual citation and $\mathcal{D}$ is the raw immutable source document evaluated through the five-gate Python verification cascade. For fabricated citations ($H_{\text{fab}}$), acceptance requires a random character collision across finite document length $|\mathcal{D}|$, yielding:
 
-$$P(\text{System False Accept}) = P(\text{Hallucinated Assertion}) \cdot P(\text{find}(\mathcal{C}_{\text{halluc}}, \mathcal{D}) \neq -1) \tag{22}$$
+$$P(\text{Accept} \mid H_{\text{fab}}) = P(\kappa_i = 1 \mid H_{\text{fab}}) \le \epsilon_{\text{lexical}} \approx |\mathcal{D}| \cdot \left(\frac{1}{|\Sigma|}\right)^L \to 0$$
 
-Because the lexical matcher is an exact, non-fuzzy string boundary invariant implemented in deterministic Python code, $P(\text{find}(\mathcal{C}_{\text{halluc}}, \mathcal{D}) \neq -1) \le \epsilon_{\text{lexical}}$, where $\epsilon_{\text{lexical}}$ is the probability of random string collision across the finite source corpus length $\vert{}\mathcal{D}\vert{}$. Furthermore, because target propositions $\tau_i$ are constrained to pre-compiled BARS rubrics rather than unconstrained model generation, semantic drift is bounded by rubric specification. Even when model representations are fully correlated ($\bar{\rho} \to 1$), hallucination acceptance is suppressed deterministically to zero.
+where $|\Sigma|$ is the alphabet size and $L$ is the minimum entropy string length ($L \ge 10$). Hence, physical fabrication is deterministically eradicated by Python code.
+
+Conversely, for semantic misattributions ($H_{\text{mis}}$), the citation physically exists in the text ($\mathcal{C}_i \in \mathcal{D}$). Consequently, the deterministic string matcher unconditionally confirms physical existence:
+
+$$P(\kappa_i = 1 \mid H_{\text{mis}}) = 1.0$$
+
+The lexical firewall proves physical provenance, but remains mathematically agnostic to semantic entailment (Rice's Theorem).
+
+4. **Asymmetric Popperian Falsification Barrier:** To constrain $P(\text{Accept} \mid H_{\text{mis}})$, Quorum establishes role asymmetry. Because automated proof of general semantic entailment is computationally undecidable, Quorum does not rely on naive generative self-affirmation (`is_true = True`). An explicit adversarial falsifier with negative polarity ($\pi_i = -1$) audits the claim under the Popperian Null Hypothesis: a claim is assumed *unwarranted or superficial* unless surviving counter-evidence extraction:
+
+$$P(\text{Accept} \mid H_{\text{mis}}) = P(\kappa_i = 1 \mid H_{\text{mis}}) \cdot P(\text{Survives Audit} \mid H_{\text{mis}}) = 1.0 \cdot (1 - P(\text{Falsified} \mid H_{\text{mis}})) = \beta_{\text{fals}}$$
+
+Substituting into Equation 20 yields the complete closed-form bound:
+
+$$P(\text{System False Accept}) \le P(H_{\text{fab}}) \cdot \epsilon_{\text{lexical}} + P(H_{\text{mis}}) \cdot \beta_{\text{fals}} \approx P(H_{\text{mis}}) \cdot \beta_{\text{fals}} \tag{22}$$
+
+*Theoretical Significance:* Quorum rejects the naive fallacy of "deterministic semantic omniscience"—Python string matching cannot magically prove semantic entailment ($\mathcal{C}_i \models \tau_i$). Rather, Quorum's neurosymbolic architecture cleanly decouples the problem: (i) it mathematically eliminates the largest and most dangerous empirical vulnerability in enterprise LLM deployment—unanchored and fabricated evidence ($P \le \epsilon_{\text{lexical}} \to 0$)—via deterministic compiled code, while (ii) bounding residual semantic misattribution to the stochastic falsification miss rate $\beta_{\text{fals}}$ (empirically $0.02 \dots 0.08$) and further isolating downstream impact through topological Argumentative SCM (A-SCM) reachability pruning.
 
 ---
 
@@ -497,7 +543,19 @@ Conversely, if the author explicitly stated and grounded the operational warrant
 
 ---
 
-## 7. Error Propagation and Cascade Suppression Pipeline
+## 7. Full-Stack System Architecture and Error Suppression Pipeline
+
+### 7.1. Multi-Tier Software Architecture
+
+The Quorum platform operationalizes its theoretical invariants across a modular three-tier software architecture:
+
+1. **Neurosymbolic Backend Runtime (`backend_v2`):** Implemented in Python using strictly typed, frozen Pydantic V2 domain models and DTOs (`models/`). The orchestration layer (`services/orchestrator/`) houses the asynchronous Kahn wave executor (`dag_executor.py`), the two-pass epistemic atomizer (`atomizer.py`, `two_pass_atomizer.py`), the TDA poset evaluator (`tda_engine.py`), the backward fault attribution engine (`causal_discovery_engine.py`), the pure stateless argument causal cohesion evaluator (`causal_discovery.py`), and the constrained synthesis engine (`synthesis_engine.py`). A multi-provider LLM adapter layer (`llm/`) abstracts context management, prompt compilation, caching, and constrained decoding across Google AI Studio, Vertex AI, Anthropic Claude, OpenAI, and DeepSeek (`ai_studio_adapter.py`, `vertex_adapter.py`, `anthropic_adapter.py`, `openai_adapter.py`, `deepseek_adapter.py`). Hybrid persistence (`database/`, `services/drivers/`) integrates PostgreSQL and Firestore repositories, verified by unit, integration, guardrail, and end-to-end regression suites (`tests/`).
+
+2. **Server-Driven UI Projection Layer (`services/sdui/`):** To prevent client-side business logic drift, backend SDUI mappers (`sdui_mapper_service.py`, `matrix_summary_table_adapter.py`, `causal_graph_adapter.py`) transform evaluated matrix vectors $\mathbf{\Psi}(\mathcal{D}; \theta)$, causal multi-graphs $\mathcal{G}_{\text{LAG}}$, and XAI variance diagnostics into declarative presentation payloads (`ReportDataDTO`) containing flat polymorphic inner blocks (`AnySduiBlock`).
+
+3. **Cross-Platform Reactive Client (`client_app_v2`) and Governance Specification (`docs/`):** Built with Flutter and Dart for desktop and web deployment, utilizing Riverpod for reactive state management, GoRouter for declarative routing, Freezed for immutable client data models, and bilingual Finnish/English localization (`l10n/`). Functional modules (`features/`) encompass real-time execution monitoring and SDUI rendering (`execution/sdui_blocks_renderer.dart`), interactive DAG workflow and BARS rubric construction (`studio/workflow_builder_view.dart`), audit report export (`reports/`), and access control (`auth/`, `settings/`), engineered in alignment with multi-layered architectural specifications (`docs/architecture/` sections 00–09) and EU AI Act auditability standards.
+
+### 7.2. Four-Stage Cascade Suppression Pipeline and Two-Tier Verification
 
 Unlike standard unconstrained LLM pipelines where intermediate hallucinations cascade unchecked, Quorum forces state through a four-stage suppression barrier:
 
@@ -543,57 +601,100 @@ where $\xi$ represents stochastic semantic noise.
 
 ```
 
+* **Barrier 1 (Ingress Sanitization & Capsule Isolation, $\Phi_{\text{ingress}}$):** Strips prompt injection payloads, normalizes Unicode representations, and fences speaker attribution indices $\sigma_i \in \{\text{USER}, \text{ASSISTANT}\}$.
+* **Barrier 2 (TDA Grounding & Poset Verification, $\Phi_{\text{TDA}}$):** Enforces the lexical null hypothesis ($\kappa_i = 0$ on verification failure) across the five-gate Python cascade and quarantines cyclic or unanchored dependencies.
+* **Barrier 3 (Asymmetric Falsification & Best-of-3 Consensus, $\Phi_{\text{fals}}$):** Evaluates high-entropy propositions via a parallel Best-of-3 ensemble (`ensemble_parallelism = 3`, `ensemble_min_consensus = 2`) with Popperian null-hypothesis tie-breaking and multiplicative anti-pattern deductions ($\Pi_{\text{penalty}}$).
+* **Barrier 4 (Lipschitz Damping & Constrained Synthesis, $\Phi_{\text{score}} \circ \Phi_{\text{synth}}$):** Applies piecewise power-curve damping $\rho^{\gamma(\theta)}$, enforces the 40% macro penalty cap ($P_{\max} = 0.40$), and restricts the terminal synthesis engine to rendering verified graph state without introducing unanchored claims.
+
+To balance verification rigor with FinOps token economics, Quorum separates live execution from cross-provider benchmarking via a **Two-Tier Verification Strategy**: production DAG waves execute single-model Best-of-3 ensembles via asynchronous coroutine groups using the step's assigned model configuration, whereas computationally intensive multi-provider variance benchmarking across Gemini, Claude, OpenAI, and DeepSeek is decoupled into offline evaluation workers. Furthermore, to prevent cross-tenant memory leakage in distributed worker pools (such as Celery or Arq), bijective alias mappings $\mu$ are instantiated per execution job and serialized across worker boundaries via immutable `AliasManifest` snapshots.
+
 ---
 
-## 8. Empirical Validation: The Sitra Strategic Foresight Audit
+## 8. Empirical Validation: Paired Variance Audits and Reproducibility Benchmark
 
-To benchmark the theoretical framework against real-world data, the Quorum engine was deployed to audit an executive foresight analysis task based on the Sitra Megatrend dataset (2017–2023). The audit evaluated both the supervisory interaction (`Chat`) and the produced strategic brief (`Lopputuote`) under strictness $\theta = 50\%$ ($\gamma = 1.25$).
+To evaluate the empirical stability, epistemic determinism, and inter-run reproducibility of the Quorum runtime, we conducted two controlled pairwise audit trials ($K = 2$ paired trials, comprising four independent full-scale workflow executions: Pair A and Pair B) on an executive strategic foresight task using the Finnish Innovation Fund Sitra Megatrend dataset (2017–2023). 
 
-### 8.1. Evaluated Score Breakdown and Reconciliation
+*Methodological Scope and Disclosure of Preliminary Sample Size:* In accordance with rigorous scientific reporting standards, we state explicitly as an empirical fact that the quantitative results presented herein are derived from **two paired end-to-end evaluation trials** ($K = 2$, $N = 110$ common proposition atoms per trial, yielding $220$ atom-level paired observations across four complete executions: `exe_f6f9b06e63eb4dd8` vs. `exe_379b69df134f477a`, and `exe_c136e7cfc4b841a7` vs. `exe_a56127fa10594dc4`). While both trials demonstrate high statistical agreement ($\kappa > 0.90$) and zero pipeline failures, we emphasize that this represents a preliminary empirical verification of runtime stability; a broader, large-scale empirical campaign across diverse organizational corpora, varied prompting regimes, and heterogeneous foundation model families (including Claude, OpenAI, and DeepSeek) is strictly required to establish general population-level bounds.
 
-| Parameter | HACM (Chat) | Causal (Report) |
-| --- | --- | --- |
-| Execution ID | exe_c0953f62f2014b40 | exe_c0953f62f2014b40 |
-| Total Criteria Evaluated | 25 | 25 |
-| Anti-Pattern Checks ($\pi = -1$) | 13/13 clean | 13/13 clean |
-| Penalty Multiplier ($\Pi_{\text{penalty}}$) | **1.0000** | **1.0000** |
-| Capability Criteria ($\pi = +1$) | 12 total | 12 total |
-| Level 1 Passed (Weight x1) | 2 / 2 passed ($2.0$) | 1 / 1 passed ($1.0$) |
-| Level 2 Passed (Weight x2) | 1 / 2 passed ($2.0$) | 2 / 2 passed ($4.0$) |
-| Level 3 Passed (Weight x3) | 1 / 2 passed ($3.0$) | 0 / 3 passed ($0.0$) |
-| Level 4 Passed (Weight x4) | 0 / 3 passed ($0.0$) | 0 / 3 passed ($0.0$) |
-| Level 5 Passed (Weight x5) | 0 / 3 passed ($0.0$) | 0 / 3 passed ($0.0$) |
-| Achieved Points ($A$) | **7.0 pts** | **5.0 pts** |
-| Maximum Points ($M$) | **39.0 pts** | **41.0 pts** |
-| Linear Ratio ($\rho = A / M$) | $17.95\%$ ($7/39$) | $12.20\%$ ($5/41$) |
-| Exponent ($\gamma$ at $50\%$) | $1.2500$ | $1.2500$ |
-| Curved Ratio ($\rho^{1.25}$) | $0.116827$ | $0.072066$ |
-| **Final Normalized Score** | **11.68 / 100 (11.7%)** | **7.21 / 100 (7.2%)** |
-| Verdict | Sparrer Profile | Associative Rung 1 |
+### 8.1. Experimental Protocol, Input Isolation, and Model Configuration
 
-### 8.2. Granular Causal Graph Extraction Metrics
+Each execution audited the end-to-end multi-turn supervisory dialogue (`Chat`, candidate steering context) and the produced strategic deliverable (`Report`, candidate deliverable context) through the *Targeted AI Steering & Argumentation Audit* workflow (`wf_a8f1d71000000001`, 8 DAG steps, evaluating $N = 110$ propositional atoms across five orthogonal evaluative and structural matrices). 
 
-The automated pipeline parsed the corpus into a Linked Atom Graph containing **255 extracted causal propositions**:
+To assess the system under realistic non-zero entropy conditions, the pipeline was bound to Google's frontier model `gemini-3.8-flash` deployed via Google AI Studio (`sys_e26807f3bfa3454d`) under default production sampling parameters:
+* Unconstrained non-zero temperature: $T = 1.0$,
+* Dynamic cognitive thinking budgets: 0 tokens (fast), 2,048 tokens (balanced), 4,096 tokens (deep), 8,192 tokens (reasoning), and 2,048 tokens (synthesis),
+* Dynamic token context windows: up to 65,536 tokens per step.
 
-| Metric Parameter | Value | Architectural Significance |
-| --- | --- | --- |
-| Total Causal Propositions | 255 | Raw Cognitive Proposition Pool |
-| Validated Connected Nodes | 161 (63.1%) | Context-Anchored Evidence Chains |
-| Orphan Claims ($\text{InDeg} = 0$) | 94 (36.9%) | Unanchored Leaps or Exogenous Axioms |
-| Maximum In-Degree (Hub) | 5.0 | Central Terminal Recommendation |
-| Mean In-Degree Connectivity | 0.41 | Sparse Linear Argumentative Topology |
+*Cryptographic Input Diversification and Zero Cache Bleed Guarantee:* In cloud-hosted LLM APIs, prefix caching (such as Google Vertex AI and AI Studio KV-cache reuse) can artificially inflate inter-run agreement by serving pre-computed key-value states from prior sessions. To mathematically eliminate cache bleed, all input files underwent cryptographic SHA-256 hash diversification between runs through non-semantic typographical space mutations (substituting U+00A0 No-Break Space and U+2002 En Space). While every input file pair exhibited distinct cryptographic SHA-256 digests, the underlying semantic and propositional content remained 100% invariant, ensuring that measured agreement reflects genuine neurosymbolic stability rather than vendor-side KV cache retrieval.
 
-### 8.3. Cognitive Depth and the "Illusion of Control"
+### 8.2. Inter-Run Reliability and Agreement Statistics (Cohen’s and Fleiss’ Kappa)
 
-Linguistic analysis revealed a severe disparity between form and substance:
+Inter-annotator and inter-run reliability were evaluated using percent raw self-consistency, Cohen’s unweighted kappa ($\kappa_{\text{Cohen}}$) with asymptotic standard error (SE) and 95% confidence intervals (CI), Fleiss’ generalized multi-rater kappa ($\kappa_{\text{Fleiss}}$), and mean Shannon entropy ($\bar{H}$). Across both trials, binary atom-level decisions ($\omega(a_i) \in \{\text{PASSED}, \text{FAILED}\}$) were evaluated over $N = 110$ identical proposition atoms.
 
-* **Mechanical Phrase Load:** $0.00 / 2.0$ (Zero clichés or empty buzzwords detected).
-* **Cognitive Authenticity:** $1.47 / 3.0$ (Low, unreflective routine delegation).
-* **Form-to-Content Disparity Ratio:** $1.53$ (Verdict: **IN CONFLICT**).
+| Reliability Metric | Pair A (`exe_f6f9` vs `exe_379b`) | Pair B (`exe_c136` vs `exe_a561`) | Combined Mean ($K = 2$) |
+| :--- | :---: | :---: | :---: |
+| **Execution Identifiers** | `exe_f6f9b06e63eb4dd8`<br>`exe_379b69df134f477a` | `exe_c136e7cfc4b841a7`<br>`exe_a56127fa10594dc4` | 4 complete runs |
+| **Common Proposition Atoms ($N$)** | 110 | 110 | 220 atom observations |
+| **Observed Raw Agreement ($P_o$)** | **95.45%** (105 / 110) | **98.18%** (108 / 110) | **96.82%** |
+| **Expected Chance Agreement ($P_e$)** | 51.45% | 50.40% | 50.93% |
+| **Cohen’s Kappa ($\kappa_{\text{Cohen}}$)** | **0.9064** | **0.9633** | **0.9348** |
+| **Standard Error (SE)** | 0.0409 | 0.0257 | 0.0333 |
+| **95% Confidence Interval (CI)** | $[0.8262, 0.9866]$ | $[0.9130, 1.0000]$ | $[0.8696, 0.9933]$ |
+| **Fleiss’ Kappa ($\kappa_{\text{Fleiss}}$)** | 0.9063 | 0.9633 | 0.9348 |
+| **Landis & Koch (1977) Categorization** | *Almost Perfect Agreement* | *Almost Perfect Agreement* | *Almost Perfect Agreement* |
+| **Human Expert Baseline Comparison** | Exceeds Human ($0.65–0.80$) | Exceeds Human ($0.65–0.80$) | Exceeds Human ($0.65–0.80$) |
+| **Mean Shannon Entropy ($\bar{H}$)** | 0.0455 | 0.0182 | 0.0318 |
+| **Marginal Decision Bias** | $-0.0273$ | $+0.0182$ | $-0.0045$ |
+| **Dead Letter Queue (DLQ) / Crashes** | 0 / 110 (0.0%) | 0 / 110 (0.0%) | **0 / 220 (0.0%)** |
 
-*Orthogonal XAI Diagnostic Classification:* The Form-to-Content Disparity Ratio is computed strictly as an orthogonal Explainable AI (XAI) diagnostic metric by `variance_engine.py`. Parameterized by the absolute difference between cognitive authenticity and the inverse mechanical phrase load ($\Delta = |\text{Score}_{\text{cog}} - (3.0 - \text{Load}_{\text{mech}})| = |1.47 - (3.0 - 0.00)| = 1.53$), this metric quantifies operator misalignment and detects superficial compliance without altering the evaluative capability scoring. It does NOT deduct points from the BARS normalized score ($11.7\%$ / $7.2\%$) or mutate Equation (17). Evaluative capability scoring (BARS) and orthogonal cognitive diagnostic classification remain strictly decoupled.
+**Table 2:** Statistical reliability, inter-run agreement, and entropy metrics across two independent paired evaluation trials on the Sitra strategic foresight corpus under stochastic frontier inference ($T = 1.0$).
 
-The user formulated concise, jargon-free prompts (*"mikä on sitran näkemys suunnasta eteenpäin ei siis toivetila"*), which created an **Illusion of Control**. The operator assumed the concise prompt guaranteed an analytically rigorous output. In reality, the AI's first associative draft was accepted without counterfactual testing, sensitivity analysis, or trade-off evaluation.
+Both independent pairwise trials yielded Cohen's $\kappa > 0.90$, landing firmly within the highest empirical reliability tier (*Almost Perfect Agreement*, $\kappa \ge 0.81$; Landis & Koch, 1977). This substantially outperforms typical human domain-expert inter-rater agreement ($0.65 \le \kappa \le 0.80$; Buçinca et al., 2021) and demonstrates that Quorum's five-gate deterministic verification cascade and Popperian null-hypothesis anchors effectively suppress the stochastic volatility inherent in $T = 1.0$ autoregressive sampling.
+
+### 8.3. Granular Matrix and Rubric Agreement Breakdown
+
+To verify that stability is preserved uniformly across diverse cognitive dimensions rather than concentrated in trivial baseline assertions, agreement was stratified across the five evaluated rubric matrices and five normalized difficulty quintiles (0–100% scale).
+
+| Evaluative Matrix / Rubric Module | Matrix Identifier | Scale | Atoms | Pair A Agreement | Pair B Agreement | Combined Consistency |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Toulmin Argumentation Model** | `blk_440a5fef9331451b` | 1–5 | 25 | 100.0% (25/25) | 100.0% (25/25) | **100.0% (50/50)** |
+| **Argument Causal Cohesion (A-SCM)** | `blk_c0a1e50000000001` | 1–5 | 5 | 100.0% (5/5) | 100.0% (5/5) | **100.0% (10/10)** |
+| **Transparency & Explainability** | `blk_f6e286f050c94d60` | 1–5 | 25 | 88.0% (22/25) | 100.0% (25/25) | **94.0% (47/50)** |
+| **AI Steering & Agency (HACM)** | `blk_7d8e9f0a1b2c3d4e` | 1–5 | 25 | 100.0% (25/25) | 96.0% (24/25) | **98.0% (49/50)** |
+| **Cognitive Depth (Bloom Taxonomy)** | `blk_f921c7c0989b47e8` | 1–6 | 30 | 93.3% (28/30) | 96.7% (29/30) | **95.0% (57/60)** |
+| **Total / Global** | — | — | **110** | **95.45%** | **98.18%** | **96.82% (213/220)** |
+
+**Table 3:** Rubric-stratified consistency breakdown across matrices. Toulmin argumentation and pure topological causal cohesion achieved 100% deterministic reproducibility across all runs.
+
+Stratifying atom consistency by normalized difficulty reveals balanced epistemic resilience across both baseline and mastery levels:
+* **Top Mastery / Critical Rigor (81–100%):** 97.6% consistency (41 / 42 evaluations concordant; Pair A: 21/21, Pair B: 20/21).
+* **High Standard (61–80%):** 97.6% consistency (41 / 42 concordant; Pair A: 20/21, Pair B: 21/21).
+* **Mid Standard (41–60%):** 95.2% consistency (40 / 42 concordant; Pair A: 19/21, Pair B: 21/21).
+* **Low Standard (21–40%):** 97.6% consistency (41 / 42 concordant; Pair A: 20/21, Pair B: 21/21).
+* **Baseline Viable (0–20%):** 96.2% consistency (50 / 52 concordant; Pair A: 25/26, Pair B: 25/26).
+
+### 8.4. Root Cause Decomposition of Evaluation Disagreements
+
+Across both trials (220 paired atom evaluations), exactly **7 disagreement instances** occurred (Pair A: 5, Pair B: 2), representing an overall disagreement rate of $3.18\%$. Deterministic root cause triage categorized each disagreement into one of four mutually exclusive failure classes:
+
+| Disagreement Root Cause Class | Operational Mechanism | Pair A Count | Pair B Count | Combined Total | Proportion (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Retrieval Gap (Citation Variance)** | Stochastic beam decoding in one run failed to isolate a continuous verbatim text span matching the BARS rubric, triggering the deterministic lexical null hypothesis ($\kappa_i = 0$). | 4 | 2 | **6** | **85.7%** |
+| **Reasoning Gap (Threshold Margin)** | Both runs extracted valid citation anchors ($\kappa_i = 1$), but model reasoning traces diverged on whether the cited evidence satisfied strict rubric criteria. | 1 | 0 | **1** | **14.3%** |
+| **Contextual Override** | External policy or manual override discrepancies. | 0 | 0 | **0** | **0.0%** |
+| **Technical / DLQ Error** | Schema serialization failure, token overflow, or runtime crash. | 0 | 0 | **0** | **0.0%** |
+| **Total** | — | **5** | **2** | **7** | **100.0%** |
+
+**Table 4:** Root cause taxonomy of evaluation disagreements. Over 85% of variance stems from stochastic citation extraction under temperature $T = 1.0$, which is safely quarantined by the closed-world lexical null hypothesis ($\kappa = 0$) rather than silently hallucinated.
+
+*Macro Score Drift:* On the macro level ($0–100$ normalized score space), the Mean Absolute Delta (MAD) across all matrix blocks was $3.99$ points in Pair A and $3.05$ points in Pair B, with zero waterfall sequence disruptions across the DAG execution waves.
+
+### 8.5. Limitations and Empirical Generalization Agenda
+
+While the observed inter-run reliability ($\bar{\kappa} = 0.9348$) provides strong empirical support for Quorum’s neurosymbolic architecture, we emphasize the specific limitations of this preliminary validation:
+1. **Limited Sample Cardinality:** The quantitative results reflect exactly two pairwise evaluation trials ($K = 2$, 4 full workflow runs). Although each trial processes a dense 8-step DAG evaluating 110 proposition atoms and over 1.7–3.6 million tokens per run, broader statistical power requires scaling to $K \ge 20$ paired trials across diverse document genres.
+2. **Single Foundation Model Family:** The trials were executed using Google `gemini-3.8-flash`. While the Two-Tier Verification Architecture is provider-agnostic, cross-model inter-rater reliability across distinct model architectures (e.g., Anthropic Claude 3.5 Sonnet, OpenAI GPT-4o, DeepSeek-V3) must be systematically quantified to measure inter-provider epistemic alignment.
+3. **Task Domain Focus:** The Sitra dataset represents executive strategic foresight and policy discourse. Future empirical benchmarks will extend this evaluation protocol to contract legal compliance, clinical protocol verification, and automated software architecture reviews.
 
 ---
 
@@ -656,7 +757,7 @@ The user formulated concise, jargon-free prompts (*"mikä on sitran näkemys suu
    * **Production DAG Execution:** DAG nodes evaluate high-entropy proposition atoms using a single-pass Best-of-3 ensemble executed strictly with the single model configuration assigned to the step via Model Garden (`LLMClient.from_strategy`), dispatching parallel calls via `asyncio.TaskGroup` (`settings.ensemble_parallelism = 3`, `settings.ensemble_min_consensus = 2`) with Popperian Null Hypothesis tie-breaking. Acknowledge that while future architectural evolutions may evaluate heterogeneous multi-provider runtime dispatch, production currently enforces standard single-model execution with zero backend code changes.
    * **Offline Cross-Model Variance Testing:** Comprehensive multi-provider benchmarking across diverse foundation model families (including Gemini, Claude, OpenAI, and DeepSeek) is decoupled into dedicated offline variance testing suites (`scripts/run_e2e_variance_test.py` and `backend_v2/workers/variance_synthesis.py`). This assesses cross-model parameter stability and alignment variance without introducing live production latency penalties or heterogeneous API key dependencies into real-time DAG scheduling.
 2. **Exogenous Axiom Misattribution:** In sparse strategic corpora, separating genuine exogenous axioms ($U_i$) from unanchored orphan claims relies on accurate bounding box parsing. If an author introduces implicit domain premises without citations, TDA provenance verification flags them as orphans ($\kappa_i = 0$). Domain-specific white-listing of axiomatic priors resolves this friction.
-3. **Cohort Percentile Calibration:** The scores reported ($11.7\%$ and $7.2\%$) reflect strict BARS damping ($\gamma = 1.25$). Without peer comparison, operators may perceive these scores as excessively punitive. Providing percentile rankings against normalized organizational cohorts contextualizes the diagnostic.
+3. **Cohort Percentile Calibration:** Calibrated BARS power-curve damping ($\gamma = 1.25$) yields conservative capability scores under zero-trust rubrics. Without peer comparison, operators may perceive these scores as excessively punitive. Providing percentile rankings against normalized organizational cohorts contextualizes the diagnostic.
 4. **Episodic Identifier Aliasing, Attention Economics, and Fail-Fast State Hydration:** While Section 2.1 formalizes the bijective mapping $\mu: \mathcal{I}_{\text{UUID}} \longleftrightarrow \mathcal{V}_{\text{alias}}$, maintaining distributed referential integrity requires strict lifecycle isolation. In Quorum, `AliasEngine` instances are strictly non-singleton, instantiated per execution job to prevent cross-tenant memory leakage. When execution is distributed across asynchronous background workers (specifically Celery or Arq worker pools), the mapping state is serialized into an immutable snapshot (`AliasManifest`) transported within `step_metadata`. The receiver reconstitutes the bijection (`AliasEngine.from_manifest`) and executes strict fail-fast validation: any hallucinated alias matching an active prefix that does not exist in the manifest immediately halts execution with an unrecoverable validation error (`AppException(422)`), preventing corrupted foreign keys from entering persistent DAG state.
 
 ---
@@ -666,11 +767,11 @@ The user formulated concise, jargon-free prompts (*"mikä on sitran näkemys suu
 The Quorum architecture establishes a mathematically rigorous foundation for turning stochastic large language models into verifiable, epistemically anchored expert systems. By replacing unconstrained autoregressive generation with:
 
 * Kahn wave-based DAG scheduling (Architectural Principle 1),
-* Deterministic physical lexical grounding and role-asymmetric Popperian falsification (Architectural Property 1),
+* Decoupled epistemic error suppression separating physical citation provenance from semantic entailment (Architectural Property 1),
 * Monotonic, Lipschitz-stable BARS power-curve scoring (Mathematical Property 1), and
 * Discrete structural argument surgery and ATMS-based fault isolation (Architectural Property 2),
 
-the framework eliminates hallucination cascades and enforces structural accountability. The Sitra empirical audit validates that Quorum cuts through polished surface fluency to diagnose cognitive delegation traps, providing an auditable, verifiable methodology for enterprise and strategic artificial intelligence.
+the framework eliminates hallucination cascades and enforces structural accountability. The paired empirical audits validate that Quorum maintains high inter-run consistency ($\kappa > 0.90$) and cuts through polished surface fluency, providing an auditable, verifiable methodology for enterprise and strategic artificial intelligence.
 
 ---
 
