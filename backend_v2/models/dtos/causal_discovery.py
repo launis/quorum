@@ -11,7 +11,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxExecutionStatus
+from backend_v2.models.enums import CausalRootCauseType, LaxExecutionStatus
 
 __all__ = [
     "AntiFluffAuditDTO",
@@ -49,6 +49,9 @@ class CausalNodeDTO(V2CoreBase):
     ]
     tda_score: Annotated[float | None, Field(default=None, description="Evaluated TDA cognitive score.")] = None
     tda_level_key: Annotated[str | None, Field(default=None, description="TDA qualitative level key.")] = None
+    source_input_key: Annotated[
+        str | None, Field(default=None, description="Dynamic input key indicating source document provenance.")
+    ] = None
 
 
 class CausalEdgeDTO(V2CoreBase):
@@ -82,6 +85,17 @@ class CausalGraphPayloadDTO(V2CoreBase):
         list[str],
         Field(default_factory=list, description="IDs of isolated claims lacking inbound/outbound links."),
     ]
+    partition_node_ids: Annotated[
+        dict[str, list[str]],
+        Field(default_factory=dict, description="Mapping of dynamic input_key to list of contained causal node IDs."),
+    ]
+    edge_root_causes: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of serialized edge IDs ('source_id->target_id') failing warrant grounding or precondition validation.",
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_referential_integrity(self) -> CausalGraphPayloadDTO:
@@ -105,6 +119,16 @@ class CausalGraphPayloadDTO(V2CoreBase):
         for isolated_id in self.isolated_node_ids:
             if isolated_id not in valid_node_ids:
                 raise ValueError(f"Isolated node_id '{isolated_id}' does not exist in graph nodes.")
+        for doc_key, part_node_ids in self.partition_node_ids.items():
+            for p_node_id in part_node_ids:
+                if p_node_id not in valid_node_ids:
+                    raise ValueError(
+                        f"Partition '{doc_key}' references node_id '{p_node_id}' that does not exist in graph nodes."
+                    )
+        valid_edge_ids = {f"{edge.source_id}->{edge.target_id}" for edge in self.edges}
+        for edge_id in self.edge_root_causes:
+            if edge_id not in valid_edge_ids:
+                raise ValueError(f"Edge root cause '{edge_id}' does not match any active edge in graph edges.")
         return self
 
 
@@ -118,6 +142,13 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
     paragraph_ref: Annotated[str, Field(description="Source paragraph reference.")]
     explanation: Annotated[str, Field(description="Causal chain explanation of why the root cause led to failure.")]
     penalty_points: Annotated[float, Field(description="Attributed penalty points.")]
+    root_cause_type: Annotated[
+        CausalRootCauseType,
+        Field(
+            default=CausalRootCauseType.NODE_FAILURE,
+            description="Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch.",
+        ),
+    ] = CausalRootCauseType.NODE_FAILURE
 
 
 class AntiFluffAuditDTO(V2CoreBase):
@@ -210,3 +241,6 @@ class CausalTdaFusionResultDTO(V2CoreBase):
         Field(default_factory=list, description="Prescriptive remediation steps to unlock performance."),
     ]
     fair_scoring: Annotated[FairScoringBreakdownDTO, Field(description="Fair scoring arithmetic breakdown.")]
+    total_deliverable_nodes: Annotated[
+        int, Field(ge=0, default=0, description="Total node count in deliverable subgraph.")
+    ] = 0

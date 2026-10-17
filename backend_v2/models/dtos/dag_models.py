@@ -80,6 +80,7 @@ class ExtractedAtom(BaseModel):
         tda_id: The globally unique canonical Opaque Stripe ID of this Topological Directed Atom (tda_ prefix).
         source_id: The spatial anchor (Chunk ID) indicating where the claim originated.
         source_sequence_index: The chronological sequence index indicating extraction order.
+        source_input_key: Dynamic input key indicating source document provenance.
     """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
@@ -112,6 +113,10 @@ class ExtractedAtom(BaseModel):
     source_sequence_index: Annotated[
         int, Field(description="The chronological sequence index indicating extraction order.")
     ]
+    source_input_key: Annotated[
+        str | None,
+        Field(default=None, description="Dynamic input key indicating source document provenance."),
+    ] = None
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_quote(self) -> Self:

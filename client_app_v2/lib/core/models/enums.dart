@@ -463,3 +463,15 @@ enum EngineType {
   @JsonValue('causal_discovery')
   causalDiscovery,
 }
+
+/// Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch.
+@JsonEnum()
+enum CausalRootCauseType {
+  @JsonValue('node_failure')
+  nodeFailure,
+  @JsonValue('warrant_grounding_failure')
+  warrantGroundingFailure,
+  @JsonValue('precondition_mismatch')
+  preconditionMismatch,
+}
+

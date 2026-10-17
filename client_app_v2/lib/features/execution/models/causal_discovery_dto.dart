@@ -19,6 +19,7 @@ abstract class CausalNodeDto with _$CausalNodeDto {
     List<String> dependentChildIds,
     @JsonKey(name: 'tda_score') double? tdaScore,
     @JsonKey(name: 'tda_level_key') String? tdaLevelKey,
+    @JsonKey(name: 'source_input_key') @Default(null) String? sourceInputKey,
   }) = _CausalNodeDto;
 
   factory CausalNodeDto.fromJson(Map<String, dynamic> json) =>
@@ -47,6 +48,9 @@ abstract class CausalRootCauseDiagnosisDto with _$CausalRootCauseDiagnosisDto {
     @JsonKey(name: 'paragraph_ref') required String paragraphRef,
     required String explanation,
     @JsonKey(name: 'penalty_points') required double penaltyPoints,
+    @JsonKey(name: 'root_cause_type')
+    @Default(CausalRootCauseType.nodeFailure)
+    CausalRootCauseType rootCauseType,
   }) = _CausalRootCauseDiagnosisDto;
 
   factory CausalRootCauseDiagnosisDto.fromJson(Map<String, dynamic> json) =>

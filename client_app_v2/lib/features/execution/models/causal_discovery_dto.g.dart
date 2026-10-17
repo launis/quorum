@@ -24,6 +24,7 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
         'dependent_child_ids',
         'tda_score',
         'tda_level_key',
+        'source_input_key',
       ],
     );
     final val = _CausalNodeDto(
@@ -47,6 +48,10 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
       ),
       tdaScore: $checkedConvert('tda_score', (v) => (v as num?)?.toDouble()),
       tdaLevelKey: $checkedConvert('tda_level_key', (v) => v as String?),
+      sourceInputKey: $checkedConvert(
+        'source_input_key',
+        (v) => v as String? ?? null,
+      ),
     );
     return val;
   },
@@ -58,6 +63,7 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
     'dependentChildIds': 'dependent_child_ids',
     'tdaScore': 'tda_score',
     'tdaLevelKey': 'tda_level_key',
+    'sourceInputKey': 'source_input_key',
   },
 );
 
@@ -72,6 +78,7 @@ Map<String, dynamic> _$CausalNodeDtoToJson(_CausalNodeDto instance) =>
       'dependent_child_ids': instance.dependentChildIds,
       'tda_score': instance.tdaScore,
       'tda_level_key': instance.tdaLevelKey,
+      'source_input_key': instance.sourceInputKey,
     };
 
 const _$ExecutionStatusEnumMap = {
@@ -125,6 +132,7 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
         'paragraph_ref',
         'explanation',
         'penalty_points',
+        'root_cause_type',
       ],
     );
     final val = _CausalRootCauseDiagnosisDto(
@@ -139,6 +147,12 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
         'penalty_points',
         (v) => (v as num).toDouble(),
       ),
+      rootCauseType: $checkedConvert(
+        'root_cause_type',
+        (v) =>
+            $enumDecodeNullable(_$CausalRootCauseTypeEnumMap, v) ??
+            CausalRootCauseType.nodeFailure,
+      ),
     );
     return val;
   },
@@ -147,6 +161,7 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
     'rootCauseParentId': 'root_cause_parent_id',
     'paragraphRef': 'paragraph_ref',
     'penaltyPoints': 'penalty_points',
+    'rootCauseType': 'root_cause_type',
   },
 );
 
@@ -158,6 +173,13 @@ Map<String, dynamic> _$CausalRootCauseDiagnosisDtoToJson(
   'paragraph_ref': instance.paragraphRef,
   'explanation': instance.explanation,
   'penalty_points': instance.penaltyPoints,
+  'root_cause_type': _$CausalRootCauseTypeEnumMap[instance.rootCauseType]!,
+};
+
+const _$CausalRootCauseTypeEnumMap = {
+  CausalRootCauseType.nodeFailure: 'node_failure',
+  CausalRootCauseType.warrantGroundingFailure: 'warrant_grounding_failure',
+  CausalRootCauseType.preconditionMismatch: 'precondition_mismatch',
 };
 
 _AntiFluffAuditDto _$AntiFluffAuditDtoFromJson(Map<String, dynamic> json) =>

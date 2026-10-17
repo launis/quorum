@@ -19,6 +19,7 @@ __all__ = [
     "BlockDataType",
     "BloomLevel",
     "CognitiveTier",
+    "CausalRootCauseType",
     "ComponentType",
     "DisplayScale",
     "EngineType",
@@ -995,3 +996,16 @@ class ReportSheetKey(StrEnum):
     def l10n_key(self) -> str:
         """Returns the localization key in backend translation files."""
         return f"export_sheet_{self.value}"
+
+
+class CausalRootCauseType(StrEnum):
+    """Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch."""
+
+    NODE_FAILURE = "node_failure"
+    WARRANT_GROUNDING_FAILURE = "warrant_grounding_failure"
+    PRECONDITION_MISMATCH = "precondition_mismatch"
+
+    @property
+    def l10n_key(self) -> str:
+        """Returns the localization key in backend translation files."""
+        return f"causal_root_cause_{self.value.lower()}"

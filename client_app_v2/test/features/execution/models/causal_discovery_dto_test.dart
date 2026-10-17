@@ -16,6 +16,7 @@ void main() {
         'dependent_child_ids': ['child_01', 'child_02'],
         'tda_score': 15.5,
         'tda_level_key': 'high_severity',
+        'source_input_key': 'technical_report',
       };
 
       final node = CausalNodeDto.fromJson(json);
@@ -25,11 +26,13 @@ void main() {
       expect(node.blameParentIds, ['parent_01']);
       expect(node.dependentChildIds, ['child_01', 'child_02']);
       expect(node.tdaScore, 15.5);
+      expect(node.sourceInputKey, 'technical_report');
 
       final serialized = node.toJson();
       expect(serialized['node_id'], 'claim_node_01');
       expect(serialized['status'], 'FAILED');
       expect(serialized['blame_parent_ids'], ['parent_01']);
+      expect(serialized['source_input_key'], 'technical_report');
     });
 
     test('rejects unrecognized keys fail-fast (negative)', () {
@@ -86,15 +89,18 @@ void main() {
         'paragraph_ref': 'p_03',
         'explanation': 'Root cause originates from invalid configuration.',
         'penalty_points': 12.5,
+        'root_cause_type': 'warrant_grounding_failure',
       };
 
       final dto = CausalRootCauseDiagnosisDto.fromJson(json);
       expect(dto.failingNodeId, 'fail_01');
       expect(dto.rootCauseParentId, 'root_01');
       expect(dto.penaltyPoints, 12.5);
+      expect(dto.rootCauseType, CausalRootCauseType.warrantGroundingFailure);
 
       final serialized = dto.toJson();
       expect(serialized['penalty_points'], 12.5);
+      expect(serialized['root_cause_type'], 'warrant_grounding_failure');
     });
   });
 
