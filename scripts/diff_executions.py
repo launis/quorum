@@ -801,17 +801,24 @@ def calculate_cluster_bootstrapped_kappa(
     categories: list[str],
     b_samples: int = 2000,
     seed: int = 42,
+    two_stage: bool = True,
+    conservative_floor: bool = True,
 ) -> ClusterBootstrapMetricsDTO:
     """Calculate cluster-bootstrapped Cohen's Kappa adjusting for intra-cluster correlation.
 
-    Resamples intact clusters with replacement to preserve intra-cluster correlation structures
-    arising from shared LLM reasoning context or document batches.
+    Executes hierarchical two-stage resampling with replacement (Stage 1: cluster resampling;
+    Stage 2: within-cluster atom resampling) to capture both meso-level cluster grouping
+    and finite-sample within-cluster binomial sampling variance. When conservative_floor is True,
+    constrains the standard error and confidence interval to be at least as wide as nominal
+    asymptotic bounds, preventing anti-conservative contraction when empirical ICC is non-positive.
 
     Args:
         clusters: Mapping of cluster identifier to list of 2-element rating state pairs.
         categories: Authoritative category labels, specifically: ['PASSED', 'FAILED', 'SYSTEM_ERROR'].
         b_samples: Number of non-parametric bootstrap resamples (default 2000).
         seed: Deterministic pseudo-random generator seed for reproducible audits.
+        two_stage: Whether to execute two-stage hierarchical resampling (default True).
+        conservative_floor: Whether to enforce SE_conservative = max(SE_nominal, SE_cluster) (default True).
 
     Returns:
         ClusterBootstrapMetricsDTO with point kappa, cluster SE, percentile CI, and inflation factor.
@@ -863,29 +870,47 @@ def calculate_cluster_bootstrapped_kappa(
     cat_to_idx = {cat: idx for idx, cat in enumerate(categories)}
     num_classes = len(categories)
 
-    # Pre-aggregate contingency matrices per cluster for O(K * C^2) resampling performance
-    cluster_matrices: list[list[list[int]]] = []
     cluster_keys = list(clusters.keys())
+    k_clusters = len(cluster_keys)
+
+    # Convert cluster items into integer-indexed category pairs for O(1) cell mapping
+    cluster_pairs: list[list[tuple[int, int]]] = []
+    cluster_matrices: list[list[list[int]]] = []
     for c_key in cluster_keys:
+        c_items: list[tuple[int, int]] = []
         matrix = [[0] * num_classes for _ in range(num_classes)]
         for pair in clusters[c_key]:
             p0, p1 = pair[0], pair[1]
             if p0 in cat_to_idx and p1 in cat_to_idx:
-                matrix[cat_to_idx[p0]][cat_to_idx[p1]] += 1
+                idx0, idx1 = cat_to_idx[p0], cat_to_idx[p1]
+                c_items.append((idx0, idx1))
+                matrix[idx0][idx1] += 1
+        cluster_pairs.append(c_items)
         cluster_matrices.append(matrix)
 
-    k_clusters = len(cluster_matrices)
     rng = random.Random(seed)
     boot_kappas: list[float] = []
 
     for _ in range(b_samples):
-        resampled_indices = [rng.randrange(k_clusters) for _ in range(k_clusters)]
+        resampled_c_indices = [rng.randrange(k_clusters) for _ in range(k_clusters)]
         m_boot = [[0] * num_classes for _ in range(num_classes)]
-        for c_idx in resampled_indices:
-            c_mat = cluster_matrices[c_idx]
-            for i in range(num_classes):
-                for j in range(num_classes):
-                    m_boot[i][j] += c_mat[i][j]
+
+        if two_stage:
+            for c_idx in resampled_c_indices:
+                items = cluster_pairs[c_idx]
+                m_items = len(items)
+                if m_items == 0:
+                    continue
+                # Stage 2: Resample items within selected cluster with replacement
+                for _ in range(m_items):
+                    idx0, idx1 = items[rng.randrange(m_items)]
+                    m_boot[idx0][idx1] += 1
+        else:
+            for c_idx in resampled_c_indices:
+                c_mat = cluster_matrices[c_idx]
+                for i in range(num_classes):
+                    for j in range(num_classes):
+                        m_boot[i][j] += c_mat[i][j]
 
         n_boot = sum(m_boot[i][j] for i in range(num_classes) for j in range(num_classes))
         if n_boot == 0:
@@ -915,7 +940,9 @@ def calculate_cluster_bootstrapped_kappa(
         )
 
     mean_k = sum(boot_kappas) / len(boot_kappas)
-    var_k = sum((k_val - mean_k) ** 2 for k_val in boot_kappas) / (len(boot_kappas) - 1) if len(boot_kappas) > 1 else 0.0
+    var_k = (
+        sum((k_val - mean_k) ** 2 for k_val in boot_kappas) / (len(boot_kappas) - 1) if len(boot_kappas) > 1 else 0.0
+    )
     cluster_se = math.sqrt(max(0.0, var_k))
 
     boot_kappas.sort()
@@ -923,6 +950,14 @@ def calculate_cluster_bootstrapped_kappa(
     high_idx = int(0.975 * len(boot_kappas))
     ci_lower = max(-1.0, min(1.0, boot_kappas[low_idx]))
     ci_upper = max(-1.0, min(1.0, boot_kappas[min(high_idx, len(boot_kappas) - 1)]))
+
+    if conservative_floor and se_naive > 0.0:
+        if cluster_se < se_naive:
+            cluster_se = se_naive
+        if ci_lower > naive_dto.ci_lower:
+            ci_lower = naive_dto.ci_lower
+        if ci_upper < naive_dto.ci_upper:
+            ci_upper = naive_dto.ci_upper
 
     inflation = (cluster_se / se_naive) if se_naive > 0.0 else 1.0
 

@@ -1613,8 +1613,8 @@ class TestClusterBootstrapKappa:
 
         # TC-BOOT-01 contract assertions
         assert res1.kappa > 0.90
-        assert 0.020 <= res1.cluster_se <= 0.035
-        assert 1.05 <= res1.se_inflation_factor <= 1.25
+        assert 0.025 <= res1.cluster_se <= 0.045
+        assert 1.20 <= res1.se_inflation_factor <= 1.60
         assert res1.num_clusters == 10
         assert res1.total_items == 220
         assert res1.b_samples == 2000
@@ -1636,6 +1636,35 @@ class TestClusterBootstrapKappa:
                     "unauthorized_field": "forbidden",
                 }
             )
+
+    def test_calculate_cluster_bootstrapped_kappa_conservative_floor(self) -> None:
+        """TC-BOOT-06: Verifies conservative floor truncation under uniform/stratified clusters.
+
+        When clusters exhibit uniform cross-step error distribution, standard single-stage
+        bootstrap contracts below nominal SE (inflation < 1.0). With conservative_floor=True,
+        asserts SE_cluster >= SE_naive and inflation >= 1.0.
+        """
+        uniform_clusters = {f"c_{i}": [["PASSED", "FAILED"]] + [["PASSED", "PASSED"]] * 19 for i in range(10)}
+        res_default = calculate_cluster_bootstrapped_kappa(
+            uniform_clusters,
+            ["PASSED", "FAILED"],
+            b_samples=500,
+            seed=42,
+            two_stage=True,
+            conservative_floor=True,
+        )
+        assert res_default.se_inflation_factor >= 1.0
+        assert res_default.ci_lower < res_default.ci_upper
+
+        res_single_floor = calculate_cluster_bootstrapped_kappa(
+            uniform_clusters,
+            ["PASSED", "FAILED"],
+            b_samples=500,
+            seed=42,
+            two_stage=False,
+            conservative_floor=True,
+        )
+        assert res_single_floor.se_inflation_factor >= 1.0
 
     def test_calculate_cluster_bootstrapped_kappa_single_cluster_raises_negative(self) -> None:
         """TC-BOOT-02: Verifies fail-fast ValueError when fewer than 2 clusters are provided."""

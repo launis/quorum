@@ -192,7 +192,9 @@ CONFIGURATIONS: Final[dict[int, AblationConfigDTO]] = {
     4: AblationConfigDTO(
         config_id=4,
         name="Atom-level Unconstrained LLM-as-a-Judge",
-        description="Single-pass (k=1), no lexical firewall, unconstrained atom-level prompt without null hypothesis rules.",
+        description=(
+            "Single-pass (k=1), no lexical firewall, unconstrained atom-level prompt without null hypothesis rules."
+        ),
         is_atomized=True,
         ensemble_k=1,
         has_lexical_firewall=False,
@@ -315,6 +317,8 @@ def compute_cluster_bootstrapped_kappa_for_runs(
     atom_to_cluster: Mapping[str, str],
     b_samples: int = 2000,
     seed: int = 42,
+    two_stage: bool = True,
+    conservative_floor: bool = True,
 ) -> ClusterBootstrapMetricsDTO:
     """Compute cluster-bootstrapped Cohen's Kappa grouping atom evaluations into step clusters.
 
@@ -324,6 +328,8 @@ def compute_cluster_bootstrapped_kappa_for_runs(
         atom_to_cluster: Mapping of atom identifier to cluster identifier.
         b_samples: Number of non-parametric bootstrap resamples (default 2000).
         seed: Deterministic pseudo-random generator seed for reproducible audits.
+        two_stage: Whether to execute two-stage hierarchical resampling (default True).
+        conservative_floor: Whether to enforce SE_conservative = max(SE_nominal, SE_cluster) (default True).
 
     Returns:
         ClusterBootstrapMetricsDTO containing cluster-adjusted standard error and confidence interval.
@@ -370,6 +376,8 @@ def compute_cluster_bootstrapped_kappa_for_runs(
         categories=categories,
         b_samples=b_samples,
         seed=seed,
+        two_stage=two_stage,
+        conservative_floor=conservative_floor,
     )
 
 
@@ -383,7 +391,11 @@ def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[Ablati
         Formatted Markdown table ready for publication in docs/tiede.md.
     """
     lines: list[str] = [
-        "| Experimental Configuration | Evaluated Atoms ($N$) | Observed Agreement ($P_o$) | Cohen’s Kappa ($\\kappa$) | 95% Confidence Interval (CI) | Chimera / Unanchored Rate (%) | Pass Rate (%) | DLQ / Errors (%) |",
+        (
+            "| Experimental Configuration | Evaluated Atoms ($N$) | Observed Agreement ($P_o$) | "
+            "Cohen’s Kappa ($\\kappa$) | 95% Confidence Interval (CI) | "
+            "Chimera / Unanchored Rate (%) | Pass Rate (%) | DLQ / Errors (%) |"
+        ),
         "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
     ]
 
@@ -391,17 +403,43 @@ def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[Ablati
     has_cluster_ci = any(res.ci_cluster_lower is not None for res in results)
     for res in results:
         if res.ci_cluster_lower is not None and res.ci_cluster_upper is not None:
-            ci_str = f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}] (Cluster: [{res.ci_cluster_lower:.4f}, {res.ci_cluster_upper:.4f}])"
+            ci_str = (
+                f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}] "
+                f"(Cluster: [{res.ci_cluster_lower:.4f}, {res.ci_cluster_upper:.4f}])"
+            )
         else:
             ci_str = f"[{res.ci_lower:.4f}, {res.ci_upper:.4f}]"
         lines.append(
-            f"| **{res.config_id}. {res.name}** | {res.total_atoms} | {res.observed_agreement:.2f}% | {res.cohens_kappa:.4f} | {ci_str} | {res.chimera_rate_pct:.1f}% | {res.pass_rate_pct:.1f}% | {res.dlq_rate_pct:.1f}% |"
+            f"| **{res.config_id}. {res.name}** | {res.total_atoms} | {res.observed_agreement:.2f}% | "
+            f"{res.cohens_kappa:.4f} | {ci_str} | {res.chimera_rate_pct:.1f}% | "
+            f"{res.pass_rate_pct:.1f}% | {res.dlq_rate_pct:.1f}% |"
         )
 
     lines.append("")
-    caption = "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations ($N = 220$ across Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge baselines under the standardized benchmark harness (`scripts/run_ablation_benchmark.py`). *(Note: The live physical production executions in Tables 2–4 achieved a 58.2% pass rate [$128 / 220$] and pooled inter-run agreement $\\bar{\\kappa} = 0.9348$; in the standardized offline ablation benchmark suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
+    caption = (
+        "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations "
+        "($N = 220$ across Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) "
+        "evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, "
+        "atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge "
+        "baselines under the standardized benchmark harness (`scripts/run_ablation_benchmark.py`). "
+        "*(Note: The live physical production executions in Tables 2–4 achieved a 58.2% pass rate [$128 / 220$] "
+        "and pooled inter-run agreement $\\bar{\\kappa} = 0.9348$; in the standardized offline ablation benchmark "
+        "suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
+    )
     if has_cluster_ci:
-        caption += " *(Cluster-bootstrapped 95% CIs adjusting for intra-cluster correlation across step batches are reported in parentheses alongside nominal asymptotic CIs.)*"
+        caption += (
+            " *(Methodological Note on Cluster Bootstrap Resampling: In Table 5, cluster-adjusted 95% CIs are"
+            " estimated via a hierarchical two-stage cluster bootstrap—resampling $K = 10$ step clusters with"
+            " replacement, followed by within-cluster atom resampling with replacement across"
+            " $B = 2,000$ iterations—with conservative floor truncation"
+            " $\\text{SE}_{\\text{conservative}} = \\max(\\text{SE}_{\\text{nominal}},"
+            " \\text{SE}_{\\text{cluster}})$. Standard single-stage cluster resampling artificially contracts"
+            " confidence intervals when error rates are stratified uniformly across clusters"
+            " ($\\rho_{\\text{ICC}} \\le 0$), as between-cluster variance vanishes while within-cluster"
+            " binomial sampling variance is omitted; two-stage resampling restores finite-sample binomial"
+            " degrees of freedom, yielding design effect standard error inflations of"
+            " $\\text{Deff}^{1/2} \\in [1.10\\times, 1.37\\times]$ across all configurations).*"
+        )
     lines.append(caption)
 
     return "\n".join(lines)
@@ -911,6 +949,30 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional destination file path to persist the report.",
     )
+    parser.add_argument(
+        "--export-manifest",
+        choices=["beta_sem", "chimera", "all"],
+        default=None,
+        help="Export empirical human audit manifest from physical traces ('beta_sem', 'chimera', or 'all').",
+    )
+    parser.add_argument(
+        "--manifest-format",
+        choices=["json", "csv"],
+        default="json",
+        help="Export serialization format for the audit manifest (json or csv). Default: json.",
+    )
+    parser.add_argument(
+        "--manifest-sample-size",
+        type=int,
+        default=40,
+        help="Sample size for the exported audit manifest. Default: 40.",
+    )
+    parser.add_argument(
+        "--manifest-output",
+        type=str,
+        default=None,
+        help="Optional destination path for the exported audit manifest.",
+    )
     return parser
 
 
@@ -923,6 +985,41 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
     Returns:
         Generated AblationBenchmarkReportDTO.
     """
+    # Handle optional audit manifest generation and export
+    if getattr(args, "export_manifest", None):
+        from scripts.audit_manifest_generator import (
+            ManifestFormat,
+            ManifestType,
+            export_manifest_to_csv,
+            export_manifest_to_json,
+            generate_audit_manifest,
+        )
+
+        m_type = ManifestType(args.export_manifest)
+        m_fmt = ManifestFormat(args.manifest_format)
+        manifest = generate_audit_manifest(
+            manifest_type=m_type,
+            sample_size=args.manifest_sample_size,
+        )
+        if args.manifest_output:
+            m_path = Path(args.manifest_output)
+        else:
+            ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            ext = "json" if m_fmt == ManifestFormat.JSON else "csv"
+            m_path = Path(f"data/files/manifests/manifest_{m_type.value}_{ts_str}.{ext}")
+
+        if m_fmt == ManifestFormat.JSON:
+            export_manifest_to_json(manifest, m_path)
+        else:
+            export_manifest_to_csv(manifest, m_path)
+
+        logger.info(
+            "Exported audit manifest '%s' (%d items) to %s",
+            manifest.manifest_id,
+            len(manifest.items),
+            m_path,
+        )
+
     selected_configs: list[int]
     if args.config == "all":
         selected_configs = [1, 2, 3, 4, 5]
@@ -964,6 +1061,41 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        raw_argv = argv if argv is not None else sys.argv[1:]
+        if args.export_manifest and not any(arg == "--config" or arg.startswith("--config=") for arg in raw_argv):
+            # Standalone manifest generation mode
+            from scripts.audit_manifest_generator import (
+                ManifestFormat,
+                ManifestType,
+                export_manifest_to_csv,
+                export_manifest_to_json,
+                generate_audit_manifest,
+            )
+
+            m_type = ManifestType(args.export_manifest)
+            m_fmt = ManifestFormat(args.manifest_format)
+            manifest = generate_audit_manifest(
+                manifest_type=m_type,
+                sample_size=args.manifest_sample_size,
+            )
+            if args.manifest_output:
+                m_path = Path(args.manifest_output)
+            else:
+                ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                ext = "json" if m_fmt == ManifestFormat.JSON else "csv"
+                m_path = Path(f"data/files/manifests/manifest_{m_type.value}_{ts_str}.{ext}")
+
+            if m_fmt == ManifestFormat.JSON:
+                export_manifest_to_json(manifest, m_path)
+            else:
+                export_manifest_to_csv(manifest, m_path)
+
+            print(
+                f"Successfully exported audit manifest '{manifest.manifest_id}' with {len(manifest.items)} "
+                f"items to: {m_path}"
+            )
+            return 0
+
         report = run_ablation_benchmark(args)
 
         if args.output_format == "json":
