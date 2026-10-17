@@ -66,7 +66,7 @@ class SourceDocumentPacker:
     """
 
     @staticmethod
-    def resolve_context_targets(input_mappings: dict[str, str] | None) -> ContextTargetFilterDTO:
+    def resolve_context_targets(input_mappings: Mapping[str, str] | None = None) -> ContextTargetFilterDTO:
         """Resolve explicitly mapped input keys and step targets from step input mappings.
 
         Parses canonical '$inputs.<key>' values to identify input documents
@@ -260,12 +260,12 @@ class SourceDocumentPacker:
                         )
                         directive_lines.append(normalized_desc)
 
-                    if directive_lines:
-                        dir_body = "\n".join(directive_lines)
+                    dir_body = "\n".join(directive_lines)
+                    if dir_body:
                         dir_tag = f'<ai_context_directive document="{key}">\n{dir_body}\n</ai_context_directive>'
-                        sections.append(f"{dir_tag}\n\n{clean_value}")
                     else:
-                        sections.append(clean_value)
+                        dir_tag = f'<ai_context_directive document="{key}">\n</ai_context_directive>'
+                    sections.append(f"{dir_tag}\n\n{clean_value}")
 
         # 2. Process step_outputs if present and targeted
         include_steps = False

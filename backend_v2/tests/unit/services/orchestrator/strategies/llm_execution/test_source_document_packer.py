@@ -3,7 +3,7 @@
 import re
 
 import pytest
-from pydantic import JsonValue, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -63,15 +63,20 @@ def test_source_document_packer_single_string_passthrough() -> None:
 
 
 def test_source_document_packer_missing_metadata() -> None:
-    """Verify documents are packed without directives if expected_inputs is None or lacks descriptions."""
+    """Verify documents are packed with unconditional directive tags even if expected_inputs is None or lacks descriptions."""
     inputs = {
         "doc1": "Content 1",
         "doc2": "Content 2",
     }
+    expected_doc1 = '<ai_context_directive document="doc1">\n</ai_context_directive>\n\nContent 1'
+    expected_doc2 = '<ai_context_directive document="doc2">\n</ai_context_directive>\n\nContent 2'
+    expected_all = f"{expected_doc1}\n\n{expected_doc2}"
+
     # Case A: expected_inputs is None
     packed_none = SourceDocumentPacker.pack(inputs, None)
-    assert packed_none == "Content 1\n\nContent 2"
-    assert "<ai_context_directive" not in packed_none
+    assert packed_none == expected_all
+    assert '<ai_context_directive document="doc1">' in packed_none
+    assert '<ai_context_directive document="doc2">' in packed_none
 
     # Case B: expected_inputs has None or whitespace ai_description
     expected_inputs = [
@@ -79,8 +84,7 @@ def test_source_document_packer_missing_metadata() -> None:
         _build_expected_input("doc2", "   "),
     ]
     packed_empty_desc = SourceDocumentPacker.pack(inputs, expected_inputs)
-    assert packed_empty_desc == "Content 1\n\nContent 2"
-    assert "<ai_context_directive" not in packed_empty_desc
+    assert packed_empty_desc == expected_all
 
 
 def test_source_document_packer_istqb_negatives() -> None:
@@ -107,7 +111,9 @@ def test_source_document_packer_istqb_negatives() -> None:
         "list_key": ["should", "be", "skipped"],
     }
     packed = SourceDocumentPacker.pack(inputs_with_garbage)
-    assert packed == "Valid substantive content."
+    assert (
+        packed == '<ai_context_directive document="valid_key">\n</ai_context_directive>\n\nValid substantive content.'
+    )
 
 
 def test_source_document_packer_survives_tda_paragraph_split() -> None:
@@ -313,8 +319,8 @@ def test_source_document_packer_non_existent_step_reference_fails_fast() -> None
 
 def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None:
     """Test structured payload dictionary parsing, non-string mappings, and invalid items."""
-    # 1. Non-string value in input_mappings
-    mappings: dict[str, JsonValue] = {"doc": "$inputs.valid", "bad": 12345}
+    # 1. Valid input_mappings resolution
+    mappings: dict[str, str] = {"doc": "$inputs.valid"}
     targets = SourceDocumentPacker.resolve_context_targets(mappings)
     assert targets.allowed_input_keys == frozenset({"valid"})
 
@@ -342,7 +348,7 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
             step_id="sr_nontext",
             block_id="blk_n",
             data_type="text",
-            payload={"other": 12345},
+            payload={"other": 12345.0},
         ),
     ]
 
@@ -382,6 +388,9 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
                     status=LaxExecutionStatus.PASSED,
                     evaluation_reasoning="Claim was supported.",
                     source_quote="Verbatim quote for tda_1.",
+                    extensions={},
+                    depends_on_tda_ids=[],
+                    short_circuit_reason_tda_ids=[],
                 )
             ],
         ),
@@ -432,14 +441,12 @@ def test_source_document_packer_context_target_filter_dto_validation() -> None:
 
 def test_source_document_packer_extended_coverage() -> None:
     """Test ExecutionInputsDTO, BaseModel step outputs, serialization errors, and whitespace mappings."""
-    from pydantic import BaseModel, Field
-
     from backend_v2.core.hook_registry import ExecutionInputsDTO
     from backend_v2.exceptions import AppException
     from backend_v2.models.state import StepOutputDTO
 
-    # 1. Whitespace and non-string mappings in resolve_context_targets
-    dirty_mapping = {"empty_val": "   ", "non_str": 999}
+    # 1. Whitespace mapping in resolve_context_targets
+    dirty_mapping: dict[str, str] = {"empty_val": "   "}
     empty_resolved = SourceDocumentPacker.resolve_context_targets(dirty_mapping)
     assert empty_resolved.allowed_input_keys == frozenset()
     assert empty_resolved.allowed_step_ids == frozenset()
@@ -455,32 +462,34 @@ def test_source_document_packer_extended_coverage() -> None:
     assert "Dynamic brief text" in packed_exec
 
     # 3. BaseModel payload in StepOutputDTO
-    class DummyPayload(BaseModel):
-        summary: str = Field(description="Summary")
+    from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
 
     step_output_model = StepOutputDTO.model_construct(
         step_id="step_pydantic",
         block_id="blk_1",
         data_type="matrix",
-        payload=DummyPayload(summary="Model summary content"),
+        payload=ProgressTracePayloadDTO(message="Model summary content", progress_pct=50),
     )
     packed_step = SourceDocumentPacker.pack(step_outputs=[step_output_model])
     assert '<step_output step_id="step_pydantic">' in packed_step
     assert "Model summary content" in packed_step
 
-    # 4. JSON serialization error in StepOutputDTO payload (circular reference)
-    bad_dict = {}
-    bad_dict["self"] = bad_dict
+    # 4. JSON serialization error in StepOutputDTO payload
+    from unittest.mock import patch
 
     invalid_step = StepOutputDTO.model_construct(
         step_id="step_unserializable",
         block_id="blk_bad",
         data_type="matrix",
-        payload=bad_dict,
+        payload={"error": 1.0},
     )
-    with pytest.raises(AppException) as exc_info:
-        SourceDocumentPacker.pack(step_outputs=[invalid_step])
-    assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer.json.dumps",
+        side_effect=TypeError("Circular reference detected"),
+    ):
+        with pytest.raises(AppException) as exc_info:
+            SourceDocumentPacker.pack(step_outputs=[invalid_step])
+        assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
 
 
 def test_source_document_packer_endorsed_deliverable_provenance() -> None:
@@ -633,9 +642,9 @@ def test_source_document_packer_multiline_description_paragraph_split() -> None:
 
 
 def test_source_document_packer_unconfigured_document() -> None:
-    """Verify document not in expected_inputs passes through cleanly without directive or crash."""
+    """Verify document not in expected_inputs receives unconditional directive tag with empty body."""
     inputs = {"unconfigured_doc": "Raw text."}
     packed = SourceDocumentPacker.pack(inputs, [])
-    assert packed == "Raw text."
-    assert "<ai_context_directive" not in packed
+    assert packed == '<ai_context_directive document="unconfigured_doc">\n</ai_context_directive>\n\nRaw text.'
+    assert '<ai_context_directive document="unconfigured_doc">' in packed
     assert "<document_provenance>" not in packed

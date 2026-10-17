@@ -787,3 +787,148 @@ async def test_causal_discovery_empty_document_raises_422(
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
+    mock_client: MagicMock,
+    mock_prompt_compiler: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify that <ai_context_directive document="..."> tags are parsed, stripped, and propagated."""
+    engine = CausalDiscoveryEngine(prompt_compiler=mock_prompt_compiler)
+
+    multi_doc_text = (
+        '<ai_context_directive document="dialogue_history">\n'
+        "Speaker context directive.\n"
+        "</ai_context_directive>\n\n"
+        "Customer: We need higher throughput.\n\n"
+        "Agent: We can scale horizontally.\n\n"
+        '<ai_context_directive document="deliverable_report">\n'
+        "Deliverable analysis directive.\n"
+        "</ai_context_directive>\n\n"
+        "System architecture will leverage Kubernetes clusters to meet throughput goals.\n\n"
+        "Therefore horizontally scaled pods will sustain peak load demands."
+    )
+
+    request = create_engine_request(multi_doc_text, mock_client, mock_prompt_compiler)
+
+    captured_hydrated_text: list[str] = []
+    mock_ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    u0 = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    u1 = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20)
+
+    class SpyTwoPassAtomizer:
+        def __init__(self, executor: Any) -> None:
+            self.executor = executor
+
+        async def execute_phase_0(
+            self, client: Any, hydrated_text: str, progress_callback: Any = None
+        ) -> tuple[GlobalOntologyMap, TokenUsage]:
+            captured_hydrated_text.append(hydrated_text)
+            return mock_ontology, u0
+
+        async def execute_phase_1(
+            self, client: Any, hydrated_text: str, ontology: Any, progress_callback: Any = None
+        ) -> tuple[list[ExtractedAtom], TokenUsage]:
+            atoms = [
+                ExtractedAtom(
+                    reasoning="Throughput need",
+                    resolved_claim="Customer needs higher throughput.",
+                    is_logical_deduction=True,
+                    source_quote=None,
+                    tda_id="tda_11111111",
+                    source_id="B0",
+                    source_sequence_index=0,
+                ),
+                ExtractedAtom(
+                    reasoning="Architecture scaling",
+                    resolved_claim="Architecture leverages Kubernetes clusters.",
+                    is_logical_deduction=True,
+                    source_quote=None,
+                    tda_id="tda_22222222",
+                    source_id="B2",
+                    source_sequence_index=1,
+                ),
+            ]
+            return atoms, u1
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.TwoPassAtomizer",
+        SpyTwoPassAtomizer,
+    )
+
+    mock_linker = MagicMock()
+    mock_linked_nodes = [
+        LinkedAtomGraph(
+            atom=ExtractedAtom(
+                reasoning="Throughput need",
+                resolved_claim="Customer needs higher throughput.",
+                is_logical_deduction=True,
+                source_quote=None,
+                tda_id="tda_11111111",
+                source_id="B0",
+                source_sequence_index=0,
+            ),
+            depends_on=[],
+        ),
+        LinkedAtomGraph(
+            atom=ExtractedAtom(
+                reasoning="Architecture scaling",
+                resolved_claim="Architecture leverages Kubernetes clusters.",
+                is_logical_deduction=True,
+                source_quote=None,
+                tda_id="tda_22222222",
+                source_id="B2",
+                source_sequence_index=1,
+            ),
+            depends_on=[
+                CausalEdge(
+                    edge_reasoning="Throughput dependency",
+                    tda_id="tda_11111111",
+                    source_id="B2",
+                )
+            ],
+        ),
+    ]
+    u_link = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_linker.link_graph = AsyncMock(return_value=(mock_linked_nodes, u_link))
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.SlidingWindowLinker",
+        lambda window_size, overlap: mock_linker,
+    )
+
+    output = await engine.execute(request)
+
+    assert isinstance(output.synthesis_output, CausalGraphPayloadDTO)
+    payload: CausalGraphPayloadDTO = output.synthesis_output
+
+    # 1. Verify stripped tags in emitted text
+    assert len(captured_hydrated_text) == 1
+    hydrated = captured_hydrated_text[0]
+    assert "<ai_context_directive" not in hydrated
+    assert "</ai_context_directive>" not in hydrated
+    assert "[B0]" in hydrated
+    assert "[B1]" in hydrated
+    assert "[B2]" in hydrated
+    assert "[B3]" in hydrated
+
+    # 2. Verify source_input_key assigned on nodes
+    node_b0 = next((n for n in payload.nodes if n.node_id == "tda_11111111"), None)
+    node_b2 = next((n for n in payload.nodes if n.node_id == "tda_22222222"), None)
+    assert node_b0 is not None
+    assert node_b0.source_input_key == "dialogue_history"
+    assert node_b2 is not None
+    assert node_b2.source_input_key == "deliverable_report"
+
+    # 3. Verify partition_node_ids mapping
+    assert "dialogue_history" in payload.partition_node_ids
+    assert "deliverable_report" in payload.partition_node_ids
+    assert "tda_11111111" in payload.partition_node_ids["dialogue_history"]
+    assert "tda_22222222" in payload.partition_node_ids["deliverable_report"]
+
+    # 4. Verify edge created and edge_root_causes initialized
+    assert len(payload.edges) == 1
+    assert payload.edges[0].source_id == "tda_11111111"
+    assert payload.edges[0].target_id == "tda_22222222"
+    assert isinstance(payload.edge_root_causes, list)

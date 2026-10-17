@@ -7,6 +7,7 @@ and Kahn-based topological evaluation over unconstrained text documents.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, override
 
 from fastapi import status
@@ -87,8 +88,51 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     },
                 )
 
-            # Step 3.1 / 3.2: Paragraph Indexing (Strictly Positional & Monotonic)
-            paragraphs = [p.strip() for p in document_text.split("\n\n") if p.strip()]
+            # Step 3.1 / 3.2: Paragraph Indexing & Document Provenance
+            directive_pattern = re.compile(
+                r'<ai_context_directive\s+document="(?P<doc_key>[A-Za-z0-9_]{1,64})">(?P<body>.*?)</ai_context_directive>',
+                re.DOTALL,
+            )
+            directive_tag_pattern = re.compile(r"</?ai_context_directive[^>]*>")
+
+            paragraphs: list[str] = []
+            paragraph_doc_keys: list[str | None] = []
+
+            directive_matches = list(directive_pattern.finditer(document_text))
+            if directive_matches:
+                first_start = directive_matches[0].start()
+                pre_text = document_text[:first_start].strip()
+                if pre_text:
+                    clean_pre = directive_tag_pattern.sub("", pre_text).strip()
+                    for p in clean_pre.split("\n\n"):
+                        p_str = p.strip()
+                        if p_str:
+                            paragraphs.append(p_str)
+                            paragraph_doc_keys.append(None)
+
+                for i, match in enumerate(directive_matches):
+                    doc_key = match.group("doc_key")
+                    seg_start = match.end()
+                    seg_end = (
+                        directive_matches[i + 1].start()
+                        if i + 1 < len(directive_matches)
+                        else len(document_text)
+                    )
+                    seg_text = document_text[seg_start:seg_end].strip()
+                    if seg_text:
+                        clean_seg = directive_tag_pattern.sub("", seg_text).strip()
+                        for p in clean_seg.split("\n\n"):
+                            p_str = p.strip()
+                            if p_str:
+                                paragraphs.append(p_str)
+                                paragraph_doc_keys.append(doc_key)
+            else:
+                for p in document_text.split("\n\n"):
+                    clean_p = directive_tag_pattern.sub("", p).strip()
+                    if clean_p:
+                        paragraphs.append(clean_p)
+                        paragraph_doc_keys.append(None)
+
             if not paragraphs:
                 msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
                 logger.error("[CausalDiscoveryEngine] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name, msg)
@@ -127,16 +171,44 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 request.bound_client, hydrated_text, ontology, progress_callback=p1_cb
             )
 
-            # Lexical Verification via str.find
+            # Lexical Verification via str.find & Document Provenance Resolution
             valid_atoms: list[ExtractedAtom] = []
+            atom_key_map: dict[str, str | None] = {}
             for atom in raw_atoms:
+                matched_key: str | None = None
+                if atom.source_id and atom.source_id.startswith("B"):
+                    suffix = atom.source_id[1:]
+                    if suffix.isdigit():
+                        b_idx = int(suffix)
+                        if 0 <= b_idx < len(paragraph_doc_keys):
+                            matched_key = paragraph_doc_keys[b_idx]
+
                 if atom.source_quote:
+                    if matched_key is None:
+                        for p_idx, p in enumerate(paragraphs):
+                            if p.find(atom.source_quote) != -1:
+                                matched_key = paragraph_doc_keys[p_idx]
+                                break
+
+                    if matched_key is None and directive_matches:
+                        q_pos = document_text.find(atom.source_quote)
+                        if q_pos != -1:
+                            for m in directive_matches:
+                                if q_pos >= m.start():
+                                    matched_key = m.group("doc_key")
+                                else:
+                                    break
+
                     if document_text.find(atom.source_quote) != -1 or hydrated_text.find(atom.source_quote) != -1:
-                        valid_atoms.append(atom)
+                        updated_atom = atom.model_copy(update={"source_input_key": matched_key})
+                        valid_atoms.append(updated_atom)
+                        atom_key_map[atom.tda_id] = matched_key
                     else:
                         logger.warning("[CausalDiscoveryEngine] Dropping unanchored quote: %s", atom.tda_id)
                 elif atom.is_logical_deduction:
-                    valid_atoms.append(atom)
+                    updated_atom = atom.model_copy(update={"source_input_key": matched_key})
+                    valid_atoms.append(updated_atom)
+                    atom_key_map[atom.tda_id] = matched_key
 
             if not valid_atoms:
                 msg = f"Causal discovery extracted 0 valid argument propositions for Step '{request.step.id}'."
@@ -254,6 +326,10 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     and final_states[b].status in (ExecutionStatus.SYSTEM_ERROR, ExecutionStatus.BLOCKED)
                 ]
 
+                resolved_key = node.atom.source_input_key
+                if resolved_key is None and nid in atom_key_map:
+                    resolved_key = atom_key_map[nid]
+
                 causal_nodes.append(
                     CausalNodeDTO(
                         node_id=nid,
@@ -263,8 +339,18 @@ class CausalDiscoveryEngine(ExecutionEngine):
                         status=node_status,
                         blame_parent_ids=blame_parents,
                         dependent_child_ids=out_deps[nid],
+                        source_input_key=resolved_key,
                     )
                 )
+
+            partition_node_ids: dict[str, list[str]] = {}
+            for c_node in causal_nodes:
+                if c_node.source_input_key is not None:
+                    if c_node.source_input_key not in partition_node_ids:
+                        partition_node_ids[c_node.source_input_key] = []
+                    partition_node_ids[c_node.source_input_key].append(c_node.node_id)
+
+            edge_root_causes: list[str] = []
 
             graph_payload = CausalGraphPayloadDTO(
                 nodes=causal_nodes,
@@ -272,6 +358,8 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 root_cause_node_ids=root_cause_ids,
                 cycle_detected=cycle_detected,
                 isolated_node_ids=isolated_ids,
+                partition_node_ids=partition_node_ids,
+                edge_root_causes=edge_root_causes,
             )
 
             if request.progress_callback:
