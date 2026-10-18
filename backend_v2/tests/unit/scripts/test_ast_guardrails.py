@@ -1300,6 +1300,24 @@ def test_qgr017_comment_suppression_rejected() -> None:
     assert len(qgr017) == 1
 
 
+def test_qgr017_banned_auth_god_file_path_fatal() -> None:
+    """QGR017: scanning backend_v2/services/auth.py emits FATAL violation."""
+    code = "# Banned auth god file\nclass AuthService:\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/auth.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/services/auth.py" in qgr017[0].message
+
+
+def test_qgr017_modular_auth_package_allowed() -> None:
+    """QGR017: scanning modular auth package files produces zero violations."""
+    code = "from backend_v2.services.auth import AuthService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/auth/__init__.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 0
+
+
 # ==============================================================================
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================

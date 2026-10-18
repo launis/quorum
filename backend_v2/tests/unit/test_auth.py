@@ -19,12 +19,15 @@ from backend_v2.models.auth import (
     SystemOrganizations,
     TokenData,
     User,
+    UserCreate,
     UserRole,
+    UserUpdate,
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth import (
     AuthService,
 )
+from backend_v2.services.auth.organization_service import OrganizationUpdateDTO
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -320,9 +323,133 @@ async def test_auth_service_facade_delegates_all_operations(
 
     mock_fb = MagicMock()
     auth_service.firebase_auth = mock_fb
+    assert auth_service.firebase_auth is mock_fb
     assert auth_service.token_service.firebase_auth is mock_fb
     assert auth_service.org_service.firebase_auth is mock_fb
     assert auth_service.user_service.firebase_auth is mock_fb
 
     auth_service._initialized_firebase = True
+    assert auth_service._initialized_firebase is True
     assert auth_service.token_service._initialized_firebase is True
+
+    # Test private and public helper delegations
+    auth_service.token_service._init_firebase = MagicMock()
+    auth_service._init_firebase()
+    auth_service.token_service._init_firebase.assert_called_once()
+
+    auth_service.token_service.create_impersonation_token = MagicMock(return_value="mock_jwt_impersonate")
+    token_str = auth_service.create_impersonation_token("usr_target01", 1800)
+    assert token_str == "mock_jwt_impersonate"
+    auth_service.token_service.create_impersonation_token.assert_called_once_with(
+        target_id="usr_target01", duration_seconds=1800
+    )
+
+    auth_service.token_service.verify_token = AsyncMock(
+        return_value=TokenData(id="usr_verified01", role=UserRole.ADMIN, organization_id="org_test1")
+    )
+    tok = await auth_service.verify_token("bearer_xyz")
+    assert tok.id == "usr_verified01"
+    auth_service.token_service.verify_token.assert_awaited_once_with("bearer_xyz")
+
+    # Test organization delegations
+    now = datetime.now(timezone.utc)
+    dummy_org = Organization(
+        id="org_delegate01",
+        name="Delegate Org",
+        is_active=True,
+        tier="standard",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=100.0,
+        tpm_limit=5000,
+        rpm_limit=10,
+        created_at=now,
+    )
+    root_token = TokenData(id="usr_root000001", role=UserRole.ROOT, organization_id="org_system000000")
+    dummy_org_create = OrganizationCreate(
+        name="New Org",
+        admin_email="admin@delegate.com",
+        admin_password="delegatepassword",
+        admin_name="Delegate Admin",
+        tpm_limit=5000,
+        rpm_limit=10,
+    )
+    auth_service.org_service.create_organization = AsyncMock(return_value=dummy_org)
+    created_org = await auth_service.create_organization(root_token, dummy_org_create)
+    assert created_org.id == "org_delegate01"
+
+    auth_service.org_service.delete_organization = AsyncMock()
+    await auth_service.delete_organization(root_token, "org_delegate01", force=True)
+    auth_service.org_service.delete_organization.assert_awaited_once_with(
+        initiator=root_token, target_org_id="org_delegate01", force=True
+    )
+
+    auth_service.org_service.list_organizations = AsyncMock(return_value=[dummy_org])
+    orgs = await auth_service.list_organizations(root_token)
+    assert len(orgs) == 1
+
+    auth_service.org_service.get_organization = AsyncMock(return_value=dummy_org)
+    fetched_org = await auth_service.get_organization(root_token, "org_delegate01")
+    assert fetched_org.id == "org_delegate01"
+
+    dummy_org_update = OrganizationUpdateDTO(name="Updated Delegate Org")
+    auth_service.org_service.update_organization = AsyncMock(return_value=dummy_org)
+    updated_org = await auth_service.update_organization(root_token, "org_delegate01", dummy_org_update)
+    assert updated_org.id == "org_delegate01"
+
+    # Test user delegations
+    dummy_user = User(
+        id="usr_delegate01",
+        email="user@delegate.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=now,
+        organization_id="org_delegate01",
+    )
+    dummy_user_create = UserCreate(
+        email="user@delegate.com",
+        role=UserRole.MEMBER,
+        password="secretpassword",
+        organization_id="org_delegate01",
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    dummy_user_update = UserUpdate(name="Updated User")
+
+    auth_service.user_service.create_user = AsyncMock(return_value=dummy_user)
+    created_user = await auth_service.create_user("usr_root000001", dummy_user_create)
+    assert created_user.id == "usr_delegate01"
+
+    auth_service.user_service._create_user_internal = AsyncMock(return_value=dummy_user)
+    internal_user = await auth_service._create_user_internal("usr_root000001", dummy_user_create, "org_delegate01")
+    assert internal_user.id == "usr_delegate01"
+
+    auth_service.user_service._enforce_hierarchy = MagicMock()
+    auth_service._enforce_hierarchy(dummy_user, UserRole.MEMBER)
+    auth_service.user_service._enforce_hierarchy.assert_called_once_with(creator=dummy_user, target_role=UserRole.MEMBER)
+
+    auth_service.user_service._count_org_admins = AsyncMock(return_value=2)
+    assert await auth_service._count_org_admins("org_delegate01") == 2
+
+    auth_service.user_service.get_users_by_organization = AsyncMock(return_value=[dummy_user])
+    assert len(await auth_service.get_users_by_organization("org_delegate01")) == 1
+
+    auth_service.user_service.delete_user = AsyncMock(return_value=True)
+    assert await auth_service.delete_user("usr_root000001", "usr_delegate01") is True
+
+    auth_service.user_service.update_user = AsyncMock(return_value=dummy_user)
+    assert (await auth_service.update_user("usr_root000001", "usr_delegate01", dummy_user_update)).id == "usr_delegate01"
+
+    auth_service.user_service.update_user_role = AsyncMock(return_value=dummy_user)
+    assert (await auth_service.update_user_role("usr_root000001", "usr_delegate01", UserRole.ADMIN)).id == "usr_delegate01"
+
+    auth_service.user_service.list_users = AsyncMock(return_value=[dummy_user])
+    assert len(await auth_service.list_users(root_token)) == 1
+
+    auth_service.user_service.get_user = AsyncMock(return_value=dummy_user)
+    assert (await auth_service.get_user(root_token, "usr_delegate01")).id == "usr_delegate01"
+
+    auth_service.user_service.ensure_root_user = AsyncMock(return_value=dummy_user)
+    assert (await auth_service.ensure_root_user()).id == "usr_delegate01"

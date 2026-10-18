@@ -45,7 +45,7 @@
           - Pillar 4 (SDUI & Presentation): report_service.py, export_service.py, blueprint.py, pdf_generator.py, localization.py, sdui/ (sdui_mapper_service.py), sdui/adapters/ (base_adapter.py, causal_graph_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience & Observability): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
-          - Orphan: auth.py
+          - Pillar 1 (Security & Identity): auth/ (constants.py, repositories.py, token_service.py, organization_service.py, user_service.py, __init__.py facade)
         </key_domains>
     </module>
     

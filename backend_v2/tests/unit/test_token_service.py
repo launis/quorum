@@ -36,7 +36,20 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
 
 @pytest.mark.asyncio
-async def test_auth_service_verify_token_mock(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+async def test_auth_service_verify_token_mock(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
@@ -146,8 +159,19 @@ async def test_auth_service_verify_token_impersonation_branches(
 @pytest.mark.asyncio
 async def test_auth_service_verify_token_mock_missing_user(
     mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test verify_token in mock mode when user does not exist in DB."""
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
     auth = AuthService(mock_repo, use_firebase=False)
     with pytest.raises(AuthenticationError) as excinfo:
         await auth.verify_token("mock-token:usr_nonexistent")

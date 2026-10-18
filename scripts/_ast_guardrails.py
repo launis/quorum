@@ -619,6 +619,27 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             )
         )
 
+    def visit_Module(self, node: ast.Module) -> None:
+        # QGR017: Banned legacy God files & eradicated facades
+        norm_path = self._normalized_path
+        if norm_path == "backend_v2/services/auth.py" or norm_path.endswith("/backend_v2/services/auth.py"):
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/services/auth.py` detected.",
+                "Auth functionality must reside exclusively in the modular package `backend_v2.services.auth` (`backend_v2/services/auth/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        elif norm_path == "backend_v2/models/v2_core.py" or norm_path.endswith("/backend_v2/models/v2_core.py"):
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy facade `backend_v2/models/v2_core.py` detected.",
+                "Domain models and DTOs must reside in canonical modules under backend_v2/models/.",
+                severity=GuardrailSeverity.FATAL,
+            )
+        self.generic_visit(node)
+
     def visit_Attribute(self, node: ast.Attribute) -> None:
         # QGR001: Attribute access to .__dict__
         if node.attr == "__dict__":
@@ -2320,7 +2341,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR014: AsyncMock / MagicMock on repository interfaces in tests (FATAL)
   QGR015: Direct Persistence Access from Routers Ban (FATAL)
   QGR016: Negative String Exclusion Filtering Ban (FATAL)
-  QGR017: v2_core Legacy Facade Import Ban (FATAL)
+  QGR017: Eradicated Facades & God Files Ban (v2_core, auth.py) (FATAL)
   QGR018: Primitive Obsession Nested Dict Ban (WARNING)
   QGR019: In-Place dict.pop Mutation Ban (WARNING)
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (FATAL)
