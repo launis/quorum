@@ -402,4 +402,3 @@ def test_anchor_validation_process_atom_evaluation_suite() -> None:
     test_process_atom_evaluation_no_match_preserves_quote()
     test_process_atom_evaluation_mcp_source_match()
     test_process_atom_evaluation_none_source_quote_skips_matching()
-

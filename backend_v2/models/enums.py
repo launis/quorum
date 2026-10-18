@@ -44,6 +44,7 @@ __all__ = [
     "LaxAuthenticityLevel",
     "LaxBlockDataType",
     "LaxBloomLevel",
+    "LaxCausalRootCauseType",
     "LaxCognitiveTier",
     "LaxComponentType",
     "LaxDisplayScale",
@@ -1009,3 +1010,6 @@ class CausalRootCauseType(StrEnum):
     def l10n_key(self) -> str:
         """Returns the localization key in backend translation files."""
         return f"causal_root_cause_{self.value.lower()}"
+
+
+LaxCausalRootCauseType = Annotated[CausalRootCauseType, Field(strict=False)]

@@ -113,11 +113,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 for i, match in enumerate(directive_matches):
                     doc_key = match.group("doc_key")
                     seg_start = match.end()
-                    seg_end = (
-                        directive_matches[i + 1].start()
-                        if i + 1 < len(directive_matches)
-                        else len(document_text)
-                    )
+                    seg_end = directive_matches[i + 1].start() if i + 1 < len(directive_matches) else len(document_text)
                     seg_text = document_text[seg_start:seg_end].strip()
                     if seg_text:
                         clean_seg = directive_tag_pattern.sub("", seg_text).strip()

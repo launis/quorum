@@ -11,7 +11,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import CausalRootCauseType, LaxExecutionStatus
+from backend_v2.models.enums import CausalRootCauseType, LaxCausalRootCauseType, LaxExecutionStatus
 
 __all__ = [
     "AntiFluffAuditDTO",
@@ -143,7 +143,7 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
     explanation: Annotated[str, Field(description="Causal chain explanation of why the root cause led to failure.")]
     penalty_points: Annotated[float, Field(description="Attributed penalty points.")]
     root_cause_type: Annotated[
-        CausalRootCauseType,
+        LaxCausalRootCauseType,
         Field(
             default=CausalRootCauseType.NODE_FAILURE,
             description="Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch.",

@@ -70,6 +70,8 @@ def _build_sample_fusion_result() -> CausalTdaFusionResultDTO:
         root_cause_node_ids=["atm_01"],
         cycle_detected=False,
         isolated_node_ids=[],
+        partition_node_ids={},
+        edge_root_causes=[],
     )
     diag = CausalRootCauseDiagnosisDTO(
         failing_node_id="atm_02",
@@ -134,6 +136,8 @@ def _build_sample_adapter_context(
         profile_cache=cache,
         user_name=None,
         org_name=None,
+        parsed_matrices={},
+        mcp_tools_map={},
         causal_result=causal_result,
     )
 
@@ -258,6 +262,8 @@ def test_causal_graph_adapter_no_critical_nodes_falls_back_to_all_nodes() -> Non
         root_cause_node_ids=[],
         cycle_detected=False,
         isolated_node_ids=[],
+        partition_node_ids={},
+        edge_root_causes=[],
     )
     ctx = _build_sample_adapter_context(causal_result=graph)
     card = CausalGraphAdapter.build_action_card(ctx)

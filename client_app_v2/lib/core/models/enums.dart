@@ -474,4 +474,3 @@ enum CausalRootCauseType {
   @JsonValue('precondition_mismatch')
   preconditionMismatch,
 }
-

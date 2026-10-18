@@ -53,7 +53,6 @@ from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
     CausalGraphPayloadDTO,
     CausalNodeDTO,
-    CausalRootCauseDiagnosisDTO,
     CausalTdaFusionResultDTO,
     FairScoringBreakdownDTO,
     PrescriptiveRemediationDTO,
@@ -216,8 +215,7 @@ def compute_causal_tda_fusion_result(
             for e in projected_graph.edges
         )
         has_exogenous_support = any(
-            e.target_id == nid and e.source_id not in deliverable_node_ids
-            for e in projected_graph.edges
+            e.target_id == nid and e.source_id not in deliverable_node_ids for e in projected_graph.edges
         )
         if not has_internal_link and not has_exogenous_support:
             deliverable_isolated_count += 1

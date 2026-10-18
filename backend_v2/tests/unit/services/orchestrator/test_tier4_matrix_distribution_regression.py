@@ -35,8 +35,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
-from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
-from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, ReportMatrixColumn
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
@@ -429,7 +428,9 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
             "type": "float",
             "category_id": PromptBlockCategory.MATRIX.value,
             "ai_description": "Test.",
-            "scales": [{"score": 1, "ai_label": "L1", "name": {"translations": {"en": "L1", "fi": "L1"}}, "claims": []}],
+            "scales": [
+                {"score": 1, "ai_label": "L1", "name": {"translations": {"en": "L1", "fi": "L1"}}, "claims": []}
+            ],
         }
     )
     profile = OutputProfile.model_validate(
@@ -472,4 +473,3 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
             row_curated_quotes_cache={},
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
