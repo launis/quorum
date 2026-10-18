@@ -19,6 +19,7 @@ from pydantic import TypeAdapter
 
 from backend_v2.database.interfaces import IPromptBlockRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
@@ -555,7 +556,7 @@ class ExportService:
             quote_raw: list[str] | str | None = atom.source_quote
             if quote_raw is None and ref is not None:
                 quote_raw = ref.source_quote
-            formatted_quotes = format_text_observations(quote_raw)
+            formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
             c_node: CausalNodeDTO | None = None
@@ -607,7 +608,7 @@ class ExportService:
                     is_inverse=0,
                     points_awarded=0.0,
                     result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(node.source_quote),
+                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quote)),
                     ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,
@@ -755,7 +756,7 @@ class ExportService:
             quote_raw: list[str] | str | None = atom.source_quote
             if quote_raw is None and ref is not None:
                 quote_raw = ref.source_quote
-            formatted_quotes = format_text_observations(quote_raw)
+            formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
             c_node: CausalNodeDTO | None = None
@@ -823,7 +824,7 @@ class ExportService:
                     is_inverse=0,
                     points_awarded=0.0,
                     result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(node.source_quote),
+                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quote)),
                     ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,

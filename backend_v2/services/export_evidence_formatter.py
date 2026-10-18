@@ -43,15 +43,16 @@ def clean_citation_brackets(text: str) -> str:
     return cleaned
 
 
-def format_text_observations(quotes: list[str] | str | None) -> str:
+def format_text_observations(quotes: tuple[str, ...] | None) -> str:
     r"""Formats forensic text observation citations for tabular spreadsheet and CSV cells.
 
-    For single quotes, strips whitespace and surrounding quotation noise.
+    For empty or None collections, returns empty string.
+    For single quote tuples, strips whitespace.
     For multi-quote collections, strips each item and returns a clean, newline-delimited
-    numbered enumeration list (e.g. '[1] ...\\n[2] ...').
+    numbered enumeration list (e.g. '[1] ...\n[2] ...').
 
     Args:
-        quotes: Single quote string, list of quote strings, or None.
+        quotes: Tuple of quote strings or None.
 
     Returns:
         Cleaned, formatted multi-line observation string or empty string.
@@ -59,11 +60,6 @@ def format_text_observations(quotes: list[str] | str | None) -> str:
     if quotes is None:
         return ""
 
-    if isinstance(quotes, str):
-        cleaned = quotes.strip()
-        return cleaned
-
-    # Process list of quote strings
     cleaned_items: list[str] = []
     for item in quotes:
         if item and item.strip():

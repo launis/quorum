@@ -12,6 +12,34 @@ from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "BaseSourceId",
+    "GateMatchResultDTO",
+    "LLMExtractedQuote",
+    "QuoteEvidenceDTO",
+    "SourceDocumentContext",
+]
+
+
+class GateMatchResultDTO(BaseModel):
+    """Result of lexical gate matching containing verification status and character boundaries.
+
+    Attributes:
+        is_valid: True if match was confirmed within gate tolerances.
+        start_idx: Starting character index of matched segment in normalized corpus.
+        end_idx: Ending character index of matched segment in normalized corpus.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    is_valid: Annotated[bool, Field(description="True if match was confirmed within gate tolerances.")]
+    start_idx: Annotated[int, Field(description="Starting character index of matched segment in normalized corpus.")]
+    end_idx: Annotated[int, Field(description="Ending character index of matched segment in normalized corpus.")]
+
+    def __bool__(self) -> bool:
+        """Returns True if the gate match was valid."""
+        return self.is_valid
+
 
 class SourceDocumentContext(BaseModel):
     """Typed context representing source document text and metadata during validation.
@@ -69,15 +97,17 @@ class LLMExtractedQuote(BaseSourceId):
         Raises:
             ValueError: If source_id is invalid or hallucinated.
         """
-        try:
+        if isinstance(data, BaseModel):
+            d = data.model_dump()
+        elif type(data) is dict:
             d = dict(data)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
+        else:
+            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}")
 
         source_id = None
         if "source_id" in d:
             source_id = d["source_id"]
-        if not source_id:
+        if not source_id or not isinstance(source_id, str):
             return d
 
         if info.context is None:
@@ -123,13 +153,23 @@ class QuoteEvidenceDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    quote: str = Field(..., description="The exact text of the quote.")
+    quote: Annotated[str, Field(description="The exact text of the quote.")]
     verified_source_ids: list[str] = Field(default_factory=list, description="Resolved Opaque IDs.")
     unverified_aliases: list[str] = Field(default_factory=list, description="Aliases that could not be verified.")
-    is_verified: bool = Field(
-        default=False, description="True if there are verified aliases and no unverified aliases."
-    )
-    source_alias: list[str] | str | None = Field(default=None, exclude=True)
+    is_verified: Annotated[
+        bool, Field(default=False, description="True if there are verified aliases and no unverified aliases.")
+    ] = False
+    source_alias: Annotated[list[str] | str | None, Field(default=None, exclude=True)] = None
+
+    def get_quotes(self) -> tuple[str, ...]:
+        """Extracts available quotes as an immutable tuple without reflection.
+
+        Returns:
+            Immutable tuple containing the quote string if non-empty, or an empty tuple.
+        """
+        if self.quote and self.quote.strip():
+            return (self.quote,)
+        return ()
 
     @model_validator(mode="before")
     @classmethod
@@ -145,38 +185,39 @@ class QuoteEvidenceDTO(V2CoreBase):
 
         Raises:
             RuntimeError: If validation context is missing when source aliases are provided.
+            ValueError: If input data cannot be parsed as a dictionary.
         """
-        try:
+        if isinstance(data, BaseModel):
+            d = data.model_dump()
+        elif type(data) is dict:
             d = dict(data)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
+        else:
+            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}")
 
+        has_source_alias = "source_alias" in d and d["source_alias"] is not None
         if info.context is None:
-            if "verified_source_ids" in d or "unverified_aliases" in d:
-                return d
-            raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
+            if has_source_alias and not ("verified_source_ids" in d or "unverified_aliases" in d):
+                raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
+            return d
 
         registry = {}
         if "alias_registry" in info.context:
             registry = info.context["alias_registry"]
 
-        raw_aliases = None
+        raw_aliases: list[str] = []
+        raw_input = None
         if "source_alias" in d:
-            raw_aliases = d["source_alias"]
-        if raw_aliases is None:
-            raw_aliases = []
-        elif isinstance(raw_aliases, str):
-            if not raw_aliases.strip():
-                raw_aliases = []
-            else:
-                matches = re.findall(r"DOC-\d+", raw_aliases)
+            raw_input = d["source_alias"]
+        if isinstance(raw_input, str):
+            if raw_input.strip():
+                matches = re.findall(r"DOC-\d+", raw_input)
                 if matches:
                     raw_aliases = matches
                 else:
-                    raw_aliases = [raw_aliases]
-        elif isinstance(raw_aliases, list):
+                    raw_aliases = [raw_input]
+        elif isinstance(raw_input, list):
             extracted: list[str] = []
-            for item in raw_aliases:
+            for item in raw_input:
                 if isinstance(item, str):
                     matches = re.findall(r"DOC-\d+", item)
                     if matches:

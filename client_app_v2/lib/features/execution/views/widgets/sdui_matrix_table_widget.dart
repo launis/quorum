@@ -547,10 +547,12 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                                     ),
                                     child: Text(
                                       '${atom.claimLabel.trim()}:',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 10,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                 ...atom.exactQuotes.map((q) {

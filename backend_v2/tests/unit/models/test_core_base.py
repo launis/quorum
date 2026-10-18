@@ -16,6 +16,7 @@ from backend_v2.models.core_base import (
     OPAQUE_STRIPE_ID_REGEX,
     I18nText,
     V2CoreBase,
+    coerce_source_quotes_tuple,
     generate_opaque_id,
 )
 from backend_v2.models.enums import EntityPrefix
@@ -32,11 +33,11 @@ def test_v2_core_base_immutability_and_strictness() -> None:
 
     # 1. Immutability check
     with pytest.raises(ValidationError):
-        model.name = "mutated"
+        model.__setattr__("name", "mutated")
 
     # 2. Extra fields forbidden
     with pytest.raises(ValidationError):
-        ConcreteModel(name="test", extra_field="forbidden")
+        ConcreteModel.model_validate({"name": "test", "extra_field": "forbidden"})
 
     # 3. String whitespace stripping
     stripped_model = ConcreteModel(name="  trimmed  ")
@@ -149,3 +150,32 @@ def test_generate_opaque_id_negative_invalid_prefix() -> None:
     with pytest.raises(AppException) as exc_info2:
         generate_opaque_id("x")
     assert exc_info2.value.status_code == 400
+
+
+def test_coerce_source_quotes_tuple_none_and_empty() -> None:
+    """Verifies coerce_source_quotes_tuple returns None for None or blank inputs."""
+    assert coerce_source_quotes_tuple(None) is None
+    assert coerce_source_quotes_tuple("") is None
+    assert coerce_source_quotes_tuple("   ") is None
+    assert coerce_source_quotes_tuple([]) is None
+    assert coerce_source_quotes_tuple(["", "   "]) is None
+
+
+def test_coerce_source_quotes_tuple_single_string() -> None:
+    """Verifies coerce_source_quotes_tuple packs single string into a 1-tuple."""
+    assert coerce_source_quotes_tuple("Direct quote") == ("Direct quote",)
+    assert coerce_source_quotes_tuple("  Whitespace quote  ") == ("Whitespace quote",)
+
+
+def test_coerce_source_quotes_tuple_sequences() -> None:
+    """Verifies coerce_source_quotes_tuple cleans sequences into immutable tuples."""
+    assert coerce_source_quotes_tuple(["quote 1", "quote 2"]) == ("quote 1", "quote 2")
+    assert coerce_source_quotes_tuple(("quote 1", "  quote 2  ", "")) == ("quote 1", "quote 2")
+    assert coerce_source_quotes_tuple({"single_item"}) == ("single_item",)
+
+
+def test_coerce_source_quotes_tuple_unsupported_types() -> None:
+    """Verifies coerce_source_quotes_tuple returns None for unsupported input types."""
+    assert coerce_source_quotes_tuple(12345) is None
+    assert coerce_source_quotes_tuple({"key": "val"}) is None
+    assert coerce_source_quotes_tuple([1, 2, 3]) is None

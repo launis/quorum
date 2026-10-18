@@ -53,44 +53,56 @@ def test_clean_citation_brackets_whitespace_collapsing() -> None:
 
 
 def test_format_text_observations_none_and_empty() -> None:
-    """Assert None, empty string, or empty list return empty string."""
+    """Assert None, empty tuple, or whitespace-only tuple return empty string."""
     assert format_text_observations(None) == ""
-    assert format_text_observations("") == ""
-    assert format_text_observations("   ") == ""
-    assert format_text_observations([]) == ""
-    assert format_text_observations(["", "  ", "\t"]) == ""
+    assert format_text_observations(()) == ""
+    assert format_text_observations(("", "  ", "\t")) == ""
 
 
 def test_format_text_observations_single_quote() -> None:
-    """Assert single string or single item list returns stripped string."""
-    assert format_text_observations("Exact evidence text.") == "Exact evidence text."
-    assert format_text_observations("  Leading and trailing.  ") == "Leading and trailing."
-    assert format_text_observations(["Single item in list."]) == "Single item in list."
+    """Assert single item tuple returns stripped string."""
+    assert format_text_observations(("Exact evidence text.",)) == "Exact evidence text."
+    assert format_text_observations(("  Leading and trailing.  ",)) == "Leading and trailing."
+    assert format_text_observations(("Single item in tuple.",)) == "Single item in tuple."
 
 
 def test_format_text_observations_multi_quote_list() -> None:
     """Assert multi-quote collections are formatted as numbered lines."""
-    quotes = [
+    quotes = (
         "First evidence observation.",
         "Second corroborated finding.",
         "Third verified metric.",
-    ]
+    )
     formatted = format_text_observations(quotes)
     expected = "[1] First evidence observation.\n[2] Second corroborated finding.\n[3] Third verified metric."
     assert formatted == expected
 
 
 def test_format_text_observations_filters_empty_items() -> None:
-    """Assert empty items in quote list are filtered out prior to numbering."""
-    quotes = [
+    """Assert empty items in quote tuple are filtered out prior to numbering."""
+    quotes = (
         "First observation.",
         "",
         "   ",
         "Second observation.",
-    ]
+    )
     formatted = format_text_observations(quotes)
     expected = "[1] First observation.\n[2] Second observation."
     assert formatted == expected
+
+
+def test_format_text_observations_with_coerced_tuple() -> None:
+    """Assert format_text_observations handles coerce_source_quotes_tuple output seamlessly."""
+    from backend_v2.models.core_base import coerce_source_quotes_tuple
+
+    single = coerce_source_quotes_tuple("Raw string quote")
+    assert format_text_observations(single) == "Raw string quote"
+
+    multi = coerce_source_quotes_tuple(["Quote 1", "Quote 2"])
+    assert format_text_observations(multi) == "[1] Quote 1\n[2] Quote 2"
+
+    empty = coerce_source_quotes_tuple(None)
+    assert format_text_observations(empty) == ""
 
 
 # ============================================================================

@@ -437,6 +437,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     TextTheme textTheme,
     AppSemanticColors semanticColors,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
@@ -500,7 +501,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                       node.sourceQuote!.isNotEmpty) ...[
                     AppSpacing.h12,
                     Text(
-                      'CITATION EVIDENCE',
+                      l10n.causalInspectorCitationEvidenceHeader,
                       style: textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.6,
@@ -537,7 +538,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                               node.paragraphRef!.isNotEmpty) ...[
                             AppSpacing.h4,
                             Text(
-                              'Location: ${node.paragraphRef}',
+                              '${l10n.causalInspectorLocationPrefix}${node.paragraphRef}',
                               style: textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),

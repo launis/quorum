@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.quote_evidence import (
+    GateMatchResultDTO,
     LLMExtractedQuote,
     QuoteEvidenceDTO,
     SourceDocumentContext,
@@ -77,7 +78,7 @@ def test_llm_extracted_quote_no_context_or_empty() -> None:
     assert quote_empty_ctx.source_id == "doc0"
 
 
-def test_quote_evidence_validates_raw_string():
+def test_quote_evidence_validates_raw_string() -> None:
     """Test that a raw string with multiple DOC-X is parsed into a list."""
     dto = QuoteEvidenceDTO.model_validate(
         {"quote": "This is a test quote.", "source_alias": "DOC-1, DOC-2"},
@@ -89,7 +90,7 @@ def test_quote_evidence_validates_raw_string():
     assert dto.is_verified is True
 
 
-def test_quote_evidence_validates_list_of_strings():
+def test_quote_evidence_validates_list_of_strings() -> None:
     """Test that a list of strings containing DOC-X is parsed correctly."""
     dto = QuoteEvidenceDTO.model_validate(
         {"quote": "Another test quote.", "source_alias": ["DOC-3", "Some other string DOC-4", 123]},
@@ -100,7 +101,7 @@ def test_quote_evidence_validates_list_of_strings():
     assert "123" in dto.unverified_aliases
 
 
-def test_quote_evidence_fallback_to_unverified():
+def test_quote_evidence_fallback_to_unverified() -> None:
     """Test that missing aliases are pushed to unverified_aliases and is_verified is False."""
     dto = QuoteEvidenceDTO.model_validate(
         {"quote": "Missing alias quote.", "source_alias": "DOC-99"}, context={"alias_registry": {"DOC-1": "opaque_1"}}
@@ -110,7 +111,7 @@ def test_quote_evidence_fallback_to_unverified():
     assert dto.is_verified is False
 
 
-def test_quote_evidence_missing_context():
+def test_quote_evidence_missing_context() -> None:
     """Test behavior when context is not provided."""
     with pytest.raises(RuntimeError, match="ValidationInfo.context is missing"):
         QuoteEvidenceDTO.model_validate({"quote": "No context quote.", "source_alias": ["DOC-1"]})
@@ -125,7 +126,7 @@ def test_quote_evidence_missing_context():
     assert dto.verified_source_ids == ["doc_1"]
 
 
-def test_quote_evidence_empty_or_none_alias():
+def test_quote_evidence_empty_or_none_alias() -> None:
     """Test QuoteEvidenceDTO with empty or None source_alias."""
     dto_none = QuoteEvidenceDTO.model_validate(
         {"quote": "None alias quote.", "source_alias": None},
@@ -164,3 +165,33 @@ def test_quote_evidence_non_dict_context() -> None:
         context="invalid_context_type",
     )
     assert dto.unverified_aliases == ["DOC-1"]
+
+
+def test_gate_match_result_dto_valid_instantiation() -> None:
+    """Test GateMatchResultDTO valid instantiation and strict immutability."""
+    res = GateMatchResultDTO(is_valid=True, start_idx=10, end_idx=45)
+    assert res.is_valid is True
+    assert res.start_idx == 10
+    assert res.end_idx == 45
+
+    with pytest.raises(ValidationError):
+        # Frozen immutability check
+        res.__setattr__("is_valid", False)
+
+
+def test_gate_match_result_dto_extra_fields_raises_validation_error() -> None:
+    """Test GateMatchResultDTO extra fields rejection per extra='forbid'."""
+    with pytest.raises(ValidationError):
+        GateMatchResultDTO.model_validate({"is_valid": True, "start_idx": 10, "end_idx": 45, "extra_field": "illegal"})
+
+
+def test_quote_evidence_dto_get_quotes_with_quote() -> None:
+    """Test get_quotes() returns 1-tuple with valid quote."""
+    dto = QuoteEvidenceDTO(quote="A valid evidence quote.")
+    assert dto.get_quotes() == ("A valid evidence quote.",)
+
+
+def test_quote_evidence_dto_get_quotes_empty_or_none() -> None:
+    """Test get_quotes() returns empty tuple when quote is whitespace."""
+    dto = QuoteEvidenceDTO(quote="   ")
+    assert dto.get_quotes() == ()

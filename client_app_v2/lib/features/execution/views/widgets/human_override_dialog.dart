@@ -5,6 +5,7 @@ import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class HumanOverrideDialog extends ConsumerStatefulWidget {
@@ -262,17 +263,16 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                           dense: true,
                           title: Text(
                             q.quote,
-                            style: const TextStyle(fontSize: 13),
+                            style: theme.textTheme.bodyMedium,
                           ),
                           subtitle: Text(
                             q.verifiedSourceIds.isNotEmpty
                                 ? q.verifiedSourceIds.join(', ')
                                 : (q.unverifiedAliases.isNotEmpty
                                       ? q.unverifiedAliases.join(', ')
-                                      : 'HUMAN_OVERRIDE'),
-                            style: const TextStyle(
+                                      : l10n.humanOverrideDefaultBadge),
+                            style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 11,
                             ),
                           ),
                           trailing: IconButton(
@@ -283,7 +283,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    AppSpacing.h8,
                     TextButton.icon(
                       onPressed: () {
                         setState(() {

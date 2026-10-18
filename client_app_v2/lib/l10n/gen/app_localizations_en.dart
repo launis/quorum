@@ -5304,4 +5304,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get studioWorkflowCausalSourceNone => 'None';
+
+  @override
+  String get humanOverrideDefaultBadge => 'Human Override';
+
+  @override
+  String get causalInspectorCitationEvidenceHeader => 'Citation Evidence';
+
+  @override
+  String get causalInspectorLocationPrefix => 'Location: ';
 }

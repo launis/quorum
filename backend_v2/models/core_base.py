@@ -22,6 +22,7 @@ __all__ = [
     "I18nText",
     "OPAQUE_STRIPE_ID_REGEX",
     "V2CoreBase",
+    "coerce_source_quotes_tuple",
     "generate_opaque_id",
 ]
 
@@ -187,3 +188,31 @@ def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
     return generated_id
+
+
+def coerce_source_quotes_tuple(v: object) -> tuple[str, ...] | None:
+    """Coerces various quote representations into an immutable tuple of non-empty strings.
+
+    Prevents string shattering (e.g. converting a string directly to a tuple of characters)
+    by explicitly checking for `str`. Strips whitespace and filters out empty strings.
+    Returns None if the result is empty or if input is None.
+
+    Args:
+        v: Raw quote object (string, sequence of strings, or None).
+
+    Returns:
+        Immutable tuple of non-empty stripped quote strings, or None if empty.
+    """
+    if v is None:
+        return None
+    if isinstance(v, str):
+        stripped = v.strip()
+        if stripped:
+            return (stripped,)
+        return None
+    if isinstance(v, (list, tuple, set)):
+        cleaned = tuple(item.strip() for item in v if isinstance(item, str) and item.strip())
+        if cleaned:
+            return cleaned
+        return None
+    return None

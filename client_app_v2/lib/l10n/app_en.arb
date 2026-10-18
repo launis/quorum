@@ -2629,6 +2629,18 @@
   "causalCascadingFaultBadge": "Cascading Fault",
   "causalRemediationLabel": "Prescriptive Remediation",
   "studioWorkflowCausalSourceLabel": "Causal Discovery Source",
-  "studioWorkflowCausalSourceNone": "None"
+  "studioWorkflowCausalSourceNone": "None",
+  "humanOverrideDefaultBadge": "Human Override",
+  "@humanOverrideDefaultBadge": {
+    "description": "Default badge label for human override modifications"
+  },
+  "causalInspectorCitationEvidenceHeader": "Citation Evidence",
+  "@causalInspectorCitationEvidenceHeader": {
+    "description": "Header for citation evidence section in causal inspector modal"
+  },
+  "causalInspectorLocationPrefix": "Location: ",
+  "@causalInspectorLocationPrefix": {
+    "description": "Prefix label for location coordinate in citation evidence"
+  }
 }
 

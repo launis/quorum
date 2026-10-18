@@ -9569,6 +9569,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None'**
   String get studioWorkflowCausalSourceNone;
+
+  /// Default badge label for human override modifications
+  ///
+  /// In en, this message translates to:
+  /// **'Human Override'**
+  String get humanOverrideDefaultBadge;
+
+  /// Header for citation evidence section in causal inspector modal
+  ///
+  /// In en, this message translates to:
+  /// **'Citation Evidence'**
+  String get causalInspectorCitationEvidenceHeader;
+
+  /// Prefix label for location coordinate in citation evidence
+  ///
+  /// In en, this message translates to:
+  /// **'Location: '**
+  String get causalInspectorLocationPrefix;
 }
 
 class _AppLocalizationsDelegate

@@ -102,18 +102,17 @@ class BooleanEvaluationResult(BaseModel):
 
     @field_validator("source_quote", mode="before")
     @classmethod
-    def truncate_source_quote_at_sentence(cls, v: str | None) -> str | None:
-        """Truncate oversized quote at the nearest sentence boundary under 500 chars."""
-        if isinstance(v, str):
-            v = v.strip()
-        if not v:
+    def validate_source_quote_bounds(cls, v: str | None) -> str | None:
+        """Enforce string boundary validation without in-place truncation mutations."""
+        if v is None:
             return None
-        if len(v) > 500:
-            truncated = v[:500]
-            last_dot = truncated.rfind(".")
-            if last_dot > 100:
-                return truncated[: last_dot + 1]
-            return truncated
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return None
+            if len(v_stripped) > 500:
+                raise ValueError("source_quote exceeds maximum allowed length of 500 characters.")
+            return v_stripped
         return v
 
     @model_validator(mode="after")

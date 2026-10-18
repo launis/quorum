@@ -34,7 +34,7 @@ def test_anchor_validation_encoding_resilience() -> None:
 
     assert extracted is not None
     assert len(extracted) == 1
-    assert extracted[0] == exact_quotes[0]  # Returns the LLM quote due to fuzzy match fallback
+    assert extracted[0] == "tee t\ufffdt\ufffd muistio"  # Symmetric extraction slices exact string from physical source
 
 
 def test_anchor_validation_html_tags_ignored() -> None:
@@ -181,9 +181,9 @@ def test_anchor_validation_provenance_user_accepts_user_text_with_assignment() -
 
 def test_anchor_validation_empty_inputs() -> None:
     assert AnchorValidationService.normalize_text_with_mapping("") == ("", [])
-    assert AnchorValidationService.strict_match("", ["quote"]) is False
-    assert AnchorValidationService.strict_match("text", []) is False
-    assert AnchorValidationService.strict_match("text", [""]) is False
+    assert AnchorValidationService.strict_match("", ["quote"]).is_valid is False
+    assert AnchorValidationService.strict_match("text", []).is_valid is False
+    assert AnchorValidationService.strict_match("text", [""]).is_valid is False
 
     with pytest.raises(SemanticEvidenceError, match="exact_quotes is required"):
         AnchorValidationService.validate_evidence("text", [])
@@ -221,13 +221,13 @@ def test_anchor_validation_coverage_fallback() -> None:
     # Fuzzy score < 80% but coverage > 50%
     # norm_quote = "the quick brown fox jumps"
     # norm_text = "the quick brown fox"
-    # Fuzzy score will be low because quote is longer than text.
+    # Symmetric slice extraction extracts the matched portion from the physical source text
     extracted = AnchorValidationService.validate_evidence(
         "the quick brown fox", ["the quick brown fox jumps"], strictness_level=0
     )
     assert extracted is not None
     assert len(extracted) == 1
-    assert extracted[0] == "the quick brown fox jumps"
+    assert extracted[0] == "the quick brown fox"
 
 
 def test_anchor_validation_strictness_multiplier() -> None:
@@ -235,12 +235,13 @@ def test_anchor_validation_strictness_multiplier() -> None:
     inflected_quote = ["johtajuus ja selkeät tavoitteet"]
 
     # 1. Under strictness level 50, Finnish inflected quote matches via Stage 3 morphological stemming
+    # and symmetric extraction slices the physical source text
     extracted = AnchorValidationService.validate_evidence(
         source_text, inflected_quote, strictness_level=50, locale="fi"
     )
     assert extracted is not None
     assert len(extracted) == 1
-    assert extracted[0] == "johtajuus ja selkeät tavoitteet"
+    assert extracted[0] == "johtajuudessaan selkeisiin tavoitteisiin"
 
     # 2. Negative test: completely different words fail fail-fast with SemanticEvidenceError
     with pytest.raises(SemanticEvidenceError):
@@ -271,9 +272,9 @@ def test_anchor_validation_no_tags_fallback() -> None:
 
 
 def test_anchor_validation_strict_match() -> None:
-    assert AnchorValidationService.strict_match("hello world document text", ["hello world"]) is True
-    assert AnchorValidationService.strict_match("hello world document text", ["absent quote"]) is False
-    assert AnchorValidationService.strict_match("hello world document text", [""]) is False
+    assert AnchorValidationService.strict_match("hello world document text", ["hello world"]).is_valid is True
+    assert AnchorValidationService.strict_match("hello world document text", ["absent quote"]).is_valid is False
+    assert AnchorValidationService.strict_match("hello world document text", [""]).is_valid is False
 
 
 def test_anchor_validation_calculate_fuzzy_score_long_quote() -> None:
@@ -303,7 +304,7 @@ def test_anchor_validation_is_lexically_valid_negative_partitions() -> None:
                 norm_quote=norm_quote,
                 norm_text=norm_source,
                 strictness_level=70,
-            )
+            ).is_valid
             is False
         )
 
@@ -316,7 +317,7 @@ def test_anchor_validation_is_lexically_valid_negative_partitions() -> None:
             norm_quote=norm_valid,
             norm_text=norm_source,
             strictness_level=70,
-        )
+        ).is_valid
         is True
     )
 
@@ -348,12 +349,12 @@ def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None
     assert "vastuullista" in extracted[0]
 
     # 2. Test strict_match directly with both typographical spaces and zero-width chars
-    assert AnchorValidationService.strict_match(corpus_text, exact_quotes) is True
+    assert AnchorValidationService.strict_match(corpus_text, exact_quotes).is_valid is True
 
     # 3. Test reverse: corpus has clean text, extracted quote has typographical space or zero-width char
     clean_corpus = "Strateginen suunta on määritelty kirkkaasti tuleville vuosille."
     dirty_quote = ["Strateginen\u2002suunta\u200bon määritelty"]
-    assert AnchorValidationService.strict_match(clean_corpus, dirty_quote) is True
+    assert AnchorValidationService.strict_match(clean_corpus, dirty_quote).is_valid is True
 
     extracted_rev = AnchorValidationService.validate_evidence(
         pdf_text=clean_corpus,
@@ -370,19 +371,19 @@ def test_anchor_validation_empty_and_punctuation_quotes_fail_lexical_validation(
     norm_text, _ = AnchorValidationService.normalize_text_with_mapping("Any valid document text context here.")
 
     # 1. Empty string quote
-    assert AnchorValidationService._is_lexically_valid("", "", norm_text, strictness_level=50) is False
+    assert AnchorValidationService._is_lexically_valid("", "", norm_text, strictness_level=50).is_valid is False
 
     # 2. Whitespace-only normalized quote
-    assert AnchorValidationService._is_lexically_valid("   ", "", norm_text, strictness_level=50) is False
+    assert AnchorValidationService._is_lexically_valid("   ", "", norm_text, strictness_level=50).is_valid is False
 
     # 3. Punctuation-only quote normalizing to empty string
-    assert AnchorValidationService._is_lexically_valid(".", "", norm_text, strictness_level=50) is False
-    assert AnchorValidationService._is_lexically_valid("---", "", norm_text, strictness_level=50) is False
+    assert AnchorValidationService._is_lexically_valid(".", "", norm_text, strictness_level=50).is_valid is False
+    assert AnchorValidationService._is_lexically_valid("---", "", norm_text, strictness_level=50).is_valid is False
 
     # 4. Valid quote still succeeds
     valid_quote = "valid document text"
     norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(valid_quote)
-    assert AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50) is True
+    assert AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50).is_valid is True
 
 
 def test_anchor_validation_process_atom_evaluation_suite() -> None:

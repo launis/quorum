@@ -5344,4 +5344,13 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get studioWorkflowCausalSourceNone => 'Ei käytössä';
+
+  @override
+  String get humanOverrideDefaultBadge => 'Manuaalinen ohitus';
+
+  @override
+  String get causalInspectorCitationEvidenceHeader => 'Sitaattitodisteet';
+
+  @override
+  String get causalInspectorLocationPrefix => 'Sijainti: ';
 }

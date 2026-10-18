@@ -7,7 +7,6 @@ dependencies without exceeding LLM context windows or losing attention on middle
 """
 
 import logging
-from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
@@ -32,7 +31,7 @@ from backend_v2.services.orchestrator.prompts.graph_linking import (
     LINKER_SYSTEM_PROMPT,
     build_linker_user_prompt,
 )
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 __all__ = [
@@ -126,15 +125,23 @@ class SlidingWindowLinker:
         overlap: Number of chunks to overlap between windows.
     """
 
-    def __init__(self, window_size: int = 4, overlap: int = 2) -> None:
+    def __init__(
+        self,
+        window_size: int = 4,
+        overlap: int = 2,
+        settings: Settings | None = None,
+    ) -> None:
         """Initialize the linker.
 
         Args:
             window_size: Number of chunks per window.
             overlap: Number of chunks to overlap between windows.
+            settings: Optional application settings for configuration injection.
         """
         self.window_size = window_size
         self.overlap = overlap
+        resolved_settings = settings or get_settings()
+        self.max_atoms_per_window = resolved_settings.linker_max_atoms_per_window
 
     def _get_sliding_windows(self, chunks: list[list[ExtractedAtom]]) -> list[list[list[ExtractedAtom]]]:
         """Yield sliding windows of chunks.
@@ -149,7 +156,7 @@ class SlidingWindowLinker:
         if not chunks:
             return windows
 
-        max_atoms = get_settings().linker_max_atoms_per_window
+        max_atoms = self.max_atoms_per_window
 
         # 1. Pre-subdivide Oversized Chunks
         subdivided_chunks: list[list[ExtractedAtom]] = []
@@ -218,17 +225,19 @@ class SlidingWindowLinker:
             return [], TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         # 1. Group atoms by source_id (chunk_index) maintaining insertion order
-        chunk_groups: dict[str, list[ExtractedAtom]] = defaultdict(list)
+        chunk_groups: dict[str, list[ExtractedAtom]] = {}
         for atom in atoms:
             source_key = atom.source_id
             if not source_key:
                 source_key = "default"
+            if source_key not in chunk_groups:
+                chunk_groups[source_key] = []
             chunk_groups[source_key].append(atom)
 
         chunks = list(chunk_groups.values())
         windows = self._get_sliding_windows(chunks)
 
-        master_deps: dict[str, WindowCausalEdgesDTO] = defaultdict(lambda: WindowCausalEdgesDTO(edges={}))
+        master_deps: dict[str, WindowCausalEdgesDTO] = {}
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         ontology_text = ontology_map.model_dump_json(indent=2)
@@ -334,14 +343,20 @@ class SlidingWindowLinker:
                         source_id=child_source_id,
                         expected_status=dep.expected_status,
                     )
-                    current_edges = dict(master_deps[child_tda_id].edges)
+                    if child_tda_id in master_deps:
+                        current_edges = dict(master_deps[child_tda_id].edges)
+                    else:
+                        current_edges = {}
                     current_edges[parent_tda_id] = edge
                     master_deps[child_tda_id] = WindowCausalEdgesDTO(edges=current_edges)
 
         # Finally, wrap all atoms into LinkedAtomGraphs
         results = []
         for atom in atoms:
-            deps_list = list(master_deps[atom.tda_id].edges.values())
+            if atom.tda_id in master_deps:
+                deps_list = list(master_deps[atom.tda_id].edges.values())
+            else:
+                deps_list = []
             results.append(LinkedAtomGraph(atom=atom, depends_on=deps_list))
 
         return results, total_usage
