@@ -10,12 +10,12 @@
 </required_context_rules>
 
 ## Target God File Baseline
-- **Target File:** `@[backend_v2/services/auth.py]`
-- **Baseline Length:** 1234 lines (current: 865 lines after Phase 1, 2, and 3)
+- **Target File:** `@[backend_v2/services/auth.py]` (superseded by package `@[backend_v2/services/auth/]`)
+- **Baseline Length:** 1234 lines originally (decomposed into 6 focused modules under `backend_v2/services/auth/`)
 - **Symbol Migration Map:** `@[docs/epic/tasks_auth/symbol_migration_map.md]`
-- **Baseline Unit Tests:** 80 passed (100% pass rate) in 3.91s
-- **Baseline Line Coverage:** 94% across auth modules (266 statements in auth.py, 24 missed)
-- **Phase 0 Coverage Bootstrap:** NOT REQUIRED (baseline 94% exceeds 75% prerequisite gate)
+- **Baseline Unit Tests:** 116 passed (100% pass rate) in 3.29s
+- **Baseline Line Coverage:** 95% aggregate coverage across `backend_v2.services.auth` (533 statements, 28 missed)
+- **Phase 0 Coverage Bootstrap:** NOT REQUIRED (baseline 95% exceeds 75% prerequisite gate)
 
 ## Step Execution Status
 
@@ -81,22 +81,16 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 # Session Handover Context
 ## Achieved
 - Initialized Tier 3 God Code Decomposition planning for `@[backend_v2/services/auth.py]`.
-- Implemented Phase 1: extracted `constants.py` and `repositories.py` (`OrganizationRepository`, `UserRepository`) into `backend_v2/services/auth/`.
-- Implemented Phase 2: extracted `TokenService` into `backend_v2/services/auth/token_service.py` [NEW] with 98% line coverage.
-- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate token methods and verified 55/55 unit tests passing with 93% line coverage.
-- Completed Mid-Extraction Planning Gate: re-invoked `/tier3-god-code-decomposition @[backend_v2/services/auth.py]`.
-- Generated comprehensive implementation plan for Phase 3: `@[docs/epic/tasks_auth/phase3_organization_service_extraction.md]` with 19 concrete test contracts (TC-P3-01 through TC-P3-19) covering `OrganizationService`.
-- Generated comprehensive implementation plan for Phase 4: `@[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md]` with 39 concrete test contracts (TC-P4-01 through TC-P4-39) covering `UserService` and sovereign `AuthService` facade.
-- Implemented Phase 3: extracted `OrganizationService` into `backend_v2/services/auth/organization_service.py` [NEW] with 94% line coverage.
-- Enhanced `OrganizationRepository` with `update` and `delete` methods for 1:1 symmetry.
-- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate organization operations (`create_organization`, `delete_organization`, `list_organizations`, `get_organization`, `update_organization`) to `self.org_service`.
-- Implemented all 19 test contracts (TC-P3-01 through TC-P3-19) alongside repository update/delete and direct execution tests; verified 80/80 unit tests pass with 94% overall auth module coverage.
-- Implemented Phase 4: extracted `UserService` into `backend_v2/services/auth/user_service.py` [NEW] implementing user lifecycle, role hierarchy enforcement, Last Admin Protection, and root bootstrapping.
-- Assembled sovereign `AuthService` facade in `backend_v2/services/auth/__init__.py` [NEW] delegating across `TokenService`, `OrganizationService`, and `UserService` with complete property synchronization and clean `__all__` re-exports.
-- Replaced monolithic `auth.py` with `auth/__init__.py` to eliminate Python/MyPy duplicate module packaging conflict while maintaining 100% backward-compatible imports for consumers.
-- Implemented all 39 test contracts (TC-P4-01 through TC-P4-39) plus direct `UserService` execution test in `backend_v2/tests/unit/test_auth.py`; verified 116/116 unit tests pass with 95% aggregate coverage across `backend_v2.services.auth` (`__init__.py`: 93%, `constants.py`: 100%, `organization_service.py`: 94%, `repositories.py`: 100%, `token_service.py`: 98%, `user_service.py`: 93%).
+- Implemented Phase 1 (Commit `33afc0142`): extracted `constants.py` and `repositories.py` (`OrganizationRepository`, `UserRepository`) into `@[backend_v2/services/auth/]`.
+- Implemented Phase 2 (Commit `49e11b3d1`): extracted `TokenService` into `@[backend_v2/services/auth/token_service.py]` [NEW] with 98% line coverage. Rewired `AuthService` in `@[backend_v2/services/auth.py]` to delegate token operations with 55/55 unit tests passing.
+- Completed Mid-Extraction Planning Gate: re-invoked `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` and generated detailed execution protocols for Phase 3 and Phase 4.
+- Implemented Phase 3 (Commit `67309717a`): extracted `OrganizationService` into `@[backend_v2/services/auth/organization_service.py]` [NEW] with 94% line coverage. Enhanced `OrganizationRepository` with `update` and `delete` methods. Implemented all 19 test contracts (TC-P3-01 through TC-P3-19); 80/80 tests passing with 94% coverage.
+- Implemented Phase 4 (Commit `360435b89`): extracted `UserService` into `@[backend_v2/services/auth/user_service.py]` [NEW] implementing user lifecycle, role hierarchy enforcement, Last Admin Protection, and root bootstrapping.
+- Assembled sovereign `AuthService` facade in `@[backend_v2/services/auth/__init__.py]` [NEW] delegating 100% of operations across `TokenService`, `OrganizationService`, and `UserService` with complete property synchronization and clean `__all__` re-exports.
+- Replaced monolithic `auth.py` with `auth/__init__.py` to eliminate Python/MyPy duplicate module packaging conflicts while maintaining 100% backward-compatible consumer imports (`from backend_v2.services.auth import AuthService`).
+- Implemented all 39 test contracts (TC-P4-01 through TC-P4-39) plus direct `UserService` execution test in `@[backend_v2/tests/unit/test_auth.py]`; verified 116/116 unit tests pass with 95% aggregate coverage across `backend_v2.services.auth` (`__init__.py`: 93%, `constants.py`: 100%, `organization_service.py`: 94%, `repositories.py`: 100%, `token_service.py`: 98%, `user_service.py`: 93%).
 - Eradicated ternary lazy fallbacks in `user_service.py` per AST guardrail rule QGR016.
-- Passed 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth/__init__.py --test --ast-strict`).
+- Passed all 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth/__init__.py --test --ast-strict`).
 
 ## Learned
 - During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`, `create_user_fn`) ensures seamless decoupling between `OrganizationService` and `UserService` without circular dependencies.
@@ -105,10 +99,21 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 - When creating an organization, `_create_user_internal` verifies that the initiator user exists in the repository, and emits a distinct `USER_CREATED` audit event alongside `ORG_CREATED`.
 - In Python/MyPy packaging, having both `services/auth.py` and `services/auth/__init__.py` causes a fatal duplicate module conflict (`Duplicate module named "backend_v2.services.auth"`). Replacing `auth.py` with `auth/__init__.py` provides 100% clean packaging while maintaining exact import compatibility (`from backend_v2.services.auth import AuthService`).
 - AST Guardrail QGR016 forbids ternary lazy fallbacks (`role_values[role] if role in role_values else 0`) in domain code; direct indexing on exhaustive enum dictionaries or Fail-Fast exception raising is mandated.
+- User ID entity pattern `^([a-z]{2,5})_[a-zA-Z0-9]{8,}$` permits exactly one prefix underscore; test fixture IDs must be strictly alphanumeric after the prefix (e.g., `usr_memsame00001`, not `usr_mem_same00001`).
+- `Organization` Pydantic models require all mandatory schema fields (`is_active`, `tier`, `quota_limit`, `tpm_limit`, `rpm_limit`) even in unit test mock repositories to satisfy strict schema validation.
 
 ## Remaining
-- Execute Consumer Migration (Batch 1: DI rewiring in `backend_v2/api/dependencies.py`, Batch 2: unit test modularization).
-- Pre-Delete Audits, QGR017 lockdown, and regression smoke test.
+- **Proxy Sunset and Consumer Migration (Bounded Batches)**:
+  - **Batch 1: Dependency Injection Rewiring**: Rewire `@[backend_v2/api/dependencies.py]` to import `AuthService` directly from `backend_v2.services.auth`. Run `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test`. Atomic git commit.
+  - **Batch 2: Unit Test Suite Modularization**: Decompose monolithic `@[backend_v2/tests/unit/test_auth.py]` into domain-specific test suites mirroring extracted modules (`test_token_service.py`, `test_organization_service.py`, `test_user_service.py`, `test_repositories.py`). Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/ --test`. Atomic git commit.
+- **Pre-Delete Verification Gates**:
+  - Run `grep_search` across entire codebase to verify zero remaining legacy references.
+  - Pre-Flight Global Integration and DI Boot Test (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`).
+- **Post-Delete AST Guardrail QGR017 Lockdown**:
+  - Register `backend_v2/services/auth.py` in `@[scripts/_ast_guardrails.py]` under rule `QGR017` (FATAL severity).
+  - Update `@[.agents/rules/04_directory_reference.md]`.
+  - Execute parameterized `/tier7-describe-architecture` directives.
+  - Run post-delete regression smoke test (`uv run python backend_v2/seed/run_seed.py local`).
 
 ## Resume Command
 ```powershell
