@@ -17,6 +17,8 @@ if importlib.util.find_spec("firebase_admin") is not None:
 else:
     firebase_auth_module = None
 
+from pathlib import Path
+
 from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import (
     AppException,
@@ -41,16 +43,32 @@ from backend_v2.models.auth import (
 from backend_v2.models.enums import SystemLocale
 from backend_v2.settings import get_settings
 
-# Secure Secret for Local Tokens (Impersonation)
-# In production, this MUST be set via environment variable.
-JWT_SECRET = "cognitive-quorum-internal-secret-change-me"
-JWT_ALGORITHM = "HS256"
+__path__ = [str(Path(__file__).parent / "auth")]
 
-# Constants for System Root Entities
-SYSTEM_ROOT_USER_ID = "usr_a3fd6b3d77c748f4"
-LEGACY_SYSTEM_ROOT_USER_ID = "10fb2f60-5ee1-419f-a16c-b5cfdfc5f55b"
-LEGACY_SYSTEM_ORG_ID = "436d84de-c526-43b7-93ef-634912be0d2f"
-LEGACY_ROOT_MASTER_ID = "root_master"
+from backend_v2.services.auth.constants import (
+    JWT_ALGORITHM as JWT_ALGORITHM,
+)
+from backend_v2.services.auth.constants import (
+    JWT_SECRET as JWT_SECRET,
+)
+from backend_v2.services.auth.constants import (
+    LEGACY_ROOT_MASTER_ID as LEGACY_ROOT_MASTER_ID,
+)
+from backend_v2.services.auth.constants import (
+    LEGACY_SYSTEM_ORG_ID as LEGACY_SYSTEM_ORG_ID,
+)
+from backend_v2.services.auth.constants import (
+    LEGACY_SYSTEM_ROOT_USER_ID as LEGACY_SYSTEM_ROOT_USER_ID,
+)
+from backend_v2.services.auth.constants import (
+    SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
+)
+from backend_v2.services.auth.repositories import (
+    OrganizationRepository as OrganizationRepository,
+)
+from backend_v2.services.auth.repositories import (
+    UserRepository as UserRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,162 +83,6 @@ __all__ = [
     "OrganizationRepository",
     "UserRepository",
 ]
-
-
-# --- Repository Layer (Organization) ---
-
-
-class OrganizationRepository:
-    """Repository for Organization data access."""
-
-    def __init__(self, repo: IIdentityRepository):
-        """Initializes the Organization repository wrapper.
-
-        Args:
-            repo: The underlying identity repository interface.
-        """
-        self.repo = repo
-
-    async def get_by_id(self, org_id: str) -> Organization | None:
-        """Fetches an organization by its ID.
-
-        Args:
-            org_id: The ID of the organization to fetch.
-
-        Returns:
-            The Organization object if found, else None.
-        """
-        data = await self.repo.get_organization(org_id)
-        if data:
-            return Organization.model_validate(data, strict=False)
-        return None
-
-    async def create(self, org: Organization) -> Organization:
-        """Creates a new organization in the database.
-
-        Args:
-            org: The Organization object to create.
-
-        Returns:
-            The created Organization object.
-        """
-        await self.repo.create_organization(org)
-        return org
-
-    async def list_all(self) -> list[Organization]:
-        """Lists all organizations.
-
-        Returns:
-            A list of all Organization objects.
-        """
-        return await self.repo.list_organizations()
-
-
-# --- Repository Layer (User) ---
-
-
-class UserRepository:
-    """Repository for User data access."""
-
-    def __init__(self, repo: IIdentityRepository):
-        """Initializes the User repository wrapper.
-
-        Args:
-            repo: The underlying identity repository interface.
-        """
-        self.repo = repo
-
-    async def get_by_id(self, id: str) -> User | None:
-        """Fetches a user by their ID.
-
-        Args:
-            id: The ID of the user to fetch.
-
-        Returns:
-            The User object if found, else None.
-        """
-        return await self.repo.get_user(id)
-
-    async def get_by_email(self, email: str) -> User | None:
-        """Fetches a user by their email address.
-
-        Args:
-            email: The email address of the user.
-
-        Returns:
-            The User object if found, else None.
-        """
-        return await self.repo.get_user_by_email(email)
-
-    async def create(self, user: User) -> User:
-        """Creates a new user in the database.
-
-        Args:
-            user: The User object to create.
-
-        Returns:
-            The created User object.
-
-        Raises:
-            AppException: If a user with the same ID already exists.
-        """
-        if await self.get_by_id(user.id):
-            raise AppException(
-                message=f"User with ID {user.id} already exists.",
-                status_code=409,
-                details={"error_code": ErrorCodes.CONFLICT_ERROR.value},
-            )
-
-        await self.repo.create_user(user)
-        return user
-
-    async def update(self, id: str, updates: UserUpdate) -> User | None:
-        """Updates an existing user.
-
-        Args:
-            id: The ID of the user to update.
-            updates: The update payload.
-
-        Returns:
-            The updated User object if successful, else None.
-        """
-        user = await self.get_by_id(id)
-
-        if not user:
-            return None
-
-        await self.repo.update_user(id, updates)
-        return await self.get_by_id(id)
-
-    async def list_all(self) -> list[User]:
-        """Lists all users.
-
-        Returns:
-            A list of all User objects.
-        """
-        return await self.repo.list_users()
-
-    async def delete(self, id: str) -> bool:
-        """Deletes a user by their ID.
-
-        Args:
-            id: The ID of the user to delete.
-
-        Returns:
-            True if deletion was successful, False otherwise.
-        """
-        return await self.repo.delete_user(id)
-
-    async def get_by_organization(self, org_id: str) -> list[User]:
-        """Fetches all users belonging to a specific organization.
-
-        Args:
-            org_id: The ID of the organization.
-
-        Returns:
-            A list of User objects.
-        """
-        return [User.model_validate(u, strict=False) for u in await self.repo.list_users(org_id)]
 
 
 # --- Service Layer ---

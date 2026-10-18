@@ -142,6 +142,275 @@ async def test_user_repository_create_update_delete(mock_repo: InMemoryUnifiedWo
     assert await mock_repo.get_user("usr_2345bcde") is None
 
 
+# --- Phase 1 Test Contracts (TC-P1-01 to TC-P1-13) ---
+
+
+@pytest.mark.asyncio
+async def test_organization_repository_get_by_id_found_returns_organization(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    org_repo = OrganizationRepository(mock_repo)
+    test_org = Organization(
+        id="org_test1234",
+        name="Test Org",
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    await mock_repo.create_organization(test_org)
+    res = await org_repo.get_by_id("org_test1234")
+    assert res is not None
+    assert res.id == "org_test1234"
+    assert res.name == "Test Org"
+
+
+@pytest.mark.asyncio
+async def test_organization_repository_get_by_id_not_found_returns_none(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    org_repo = OrganizationRepository(mock_repo)
+    res = await org_repo.get_by_id("org_missing")
+    assert res is None
+
+
+@pytest.mark.asyncio
+async def test_organization_repository_create_persists_and_returns(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    org_repo = OrganizationRepository(mock_repo)
+    test_org = Organization(
+        id="org_create123",
+        name="Created Org",
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    created = await org_repo.create(test_org)
+    assert created.id == "org_create123"
+    persisted = await mock_repo.get_organization("org_create123")
+    assert persisted is not None
+
+
+@pytest.mark.asyncio
+async def test_organization_repository_list_all_returns_list(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    org_repo = OrganizationRepository(mock_repo)
+    test_org = Organization(
+        id="org_list1234",
+        name="List Org",
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    await org_repo.create(test_org)
+    orgs = await org_repo.list_all()
+    assert isinstance(orgs, list)
+    assert any(o.id == "org_list1234" for o in orgs)
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_id_found_returns_user(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    test_user = User(
+        id="usr_abc12345",
+        email="abc@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    await mock_repo.create_user(test_user)
+    user = await user_repo.get_by_id("usr_abc12345")
+    assert user is not None
+    assert user.id == "usr_abc12345"
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_id_not_found_returns_none(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    user = await user_repo.get_by_id("usr_none123")
+    assert user is None
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_email_found_returns_user(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    test_user = User(
+        id="usr_email123",
+        email="admin@example.com",
+        role=UserRole.ADMIN,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    await mock_repo.create_user(test_user)
+    user = await user_repo.get_by_email("admin@example.com")
+    assert user is not None
+    assert user.id == "usr_email123"
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_email_not_found_returns_none(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    user = await user_repo.get_by_email("unknown@example.com")
+    assert user is None
+
+
+@pytest.mark.asyncio
+async def test_user_repository_create_duplicate_id_raises_app_exception(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    test_user = User(
+        id="usr_dup12345",
+        email="dup1@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    await user_repo.create(test_user)
+    dup_user = User(
+        id="usr_dup12345",
+        email="dup2@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await user_repo.create(dup_user)
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFLICT_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_user_repository_update_not_found_returns_none(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    res = await user_repo.update("usr_missing", UserUpdate(name="New Name"))
+    assert res is None
+
+
+@pytest.mark.asyncio
+async def test_user_repository_update_success_returns_updated_user(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    test_user = User(
+        id="usr_upd12345",
+        email="upd@test.com",
+        name="Original Name",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    await user_repo.create(test_user)
+    updated = await user_repo.update("usr_upd12345", UserUpdate(name="Updated Name"))
+    assert updated is not None
+    assert updated.name == "Updated Name"
+
+
+@pytest.mark.asyncio
+async def test_user_repository_delete_calls_underlying_repo(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    test_user = User(
+        id="usr_del12345",
+        email="del@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_test1234",
+    )
+    await user_repo.create(test_user)
+    res = await user_repo.delete("usr_del12345")
+    assert res is True
+    assert await user_repo.get_by_id("usr_del12345") is None
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_organization_filters_and_validates(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    user_repo = UserRepository(mock_repo)
+    user1 = User(
+        id="usr_org12301",
+        email="user1@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_target01",
+    )
+    user2 = User(
+        id="usr_org12302",
+        email="user2@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_target01",
+    )
+    user_other = User(
+        id="usr_orgother01",
+        email="other@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at="2026-01-01T00:00:00Z",
+        language="en",
+        theme_mode="system",
+        organization_id="org_other01",
+    )
+    await user_repo.create(user1)
+    await user_repo.create(user2)
+    await user_repo.create(user_other)
+
+    users = await user_repo.get_by_organization("org_target01")
+    assert len(users) == 2
+    assert all(isinstance(u, User) for u in users)
+    assert {u.id for u in users} == {"usr_org12301", "usr_org12302"}
+
+
 @pytest.mark.asyncio
 async def test_auth_service_init(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
     service = AuthService(mock_repo, use_firebase=False)
