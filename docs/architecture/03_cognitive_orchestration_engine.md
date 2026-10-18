@@ -36,7 +36,17 @@ Parallel execution enforces strict concurrency bounds across decoupled tiers:
 - **Pure Stateless Computation**: Execution engines (`PromptEngine`, `SynthesisEngine`, `TDAEngine`) and sub-executors operate as pure computational pipelines with zero semaphore or event primitives, eliminating recursive locks, lock starvation, and priority inversions under peak loads.
 
 ### 2.5. Data Ingestion & Context Preflight
-External inputs (documents, web resources, uploaded files, and chat transcripts) are processed through dedicated ingestion providers that extract, sanitize, and flatten raw text. Before model execution, context preflight validates token consumption against window constraints, applying deterministic pagination and chunking where required to ensure that model input limits are never exceeded.
+External inputs (documents, web resources, uploaded files, and conversational transcripts) are processed through dedicated ingestion providers that extract, sanitize, and flatten raw text. Before model execution, context preflight validates token consumption against window constraints, applying deterministic pagination and chunking where required to ensure that model input limits are never exceeded.
+
+#### Dynamic Input Provenance & Context Packaging
+Ingestion and prompt packaging adhere to dynamic input provenance without hardcoded document enums, fixed triads, or static file counts:
+- **Dynamic Topology Agnosticism**: Workflows configure arbitrary dynamic input keys (`input_key: str`). Processing pipelines support any number of inputs ($1, \dots, N$) deterministically.
+- **Unconditional Ingress Directive Packaging**: `SourceDocumentPacker` wraps every targeted dynamic input payload unconditionally in an `<ai_context_directive document="{input_key}">` XML block. When input metadata lacks explicit descriptions or instructions, the directive envelope remains present with empty directive content, ensuring consistent document identification downstream.
+- **Paragraph Directive Stripping & Provenance Tracking**: In `CausalDiscoveryEngine`, incoming text is split into sequential paragraphs `[B{i}]`. Directive tags are stripped from emitted paragraph texts to prevent models from generating spurious claims from packaging headers, while each paragraph is tagged with its originating `source_input_key`.
+- **Dynamic Role Resolution**: Input roles and ownership boundaries are resolved dynamically via `ExpectedInput` schema attributes:
+  * `is_endorsed_deliverable`: Marks candidate-authored work product, defining the subject population for deliverable subgraph induction and documentation volume metrics.
+  * `is_chat_history`: Identifies conversational dialogue, separating candidate turns from assistant responses.
+  * `is_assignment`: Quarantines evaluator task directives and task constraints into `<assignment_context>` capsules, preventing external normative instructions from being quoted as candidate work.
 
 ### 2.6. Two-Pass Atomization & Topological DAG Execution
 Complex evaluation workflows decompose tasks into atomic units and structured matrix assertions:
@@ -51,7 +61,7 @@ Ingested source text across discovery and preflight engines (`CausalDiscoveryEng
 In `TwoPassAtomizer`, chunk packet boundaries enforce contiguous ranges (`start_block_id` to `end_block_id`), validated by format verification (`key.startswith("B") and key[1:].isdigit()`). When an extraction task produces an atom citing a block identifier outside the assigned packet bounds, `TwoPassAtomizer` logs a structured warning (`corrupted_atom_dropped`) and continues processing remaining valid atoms in the chunk rather than raising an unhandled `ValueError` that terminates the parallel `asyncio.TaskGroup`.
 
 #### MatrixReducer Pre-Evaluation Gating
-In `DAGExecutor`, invocation of `MatrixReducer.reduce_matrix(exec_record)` is strictly gated on the presence of evaluated atoms across step execution records. If an execution terminates prior to atom evaluation (such as during preflight validation failures), `MatrixReducer` is bypassed, eliminating synthetic empty reductions and duplicate execution warnings.
+In `DAGExecutor`, invocation of `MatrixReducer.reduce_matrix(exec_record)` is strictly gated on the presence of evaluated atoms across step execution records. If an execution terminates prior to atom evaluation (specifically during preflight validation failures), `MatrixReducer` is bypassed, eliminating synthetic empty reductions and duplicate execution warnings.
 
 #### Wave-Based Topological TaskGroup Execution & DLQ Recording
 Macro step execution within `DAGExecutor` organizes workflow steps into Kahn's topological waves. Independent steps within each wave execute concurrently inside a structured `asyncio.TaskGroup`. When a step fails or is cancelled, the wave traps the failure via PEP 758 bracketless `except*` handlers, deterministically terminates sibling coroutines, and commits all cancelled and unreached steps to the Dead Letter Queue (DLQ) via `_dlq_record_step_failure`, guaranteeing that no step remains stranded in an unresolved `PENDING` state.

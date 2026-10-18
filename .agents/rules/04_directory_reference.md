@@ -24,7 +24,7 @@
 
     <rule_block id="test_directory_isolation">
         <mandate>NEVER place test files alongside production code or directly into `tests/` root without test pyramid categorization. Test files MUST strictly mirror production structure categorized into test pyramid roots:
-        - Python Backend: `backend_v2/tests/unit/...`, `backend_v2/tests/integration/...`, `backend_v2/tests/e2e/...`
+        - Python Backend: `backend_v2/tests/unit/...` (including `models/dtos/test_causal_discovery_dtos.py`, `services/orchestrator/test_dag_executor_causal_fusion.py`), `backend_v2/tests/integration/...`, `backend_v2/tests/e2e/...`
         - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...`</mandate>
     </rule_block>
 </catastrophic_system_bans>
@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py), view/ (SDUI Blocks), state.py, enums.py
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py), view/ (SDUI Blocks), state.py, enums.py (CausalRootCauseType, LaxCausalRootCauseType)
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)
@@ -132,7 +132,7 @@
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart, models/generic_status_response_dto.dart, network/</key_domains>
+        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart (CausalRootCauseType, TargetSpeaker), models/generic_status_response_dto.dart, network/</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">
