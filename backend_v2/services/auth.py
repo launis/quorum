@@ -5,12 +5,9 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import logging
-import time
 import uuid
 from datetime import datetime, timezone
 from typing import Any
-
-import jwt
 
 if importlib.util.find_spec("firebase_admin") is not None:
     from firebase_admin import auth as firebase_auth_module
@@ -22,7 +19,6 @@ from pathlib import Path
 from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import (
     AppException,
-    AuthenticationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -69,6 +65,9 @@ from backend_v2.services.auth.repositories import (
 from backend_v2.services.auth.repositories import (
     UserRepository as UserRepository,
 )
+from backend_v2.services.auth.token_service import (
+    TokenService as TokenService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +80,7 @@ __all__ = [
     "SYSTEM_ROOT_USER_ID",
     "AuthService",
     "OrganizationRepository",
+    "TokenService",
     "UserRepository",
 ]
 
@@ -101,12 +101,40 @@ class AuthService:
         """
         self.repo = UserRepository(repo)
         self.org_repo = OrganizationRepository(repo)
-        self.use_firebase = use_firebase
         self.audit_service = audit_service  # Typed as Any to avoid circular import if strict
-        self._initialized_firebase = False
+        self.token_service = TokenService(
+            repo=self.repo,
+            use_firebase=use_firebase,
+            firebase_module=firebase_auth_module,
+            get_settings_fn=lambda: get_settings(),
+        )
 
-        if self.use_firebase:
-            self._init_firebase()
+    @property
+    def use_firebase(self) -> bool:
+        """Whether Firebase authentication is enabled."""
+        return self.token_service.use_firebase
+
+    @use_firebase.setter
+    def use_firebase(self, value: bool) -> None:
+        self.token_service.use_firebase = value
+
+    @property
+    def firebase_auth(self) -> Any:
+        """Firebase auth module or mock instance."""
+        return self.token_service.firebase_auth
+
+    @firebase_auth.setter
+    def firebase_auth(self, value: Any) -> None:
+        self.token_service.firebase_auth = value
+
+    @property
+    def _initialized_firebase(self) -> bool:
+        """Whether Firebase SDK has been initialized."""
+        return self.token_service._initialized_firebase
+
+    @_initialized_firebase.setter
+    def _initialized_firebase(self, value: bool) -> None:
+        self.token_service._initialized_firebase = value
 
     def _init_firebase(self) -> None:
         """Initializes the Firebase Admin SDK.
@@ -114,13 +142,7 @@ class AuthService:
         Returns:
             None
         """
-        if firebase_auth_module:
-            self.firebase_auth = firebase_auth_module
-            logger.info("[AuthService] Firebase Admin SDK initialized.")
-            self._initialized_firebase = True
-        else:
-            logger.warning("[AuthService] Firebase SDK not installed. Falling back to Mock mode.")
-            self.use_firebase = False
+        self.token_service._init_firebase()
 
     def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
         """Generates a signed JWT for impersonating a user.
@@ -132,15 +154,7 @@ class AuthService:
         Returns:
             Signed JWT string.
         """
-        payload = {
-            "sub": target_id,
-            "exp": time.time() + duration_seconds,
-            "iat": time.time(),
-            "type": "impersonation",
-        }
-
-        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-        return token
+        return self.token_service.create_impersonation_token(target_id=target_id, duration_seconds=duration_seconds)
 
     async def verify_token(self, token: str) -> TokenData:
         """Verifies a Bearer token.
@@ -154,127 +168,7 @@ class AuthService:
         Raises:
             AuthenticationError: If token is invalid or expired.
         """
-        # 1. Local Signed Token (Impersonation / Internal)
-        try:
-            # We enforce the secret check here.
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            if "sub" not in payload or not payload["sub"]:
-                logger.error(
-                    "[AuthService] %s: Invalid internal token: missing 'sub'.", ErrorCodes.AUTHENTICATION_FAILED.name
-                )
-                raise AuthenticationError(
-                    message="Invalid internal token: missing 'sub'.",
-                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
-                )
-            id = str(payload["sub"])
-
-            user = await self.repo.get_by_id(id)
-            if not user:
-                logger.error(
-                    "[AuthService] %s: Impersonated user not found: %s", ErrorCodes.AUTH_TOKEN_EXPIRED.name, id
-                )
-                raise AuthenticationError(
-                    message=f"Impersonated User not found: {id}",
-                    details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED.value},
-                )
-            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
-
-        except jwt.ExpiredSignatureError:
-            logger.error("[AuthService] %s: Token expired.", ErrorCodes.AUTH_TOKEN_EXPIRED.name)
-            raise AuthenticationError(
-                message="Token expired", details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED.value}
-            ) from None
-
-        except jwt.PyJWTError as jwt_err:
-            if not self.use_firebase and not token.startswith("mock-token:"):
-                logger.error("[AuthService] %s: Invalid JWT token: %s", ErrorCodes.AUTHENTICATION_FAILED.name, jwt_err)
-                raise AuthenticationError(
-                    message=f"Invalid JWT token: {jwt_err}",
-                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
-                ) from jwt_err
-            logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
-
-        # 2. Mock/Dev Mode check
-        settings = get_settings()
-        is_mock_token = token.startswith("mock-token:")
-
-        # 1. Reject mock tokens in production or cloud environments immediately (Fail-Fast)
-        if is_mock_token and not settings.allow_mock_tokens:
-            logger.error(
-                "[AuthService] %s: Mock tokens are strictly forbidden in production.", ErrorCodes.PERMISSION_DENIED.name
-            )
-            raise AuthenticationError(
-                message="Mock tokens are strictly forbidden in production.",
-                details={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-            )
-
-        if not self.use_firebase or (is_mock_token and settings.allow_mock_tokens):
-            # Expect format "mock-token:<user_id>"
-            if token.startswith("mock-token:"):
-                user_id = token.split(":")[1]
-            else:
-                user_id = token
-
-            # Check if user exists in our DB
-            user = await self.repo.get_by_id(user_id)
-            if not user:
-                logger.error(
-                    "[AuthService] %s: Mock User not found for ID: %s", ErrorCodes.PERMISSION_DENIED.name, user_id
-                )
-                raise AuthenticationError(
-                    message=f"Mock User not found for ID: {user_id}",
-                    details={"error_code": ErrorCodes.PERMISSION_DENIED.value},
-                )
-
-            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
-
-        # 2. Firebase Mode
-        try:
-            # Verify ID token
-            decoded_token = self.firebase_auth.verify_id_token(token)
-            user_id = decoded_token["uid"]
-            email = None
-            if "email" in decoded_token:
-                email = decoded_token["email"]
-
-            # Sync/Get User from our DB
-            user = await self.repo.get_by_id(user_id)
-
-            if not user:
-                # Auto-registration for missing users found in Firebase
-                if not email:
-                    logger.error(
-                        "[AuthService] %s: Firebase token missing email claim.", ErrorCodes.AUTHENTICATION_FAILED.name
-                    )
-                    raise AuthenticationError(
-                        message="Cannot auto-register user: Firebase token is missing email claim.",
-                        details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
-                    )
-
-                logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", user_id)
-
-                new_user = User(
-                    id=user_id,
-                    email=email,
-                    role=UserRole.MEMBER,
-                    organization_id=None,  # Orphan user
-                    created_at=datetime.now(timezone.utc),
-                    is_active=True,
-                    language=SystemLocale.EN,
-                    theme_mode="system",
-                    # Created by System/Self
-                )
-
-                await self.repo.create(new_user)
-                return TokenData(id=user_id, role=UserRole.MEMBER, email=email, organization_id=None)
-
-            return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
-
-        except Exception as e:
-            logger.error("[AuthService] %s: %s", ErrorCodes.AUTHENTICATION_FAILED.name, e, exc_info=True)
-            raise AuthenticationError(
-                message="Invalid credentials", details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
-            ) from e
+        return await self.token_service.verify_token(token)
 
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.

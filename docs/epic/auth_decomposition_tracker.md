@@ -27,10 +27,10 @@
   - [x] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
 
 ### Phase 2: Token Service Extraction
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase2_token_service_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
-  - [ ] Extract `TokenService` [NEW] to `@[backend_v2/services/auth/token_service.py]` [NEW]
-  - [ ] Delegate token methods from `AuthService` in `@[backend_v2/services/auth.py]`
-  - [ ] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase2_token_service_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
+  - [x] Extract `TokenService` [NEW] to `@[backend_v2/services/auth/token_service.py]` [NEW]
+  - [x] Delegate token methods from `AuthService` in `@[backend_v2/services/auth.py]`
+  - [x] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
 
 ### Mid-Extraction Planning Gate
 - [ ] **[NOK] Re-Invoke Tier 3 Planner:** Invoke `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` to generate detailed execution protocols for Phase 3 and Phase 4 based on updated codebase state.
@@ -52,7 +52,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Verify 100% typing, linting, docstrings, and tests across newly extracted domain modules before migrating 1-hop consumers:
   - [x] [NEW] @[backend_v2/services/auth/constants.py]
   - [x] [NEW] @[backend_v2/services/auth/repositories.py]
-  - [ ] [NEW] @[backend_v2/services/auth/token_service.py]
+  - [x] [NEW] @[backend_v2/services/auth/token_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/organization_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/user_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/__init__.py]
@@ -85,20 +85,20 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 - Baseline metrics: 30/30 unit tests passing, 93% line coverage.
 - Created `symbol_migration_map.md` and detailed execution plans for Phase 1 and Phase 2.
 - Implemented Phase 1: extracted `constants.py` and `repositories.py` (`OrganizationRepository`, `UserRepository`) into `backend_v2/services/auth/`.
-- Rewired `backend_v2/services/auth.py` with explicit re-exports satisfying PEP 484 and MyPy Strict.
-- Bound `__path__` in `auth.py` enabling Python package submodule resolution for `backend_v2.services.auth.*` during the Strangler Fig transitional phase.
-- Implemented and validated all 13 test contracts TC-P1-01 through TC-P1-13 in `test_auth.py`.
-- Passed 10-stage Universal Quality Gate: 0 lint errors, 0 type errors, 0 AST violations, 47/47 passing tests with 93% line coverage (100% coverage on `constants.py` and `repositories.py`).
+- Implemented Phase 2: extracted `TokenService` into `backend_v2/services/auth/token_service.py` [NEW] with 98% line coverage.
+- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate `create_impersonation_token`, `verify_token`, `_init_firebase`, and firebase properties to `TokenService`.
+- Re-exported `TokenService` in `backend_v2/services/auth.py` and registered in `__all__`.
+- Implemented and validated all 12 test contracts TC-P2-01 through TC-P2-12 in `backend_v2/tests/unit/test_auth.py`.
+- Passed 10-stage Universal Quality Gate: 0 lint errors, 0 type errors, 0 AST violations, 59/59 passing unit tests with 93% line coverage (98% on `token_service.py`, 100% on `constants.py` and `repositories.py`, 90% on `auth.py`).
 
 ## Learned
-- During Strangler Fig decomposition where a file `auth.py` coexists with a new package directory `auth/`, Python rejects `from backend_v2.services.auth.constants import ...` unless `auth.py` declares `__path__ = [str(Path(__file__).parent / "auth")]` as a package search location.
-- AST guardrail QGR028 enforces elimination of redundant `Model.model_validate()` calls when consuming repository returns, because `IIdentityRepository` already natively guarantees strongly typed domain models.
-- All entity test identifiers must strictly conform to `OPAQUE_STRIPE_ID_REGEX` (`^([a-z]{2,5})_[a-zA-Z0-9]{8,}$`).
+- During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`) and sentinel overrides ensures seamless compatibility with existing module-level test patches (`monkeypatch.setattr("backend_v2.services.auth.get_settings", ...)`).
+- Explicit `except AuthenticationError: raise` in Firebase ID token verification ensures structured domain exceptions (such as missing email claims) propagate cleanly without being obscured by broad `except Exception:` handlers.
 
 ## Remaining
-- Execute Phase 2: `/tier2-execute --full-auto docs/epic/tasks_auth/phase2_token_service_extraction.md docs/epic/auth_decomposition_tracker.md`
+- Mid-Extraction Planning Gate: Re-invoke `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` to generate detailed execution protocols for Phase 3 (`OrganizationService`) and Phase 4 (`UserService` & `AuthService` Facade).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto docs/epic/tasks_auth/phase2_token_service_extraction.md docs/epic/auth_decomposition_tracker.md
+/tier3-god-code-decomposition @[backend_v2/services/auth.py]
 ```
