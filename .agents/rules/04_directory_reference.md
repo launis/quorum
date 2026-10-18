@@ -117,7 +117,7 @@
 
     <module path="scripts/">
         <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
-        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), _dart_guardrails.py (Client-Side Static Dart Guardrail Analyzer), audit_flutter_theme_sovereignty.py (Flutter Theme Sovereignty Static Audit), audit_dict_eradication.py (Zero Permissive Typing & Dict Eradication AST Verifier), audit_clean_imports.py (Clean Import Smoke Test & Circular Import Analyzer), audit_warning_baseline.py (Zero-Warning Ceiling Baseline Ledger), audit_mutation_coverage.py (Mathematical Core Mutation Coverage Verifier), audit_dto_parity.py (Cross-Language DTO Parity Verifier), audit_markdown_boundaries.py (Planning & Tracker Boundary Verifier), audit_matrix_manager.py (Matrix Consistency Verifier), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
+        <key_domains>_ast_boundary_utils.py (AST Code Decomposition & Boundary Extraction Utility), _ast_guardrails.py (Static AST Invariant Enforcement), _dart_guardrails.py (Client-Side Static Dart Guardrail Analyzer), audit_flutter_theme_sovereignty.py (Flutter Theme Sovereignty Static Audit), audit_dict_eradication.py (Zero Permissive Typing & Dict Eradication AST Verifier), audit_clean_imports.py (Clean Import Smoke Test & Circular Import Analyzer), audit_warning_baseline.py (Zero-Warning Ceiling Baseline Ledger), audit_mutation_coverage.py (Mathematical Core Mutation Coverage Verifier), audit_dto_parity.py (Cross-Language DTO Parity Verifier), audit_markdown_boundaries.py (Planning & Tracker Boundary Verifier), audit_matrix_manager.py (Matrix Consistency Verifier), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
@@ -162,7 +162,7 @@
 
     <module path=".agents/workflows/">
         <responsibility>AGENTIC EXECUTION PLAYBOOKS & QUARANTINE PROTOCOLS</responsibility>
-        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands, tier1-tracker-generator.md, tier1-plan-tracker-generator.md</key_domains>
+        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands, tier1-tracker-generator.md, tier1-plan-tracker-generator.md, tier3-god-code-decomposition.md (AST-Assisted Legacy Decomposition Engine)</key_domains>
     </module>
 
     <module path="<appDataDir>\knowledge\">

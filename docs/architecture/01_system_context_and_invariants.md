@@ -131,6 +131,15 @@ Autonomous argument mining operates over unstructured source documents through s
 4. **Fair Scoring Mathematical Identity**: Downstream cascading faults are deduplicated and dampened rather than penalizing authors repeatedly for single upstream defects. The fair scoring breakdown enforces the mathematical identity `raw_penalty_points == deduplicated_penalty_points + dampened_savings_points` via strict Pydantic model validation (`FairScoringBreakdownDTO`).
 5. **Dumb Painter Executive Integration**: Presentation of causal discovery results integrates into `TargetBlockType.EXECUTIVE_SUMMARY_BLOCK` as a Unified Causal Action Card (`SduiCausalGraphBlock`) with 1:1 cross-platform parity between Flutter (`SduiCausalGraphWidget`, `CausalInspectorModal`) and server-side PDF templates (`render_causal_graph_block` Jinja2 macro), obeying the Zero New Output Profiles Invariant.
 
+### 2.22. Topological Code Decomposition & Test Invariance
+System refactoring and module decomposition adhere to topological AST boundary extraction and test preservation invariants:
+1. **AST Boundary Extraction**: Structural dependencies, call hierarchies, external consumers, and cyclic couplings are analyzed prior to decomposition via AST inspection utilities (`_ast_boundary_utils.py`), computing deterministic acyclic extraction plans without guesswork.
+2. **Bottom-Up Topological Decomposition**: Decompositions execute in strict bottom-up order, extracting self-contained leaf functions, static calculation engines, and stateless transformation primitives before decomposing higher-order coordinators or caller surfaces.
+3. **Shared Concurrency Primitive Containers**: When extracted sibling modules or helper functions access shared runtime synchronization primitives (specifically: `asyncio.Semaphore`, `asyncio.Lock`, or `asyncio.Event`), instances are not instantiated piecemeal across modules. Primitives are encapsulated within immutable, frozen parameter containers (`@dataclass(frozen=True)`) passed explicitly to downstream routines, preserving single-instance lifecycle and preventing split-semaphore deadlocks or unconstrained parallel dispatch.
+4. **Bounded Consumer Migration Batches**: Consumer call-site migrations execute in strictly bounded batches of at most 5 files per checkpoint, preventing sprawling unverified diffs and catastrophic merge conflicts.
+5. **In-Flight Hardening**: Newly extracted modules undergo immediate, full AST guardrail and type-check verification before importing them into downstream consumer files.
+6. **Test Suite Preservation & Modular Decomposition**: Test suites are never deleted, suppressed, or amputated during code refactoring. When decomposing large implementation files, corresponding monolithic test suites decompose proportionally into matching modular test files, preserving 100% of existing characterization assertions and edge-case coverage.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
