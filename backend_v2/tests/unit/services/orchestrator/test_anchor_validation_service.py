@@ -383,7 +383,10 @@ def test_anchor_validation_empty_and_punctuation_quotes_fail_lexical_validation(
     # 4. Valid quote still succeeds
     valid_quote = "valid document text"
     norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(valid_quote)
-    assert AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50).is_valid is True
+    assert (
+        AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50).is_valid
+        is True
+    )
 
 
 def test_anchor_validation_process_atom_evaluation_suite() -> None:

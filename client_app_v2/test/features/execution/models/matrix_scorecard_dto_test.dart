@@ -238,15 +238,17 @@ void main() {
 
   group('QuoteEvidenceDto & McpAuditTraceDto', () {
     test('QuoteEvidenceDto parses defaults and rejects extra keys', () {
-      final json = {'quote': 'Verbatim test quote'};
+      final json = {
+        'source_quotes': ['Verbatim test quote'],
+      };
       final dto = QuoteEvidenceDto.fromJson(json);
-      expect(dto.quote, 'Verbatim test quote');
+      expect(dto.sourceQuotes, ['Verbatim test quote']);
       expect(dto.verifiedSourceIds, isEmpty);
       expect(dto.unverifiedAliases, isEmpty);
       expect(dto.isVerified, isFalse);
 
       final invalidJson = {
-        'quote': 'Verbatim test quote',
+        'source_quotes': ['Verbatim test quote'],
         'extra_field': 'forbidden',
       };
       expect(() => QuoteEvidenceDto.fromJson(invalidJson), throwsA(anything));

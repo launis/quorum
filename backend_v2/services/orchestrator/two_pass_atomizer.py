@@ -331,12 +331,16 @@ class TwoPassAtomizer:
 
                 exact_quote = local_alias_map[clean_id]
 
+            atom_quotes: tuple[str, ...] | None = None
+            if exact_quote:
+                atom_quotes = (exact_quote,)
+
             final_atoms.append(
                 ExtractedAtom(
                     reasoning=draft.reasoning,
                     resolved_claim=draft.resolved_claim,
                     is_logical_deduction=draft.is_logical_deduction,
-                    source_quote=exact_quote,
+                    source_quotes=atom_quotes,
                     tda_id=tda_id,
                     source_id=f"chunk_{chunk_index}",
                     source_sequence_index=chunk_index,
@@ -484,7 +488,7 @@ class TwoPassAtomizer:
                         reasoning=draft.reasoning,
                         resolved_claim=draft.resolved_claim,
                         is_logical_deduction=True,
-                        source_quote=None,
+                        source_quotes=None,
                         draft_id=draft.draft_id,
                         source_sequence_index=chunk_index,
                     )
@@ -513,12 +517,16 @@ class TwoPassAtomizer:
 
             exact_quote = local_alias_map[clean_id]
 
+            draft_quotes: tuple[str, ...] | None = None
+            if exact_quote:
+                draft_quotes = (exact_quote,)
+
             final_drafts.append(
                 DraftExtractedAtom(
                     reasoning=draft.reasoning,
                     resolved_claim=draft.resolved_claim,
                     is_logical_deduction=False,
-                    source_quote=exact_quote,
+                    source_quotes=draft_quotes,
                     draft_id=draft.draft_id,
                     source_sequence_index=chunk_index,
                 )

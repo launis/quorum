@@ -428,7 +428,9 @@ async def test_auth_service_facade_delegates_all_operations(
 
     auth_service.user_service._enforce_hierarchy = MagicMock()
     auth_service._enforce_hierarchy(dummy_user, UserRole.MEMBER)
-    auth_service.user_service._enforce_hierarchy.assert_called_once_with(creator=dummy_user, target_role=UserRole.MEMBER)
+    auth_service.user_service._enforce_hierarchy.assert_called_once_with(
+        creator=dummy_user, target_role=UserRole.MEMBER
+    )
 
     auth_service.user_service._count_org_admins = AsyncMock(return_value=2)
     assert await auth_service._count_org_admins("org_delegate01") == 2
@@ -440,10 +442,14 @@ async def test_auth_service_facade_delegates_all_operations(
     assert await auth_service.delete_user("usr_root000001", "usr_delegate01") is True
 
     auth_service.user_service.update_user = AsyncMock(return_value=dummy_user)
-    assert (await auth_service.update_user("usr_root000001", "usr_delegate01", dummy_user_update)).id == "usr_delegate01"
+    assert (
+        await auth_service.update_user("usr_root000001", "usr_delegate01", dummy_user_update)
+    ).id == "usr_delegate01"
 
     auth_service.user_service.update_user_role = AsyncMock(return_value=dummy_user)
-    assert (await auth_service.update_user_role("usr_root000001", "usr_delegate01", UserRole.ADMIN)).id == "usr_delegate01"
+    assert (
+        await auth_service.update_user_role("usr_root000001", "usr_delegate01", UserRole.ADMIN)
+    ).id == "usr_delegate01"
 
     auth_service.user_service.list_users = AsyncMock(return_value=[dummy_user])
     assert len(await auth_service.list_users(root_token)) == 1

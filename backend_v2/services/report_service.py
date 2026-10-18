@@ -623,6 +623,9 @@ class ReportService:
             if atom.status == ExecutionStatus.PASSED:
                 score = 1.0
             reasoning_val = format_ai_reasoning(atom.evaluation_reasoning)
+            quote_val: str | None = None
+            if atom.source_quotes:
+                quote_val = " [...] ".join(atom.source_quotes)
             rows.append(
                 ReportRowItemDTO(
                     execution_id=report.execution_id,
@@ -633,7 +636,7 @@ class ReportService:
                     max_scale=1.0,
                     weight=1.0,
                     reasoning=reasoning_val,
-                    quote=atom.source_quote,
+                    quote=quote_val,
                     is_inverse_evidence=atom.is_inverse_evidence,
                 )
             )

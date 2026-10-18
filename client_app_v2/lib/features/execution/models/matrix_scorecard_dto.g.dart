@@ -65,14 +65,17 @@ _QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(
     $checkKeys(
       json,
       allowedKeys: const [
-        'quote',
+        'source_quotes',
         'verified_source_ids',
         'unverified_aliases',
         'is_verified',
       ],
     );
     final val = _QuoteEvidenceDto(
-      quote: $checkedConvert('quote', (v) => v as String),
+      sourceQuotes: $checkedConvert(
+        'source_quotes',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
       verifiedSourceIds: $checkedConvert(
         'verified_source_ids',
         (v) =>
@@ -88,6 +91,7 @@ _QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(
     return val;
   },
   fieldKeyMap: const {
+    'sourceQuotes': 'source_quotes',
     'verifiedSourceIds': 'verified_source_ids',
     'unverifiedAliases': 'unverified_aliases',
     'isVerified': 'is_verified',
@@ -96,7 +100,7 @@ _QuoteEvidenceDto _$QuoteEvidenceDtoFromJson(
 
 Map<String, dynamic> _$QuoteEvidenceDtoToJson(_QuoteEvidenceDto instance) =>
     <String, dynamic>{
-      'quote': instance.quote,
+      'source_quotes': instance.sourceQuotes,
       'verified_source_ids': instance.verifiedSourceIds,
       'unverified_aliases': instance.unverifiedAliases,
       'is_verified': instance.isVerified,

@@ -52,6 +52,15 @@ class Workflow(V2CoreBase):
         int,
         Field(default=50, ge=0, le=100, description="Sovereign workflow strictness level (0-100 continuous)."),
     ] = 50
+    default_lexical_strictness_level: Annotated[
+        int,
+        Field(
+            default=50,
+            ge=0,
+            le=100,
+            description="Sovereign workflow lexical strictness level (0-100 continuous).",
+        ),
+    ] = 50
     security_penalty: Annotated[
         float,
         Field(

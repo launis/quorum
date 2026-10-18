@@ -73,24 +73,23 @@ class TestPhase1DTORefactoring:
         assert "evidence_quotes" in fields, "Missing promised field: evidence_quotes"
 
     def test_quote_evidence_dto_exists_with_correct_fields(self) -> None:
-        """PROMISE (Phase 1 §2): QuoteEvidenceDTO must have 'quote: str' and 'source_alias: List[str]'."""
+        """QuoteEvidenceDTO must have 'source_quotes' and 'source_alias'."""
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
         fields = QuoteEvidenceDTO.model_fields
-        assert "quote" in fields, "Missing promised field: quote"
+        assert "source_quotes" in fields, "Missing promised field: source_quotes"
         assert "verified_source_ids" in fields, "Missing promised field: verified_source_ids"
         assert "unverified_aliases" in fields, "Missing promised field: unverified_aliases"
 
     def test_quote_evidence_before_validator_regex_parsing(self) -> None:
-        """PROMISE (Phase 1 §2): 'mode=before @field_validator on source_alias to intercept
-        strings like "DOC-1, DOC-2" and normalize them into a list.'.
+        """Test regex parsing on source_alias.
 
         Falsification: Feed combined string, verify split.
         """
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Test.", "source_alias": "DOC-1, DOC-2"},
+            {"source_quotes": ["Test."], "source_alias": "DOC-1, DOC-2"},
             context={"alias_registry": {"DOC-1": "opq_1", "DOC-2": "opq_2"}},
         )
         # Verify the regex extracted both into verified (or unverified depending on registry)
@@ -100,15 +99,14 @@ class TestPhase1DTORefactoring:
         )
 
     def test_quote_evidence_unverified_fallback(self) -> None:
-        """PROMISE (Phase 1 §2): 'If the alias is missing, map it strictly to
-        the literal string "OpaqueID.UNVERIFIED".'.
+        """Test unverified aliases fallback.
 
         Falsification: Feed unknown alias, verify exact string.
         """
         from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Test.", "source_alias": "DOC-999"},
+            {"source_quotes": ["Test."], "source_alias": "DOC-999"},
             context={"alias_registry": {"DOC-1": "opq_1"}},
         )
         assert dto.unverified_aliases == ["DOC-999"], (
@@ -117,8 +115,7 @@ class TestPhase1DTORefactoring:
         )
 
     def test_quote_evidence_context_injection_works(self) -> None:
-        """PROMISE (Phase 1 §2): '@field_validator that takes info: ValidationInfo.
-        It must access info.context.get("alias_registry", {}).'.
+        """Test alias resolution via context injection.
 
         Falsification: Provide context with known mapping, verify resolution.
         """
@@ -126,7 +123,7 @@ class TestPhase1DTORefactoring:
 
         registry = {"DOC-1": "src_abc123", "DOC-2": "src_def456"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Evidence.", "source_alias": ["DOC-1", "DOC-2"]},
+            {"source_quotes": ["Evidence."], "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
         assert dto.verified_source_ids == ["src_abc123", "src_def456"], (
@@ -288,7 +285,7 @@ class TestPhase2PipelineUnification:
                         tda_id=tda_1,
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Reason",
-                        source_quote="Q1 verbatim quote longer than 15 chars",
+                        source_quotes=("Q1 verbatim quote longer than 15 chars",),
                         depends_on_tda_ids=[],
                         short_circuit_reason_tda_ids=[],
                     ),
@@ -296,7 +293,7 @@ class TestPhase2PipelineUnification:
                         tda_id=tda_2,
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Reason",
-                        source_quote=None,
+                        source_quotes=None,
                         contextual_override=True,
                         depends_on_tda_ids=[],
                         short_circuit_reason_tda_ids=[],

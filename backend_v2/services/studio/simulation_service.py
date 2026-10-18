@@ -271,7 +271,7 @@ class StudioSimulationService:
                                     reasoning="[SIMULATION]",
                                     resolved_claim=claim_text,
                                     is_logical_deduction=True,
-                                    source_quote=None,
+                                    source_quotes=None,
                                     tda_id=synthetic_id,
                                     source_sequence_index=seq_idx,
                                 ),

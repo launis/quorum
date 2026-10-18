@@ -443,7 +443,9 @@
               },
               "exact_quotes": [
                 {
-                  "quote": "We balanced 3-year vision with Q1 deliverables.",
+                  "source_quotes": [
+                    "We balanced 3-year vision with Q1 deliverables."
+                  ],
                   "verified_source_ids": [
                     "src_01"
                   ],
@@ -488,7 +490,9 @@
         {
           "node_id": "atm_root_01",
           "claim": "Initial prerequisite assumption holds in system boundary.",
-          "source_quote": "Foundational assumptions verified in documentation.",
+          "source_quotes": [
+            "Foundational assumptions verified in documentation."
+          ],
           "paragraph_ref": "Section 1.1",
           "status": "PASSED",
           "blame_parent_ids": [],
@@ -501,7 +505,9 @@
         {
           "node_id": "atm_child_02",
           "claim": "Cascading interface contract verified across components.",
-          "source_quote": "Unverified interface coupling caused contract fracture.",
+          "source_quotes": [
+            "Unverified interface coupling caused contract fracture."
+          ],
           "paragraph_ref": "Section 2.4",
           "status": "FAILED",
           "blame_parent_ids": [

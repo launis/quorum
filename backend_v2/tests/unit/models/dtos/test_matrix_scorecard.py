@@ -26,7 +26,7 @@ def test_human_override_request_and_dto() -> None:
         reason="Manual override by reviewer",
         evidence_quotes=[
             QuoteEvidenceDTO.model_validate(
-                {"quote": "verbatim evidence", "source_alias": "DOC-1"},
+                {"source_quotes": ["verbatim evidence"], "source_alias": "DOC-1"},
                 context={"alias_registry": {"DOC-1": "src_1"}},
             )
         ],

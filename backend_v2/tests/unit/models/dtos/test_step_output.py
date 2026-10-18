@@ -17,7 +17,7 @@ def test_step_output_dto_with_atom_result() -> None:
         tda_id="tda_1234567890abcdef",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Meets criteria.",
-        source_quote="Exact quote here.",
+        source_quotes=("Exact quote here.",),
     )
     dto = StepOutputDTO(
         step_id="stp_1234567890abcdef",
@@ -35,7 +35,7 @@ def test_step_output_dto_with_reduced_atom_dto() -> None:
         tda_id="tda_1234567890abcdef",
         status=LaxExecutionStatus.PASSED,
         reasoning="Compact reasoning.",
-        source_quote="Verbatim quote text.",
+        source_quotes=("Verbatim quote text.",),
     )
     dto = StepOutputDTO(
         step_id="matrix_reducer",

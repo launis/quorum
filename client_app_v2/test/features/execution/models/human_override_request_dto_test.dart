@@ -25,7 +25,7 @@ void main() {
 
     test('test_human_override_request_dto_with_quotes_serialization', () {
       const quote = QuoteEvidenceDto(
-        quote: 'Relevant quotation',
+        sourceQuotes: ['Relevant quotation'],
         verifiedSourceIds: ['src_1'],
         unverifiedAliases: [],
       );
@@ -40,7 +40,7 @@ void main() {
       expect(json['reason'], 'Contradicted by source');
       expect(json['evidence_quotes'], isNotEmpty);
       final quotesList = json['evidence_quotes'] as List;
-      expect(quotesList.first['quote'], 'Relevant quotation');
+      expect(quotesList.first['source_quotes'], ['Relevant quotation']);
     });
 
     test('test_human_override_request_dto_empty_reason_fails_validation', () {

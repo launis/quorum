@@ -76,7 +76,13 @@ class ReportRowItemDTO(V2CoreBase):
     max_scale: Annotated[float, Field(description="Maximum score on the evaluation scale.")]
     weight: Annotated[float, Field(description="Relative weight of this metric.")]
     reasoning: Annotated[str | None, Field(default=None, description="Analytical reasoning justification.")] = None
-    quote: Annotated[str | None, Field(default=None, description="Forensic source quote supporting evaluation.")] = None
+    quote: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Forensic source quote supporting evaluation (multi-segment quotes joined with ' [...] ').",
+        ),
+    ] = None
     is_inverse_evidence: Annotated[
         bool, Field(default=False, description="True if assertion evaluates absence of negative evidence.")
     ] = False

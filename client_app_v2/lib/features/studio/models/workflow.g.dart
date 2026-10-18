@@ -755,6 +755,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'mcp_gateway_id',
         'model_registry_id',
         'default_strictness_level',
+        'default_lexical_strictness_level',
         'security_penalty',
         'post_hoc_penalty',
         'passivity_penalty',
@@ -807,6 +808,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       modelRegistryId: $checkedConvert('model_registry_id', (v) => v as String),
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
+        (v) => (v as num?)?.toInt() ?? 50,
+      ),
+      defaultLexicalStrictnessLevel: $checkedConvert(
+        'default_lexical_strictness_level',
         (v) => (v as num?)?.toInt() ?? 50,
       ),
       securityPenalty: $checkedConvert(
@@ -868,6 +873,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'mcpGatewayId': 'mcp_gateway_id',
     'modelRegistryId': 'model_registry_id',
     'defaultStrictnessLevel': 'default_strictness_level',
+    'defaultLexicalStrictnessLevel': 'default_lexical_strictness_level',
     'securityPenalty': 'security_penalty',
     'postHocPenalty': 'post_hoc_penalty',
     'passivityPenalty': 'passivity_penalty',
@@ -896,6 +902,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'mcp_gateway_id': instance.mcpGatewayId,
   'model_registry_id': instance.modelRegistryId,
   'default_strictness_level': instance.defaultStrictnessLevel,
+  'default_lexical_strictness_level': instance.defaultLexicalStrictnessLevel,
   'security_penalty': instance.securityPenalty,
   'post_hoc_penalty': instance.postHocPenalty,
   'passivity_penalty': instance.passivityPenalty,

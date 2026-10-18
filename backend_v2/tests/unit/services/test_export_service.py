@@ -94,7 +94,7 @@ def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
                 tda_id="tda_0123456789abcdef",
                 matrix_id="blk_0123456789abcdef",
                 status=ExecutionStatus.PASSED,
-                source_quote="Verbatim quote from source document",
+                source_quotes="Verbatim quote from source document",
                 evaluation_reasoning="Reasoning with several words here",
             )
         ]
@@ -310,7 +310,7 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
         tda_id="tda_0123456789abcdef",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Verbatim quote from source document",
+        source_quotes="Verbatim quote from source document",
         evaluation_reasoning="Sound reasoning based on evidence.",
     )
     hydrated_ref = HydratedAtomDTO(
@@ -373,7 +373,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         tda_id="tda_bbbbbbbbbbbbbbbb",
         matrix_id="blk_aaaaaaaaaaaaaaaa",
         status=ExecutionStatus.FAILED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Failed check due to missing policy.",
         extensions={
             "internalized_rule": "Strict rule",
@@ -386,14 +386,14 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         tda_id="tda_cccccccccccccccc",
         matrix_id="blk_aaaaaaaaaaaaaaaa",
         status=ExecutionStatus.SYSTEM_ERROR,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning=None,
         error_details=ErrorDetailsDTO(error_code="SYSTEM_ERROR", message="System execution failure."),
     )
     hydrated_ref_with_quote = HydratedAtomDTO(
         sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
         resolved_claim="Resolved Claim with Quote",
-        source_quote="Quote from hydrated reference",
+        source_quotes="Quote from hydrated reference",
     )
 
     component_block = SystemRulePromptBlock(
@@ -422,14 +422,14 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         tda_id="tda_eeeeeeeeeeeeeeee",
         matrix_id="blk_dddddddddddddddd",
         status=ExecutionStatus.PASSED,
-        source_quote="Explicit quote",
+        source_quotes="Explicit quote",
         evaluation_reasoning="Evaluation passed smoothly.",
     )
     atom_unmatched = AtomResultDTO(
         tda_id="tda_ffffffffffffffff",
         matrix_id="blk_0000000000000000",
         status=ExecutionStatus.PASSED,
-        source_quote="Unknown quote",
+        source_quotes="Unknown quote",
         evaluation_reasoning="Evaluation for unknown block.",
     )
 
@@ -536,7 +536,7 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
         tda_id="tda_pos_001",
         matrix_id="blk_matrix_0001",
         status=ExecutionStatus.PASSED,
-        source_quote="Positive quote",
+        source_quotes="Positive quote",
         evaluation_reasoning="Demonstrated positive competence.",
         is_inverse_evidence=False,
     )
@@ -544,7 +544,7 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
         tda_id="tda_inv_001",
         matrix_id="blk_matrix_0002",
         status=ExecutionStatus.PASSED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="No fallacy detected.",
         is_inverse_evidence=True,
     )
@@ -633,7 +633,7 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
         tda_id="tda_53f32679aa514fcb0000000000000000",
         matrix_id="blk_53f32679aa514fcb",
         status=ExecutionStatus.PASSED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="No performativity error detected in leadership steering.",
         is_inverse_evidence=True,
     )
@@ -714,7 +714,7 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
         tda_id=tda_id,
         matrix_id="blk_0000000000000001",
         status=ExecutionStatus.FAILED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Performative bias was detected in steering.",
         is_inverse_evidence=False,
     )
@@ -760,7 +760,7 @@ async def test_export_excel_missing_matrix_in_repo_raises_fail_fast_negative() -
         tda_id="tda_0123456789abcdef0000000000000000",
         matrix_id="blk_unknown_99999999",
         status=ExecutionStatus.PASSED,
-        source_quote="Some valid quote",
+        source_quotes="Some valid quote",
         evaluation_reasoning="Evaluation succeeded.",
     )
 
@@ -937,14 +937,14 @@ async def test_export_excel_with_scorecard_atoms_and_rich_matrix_metadata() -> N
         tda_id="tda_eval_001",
         matrix_id=None,
         status=ExecutionStatus.PASSED,
-        source_quote="Verbatim quote for atom without matrix_id",
+        source_quotes="Verbatim quote for atom without matrix_id",
         evaluation_reasoning="Reasoning for atom without matrix_id",
     )
     atom_with_ref_quote = AtomResultDTO(
         tda_id="tda_eval_002",
         matrix_id="blk_rich_0001",
         status=ExecutionStatus.PASSED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Reasoning with ref quote fallback",
         is_inverse_evidence=True,
     )
@@ -965,7 +965,7 @@ async def test_export_excel_with_scorecard_atoms_and_rich_matrix_metadata() -> N
             "tda_eval_002": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim for eval 2",
-                source_quote="Hydrated fallback quote",
+                source_quotes="Hydrated fallback quote",
             ),
         },
     )
@@ -987,7 +987,7 @@ async def test_export_excel_atom_missing_matrix_id_and_parent_fails_fast() -> No
         tda_id="tda_orphan_999",
         matrix_id=None,
         status=ExecutionStatus.PASSED,
-        source_quote="Quote",
+        source_quotes="Quote",
         evaluation_reasoning="Reason",
     )
     report_dto = ReportDataDTO(
@@ -1064,7 +1064,7 @@ async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
         tda_id="tda_135ee4d2f4e28b3305cbae57482e34b0",
         matrix_id="blk_53f32679aa514fcb",
         status=ExecutionStatus.PASSED,
-        source_quote="Verbatim quote",
+        source_quotes="Verbatim quote",
         evaluation_reasoning="Evaluation reasoning",
     )
     report_dto = ReportDataDTO(
@@ -1202,14 +1202,14 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
         tda_id="tda_5555666677778888",
         matrix_id="blk_5555666677778888",
         status=ExecutionStatus.PASSED,
-        source_quote="Eval quote",
+        source_quotes="Eval quote",
         evaluation_reasoning="Eval reasoning",
     )
     atom_info = AtomResultDTO(
         tda_id="tda_1111222233334444",
         matrix_id="blk_1111222233334444",
         status=ExecutionStatus.PASSED,
-        source_quote="Info quote",
+        source_quotes="Info quote",
         evaluation_reasoning="Info reasoning",
     )
 
@@ -1334,7 +1334,7 @@ async def test_export_causal_enrichment_parity() -> None:
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Foundational architecture assumption holds true.",
-        source_quote="Foundational verified quote.",
+        source_quotes="Foundational verified quote.",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -1345,7 +1345,7 @@ async def test_export_causal_enrichment_parity() -> None:
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Downstream interface verification.",
-        source_quote="Interface failure quote.",
+        source_quotes="Interface failure quote.",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -1419,14 +1419,14 @@ async def test_export_causal_enrichment_parity() -> None:
         tda_id="tda_0000000000000001",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Foundational verified quote.",
+        source_quotes="Foundational verified quote.",
         evaluation_reasoning="Valid reasoning 1",
     )
     atom2 = AtomResultDTO(
         tda_id="tda_0000000000000002",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.FAILED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Failure reasoning 2",
     )
     report_dto = ReportDataDTO(
@@ -1573,7 +1573,7 @@ def _build_test_causal_payloads() -> tuple[CausalGraphPayloadDTO, CausalTdaFusio
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Foundational architecture assumption holds true.",
-        source_quote="Foundational verified quote.",
+        source_quotes="Foundational verified quote.",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -1584,7 +1584,7 @@ def _build_test_causal_payloads() -> tuple[CausalGraphPayloadDTO, CausalTdaFusio
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Downstream interface verification.",
-        source_quote="Interface failure quote.",
+        source_quotes="Interface failure quote.",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -1793,7 +1793,7 @@ def test_resolve_causal_meta_all_branches() -> None:
     node_orphan = CausalNodeDTO(
         node_id="tda_0000000000000003",
         claim="Claim orphan",
-        source_quote="Quote",
+        source_quotes="Quote",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -1808,7 +1808,7 @@ def test_resolve_causal_meta_all_branches() -> None:
     node_passed = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Claim passed",
-        source_quote="Quote",
+        source_quotes="Quote",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -1824,7 +1824,7 @@ def test_resolve_causal_meta_all_branches() -> None:
     node_cascading = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Claim cascading",
-        source_quote="Quote",
+        source_quotes="Quote",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -1840,7 +1840,7 @@ def test_resolve_causal_meta_all_branches() -> None:
     node_root = CausalNodeDTO(
         node_id="tda_0000000000000004",
         claim="Claim root cause",
-        source_quote="Quote",
+        source_quotes="Quote",
         paragraph_ref="Section 3",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
@@ -1955,7 +1955,7 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
         tda_id="tda_0000000000000001",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         evaluation_reasoning="Affirmative claim passed",
         is_inverse_evidence=False,
     )
@@ -2071,7 +2071,7 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
         tda_id="tda_0000000000000001",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         evaluation_reasoning="Affirmative passed",
         is_inverse_evidence=False,
     )
@@ -2083,7 +2083,7 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
         tda_id="tda_0000000000000002",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Inverse claim passed (anti-pattern absent = clean finding)",
         is_inverse_evidence=True,
     )

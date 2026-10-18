@@ -179,15 +179,16 @@ class CausalDiscoveryEngine(ExecutionEngine):
                         if 0 <= b_idx < len(paragraph_doc_keys):
                             matched_key = paragraph_doc_keys[b_idx]
 
-                if atom.source_quote:
+                if atom.source_quotes:
+                    anchor_quote = atom.source_quotes[0]
                     if matched_key is None:
                         for p_idx, p in enumerate(paragraphs):
-                            if p.find(atom.source_quote) != -1:
+                            if p.find(anchor_quote) != -1:
                                 matched_key = paragraph_doc_keys[p_idx]
                                 break
 
                     if matched_key is None and directive_matches:
-                        q_pos = document_text.find(atom.source_quote)
+                        q_pos = document_text.find(anchor_quote)
                         if q_pos != -1:
                             for m in directive_matches:
                                 if q_pos >= m.start():
@@ -195,7 +196,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                                 else:
                                     break
 
-                    if document_text.find(atom.source_quote) != -1 or hydrated_text.find(atom.source_quote) != -1:
+                    if all(document_text.find(q) != -1 or hydrated_text.find(q) != -1 for q in atom.source_quotes):
                         updated_atom = atom.model_copy(update={"source_input_key": matched_key})
                         valid_atoms.append(updated_atom)
                         atom_key_map[atom.tda_id] = matched_key
@@ -247,7 +248,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     n.atom.tda_id: AtomEvaluationResultDTO(
                         status=ExecutionStatus.PASSED,
                         reasoning="Proposition validly extracted.",
-                        source_quote=n.atom.source_quote,
+                        source_quotes=n.atom.source_quotes,
                         extensions={},
                     )
                     for n in nodes
@@ -330,7 +331,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     CausalNodeDTO(
                         node_id=nid,
                         claim=node.atom.resolved_claim,
-                        source_quote=node.atom.source_quote,
+                        source_quotes=node.atom.source_quotes,
                         paragraph_ref=node.atom.source_id,
                         status=node_status,
                         blame_parent_ids=blame_parents,

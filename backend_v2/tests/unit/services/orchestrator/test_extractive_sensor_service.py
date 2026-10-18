@@ -163,7 +163,8 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_empty_quote() -> 
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="None",
+        is_logical_deduction=True,
+        source_quotes=None,
         source_id="src",
         source_sequence_index=0,
     )
@@ -177,7 +178,7 @@ def test_extractive_sensor_service_extracted_atom_pre_evaluate_fail() -> None:
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="Very specific quote that is not here",
+        source_quotes="Very specific quote that is not here",
         source_id="src",
         source_sequence_index=0,
     )
@@ -194,7 +195,7 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="undecided_quote",
+        source_quotes="undecided_quote",
         source_id="src",
         source_sequence_index=0,
     )
@@ -205,7 +206,7 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
         tda_id="tda_22222222222222222222222222222222",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="fail_quote",
+        source_quotes="fail_quote",
         source_id="src",
         source_sequence_index=0,
     )
@@ -307,25 +308,25 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     results_split: list[EnsembleCallResultDTO] = [
         EnsembleCallResultDTO(
             evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="quote 1")
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quotes="quote 1")
             }
         ),
         EnsembleCallResultDTO(
             evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quotes=None)
             }
         ),
         EnsembleCallResultDTO(evaluations=None),  # 3rd call failed transiently
     ]
     res_pos = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: False})
     assert res_pos[tda_id].status == ExecutionStatus.FAILED
-    assert res_pos[tda_id].source_quote is None
+    assert res_pos[tda_id].source_quotes is None
     assert "EPISTEMIC_TIE_BREAKER" in (res_pos[tda_id].reasoning or "")
 
     # 2. Partition B (Inverse Claim Split: 1 PASSED, 1 FAILED, is_inverse=True -> PASSED)
     res_inv = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: True})
     assert res_inv[tda_id].status == ExecutionStatus.PASSED
-    assert res_inv[tda_id].source_quote is None
+    assert res_inv[tda_id].source_quotes is None
     assert "EPISTEMIC_TIE_BREAKER" in (res_inv[tda_id].reasoning or "")
 
     # 3. Partition C (Missing Polarity Map: 1 PASSED, 1 FAILED, is_inverse_map=None -> SYSTEM_ERROR)
@@ -345,19 +346,19 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
         EnsembleCallResultDTO(
             evaluations={
                 tda_id: AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r1", source_quote="valid quote"
+                    status=ExecutionStatus.PASSED, reasoning="r1", source_quotes="valid quote"
                 )
             }
         ),
         EnsembleCallResultDTO(
             evaluations={
-                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quotes=None)
             }
         ),
         EnsembleCallResultDTO(
             evaluations={
                 tda_id: AtomEvaluationResultDTO(
-                    status=ExecutionStatus.PASSED, reasoning="r3", source_quote="valid quote"
+                    status=ExecutionStatus.PASSED, reasoning="r3", source_quotes="valid quote"
                 )
             }
         ),
@@ -366,7 +367,7 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
         [tda_id], results_consensus, is_inverse_map={tda_id: False}
     )
     assert res_consensus[tda_id].status == ExecutionStatus.PASSED
-    assert res_consensus[tda_id].source_quote == "valid quote"
+    assert res_consensus[tda_id].source_quotes == ("valid quote",)
 
     # 6. Partition F (Zero Votes Cast: atom missing from all responses -> SYSTEM_ERROR)
     results_empty: list[EnsembleCallResultDTO] = [
@@ -389,7 +390,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="quote",
+        source_quotes="quote",
         source_id="src",
         source_sequence_index=0,
     )
@@ -405,7 +406,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -474,7 +475,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="quote",
+        source_quotes="quote",
         source_id="src",
         source_sequence_index=0,
     )
@@ -487,7 +488,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -530,7 +531,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         tda_id=tda_id,
         reasoning="Negative condition evaluated.",
         resolved_claim="Penalty claim.",
-        source_quote=None,
+        source_quotes=None,
         is_logical_deduction=True,
         source_id="src",
         source_sequence_index=0,
@@ -544,7 +545,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -599,7 +600,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         tda_id=tda_id,
         reasoning="Negative condition evaluated.",
         resolved_claim="Penalty claim.",
-        source_quote=None,
+        source_quotes=None,
         is_logical_deduction=True,
         source_id="src",
         source_sequence_index=0,
@@ -613,7 +614,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -668,73 +669,73 @@ def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:
             alias="a0",
             reasoning="Test reasoning",
             is_true=True,
-            source_quote=long_quote,
+            source_quotes=long_quote,
         )
 
 
 def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
     """ISTQB boundary value analysis and equivalence partition tests for BooleanEvaluationResult."""
-    # Partition 1 (Positive): is_true=True, source_quote="valid quote", contextual_override=False passes
+    # Partition 1 (Positive): is_true=True, source_quotes="valid quote", contextual_override=False passes
     res1 = BooleanEvaluationResult(
         alias="a0",
         reasoning="Valid reason",
         is_true=True,
-        source_quote="valid quote",
+        source_quotes="valid quote",
         contextual_override=False,
     )
     assert res1.is_true is True
-    assert res1.source_quote == "valid quote"
+    assert res1.source_quotes == ("valid quote",)
 
-    # Partition 2 (Positive): is_true=False, source_quote=None, contextual_override=False passes
+    # Partition 2 (Positive): is_true=False, source_quotes=None, contextual_override=False passes
     res2 = BooleanEvaluationResult(
         alias="a0",
         reasoning="Valid reason",
         is_true=False,
-        source_quote=None,
+        source_quotes=None,
         contextual_override=False,
     )
     assert res2.is_true is False
-    assert res2.source_quote is None
+    assert res2.source_quotes is None
 
-    # Partition 3 (Positive): is_true=False, source_quote=None, contextual_override=True passes
+    # Partition 3 (Positive): is_true=False, source_quotes=None, contextual_override=True passes
     res3 = BooleanEvaluationResult(
         alias="a0",
         reasoning="Overridden reason",
         is_true=False,
-        source_quote=None,
+        source_quotes=None,
         contextual_override=True,
     )
     assert res3.is_true is False
-    assert res3.source_quote is None
+    assert res3.source_quotes is None
     assert res3.contextual_override is True
 
-    # Partition 4 (Negative): is_true=True, source_quote=None, contextual_override=False raises ValidationError
+    # Partition 4 (Negative): is_true=True, source_quotes=None, contextual_override=False raises ValidationError
     with pytest.raises(ValidationError, match="Ungrounded positive evaluation"):
         BooleanEvaluationResult(
             alias="a0",
             reasoning="Missing quote",
             is_true=True,
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
         )
 
-    # Partition 5 (Negative): is_true=True, source_quote="   ", contextual_override=False raises ValidationError
+    # Partition 5 (Negative): is_true=True, source_quotes="   ", contextual_override=False raises ValidationError
     with pytest.raises(ValidationError, match="Ungrounded positive evaluation"):
         BooleanEvaluationResult(
             alias="a0",
             reasoning="Whitespace quote",
             is_true=True,
-            source_quote="   ",
+            source_quotes="   ",
             contextual_override=False,
         )
 
-    # Partition 6 (Negative): is_true=False, source_quote="stale quote", contextual_override=False raises ValidationError
+    # Partition 6 (Negative): is_true=False, source_quotes="stale quote", contextual_override=False raises ValidationError
     with pytest.raises(ValidationError, match="Null hypothesis violation"):
         BooleanEvaluationResult(
             alias="a0",
             reasoning="Stale quote on false",
             is_true=False,
-            source_quote="stale quote",
+            source_quotes="stale quote",
             contextual_override=False,
         )
 
@@ -744,7 +745,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Too short quote",
             is_true=True,
-            source_quote="123456789",
+            source_quotes="123456789",
             contextual_override=False,
         )
 
@@ -753,10 +754,10 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
         alias="a0",
         reasoning="Valid 10 char quote",
         is_true=True,
-        source_quote="1234567890",
+        source_quotes="1234567890",
         contextual_override=False,
     )
-    assert res8.source_quote == "1234567890"
+    assert res8.source_quotes == ("1234567890",)
 
     # Partition 9 (Negative): is_true=True, contextual_override=True with non-null source_quote raises ValidationError
     with pytest.raises(ValidationError, match="Null hypothesis violation"):
@@ -764,7 +765,7 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             alias="a0",
             reasoning="Override cannot have quote",
             is_true=True,
-            source_quote="valid quote here",
+            source_quotes="valid quote here",
             contextual_override=True,
         )
 
@@ -778,7 +779,7 @@ def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
                 tda_id: AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="Vahvistettu",
-                    source_quote="Tämä on suora lainaus lähteestä.",
+                    source_quotes="Tämä on suora lainaus lähteestä.",
                 )
             }
         ),
@@ -787,7 +788,7 @@ def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
                 tda_id: AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="Sama havainto",
-                    source_quote="Tämä on toinen suora lainaus.",
+                    source_quotes="Tämä on toinen suora lainaus.",
                 )
             }
         ),
@@ -796,14 +797,14 @@ def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
                 tda_id: AtomEvaluationResultDTO(
                     status=ExecutionStatus.FAILED,
                     reasoning="Eri mieltä",
-                    source_quote=None,
+                    source_quotes=None,
                 )
             }
         ),
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote([tda_id], results)
     assert resolved[tda_id].status == ExecutionStatus.PASSED
-    assert resolved[tda_id].source_quote == "Tämä on suora lainaus lähteestä."
+    assert resolved[tda_id].source_quotes == ("Tämä on suora lainaus lähteestä.",)
 
 
 @pytest.mark.asyncio
@@ -814,7 +815,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
         tda_id=tda_id,
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="Initial static claim",
+        source_quotes="Initial static claim",
         source_id="src",
         source_sequence_index=0,
     )
@@ -827,7 +828,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -844,7 +845,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
                     alias="a1",
                     reasoning="Löydetty suora sitaatti",
                     is_true=True,
-                    source_quote=original_quote,
+                    source_quotes=original_quote,
                 )
             ]
         ),
@@ -864,7 +865,7 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
-        assert results[tda_id].source_quote == original_quote
+        assert results[tda_id].source_quotes == (original_quote,)
 
 
 def test_boolean_evaluation_result_schema_description() -> None:
@@ -872,7 +873,7 @@ def test_boolean_evaluation_result_schema_description() -> None:
     assert BooleanEvaluationResult.model_fields["alias"].description == DESC_ALIAS
     assert BooleanEvaluationResult.model_fields["reasoning"].description == DESC_SEMANTIC_REASONING
     assert BooleanEvaluationResult.model_fields["is_true"].description == DESC_IS_TRUE
-    assert BooleanEvaluationResult.model_fields["source_quote"].description == DESC_SOURCE_QUOTE
+    assert BooleanEvaluationResult.model_fields["source_quotes"].description == DESC_SOURCE_QUOTE
     assert BooleanEvaluationResult.model_fields["contextual_override"].description == DESC_CONTEXTUAL_OVERRIDE
     assert BooleanEvaluationResult.model_fields["coaching"].description == DESC_COACHING
     assert BooleanEvaluationResult.model_fields["falsification"].description == DESC_FALSIFICATION
@@ -888,7 +889,7 @@ async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_loc
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="quote",
+            source_quotes="quote",
             source_id="src",
             source_sequence_index=0,
         ),
@@ -919,7 +920,7 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="quote",
+            source_quotes="quote",
             source_id="src",
             source_sequence_index=0,
         ),
@@ -930,7 +931,7 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -979,7 +980,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quote="quote 1",
+            source_quotes="quote 1",
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -990,7 +991,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
             tda_id="tda_22222222222222222222222222222222",
             reasoning="reason 2",
             resolved_claim="claim 2",
-            source_quote="quote 2",
+            source_quotes="quote 2",
             source_id="src_2",
             source_sequence_index=1,
         ),
@@ -1001,7 +1002,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -1012,12 +1013,12 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
 
     primary_response = MockResponse(
         results=[
-            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quote="quote 1"),
+            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quotes="quote 1"),
         ]
     )
     recovery_response = MockResponse(
         results=[
-            MockResult(alias="a1", reasoning="Recovered in targeted retry", is_true=True, source_quote="quote 2"),
+            MockResult(alias="a1", reasoning="Recovered in targeted retry", is_true=True, source_quotes="quote 2"),
         ]
     )
 
@@ -1057,7 +1058,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quote="quote 1",
+            source_quotes="quote 1",
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -1068,7 +1069,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
             tda_id="tda_22222222222222222222222222222222",
             reasoning="reason 2",
             resolved_claim="claim 2",
-            source_quote="quote 2",
+            source_quotes="quote 2",
             source_id="src_2",
             source_sequence_index=1,
         ),
@@ -1079,7 +1080,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -1090,7 +1091,7 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
 
     primary_response = MockResponse(
         results=[
-            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quote="quote 1"),
+            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quotes="quote 1"),
         ]
     )
 
@@ -1144,7 +1145,7 @@ async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() 
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quote="valid quote text here",
+            source_quotes="valid quote text here",
             source_id="src_1",
             source_sequence_index=0,
         ),
@@ -1155,7 +1156,7 @@ async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() 
         alias: str
         reasoning: str
         is_true: bool
-        source_quote: str | None = None
+        source_quotes: tuple[str, ...] | list[str] | str | None = None
         contextual_override: bool | None = None
         coaching: str | None = None
         falsification: str | None = None
@@ -1170,7 +1171,7 @@ async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() 
                 alias="a0",
                 reasoning="Claim matched",
                 is_true=True,
-                source_quote="valid quote text here",
+                source_quotes="valid quote text here",
                 coaching="Improve coaching",
                 falsification="Contradicted by data",
                 remediation_steps=["Step 1", "Step 2"],
@@ -1217,7 +1218,7 @@ async def test_evaluate_atom_boolean_batch_exception_group_propagation() -> None
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason 1",
             resolved_claim="claim 1",
-            source_quote="valid quote text here",
+            source_quotes="valid quote text here",
             source_id="src_1",
             source_sequence_index=0,
         ),

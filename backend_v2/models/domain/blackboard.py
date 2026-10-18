@@ -2,9 +2,9 @@
 
 from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 
 
 class LLMDraftAtom(V2CoreBase):
@@ -56,9 +56,10 @@ class DraftExtractedAtom(V2CoreBase):
             default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."
         ),
     ] = False
-    source_quote: Annotated[
-        str | None,
-        Field(default=None, description="The exact verbatim quote. Must be None if is_logical_deduction is True."),
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="The exact verbatim quotes. Must be None if is_logical_deduction is True."),
     ] = None
     draft_id: Annotated[str, Field(description="A short temporary ID assigned by LLM, e.g. a0, a1.")]
     source_sequence_index: Annotated[
@@ -67,10 +68,10 @@ class DraftExtractedAtom(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_source(self) -> Self:
-        if self.is_logical_deduction and self.source_quote is not None:
-            raise ValueError("source_quote must be None if is_logical_deduction is True.")
-        if not self.is_logical_deduction and not self.source_quote:
-            raise ValueError("source_quote is mandatory unless is_logical_deduction is True.")
+        if self.is_logical_deduction and self.source_quotes is not None:
+            raise ValueError("source_quotes must be None if is_logical_deduction is True.")
+        if not self.is_logical_deduction and not self.source_quotes:
+            raise ValueError("source_quotes is mandatory unless is_logical_deduction is True.")
         return self
 
 
@@ -122,8 +123,10 @@ class GlobalAtomBlackboard(V2CoreBase):
                 lines.append(f"**Claim**: {atom.resolved_claim}")
                 if atom.is_logical_deduction:
                     lines.append("**Quote**: [Logical Deduction]")
+                elif atom.source_quotes:
+                    lines.append(f"**Quote**: {' [...] '.join(atom.source_quotes)}")
                 else:
-                    lines.append(f"**Quote**: {atom.source_quote}")
+                    lines.append("**Quote**: [None]")
                 lines.append(f"**Reasoning**: {atom.reasoning}")
                 lines.append("")
         return "\n".join(lines)

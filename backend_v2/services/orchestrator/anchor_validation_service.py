@@ -476,42 +476,43 @@ class AnchorValidationService:
 
         # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
         if atom.contextual_override:
-            return atom.model_copy(update={"source_quote": None, "evaluation_reasoning": hydrated_reasoning})
+            return atom.model_copy(update={"source_quotes": None, "evaluation_reasoning": hydrated_reasoning})
 
-        validated_quote = atom.source_quote
-        if atom.source_quote is not None:
-            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(atom.source_quote)
-            matched = False
-            # 1. Match against static source documents
-            if source_documents:
-                for doc in source_documents:
-                    if doc.text_content and doc.opaque_id:
-                        norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(doc.text_content)
+        validated_quotes = atom.source_quotes
+        if atom.source_quotes is not None:
+            for quote_seg in atom.source_quotes:
+                norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote_seg)
+                matched = False
+                # 1. Match against static source documents
+                if source_documents:
+                    for doc in source_documents:
+                        if doc.text_content and doc.opaque_id:
+                            norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(doc.text_content)
+                            if AnchorValidationService._is_lexically_valid(
+                                quote=quote_seg,
+                                norm_quote=norm_quote,
+                                norm_text=norm_doc,
+                                strictness_level=strictness_level,
+                                locale=locale,
+                                source_text=doc.text_content,
+                            ).is_valid:
+                                matched = True
+                                break
+
+                # 2. Match against dynamic MCP source texts
+                if not matched and mcp_source_texts:
+                    for mcp_text in mcp_source_texts.values():
+                        norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
                         if AnchorValidationService._is_lexically_valid(
-                            quote=atom.source_quote,
+                            quote=quote_seg,
                             norm_quote=norm_quote,
-                            norm_text=norm_doc,
+                            norm_text=norm_mcp,
                             strictness_level=strictness_level,
                             locale=locale,
-                            source_text=doc.text_content,
+                            source_text=mcp_text,
                         ).is_valid:
                             matched = True
                             break
 
-            # 2. Match against dynamic MCP source texts
-            if not matched and mcp_source_texts:
-                for mcp_text in mcp_source_texts.values():
-                    norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
-                    if AnchorValidationService._is_lexically_valid(
-                        quote=atom.source_quote,
-                        norm_quote=norm_quote,
-                        norm_text=norm_mcp,
-                        strictness_level=strictness_level,
-                        locale=locale,
-                        source_text=mcp_text,
-                    ).is_valid:
-                        matched = True
-                        break
-
         # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
-        return atom.model_copy(update={"source_quote": validated_quote, "evaluation_reasoning": hydrated_reasoning})
+        return atom.model_copy(update={"source_quotes": validated_quotes, "evaluation_reasoning": hydrated_reasoning})

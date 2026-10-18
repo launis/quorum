@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Dedicated test suite for Multi-Segment Evidence and Causal Horizon foundations.
 
 Verifies:
@@ -8,6 +6,8 @@ Verifies:
 3. QuoteEvidenceDTO.get_quotes forward-compatible accessor.
 4. AnchorValidationService symmetric index resolution via pdf_map.
 """
+
+from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError

@@ -23,7 +23,7 @@ void main() {
       const CausalNodeDto(
         nodeId: 'atm_root_01',
         claim: 'Root prerequisite holds in system boundary.',
-        sourceQuote: 'Foundational assumptions verified in documentation.',
+        sourceQuotes: ['Foundational assumptions verified in documentation.'],
         paragraphRef: 'Section 1.1',
         status: ExecutionStatus.passed,
         blameParentIds: [],
@@ -34,7 +34,9 @@ void main() {
       const CausalNodeDto(
         nodeId: 'atm_child_02',
         claim: 'Cascading interface contract failed.',
-        sourceQuote: 'Unverified interface coupling caused contract fracture.',
+        sourceQuotes: [
+          'Unverified interface coupling caused contract fracture.',
+        ],
         paragraphRef: 'Section 2.4',
         status: ExecutionStatus.failed,
         blameParentIds: ['atm_root_01'],

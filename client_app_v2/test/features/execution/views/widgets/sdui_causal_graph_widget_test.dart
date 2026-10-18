@@ -24,7 +24,7 @@ void main() {
       const CausalNodeDto(
         nodeId: 'atm_root_01',
         claim: 'Root prerequisite holds.',
-        sourceQuote: 'Foundational assumptions verified.',
+        sourceQuotes: ['Foundational assumptions verified.'],
         paragraphRef: 'Section 1.1',
         status: ExecutionStatus.passed,
         blameParentIds: [],
@@ -35,7 +35,7 @@ void main() {
       const CausalNodeDto(
         nodeId: 'atm_child_02',
         claim: 'Downstream contract verification failed.',
-        sourceQuote: 'Interface mismatch caused failure.',
+        sourceQuotes: ['Interface mismatch caused failure.'],
         paragraphRef: 'Section 2.4',
         status: ExecutionStatus.failed,
         blameParentIds: ['atm_root_01'],

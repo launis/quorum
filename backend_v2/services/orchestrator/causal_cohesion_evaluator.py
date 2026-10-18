@@ -263,7 +263,7 @@ class CausalCohesionEvaluator:
             tda_id: HydratedAtomDTO(
                 sdui_component=SDUIComponentType.BOOLEAN_CARD,
                 resolved_claim=claim,
-                source_quote=None,
+                source_quotes=None,
             )
             for tda_id, claim in zip(CAUSAL_COHESION_TDA_IDS, CAUSAL_COHESION_CLAIMS, strict=True)
         }

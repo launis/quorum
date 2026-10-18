@@ -10,7 +10,7 @@ abstract class CausalNodeDto with _$CausalNodeDto {
   const factory CausalNodeDto({
     @JsonKey(name: 'node_id') required String nodeId,
     required String claim,
-    @JsonKey(name: 'source_quote') String? sourceQuote,
+    @JsonKey(name: 'source_quotes') List<String>? sourceQuotes,
     @JsonKey(name: 'paragraph_ref') String? paragraphRef,
     required ExecutionStatus status,
     @JsonKey(name: 'blame_parent_ids') @Default([]) List<String> blameParentIds,

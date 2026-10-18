@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CausalNodeDto {
 
-@JsonKey(name: 'node_id') String get nodeId; String get claim;@JsonKey(name: 'source_quote') String? get sourceQuote;@JsonKey(name: 'paragraph_ref') String? get paragraphRef; ExecutionStatus get status;@JsonKey(name: 'blame_parent_ids') List<String> get blameParentIds;@JsonKey(name: 'dependent_child_ids') List<String> get dependentChildIds;@JsonKey(name: 'tda_score') double? get tdaScore;@JsonKey(name: 'tda_level_key') String? get tdaLevelKey;@JsonKey(name: 'source_input_key') String? get sourceInputKey;
+@JsonKey(name: 'node_id') String get nodeId; String get claim;@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes;@JsonKey(name: 'paragraph_ref') String? get paragraphRef; ExecutionStatus get status;@JsonKey(name: 'blame_parent_ids') List<String> get blameParentIds;@JsonKey(name: 'dependent_child_ids') List<String> get dependentChildIds;@JsonKey(name: 'tda_score') double? get tdaScore;@JsonKey(name: 'tda_level_key') String? get tdaLevelKey;@JsonKey(name: 'source_input_key') String? get sourceInputKey;
 /// Create a copy of CausalNodeDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $CausalNodeDtoCopyWith<CausalNodeDto> get copyWith => _$CausalNodeDtoCopyWithImp
 
 @override
 String toString() {
-  return 'CausalNodeDto(nodeId: $nodeId, claim: $claim, sourceQuote: $sourceQuote, paragraphRef: $paragraphRef, status: $status, blameParentIds: $blameParentIds, dependentChildIds: $dependentChildIds, tdaScore: $tdaScore, tdaLevelKey: $tdaLevelKey, sourceInputKey: $sourceInputKey)';
+  return 'CausalNodeDto(nodeId: $nodeId, claim: $claim, sourceQuotes: $sourceQuotes, paragraphRef: $paragraphRef, status: $status, blameParentIds: $blameParentIds, dependentChildIds: $dependentChildIds, tdaScore: $tdaScore, tdaLevelKey: $tdaLevelKey, sourceInputKey: $sourceInputKey)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $CausalNodeDtoCopyWith<$Res>  {
   factory $CausalNodeDtoCopyWith(CausalNodeDto value, $Res Function(CausalNodeDto) _then) = _$CausalNodeDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'node_id') String nodeId, String claim,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'paragraph_ref') String? paragraphRef, ExecutionStatus status,@JsonKey(name: 'blame_parent_ids') List<String> blameParentIds,@JsonKey(name: 'dependent_child_ids') List<String> dependentChildIds,@JsonKey(name: 'tda_score') double? tdaScore,@JsonKey(name: 'tda_level_key') String? tdaLevelKey,@JsonKey(name: 'source_input_key') String? sourceInputKey
+@JsonKey(name: 'node_id') String nodeId, String claim,@JsonKey(name: 'source_quotes') List<String>? sourceQuotes,@JsonKey(name: 'paragraph_ref') String? paragraphRef, ExecutionStatus status,@JsonKey(name: 'blame_parent_ids') List<String> blameParentIds,@JsonKey(name: 'dependent_child_ids') List<String> dependentChildIds,@JsonKey(name: 'tda_score') double? tdaScore,@JsonKey(name: 'tda_level_key') String? tdaLevelKey,@JsonKey(name: 'source_input_key') String? sourceInputKey
 });
 
 
@@ -58,12 +58,12 @@ class _$CausalNodeDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalNodeDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? nodeId = null,Object? claim = null,Object? sourceQuote = freezed,Object? paragraphRef = freezed,Object? status = null,Object? blameParentIds = null,Object? dependentChildIds = null,Object? tdaScore = freezed,Object? tdaLevelKey = freezed,Object? sourceInputKey = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? nodeId = null,Object? claim = null,Object? sourceQuotes = freezed,Object? paragraphRef = freezed,Object? status = null,Object? blameParentIds = null,Object? dependentChildIds = null,Object? tdaScore = freezed,Object? tdaLevelKey = freezed,Object? sourceInputKey = freezed,}) {
   return _then(_self.copyWith(
 nodeId: null == nodeId ? _self.nodeId : nodeId // ignore: cast_nullable_to_non_nullable
 as String,claim: null == claim ? _self.claim : claim // ignore: cast_nullable_to_non_nullable
-as String,sourceQuote: freezed == sourceQuote ? _self.sourceQuote : sourceQuote // ignore: cast_nullable_to_non_nullable
-as String?,paragraphRef: freezed == paragraphRef ? _self.paragraphRef : paragraphRef // ignore: cast_nullable_to_non_nullable
+as String,sourceQuotes: freezed == sourceQuotes ? _self.sourceQuotes : sourceQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,paragraphRef: freezed == paragraphRef ? _self.paragraphRef : paragraphRef // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ExecutionStatus,blameParentIds: null == blameParentIds ? _self.blameParentIds : blameParentIds // ignore: cast_nullable_to_non_nullable
 as List<String>,dependentChildIds: null == dependentChildIds ? _self.dependentChildIds : dependentChildIds // ignore: cast_nullable_to_non_nullable
@@ -155,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CausalNodeDto() when $default != null:
-return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
+return $default(_that.nodeId,_that.claim,_that.sourceQuotes,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
   return orElse();
 
 }
@@ -176,10 +176,10 @@ return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)  $default,) {final _that = this;
 switch (_that) {
 case _CausalNodeDto():
-return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
+return $default(_that.nodeId,_that.claim,_that.sourceQuotes,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +196,10 @@ return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quote')  String? sourceQuote, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'node_id')  String nodeId,  String claim, @JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'paragraph_ref')  String? paragraphRef,  ExecutionStatus status, @JsonKey(name: 'blame_parent_ids')  List<String> blameParentIds, @JsonKey(name: 'dependent_child_ids')  List<String> dependentChildIds, @JsonKey(name: 'tda_score')  double? tdaScore, @JsonKey(name: 'tda_level_key')  String? tdaLevelKey, @JsonKey(name: 'source_input_key')  String? sourceInputKey)?  $default,) {final _that = this;
 switch (_that) {
 case _CausalNodeDto() when $default != null:
-return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
+return $default(_that.nodeId,_that.claim,_that.sourceQuotes,_that.paragraphRef,_that.status,_that.blameParentIds,_that.dependentChildIds,_that.tdaScore,_that.tdaLevelKey,_that.sourceInputKey);case _:
   return null;
 
 }
@@ -211,12 +211,20 @@ return $default(_that.nodeId,_that.claim,_that.sourceQuote,_that.paragraphRef,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _CausalNodeDto implements CausalNodeDto {
-  const _CausalNodeDto({@JsonKey(name: 'node_id') required this.nodeId, required this.claim, @JsonKey(name: 'source_quote') this.sourceQuote, @JsonKey(name: 'paragraph_ref') this.paragraphRef, required this.status, @JsonKey(name: 'blame_parent_ids') final  List<String> blameParentIds = const [], @JsonKey(name: 'dependent_child_ids') final  List<String> dependentChildIds = const [], @JsonKey(name: 'tda_score') this.tdaScore, @JsonKey(name: 'tda_level_key') this.tdaLevelKey, @JsonKey(name: 'source_input_key') this.sourceInputKey = null}): _blameParentIds = blameParentIds,_dependentChildIds = dependentChildIds;
+  const _CausalNodeDto({@JsonKey(name: 'node_id') required this.nodeId, required this.claim, @JsonKey(name: 'source_quotes') final  List<String>? sourceQuotes, @JsonKey(name: 'paragraph_ref') this.paragraphRef, required this.status, @JsonKey(name: 'blame_parent_ids') final  List<String> blameParentIds = const [], @JsonKey(name: 'dependent_child_ids') final  List<String> dependentChildIds = const [], @JsonKey(name: 'tda_score') this.tdaScore, @JsonKey(name: 'tda_level_key') this.tdaLevelKey, @JsonKey(name: 'source_input_key') this.sourceInputKey = null}): _sourceQuotes = sourceQuotes,_blameParentIds = blameParentIds,_dependentChildIds = dependentChildIds;
   factory _CausalNodeDto.fromJson(Map<String, dynamic> json) => _$CausalNodeDtoFromJson(json);
 
 @override@JsonKey(name: 'node_id') final  String nodeId;
 @override final  String claim;
-@override@JsonKey(name: 'source_quote') final  String? sourceQuote;
+ final  List<String>? _sourceQuotes;
+@override@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes {
+  final value = _sourceQuotes;
+  if (value == null) return null;
+  if (_sourceQuotes is EqualUnmodifiableListView) return _sourceQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 @override@JsonKey(name: 'paragraph_ref') final  String? paragraphRef;
 @override final  ExecutionStatus status;
  final  List<String> _blameParentIds;
@@ -252,7 +260,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'CausalNodeDto(nodeId: $nodeId, claim: $claim, sourceQuote: $sourceQuote, paragraphRef: $paragraphRef, status: $status, blameParentIds: $blameParentIds, dependentChildIds: $dependentChildIds, tdaScore: $tdaScore, tdaLevelKey: $tdaLevelKey, sourceInputKey: $sourceInputKey)';
+  return 'CausalNodeDto(nodeId: $nodeId, claim: $claim, sourceQuotes: $sourceQuotes, paragraphRef: $paragraphRef, status: $status, blameParentIds: $blameParentIds, dependentChildIds: $dependentChildIds, tdaScore: $tdaScore, tdaLevelKey: $tdaLevelKey, sourceInputKey: $sourceInputKey)';
 }
 
 
@@ -263,7 +271,7 @@ abstract mixin class _$CausalNodeDtoCopyWith<$Res> implements $CausalNodeDtoCopy
   factory _$CausalNodeDtoCopyWith(_CausalNodeDto value, $Res Function(_CausalNodeDto) _then) = __$CausalNodeDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'node_id') String nodeId, String claim,@JsonKey(name: 'source_quote') String? sourceQuote,@JsonKey(name: 'paragraph_ref') String? paragraphRef, ExecutionStatus status,@JsonKey(name: 'blame_parent_ids') List<String> blameParentIds,@JsonKey(name: 'dependent_child_ids') List<String> dependentChildIds,@JsonKey(name: 'tda_score') double? tdaScore,@JsonKey(name: 'tda_level_key') String? tdaLevelKey,@JsonKey(name: 'source_input_key') String? sourceInputKey
+@JsonKey(name: 'node_id') String nodeId, String claim,@JsonKey(name: 'source_quotes') List<String>? sourceQuotes,@JsonKey(name: 'paragraph_ref') String? paragraphRef, ExecutionStatus status,@JsonKey(name: 'blame_parent_ids') List<String> blameParentIds,@JsonKey(name: 'dependent_child_ids') List<String> dependentChildIds,@JsonKey(name: 'tda_score') double? tdaScore,@JsonKey(name: 'tda_level_key') String? tdaLevelKey,@JsonKey(name: 'source_input_key') String? sourceInputKey
 });
 
 
@@ -280,12 +288,12 @@ class __$CausalNodeDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalNodeDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? nodeId = null,Object? claim = null,Object? sourceQuote = freezed,Object? paragraphRef = freezed,Object? status = null,Object? blameParentIds = null,Object? dependentChildIds = null,Object? tdaScore = freezed,Object? tdaLevelKey = freezed,Object? sourceInputKey = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? nodeId = null,Object? claim = null,Object? sourceQuotes = freezed,Object? paragraphRef = freezed,Object? status = null,Object? blameParentIds = null,Object? dependentChildIds = null,Object? tdaScore = freezed,Object? tdaLevelKey = freezed,Object? sourceInputKey = freezed,}) {
   return _then(_CausalNodeDto(
 nodeId: null == nodeId ? _self.nodeId : nodeId // ignore: cast_nullable_to_non_nullable
 as String,claim: null == claim ? _self.claim : claim // ignore: cast_nullable_to_non_nullable
-as String,sourceQuote: freezed == sourceQuote ? _self.sourceQuote : sourceQuote // ignore: cast_nullable_to_non_nullable
-as String?,paragraphRef: freezed == paragraphRef ? _self.paragraphRef : paragraphRef // ignore: cast_nullable_to_non_nullable
+as String,sourceQuotes: freezed == sourceQuotes ? _self._sourceQuotes : sourceQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,paragraphRef: freezed == paragraphRef ? _self.paragraphRef : paragraphRef // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ExecutionStatus,blameParentIds: null == blameParentIds ? _self._blameParentIds : blameParentIds // ignore: cast_nullable_to_non_nullable
 as List<String>,dependentChildIds: null == dependentChildIds ? _self._dependentChildIds : dependentChildIds // ignore: cast_nullable_to_non_nullable

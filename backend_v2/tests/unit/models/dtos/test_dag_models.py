@@ -46,7 +46,7 @@ def test_extracted_atom_valid():
     atom = ExtractedAtom(
         reasoning="Testing reasoning",
         resolved_claim="The claim",
-        source_quote="The quote",
+        source_quotes=("The quote",),
         tda_id="tda_1234567890abcdef",
         source_id="src_1",
         source_sequence_index=0,
@@ -61,7 +61,7 @@ def test_extracted_atom_invalid_tda_id():
         ExtractedAtom(
             reasoning="Reasoning",
             resolved_claim="Claim",
-            source_quote="Quote",
+            source_quotes=("Quote",),
             tda_id="invalid_id_format",
             source_id="src_1",
             source_sequence_index=0,
@@ -71,13 +71,13 @@ def test_extracted_atom_invalid_tda_id():
 def test_extracted_atom_missing_quote_not_logical():
     """Test ExtractedAtom fails if quote is missing and not logical deduction."""
     with pytest.raises(
-        ValidationError, match="source_quote is mandatory unless is_logical_deduction or is_inverse is True"
+        ValidationError, match="source_quotes is mandatory unless is_logical_deduction or is_inverse is True"
     ):
         ExtractedAtom(
             reasoning="Reasoning",
             resolved_claim="Claim",
             is_logical_deduction=False,
-            source_quote=None,
+            source_quotes=None,
             tda_id="tda_1234567890abcdef",
             source_id="src_1",
             source_sequence_index=0,
@@ -87,13 +87,30 @@ def test_extracted_atom_missing_quote_not_logical():
 def test_extracted_atom_quote_with_logical_deduction():
     """Test ExtractedAtom fails if quote is present when logical deduction."""
     with pytest.raises(
-        ValidationError, match="source_quote must be None if is_logical_deduction or is_inverse is True"
+        ValidationError, match="source_quotes must be None if is_logical_deduction or is_inverse is True"
     ):
         ExtractedAtom(
             reasoning="Reasoning",
             resolved_claim="Claim",
             is_logical_deduction=True,
-            source_quote="Should be None",
+            source_quotes=("Should be None",),
+            tda_id="tda_1234567890abcdef",
+            source_id="src_1",
+            source_sequence_index=0,
+        )
+
+
+def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_error():
+    """Test ExtractedAtom raises ValidationError if any segment is < 30 chars when m > 1."""
+    with pytest.raises(
+        ValidationError,
+        match="source_quotes segment floor is at least 30 characters when m > 1",
+    ):
+        ExtractedAtom(
+            reasoning="Valid premise reasoning.",
+            resolved_claim="Valid claim statement.",
+            is_logical_deduction=False,
+            source_quotes=("Valid premise sentence here with enough characters.", "Short."),
             tda_id="tda_1234567890abcdef",
             source_id="src_1",
             source_sequence_index=0,
@@ -105,7 +122,7 @@ def test_linked_atom_graph_valid():
     atom = ExtractedAtom(
         reasoning="Testing reasoning",
         resolved_claim="The claim",
-        source_quote="The quote",
+        source_quotes=("The quote",),
         tda_id="tda_1234567890abcdef",
         source_id="src_1",
         source_sequence_index=0,
@@ -142,24 +159,24 @@ def test_global_ontology_map_valid():
 
 
 def test_atom_execution_state_source_quote_valid() -> None:
-    """Test AtomExecutionState with valid source_quote."""
+    """Test AtomExecutionState with valid source_quotes."""
     state = AtomExecutionState(
         tda_id="tda_1234567890abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Valid verbatim quote.",
+        source_quotes=("Valid verbatim quote.",),
     )
-    assert state.source_quote == "Valid verbatim quote."
+    assert state.source_quotes == ("Valid verbatim quote.",)
 
 
 def test_atom_execution_state_source_quote_long_allowed() -> None:
-    """Test AtomExecutionState allows long verbatim source_quote (>500 chars)."""
+    """Test AtomExecutionState allows long verbatim source_quotes."""
     long_quote = "A" * 850
     state = AtomExecutionState(
         tda_id="tda_1234567890abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote=long_quote,
+        source_quotes=(long_quote,),
     )
-    assert state.source_quote == long_quote
+    assert state.source_quotes == (long_quote,)
 
 
 def test_atom_evaluation_result_dto_valid() -> None:
@@ -167,13 +184,22 @@ def test_atom_evaluation_result_dto_valid() -> None:
     dto = AtomEvaluationResultDTO(
         status=ExecutionStatus.PASSED,
         reasoning="Valid justification",
-        source_quote="Exact quote",
+        source_quotes=("Exact quote",),
         extensions={"coaching": "Tip"},
     )
     assert dto.status == ExecutionStatus.PASSED
     assert dto.reasoning == "Valid justification"
-    assert dto.source_quote == "Exact quote"
+    assert dto.source_quotes == ("Exact quote",)
     assert dto.extensions == {"coaching": "Tip"}
+
+
+def test_atom_evaluation_result_dto_coerces_list_to_tuple() -> None:
+    """Test AtomEvaluationResultDTO coerces list of quotes to tuple."""
+    dto = AtomEvaluationResultDTO(
+        status=ExecutionStatus.PASSED,
+        source_quotes=["Segment 1 with sufficient length.", "Segment 2 with sufficient length."],
+    )
+    assert dto.source_quotes == ("Segment 1 with sufficient length.", "Segment 2 with sufficient length.")
 
 
 def test_atom_evaluation_result_dto_frozen_immutability() -> None:
@@ -204,13 +230,13 @@ def test_atom_evaluation_result_dto_missing_status_fails() -> None:
 
 
 def test_atom_evaluation_result_dto_source_quote_long_allowed() -> None:
-    """Test AtomEvaluationResultDTO accepts long verbatim source_quote (>500 chars)."""
+    """Test AtomEvaluationResultDTO accepts long verbatim source_quotes."""
     long_quote = "Q" * 850
     dto = AtomEvaluationResultDTO(
         status=ExecutionStatus.PASSED,
-        source_quote=long_quote,
+        source_quotes=(long_quote,),
     )
-    assert dto.source_quote == long_quote
+    assert dto.source_quotes == (long_quote,)
 
 
 def test_chunk_packet_dto_valid() -> None:

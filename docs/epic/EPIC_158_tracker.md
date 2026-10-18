@@ -37,27 +37,28 @@
 - **Plan:** @[docs/epic/tasks_EPIC_158/01_phase1_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 - [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [x] Step 1.1: Verify duplicate Epic deletion and establish `coerce_source_quotes_tuple` SSOT in `core_base.py`
-  - [x] Step 1.2: Modernize `QuoteEvidenceDTO` and define strongly typed defined `GateMatchResultDTO` anti-tuple contract
-  - [x] Step 1.3: Remediate asymmetric quote extraction in `AnchorValidationService`
-  - [x] Step 1.4: Clean up mutating `truncate_source_quote_at_sentence` and unannotated linker collection factories
-  - [x] Step 1.5: Refine export formatter typing strictness and guard printable sources scalar access
-  - [x] Step 1.6: Remediate Flutter Theme Sovereignty and localization in touched widgets
-  - [x] Step 1.7: Implement and pass multi-segment foundation unit test suite
+  - [x] Step 0: Strategic Alignment Check & Baseline Verification
+  - [x] Step 1: Verify duplicate Epic deletion and establish `coerce_source_quotes_tuple` SSOT in `core_base.py`
+  - [x] Step 2: Modernize `QuoteEvidenceDTO` and define strongly typed `GateMatchResultDTO` anti-tuple contract
+  - [x] Step 3: Remediate asymmetric quote extraction in `AnchorValidationService`
+  - [x] Step 4: Clean up mutating `truncate_source_quote_at_sentence` and unannotated linker collection factories
+  - [x] Step 5: Refine export formatter typing strictness and guard printable sources scalar access
+  - [x] Step 6: Remediate Flutter Theme Sovereignty and localization in touched widgets
+  - [x] Step 7: Implement and pass multi-segment foundation unit test suite
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 2: Domain Model, DTO, Client Freezed Contract & Test Fixture Multi-Segment Schema Refactoring (WP1)
 - **Plan:** @[docs/epic/tasks_EPIC_158/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 2.0: Look backward and forward to verify actual codebase state and contracts before refactoring
-  - [ ] Step 2.1: Refactor backend domain models and DAG DTOs to `source_quotes: tuple[str, ...] | None`
-  - [ ] Step 2.2: Refactor 1-hop caller orchestration, state reducer, and hook services
-  - [ ] Step 2.3: Update atom extraction prompts, system instructions, and schema descriptions
-  - [ ] Step 2.4: Synchronize Flutter Freezed DTO contracts and client citation widgets
-  - [ ] Step 2.5: Synchronize test fixtures, factories, golden master files, and unit test suites
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+  - [x] Step 2.0: Look backward and forward to verify actual codebase state and contracts before refactoring
+  - [x] Step 2.1: Refactor backend domain models and DAG DTOs to `source_quotes: tuple[str, ...] | None`
+  - [x] Step 2.2: Refactor 1-hop caller orchestration, state reducer, and hook services
+  - [x] Step 2.3: Update atom extraction prompts, system instructions, and schema descriptions
+  - [x] Step 2.4: Synchronize Flutter Freezed DTO contracts and client citation widgets
+  - [x] Step 2.5: Synchronize test fixtures, factories, golden master files, and unit test suites
+- [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 96.15% line coverage (810 passed, 0 failures), 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and 100% Freezed build parity.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2)
@@ -251,11 +252,11 @@
 | **REQ-158-008** | Remediate scalar quote access in `PrintableSourcesAdapter` | Phase 1, Step 5 | IMPLEMENTED |
 | **REQ-158-009** | Enforce Flutter Theme Sovereignty in override dialog and modals | Phase 1, Step 6 | IMPLEMENTED |
 | **REQ-158-010** | Implement multi-segment foundation unit test suite | Phase 1, Step 7 | IMPLEMENTED |
-| **REQ-158-011** | Modernize Pydantic V2 domain models and DTOs to multi-segment tuple schema | Phase 2, Step 1 | PENDING |
-| **REQ-158-012** | Refactor 1-hop caller orchestration, state reducer, and hook services | Phase 2, Step 2 | PENDING |
-| **REQ-158-013** | Update atom extraction prompts, system instructions, and schema descriptions | Phase 2, Step 3 | PENDING |
-| **REQ-158-014** | Synchronize Flutter Freezed DTO contracts and client citation widgets | Phase 2, Step 4 | PENDING |
-| **REQ-158-015** | Synchronize test fixtures, factories, golden master files, and unit tests | Phase 2, Step 5 | PENDING |
+| **REQ-158-011** | Modernize Pydantic V2 domain models and DTOs to multi-segment tuple schema | Phase 2, Step 1 | IMPLEMENTED |
+| **REQ-158-012** | Refactor 1-hop caller orchestration, state reducer, and hook services | Phase 2, Step 2 | IMPLEMENTED |
+| **REQ-158-013** | Update atom extraction prompts, system instructions, and schema descriptions | Phase 2, Step 3 | IMPLEMENTED |
+| **REQ-158-014** | Synchronize Flutter Freezed DTO contracts and client citation widgets | Phase 2, Step 4 | IMPLEMENTED |
+| **REQ-158-015** | Synchronize test fixtures, factories, golden master files, and unit tests | Phase 2, Step 5 | IMPLEMENTED |
 | **REQ-158-016** | Enhance coordinate normalization and strict matching for multi-segment tuples | Phase 3, Step 1 | PENDING |
 | **REQ-158-017** | Implement forward-scan search, monotonic ordering, and single-document buffer isolation | Phase 3, Step 2 | PENDING |
 | **REQ-158-018** | Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences | Phase 3, Step 3 | PENDING |
@@ -295,24 +296,24 @@
 - Eliminated mutating text truncation in `ExtractiveSensorService` and unannotated collection factories in `SlidingWindowLinker`.
 - Enforced strict tuple type signatures in `ExportEvidenceFormatter`, safe iteration in `PrintableSourcesAdapter`, and Flutter Theme Sovereignty with l10n in touched widgets.
 - Implemented and passed all 16 multi-segment foundation tests in `test_multi_segment_quote_foundation.py`.
-- Passed full strict backend audit loop (`backend_audit_loop.py`) with zero fatal AST warnings, zero residual debt ceiling violations, 100% zero dict eradication violations, and 90%+ TDD test coverage.
-- Passed full Flutter audit loop (`flutter_audit_loop.py --build`) with 0 errors.
-- Synchronized `EPIC_158_tracker.md` to enforce the complete canonical workflow loop (`/tier0-research-plan` Red-Teaming -> `/tier2-execute --full-auto` -> Test Coverage Assertions -> `/tier8-audit-plan`) across all phases.
+- Completed Phase 2 Multi-Segment Schema Refactoring across all backend domain models and DAG DTOs (`BooleanEvaluationResult`, `PreFlightResult`, `DraftExtractedAtom`, `ExtractedAtom`, `AtomEvaluationResultDTO`, `AtomExecutionState`, `CausalNodeDTO`, `AtomResultDTO`, `HydratedAtomDTO`, `EvaluatedAtomDTO`, `ReducedAtomDTO`, `QuoteEvidenceDTO`, `ScorecardAtomDTO`).
+- Synchronized all 1-hop caller orchestration, state reducer, and hook services (`sdui_mapper_service.py`, `causal_cohesion_evaluator.py`, `topological_evaluator.py`, `dag_executor.py`, `causal_discovery_engine.py`, `matrix_hook.py`, `matrix_domain_parser.py`, `report_service.py`, `synthesis_payload_compressor.py`, `matrix_explanation_service.py`, `result_projector.py`, `matrix_reducer.py`, `two_pass_atomizer.py`, `tda_engine.py`, `simulation_service.py`, `export_service.py`, `sliding_window_linker.py`, `anchor_validation_service.py`, `enriched_dag_executor.py`, `llm.py`).
+- Synchronized atom extraction prompts and descriptions (`field_prompts.py`, `atom_extraction.py`).
+- Synchronized Flutter Freezed contracts (`QuoteEvidenceDto`, `AtomResultDTO`, `CausalNodeDto`, `HydratedAtomDto`, `Workflow`) and citation widgets (`human_override_dialog.dart`, `atom_matrix_table_widget.dart`).
+- Synchronized test factories, golden master fixtures, and unit test suites across 20+ test modules with 100% pass rate.
+- Passed full strict backend audit loop (`backend_audit_loop.py backend_v2/models/ --test --ast-strict`): 10/10 quality gates passed, 810 unit tests passed, 96.15% TDD line coverage, 0 fatal AST guardrail violations, 0 residual debt ceiling violations, and clean DTO parity.
+- Passed full Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) with 0 errors.
 
 ## Learned
-- Multi-segment evidence extraction requires preserving physical coordinate mappings and forward monotonic order ($s_1 < e_1 < s_2 < e_2 \le s_1 + 1\,000$) with single-document buffer boundary isolation to maintain $\text{Specificity}_{lex} = 1.000$.
-- Decoupling lexical tolerance ($\zeta_{lex}$) from power-curve score dampening ($\zeta_{score}$) enables valid Finnish inflection recognition via Gate 5 Snowball stemming without artificially penalizing strict scoring evaluations.
-- Deliverable root axiom anchoring ($K_{axiom}^{max} = 8$ axioms where $InDegree(v)=0$) in `SlidingWindowLinker` resolves document length-dependent causal horizon truncation while dynamically guarding the prompt budget ($M_{win} \le 20$).
-- Forward compatibility without QGR reflection violations: in Phase 1, `QuoteEvidenceDTO` must provide a strongly typed `get_quotes()` accessor returning `tuple[str, ...]`, allowing callers (specifically: `PrintableSourcesAdapter`) to iterate safely without breaking duck-typing bans (`hasattr`, `getattr`).
-- `SlidingWindowLinker` settings injection: `get_settings()` should be injected via constructor `settings: Settings | None = None` and stored on `self.max_atoms_per_window`, eliminating repeated fetches in loops without breaking existing imports.
-- Flutter localization parity: Touched widgets require adding `humanOverrideDefaultBadge`, `causalInspectorCitationEvidenceHeader`, and `causalInspectorLocationPrefix` to both `app_en.arb` and `app_fi.arb` before running code generation.
+- In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions like `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''` trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
+- `audit_dto_parity.py` compares `WorkflowResponseDTO` with `Workflow` in `workflow.dart`. When `default_lexical_strictness_level` is present on Flutter's `Workflow`, backend `Workflow` must define `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` to maintain full-duplex DTO parity.
+- In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
 
 ## Remaining
-- Execute Phase 1 audit via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
-- Execute Phase 2 Red-Teaming via `/tier0-research-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
-- Proceed sequentially through Phase 2 to Phase 8.
+- Execute Phase 2 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`).
+- Proceed through Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/01_phase1_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```

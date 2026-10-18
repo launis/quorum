@@ -135,32 +135,32 @@ class ResultProjector:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            # Resolve quote and contextual_override according to status and cognitive strictness
-            quote_val = None
-            if state is not None and state.source_quote and state.source_quote.strip():
-                quote_val = state.source_quote.strip()
-            elif node.atom.source_quote and node.atom.source_quote.strip():
-                quote_val = node.atom.source_quote.strip()
+            # Resolve quotes and contextual_override according to status and cognitive strictness
+            quotes_val: tuple[str, ...] | None = None
+            if state is not None and state.source_quotes:
+                quotes_val = state.source_quotes
+            elif node.atom.source_quotes:
+                quotes_val = node.atom.source_quotes
 
             if status == ExecutionStatus.FAILED:
-                source_quote_for_dto = None
+                source_quotes_for_dto = None
                 contextual_override = False
                 is_inverse_evidence = False
             elif status == ExecutionStatus.PASSED:
-                if quote_val:
-                    source_quote_for_dto = quote_val
+                if quotes_val:
+                    source_quotes_for_dto = quotes_val
                     contextual_override = False
                     is_inverse_evidence = False
                 elif node.atom.is_inverse:
-                    source_quote_for_dto = None
+                    source_quotes_for_dto = None
                     contextual_override = False
                     is_inverse_evidence = True
                 else:
-                    source_quote_for_dto = None
+                    source_quotes_for_dto = None
                     contextual_override = True
                     is_inverse_evidence = False
             else:
-                source_quote_for_dto = quote_val
+                source_quotes_for_dto = quotes_val
                 contextual_override = node.atom.is_logical_deduction
                 is_inverse_evidence = False
 
@@ -169,7 +169,7 @@ class ResultProjector:
                 matrix_id=matrix_id,
                 status=status,
                 extracted_data=None,
-                source_quote=source_quote_for_dto,
+                source_quotes=source_quotes_for_dto,
                 contextual_override=contextual_override,
                 is_inverse_evidence=is_inverse_evidence,
                 evaluation_reasoning=reasoning,
@@ -183,7 +183,7 @@ class ResultProjector:
             hydrated_references[tda_id] = HydratedAtomDTO(
                 sdui_component=sdui_component,
                 resolved_claim=node.atom.resolved_claim,
-                source_quote=source_quote_for_dto,
+                source_quotes=source_quotes_for_dto,
             )
 
         return ProjectedResultsDTO(results=results, hydrated_references=hydrated_references)

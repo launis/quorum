@@ -694,7 +694,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
           : (q.unverifiedAliases.isNotEmpty
                 ? q.unverifiedAliases.join(', ')
                 : null);
-      final uniqueKey = '${disp ?? 'unknown'}::${q.quote}';
+      final quoteText = q.sourceQuotes?.join(' [...] ') ?? '';
+      final uniqueKey = '${disp ?? 'unknown'}::$quoteText';
       if (!uniqueQuotes.add(uniqueKey)) continue;
 
       parsedQuotes.add(
@@ -746,7 +747,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   ),
                 ],
                 TextSpan(
-                  text: q.quote,
+                  text: quoteText,
                   style: isPass && !isFaded
                       ? theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,

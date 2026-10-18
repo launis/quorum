@@ -217,7 +217,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                         tda_id="blk_0123456789abcdef0123456789ab",
                         status=ExecutionStatus.PASSED,
                         contextual_override=True,
-                        source_quote=None,
+                        source_quotes=None,
                         evaluation_reasoning="Because",
                     )
                 ],

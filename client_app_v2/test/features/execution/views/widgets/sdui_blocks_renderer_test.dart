@@ -357,7 +357,7 @@ void main() {
             CausalNodeDto(
               nodeId: 'atm_root_01',
               claim: 'Root prerequisite holds.',
-              sourceQuote: 'Foundational assumptions verified.',
+              sourceQuotes: ['Foundational assumptions verified.'],
               paragraphRef: 'Section 1.1',
               status: ExecutionStatus.passed,
               blameParentIds: [],

@@ -108,8 +108,8 @@ def transform_causal_nodes_to_atoms(nodes: list[CausalNodeDTO]) -> list[Flattene
         if node.paragraph_ref is not None:
             anchor_target = node.paragraph_ref
         extraction_rule = ""
-        if node.source_quote is not None:
-            extraction_rule = node.source_quote
+        if node.source_quotes:
+            extraction_rule = " [...] ".join(node.source_quotes)
         atoms.append(
             FlattenedAtom(
                 atom_id=node.node_id,
@@ -221,7 +221,7 @@ def compute_causal_tda_fusion_result(
             deliverable_isolated_count += 1
 
     cycle = projected_graph.cycle_detected
-    unsupported_count = sum(1 for n in deliverable_nodes if not n.source_quote)
+    unsupported_count = sum(1 for n in deliverable_nodes if not n.source_quotes)
     total_deliverable_nodes = len(deliverable_nodes)
     if total_deliverable_nodes == 0:
         cohesion = 1.0

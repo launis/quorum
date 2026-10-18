@@ -14,7 +14,7 @@ def test_atom_result_cognitive_vs_system_state_missing_reasoning() -> None:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
             status=ExecutionStatus.PASSED,
-            source_quote="Some quote",
+            source_quotes=("Some quote",),
             contextual_override=False,
             evaluation_reasoning=None,
             error_details=None,
@@ -26,7 +26,7 @@ def test_atom_result_cognitive_vs_system_state_missing_reasoning() -> None:
 
 
 def test_atom_result_cognitive_vs_system_state_missing_quote_and_override() -> None:
-    """Test that PASSED requires source_quote unless contextual_override or is_inverse_evidence is True."""
+    """Test that PASSED requires source_quotes unless contextual_override or is_inverse_evidence is True."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
@@ -34,24 +34,24 @@ def test_atom_result_cognitive_vs_system_state_missing_quote_and_override() -> N
             evaluation_reasoning="Because I said so",
             contextual_override=False,
             is_inverse_evidence=False,
-            source_quote=None,
+            source_quotes=None,
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote is mandatory unless contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+    assert "source_quotes is mandatory unless contextual_override or is_inverse_evidence is True" in str(exc_info.value)
 
 
 def test_atom_result_inverse_evidence_success() -> None:
-    """Test that is_inverse_evidence=True allows PASSED with source_quote=None."""
+    """Test that is_inverse_evidence=True allows PASSED with source_quotes=None."""
     atom = AtomResultDTO(
         tda_id="tda_1234567890abcdef1234567890abcdef",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="No negative evidence found (null hypothesis verified).",
         contextual_override=False,
         is_inverse_evidence=True,
-        source_quote=None,
+        source_quotes=None,
         error_details=None,
         extracted_data=None,
         depends_on_tda_ids=[],
@@ -60,11 +60,11 @@ def test_atom_result_inverse_evidence_success() -> None:
     assert atom.status == ExecutionStatus.PASSED
     assert atom.is_inverse_evidence is True
     assert atom.contextual_override is False
-    assert atom.source_quote is None
+    assert atom.source_quotes is None
 
 
 def test_atom_result_inverse_evidence_nullifies_quote() -> None:
-    """Test that is_inverse_evidence=True with source_quote raises ValidationError."""
+    """Test that is_inverse_evidence=True with source_quotes raises ValidationError."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
@@ -72,13 +72,13 @@ def test_atom_result_inverse_evidence_nullifies_quote() -> None:
             evaluation_reasoning="Absence verified.",
             contextual_override=False,
             is_inverse_evidence=True,
-            source_quote="Should be dropped per null hypothesis guardrail",
+            source_quotes=("Should be dropped per null hypothesis guardrail",),
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+    assert "source_quotes must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
 
 
 def test_atom_result_failed_whitespace_reasoning() -> None:
@@ -90,7 +90,7 @@ def test_atom_result_failed_whitespace_reasoning() -> None:
             evaluation_reasoning="   \t\n  ",
             contextual_override=False,
             is_inverse_evidence=False,
-            source_quote=None,
+            source_quotes=None,
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
@@ -100,20 +100,20 @@ def test_atom_result_failed_whitespace_reasoning() -> None:
 
 
 def test_atom_result_cognitive_vs_system_state_override_nullifies_quote() -> None:
-    """Test that contextual_override=True with source_quote raises ValidationError."""
+    """Test that contextual_override=True with source_quotes raises ValidationError."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Manual override by admin",
             contextual_override=True,
-            source_quote="This quote should be ignored",
+            source_quotes=("This quote should be ignored",),
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+    assert "source_quotes must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
 
 
 def test_atom_result_system_error_requires_details() -> None:
@@ -124,7 +124,7 @@ def test_atom_result_system_error_requires_details() -> None:
             status=ExecutionStatus.SYSTEM_ERROR,
             evaluation_reasoning=None,
             contextual_override=False,
-            source_quote=None,
+            source_quotes=None,
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
@@ -142,7 +142,7 @@ def test_report_data_dto_referential_integrity_success() -> None:
         tda_id=tda_id_1,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Found proof.",
-        source_quote="Proof text",
+        source_quotes=("Proof text",),
         contextual_override=False,
         error_details=None,
         extracted_data=None,
@@ -155,7 +155,7 @@ def test_report_data_dto_referential_integrity_success() -> None:
         depends_on_tda_ids=[tda_id_1],
         evaluation_reasoning=None,
         contextual_override=False,
-        source_quote=None,
+        source_quotes=None,
         error_details=None,
         extracted_data=None,
         short_circuit_reason_tda_ids=[],
@@ -165,12 +165,12 @@ def test_report_data_dto_referential_integrity_success() -> None:
         tda_id_1: HydratedAtomDTO(
             sdui_component=SDUIComponentType.BOOLEAN_CARD,
             resolved_claim="Claim 1",
-            source_quote=None,
+            source_quotes=None,
         ),
         tda_id_2: HydratedAtomDTO(
             sdui_component=SDUIComponentType.BOOLEAN_CARD,
             resolved_claim="Claim 2",
-            source_quote=None,
+            source_quotes=None,
         ),
     }
 
@@ -193,7 +193,7 @@ def test_report_data_dto_referential_integrity_failure_missing_tda() -> None:
         tda_id=tda_id_1,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Found proof.",
-        source_quote="Proof text",
+        source_quotes=("Proof text",),
         contextual_override=False,
         error_details=None,
         extracted_data=None,
@@ -221,7 +221,7 @@ def test_report_data_dto_referential_integrity_failure_missing_dependency() -> N
         tda_id=tda_id_1,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Found proof.",
-        source_quote="Proof text",
+        source_quotes=("Proof text",),
         depends_on_tda_ids=[tda_id_2],
         contextual_override=False,
         error_details=None,
@@ -233,7 +233,7 @@ def test_report_data_dto_referential_integrity_failure_missing_dependency() -> N
         tda_id_1: HydratedAtomDTO(
             sdui_component=SDUIComponentType.BOOLEAN_CARD,
             resolved_claim="Claim 1",
-            source_quote=None,
+            source_quotes=None,
         ),
     }
 

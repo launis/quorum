@@ -43,7 +43,7 @@ void main() {
     ExecutionStatus status = ExecutionStatus.passed,
     List<QuoteEvidenceDto> quotes = const [
       QuoteEvidenceDto(
-        quote: 'Existing evidence quote',
+        sourceQuotes: ['Existing evidence quote'],
         verifiedSourceIds: ['src_1'],
         isVerified: true,
       ),

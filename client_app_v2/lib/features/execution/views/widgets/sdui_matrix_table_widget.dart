@@ -562,7 +562,7 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                                       top: AppSpacing.s2,
                                     ),
                                     child: Text(
-                                      '"${q.quote}"',
+                                      '"${q.sourceQuotes?.join(' [...] ') ?? ''}"',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontStyle: FontStyle.italic,

@@ -42,6 +42,9 @@ class SduiMapperService:
             An AnySduiBlock discriminated union instance (SduiQuoteCard or SduiWarningCard).
         """
         # Telemetry logging for hallucinations (Dual-Reporting)
+        quote_str = ""
+        if evidence.source_quotes:
+            quote_str = " [...] ".join(evidence.source_quotes)
         if not evidence.is_verified or evidence.unverified_aliases:
             logger.warning("[TELEMETRY] Hallucination detected. Unverified aliases: %s", evidence.unverified_aliases)
             warning_msg = I18nText(
@@ -49,10 +52,10 @@ class SduiMapperService:
             ).resolve(lang)
             return SduiWarningCard(
                 message=f"{warning_msg} {', '.join(evidence.unverified_aliases)}",
-                quote_text=evidence.quote,
+                quote_text=quote_str,
             )
 
-        return SduiQuoteCard(quote=evidence.quote, source_aliases=evidence.verified_source_ids, citations=[])
+        return SduiQuoteCard(quote=quote_str, source_aliases=evidence.verified_source_ids, citations=[])
 
     def map_report(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
         """Alias for map_report_to_sdui to satisfy existing test bindings if any.

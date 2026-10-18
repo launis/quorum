@@ -858,14 +858,24 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
             evaluation_reasoning="",
         )
 
-    # FAILED with contextual_override or source_quote fails fast
+    # FAILED with contextual_override fails fast
     with pytest.raises(ValidationError, match="contextual_override cannot be True when status is FAILED"):
         AtomResultDTO(
             tda_id="tda_1",
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="Evaluation failed due to missing premise.",
             contextual_override=True,
-            source_quote="Some quote",
+            source_quotes=None,
+        )
+
+    # FAILED with source_quotes fails fast
+    with pytest.raises(ValidationError, match="source_quotes must be None when status is FAILED"):
+        AtomResultDTO(
+            tda_id="tda_1",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Evaluation failed due to missing premise.",
+            contextual_override=False,
+            source_quotes=("Some quote",),
         )
 
     # PASSED without reasoning raises ValueError
@@ -874,27 +884,27 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
             tda_id="tda_2",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="",
-            source_quote="Some quote",
+            source_quotes=("Some quote",),
         )
 
-    # PASSED without source_quote and without contextual_override raises ValueError
-    with pytest.raises(ValidationError, match="source_quote is mandatory"):
+    # PASSED without source_quotes and without contextual_override raises ValueError
+    with pytest.raises(ValidationError, match="source_quotes is mandatory"):
         AtomResultDTO(
             tda_id="tda_2",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Valid reasoning.",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
         )
 
-    # PASSED with contextual_override and source_quote raises ValueError
-    with pytest.raises(ValidationError, match="source_quote must be None when contextual_override"):
+    # PASSED with contextual_override and source_quotes raises ValueError
+    with pytest.raises(ValidationError, match="source_quotes must be None when contextual_override"):
         AtomResultDTO(
             tda_id="tda_2",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Override reasoning.",
             contextual_override=True,
-            source_quote="Unneeded quote",
+            source_quotes=("Unneeded quote",),
         )
 
     # SYSTEM_ERROR without error_details raises ValueError

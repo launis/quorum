@@ -18,7 +18,7 @@ void main() {
         claimLabel: 'Basic Claim',
         extractedFacts: {'f1': 'v1'},
         exactQuotes: [
-          QuoteEvidenceDto(quote: 'Verbatim evidence quote from doc'),
+          QuoteEvidenceDto(sourceQuotes: ['Verbatim evidence quote from doc']),
         ],
         internalLogicEn: ReasoningStepDto(
           step1IdentifyPremise: 'p1',
@@ -415,7 +415,9 @@ void main() {
         claimLabel: 'Document Evidence Claim',
         extractedFacts: {},
         exactQuotes: [
-          QuoteEvidenceDto(quote: 'Direct evidence found in document.'),
+          QuoteEvidenceDto(
+            sourceQuotes: ['Direct evidence found in document.'],
+          ),
         ],
         internalLogicEn: ReasoningStepDto(
           step1IdentifyPremise: '',
@@ -514,7 +516,7 @@ void main() {
         claimLabel: 'With Reasoning',
         extractedFacts: {},
         exactQuotes: [
-          QuoteEvidenceDto(quote: 'Sentence proving with reasoning.'),
+          QuoteEvidenceDto(sourceQuotes: ['Sentence proving with reasoning.']),
         ],
         internalLogicEn: ReasoningStepDto(
           step1IdentifyPremise: '',
@@ -536,7 +538,9 @@ void main() {
         levelName: 'Level 1',
         claimLabel: 'Without Reasoning',
         extractedFacts: {},
-        exactQuotes: [QuoteEvidenceDto(quote: 'Sentence without reasoning.')],
+        exactQuotes: [
+          QuoteEvidenceDto(sourceQuotes: ['Sentence without reasoning.']),
+        ],
         internalLogicEn: ReasoningStepDto(
           step1IdentifyPremise: '',
           step2ScanSource: '',
@@ -714,7 +718,9 @@ void main() {
               chartDisplayLabel: 'Atom Label $i',
               visualIntent: VisualIntent.info,
               extractedFacts: {},
-              exactQuotes: [QuoteEvidenceDto(quote: 'Quote for atom $i')],
+              exactQuotes: [
+                QuoteEvidenceDto(sourceQuotes: ['Quote for atom $i']),
+              ],
               internalLogicEn: const ReasoningStepDto(
                 step1IdentifyPremise: '',
                 step2ScanSource: '',
@@ -797,8 +803,9 @@ void main() {
           extractedFacts: {},
           exactQuotes: [
             QuoteEvidenceDto(
-              quote:
-                  'Very long verbatim quote that spans multiple lines and needs constrained rendering.',
+              sourceQuotes: [
+                'Very long verbatim quote that spans multiple lines and needs constrained rendering.',
+              ],
             ),
           ],
           internalLogicEn: ReasoningStepDto(

@@ -553,9 +553,9 @@ class ExportService:
             if atom.status == ExecutionStatus.PASSED:
                 result_status = 1
 
-            quote_raw: list[str] | str | None = atom.source_quote
+            quote_raw: tuple[str, ...] | list[str] | str | None = atom.source_quotes
             if quote_raw is None and ref is not None:
-                quote_raw = ref.source_quote
+                quote_raw = ref.source_quotes
             formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
@@ -608,7 +608,7 @@ class ExportService:
                     is_inverse=0,
                     points_awarded=0.0,
                     result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quote)),
+                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quotes)),
                     ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,
@@ -753,9 +753,9 @@ class ExportService:
             if atom.status == ExecutionStatus.PASSED:
                 result_status = 1
 
-            quote_raw: list[str] | str | None = atom.source_quote
+            quote_raw: tuple[str, ...] | list[str] | str | None = atom.source_quotes
             if quote_raw is None and ref is not None:
-                quote_raw = ref.source_quote
+                quote_raw = ref.source_quotes
             formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
             formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
 
@@ -824,7 +824,7 @@ class ExportService:
                     is_inverse=0,
                     points_awarded=0.0,
                     result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quote)),
+                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quotes)),
                     ai_reasoning="",
                     causal_status=causal_meta.causal_status,
                     blame_parent_id=causal_meta.blame_parent_id,

@@ -39,7 +39,7 @@ def _build_test_atom_result() -> AtomResultDTO:
     return AtomResultDTO(
         tda_id="tda_11112222333344445555666677778888",
         status=ExecutionStatus.PASSED,
-        source_quote="Direct evidence quotation.",
+        source_quotes=("Direct evidence quotation.",),
         evaluation_reasoning="Valid justification evidence.",
     )
 
@@ -50,7 +50,7 @@ def test_projected_results_dto() -> None:
     hydrated = HydratedAtomDTO(
         sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
         resolved_claim="Test assertion",
-        source_quote=atom.source_quote,
+        source_quotes=atom.source_quotes,
     )
     dto = ProjectedResultsDTO(results=[atom], hydrated_references={atom.tda_id: hydrated})
     assert len(dto.results) == 1
@@ -98,7 +98,7 @@ def test_matrix_projection_result_dto() -> None:
 def test_matrix_hook_result_dto() -> None:
     """Verify MatrixHookResultDTO instantiation, immutability, and extra forbid."""
     matrix = LightweightMatrixOutput(raw_score=5.0, normalized_score=100.0)
-    quote = QuoteEvidenceDTO(quote="Verifiable text", verified_source_ids=[])
+    quote = QuoteEvidenceDTO(source_quotes=("Verifiable text",), verified_source_ids=[])
     dto = MatrixHookResultDTO(
         matrix_outputs={"blk_test": matrix},
         missing_contexts={"blk_test": "None missing"},

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import CausalRootCauseType, LaxCausalRootCauseType, LaxExecutionStatus
 
 __all__ = [
@@ -32,8 +32,10 @@ class CausalNodeDTO(V2CoreBase):
 
     node_id: Annotated[str, Field(description="Unique identifier for the causal node.")]
     claim: Annotated[str, Field(description="Textual claim statement evaluated in the node.")]
-    source_quote: Annotated[
-        str | None, Field(default=None, description="Exact verbatim source quote from document.")
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="Exact verbatim source quote segments from document."),
     ] = None
     paragraph_ref: Annotated[
         str | None, Field(default=None, description="Paragraph or block reference in source text.")

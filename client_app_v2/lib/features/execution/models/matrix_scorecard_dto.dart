@@ -30,7 +30,7 @@ abstract class ReasoningStepDto with _$ReasoningStepDto {
 abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory QuoteEvidenceDto({
-    required String quote,
+    @JsonKey(name: 'source_quotes') List<String>? sourceQuotes,
     @JsonKey(name: 'verified_source_ids')
     @Default([])
     List<String> verifiedSourceIds,

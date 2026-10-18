@@ -1,6 +1,7 @@
+"""Extractive Sensor Service for TDD deterministic evaluation and Bo3 LLM voting."""
+
 from __future__ import annotations
 
-"""Extractive Sensor Service for TDD deterministic evaluation and Bo3 LLM voting."""
 
 import asyncio
 import logging
@@ -8,12 +9,21 @@ import re
 from collections.abc import Sequence
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import (
@@ -57,7 +67,7 @@ class PreFlightResult(BaseModel):
         decided: Whether the evaluation was decided deterministically during pre-flight.
         result: The deterministic execution status if decided.
         exact_quotes: Extracted exact quote evidence if any.
-        source_quote: Raw source quote string if matched.
+        source_quotes: Raw source quote tuple if matched.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
@@ -65,7 +75,7 @@ class PreFlightResult(BaseModel):
     decided: bool
     result: ExecutionStatus | None = None
     exact_quotes: list[LLMExtractedQuote] | None = None
-    source_quote: str | None = None
+    source_quotes: tuple[str, ...] | None = None
 
 
 class BooleanEvaluationResult(BaseModel):
@@ -75,7 +85,7 @@ class BooleanEvaluationResult(BaseModel):
         alias: Short deterministic alias identifier for the evaluated atom.
         reasoning: Detailed semantic reasoning justifying the boolean evaluation.
         is_true: Boolean flag indicating whether the atom assertion is satisfied.
-        source_quote: Exact textual substring from source text evidencing the claim.
+        source_quotes: Ordered tuple of textual substrings from source text evidencing the claim.
         contextual_override: Flag indicating contextual override when quote is absent.
         coaching: Optional localized coaching guidance for improving the criterion.
         falsification: Optional falsification details if claim was contradicted.
@@ -86,12 +96,11 @@ class BooleanEvaluationResult(BaseModel):
     alias: Annotated[str, Field(description=DESC_ALIAS)]
     reasoning: Annotated[str, Field(description=DESC_SEMANTIC_REASONING)]
     is_true: Annotated[bool, Field(description=DESC_IS_TRUE)]
-    source_quote: Annotated[
-        str | None,
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
         Field(
             default=None,
-            min_length=10,
-            max_length=500,
             description=DESC_SOURCE_QUOTE,
         ),
     ] = None
@@ -100,38 +109,42 @@ class BooleanEvaluationResult(BaseModel):
     falsification: Annotated[str | None, Field(description=DESC_FALSIFICATION, default=None)] = None
     remediation_steps: Annotated[list[str] | None, Field(description=DESC_REMEDIATION_STEPS, default=None)] = None
 
-    @field_validator("source_quote", mode="before")
+    @field_validator("source_quotes", mode="after")
     @classmethod
-    def validate_source_quote_bounds(cls, v: str | None) -> str | None:
+    def validate_source_quotes_bounds(cls, v: tuple[str, ...] | None) -> tuple[str, ...] | None:
         """Enforce string boundary validation without in-place truncation mutations."""
         if v is None:
             return None
-        if isinstance(v, str):
-            v_stripped = v.strip()
-            if not v_stripped:
-                return None
-            if len(v_stripped) > 500:
-                raise ValueError("source_quote exceeds maximum allowed length of 500 characters.")
-            return v_stripped
+        if len(v) > 3:
+            raise ValueError("source_quotes cannot contain more than 3 segments.")
+        for seg in v:
+            if len(seg) > 500:
+                raise ValueError("source_quotes segment exceeds maximum allowed length of 500 characters.")
+            if len(v) == 1 and len(seg.strip()) < 10:
+                raise ValueError("source_quotes single segment must be at least 10 characters.")
+        if len(v) > 1:
+            for seg in v:
+                if len(seg.strip()) < 30:
+                    raise ValueError("source_quotes segment floor is at least 30 characters when m > 1.")
         return v
 
     @model_validator(mode="after")
-    def validate_source_quote_invariants(self) -> Self:
+    def validate_source_quotes_invariants(self) -> Self:
         """Validate strict evidence quote presence and null hypothesis invariants."""
         if self.is_true:
             if self.contextual_override:
-                if self.source_quote is not None:
+                if self.source_quotes is not None:
                     raise ValueError(
-                        "Null hypothesis violation: source_quote must be None when contextual_override is True."
+                        "Null hypothesis violation: source_quotes must be None when contextual_override is True."
                     )
             else:
-                if not self.source_quote or not re.search(r"\S", self.source_quote):
+                if not self.source_quotes:
                     raise ValueError(
-                        "Ungrounded positive evaluation: source_quote must be populated with non-empty text when is_true is True."
+                        "Ungrounded positive evaluation: source_quotes must be populated with non-empty text when is_true is True."
                     )
         else:
-            if self.source_quote is not None:
-                raise ValueError("Null hypothesis violation: source_quote must be None when is_true is False.")
+            if self.source_quotes is not None:
+                raise ValueError("Null hypothesis violation: source_quotes must be None when is_true is False.")
         return self
 
 
@@ -215,11 +228,11 @@ class ExtractiveSensorService:
         logger = logging.getLogger(__name__)
 
         if isinstance(tda, ExtractedAtom):
-            quote = tda.source_quote
-            if not quote or quote.lower() in ["none", "n/a", "null", ""]:
+            quotes = tda.source_quotes
+            if not quotes:
                 return PreFlightResult(decided=False)
 
-            if ExtractiveSensorService._fuzzy_match(source_text, quote, locale):
+            if all(ExtractiveSensorService._fuzzy_match(source_text, q, locale) for q in quotes):
                 return PreFlightResult(decided=False)
 
             return PreFlightResult(
@@ -319,14 +332,14 @@ class ExtractiveSensorService:
                     decided_results[node.atom.tda_id] = AtomEvaluationResultDTO(
                         status=ExecutionStatus.PASSED,
                         reasoning="PRE_FLIGHT_DETERMINISTIC_PASS",
-                        source_quote=pre_result.source_quote,
+                        source_quotes=pre_result.source_quotes,
                         extensions={},
                     )
                 else:
                     decided_results[node.atom.tda_id] = AtomEvaluationResultDTO(
                         status=ExecutionStatus.FAILED,
                         reasoning="PRE_FLIGHT_DETERMINISTIC_REJECT",
-                        source_quote=None,
+                        source_quotes=None,
                         extensions={},
                     )
             else:
@@ -422,7 +435,7 @@ class ExtractiveSensorService:
                     final_results[tda_id] = AtomEvaluationResultDTO(
                         status=ExecutionStatus.SYSTEM_ERROR,
                         reasoning="UNRETURNED_BY_MODEL: No valid votes cast for atom",
-                        source_quote=None,
+                        source_quotes=None,
                         extensions={},
                     )
                 elif is_inverse_map is not None and tda_id in is_inverse_map:
@@ -431,21 +444,21 @@ class ExtractiveSensorService:
                         final_results[tda_id] = AtomEvaluationResultDTO(
                             status=ExecutionStatus.PASSED,
                             reasoning="EPISTEMIC_TIE_BREAKER: Inconclusive split resolved via Null Hypothesis (presumption of innocence / uncommitted error)",
-                            source_quote=None,
+                            source_quotes=None,
                             extensions={},
                         )
                     else:
                         final_results[tda_id] = AtomEvaluationResultDTO(
                             status=ExecutionStatus.FAILED,
                             reasoning="EPISTEMIC_TIE_BREAKER: Inconclusive split resolved via Null Hypothesis (absence of conclusive substantiation)",
-                            source_quote=None,
+                            source_quotes=None,
                             extensions={},
                         )
                 else:
                     final_results[tda_id] = AtomEvaluationResultDTO(
                         status=ExecutionStatus.SYSTEM_ERROR,
                         reasoning="INSUFFICIENT_CONSENSUS",
-                        source_quote=None,
+                        source_quotes=None,
                         extensions={},
                     )
 
@@ -599,7 +612,7 @@ class ExtractiveSensorService:
                         call_results[call_tda_id] = AtomEvaluationResultDTO(
                             status=status,
                             reasoning=eval_result.reasoning,
-                            source_quote=eval_result.source_quote,
+                            source_quotes=eval_result.source_quotes,
                             extensions=extensions,
                         )
 
@@ -668,7 +681,7 @@ class ExtractiveSensorService:
                                     call_results[call_tda_id] = AtomEvaluationResultDTO(
                                         status=status,
                                         reasoning=eval_result.reasoning,
-                                        source_quote=eval_result.source_quote,
+                                        source_quotes=eval_result.source_quotes,
                                         extensions=extensions,
                                     )
                             except (

@@ -476,10 +476,10 @@ class MatrixDomainParser:
                                         )
 
                                         exact_quotes: list[QuoteEvidenceDTO] = []
-                                        if val_data.source_quote and val_data.source_quote.strip():
+                                        if val_data.source_quotes:
                                             exact_quotes = [
                                                 QuoteEvidenceDTO.model_validate(
-                                                    {"quote": val_data.source_quote, "source_alias": []},
+                                                    {"source_quotes": val_data.source_quotes, "source_alias": []},
                                                     context={"alias_registry": {}},
                                                 )
                                             ]

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import BeforeValidator, ConfigDict, Field, JsonValue
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import LaxExecutionStatus
 
 __all__ = [
@@ -37,7 +37,11 @@ class ReducedAtomDTO(V2CoreBase):
     tda_id: str
     status: LaxExecutionStatus
     reasoning: str | None = None
-    source_quote: str | None = None
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="Verbatim source quote segments"),
+    ] = None
     extracted_data: dict[str, JsonValue] | None = None
 
 

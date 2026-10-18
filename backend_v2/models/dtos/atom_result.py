@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Annotated, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import (
     ExecutionStatus,
     LaxExecutionStatus,
@@ -51,14 +51,18 @@ class HydratedAtomDTO(V2CoreBase):
     Attributes:
         sdui_component: Server-Driven UI hint for frontend.
         resolved_claim: Cleaned claim in human language.
-        source_quote: Optional verbatim original quote.
+        source_quotes: Optional verbatim original quote segments.
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sdui_component: Annotated[LaxSDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
-    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")] = None
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="Verbatim original quote segments"),
+    ] = None
 
 
 class ExtractedValueDTO(V2CoreBase):
@@ -83,7 +87,7 @@ class AtomResultDTO(V2CoreBase):
         matrix_id: Opaque ID of the matrix block that requested this evaluation.
         status: Evaluation execution status.
         extracted_data: Quantitative or isolated result.
-        source_quote: Verbatim original quote from the document.
+        source_quotes: Verbatim original quote segments from the document.
         contextual_override: Allows cognitive override without a verbatim quote.
         is_inverse_evidence: True if assertion evaluates absence of negative evidence.
         evaluation_reasoning: Strictly AI cognitive reasoning, no infra errors.
@@ -103,8 +107,10 @@ class AtomResultDTO(V2CoreBase):
     extracted_data: Annotated[
         ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
     ] = None
-    source_quote: Annotated[
-        str | None, Field(default=None, description="Verbatim original quote from the document")
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="Verbatim original quote segments from the document"),
     ] = None
     contextual_override: Annotated[
         bool, Field(default=False, description="Allows cognitive override without a verbatim quote")
@@ -137,6 +143,9 @@ class AtomResultDTO(V2CoreBase):
         Raises:
             ValueError: If cognitive or system state invariants are violated.
         """
+        if (self.contextual_override or self.is_inverse_evidence) and self.source_quotes is not None:
+            raise ValueError("source_quotes must be None when contextual_override or is_inverse_evidence is True")
+
         if self.status == ExecutionStatus.FAILED:
             if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
@@ -144,16 +153,16 @@ class AtomResultDTO(V2CoreBase):
                 raise ValueError("contextual_override cannot be True when status is FAILED")
             if self.is_inverse_evidence:
                 raise ValueError("is_inverse_evidence cannot be True when status is FAILED")
-            if self.source_quote is not None:
-                raise ValueError("source_quote must be None when status is FAILED")
+            if self.source_quotes is not None:
+                raise ValueError("source_quotes must be None when status is FAILED")
 
         elif self.status == ExecutionStatus.PASSED:
             if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
-            if not self.contextual_override and not self.is_inverse_evidence and not self.source_quote:
-                raise ValueError("source_quote is mandatory unless contextual_override or is_inverse_evidence is True")
-            if (self.contextual_override or self.is_inverse_evidence) and self.source_quote is not None:
-                raise ValueError("source_quote must be None when contextual_override or is_inverse_evidence is True")
+            if not self.contextual_override and not self.is_inverse_evidence and not self.source_quotes:
+                raise ValueError("source_quotes is mandatory unless contextual_override or is_inverse_evidence is True")
+            if (self.contextual_override or self.is_inverse_evidence) and self.source_quotes is not None:
+                raise ValueError("source_quotes must be None when contextual_override or is_inverse_evidence is True")
 
         elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
             raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
@@ -186,7 +195,7 @@ class EvaluatedAtomDTO(V2CoreBase):
         score: Computed mathematical or categorical score.
         human_override: Optional human override status.
         exact_quotes: List of verbatim extracted source quotes.
-        source_quote: Verbatim extracted source quote.
+        source_quotes: Verbatim extracted source quote segments.
         evaluation_reasoning: Cognitive reasoning text.
         contextual_override: Whether cognitive override without quote occurred.
         is_inverse_evidence: Whether inverse evidence (null hypothesis) was evaluated.
@@ -201,7 +210,11 @@ class EvaluatedAtomDTO(V2CoreBase):
     score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score")] = None
     human_override: Annotated[str | None, Field(default=None, description="Human override status")] = None
     exact_quotes: Annotated[list[str], Field(default_factory=list, description="Verbatim extracted source quotes")]
-    source_quote: Annotated[str | None, Field(default=None, description="Verbatim source quote")] = None
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="Verbatim source quote segments"),
+    ] = None
     evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation")] = (
         None
     )

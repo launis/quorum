@@ -199,7 +199,7 @@ def test_domain_input_value_accepts_reduced_atoms() -> None:
         tda_id="tda_1234567890abcdef",
         status=LaxExecutionStatus.PASSED,
         reasoning="Compact reasoning.",
-        source_quote="Quote text.",
+        source_quotes="Quote text.",
     )
     atoms_list = [atom]
 

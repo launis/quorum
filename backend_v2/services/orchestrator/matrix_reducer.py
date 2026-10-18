@@ -213,7 +213,7 @@ class MatrixReducer:
                             tda_id=atom.tda_id,
                             status=atom.status,
                             reasoning=atom.evaluation_reasoning,
-                            source_quote=atom.source_quote,
+                            source_quotes=atom.source_quotes,
                             extracted_data=extracted_data_dict,
                         )
                     )

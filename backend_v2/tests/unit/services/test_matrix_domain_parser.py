@@ -675,7 +675,7 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Strong evidence found.",
         "contextual_override": False,
-        "source_quote": "Exact verbatim quote.",
+        "source_quotes": ["Exact verbatim quote."],
         "depends_on_tda_ids": [],
         "short_circuit_reason_tda_ids": [],
     }
@@ -709,7 +709,7 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
     assert atom_dto.semantic_reasoning == "Strong evidence found."
     assert atom_dto.chart_display_label != "N/A"
     assert len(atom_dto.exact_quotes) == 1
-    assert atom_dto.exact_quotes[0].quote == "Exact verbatim quote."
+    assert atom_dto.exact_quotes[0].source_quotes == ("Exact verbatim quote.",)
 
 
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:

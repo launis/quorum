@@ -16,7 +16,7 @@ _HydratedAtomDTO _$HydratedAtomDTOFromJson(Map<String, dynamic> json) =>
           allowedKeys: const [
             'sdui_component',
             'resolved_claim',
-            'source_quote',
+            'source_quotes',
           ],
         );
         final val = _HydratedAtomDTO(
@@ -25,14 +25,17 @@ _HydratedAtomDTO _$HydratedAtomDTOFromJson(Map<String, dynamic> json) =>
             (v) => $enumDecode(_$SDUIComponentTypeEnumMap, v),
           ),
           resolvedClaim: $checkedConvert('resolved_claim', (v) => v as String),
-          sourceQuote: $checkedConvert('source_quote', (v) => v as String?),
+          sourceQuotes: $checkedConvert(
+            'source_quotes',
+            (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+          ),
         );
         return val;
       },
       fieldKeyMap: const {
         'sduiComponent': 'sdui_component',
         'resolvedClaim': 'resolved_claim',
-        'sourceQuote': 'source_quote',
+        'sourceQuotes': 'source_quotes',
       },
     );
 
@@ -40,7 +43,7 @@ Map<String, dynamic> _$HydratedAtomDTOToJson(_HydratedAtomDTO instance) =>
     <String, dynamic>{
       'sdui_component': _$SDUIComponentTypeEnumMap[instance.sduiComponent]!,
       'resolved_claim': instance.resolvedClaim,
-      'source_quote': instance.sourceQuote,
+      'source_quotes': instance.sourceQuotes,
     };
 
 const _$SDUIComponentTypeEnumMap = {

@@ -11,24 +11,25 @@ DESC_EXACT_QUOTES = (
 DESC_ALIAS = "The short identifier alias assigned to the claim (e.g., 'a0', 'a1')."
 
 DESC_IS_TRUE = (
-    "True if the text confirms the claim AND is grounded by an exact source_quote (or contextual_override=True). "
+    "True if the text confirms the claim AND is grounded by exact source_quotes (or contextual_override=True). "
     "If no verbatim quote exists and no contextual override applies, must be False."
 )
 
 DESC_CONTEXTUAL_OVERRIDE = (
-    "Set to True if and only if the rule is verified contextually without a verbatim quote "
-    "(in which case source_quote must be null)."
+    "Set to True if and only if the rule is verified contextually without verbatim source_quotes "
+    "(in which case source_quotes must be null)."
 )
 
 DESC_SEMANTIC_REASONING = (
     "Concise natural language explanation of propositional entailment, evaluation outcome, or contextual override."
 )
 
-DESC_SOURCE_QUOTE = (
-    "Exact verbatim sentence strictly entailing the claim in its asserted modality. "
-    "Mandatory non-empty string when is_true is True (unless contextual_override is True). "
+DESC_SOURCE_QUOTES = (
+    "Ordered list of 1 to 3 exact verbatim sentence segments strictly entailing the claim in its asserted modality. "
+    "Mandatory non-empty array when is_true is True (unless contextual_override is True). "
     "Must be null when is_true is False or contextual_override is True."
 )
+DESC_SOURCE_QUOTE = DESC_SOURCE_QUOTES
 
 DESC_COACHING = "Provide a concrete, actionable coaching tip if the claim failed."
 

@@ -262,7 +262,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                         child: ListTile(
                           dense: true,
                           title: Text(
-                            q.quote,
+                            q.sourceQuotes?.join(' [...] ') ?? '',
                             style: theme.textTheme.bodyMedium,
                           ),
                           subtitle: Text(
@@ -290,7 +290,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                           _quotes.add(
                             QuoteEvidenceDto(
                               verifiedSourceIds: const ['human_override'],
-                              quote: l10n.humanOverrideExpertNote,
+                              sourceQuotes: [l10n.humanOverrideExpertNote],
                               isVerified: true,
                             ),
                           );

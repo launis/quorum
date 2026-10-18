@@ -31,7 +31,7 @@ def _create_sample_node(
         node_id=node_id,
         claim=claim,
         status=ExecutionStatus.PASSED,
-        source_quote="Exact quote",
+        source_quotes=("Exact quote",),
         paragraph_ref="p1",
         blame_parent_ids=[],
         dependent_child_ids=[],

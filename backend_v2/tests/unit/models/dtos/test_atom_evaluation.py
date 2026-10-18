@@ -38,6 +38,19 @@ def test_reduced_atom_dto_validation() -> None:
     assert dto.status == ExecutionStatus.PASSED
 
 
+def test_reduced_atom_dto_source_quotes_tuple() -> None:
+    """Verify ReducedAtomDTO preserves source_quotes as tuple."""
+    dto = ReducedAtomDTO(
+        tda_id="tda_123",
+        status=ExecutionStatus.PASSED,
+        source_quotes=("Segment 1 with sufficient length.", "Segment 2 with sufficient length."),
+    )
+    assert dto.source_quotes == ("Segment 1 with sufficient length.", "Segment 2 with sufficient length.")
+    dumped = dto.model_dump(mode="json")
+    loaded = ReducedAtomDTO.model_validate(dumped)
+    assert loaded.source_quotes == ("Segment 1 with sufficient length.", "Segment 2 with sufficient length.")
+
+
 def test_lightweight_matrix_dto_validation() -> None:
     dto = LightweightMatrixDTOFactory.build()
     assert isinstance(dto.execution_id, str)

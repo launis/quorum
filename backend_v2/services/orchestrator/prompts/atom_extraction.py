@@ -31,7 +31,7 @@ INSTRUCTIONS:
 1. Break down the text into distinct, atomic factual claims.
 2. Anaphora Resolution: If a claim uses pronouns (e.g., "it", "they", "he") or implicit references (e.g., "the system", "the user"), replace them with the explicit entity name from the Global Ontology Map or local context.
 3. Each atomic claim must be standalone and comprehensible without the surrounding text.
-4. The source text is provided in numbered blocks (e.g., [B1] ...). Instead of extracting the verbatim quote, provide the exact Block ID (e.g., "B1") that justifies the claim.
+4. The source text is provided in numbered blocks (e.g., [B1] ...). Provide the exact Block ID (e.g., "B1") that justifies the claim, or when extracting evidence quotes directly, provide 1 to 3 ordered verbatim sentence segments without ellipses.
 5. Reason before formatting. Explain your logic for resolving references and splitting the text.
 
 GLOBAL ONTOLOGY MAP:
@@ -53,7 +53,7 @@ INSTRUCTIONS:
 1. Break down the text into distinct, atomic factual claims.
 2. Anaphora Resolution: If a claim uses pronouns (e.g., "it", "they", "he") or implicit references (e.g., "the system", "the user"), replace them with the explicit entity name from the Global Ontology Map or local context.
 3. Each atomic claim must be standalone and comprehensible without the surrounding text.
-4. The source text is provided in numbered blocks (e.g., [B1] ...). Instead of extracting the verbatim quote, provide the exact Block ID (e.g., "B1") that justifies the claim.
+4. The source text is provided in numbered blocks (e.g., [B1] ...). Provide the exact Block ID (e.g., "B1") that justifies the claim, or when extracting evidence quotes directly, provide 1 to 3 ordered verbatim sentence segments without ellipses.
 5. Reason before formatting. Explain your logic for resolving references and splitting the text.
 
 GLOBAL ONTOLOGY MAP:

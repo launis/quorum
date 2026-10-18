@@ -34,7 +34,7 @@ abstract class AtomResultDTO with _$AtomResultDTO {
     @JsonKey(name: 'matrix_id') String? matrixId,
     required ExecutionStatus status,
     @JsonKey(name: 'extracted_data') ExtractedValueDTO? extractedData,
-    @JsonKey(name: 'source_quote') String? sourceQuote,
+    @JsonKey(name: 'source_quotes') List<String>? sourceQuotes,
     @JsonKey(name: 'contextual_override')
     @Default(false)
     bool contextualOverride,

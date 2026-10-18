@@ -10,7 +10,7 @@ abstract class HydratedAtomDTO with _$HydratedAtomDTO {
   const factory HydratedAtomDTO({
     @JsonKey(name: 'sdui_component') required SDUIComponentType sduiComponent,
     @JsonKey(name: 'resolved_claim') required String resolvedClaim,
-    @JsonKey(name: 'source_quote') String? sourceQuote,
+    @JsonKey(name: 'source_quotes') List<String>? sourceQuotes,
   }) = _HydratedAtomDTO;
 
   factory HydratedAtomDTO.fromJson(Map<String, dynamic> json) =>

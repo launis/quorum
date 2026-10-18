@@ -32,12 +32,12 @@ def test_llm_draft_atom_quote_with_logical_deduction():
 
 def test_draft_extracted_atom_missing_quote_not_logical():
     """Test DraftExtractedAtom fails if quote is missing and not logical deduction."""
-    with pytest.raises(ValidationError, match="source_quote is mandatory unless is_logical_deduction is True"):
+    with pytest.raises(ValidationError, match="source_quotes is mandatory unless is_logical_deduction is True"):
         DraftExtractedAtom(
             reasoning="Reasoning",
             resolved_claim="Claim",
             is_logical_deduction=False,
-            source_quote=None,
+            source_quotes=None,
             draft_id="a0",
             source_sequence_index=0,
         )
@@ -45,12 +45,26 @@ def test_draft_extracted_atom_missing_quote_not_logical():
 
 def test_draft_extracted_atom_quote_with_logical_deduction():
     """Test DraftExtractedAtom fails if quote is present when logical deduction."""
-    with pytest.raises(ValidationError, match="source_quote must be None if is_logical_deduction is True"):
+    with pytest.raises(ValidationError, match="source_quotes must be None if is_logical_deduction is True"):
         DraftExtractedAtom(
             reasoning="Reasoning",
             resolved_claim="Claim",
             is_logical_deduction=True,
-            source_quote="Should be None",
+            source_quotes=("Should be None",),
             draft_id="a0",
             source_sequence_index=0,
         )
+
+
+def test_draft_extracted_atom_multi_segment_quotes_valid():
+    """Test DraftExtractedAtom valid with multi-segment quotes tuple."""
+    atom = DraftExtractedAtom(
+        reasoning="Valid analytical reasoning premise.",
+        resolved_claim="Verifiable claim statement.",
+        is_logical_deduction=False,
+        source_quotes=("Premise quote with sufficient length.", "Conclusion quote with sufficient length."),
+        draft_id="a0",
+        source_sequence_index=0,
+    )
+    assert atom.source_quotes == ("Premise quote with sufficient length.", "Conclusion quote with sufficient length.")
+

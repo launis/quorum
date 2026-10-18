@@ -81,10 +81,10 @@ def test_llm_extracted_quote_no_context_or_empty() -> None:
 def test_quote_evidence_validates_raw_string() -> None:
     """Test that a raw string with multiple DOC-X is parsed into a list."""
     dto = QuoteEvidenceDTO.model_validate(
-        {"quote": "This is a test quote.", "source_alias": "DOC-1, DOC-2"},
+        {"source_quotes": ["This is a test quote."], "source_alias": "DOC-1, DOC-2"},
         context={"alias_registry": {"DOC-1": "opaque_1", "DOC-2": "opaque_2"}},
     )
-    assert dto.quote == "This is a test quote."
+    assert dto.source_quotes == ("This is a test quote.",)
     assert dto.verified_source_ids == ["opaque_1", "opaque_2"]
     assert dto.unverified_aliases == []
     assert dto.is_verified is True
@@ -93,7 +93,7 @@ def test_quote_evidence_validates_raw_string() -> None:
 def test_quote_evidence_validates_list_of_strings() -> None:
     """Test that a list of strings containing DOC-X is parsed correctly."""
     dto = QuoteEvidenceDTO.model_validate(
-        {"quote": "Another test quote.", "source_alias": ["DOC-3", "Some other string DOC-4", 123]},
+        {"source_quotes": ["Another test quote."], "source_alias": ["DOC-3", "Some other string DOC-4", 123]},
         context={"alias_registry": {"DOC-3": "opaque_3", "DOC-4": "opaque_4", "Some other string DOC-4": "opaque_5"}},
     )
     assert "opaque_3" in dto.verified_source_ids
@@ -104,7 +104,8 @@ def test_quote_evidence_validates_list_of_strings() -> None:
 def test_quote_evidence_fallback_to_unverified() -> None:
     """Test that missing aliases are pushed to unverified_aliases and is_verified is False."""
     dto = QuoteEvidenceDTO.model_validate(
-        {"quote": "Missing alias quote.", "source_alias": "DOC-99"}, context={"alias_registry": {"DOC-1": "opaque_1"}}
+        {"source_quotes": ["Missing alias quote."], "source_alias": "DOC-99"},
+        context={"alias_registry": {"DOC-1": "opaque_1"}},
     )
     assert dto.verified_source_ids == []
     assert dto.unverified_aliases == ["DOC-99"]
@@ -114,12 +115,12 @@ def test_quote_evidence_fallback_to_unverified() -> None:
 def test_quote_evidence_missing_context() -> None:
     """Test behavior when context is not provided."""
     with pytest.raises(RuntimeError, match="ValidationInfo.context is missing"):
-        QuoteEvidenceDTO.model_validate({"quote": "No context quote.", "source_alias": ["DOC-1"]})
+        QuoteEvidenceDTO.model_validate({"source_quotes": ["No context quote."], "source_alias": ["DOC-1"]})
 
     # Allowed if verified_source_ids already in payload
     dto = QuoteEvidenceDTO.model_validate(
         {
-            "quote": "Pre-verified quote.",
+            "source_quotes": ["Pre-verified quote."],
             "verified_source_ids": ["doc_1"],
         }
     )
@@ -129,14 +130,14 @@ def test_quote_evidence_missing_context() -> None:
 def test_quote_evidence_empty_or_none_alias() -> None:
     """Test QuoteEvidenceDTO with empty or None source_alias."""
     dto_none = QuoteEvidenceDTO.model_validate(
-        {"quote": "None alias quote.", "source_alias": None},
+        {"source_quotes": ["None alias quote."], "source_alias": None},
         context={"alias_registry": {}},
     )
     assert dto_none.verified_source_ids == []
     assert dto_none.unverified_aliases == []
 
     dto_empty = QuoteEvidenceDTO.model_validate(
-        {"quote": "Empty alias quote.", "source_alias": "   "},
+        {"source_quotes": ["Empty alias quote."], "source_alias": "   "},
         context={"alias_registry": {}},
     )
     assert dto_empty.verified_source_ids == []
@@ -146,7 +147,7 @@ def test_quote_evidence_empty_or_none_alias() -> None:
 def test_quote_evidence_custom_alias_without_doc_pattern() -> None:
     """Test custom alias without DOC-X pattern."""
     dto = QuoteEvidenceDTO.model_validate(
-        {"quote": "Custom alias.", "source_alias": ["custom_alias_1"]},
+        {"source_quotes": ["Custom alias."], "source_alias": ["custom_alias_1"]},
         context={"alias_registry": {"custom_alias_1": "opaque_custom"}},
     )
     assert dto.verified_source_ids == ["opaque_custom"]
@@ -161,7 +162,7 @@ def test_quote_evidence_non_dict_context() -> None:
     assert quote.source_id == "doc0"
 
     dto = QuoteEvidenceDTO.model_validate(
-        {"quote": "Non-dict context.", "source_alias": ["DOC-1"]},
+        {"source_quotes": ["Non-dict context."], "source_alias": ["DOC-1"]},
         context="invalid_context_type",
     )
     assert dto.unverified_aliases == ["DOC-1"]
@@ -186,12 +187,21 @@ def test_gate_match_result_dto_extra_fields_raises_validation_error() -> None:
 
 
 def test_quote_evidence_dto_get_quotes_with_quote() -> None:
-    """Test get_quotes() returns 1-tuple with valid quote."""
-    dto = QuoteEvidenceDTO(quote="A valid evidence quote.")
+    """Test get_quotes() returns tuple with valid quote."""
+    dto = QuoteEvidenceDTO(source_quotes=("A valid evidence quote.",))
     assert dto.get_quotes() == ("A valid evidence quote.",)
 
 
 def test_quote_evidence_dto_get_quotes_empty_or_none() -> None:
-    """Test get_quotes() returns empty tuple when quote is whitespace."""
-    dto = QuoteEvidenceDTO(quote="   ")
+    """Test get_quotes() returns empty tuple when quote is empty or None."""
+    dto = QuoteEvidenceDTO(source_quotes="")
     assert dto.get_quotes() == ()
+    dto_none = QuoteEvidenceDTO(source_quotes=None)
+    assert dto_none.get_quotes() == ()
+
+
+def test_quote_evidence_dto_empty_string_resolves_none() -> None:
+    """Test that empty string or whitespace resolves source_quotes to None."""
+    dto = QuoteEvidenceDTO(source_quotes="   ")
+    assert dto.source_quotes is None
+

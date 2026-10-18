@@ -84,7 +84,7 @@ void main() {
               exactQuotes: const [
                 QuoteEvidenceDto(
                   verifiedSourceIds: ['doc_1'],
-                  quote: 'AI says FAIL',
+                  sourceQuotes: ['AI says FAIL'],
                 ),
               ],
               internalLogicEn: const ReasoningStepDto(
@@ -105,7 +105,7 @@ void main() {
                 evidenceQuotes: [
                   QuoteEvidenceDto(
                     verifiedSourceIds: ['manual'],
-                    quote: 'Human evidence',
+                    sourceQuotes: ['Human evidence'],
                   ),
                 ],
               ),

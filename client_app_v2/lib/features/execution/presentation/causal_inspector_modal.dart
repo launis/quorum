@@ -497,8 +497,8 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (node.sourceQuote != null &&
-                      node.sourceQuote!.isNotEmpty) ...[
+                  if (node.sourceQuotes != null &&
+                      node.sourceQuotes!.isNotEmpty) ...[
                     AppSpacing.h12,
                     Text(
                       l10n.causalInspectorCitationEvidenceHeader,
@@ -528,7 +528,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '"${node.sourceQuote}"',
+                            '"${node.sourceQuotes!.join(' [...] ')}"',
                             style: textTheme.bodySmall?.copyWith(
                               fontStyle: FontStyle.italic,
                               color: colorScheme.onSurface,

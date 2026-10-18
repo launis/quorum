@@ -111,7 +111,7 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         tda_id="tda_0123456789abcdef",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Forensic quote",
+        source_quotes=("Forensic quote",),
         evaluation_reasoning="Sound reasoning.",
     )
     hydrated_ref = HydratedAtomDTO(
@@ -355,7 +355,7 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         tda_id="tda_0000000000000001",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Affirmative quote",
+        source_quotes=("Affirmative quote",),
         evaluation_reasoning="Affirmative reasoning.",
         is_inverse_evidence=False,
     )
@@ -363,7 +363,7 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         tda_id="tda_0000000000000002",
         matrix_id="blk_0123456789abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote=None,
+        source_quotes=None,
         evaluation_reasoning="Inverse reasoning.",
         is_inverse_evidence=True,
     )

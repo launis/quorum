@@ -252,14 +252,17 @@ class SynthesisPayloadCompressor:
                     distilled_evals.append(ev)
                 elif isinstance(ev, EvaluatedAtomDTO):
                     atom_id = ev.atom_id or ev.tda_id
+                    raw_quotes = list(ev.exact_quotes)
+                    if not raw_quotes and ev.source_quotes:
+                        raw_quotes = list(ev.source_quotes)
                     valid_quotes = [
                         q.strip()
-                        for q in ev.exact_quotes
+                        for q in raw_quotes
                         if q.strip()
                         and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
                         and not (q.strip().startswith("[") and q.strip().endswith("]"))
                     ]
-                    if ev.exact_quotes and not valid_quotes and not ev.evaluation_reasoning:
+                    if (ev.exact_quotes or ev.source_quotes) and not valid_quotes and not ev.evaluation_reasoning:
                         continue
 
                     reasoning: str | None = None
@@ -293,6 +296,8 @@ class SynthesisPayloadCompressor:
                     eval_dict: dict[str, JsonValue] = {"atom_id": str(atom_id_val)}
                     if "exact_quotes" in ev:
                         eval_dict["exact_quotes"] = ev["exact_quotes"]
+                    elif "source_quotes" in ev and ev["source_quotes"]:
+                        eval_dict["exact_quotes"] = list(ev["source_quotes"])
                     if "semantic_reasoning" in ev:
                         eval_dict["semantic_reasoning"] = ev["semantic_reasoning"]
                     elif "output_text" in ev:

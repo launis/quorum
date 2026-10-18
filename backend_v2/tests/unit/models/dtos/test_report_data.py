@@ -34,11 +34,11 @@ def test_atom_result_dto_validation() -> None:
     atom = AtomResultDTO(
         tda_id="tda_1234567890abcdef1234567890abcdef",
         status=ExecutionStatus.PASSED,
-        source_quote="Direct evidence from text",
+        source_quotes=("Direct evidence from text",),
         evaluation_reasoning="Valid reason provided",
     )
     assert atom.tda_id == "tda_1234567890abcdef1234567890abcdef"
-    assert atom.source_quote == "Direct evidence from text"
+    assert atom.source_quotes == ("Direct evidence from text",)
     assert atom.evaluation_reasoning == "Valid reason provided"
 
 
@@ -47,7 +47,7 @@ def test_atom_result_dto_requires_reasoning() -> None:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
             status=ExecutionStatus.PASSED,
-            source_quote="Some quote",
+            source_quotes=("Some quote",),
             evaluation_reasoning=None,
         )
 
@@ -56,8 +56,8 @@ def test_hydrated_atom_dto() -> None:
     hydrated = HydratedAtomDTO(
         sdui_component="boolean_card",
         resolved_claim="Resolved Claim Text",
-        source_quote="Verbatim Quote",
+        source_quotes=("Verbatim Quote",),
     )
     assert hydrated.sdui_component == "boolean_card"
     assert hydrated.resolved_claim == "Resolved Claim Text"
-    assert hydrated.source_quote == "Verbatim Quote"
+    assert hydrated.source_quotes == ("Verbatim Quote",)

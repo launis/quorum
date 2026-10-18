@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Global Sliding Window Linker for DAG topology generation.
 
 Uses a sliding window approach over extracted atoms to resolve cross-chunk causal
 dependencies without exceeding LLM context windows or losing attention on middle chunks.
 """
+
+from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
@@ -257,7 +257,10 @@ class SlidingWindowLinker:
             for atom in window_atoms:
                 alias = alias_engine.register(atom.tda_id, "a")
                 claims_text += f"[{alias}] {atom.resolved_claim}\n"
-                claims_text += f"Quote: {atom.source_quote}\n\n"
+                if atom.source_quotes:
+                    claims_text += f"Quote: {' [...] '.join(atom.source_quotes)}\n\n"
+                else:
+                    claims_text += "Quote: [None]\n\n"
 
             user_prompt = TemplateProcessor.render_prompt(
                 build_linker_user_prompt(

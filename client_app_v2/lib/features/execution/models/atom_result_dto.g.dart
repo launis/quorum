@@ -48,7 +48,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
         'matrix_id',
         'status',
         'extracted_data',
-        'source_quote',
+        'source_quotes',
         'contextual_override',
         'is_inverse_evidence',
         'evaluation_reasoning',
@@ -71,7 +71,10 @@ _AtomResultDTO _$AtomResultDTOFromJson(
             ? null
             : ExtractedValueDTO.fromJson(v as Map<String, dynamic>),
       ),
-      sourceQuote: $checkedConvert('source_quote', (v) => v as String?),
+      sourceQuotes: $checkedConvert(
+        'source_quotes',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
       contextualOverride: $checkedConvert(
         'contextual_override',
         (v) => v as bool? ?? false,
@@ -115,7 +118,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
     'tdaId': 'tda_id',
     'matrixId': 'matrix_id',
     'extractedData': 'extracted_data',
-    'sourceQuote': 'source_quote',
+    'sourceQuotes': 'source_quotes',
     'contextualOverride': 'contextual_override',
     'isInverseEvidence': 'is_inverse_evidence',
     'evaluationReasoning': 'evaluation_reasoning',
@@ -131,7 +134,7 @@ Map<String, dynamic> _$AtomResultDTOToJson(_AtomResultDTO instance) =>
       'matrix_id': instance.matrixId,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
       'extracted_data': instance.extractedData?.toJson(),
-      'source_quote': instance.sourceQuote,
+      'source_quotes': instance.sourceQuotes,
       'contextual_override': instance.contextualOverride,
       'is_inverse_evidence': instance.isInverseEvidence,
       'evaluation_reasoning': instance.evaluationReasoning,

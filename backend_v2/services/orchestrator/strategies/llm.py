@@ -165,7 +165,7 @@ class LLMNodeStrategy(NodeStrategy):
                                     del item_dict["atom_id"]
                                 if "status" not in item_dict:
                                     item_dict["status"] = ExecutionStatus.PASSED
-                                if "source_quote" not in item_dict and (
+                                if "source_quotes" not in item_dict and (
                                     "contextual_override" not in item_dict or not item_dict["contextual_override"]
                                 ):
                                     item_dict["contextual_override"] = True
@@ -193,7 +193,7 @@ class LLMNodeStrategy(NodeStrategy):
                                     del ev_dict["atom_id"]
                                 if "status" not in ev_dict:
                                     ev_dict["status"] = ExecutionStatus.PASSED
-                                if "source_quote" not in ev_dict and (
+                                if "source_quotes" not in ev_dict and (
                                     "contextual_override" not in ev_dict or not ev_dict["contextual_override"]
                                 ):
                                     ev_dict["contextual_override"] = True

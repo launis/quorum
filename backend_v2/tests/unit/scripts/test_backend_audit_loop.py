@@ -666,4 +666,3 @@ def test_coverage_runner_directory_with_parent_glob_and_sub_candidates(mock_sub:
                 ]
                 run_tests_with_strict_coverage("backend_v2/services/auth")
                 assert mock_sub.call_count == 1
-

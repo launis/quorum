@@ -4,9 +4,9 @@ import logging
 import re
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationInfo, model_validator
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.prompts.common import DESC_EXACT_QUOTE_TEXT
 from backend_v2.utils.alias_engine import AliasEngine
 
@@ -144,7 +144,7 @@ class QuoteEvidenceDTO(V2CoreBase):
     """Headless DTO for storing quote evidence with strict deterministic alias resolution.
 
     Attributes:
-        quote: The exact text of the quote.
+        source_quotes: The exact text segments of the quote.
         verified_source_ids: Resolved Opaque IDs.
         unverified_aliases: Aliases that could not be verified.
         is_verified: True if there are verified aliases and no unverified aliases.
@@ -153,7 +153,11 @@ class QuoteEvidenceDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    quote: Annotated[str, Field(description="The exact text of the quote.")]
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(default=None, description="The exact text segments of the quote."),
+    ] = None
     verified_source_ids: list[str] = Field(default_factory=list, description="Resolved Opaque IDs.")
     unverified_aliases: list[str] = Field(default_factory=list, description="Aliases that could not be verified.")
     is_verified: Annotated[
@@ -165,10 +169,10 @@ class QuoteEvidenceDTO(V2CoreBase):
         """Extracts available quotes as an immutable tuple without reflection.
 
         Returns:
-            Immutable tuple containing the quote string if non-empty, or an empty tuple.
+            Immutable tuple containing the quote segments, or an empty tuple.
         """
-        if self.quote and self.quote.strip():
-            return (self.quote,)
+        if self.source_quotes:
+            return self.source_quotes
         return ()
 
     @model_validator(mode="before")

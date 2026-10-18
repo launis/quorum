@@ -126,10 +126,11 @@ class MatrixExplanationService:
                         else _ATOM_RESULT_ADAPTER.validate_python(atom_item)
                     )
 
-                    if atom_res.source_quote:
-                        cleaned = atom_res.source_quote.strip()
-                        if len(cleaned) >= 15:
-                            global_quotes_map.setdefault(atom_res.tda_id, []).append(cleaned[:max_quote_len])
+                    if atom_res.source_quotes:
+                        for q in atom_res.source_quotes:
+                            cleaned = q.strip()
+                            if len(cleaned) >= 15:
+                                global_quotes_map.setdefault(atom_res.tda_id, []).append(cleaned[:max_quote_len])
                 except (ValidationError, ValueError) as e:
                     logger.error(
                         "[MatrixExplanationService] %s: Malformed atom result in results list: %s",

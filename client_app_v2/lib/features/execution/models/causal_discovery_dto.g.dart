@@ -17,7 +17,7 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
       allowedKeys: const [
         'node_id',
         'claim',
-        'source_quote',
+        'source_quotes',
         'paragraph_ref',
         'status',
         'blame_parent_ids',
@@ -30,7 +30,10 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
     final val = _CausalNodeDto(
       nodeId: $checkedConvert('node_id', (v) => v as String),
       claim: $checkedConvert('claim', (v) => v as String),
-      sourceQuote: $checkedConvert('source_quote', (v) => v as String?),
+      sourceQuotes: $checkedConvert(
+        'source_quotes',
+        (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+      ),
       paragraphRef: $checkedConvert('paragraph_ref', (v) => v as String?),
       status: $checkedConvert(
         'status',
@@ -57,7 +60,7 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
   },
   fieldKeyMap: const {
     'nodeId': 'node_id',
-    'sourceQuote': 'source_quote',
+    'sourceQuotes': 'source_quotes',
     'paragraphRef': 'paragraph_ref',
     'blameParentIds': 'blame_parent_ids',
     'dependentChildIds': 'dependent_child_ids',
@@ -71,7 +74,7 @@ Map<String, dynamic> _$CausalNodeDtoToJson(_CausalNodeDto instance) =>
     <String, dynamic>{
       'node_id': instance.nodeId,
       'claim': instance.claim,
-      'source_quote': instance.sourceQuote,
+      'source_quotes': instance.sourceQuotes,
       'paragraph_ref': instance.paragraphRef,
       'status': _$ExecutionStatusEnumMap[instance.status]!,
       'blame_parent_ids': instance.blameParentIds,

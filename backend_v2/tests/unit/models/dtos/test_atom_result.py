@@ -54,15 +54,15 @@ def test_atom_result_rejects_failed_with_inverse_evidence() -> None:
 
 
 def test_atom_result_rejects_failed_with_source_quote() -> None:
-    """Test contract: FAILED atom with source_quote raises ValidationError."""
+    """Test contract: FAILED atom with source_quotes raises ValidationError."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="atm_test_2",
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="Assertion failed.",
-            source_quote="Some quote",
+            source_quotes=("Some quote",),
         )
-    assert "source_quote must be None when status is FAILED" in str(exc_info.value)
+    assert "source_quotes must be None when status is FAILED" in str(exc_info.value)
 
 
 def test_atom_result_rejects_passed_without_reasoning() -> None:
@@ -71,7 +71,7 @@ def test_atom_result_rejects_passed_without_reasoning() -> None:
         AtomResultDTO(
             tda_id="atm_test_pass_no_reason",
             status=ExecutionStatus.PASSED,
-            source_quote="Valid quote",
+            source_quotes=("Valid quote",),
         )
     assert "Reasoning is mandatory for cognitive status PASSED" in str(exc_info.value)
 
@@ -84,20 +84,33 @@ def test_atom_result_rejects_passed_without_quote_or_override() -> None:
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Passed without evidence.",
         )
-    assert "source_quote is mandatory unless contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+    assert "source_quotes is mandatory unless contextual_override or is_inverse_evidence is True" in str(exc_info.value)
 
 
 def test_atom_result_rejects_passed_with_override_and_quote() -> None:
-    """Test contract: PASSED atom with contextual_override and source_quote raises ValidationError."""
+    """Test contract: PASSED atom with contextual_override and source_quotes raises ValidationError."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="atm_test_3",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Passed via cognitive override.",
             contextual_override=True,
-            source_quote="Quote should not be present",
+            source_quotes=("Quote should not be present",),
         )
-    assert "source_quote must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+    assert "source_quotes must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+
+
+def test_atom_result_dto_null_hypothesis_absence_enforces_none_quotes() -> None:
+    """Test contract: Null Hypothesis absence enforces source_quotes=None when is_inverse_evidence=True."""
+    with pytest.raises(ValidationError) as exc_info:
+        AtomResultDTO(
+            tda_id="atm_inv_fail",
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Null hypothesis reasoning.",
+            is_inverse_evidence=True,
+            source_quotes=("Phantom quote.",),
+        )
+    assert "source_quotes must be None when contextual_override or is_inverse_evidence is True" in str(exc_info.value)
 
 
 def test_atom_result_passed_with_valid_quote() -> None:
@@ -106,10 +119,10 @@ def test_atom_result_passed_with_valid_quote() -> None:
         tda_id="atm_test_4",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="The deliverable clearly states the value.",
-        source_quote="Exact quotation from text",
+        source_quotes=("Exact quotation from text",),
     )
     assert res.status == ExecutionStatus.PASSED
-    assert res.source_quote == "Exact quotation from text"
+    assert res.source_quotes == ("Exact quotation from text",)
 
 
 def test_atom_result_passed_with_inverse_evidence() -> None:
@@ -119,11 +132,11 @@ def test_atom_result_passed_with_inverse_evidence() -> None:
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Confirmed absence of violation.",
         is_inverse_evidence=True,
-        source_quote=None,
+        source_quotes=None,
     )
     assert res.status == ExecutionStatus.PASSED
     assert res.is_inverse_evidence is True
-    assert res.source_quote is None
+    assert res.source_quotes is None
 
 
 def test_atom_result_system_error_validation() -> None:
@@ -153,7 +166,7 @@ def test_atom_result_extra_fields_forbidden() -> None:
                 "tda_id": "atm_extra",
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": "Reasoning",
-                "source_quote": "Quote",
+                "source_quotes": ("Quote",),
                 "extra_forbidden_field": "crash",
             }
         )
@@ -197,7 +210,7 @@ def test_hydrated_atom_dto() -> None:
     atom = HydratedAtomDTO(
         sdui_component=SDUIComponentType.BOOLEAN_CARD,
         resolved_claim="Carbon emissions must be zero.",
-        source_quote="Zero emissions target.",
+        source_quotes=("Zero emissions target.",),
     )
     assert atom.sdui_component == SDUIComponentType.BOOLEAN_CARD
     assert atom.resolved_claim == "Carbon emissions must be zero."

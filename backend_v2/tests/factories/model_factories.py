@@ -408,7 +408,7 @@ class CausalNodeDTOFactory(ModelFactory[CausalNodeDTO]):
 
     node_id: str = "tda_0000000000000001"
     claim: str = "Verifiable claim premise."
-    source_quote: str | None = "Verbatim quote."
+    source_quotes: tuple[str, ...] | None = ("Verbatim quote.",)
     paragraph_ref: str | None = "B0"
     status: ExecutionStatus = ExecutionStatus.PASSED
     blame_parent_ids: list[str] = []
@@ -430,7 +430,7 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
             CausalNodeDTO(
                 node_id="tda_0000000000000001",
                 claim="Premise claim statement.",
-                source_quote="Verbatim quote 1.",
+                source_quotes=("Verbatim quote 1.",),
                 paragraph_ref="B0",
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
@@ -439,7 +439,7 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
             CausalNodeDTO(
                 node_id="tda_0000000000000002",
                 claim="Conclusion claim statement.",
-                source_quote="Verbatim quote 2.",
+                source_quotes=("Verbatim quote 2.",),
                 paragraph_ref="B1",
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],

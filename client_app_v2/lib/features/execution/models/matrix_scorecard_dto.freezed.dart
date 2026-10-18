@@ -273,7 +273,7 @@ as String,
 /// @nodoc
 mixin _$QuoteEvidenceDto {
 
- String get quote;@JsonKey(name: 'verified_source_ids') List<String> get verifiedSourceIds;@JsonKey(name: 'unverified_aliases') List<String> get unverifiedAliases;@JsonKey(name: 'is_verified') bool get isVerified;
+@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes;@JsonKey(name: 'verified_source_ids') List<String> get verifiedSourceIds;@JsonKey(name: 'unverified_aliases') List<String> get unverifiedAliases;@JsonKey(name: 'is_verified') bool get isVerified;
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -288,7 +288,7 @@ $QuoteEvidenceDtoCopyWith<QuoteEvidenceDto> get copyWith => _$QuoteEvidenceDtoCo
 
 @override
 String toString() {
-  return 'QuoteEvidenceDto(quote: $quote, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
+  return 'QuoteEvidenceDto(sourceQuotes: $sourceQuotes, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
 }
 
 
@@ -299,7 +299,7 @@ abstract mixin class $QuoteEvidenceDtoCopyWith<$Res>  {
   factory $QuoteEvidenceDtoCopyWith(QuoteEvidenceDto value, $Res Function(QuoteEvidenceDto) _then) = _$QuoteEvidenceDtoCopyWithImpl;
 @useResult
 $Res call({
- String quote,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
+@JsonKey(name: 'source_quotes') List<String>? sourceQuotes,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
 });
 
 
@@ -316,10 +316,10 @@ class _$QuoteEvidenceDtoCopyWithImpl<$Res>
 
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? quote = null,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sourceQuotes = freezed,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
   return _then(_self.copyWith(
-quote: null == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
-as String,verifiedSourceIds: null == verifiedSourceIds ? _self.verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
+sourceQuotes: freezed == sourceQuotes ? _self.sourceQuotes : sourceQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,verifiedSourceIds: null == verifiedSourceIds ? _self.verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
 as List<String>,unverifiedAliases: null == unverifiedAliases ? _self.unverifiedAliases : unverifiedAliases // ignore: cast_nullable_to_non_nullable
 as List<String>,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -407,10 +407,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto() when $default != null:
-return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
+return $default(_that.sourceQuotes,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   return orElse();
 
 }
@@ -428,10 +428,10 @@ return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)  $default,) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto():
-return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
+return $default(_that.sourceQuotes,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -448,10 +448,10 @@ return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String quote, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'source_quotes')  List<String>? sourceQuotes, @JsonKey(name: 'verified_source_ids')  List<String> verifiedSourceIds, @JsonKey(name: 'unverified_aliases')  List<String> unverifiedAliases, @JsonKey(name: 'is_verified')  bool isVerified)?  $default,) {final _that = this;
 switch (_that) {
 case _QuoteEvidenceDto() when $default != null:
-return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
+return $default(_that.sourceQuotes,_that.verifiedSourceIds,_that.unverifiedAliases,_that.isVerified);case _:
   return null;
 
 }
@@ -463,10 +463,18 @@ return $default(_that.quote,_that.verifiedSourceIds,_that.unverifiedAliases,_tha
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _QuoteEvidenceDto implements QuoteEvidenceDto {
-  const _QuoteEvidenceDto({required this.quote, @JsonKey(name: 'verified_source_ids') final  List<String> verifiedSourceIds = const [], @JsonKey(name: 'unverified_aliases') final  List<String> unverifiedAliases = const [], @JsonKey(name: 'is_verified') this.isVerified = false}): _verifiedSourceIds = verifiedSourceIds,_unverifiedAliases = unverifiedAliases;
+  const _QuoteEvidenceDto({@JsonKey(name: 'source_quotes') final  List<String>? sourceQuotes, @JsonKey(name: 'verified_source_ids') final  List<String> verifiedSourceIds = const [], @JsonKey(name: 'unverified_aliases') final  List<String> unverifiedAliases = const [], @JsonKey(name: 'is_verified') this.isVerified = false}): _sourceQuotes = sourceQuotes,_verifiedSourceIds = verifiedSourceIds,_unverifiedAliases = unverifiedAliases;
   factory _QuoteEvidenceDto.fromJson(Map<String, dynamic> json) => _$QuoteEvidenceDtoFromJson(json);
 
-@override final  String quote;
+ final  List<String>? _sourceQuotes;
+@override@JsonKey(name: 'source_quotes') List<String>? get sourceQuotes {
+  final value = _sourceQuotes;
+  if (value == null) return null;
+  if (_sourceQuotes is EqualUnmodifiableListView) return _sourceQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
  final  List<String> _verifiedSourceIds;
 @override@JsonKey(name: 'verified_source_ids') List<String> get verifiedSourceIds {
   if (_verifiedSourceIds is EqualUnmodifiableListView) return _verifiedSourceIds;
@@ -498,7 +506,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'QuoteEvidenceDto(quote: $quote, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
+  return 'QuoteEvidenceDto(sourceQuotes: $sourceQuotes, verifiedSourceIds: $verifiedSourceIds, unverifiedAliases: $unverifiedAliases, isVerified: $isVerified)';
 }
 
 
@@ -509,7 +517,7 @@ abstract mixin class _$QuoteEvidenceDtoCopyWith<$Res> implements $QuoteEvidenceD
   factory _$QuoteEvidenceDtoCopyWith(_QuoteEvidenceDto value, $Res Function(_QuoteEvidenceDto) _then) = __$QuoteEvidenceDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String quote,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
+@JsonKey(name: 'source_quotes') List<String>? sourceQuotes,@JsonKey(name: 'verified_source_ids') List<String> verifiedSourceIds,@JsonKey(name: 'unverified_aliases') List<String> unverifiedAliases,@JsonKey(name: 'is_verified') bool isVerified
 });
 
 
@@ -526,10 +534,10 @@ class __$QuoteEvidenceDtoCopyWithImpl<$Res>
 
 /// Create a copy of QuoteEvidenceDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? quote = null,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sourceQuotes = freezed,Object? verifiedSourceIds = null,Object? unverifiedAliases = null,Object? isVerified = null,}) {
   return _then(_QuoteEvidenceDto(
-quote: null == quote ? _self.quote : quote // ignore: cast_nullable_to_non_nullable
-as String,verifiedSourceIds: null == verifiedSourceIds ? _self._verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
+sourceQuotes: freezed == sourceQuotes ? _self._sourceQuotes : sourceQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,verifiedSourceIds: null == verifiedSourceIds ? _self._verifiedSourceIds : verifiedSourceIds // ignore: cast_nullable_to_non_nullable
 as List<String>,unverifiedAliases: null == unverifiedAliases ? _self._unverifiedAliases : unverifiedAliases // ignore: cast_nullable_to_non_nullable
 as List<String>,isVerified: null == isVerified ? _self.isVerified : isVerified // ignore: cast_nullable_to_non_nullable
 as bool,

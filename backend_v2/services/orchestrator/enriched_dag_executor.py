@@ -144,7 +144,7 @@ class EnrichedDagExecutor:
                     node.atom.tda_id: AtomEvaluationResultDTO(
                         status=ExecutionStatus.SYSTEM_ERROR,
                         reasoning=f"EVALUATION_CRASH: {str(e)}",
-                        source_quote=None,
+                        source_quotes=None,
                         extensions={},
                     )
                     for node in chunk

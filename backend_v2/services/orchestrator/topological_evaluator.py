@@ -160,7 +160,7 @@ class TopologicalEvaluator:
                                 update={
                                     "status": res.status,
                                     "evaluation_reasoning": res.reasoning,
-                                    "source_quote": res.source_quote,
+                                    "source_quotes": res.source_quotes,
                                     "extensions": res.extensions,
                                 }
                             )
