@@ -439,6 +439,18 @@ def test_coverage_runner_directory_no_test_dir_or_file(mock_sub: MagicMock) -> N
 
 
 @patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_directory_with_modular_tests_discovery(mock_sub: MagicMock) -> None:
+    """Verify package directory targets resolve modular and flat test files."""
+    run_tests_with_strict_coverage("backend_v2/services/auth")
+    assert mock_sub.call_count == 1
+    cmd = mock_sub.call_args[0][0]
+    cmd_str = " ".join(cmd)
+    assert "test_auth.py" in cmd_str
+    assert "test_token_service.py" in cmd_str
+    assert "--cov=backend_v2.services.auth" in cmd_str
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
 def test_coverage_runner_flat_unit_test_fallback(mock_sub: MagicMock) -> None:
     with patch("scripts.backend_audit_loop.Path.exists", side_effect=[False, False, False, True, True, True]):
         run_tests_with_strict_coverage("backend_v2/services/subservice/sample.py")
@@ -631,3 +643,27 @@ def test_backend_audit_loop_runs_all_stages(mock_sub: MagicMock, mock_scan: Magi
         assert any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
         assert any("audit_warning_baseline.py" in cmd for cmd in invoked_cmds)
         assert any("audit_dict_eradication.py backend_v2 scripts --strict" in cmd for cmd in invoked_cmds)
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_audit_prefix_candidate(mock_sub: MagicMock) -> None:
+    """Verify that audit_ and test_ prefix candidates are evaluated."""
+    with patch("scripts.backend_audit_loop.Path.exists", return_value=True):
+        run_tests_with_strict_coverage("scripts/audit_clean_imports.py")
+        run_tests_with_strict_coverage("backend_v2/test_helper.py")
+        assert mock_sub.call_count >= 2
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_directory_with_parent_glob_and_sub_candidates(mock_sub: MagicMock) -> None:
+    """Verify parent test dir globbing and sub-module candidate discovery in directories."""
+    with patch("scripts.backend_audit_loop.Path.exists", side_effect=[False, False, True, False, True, False]):
+        with patch("scripts.backend_audit_loop.Path.is_dir", return_value=True):
+            with patch("scripts.backend_audit_loop.Path.glob") as mock_glob:
+                mock_glob.side_effect = [
+                    [Path("backend_v2/tests/unit/services/test_auth_audit.py")],
+                    [Path("backend_v2/services/auth/token_service.py")],
+                ]
+                run_tests_with_strict_coverage("backend_v2/services/auth")
+                assert mock_sub.call_count == 1
+

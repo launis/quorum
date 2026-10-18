@@ -256,6 +256,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
             test_path = target_clean
         else:
             if parts[0] == "backend_v2":
+                target_dir = Path(target_clean.strip("/"))
                 test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
                 test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{parts[-1]}.py"
                 if test_dir.exists():
@@ -263,7 +264,41 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                 elif test_file.exists():
                     test_path = str(test_file).replace("\\", "/")
                 else:
-                    test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+                    discovered_tests: list[str] = []
+                    parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
+                    if parent_test_dir.exists():
+                        for m in sorted(parent_test_dir.glob(f"test_{parts[-1]}*.py")):
+                            s = str(m).replace("\\", "/")
+                            if s not in discovered_tests:
+                                discovered_tests.append(s)
+
+                    flat_unit = Path("backend_v2/tests/unit")
+                    flat_pkg_test = flat_unit / f"test_{parts[-1]}.py"
+                    if flat_pkg_test.exists():
+                        s = str(flat_pkg_test).replace("\\", "/")
+                        if s not in discovered_tests:
+                            discovered_tests.append(s)
+
+                    if target_dir.is_dir():
+                        for sub_py in sorted(target_dir.glob("*.py")):
+                            if sub_py.name == "__init__.py":
+                                continue
+                            stem = sub_py.stem
+                            sub_cand1 = parent_test_dir / f"test_{stem}.py"
+                            if sub_cand1.exists():
+                                s = str(sub_cand1).replace("\\", "/")
+                                if s not in discovered_tests:
+                                    discovered_tests.append(s)
+                            sub_cand2 = flat_unit / f"test_{stem}.py"
+                            if sub_cand2.exists():
+                                s = str(sub_cand2).replace("\\", "/")
+                                if s not in discovered_tests:
+                                    discovered_tests.append(s)
+
+                    if discovered_tests:
+                        test_path = " ".join(discovered_tests)
+                    else:
+                        test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
             elif parts[0] == "scripts":
                 test_path = "backend_v2/tests/unit/scripts"
             elif parts[0] == "tests":
