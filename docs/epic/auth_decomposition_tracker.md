@@ -59,8 +59,8 @@
 
 ### Proxy Sunset and Consumer Migration (Bounded Batches)
 Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
-- [ ] **[NOK] Batch 1: Dependency Injection Rewiring**: Rewire `@[backend_v2/api/dependencies.py]` to import `AuthService` directly from `backend_v2.services.auth`. Run `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test`. Atomic git commit.
-- [ ] **[NOK] Batch 2: Unit Test Suite Modularization**: Decompose monolithic `@[backend_v2/tests/unit/test_auth.py]` into domain-specific test suites mirroring extracted modules (`test_token_service.py`, `test_organization_service.py`, `test_user_service.py`, `test_repositories.py`). Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/ --test`. Atomic git commit.
+- [x] **[OK] Batch 1: Dependency Injection Rewiring**: Rewire `@[backend_v2/api/dependencies.py]` to import `AuthService` directly from `backend_v2.services.auth`. Run `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test`. Verified 99% line coverage and 10/10 gates clean.
+- [x] **[OK] Batch 2: Unit Test Suite Modularization**: Decompose monolithic `@[backend_v2/tests/unit/test_auth.py]` into domain-specific test suites mirroring extracted modules (`test_token_service.py`, `test_organization_service.py`, `test_user_service.py`, `test_repositories.py`). Run `uv run python scripts/backend_audit_loop.py` on modular test suites. Verified 116/116 unit tests pass with 95% aggregate coverage across `backend_v2.services.auth`.
 
 ### Pre-Delete Verification Gates
 - [ ] **[NOK] Pre-Delete Zero-Reference and Semantic Coverage Audit**:
@@ -91,6 +91,8 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 - Implemented all 39 test contracts (TC-P4-01 through TC-P4-39) plus direct `UserService` execution test in `@[backend_v2/tests/unit/test_auth.py]`; verified 116/116 unit tests pass with 95% aggregate coverage across `backend_v2.services.auth` (`__init__.py`: 93%, `constants.py`: 100%, `organization_service.py`: 94%, `repositories.py`: 100%, `token_service.py`: 98%, `user_service.py`: 93%).
 - Eradicated ternary lazy fallbacks in `user_service.py` per AST guardrail rule QGR016.
 - Passed all 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth/__init__.py --test --ast-strict`).
+- Verified Batch 1 (Dependency Injection Rewiring): verified `@[backend_v2/api/dependencies.py]` imports `AuthService` directly from `backend_v2.services.auth` with 99% coverage and clean 10/10 gates.
+- Executed Batch 2 (Unit Test Suite Modularization): cleanly decomposed monolithic `@[backend_v2/tests/unit/test_auth.py]` into domain-specific test suites mirroring extracted modules: `@[backend_v2/tests/unit/test_repositories.py]`, `@[backend_v2/tests/unit/test_token_service.py]`, `@[backend_v2/tests/unit/test_organization_service.py]`, `@[backend_v2/tests/unit/test_user_service.py]`, and focused facade tests in `@[backend_v2/tests/unit/test_auth.py]`. All 116/116 tests pass with 95% aggregate coverage and 100% clean quality gates.
 
 ## Learned
 - During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`, `create_user_fn`) ensures seamless decoupling between `OrganizationService` and `UserService` without circular dependencies.
@@ -101,11 +103,9 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 - AST Guardrail QGR016 forbids ternary lazy fallbacks (`role_values[role] if role in role_values else 0`) in domain code; direct indexing on exhaustive enum dictionaries or Fail-Fast exception raising is mandated.
 - User ID entity pattern `^([a-z]{2,5})_[a-zA-Z0-9]{8,}$` permits exactly one prefix underscore; test fixture IDs must be strictly alphanumeric after the prefix (e.g., `usr_memsame00001`, not `usr_mem_same00001`).
 - `Organization` Pydantic models require all mandatory schema fields (`is_active`, `tier`, `quota_limit`, `tpm_limit`, `rpm_limit`) even in unit test mock repositories to satisfy strict schema validation.
+- Unit test files when targeted directly by MyPy under strict mode enforce strict types on `created_at` (`datetime.fromisoformat`) and `language` (`SystemLocale.EN`), preventing permissive string typing in test fixtures.
 
 ## Remaining
-- **Proxy Sunset and Consumer Migration (Bounded Batches)**:
-  - **Batch 1: Dependency Injection Rewiring**: Rewire `@[backend_v2/api/dependencies.py]` to import `AuthService` directly from `backend_v2.services.auth`. Run `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test`. Atomic git commit.
-  - **Batch 2: Unit Test Suite Modularization**: Decompose monolithic `@[backend_v2/tests/unit/test_auth.py]` into domain-specific test suites mirroring extracted modules (`test_token_service.py`, `test_organization_service.py`, `test_user_service.py`, `test_repositories.py`). Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/ --test`. Atomic git commit.
 - **Pre-Delete Verification Gates**:
   - Run `grep_search` across entire codebase to verify zero remaining legacy references.
   - Pre-Flight Global Integration and DI Boot Test (`uv run python scripts/backend_audit_loop.py backend_v2/ --test`).
