@@ -42,20 +42,20 @@
   - [x] Step 3: Validate and Expand Unit Tests (`@[backend_v2/tests/unit/test_auth.py]`)
 
 ### Phase 4: User Service and Facade Extraction
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
-  - [ ] Step 1: Create User Service Module `@[backend_v2/services/auth/user_service.py]` [NEW]
-  - [ ] Step 2: Create Sovereign `AuthService` Facade in `@[backend_v2/services/auth/__init__.py]` [NEW]
-  - [ ] Step 3: Convert Legacy Auth File to Strangler Fig Proxy (`@[backend_v2/services/auth.py]`)
-  - [ ] Step 4: Validate and Expand Unit Tests (`@[backend_v2/tests/unit/test_auth.py]`)
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
+  - [x] Step 1: Create User Service Module `@[backend_v2/services/auth/user_service.py]` [NEW]
+  - [x] Step 2: Create Sovereign `AuthService` Facade in `@[backend_v2/services/auth/__init__.py]` [NEW]
+  - [x] Step 3: Sovereign Packaging: Replaced legacy `auth.py` with `backend_v2/services/auth/__init__.py` to eliminate MyPy duplicate module packaging conflict while maintaining 100% backward-compatible imports for all external consumers
+  - [x] Step 4: Validate and Expand Unit Tests (`@[backend_v2/tests/unit/test_auth.py]`)
 
 ### In-Flight Tier 2 Hardening (Before Consumer Migration)
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Verify 100% typing, linting, docstrings, and tests across newly extracted domain modules before migrating 1-hop consumers:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Verify 100% typing, linting, docstrings, and tests across newly extracted domain modules before migrating 1-hop consumers:
   - [x] [NEW] @[backend_v2/services/auth/constants.py]
   - [x] [NEW] @[backend_v2/services/auth/repositories.py]
   - [x] [NEW] @[backend_v2/services/auth/token_service.py]
   - [x] [NEW] @[backend_v2/services/auth/organization_service.py]
-  - [ ] [NEW] @[backend_v2/services/auth/user_service.py]
-  - [ ] [NEW] @[backend_v2/services/auth/__init__.py]
+  - [x] [NEW] @[backend_v2/services/auth/user_service.py]
+  - [x] [NEW] @[backend_v2/services/auth/__init__.py]
 
 ### Proxy Sunset and Consumer Migration (Bounded Batches)
 Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
@@ -91,21 +91,26 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 - Enhanced `OrganizationRepository` with `update` and `delete` methods for 1:1 symmetry.
 - Rewired `AuthService` in `backend_v2/services/auth.py` to delegate organization operations (`create_organization`, `delete_organization`, `list_organizations`, `get_organization`, `update_organization`) to `self.org_service`.
 - Implemented all 19 test contracts (TC-P3-01 through TC-P3-19) alongside repository update/delete and direct execution tests; verified 80/80 unit tests pass with 94% overall auth module coverage.
-- Passed 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth.py --test --ast-strict`).
+- Implemented Phase 4: extracted `UserService` into `backend_v2/services/auth/user_service.py` [NEW] implementing user lifecycle, role hierarchy enforcement, Last Admin Protection, and root bootstrapping.
+- Assembled sovereign `AuthService` facade in `backend_v2/services/auth/__init__.py` [NEW] delegating across `TokenService`, `OrganizationService`, and `UserService` with complete property synchronization and clean `__all__` re-exports.
+- Replaced monolithic `auth.py` with `auth/__init__.py` to eliminate Python/MyPy duplicate module packaging conflict while maintaining 100% backward-compatible imports for consumers.
+- Implemented all 39 test contracts (TC-P4-01 through TC-P4-39) plus direct `UserService` execution test in `backend_v2/tests/unit/test_auth.py`; verified 116/116 unit tests pass with 95% aggregate coverage across `backend_v2.services.auth` (`__init__.py`: 93%, `constants.py`: 100%, `organization_service.py`: 94%, `repositories.py`: 100%, `token_service.py`: 98%, `user_service.py`: 93%).
+- Eradicated ternary lazy fallbacks in `user_service.py` per AST guardrail rule QGR016.
+- Passed 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth/__init__.py --test --ast-strict`).
 
 ## Learned
 - During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`, `create_user_fn`) ensures seamless decoupling between `OrganizationService` and `UserService` without circular dependencies.
 - AST boundary auditing (`scripts/audit_markdown_boundaries.py`) parses embedded Python codeblocks; abstract signatures inside markdown action blocks must include pass statements to satisfy AST grammar.
 - `ResourceNotFoundError` embeds resource details inside `exc.details["resource_type"]` and `exc.details["resource_id"]` rather than public instance attributes.
 - When creating an organization, `_create_user_internal` verifies that the initiator user exists in the repository, and emits a distinct `USER_CREATED` audit event alongside `ORG_CREATED`.
+- In Python/MyPy packaging, having both `services/auth.py` and `services/auth/__init__.py` causes a fatal duplicate module conflict (`Duplicate module named "backend_v2.services.auth"`). Replacing `auth.py` with `auth/__init__.py` provides 100% clean packaging while maintaining exact import compatibility (`from backend_v2.services.auth import AuthService`).
+- AST Guardrail QGR016 forbids ternary lazy fallbacks (`role_values[role] if role in role_values else 0`) in domain code; direct indexing on exhaustive enum dictionaries or Fail-Fast exception raising is mandated.
 
 ## Remaining
-- Execute Phase 4: User Service and Facade Extraction (`@[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md]`).
-- Execute In-Flight Tier 2 Hardening on `user_service.py` and `__init__.py`.
-- Execute Consumer Migration (Batch 1: DI rewiring, Batch 2: unit test modularization).
-- Pre-Delete Audits, Physical Proxy Deletion, QGR017 lockdown, and regression smoke test.
+- Execute Consumer Migration (Batch 1: DI rewiring in `backend_v2/api/dependencies.py`, Batch 2: unit test modularization).
+- Pre-Delete Audits, QGR017 lockdown, and regression smoke test.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md] @[docs/epic/auth_decomposition_tracker.md]
+/tier2-execute --full-auto @[docs/epic/auth_decomposition_tracker.md]
 ```

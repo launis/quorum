@@ -1,22 +1,13 @@
-"""Authentication and User Management Service."""
+"""User Lifecycle Management and Authorization Service."""
 
 from __future__ import annotations
 
 import asyncio
-import importlib.util
 import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-if importlib.util.find_spec("firebase_admin") is not None:
-    from firebase_admin import auth as firebase_auth_module
-else:
-    firebase_auth_module = None
-
-from pathlib import Path
-
-from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import (
     AppException,
     ConflictError,
@@ -26,8 +17,6 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.auth import (
     Organization,
-    OrganizationCreate,
-    OrganizationUpdateDTO,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
@@ -36,167 +25,57 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.settings import get_settings
-
-__path__ = [str(Path(__file__).parent / "auth")]
-
 from backend_v2.services.auth.constants import (
-    JWT_ALGORITHM as JWT_ALGORITHM,
-)
-from backend_v2.services.auth.constants import (
-    JWT_SECRET as JWT_SECRET,
-)
-from backend_v2.services.auth.constants import (
-    LEGACY_ROOT_MASTER_ID as LEGACY_ROOT_MASTER_ID,
-)
-from backend_v2.services.auth.constants import (
-    LEGACY_SYSTEM_ORG_ID as LEGACY_SYSTEM_ORG_ID,
-)
-from backend_v2.services.auth.constants import (
-    LEGACY_SYSTEM_ROOT_USER_ID as LEGACY_SYSTEM_ROOT_USER_ID,
-)
-from backend_v2.services.auth.constants import (
-    SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
-)
-from backend_v2.services.auth.organization_service import (
-    OrganizationService as OrganizationService,
+    LEGACY_ROOT_MASTER_ID,
+    LEGACY_SYSTEM_ORG_ID,
+    LEGACY_SYSTEM_ROOT_USER_ID,
+    SYSTEM_ROOT_USER_ID,
 )
 from backend_v2.services.auth.repositories import (
-    OrganizationRepository as OrganizationRepository,
-)
-from backend_v2.services.auth.repositories import (
-    UserRepository as UserRepository,
-)
-from backend_v2.services.auth.token_service import (
-    TokenService as TokenService,
+    OrganizationRepository,
+    UserRepository,
 )
 
 logger = logging.getLogger(__name__)
 
-__all__ = [
-    "JWT_ALGORITHM",
-    "JWT_SECRET",
-    "LEGACY_ROOT_MASTER_ID",
-    "LEGACY_SYSTEM_ORG_ID",
-    "LEGACY_SYSTEM_ROOT_USER_ID",
-    "SYSTEM_ROOT_USER_ID",
-    "AuthService",
-    "OrganizationRepository",
-    "OrganizationService",
-    "TokenService",
-    "UserRepository",
-]
+__all__ = ["UserService"]
 
 
-# --- Service Layer ---
+class UserService:
+    """User Management, Role Hierarchy, and Lifecycle Service.
 
+    Attributes:
+        repo: Repository wrapper for user persistence operations.
+        user_repo: Explicit alias for the user repository wrapper.
+        org_repo: Repository wrapper for organization operations.
+        audit_service: Optional audit event logging service.
+        use_firebase: Flag indicating if Firebase Admin SDK integration is enabled.
+        firebase_auth: Firebase authentication client instance or mock.
+    """
 
-class AuthService:
-    """Hybrid Auth Service with Multi-Tenancy (SaaS)."""
-
-    def __init__(self, repo: IIdentityRepository, use_firebase: bool = False, audit_service: Any = None):
-        """Initialize AuthService.
-
-        Args:
-            repo: The underlying identity repository interface.
-            use_firebase: Boolean flag to enable Firebase authentication.
-            audit_service: Optional service for logging audit events.
-        """
-        self.repo = UserRepository(repo)
-        self.org_repo = OrganizationRepository(repo)
-        self.audit_service = audit_service  # Typed as Any to avoid circular import if strict
-        self.token_service = TokenService(
-            repo=self.repo,
-            use_firebase=use_firebase,
-            firebase_module=firebase_auth_module,
-            get_settings_fn=lambda: get_settings(),
-        )
-        self.org_service = OrganizationService(
-            org_repo=self.org_repo,
-            user_repo=self.repo,
-            audit_service=self.audit_service,
-            use_firebase=use_firebase,
-            firebase_auth=self.token_service.firebase_auth,
-            create_user_fn=self._create_user_internal,
-        )
-
-    @property
-    def use_firebase(self) -> bool:
-        """Whether Firebase authentication is enabled."""
-        return self.token_service.use_firebase
-
-    @use_firebase.setter
-    def use_firebase(self, value: bool) -> None:
-        self.token_service.use_firebase = value
-        self.org_service.use_firebase = value
-
-    @property
-    def firebase_auth(self) -> Any:
-        """Firebase auth module or mock instance."""
-        return self.token_service.firebase_auth
-
-    @firebase_auth.setter
-    def firebase_auth(self, value: Any) -> None:
-        self.token_service.firebase_auth = value
-        self.org_service.firebase_auth = value
-
-    @property
-    def _initialized_firebase(self) -> bool:
-        """Whether Firebase SDK has been initialized."""
-        return self.token_service._initialized_firebase
-
-    @_initialized_firebase.setter
-    def _initialized_firebase(self, value: bool) -> None:
-        self.token_service._initialized_firebase = value
-
-    def _init_firebase(self) -> None:
-        """Initializes the Firebase Admin SDK.
-
-        Returns:
-            None
-        """
-        self.token_service._init_firebase()
-
-    def create_impersonation_token(self, target_id: str, duration_seconds: int = 3600) -> str:
-        """Generates a signed JWT for impersonating a user.
+    def __init__(
+        self,
+        user_repo: UserRepository,
+        org_repo: OrganizationRepository,
+        audit_service: Any = None,
+        use_firebase: bool = False,
+        firebase_auth: Any = None,
+    ) -> None:
+        """Initializes the UserService.
 
         Args:
-            target_id: The UID of the user to impersonate.
-            duration_seconds: Token validity duration in seconds.
-
-        Returns:
-            Signed JWT string.
+            user_repo: Repository wrapper for user operations.
+            org_repo: Repository wrapper for organization operations.
+            audit_service: Optional service for recording audit logs.
+            use_firebase: Flag indicating if Firebase integration is enabled.
+            firebase_auth: Optional Firebase authentication module or mock.
         """
-        return self.token_service.create_impersonation_token(target_id=target_id, duration_seconds=duration_seconds)
-
-    async def verify_token(self, token: str) -> TokenData:
-        """Verifies a Bearer token.
-
-        Args:
-            token: The raw JWT token string.
-
-        Returns:
-            TokenData for the verified user.
-
-        Raises:
-            AuthenticationError: If token is invalid or expired.
-        """
-        return await self.token_service.verify_token(token)
-
-    async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
-        """Creates a new Tenant Organization and an initial Admin user for it.
-
-        Args:
-            initiator: Token data of the user creating the organization.
-            org_create: The organization creation payload.
-
-        Returns:
-            The newly created organization.
-
-        Raises:
-            PermissionDeniedError: If the initiator is not ROOT.
-        """
-        return await self.org_service.create_organization(initiator=initiator, org_create=org_create)
+        self.repo = user_repo
+        self.user_repo = user_repo
+        self.org_repo = org_repo
+        self.audit_service = audit_service
+        self.use_firebase = use_firebase
+        self.firebase_auth = firebase_auth
 
     async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
         """Creates a new user, enforcing hierarchy and tenancy.
@@ -269,7 +148,7 @@ class AuthService:
 
             if not org_exists and target_org_id != SystemOrganizations.ROOT_SYSTEM:
                 logger.error(
-                    "[AuthService] %s: Target Organization '%s' does not exist.",
+                    "[UserService] %s: Target Organization '%s' does not exist.",
                     ErrorCodes.VALIDATION_FAILED.name,
                     target_org_id,
                 )
@@ -294,13 +173,12 @@ class AuthService:
             except Exception as e:
                 # Check for existing
                 try:
-                    # Logic to reuse existing...
                     existing = self.firebase_auth.get_user_by_email(user_data.email)
                     new_id = existing.id
                     logger.info("User %s already in Firebase. Using existing UID.", user_data.email)
                 except Exception:
                     logger.error(
-                        "[AuthService] %s: Failed to create Firebase user: %s",
+                        "[UserService] %s: Failed to create Firebase user: %s",
                         ErrorCodes.INTERNAL_SERVER_ERROR.name,
                         e,
                         exc_info=True,
@@ -409,9 +287,8 @@ class AuthService:
             PermissionDeniedError: If permissions are insufficient or target is protected.
             ConflictError: If deleting the user violates Last Admin Protection.
         """
-        logger.info("[AuthService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
+        logger.info("[UserService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
-        # Run Read operations in thread
         initiator = await self.repo.get_by_id(initiator_id)
         target = await self.repo.get_by_id(target_id)
 
@@ -436,12 +313,11 @@ class AuthService:
 
         # LAST ADMIN PROTECTION
         if target.role == UserRole.ADMIN and target.organization_id:
-            # Run Admin Count in thread -> Count iterates list_all
             admin_count = await self._count_org_admins(target.organization_id)
 
             if admin_count <= 1:
                 logger.error(
-                    "[AuthService] %s: Cannot delete the last Administrator of an Organization.",
+                    "[UserService] %s: Cannot delete the last Administrator of an Organization.",
                     ErrorCodes.CONFLICT_ERROR.name,
                 )
                 raise ConflictError(
@@ -454,7 +330,7 @@ class AuthService:
         # 1. Firebase (if enabled)
         if self.use_firebase:
             try:
-                logger.info("[AuthService] Deleting Firebase user %s...", target.id)
+                logger.info("[UserService] Deleting Firebase user %s...", target.id)
                 await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 if isinstance(e, (KeyboardInterrupt, SystemExit)):
@@ -462,7 +338,7 @@ class AuthService:
                 logger.warning("Firebase delete failed (might be local user): %s", e)
 
         # 2. Local DB
-        logger.info("[AuthService] Deleting Local DB user %s...", target_id)
+        logger.info("[UserService] Deleting Local DB user %s...", target_id)
         await self.repo.delete(target_id)
 
         # Audit
@@ -476,28 +352,6 @@ class AuthService:
             )
 
         return True
-
-    async def delete_organization(self, initiator: TokenData, target_org_id: str, force: bool = False) -> None:
-        """Deletes an Organization.
-
-        Safety Rules:
-        - Cannot delete 'system' organization.
-        - Cannot delete non-empty organization unless force=True.
-        - force=True cascades delete to all users.
-
-        Args:
-            initiator: Token data of the user deleting the organization.
-            target_org_id: The ID of the organization to delete.
-            force: If True, cascades deletion to all users in the org.
-
-        Returns:
-            None
-
-        Raises:
-            PermissionDeniedError: If the initiator is not ROOT or targets system org.
-            ConflictError: If the organization is not empty and force is False.
-        """
-        await self.org_service.delete_organization(initiator=initiator, target_org_id=target_org_id, force=force)
 
     async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
         """General update method for users.
@@ -557,7 +411,7 @@ class AuthService:
 
                     if admin_count <= 1:
                         logger.error(
-                            "[AuthService] %s: Cannot demote the last Administrator of an Organization.",
+                            "[UserService] %s: Cannot demote the last Administrator of an Organization.",
                             ErrorCodes.CONFLICT_ERROR.name,
                         )
                         raise ConflictError(
@@ -569,7 +423,8 @@ class AuthService:
 
         if not updated_user:
             logger.error(
-                "[AuthService] %s: User update failed (not found despite check).", ErrorCodes.INTERNAL_SERVER_ERROR.name
+                "[UserService] %s: User update failed (not found despite check).",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
             )
             raise AppException(
                 message="User update failed (not found despite check).",
@@ -579,13 +434,12 @@ class AuthService:
 
         # Audit
         if self.audit_service:
-            # Determine what changed for details
             changed_fields = updates.model_dump(exclude_unset=True)
 
             await self.audit_service.log_event(
                 actor_id=initiator_id,
                 action="USER_UPDATED",
-                organization_id=target.organization_id,  # Log under target's org
+                organization_id=target.organization_id,
                 target_id=target_id,
                 details=changed_fields,
             )
@@ -620,27 +474,17 @@ class AuthService:
 
         # 1. Access Control (Hierarchy)
         if initiator.role != UserRole.ROOT:
-            # Check privileges: Initiator >= Target AND Initiator >= New Role
-            # Roles are Enums, but we can compare values if defined, or explicitly check.
-            # Hierarchy: ROOT > ADMIN > MANAGER > MEMBER
-            # Simple int mapping for comparison
-            role_values = {
+            role_values: dict[UserRole, int] = {
                 UserRole.ROOT: 40,
                 UserRole.ADMIN: 30,
                 UserRole.MANAGER: 20,
                 UserRole.MEMBER: 10,
-                UserRole.VIEWER: 5,  # Assuming VIEWER exists or mapping it low
+                UserRole.VIEWER: 5,
             }
 
-            init_val = 0
-            if initiator.role in role_values:
-                init_val = role_values[initiator.role]
-            target_val = 0
-            if target.role in role_values:
-                target_val = role_values[target.role]
-            new_val = 0
-            if new_role in role_values:
-                new_val = role_values[new_role]
+            init_val = role_values[initiator.role]
+            target_val = role_values[target.role]
+            new_val = role_values[new_role]
 
             if init_val < target_val:
                 raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
@@ -660,7 +504,7 @@ class AuthService:
 
                 if count <= 1:
                     logger.error(
-                        "[AuthService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
+                        "[UserService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
                         ErrorCodes.CONFLICT_ERROR.name,
                     )
                     raise ConflictError(
@@ -673,7 +517,7 @@ class AuthService:
 
         if not updated:
             logger.error(
-                "[AuthService] %s: User update failed (user reference lost).", ErrorCodes.INTERNAL_SERVER_ERROR.name
+                "[UserService] %s: User update failed (user reference lost).", ErrorCodes.INTERNAL_SERVER_ERROR.name
             )
             raise AppException(
                 message="User update failed (user reference lost).",
@@ -693,8 +537,6 @@ class AuthService:
 
         return updated
 
-    # --- Tenant Isolation Wrappers for Routers ---
-
     async def list_users(self, initiator: TokenData) -> list[User]:
         """List users securely scoped by Tenant/Organization.
 
@@ -711,17 +553,6 @@ class AuthService:
 
         org_id = initiator.organization_id
         return [u for u in all_users if u.organization_id == org_id]
-
-    async def list_organizations(self, initiator: TokenData) -> list[Organization]:
-        """List organizations securely scoped by Tenant/Organization.
-
-        Args:
-            initiator: The token data of the user requesting the list.
-
-        Returns:
-            A list of organizations scoped to the initiator's permissions.
-        """
-        return await self.org_service.list_organizations(initiator=initiator)
 
     async def get_user(self, initiator: TokenData, target_id: str) -> User:
         """Fetch user securely.
@@ -754,41 +585,6 @@ class AuthService:
 
         raise PermissionDeniedError("You do not have permission to view this user.")
 
-    async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:
-        """Fetch organization securely.
-
-        Args:
-            initiator: The token data of the user requesting the fetch.
-            org_id: The ID of the organization to fetch.
-
-        Returns:
-            The requested organization model.
-
-        Raises:
-            ResourceNotFoundError: If the organization does not exist.
-            PermissionDeniedError: If the initiator lacks access.
-        """
-        return await self.org_service.get_organization(initiator=initiator, org_id=org_id)
-
-    async def update_organization(
-        self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO | OrganizationCreate
-    ) -> Organization:
-        """Update an organization securely.
-
-        Args:
-            initiator: The token data of the user initiating the update.
-            org_id: The ID of the organization to update.
-            data: The update payload.
-
-        Returns:
-            The updated organization model.
-
-        Raises:
-            PermissionDeniedError: If the initiator is not ROOT.
-            ResourceNotFoundError: If the organization does not exist.
-        """
-        return await self.org_service.update_organization(initiator=initiator, org_id=org_id, data=data)
-
     async def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed.
 
@@ -801,10 +597,8 @@ class AuthService:
         Raises:
             AppException: If the root user is missing from the database.
         """
-        # 0. Ensure SYSTEM Org exists (Container for Root)
-        # Note: Must use model_dump(mode="json") to avoid datetime serialization errors
         if not await self.org_repo.get_by_id(SystemOrganizations.ROOT_SYSTEM):
-            logger.info("[AuthService] Creating 'system' Organization.")
+            logger.info("[UserService] Creating 'system' Organization.")
 
             await self.org_repo.create(
                 Organization(
@@ -820,12 +614,11 @@ class AuthService:
                 )
             )
 
-        # 1. ROOT
         root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
 
         if not root:
             logger.critical(
-                "[AuthService] %s: No Root user found in database! Strict Authority Enforced.",
+                "[UserService] %s: No Root user found in database! Strict Authority Enforced.",
                 ErrorCodes.CONFIGURATION_ERROR.name,
             )
 
@@ -839,10 +632,10 @@ class AuthService:
             SystemOrganizations.ROOT_SYSTEM,
             LEGACY_SYSTEM_ORG_ID,
         ]:
-            # Fix casing or drift if it was "SYSTEM" or None
             logger.info(
-                "Fixing root_master organization_id from "
-                f"'{root.organization_id}' to '{SystemOrganizations.ROOT_SYSTEM}'"
+                "Fixing root_master organization_id from '%s' to '%s'",
+                root.organization_id,
+                SystemOrganizations.ROOT_SYSTEM,
             )
 
             await self.repo.update(
@@ -850,10 +643,10 @@ class AuthService:
                 UserUpdate(organization_id=SystemOrganizations.ROOT_SYSTEM),
             )
 
-            root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)  # Refresh
+            root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
 
         if not root:
-            logger.error("[AuthService] %s: Failed to obtain Root user.", ErrorCodes.INTERNAL_SERVER_ERROR.name)
+            logger.error("[UserService] %s: Failed to obtain Root user.", ErrorCodes.INTERNAL_SERVER_ERROR.name)
             raise AppException(
                 message="Failed to obtain Root user.",
                 status_code=500,
