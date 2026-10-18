@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, User, UserUpdate
+from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserUpdate
 
 __all__ = [
     "OrganizationRepository",
@@ -45,6 +45,29 @@ class OrganizationRepository:
         """
         await self.repo.create_organization(org)
         return org
+
+    async def update(self, org_id: str, updates: OrganizationUpdateDTO) -> bool:
+        """Updates an existing organization in the database.
+
+        Args:
+            org_id: The ID of the organization to update.
+            updates: The organization updates payload.
+
+        Returns:
+            True if updated successfully, False otherwise.
+        """
+        return await self.repo.update_organization(org_id, updates)
+
+    async def delete(self, org_id: str) -> bool:
+        """Deletes an organization by ID from the database.
+
+        Args:
+            org_id: The ID of the organization to delete.
+
+        Returns:
+            True if deleted successfully, False otherwise.
+        """
+        return await self.repo.delete_organization(org_id)
 
     async def list_all(self) -> list[Organization]:
         """Lists all organizations.

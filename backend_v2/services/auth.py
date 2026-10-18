@@ -36,7 +36,6 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
-from backend_v2.models.enums import SystemLocale
 from backend_v2.settings import get_settings
 
 __path__ = [str(Path(__file__).parent / "auth")]
@@ -59,6 +58,9 @@ from backend_v2.services.auth.constants import (
 from backend_v2.services.auth.constants import (
     SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
 )
+from backend_v2.services.auth.organization_service import (
+    OrganizationService as OrganizationService,
+)
 from backend_v2.services.auth.repositories import (
     OrganizationRepository as OrganizationRepository,
 )
@@ -80,6 +82,7 @@ __all__ = [
     "SYSTEM_ROOT_USER_ID",
     "AuthService",
     "OrganizationRepository",
+    "OrganizationService",
     "TokenService",
     "UserRepository",
 ]
@@ -108,6 +111,14 @@ class AuthService:
             firebase_module=firebase_auth_module,
             get_settings_fn=lambda: get_settings(),
         )
+        self.org_service = OrganizationService(
+            org_repo=self.org_repo,
+            user_repo=self.repo,
+            audit_service=self.audit_service,
+            use_firebase=use_firebase,
+            firebase_auth=self.token_service.firebase_auth,
+            create_user_fn=self._create_user_internal,
+        )
 
     @property
     def use_firebase(self) -> bool:
@@ -117,6 +128,7 @@ class AuthService:
     @use_firebase.setter
     def use_firebase(self, value: bool) -> None:
         self.token_service.use_firebase = value
+        self.org_service.use_firebase = value
 
     @property
     def firebase_auth(self) -> Any:
@@ -126,6 +138,7 @@ class AuthService:
     @firebase_auth.setter
     def firebase_auth(self, value: Any) -> None:
         self.token_service.firebase_auth = value
+        self.org_service.firebase_auth = value
 
     @property
     def _initialized_firebase(self) -> bool:
@@ -173,8 +186,6 @@ class AuthService:
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
 
-        Strictly Async.
-
         Args:
             initiator: Token data of the user creating the organization.
             org_create: The organization creation payload.
@@ -184,55 +195,8 @@ class AuthService:
 
         Raises:
             PermissionDeniedError: If the initiator is not ROOT.
-            AppException: If the creation fails.
         """
-        if initiator.role != UserRole.ROOT:
-            raise PermissionDeniedError("Only ROOT can create organizations.")
-
-        # 1. Create Organization (Sync DB call in thread? Or just sync for now)
-        # We'll run it sync as TinyDB is fast, but logically the method is async.
-        org_id = f"org_{uuid.uuid4().hex}"
-
-        new_org = Organization(
-            id=org_id,
-            name=org_create.name,
-            created_at=datetime.now(timezone.utc),
-            is_active=True,
-            tier="enterprise",
-            subscription_status=SubscriptionStatus.ACTIVE,
-            quota_limit=500.0,
-            tpm_limit=50000,
-            rpm_limit=500,
-        )
-
-        await self.org_repo.create(new_org)
-
-        # 2. Create the Org Admin
-        admin_payload = UserCreate(
-            email=org_create.admin_email,
-            password=org_create.admin_password,
-            name=org_create.admin_name,
-            role=UserRole.ADMIN,
-            organization_id=org_id,
-            is_active=True,
-            language=SystemLocale.EN,
-            theme_mode="system",
-        )
-
-        # Bypass hierarchy check since we are ROOT acting explicitly
-        await self._create_user_internal(initiator.id, admin_payload, force_org_id=org_id)
-
-        # Audit
-        if self.audit_service:
-            await self.audit_service.log_event(
-                actor_id=initiator.id,
-                action="ORG_CREATED",
-                organization_id=org_id,
-                target_id=org_id,
-                details={"name": new_org.name, "tier": new_org.tier},
-            )
-
-        return new_org
+        return await self.org_service.create_organization(initiator=initiator, org_create=org_create)
 
     async def create_user(self, creator_id: str, user_data: UserCreate) -> User:
         """Creates a new user, enforcing hierarchy and tenancy.
@@ -526,70 +490,14 @@ class AuthService:
             target_org_id: The ID of the organization to delete.
             force: If True, cascades deletion to all users in the org.
 
+        Returns:
+            None
+
         Raises:
             PermissionDeniedError: If the initiator is not ROOT or targets system org.
             ConflictError: If the organization is not empty and force is False.
         """
-        logger.info(
-            "[AuthService] delete_organization called. Initiator: %s, Target: %s, Force: %s",
-            initiator.id,
-            target_org_id,
-            force,
-        )
-
-        if initiator.role != UserRole.ROOT:
-            raise PermissionDeniedError("Only ROOT can delete organizations.")
-
-        if target_org_id == SystemOrganizations.ROOT_SYSTEM or target_org_id == LEGACY_SYSTEM_ORG_ID:
-            raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
-
-        # 2. Check Users
-        logger.info("[AuthService] Fetching users to check for safety...")
-
-        all_users = await self.repo.list_all()
-        org_users = [u for u in all_users if u.organization_id == target_org_id]
-
-        user_count = len(org_users)
-        logger.info("[AuthService] Organization %s has %s users.", target_org_id, user_count)
-
-        if user_count > 0 and not force:
-            logger.error(
-                "[AuthService] %s: Organization is not empty (%s users). Use force=True to delete.",
-                ErrorCodes.CONFLICT_ERROR.name,
-                user_count,
-            )
-            raise ConflictError(
-                message=f"Organization is not empty ({user_count} users). Use force=True to delete.",
-                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "ORG_NOT_EMPTY", "count": user_count},
-            )
-
-        # 3. Delete Logic (Cascading)
-        if user_count > 0:
-            logger.info("[AuthService] FORCE DELETE enabled. Removing %s users...", user_count)
-            for user in org_users:
-                if self.use_firebase:
-                    try:
-                        await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
-                    except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
-                        if isinstance(fb_err, (KeyboardInterrupt, SystemExit)):
-                            raise
-                        logger.warning("Failed to cascade delete user %s in Firebase: %s", user.id, fb_err)
-
-                await self.repo.delete(user.id)
-
-        # 4. Delete Org Entity
-        logger.info("[AuthService] Removing Organization %s from DB...", target_org_id)
-        await self.org_repo.repo.delete_organization(target_org_id)
-
-        # Audit
-        if self.audit_service:
-            await self.audit_service.log_event(
-                actor_id=initiator.id,
-                action="ORG_DELETED",
-                organization_id=target_org_id,
-                target_id=target_org_id,
-                details={"users_deleted": user_count, "force_used": force},
-            )
+        await self.org_service.delete_organization(initiator=initiator, target_org_id=target_org_id, force=force)
 
     async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
         """General update method for users.
@@ -813,14 +721,7 @@ class AuthService:
         Returns:
             A list of organizations scoped to the initiator's permissions.
         """
-        if initiator.role != UserRole.ROOT:
-            if not initiator.organization_id:
-                return []
-            org = await self.get_organization(initiator, initiator.organization_id)
-            if org:
-                return [org]
-            return []
-        return await self.org_repo.list_all()
+        return await self.org_service.list_organizations(initiator=initiator)
 
     async def get_user(self, initiator: TokenData, target_id: str) -> User:
         """Fetch user securely.
@@ -867,17 +768,7 @@ class AuthService:
             ResourceNotFoundError: If the organization does not exist.
             PermissionDeniedError: If the initiator lacks access.
         """
-        org = await self.org_repo.get_by_id(org_id)
-
-        if not org:
-            raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
-
-        # Tenant Isolation
-        if initiator.role != UserRole.ROOT and initiator.organization_id != org_id:
-            logger.warning("[AuthService] PERMISSION_DENIED: %s tried to read foreign org %s", initiator.id, org_id)
-            raise PermissionDeniedError("You do not have permission to view this organization.")
-
-        return org
+        return await self.org_service.get_organization(initiator=initiator, org_id=org_id)
 
     async def update_organization(
         self, initiator: TokenData, org_id: str, data: OrganizationUpdateDTO | OrganizationCreate
@@ -896,24 +787,7 @@ class AuthService:
             PermissionDeniedError: If the initiator is not ROOT.
             ResourceNotFoundError: If the organization does not exist.
         """
-        if initiator.role != UserRole.ROOT:
-            raise PermissionDeniedError("Only ROOT can update organizations.")
-
-        # Verify it exists
-        await self.get_organization(initiator, org_id)
-
-        update_dto = (
-            data
-            if isinstance(data, OrganizationUpdateDTO)
-            else OrganizationUpdateDTO(
-                name=data.name,
-                tpm_limit=data.tpm_limit,
-                rpm_limit=data.rpm_limit,
-            )
-        )
-        await self.org_repo.repo.update_organization(org_id, update_dto)
-
-        return await self.get_organization(initiator, org_id)
+        return await self.org_service.update_organization(initiator=initiator, org_id=org_id, data=data)
 
     async def ensure_root_user(self, email: str = "root@example.com") -> User:
         """Bootstraps a root user and Development Scenario (Demo Corp) if needed.

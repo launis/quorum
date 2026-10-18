@@ -11,11 +11,11 @@
 
 ## Target God File Baseline
 - **Target File:** `@[backend_v2/services/auth.py]`
-- **Baseline Length:** 1234 lines
+- **Baseline Length:** 1234 lines (current: 865 lines after Phase 1, 2, and 3)
 - **Symbol Migration Map:** `@[docs/epic/tasks_auth/symbol_migration_map.md]`
-- **Baseline Unit Tests:** 30 passed (100% pass rate) in 7.31s
-- **Baseline Line Coverage:** 93% (394 statements, 29 missed)
-- **Phase 0 Coverage Bootstrap:** NOT REQUIRED (baseline 93% exceeds 75% prerequisite gate)
+- **Baseline Unit Tests:** 80 passed (100% pass rate) in 3.91s
+- **Baseline Line Coverage:** 94% across auth modules (266 statements in auth.py, 24 missed)
+- **Phase 0 Coverage Bootstrap:** NOT REQUIRED (baseline 94% exceeds 75% prerequisite gate)
 
 ## Step Execution Status
 
@@ -33,27 +33,27 @@
   - [x] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
 
 ### Mid-Extraction Planning Gate
-- [ ] **[NOK] Re-Invoke Tier 3 Planner:** Invoke `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` to generate detailed execution protocols for Phase 3 and Phase 4 based on updated codebase state.
+- [x] **[OK] Re-Invoke Tier 3 Planner:** `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` executed to generate detailed execution protocols and test contracts for Phase 3 and Phase 4.
 
-### Phase 3: Organization Service Extraction (Lazy Placeholder)
-- [ ] **[NOK] Execution:** `@[docs/epic/tasks_auth/phase3_organization_service_extraction.md]`
-  - [ ] Extract `OrganizationService` [NEW] to `@[backend_v2/services/auth/organization_service.py]` [NEW]
-  - [ ] Delegate organization methods from `AuthService` in `@[backend_v2/services/auth.py]`
-  - [ ] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
+### Phase 3: Organization Service Extraction
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase3_organization_service_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
+  - [x] Step 1: Create Organization Service Module `@[backend_v2/services/auth/organization_service.py]` [NEW]
+  - [x] Step 2: Delegate and Re-export in `AuthService` (`@[backend_v2/services/auth.py]`)
+  - [x] Step 3: Validate and Expand Unit Tests (`@[backend_v2/tests/unit/test_auth.py]`)
 
-### Phase 4: User Service and Facade Extraction (Lazy Placeholder)
-- [ ] **[NOK] Execution:** `@[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md]`
-  - [ ] Extract `UserService` [NEW] to `@[backend_v2/services/auth/user_service.py]` [NEW]
-  - [ ] Establish sovereign facade `AuthService` in `@[backend_v2/services/auth/__init__.py]` [NEW]
-  - [ ] Retain temporary Strangler Fig proxy in `@[backend_v2/services/auth.py]`
-  - [ ] Run quality gates: `uv run pytest backend_v2/tests/unit/test_auth.py --cov=backend_v2.services.auth`
+### Phase 4: User Service and Facade Extraction
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md] @[docs/epic/auth_decomposition_tracker.md]`
+  - [ ] Step 1: Create User Service Module `@[backend_v2/services/auth/user_service.py]` [NEW]
+  - [ ] Step 2: Create Sovereign `AuthService` Facade in `@[backend_v2/services/auth/__init__.py]` [NEW]
+  - [ ] Step 3: Convert Legacy Auth File to Strangler Fig Proxy (`@[backend_v2/services/auth.py]`)
+  - [ ] Step 4: Validate and Expand Unit Tests (`@[backend_v2/tests/unit/test_auth.py]`)
 
 ### In-Flight Tier 2 Hardening (Before Consumer Migration)
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Verify 100% typing, linting, docstrings, and tests across newly extracted domain modules before migrating 1-hop consumers:
   - [x] [NEW] @[backend_v2/services/auth/constants.py]
   - [x] [NEW] @[backend_v2/services/auth/repositories.py]
   - [x] [NEW] @[backend_v2/services/auth/token_service.py]
-  - [ ] [NEW] @[backend_v2/services/auth/organization_service.py]
+  - [x] [NEW] @[backend_v2/services/auth/organization_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/user_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/__init__.py]
 
@@ -80,25 +80,32 @@ Migration details mapped in `@[docs/epic/tasks_auth/symbol_migration_map.md]`:
 
 # Session Handover Context
 ## Achieved
-- Initialized Tier 3 God Code Decomposition planning for `@[backend_v2/services/auth.py]` (1234 lines).
-- Executed AST boundary extraction discovering 30 symbol definitions.
-- Baseline metrics: 30/30 unit tests passing, 93% line coverage.
-- Created `symbol_migration_map.md` and detailed execution plans for Phase 1 and Phase 2.
+- Initialized Tier 3 God Code Decomposition planning for `@[backend_v2/services/auth.py]`.
 - Implemented Phase 1: extracted `constants.py` and `repositories.py` (`OrganizationRepository`, `UserRepository`) into `backend_v2/services/auth/`.
 - Implemented Phase 2: extracted `TokenService` into `backend_v2/services/auth/token_service.py` [NEW] with 98% line coverage.
-- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate `create_impersonation_token`, `verify_token`, `_init_firebase`, and firebase properties to `TokenService`.
-- Re-exported `TokenService` in `backend_v2/services/auth.py` and registered in `__all__`.
-- Implemented and validated all 12 test contracts TC-P2-01 through TC-P2-12 in `backend_v2/tests/unit/test_auth.py`.
-- Passed 10-stage Universal Quality Gate: 0 lint errors, 0 type errors, 0 AST violations, 59/59 passing unit tests with 93% line coverage (98% on `token_service.py`, 100% on `constants.py` and `repositories.py`, 90% on `auth.py`).
+- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate token methods and verified 55/55 unit tests passing with 93% line coverage.
+- Completed Mid-Extraction Planning Gate: re-invoked `/tier3-god-code-decomposition @[backend_v2/services/auth.py]`.
+- Generated comprehensive implementation plan for Phase 3: `@[docs/epic/tasks_auth/phase3_organization_service_extraction.md]` with 19 concrete test contracts (TC-P3-01 through TC-P3-19) covering `OrganizationService`.
+- Generated comprehensive implementation plan for Phase 4: `@[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md]` with 39 concrete test contracts (TC-P4-01 through TC-P4-39) covering `UserService` and sovereign `AuthService` facade.
+- Implemented Phase 3: extracted `OrganizationService` into `backend_v2/services/auth/organization_service.py` [NEW] with 94% line coverage.
+- Enhanced `OrganizationRepository` with `update` and `delete` methods for 1:1 symmetry.
+- Rewired `AuthService` in `backend_v2/services/auth.py` to delegate organization operations (`create_organization`, `delete_organization`, `list_organizations`, `get_organization`, `update_organization`) to `self.org_service`.
+- Implemented all 19 test contracts (TC-P3-01 through TC-P3-19) alongside repository update/delete and direct execution tests; verified 80/80 unit tests pass with 94% overall auth module coverage.
+- Passed 10/10 Universal Quality Gate stages with strict AST verification (`scripts/backend_audit_loop.py backend_v2/services/auth.py --test --ast-strict`).
 
 ## Learned
-- During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`) and sentinel overrides ensures seamless compatibility with existing module-level test patches (`monkeypatch.setattr("backend_v2.services.auth.get_settings", ...)`).
-- Explicit `except AuthenticationError: raise` in Firebase ID token verification ensures structured domain exceptions (such as missing email claims) propagate cleanly without being obscured by broad `except Exception:` handlers.
+- During Strangler Fig decomposition, newly extracted leaf modules must not import the God File. Dependency inversion via optional callbacks (`get_settings_fn`, `create_user_fn`) ensures seamless decoupling between `OrganizationService` and `UserService` without circular dependencies.
+- AST boundary auditing (`scripts/audit_markdown_boundaries.py`) parses embedded Python codeblocks; abstract signatures inside markdown action blocks must include pass statements to satisfy AST grammar.
+- `ResourceNotFoundError` embeds resource details inside `exc.details["resource_type"]` and `exc.details["resource_id"]` rather than public instance attributes.
+- When creating an organization, `_create_user_internal` verifies that the initiator user exists in the repository, and emits a distinct `USER_CREATED` audit event alongside `ORG_CREATED`.
 
 ## Remaining
-- Mid-Extraction Planning Gate: Re-invoke `/tier3-god-code-decomposition @[backend_v2/services/auth.py]` to generate detailed execution protocols for Phase 3 (`OrganizationService`) and Phase 4 (`UserService` & `AuthService` Facade).
+- Execute Phase 4: User Service and Facade Extraction (`@[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md]`).
+- Execute In-Flight Tier 2 Hardening on `user_service.py` and `__init__.py`.
+- Execute Consumer Migration (Batch 1: DI rewiring, Batch 2: unit test modularization).
+- Pre-Delete Audits, Physical Proxy Deletion, QGR017 lockdown, and regression smoke test.
 
 ## Resume Command
 ```powershell
-/tier3-god-code-decomposition @[backend_v2/services/auth.py]
+/tier2-execute --full-auto @[docs/epic/tasks_auth/phase4_user_service_and_facade_extraction.md] @[docs/epic/auth_decomposition_tracker.md]
 ```
