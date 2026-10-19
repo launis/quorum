@@ -26,14 +26,7 @@ $HydratedAtomDTOCopyWith<HydratedAtomDTO> get copyWith => _$HydratedAtomDTOCopyW
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HydratedAtomDTO&&(identical(other.sduiComponent, sduiComponent) || other.sduiComponent == sduiComponent)&&(identical(other.resolvedClaim, resolvedClaim) || other.resolvedClaim == resolvedClaim)&&const DeepCollectionEquality().equals(other.sourceQuotes, sourceQuotes));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,sduiComponent,resolvedClaim,const DeepCollectionEquality().hash(sourceQuotes));
 
 @override
 String toString() {
@@ -237,14 +230,7 @@ Map<String, dynamic> toJson() {
   return _$HydratedAtomDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HydratedAtomDTO&&(identical(other.sduiComponent, sduiComponent) || other.sduiComponent == sduiComponent)&&(identical(other.resolvedClaim, resolvedClaim) || other.resolvedClaim == resolvedClaim)&&const DeepCollectionEquality().equals(other._sourceQuotes, _sourceQuotes));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,sduiComponent,resolvedClaim,const DeepCollectionEquality().hash(_sourceQuotes));
 
 @override
 String toString() {

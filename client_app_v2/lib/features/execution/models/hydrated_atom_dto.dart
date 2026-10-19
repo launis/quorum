@@ -4,7 +4,7 @@ import '../../../core/models/enums.dart';
 part 'hydrated_atom_dto.freezed.dart';
 part 'hydrated_atom_dto.g.dart';
 
-@freezed
+@Freezed(equal: false)
 abstract class HydratedAtomDTO with _$HydratedAtomDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory HydratedAtomDTO({
