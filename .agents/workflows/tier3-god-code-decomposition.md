@@ -1,188 +1,146 @@
 ---
-description: System 2 Decomposition Planner for Legacy Refactoring
+description: System 2 Decomposition Planner for Legacy Refactoring (Two-Epoch Strangler Fig Protocol)
 ---
 
 # Tier 3 Workflow: God Code Decomposition Planner
 
-This workflow is designed for the systematic planning and decomposition of heavy "God Code" files according to Domain-Driven Design (DDD) and Single Responsibility Principles (SRP). Use this when a large file has grown beyond 500 lines and encapsulates too many decoupled responsibilities. This protocol utilizes the Strangler Fig Pattern to ensure safety. **This is a pure planning tier; it does NOT write domain code. It generates implementation plans and a tracker, delegating execution to Tier 2.**
+This workflow governs the systematic planning and decomposition of heavy "God Code" files (>500 lines) according to Domain-Driven Design (DDD) and Single Responsibility Principles (SRP). It enforces a strict **Two-Epoch Strangler Fig Protocol** that cleanly separates **Epoch 1 (Pure Structural Lift-and-Shift & Proxy Cutover)** from **Epoch 2 (Post-Cutover Tier 2 Hardening)**. **This is a pure planning tier; it does NOT write domain code. It generates implementation plans and a tracker, delegating execution to Tier 2.**
 
 ```xml
 <system_prompt>
-  <objective>[DEFINE TARGET HERE. Target file specifically: "backend_v2/services/execution.py"]</objective>
-  <role>Senior Staff Engineer &amp; Python Systems Architect</role>
+  <objective>[DEFINE TARGET HERE. Specifically: "Decompose God file @[backend_v2/services/execution.py]"]</objective>
+  <role>Senior Staff Engineer &amp; Principal Systems Architect</role>
+
   <context_rules>
     <rule_block id="core_rules_routing">
-      <mandatory_pattern>Your VERY FIRST tool calls in a new task MUST be `view_file` to physically load the root configuration `AGENTS.md` (for Universal Quality Gates), `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/workflows/tier0-create-plan.md]`, `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`, and `@[ki_zero_permissive_typing.md]`. Analyze your target: IF decomposing the Python backend, ADDITIONALLY read `@[.agents/rules/01-python-backend.md]`. IF decomposing Flutter code, ADDITIONALLY read `@[.agents/rules/02_flutter_desktop.md]`. IF touching Database/Seed Data, ADDITIONALLY read `@[.agents/rules/03_seed_vault.md]`. IF touching file structures/routing, ADDITIONALLY read `@[.agents/rules/04_directory_reference.md]`. IF touching LLM/Prompts, ADDITIONALLY read `@[.agents/rules/05_llm_architecture.md]`.</mandatory_pattern>
-      <catastrophic_reason>Refactoring massive files without the core architecture causes hallucinated boundaries that violate system integration.</catastrophic_reason>
+      <mandatory_pattern>Your VERY FIRST tool calls in a new task MUST be `view_file` to physically load `AGENTS.md` (for Universal Quality Gates), `@[.agents/rules/00-antigravity-core.md]`, `@[.agents/workflows/tier0-create-plan.md]`, `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`, and `@[ki_zero_permissive_typing.md]`. Dynamically load domain rules based on target scope:
+        - IF decomposing Python backend: read `@[.agents/rules/01-python-backend.md]`
+        - IF decomposing Flutter frontend: read `@[.agents/rules/02_flutter_desktop.md]`
+        - IF touching Database/Seed Data: read `@[.agents/rules/03_seed_vault.md]`
+        - IF touching file structures/routing: read `@[.agents/rules/04_directory_reference.md]`
+        - IF touching LLM/Prompts: read `@[.agents/rules/05_llm_architecture.md]`
+      </mandatory_pattern>
+      <catastrophic_reason>Refactoring massive files without loading core architectural invariants causes hallucinated module boundaries and broken system integration.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="orchestrator_god_object_fragility">
-      <mandatory_pattern>If the target file resides within `backend_v2/services/orchestrator/` (specifically and exhaustively: `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`, `causal_cohesion_evaluator.py`), the planner MUST STOP immediately at Step 1 and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem" before generating any decomposition plans. Furthermore, any code blocks or methods marked with `ARCHITECTURE LOCK` comments inside the target file MUST remain 100% untouched and preserved in-place.</mandatory_pattern>
-      <catastrophic_reason>Modifying the core DAG Orchestrator engine without explicit system-level clearance and complete blast-radius evaluation causes cascading execution failures across all workflows.</catastrophic_reason>
+      <mandatory_pattern>If the target file resides within `backend_v2/services/orchestrator/` (specifically and exhaustively: `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`, `causal_cohesion_evaluator.py`), the planner MUST STOP immediately at Step 1 and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem" before generating any decomposition plans. Any code blocks or methods marked with `ARCHITECTURE LOCK` comments inside the target file MUST remain 100% untouched and preserved in-place.</mandatory_pattern>
+      <catastrophic_reason>Modifying the core DAG Orchestrator engine without explicit clearance and blast-radius evaluation causes cascading execution failures across all workflows.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="two_epoch_separation_mandate">
+      <banned_pattern>Mixing structural extraction (moving classes/functions across files) with behavioral hardening (removing `.get()` fallbacks, tightening Pydantic schemas, or fixing 10-item tech debt) inside the same phase while the legacy proxy file is still active.</banned_pattern>
+      <mandatory_pattern>Every decomposition tracker MUST be strictly partitioned into two sequential, non-overlapping epochs:
+      1. **EPOCH 1 — PURE STRUCTURAL LIFT-AND-SHIFT &amp; ATOMIC CUTOVER (Zero Behavioral Change)**:
+         - Extract leaf types/helpers and domain sub-modules with **100% identical runtime behavior**, types, and method signatures.
+         - Existing unit tests MUST run 100% green against the temporary proxy (`X.py`) throughout extraction.
+         - Perform Mechanical 1-Hop Consumer Import Rewiring using `symbol_migration_map.md`, split the monolithic test file into modular test files, execute the Atomic Package Cutover (`X.py` -> `X/__init__.py`), and physically delete the external proxy file.
+      2. **EPOCH 2 — POST-CUTOVER TIER 2 HARDENING (Behavioral &amp; Type Lockdown)**:
+         - ONLY AFTER Epoch 1 is 100% complete and the legacy proxy is deleted, schedule bounded Tier 2 Hardening tasks to resolve the discovered 10-Item Tech Debt Inventory (eradicating `.get()`, `getattr()`, loose dicts, and legacy test fixtures) on the newly isolated sub-modules.
+         - CALLER CONTRACT SYNCHRONIZATION: Whenever a sub-module's public function signature, parameter type, or return schema is tightened during Epoch 2, all immediate 1-hop callers of that symbol MUST be updated and verified in the exact same atomic commit.</mandatory_pattern>
+      <catastrophic_reason>Hardening extracted modules while legacy callers and monolithic tests still route through the proxy breaks behavioral parity mid-surgery, causing un-isolatable test failures that trap executing agents in rollback loops. Failing to synchronize callers when signatures change in Epoch 2 breaks downstream consumers.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="strangler_fig_mandate">
-      <mandatory_pattern>You MUST plan the decomposition incrementally using the Strangler Fig Pattern (extracting one cohesive slice at a time) rather than attempting a single massive rewrite.
-      
-      **Import Proxy Pattern (Delegation before Deletion &amp; Explicit Re-Exports)**: If moving files into a subdirectory breaks hundreds of imports codebase-wide, the original methods in the God File MUST NOT be blindly deleted. They must be temporarily retained as proxy methods (delegating to the new extracted components) to keep the system compilable. ALL such proxy methods MUST be explicitly marked with `@deprecated` annotations (specifically via `warnings.warn` or `typing_extensions.deprecated`).
-      
-      **MyPy Strict Re-Export Enforcement**: In Python proxy files, all re-exported symbols (classes, functions, types) MUST be explicitly re-exported to satisfy PEP 484 and `mypy --strict`. Implicit re-exports (`from new_domain import ExtractedClass`) are STRICTLY BANNED because they trigger `implicit re-export` / `[attr-defined]` errors in CI/CD quality gates. You MUST mandate explicit re-exports using `__all__ = ["ExtractedClass", ...]` AND/OR redundant aliases (`from new_domain import ExtractedClass as ExtractedClass`).
-      
-      **Two-Phase Package Strangler Protocol (File-to-Package Transition)**: When decomposing a God file `X.py` into a package directory `X/` (specifically: `services/auth.py` -> `services/auth/`), Python and MyPy strictly forbid having both `X.py` and `X/__init__.py` coexisting simultaneously in the same parent directory (triggering fatal `Duplicate module named X` errors and non-deterministic import resolution). You MUST enforce the Two-Phase Package Strangler Protocol:
-      1. Intermediate Extraction Phases: Sub-directory `X/` MUST NOT contain `__init__.py` during intermediate extraction phases while `X.py` remains the active module entry point. Sub-modules in `X/` (specifically: `token_service.py`, `organization_service.py`) are extracted standalone and re-exported from `X.py` via explicit redundant aliases (`from .auth.token_service import TokenService as TokenService`).
-      2. Atomic Proxy Cutover Step: The transition from `X.py` proxy to `X/__init__.py` facade MUST be planned as an explicit atomic cutover step. Deleting `X.py` and creating `X/__init__.py` with identical `__all__` re-exports must occur in the exact same atomic operation, immediately verified by running `uv run mypy --strict backend_v2/services/X/` with zero duplicate module warnings.
-      
-      **Domain Package Aggregator Facade vs Hollow Shell Policy**: Formally distinguish between:
-      1. *Banned Hollow Shell*: A transitional proxy file living *outside* the package (specifically: `services/auth.py`), which MUST be completely deleted following consumer migration and AST Guardrail `QGR017` lockdown. Leaving legacy proxy files alive permanently outside the package is strictly prohibited.
-      2. *Approved Domain Package Aggregator Facade*: The canonical package root `X/__init__.py` is the permanent, typed high-level entry point for package `X/`. It instantiates and wires subservices via dependency inversion and provides clean facade operations for external callers (specifically: `AuthServiceDep` in `dependencies.py`). Facade methods MUST be pure 1-line delegations to subservices without redundant internal business branching or reimplemented logic.</mandatory_pattern>
-      <catastrophic_reason>Refactoring massive files in one go leads to context truncation, severe LLM amnesia, and irreversible system corruption. Deleting the proxy file before passing the global E2E and DI boot test destroys the Strangler Fig safety net, causing unrecoverable compile errors. Using implicit imports without explicit re-exports (`__all__` / `as Symbol`) crashes MyPy Strict quality gates across the codebase during the transition phase. Creating package `__init__.py` while `X.py` exists crashes MyPy with fatal duplicate module collisions. Conversely, failing to eventually delete external proxy files leaves eternal "Hollow Shells" that confuse developers and preserve technical debt.</catastrophic_reason>
+      <mandatory_pattern>Plan the Epoch 1 decomposition incrementally using the Strangler Fig Pattern:
+      1. **Import Proxy Pattern &amp; Explicit Re-Exports**: While extracting slices, retain re-exports or `@deprecated` proxy delegations in `X.py` so the codebase remains 100% compilable. Implicit re-exports (`from sub import Symbol`) are STRICTLY BANNED by `mypy --strict`. Always mandate `__all__ = ["Symbol", ...]` AND explicit redundant aliases (`from sub import Symbol as Symbol`).
+      2. **Two-Phase Package Strangler Protocol (File-to-Package Transition)**: Python and MyPy forbid `X.py` and `X/__init__.py` from coexisting simultaneously (`Duplicate module named X`).
+         - *Intermediate Extraction Phases*: Sub-directory `X/` MUST NOT contain `__init__.py` while `X.py` exists. Extracted sub-modules in `X/` are re-exported from `X.py`.
+         - *Atomic Proxy Cutover Step*: Deleting `X.py` and creating `X/__init__.py` (with identical `__all__` facade exports) MUST occur in a single atomic step, immediately verified via `uv run mypy --strict`.
+      3. **Domain Package Aggregator Facade vs. Banned Hollow Shell**:
+         - *Banned Hollow Shell*: Any transitional proxy file living *outside* the package (`X.py`) MUST be deleted at the end of Epoch 1 and locked via AST Guardrail `QGR017`.
+         - *Approved Package Facade*: The canonical package root `X/__init__.py` is the permanent, typed entrypoint for package `X/`, wiring sub-services via dependency injection with pure 1-line delegations.</mandatory_pattern>
+      <catastrophic_reason>Coexisting `X.py` and `X/__init__.py` crashes MyPy with duplicate module collisions. Leaving external proxy files alive permanently preserves technical debt.</catastrophic_reason>
     </rule_block>
+
     <rule_block id="test_coverage_prerequisite">
-      <mandatory_pattern>Before any extraction plans are written, the target God File MUST have at least 75% test coverage. If coverage is below 75%, do NOT stop entirely. Instead, you MUST generate a "Phase 0: Coverage Bootstrap Plan". This plan will define black-box Characterization Tests (Golden Master tests) for the God file to lock in its current behavior. This Phase 0 plan must be added to the Tracker as a strict blocker that Tier 2 must execute and verify (reaching 75% coverage) before any actual code extraction begins.</mandatory_pattern>
-      <catastrophic_reason>Decomposing a massive, untested file is blind surgery. Without 75% coverage, business logic will be silently destroyed. However, halting completely leaves the user stuck. Using Characterization Tests safely scaffolds the legacy code before surgery.</catastrophic_reason>
+      <mandatory_pattern>Before Epoch 1 extraction begins, the target God File MUST have at least 75% test coverage. If baseline coverage is below 75%, generate a mandatory blocker plan `phase0_coverage_bootstrap.md` defining black-box Characterization Tests (Golden Master tests) to lock current behavior to >=75% coverage before Phase 1A extraction starts.</mandatory_pattern>
+      <catastrophic_reason>Decomposing an untested God File is blind surgery that silently destroys business logic.</catastrophic_reason>
     </rule_block>
-    <rule_block id="zero_behavioral_change_mandate">
-      <mandatory_pattern>Decomposition is strictly a STRUCTURAL reorganization. You MUST NOT add new features, fix existing logical bugs, or "optimize" algorithms during decomposition. The ultimate goal of the Zero-Loss Parity Audit is to mathematically prove that the ORIGINAL FUNCTIONALITY remains exactly identical after the file has been reorganized. Test cases must be preserved, not just to keep the count high, but to guarantee zero behavioral change.</mandatory_pattern>
-      <catastrophic_reason>Mixing functional changes (features/bugfixes) with structural changes (decomposition) destroys the ability to isolate regressions. If a test fails after refactoring, you won't know if the new logic is wrong or if the structural wire-up failed.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="ssot_decomposition_mandate">
-      <mandatory_pattern>Decomposition is a strict exercise in codebase-wide SSOT consolidation. Your sub-plans MUST mandate:
-      1. REPLACE: Delete inline logic entirely if it can be replaced by existing global utilities.
-      2. ELEVATE: Design the extracted core logic immediately as a reusable Single Source of Truth (SSOT) component.
-      3. UNIFY (CRITICAL): Perform a Pre-Flight Fragmentation Audit. Actively search the directory and broader codebase for standalone files sharing the same domain name (specifically: if extracting 'PromptBlock', check if 'prompt_block.py' already exists). If found, you MUST mandate merging the extracted logic into the existing SSOT file rather than creating duplicates.
-      4. DIRECTORY STRUCTURE: The generated plans MUST enforce that extracted domain files are placed into a cleanly named subdirectory (specifically: `backend_v2/database/repositories/components/matrix.py`) rather than cluttering the parent directory with prefix-hacked filenames.
-      5. FUTURE REUSE: Always strive for SSOT solutions by examining current code. Reuse old implementations where applicable, or intentionally design the extracted logic as new shared modules that can be utilized in the future.</mandatory_pattern>
-      <catastrophic_reason>Refactoring in isolation creates "micro-monoliths". Failing to unify fragmented logic preserves technical debt and limits future reusability.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="decomposition_fidelity_mandate">
-      <mandatory_pattern>Your execution plans MUST explicitly mandate the mathematical verification of security hooks, RFC 7807 error reporting, DLP telemetry, test suite invariance, and Dependency Injection (DI) graphs:
-      1. SECURITY PARITY: You MUST mechanically verify that every authorization hook (specifically and exhaustively: `_enforce_tenant_isolation`, `is_system_core`) present in the original God Code survived the transplant into the decomposed files.
-      2. RFC 7807 DUAL-REPORTING: Every `AppException` thrown in newly extracted modules MUST be preceded by a structured `logger.error` logging the exact mathematical/logical reason and canonical Opaque Stripe IDs (`blk_...`, `stp_...`, `wor_...`). Silent exceptions are strictly forbidden.
-      3. DATA LEAK PREVENTION (DLP): OpenTelemetry and Logfire telemetry spans must never log or serialize raw HTTP payloads, raw user prompts (PII), or provider API credentials during inter-service dispatch.
-      4. TEST SUITE INVARIANCE &amp; MODULAR DECOMPOSITION: Existing unit tests testing the original God File MUST run 100% green without modification throughout the extraction phases via the Hollow Shell proxy. During Consumer Migration, the monolithic test file is treated as a 1-hop consumer: all test imports must be rewired to the new domain modules, and the monolithic test file must be cleanly decomposed into focused unit test files mirroring the newly extracted domain modules.
-      5. ORPHANED FIXTURE CLEANUP: When decomposing tests, explicitly mandate the removal of unused legacy fixtures or mocks, ensuring clean test suite execution.
-      6. DI RE-WIRING: Explicitly mandate updating the central Dependency Injection graph (specifically: `dependencies.py` or Flutter Providers) to point to the new domain `__init__.py` export boundaries using typed dependency containers.</mandatory_pattern>
-      <catastrophic_reason>Dropping security checks creates cross-tenant vulnerabilities. Swallowing errors without RFC 7807 dual-logging obscures root causes. Leaking PII in spans breaches compliance. Leaving orphaned monolithic test suites creates architectural desynchronization and breaks CI/CD gates.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="enum_and_literal_centralization">
-      <mandatory_pattern>Before any domain extraction begins, the planner MUST evaluate the God file for hardcoded `Literal[...]` type annotations. If found, the planner MUST mandate a "Pre-Extraction Enum Centralization" phase. All closed-set `Literal` types MUST be converted to centralized Enum classes (specifically in `backend_v2/models/enums.py`) and updated in-place in the God file FIRST. This prevents circular dependency and type resolution nightmares during the physical file split.</mandatory_pattern>
-      <catastrophic_reason>Extracting models with hardcoded inline literals scatters domain concepts. Trying to centralize them *during* extraction causes massive git conflicts and makes the Zero Behavioral Change audit impossible to isolate.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="model_rebuild_and_deferred_import_handling">
-      <mandatory_pattern>The planner MUST explicitly search for bottom-of-file `model_rebuild()` calls (Pydantic) or deferred imports used for circular dependency resolution inside the God file. The generated plans MUST explicitly dictate exactly where these `model_rebuild()` calls will be relocated (specifically to the bottom of the newly extracted files or a higher-level view module) and ensure the correct import order is preserved.</mandatory_pattern>
-      <catastrophic_reason>Blindly moving Pydantic models without relocating their `model_rebuild()` calls leaves the extracted models permanently incomplete, instantly crashing FastAPI startup with `PydanticUndefinedAnnotation`.</catastrophic_reason>
-    </rule_block>
+
     <rule_block id="topological_leaf_first_extraction_mandate">
-      <mandatory_pattern>Before any domain business logic is extracted, you MUST construct an internal call-graph and type-graph DAG of the God File using `@[scripts/_ast_boundary_utils.py]`. Decompositions MUST strictly follow a **Bottom-Up Topological Leaf-First Order**:
-      1. PHASE 1A PRE-EXTRACTION: All leaf types, shared domain models, DTOs, constants, and shared leaf helper methods (depth 0 in the call graph, including `_enforce_tenant_isolation`) MUST be extracted first into dedicated SSOT modules (specifically: `backend_v2/models/domain/[domain]_types.py` or `backend_v2/models/dtos/[feature]_dto.py`).
-      2. ZERO GOD FILE IMPORTS: Newly extracted domain modules MUST NEVER import the original God File. They may only depend on previously extracted lower-depth leaf modules or established external SSOTs.
-      3. ZERO INLINE FUNCTION IMPORTS: Using inline method-level imports (`from ... import ...` inside functions) to bypass circular dependencies is STRICTLY PROHIBITED. All imports must be statically declared at top-of-file.
-      4. ZERO GARBAGE DRAWERS: Generic dumping ground files named `types.py`, `models.py`, or `utils.py` in root directories are strictly banned.</mandatory_pattern>
-      <catastrophic_reason>Top-down extraction causes circular dependency deadlocks where newly extracted modules import unextracted symbols from the God File. Inline imports hide architectural coupling and fail AST guardrails.</catastrophic_reason>
+      <mandatory_pattern>Construct an internal call-graph and type-graph DAG of the God File using `@[scripts/_ast_boundary_utils.py]`. Decompositions MUST follow **Bottom-Up Topological Leaf-First Order**:
+      1. **Phase 1A (Leaf Pre-Extraction)**: Extract depth-0 leaf types, centralized Enums (converting any inline `Literal[...]` definitions into `backend_v2/models/enums.py`), shared constants, DTOs, and leaf helper functions first. Relocate any bottom-of-file Pydantic `model_rebuild()` calls deterministically.
+      2. **Zero God File Imports**: Extracted sub-modules MUST NEVER import from the parent God File.
+      3. **Circular Domain Decoupling**: If Sub-Module A and Sub-Module B exhibit mutual execution dependencies, inline function imports (`from ... import` inside methods) are STRICTLY BANNED. Use a typed `typing.Protocol` or `Callable` injected by the parent facade (`X/__init__.py`).
+      4. **Zero Garbage Drawers**: Generic filenames (`utils.py`, `helpers.py`, `types.py`, `models.py`) are strictly prohibited.</mandatory_pattern>
+      <catastrophic_reason>Top-down extraction causes circular import deadlocks, and moving Pydantic models without their `model_rebuild()` calls crashes FastAPI startup with `PydanticUndefinedAnnotation`.</catastrophic_reason>
     </rule_block>
-    <rule_block id="circular_domain_decoupling_mandate">
-      <mandatory_pattern>When Context A and Context B within the same God Code exhibit mutual execution dependencies (specifically: `create_organization` creating an admin user while `create_user` verifies organization existence), using inline method-level imports (`from ... import` inside methods) or circular module imports is STRICTLY BANNED. The subordinate context MUST accept an injected callback (`Callable`) or typed Protocol (`typing.Protocol`), wired deterministically by the parent facade in `__init__.py`.</mandatory_pattern>
-      <catastrophic_reason>Circular module imports cause runtime import deadlocks, and inline imports hide architectural coupling and fail AST guardrails.</catastrophic_reason>
+
+    <rule_block id="ssot_decomposition_mandate">
+      <mandatory_pattern>Enforce codebase-wide SSOT consolidation during planning:
+      1. **UNIFY (Pre-Flight Fragmentation Audit)**: Search the codebase for existing files sharing the target domain name. Merge extracted logic into existing SSOT modules rather than creating duplicate files.
+      2. **SUBDIRECTORY STRUCTURE**: Place extracted sub-modules into a cleanly named domain package directory (`backend_v2/services/[domain]/`) rather than cluttering parent directories with prefix-hacked files.
+      3. **500-Line Partitioning Gate**: No planned target sub-module may exceed 500 lines (or 400 lines of pure business logic). Slice large bounded contexts into cohesive sub-modules before generating plans.</mandatory_pattern>
+      <catastrophic_reason>Extracting "mini-god" files (>500 lines) or duplicating existing domain modules preserves architectural fragmentation.</catastrophic_reason>
     </rule_block>
-    <rule_block id="shared_state_and_transaction_audit">
-      <mandatory_pattern>The planner MUST explicitly audit and map state management across three distinct axes within the God File:
-      1. DATABASE TRANSACTION ATOMICITY: If the God File executed operations under a single atomic transaction or database session, the extracted domain sub-services MUST accept the session as an injected parameter rather than instantiating independent sessions.
-      2. SHARED CONCURRENCY PRIMITIVES: All concurrency synchronization primitives (`asyncio.Lock` (specifically: `_update_lock`), `asyncio.Semaphore`, circuit breakers) MUST be encapsulated into a shared, immutable `@dataclass(frozen=True)` dependency container instantiated by the parent facade/orchestrator and injected into each sub-service constructor. Decomposed sub-services MUST NEVER instantiate their own separate locks or semaphores.
-      3. STATELESS SUB-SERVICES &amp; IMMUTABLE CONTEXT ENVELOPES: Sub-services must remain 100% stateless across coroutines. All execution-scoped mutable state must transit strictly through immutable Pydantic V2 Context Envelopes (`ConfigDict(strict=True, extra="forbid", frozen=True)`). State mutations must execute strictly inside `async with shared_locks.update_lock:` via `.model_copy(update=...)` with typed instances.</mandatory_pattern>
-      <catastrophic_reason>Splintering transactions breaks database atomicity. Splintering asyncio.Lock instances causes Split-Brain concurrency where parallel coroutines write unsynchronized state simultaneously, resulting in catastrophic state corruption.</catastrophic_reason>
+
+    <rule_block id="dynamic_ast_fidelity_and_state_mandate">
+      <mandatory_pattern>Verify structural and state invariants dynamically based on the AST inventory $\mathcal{I}_{orig}$ of the target God File (do NOT force domain-irrelevant checks onto unrelated files):
+      1. **Dynamic Security &amp; Guard Parity ($\mathcal{I}_{orig} \subseteq \bigcup \mathcal{I}_{sub}$)**: Every authorization check, tenant isolation guard, or validation decorator present in the original God File AST MUST be mathematically accounted for in the extracted sub-modules.
+      2. **Shared Concurrency &amp; Transaction Integrity**:
+         - *Database Sessions*: If the God File executes multi-step operations within a shared DB session/transaction, pass the session explicitly into sub-services.
+         - *Concurrency Primitives*: If the God File contains `asyncio.Lock`, `asyncio.Semaphore`, or circuit breakers, encapsulate them in a shared `@dataclass(frozen=True)` container instantiated by the parent facade and injected into sub-services. Sub-services MUST NEVER instantiate independent locks.
+         - *Stateless Sub-Services &amp; Immutable Context Envelopes*: Sub-services must remain 100% stateless across coroutines. State mutations execute strictly inside `async with shared_locks.update_lock:` via `.model_copy(update=...)` with typed instances.
+      3. **RFC 7807 &amp; DLP Parity**: Preserve all structured `logger.error` + `AppException` dual-reporting and ensure OpenTelemetry/Logfire spans never serialize raw PII, prompts, or credentials.</mandatory_pattern>
+      <catastrophic_reason>Dropping existing security guards or splintering `asyncio.Lock` instances across sub-services causes security regressions and Split-Brain concurrency corruption.</catastrophic_reason>
     </rule_block>
-    <rule_block id="anti_abstraction_mandate">
-      <banned_pattern>Abstracting, summarizing, or generalizing explicit details from the original God Code file using lazy placeholders.</banned_pattern>
-      <mandatory_pattern>You MUST NOT act as a lossy compression algorithm. You MUST extract and VERBATIM preserve exact variable names, method signatures, ErrorCodes, and numbered algorithmic steps from the original God Code file directly into the generated XML extraction plans.</mandatory_pattern>
-      <catastrophic_reason>Abstracting details forces the executing agent to guess or hallucinate during extraction, breaking structural parity.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command (`/tier5-resume`), a tracker file (`task.md`), an implementation plan, or instructions for the user, you MUST explicitly wrap all target file paths in `@-reference` syntax using forward slashes (specifically: `@[backend_v2/services/execution/lifecycle_service.py]`). ORIGINAL BOUNDARY PRESERVATION: If you are extracting a specific block from the God Code, you MUST append specific line bounds using `#Lnn-mm` syntax (specifically: `@[backend_v2/services/orchestrator/dag_executor.py#L96-L125]`) to precisely target the extraction zone. DYNAMIC RULES INJECTION: You MUST explicitly list the global core rule (`@[.agents/rules/00-antigravity-core.md]`), ANY relevant Knowledge Items (KIs), PLUS the domain-specific rule file for the phase inside a `<required_context_rules>` block in EVERY generated plan and tracker.</mandatory_pattern>
-      <catastrophic_reason>Failing to use `@-references` with precise line bounds forces the next AI session to blindly search for context, wasting tokens, and causing severe Context Amnesia or incorrect logic extraction.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="knowledge_item_preflight">
-      <banned_pattern>Creating multiple structurally identical extracted files without first establishing a canonical reference template in the Knowledge Base.</banned_pattern>
-      <mandatory_pattern>During Step 2 (Pre-flight), the planner MUST evaluate whether the decomposition produces a REPEATING STRUCTURAL PATTERN (3+ extracted files sharing identical structure). If so, the planner MUST search existing KIs and either reference an existing KI or CREATE a new KI with a canonical reference template, locked terminology, and anti-patterns list BEFORE generating extraction plans.</mandatory_pattern>
-      <catastrophic_reason>Without a pre-execution canonical KI, each extraction phase's executing agent independently interprets structural requirements, causing terminology drift and inconsistent file structures across the decomposed modules.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="test_contract_specification">
-      <banned_pattern>Writing vague test instructions (specifically: "write unit tests" or "ensure coverage") in generated extraction plans without specifying exact test names, inputs, and expected outputs.</banned_pattern>
-      <mandatory_pattern>Every generated extraction plan MUST include a `<test_contracts>` XML block containing concrete, named test specifications. Each test contract MUST define: 1) test name following `test_{method}_{scenario}_{expected}` convention, 2) input fixture, 3) expected output or exception, 4) category (positive/negative/boundary/error_path). For every positive test, at least 2 negative/boundary tests MUST be specified. Since God Code decomposition requires zero behavioral change, test contracts MUST include `regression` category tests that lock the EXACT current output of each extracted method.</mandatory_pattern>
-      <catastrophic_reason>God Code decomposition without explicit test contracts makes it impossible to verify zero behavioral change. The executing agent writes superficial tests that pass but fail to detect subtle logic drift introduced during extraction.</catastrophic_reason>
-    </rule_block>
-    <rule_block id="knowledge_base_mandate">
-      <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
-      <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
+
+    <rule_block id="anti_abstraction_and_context_amnesia_mandate">
+      <mandatory_pattern>
+      1. **Verbatim Signature & Line-Bound Preservation**: Never use lazy placeholders (`# ... existing logic ...`). Wrap all file paths in `@-reference` syntax with exact `#Lnn-mm` line bounds matching a single AST ClassDef or FunctionDef node extracted via `_ast_boundary_utils.py` (specifically: `@[backend_v2/services/orchestrator/dag_executor.py#L96-L125]`). Multi-method spanning bounds are strictly prohibited by MBD004.
+      2. **Pre-Creation Reference Tagging ([NEW] & [DELETE])**: When referencing target sub-modules that do not yet exist on disk, ALWAYS prefix the link with `[NEW]` (specifically: `[NEW] @[backend_v2/services/report/lifecycle_service.py]`) to satisfy MBD003. When referencing transitional proxy files scheduled for removal, prefix with `[DELETE]`.
+      3. **Dynamic Rules Injection**: Inject `<required_context_rules>` at the top of every generated plan and tracker.
+      4. **Explicit Regression Test Contracts**: Every extraction plan MUST include a `<test_contracts>` XML block defining named `regression`, `positive`, and `negative` tests (`test_{method}_{scenario}_{expected}`) locking exact pre-extraction outputs.</mandatory_pattern>
+      <catastrophic_reason>Omitted line bounds or vague test instructions cause Context Amnesia and silent logic drift during Tier 2 execution. Omitting [NEW] triggers fatal linter failures for missing files.</catastrophic_reason>
     </rule_block>
   </context_rules>
+
   <execution_protocol level="3">
-    <step id="1" name="GREETING &amp; INSTRUCTIONS">
-      <action>Your VERY FIRST response to the user must print a brief summary of the Tier 3 God Code Planner instructions to the screen.</action>
-      <action>Explain that you are acting purely as a Planner, generating Tracker and implementation plans using the Strangler Fig approach, and delegating execution to Tier 2.</action>
-      <action>Enforce the DAG Orchestrator &amp; Architecture Lock Gate: If the target file resides within `backend_v2/services/orchestrator/` (specifically and exhaustively: `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`, `causal_cohesion_evaluator.py`), STOP immediately and request explicit "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem" before proceeding.</action>
+    <step id="1" name="GREETING &amp; ORCHESTRATOR LOCK CHECK">
+      <action>Print a concise summary of the Tier 3 Two-Epoch God Code Decomposition protocol.</action>
+      <action>Enforce the DAG Orchestrator Gate: If the target file is in `backend_v2/services/orchestrator/`, STOP and request explicit user permission before proceeding.</action>
     </step>
-    
-    <step id="2" name="PHASE 1 (Pre-flight &amp; Baseline Validation)">
-      <action name="CONTEXT AMNESIA PREVENTION &amp; AST BOUNDARY EXTRACTION">Do NOT guess method or class boundaries using naive text searches. For Python files exceeding 300 lines, you MUST execute `uv run python scripts/_ast_boundary_utils.py --file &lt;path_to_domain_file&gt; --extract-symbols` to extract mathematical AST line boundaries (`lineno` and `end_lineno`), symbol hierarchies, and docstring locations before planning extraction bounds.</action>
-      <action>If invoked to plan later phases, you MUST actively search for and read the existing Tracker file to understand which phases are completed and which remain.</action>
-      <gate name="TEST BASELINE">You MUST first find the corresponding test file for the target domain file. Then, run the tests using explicit native commands (specifically: `uv run pytest &lt;path_to_test_file&gt; --cov=&lt;path_to_domain_file&gt;` for Python, or `uv run python scripts/flutter_audit_loop.py &lt;target_path&gt; --test` for Flutter) to establish a baseline. Do NOT use naked `pytest`, `python -m unittest`, or run `pytest` directly against the domain file. If the baseline fails, STOP. Record the exact number of passing tests and coverage percentage in the Tracker file as a `[BASELINE]` metric.</gate>
-      <fallback trigger="coverage is below 75%">Immediately plan a `phase0_coverage_bootstrap.md` task focused on Characterization Tests (Golden Master tests) that must achieve 75% verified coverage before Phase 1 extraction begins.</fallback>
-      <action>Document the target DDD bounded contexts and generate an Exhaustive Symbol Inventory artifact saved to `docs/epic/tasks_[filename]/symbol_migration_map.md` (mapping every class/function to its future location).</action>
-      <action name="BLAST RADIUS &amp; 1-HOP DEPENDENCY MAPPING">Identify all external dependencies, consumers, and 1-hop callers of the God Class (via `grep_search`) to map the blast radius and establish the full touched scope.</action>
-      <action name="AUTHORITATIVE 10-ITEM TECH DEBT INVENTORY">While analyzing the target God File AND its immediate 1-hop callers, actively inspect both the target and 1-hop dependencies against the authoritative 10-item technical debt checklist:
-        1. Duck Typing &amp; Reflection: Search for `getattr()`, `hasattr()`, and `isinstance(x, (dict, Mapping))`.
-        2. Fallbacks &amp; Raw Dicts: Search for `.get("key", default)`, unannotated dict accumulators, and missing `ConfigDict(strict=True, extra="forbid")`.
-        3. Tuple Hell &amp; Anonymous State Tuples: Search for multi-value tuples of 3+ items or 2+ identical primitives used for intermediate state transit.
-        4. Error Handling &amp; DLP: Search for bare or silent `except Exception:` blocks, missing RFC 7807 structured dual-logging, or PII/prompts logged in spans.
-        5. Pydantic V2 Strictness &amp; Annotations: Search for unvalidated `model_copy(update=...)`, missing PEP 593 `Annotated`, bare mutable class defaults, or `RootModel` usage.
-        6. Python 3.14 Modern Syntax: Search for legacy wrapper typings instead of PEP 695 (`type Alias = ...`, `class C[T]:`), PEP 673 `Self`, PEP 742 `TypeIs`, PEP 750 template strings, `pathlib.Path`, PEP 734 `interpreters`, and `asyncio.TaskGroup` with `except*`.
-        7. Branching &amp; Configuration: Search for hardcoded magic numbers, timeouts, or model strings outside `settings.py`, unbounded I/O, and &gt;2 branch routing missing Strategy + Registry.
-        8. Docstrings &amp; Hygiene: Search for missing PEP 257 docstrings, `Raises: None`, unannotated `# type: ignore`, or inline `# noqa: QGR` suppressions.
-        9. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary`.
-        10. ISTQB Testing &amp; Polyfactory: Search for missing negative ISTQB partitions (boundary values, error paths), legacy dictionary fixtures (must use `polyfactory`), and tautological mocks.
-        Do NOT plan to fix these during the initial structural extraction phases (to preserve Zero Behavioral Change). Instead, compile them into an itemized Tech Debt Inventory for resolution during the Tier 2 Hardening phase.</action>
-      <gate name="500_LINE_PRE_EXTRACTION_PARTITIONING_GATE">Evaluate AST symbol counts and estimated line bounds for each planned bounded context. Banned extracting "mini-god" files (>500 lines) during decomposition under the assumption that moving code to a subfolder fixes the problem. If any identified bounded context exceeds 400 lines of business logic, the planner MUST slice it into cohesive sub-contexts (specifically: separating policy and RBAC hierarchy enforcement into `policy.py` from entity CRUD in `user_service.py`). Each planned target file MUST be verified to not exceed 500 lines.</gate>
+
+    <step id="2" name="PRE-FLIGHT AST EXTRACTION, TEST BASELINE &amp; TECH DEBT INVENTORY">
+      <action name="AST_BOUNDARY_EXTRACTION">Run `uv run python scripts/_ast_boundary_utils.py --file <path_to_domain_file> --extract-symbols` to extract defined symbols, classes, functions, and exact line boundaries. Manually inspect the target file to inventory all security hooks, decorators, and concurrency locks as invariant set $\mathcal{I}_{orig}$.</action>
+      <gate name="TEST_BASELINE">Locate the corresponding test file and run native coverage (`uv run pytest <path_to_test_file> --cov=<path_to_domain_file>` or `uv run python scripts/flutter_audit_loop.py <target_path> --test`). Record passing test count and coverage % as `[BASELINE]`. If coverage &lt; 75%, generate `phase0_coverage_bootstrap.md` as a strict blocker.</gate>
+      <action name="SYMBOL_MAP_AND_BLAST_RADIUS">Use `grep_search` to identify all 1-hop callers. Save the complete symbol-to-target mapping to `docs/epic/tasks_[filename]/symbol_migration_map.md`.</action>
+      <action name="TECH_DEBT_INVENTORY_FOR_EPOCH_2">Audit the God File and its 1-hop callers against the 10-Item Tech Debt Checklist (1. `getattr`/`hasattr`/`isinstance(dict)`, 2. `.get()`/raw dicts/missing `strict=True`, 3. anonymous 3+ tuples, 4. silent `except Exception:`/DLP, 5. unvalidated `model_copy`, 6. Python 3.14 PEP 695/673/742/`TaskGroup`, 7. magic numbers outside `settings.py`, 8. missing docstrings/`# type: ignore`, 9. Flutter hardcoded strings/colors, 10. missing negative ISTQB partitions). Record all findings in the tracker under **Epoch 2: Post-Cutover Tier 2 Hardening** (DO NOT mix into Epoch 1 extraction).</action>
+      <action name="KI_PREFLIGHT_CHECK">If decomposition produces 3+ structurally identical sub-modules, reference or create a canonical KI template before generating plans.</action>
     </step>
-    
-    <step id="3" name="PHASE 2 (Micro-Chunking &amp; Lazy Plan Generation)">
-      <action>Break the decomposition down into multiple `phaseX_[domain]_extraction.md` plans inside a new `docs/epic/tasks_[filename]/` directory. Create ONE plan per domain following Bottom-Up Topological Leaf-First Order (Phase 1A Pre-Extraction of leaf types/helpers before bounded contexts). This transforms the extraction into a continuous execution loop.</action>
-      <constraint name="CRITICAL LIMIT">To prevent LLM cognitive overload, if there are more than 3 extraction phases, you MUST ONLY generate detailed plans for Phase 1 and Phase 2. For Phase 3 and beyond, just create empty placeholder files or title headers in the tracker.</constraint>
-      <constraint name="HYBRID_XML_SANDWICH_MANDATE">You MUST require that generated `phaseX_extraction.md` files wrap their step-by-step instructions in &lt;execution_protocol&gt; XML blocks inside fenced ```xml ``` codeblocks, exactly matching the format produced by `tier0-create-plan`.</constraint>
-      <action>Add an explicit `[NOK]` task in the tracker after Phase 2 instructing the executing agent: "Invoke the Tier 3 Planner again to generate detailed plans for the remaining phases based on the updated codebase state."</action>
-      <action>Ensure the Strangler Fig mapping (including test mock updates and DI shadow fixes) is detailed in the generated plans.</action>
-      <action>You MUST inject a `<required_context_rules>` XML block into every generated plan containing the `@-references` to the core rules and domain-specific rules required to execute it.</action>
-      <action name="EXTRACTED_FILE_TRACKER_REGISTRATION">ALL planned extracted target files MUST be explicitly registered as indented file-level child checkboxes under the `Tier 2 Hardening` task in the master decomposition tracker (specifically following format: `  - [ ] @[backend_v2/services/execution/lifecycle_service.py]`). The Tier 3 Planner MUST NOT write to legacy `tmp/` directories; runtime scratch data resides exclusively in `<appDataDir>/brain/<conversation-id>/scratch/`.</action>
-      <action name="TEST CONTRACT GENERATION">For every generated extraction plan, you MUST include a `<test_contracts>` XML block specifying exact regression tests that lock the current output of each extracted method. These contracts ensure the executing agent can mathematically prove zero behavioral change after extraction.</action>
-      <action name="KI PREFLIGHT CHECK">If the decomposition produces 3+ structurally identical files, you MUST create or reference a canonical KI template BEFORE generating the extraction plans. Inject a `<constraint invariant="knowledge_item_preflight">` tag into every extraction plan that creates a file following this pattern.</action>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating the `phaseX_extraction.md` plans, you MUST physically run the boundaries audit script on each generated plan: `uv run python scripts/audit_markdown_boundaries.py --file &lt;path_to_plan&gt;`. If it fails, you MUST correct the plan and re-run. CIRCUIT BREAKER: If the script still fails after 3 repair attempts, STOP immediately and ask the user for manual intervention. Do NOT loop indefinitely.</action>
+
+    <step id="3" name="ADAPTIVE PLAN GENERATION (FAST-TRACK VS. FULL STRANGLER)">
+      <action>Select the planning mode based on the Step 2 AST metrics:
+        - **FAST-TRACK MODE (500–800 lines, &lt;= 3 target sub-modules, non-orchestrator)**: Generate ALL `phaseX_[domain]_extraction.md` plans in `docs/epic/tasks_[filename]/` in a single pass. No placeholder files or mid-flight Tier 3 re-invocations required.
+        - **FULL STRANGLER MODE (&gt; 800 lines, &gt;= 4 target sub-modules, or orchestrator core)**: Generate detailed XML plans ONLY for Phase 1 and Phase 2 to prevent context saturation. Create header placeholders for Phase 3+ and insert a tracker gate to re-invoke `/tier3-god-code-decomposition` after Phase 2 completes.</action>
+      <constraint name="HYBRID_XML_SANDWICH_MANDATE">Every generated plan MUST wrap its execution instructions in fenced XML `&lt;execution_protocol&gt;` blocks with `<required_context_rules>` and `<test_contracts>`.</constraint>
+      <action name="SELF_HEALING_BOUNDARY_AUDIT">Run `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on every generated plan. Fix any boundary errors (Circuit Breaker: stop after 3 consecutive failures).</action>
     </step>
-    
-    <step id="4" name="PHASE 3 (Tracker Generation)">
-      <action>Create a master tracker file at `docs/epic/[filename]_decomposition_tracker.md`. You MUST inject a `<required_context_rules>` XML block at the top of this tracker. If a Phase 0 coverage plan was created, list it as the VERY FIRST `[NOK]` task and explicitly state it is a strict blocker.</action>
-      <action>List every generated extraction sub-plan as a `[NOK]` task.</action>
-      <action name="IN_FLIGHT_HARDENING_MANDATE">Structure the decomposition pipeline so that newly extracted domain modules undergo Tier 2 Hardening BEFORE external 1-hop consumers are migrated, ensuring target interfaces and Pydantic schemas are finalized and preventing the Double-Migration trap.</action>
-      <action name="PACKAGE_DIRECTORY_AUDIT_VERIFICATION">When verifying decomposed packages or individual sub-modules, run the automated quality gate using `uv run python scripts/backend_audit_loop.py &lt;target_path&gt; --test`. The backend audit loop automatically discovers matching modular test suites (specifically: `test_&lt;pkg&gt;*.py` and `test_&lt;submodule&gt;.py`) when targeting package directories (specifically: `backend_v2/services/X/` or `backend_v2/services/X/__init__.py`).</action>
-      <action>Save the 'Exhaustive Symbol Inventory' into a dedicated `docs/epic/tasks_[filename]/symbol_migration_map.md` artifact rather than embedding it into the tracker. Then, append a specific `[NOK]` task called "Proxy Sunset &amp; Consumer Migration" which explicitly references this separate migration map file (`docs/epic/tasks_[filename]/symbol_migration_map.md`) so the Tier 2 agent loads it on-demand without saturating the tracker's context window.</action>
-      <action name="BOUNDED_BATCH_CONSUMER_MIGRATION">Partition "Proxy Sunset &amp; Consumer Migration" into discrete batches of at most 5 files per batch. Each batch requires: 1) import rewiring to newly extracted modules, 2) 1-hop tech debt resolution per inventory, 3) running `uv run python scripts/backend_audit_loop.py &lt;batch_files&gt; --test`, 4) atomic `git commit`, and 5) `/tier5-session-handover` between batches. Explicitly include the monolithic test file in this migration, decomposing it into focused unit test files mirroring the newly extracted domain modules.</action>
-      <gate name="CONDITIONAL_MATHEMATICAL_CORE_MUTATION_GATE">If the decomposed module contains foundational scoring math, graph evaluation, or topological sorting (`UnifiedScoringEngine`, `TopologicalEvaluator`), append a mandatory `[NOK]` gate requiring a 100% mutant kill rate under `uv run python scripts/audit_mutation_coverage.py`.</gate>
-      <gate name="CONDITIONAL_SDUI_SEMANTIC_PARITY_GATE">If the decomposed module touches SDUI models, adapters, view transformers, or PDF generation, append a mandatory `[NOK]` gate requiring `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`.</gate>
-      <gate name="PRE_DELETE_ZERO_REFERENCE_AND_SEMANTIC_COVERAGE">After Consumer Migration and Hardening, append a `[NOK]` task for 'Pre-Delete Zero-Reference &amp; Semantic Coverage Audit'. This task MUST instruct the agent to: 1) Run `grep_search` across the entire codebase (excluding the proxy file itself) to mathematically prove 0 remaining imports of the legacy God Code file, and 2) Verify line coverage of the *surviving business logic* remains &gt;90%, and all old fallback tests have been cleanly replaced by strict Pydantic V2 boundary tests.</gate>
-      <gate name="PRE_FLIGHT_GLOBAL_INTEGRATION_AND_DI_AUDIT">Append a mandatory `[NOK]` task for 'Pre-Flight Global Integration &amp; DI Boot Test'. This task MUST be executed WHILE THE PROXY FILE IS STILL INTACT on disk. Instruct the executing agent to run the global `backend_audit_loop.py` or `flutter_audit_loop.py` (with `--test`) to ensure the entire application compiles, all Dependency Injection containers (specifically: FastAPI `dependencies.py` or Flutter providers) wire correctly, and integration tests pass 100% green without mock interference. If the application fails to boot, the agent MUST resolve the broken export boundaries or DI bindings before proceeding.</gate>
-      <action name="SAFE_PHYSICAL_PROXY_DELETION">ONLY AFTER both the Zero-Reference check and Pre-Flight Global Integration &amp; DI Boot Test have passed 100% green, append a `[NOK]` task for 'Physical Proxy Deletion' (completely DELETING the original God Code proxy file from disk). It is STRICTLY FORBIDDEN to leave the temporary proxy file alive permanently outside the package. Notice: The canonical package aggregator facade (`X/__init__.py`) is preserved permanently as the typed package entrypoint; only the external proxy file (`X.py`) is deleted.</action>
-      <gate name="POST_DELETE_AST_GUARDRAIL_QGR017_LOCKDOWN">Following physical proxy deletion, mandate registration of the retired God File path in `@[scripts/_ast_guardrails.py]` under rule `QGR017` (FATAL severity), update `@[.agents/rules/04_directory_reference.md]`, and issue parameterized `/tier7-describe-architecture` synchronization directives to permanently ban resurrected imports.</gate>
-      <gate name="POST_DELETE_REGRESSION_GATE">Append a final `[NOK]` task for 'Post-Delete Regression Smoke Test'. This task MUST instruct the executing agent to run an immediate fast audit and boot check (`uv run python backend_v2/seed/run_seed.py local` and `uv run python scripts/backend_audit_loop.py &lt;target_path&gt; --test`) to mathematically prove that the physical absence of the proxy file caused zero runtime regressions or hidden import failures.</gate>
+
+    <step id="4" name="TWO-EPOCH TRACKER GENERATION (TRK001-TRK006 COMPLIANT)">
+      <action>Create the master tracker at `docs/epic/[filename]_decomposition_tracker.md` with `<required_context_rules>` at the top. The tracker MUST strictly conform to `scripts/audit_tracker_output.py` formatting standards (TRK001-TRK006) containing `## Phase Execution Status`, `### Post-Implementation Gates`, `### Final Epic Audit`, `## Instructions for the Execution Agent`, `## Requirements Traceability Matrix`, and `# Session Handover Context`.</action>
+      <action name="EPOCH_1_STRUCTURAL_PIPELINE">
+        Under `## Phase Execution Status`, generate sequential `### Phase N: <Title>` sections for **Epoch 1 (Pure Structural Lift-and-Shift &amp; Atomic Cutover)**:
+        1. `Phase 0: Coverage Bootstrap` (if baseline &lt; 75%).
+        2. `Phase 1A: Leaf Types, Enums &amp; Helpers Extraction` (Bottom-Up Leaf-First).
+        3. `Phase 1B..N: Cohesive Domain Sub-Module Extractions` (with explicit re-exports in `X.py`; existing unit tests 100% green).
+        4. `Phase Cutover - Step 1: Mechanical Consumer Import Rewiring &amp; Test Suite Modularization`: Rewire all 1-hop consumer imports deterministically per `@[docs/epic/tasks_[filename]/symbol_migration_map.md]` and split the monolithic test file into modular `test_[submodule].py` suites (zero behavioral changes).
+        5. `Phase Cutover - Step 2: Atomic Package Cutover &amp; Pre-Flight DI Boot Audit`: Atomically replace external proxy `X.py` with package facade `X/__init__.py`, update DI bindings (`dependencies.py` / providers), and verify 0 remaining legacy imports plus 100% green `backend_audit_loop.py` / `flutter_audit_loop.py --test`.
+        6. `Phase Cutover - Step 3: Post-Delete AST Guardrail QGR017 Lockdown &amp; Smoke Test`: Register retired God File path in `@[scripts/_ast_guardrails.py]` (`QGR017`), update `@[.agents/rules/04_directory_reference.md]`, and run `run_seed.py local` + modular test suite.
+      </action>
+      <action name="EPOCH_2_HARDENING_PIPELINE">
+        Under `### Post-Implementation Gates`, define the sequential gates for **Epoch 2 (Post-Cutover Tier 2 Hardening)**:
+        1. `#### Tier 2 Hardening (Backend)`: Register every newly extracted sub-module as an explicit indented child checkbox (`  - [ ] @[path/to/submodule.py]`). Mandate that each sub-module resolution resolves the Step 2 10-Item Tech Debt Inventory, adds negative ISTQB boundary tests, AND synchronizes all immediate 1-hop callers if method signatures are tightened.
+        2. `#### Conditional Mutation / SDUI Parity Gates`: Add `audit_mutation_coverage.py` (if mathematical/scoring core) or `test_sdui_semantic_parity.py` (if SDUI/PDF).
+        3. `#### Architectural Documentation Synchronization`: Parameterized `/tier7-describe-architecture` command.
+      </action>
     </step>
-    
-    <step id="5" name="PHASE 4 (Embedded Handover Context)">
-      <action>Append a `# Session Handover Context` section at the VERY END of the tracker file itself. Write out exhaustive summaries for: Achieved, Learned, and Remaining.</action>
-      <constraint>Do NOT pass these as long CLI parameters.</constraint>
-      <action>Provide a standardized continuous execution command for the next session using POSIX forward slashes: `/tier2-execute --full-auto plan_path tracker_path`. Target the specific phase plan and the master tracker. The Tier 2 agent will load context safely via self-hydrating `<required_context_rules>` blocks and line-bounded `@-references` contained within the extraction plans.</action>
-      <action>You MUST explicitly wrap all target file paths in `@-reference` syntax with forward slashes.</action>
-      <constraint name="MANDATORY_STOP">Ensure the instructions strictly reinforce that the planner MUST stop upon completing plan generation and instruct the user to execute the plans using the `/tier2-execute --full-auto plan_path tracker_path` command.</constraint>
-    </step>
-    
-    <step id="6" name="PHASE 5 (Stop &amp; Present)">
-      <action>Present the generated plans and tracker to the user.</action>
-      <action>Inform the user that planning is complete and they can now execute the approved plan using `/tier2-execute --full-auto plan_path tracker_path`.</action>
-      <constraint>Do NOT implement any domain code yourself in this session.</constraint>
+
+    <step id="5" name="EMBEDDED HANDOVER CONTEXT &amp; MANDATORY STOP">
+      <action>Append `# Session Handover Context` at the bottom of the tracker file conforming strictly to TRK004 (mandating `## Achieved`, `## Learned`, `## Resume Command`, and `## Remaining`). Set `## Resume Command` to `/tier2-execute @[plan_path] @[tracker_path]`.</action>
+      <action>Present the generated tracker and plans using `@-reference` syntax and output the exact next-step command: `/tier2-execute --full-auto @[plan_path] @[tracker_path]`.</action>
+      <constraint name="MANDATORY_STOP">STOP immediately after presenting the plans. Do NOT modify any `.py` or `.dart` files in this session.</constraint>
     </step>
   </execution_protocol>
 </system_prompt>

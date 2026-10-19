@@ -1,0 +1,25 @@
+# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)
+
+## Ympäristö ja Konteksti (Execution State)
+> **[HUOMIO] (Suorituksessa havaittu poikkeamia):** Vertailluissa ajoissa havaittiin teknisiä virheitä, DLQ-pudotuksia, aineiston näivettymistä tai keskeneräisiä statuksia.
+
+> **[ERISTETTY] TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut siirtyä ajosta toiseen.
+
+- **Palvelintason välimuistikytkin:** `DISABLE_VERTEX_CACHE=false` (Oletustila / Ei pakotettu)
+- **Git / Epic -tila:** Branch: main | Commit: b92d7277b - fix(sensor): harmonize extracted atom quote ceiling to 1000 chars (Mon Oct 19 23:37:54 2026 +0300)
+- **Kriittiset järjestelmäarvot (Enums):**
+  - **ExecutionStatus**: PASSED = PASSED, FAILED = FAILED, N_A = N_A, SYSTEM_ERROR = SYSTEM_ERROR, BLOCKED = BLOCKED, PENDING = PENDING, RUNNING = RUNNING, QUEUED = QUEUED
+  - **VerificationResult**: VERIFIED = RESULT_VERIFIED, DEBUNKED = RESULT_DEBUNKED, UNVERIFIED = RESULT_UNVERIFIED
+  - **EvaluationRunCount**: STANDARD = 1, ENSEMBLE = 3
+  - **EvaluationCategory**: MATHEMATICAL = MATHEMATICAL, SEMANTIC = SEMANTIC, LINGUISTIC = LINGUISTIC, LOGICAL = LOGICAL, BEHAVIORAL = BEHAVIORAL, UNKNOWN = UNKNOWN
+  - **StrictnessAnchor**: NONE = 0, RELAXED = 30, STANDARD = 50, BALANCED = 70, STRICT = 85, ABSOLUTE = 100
+  - **LLMProviderName**: VERTEX_AI = vertex_ai, AI_STUDIO = ai_studio, ANTHROPIC = anthropic, OPENAI = openai, DEEPSEEK = deepseek, MOCK = mock_llm_99
+  - **LLMCachingStrategy**: PROMPT_CACHING = prompt_caching, EPHEMERAL = ephemeral, ANTHROPIC_EPHEMERAL = anthropic_ephemeral, GEMINI_NATIVE = gemini_native, NONE = none
+  - **SystemConcurrency (Settings)**:
+    - max_concurrent_llm_steps = 3
+    - llm_max_retries = 0
+- **Vertailtavat ajot (R1, R2...):**
+  - **R1:** `exe_f6f9b06e63eb4dd8`
+  - **R2:** `exe_379b69df134f477a`
+  - **R3:** `exe_ff16aacdb8ca4a80`
+- **Aktiiviset Säännöt ja Asetukset (Frozen Context):** Ei saatavilla
