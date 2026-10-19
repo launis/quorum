@@ -31,6 +31,8 @@
 - **Epic:** @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md]
 - **Task Directory:** @[docs/epic/tasks_EPIC_158/]
 
+<!-- Defined in scripts/run_ablation_benchmark.py: AblationPropositionDTO, AblationAtomEvaluationDTO -->
+
 ## Phase Execution Status
 
 ### Phase 1: Pre-Implementation Technical Debt Cleanups & Foundations
@@ -129,13 +131,13 @@
 
 ### Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`)
 - **Plan:** @[docs/epic/tasks_EPIC_158/08_phase8_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 8.0: Strategic alignment check and baseline verification
-  - [ ] Step 8.1: Update directory reference rule with new integration tests and services
-  - [ ] Step 8.2: Synchronize scientific manuscript `docs/tiede.md` with formal definitions, theorems, and benchmark results
-  - [ ] Step 8.3: Execute parameterized Tier 7 as-built architecture audit
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+  - [x] Step 8.0: Strategic alignment check and baseline verification
+  - [x] Step 8.1: Update directory reference rule with new integration tests and services
+  - [x] Step 8.2: Synchronize scientific manuscript `docs/tiede.md` with formal definitions, theorems, and benchmark results
+  - [x] Step 8.3: Execute parameterized Tier 7 as-built architecture audit
+- [x] **[OK] Test Coverage Assertions:** Implemented comprehensive test contracts in `backend_v2/tests/unit/test_phase8_documentation_contracts.py` covering positive LaTeX syntax validity (`test_tiede_latex_syntax_validity`), negative unbalanced math detector (`test_tiede_unbalanced_math_detector_negative`), negative directory reference drift detector (`test_directory_reference_drift_detector_negative`), and negative decoupled strictness parameter regression (`test_decoupled_strictness_parameter_regression_negative`). All 4 test contracts passed in 0.25s. Backend audit loop passed 10/10 stages with strict AST guardrails, clean imports across 365 modules, 52/52 DTO parity, zero residual debt baseline violations, and zero naked dict violations.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -403,7 +405,7 @@
 - In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
 - In `AnchorValidationService`, when $q_1$ repeats earlier in a document preamble, greedy single-pass forward-scan causes false rejection of valid evidence downstream. Implementing candidate $s_1$ anchor iteration ensures that subsequent occurrences of $q_1$ are evaluated within the $[s_1, s_1 + 1\,000]$ window.
 - In `AnchorValidationService.process_atom_evaluation`, independent per-segment document matching creates cross-document chimera vulnerabilities where segment 1 matches document A and segment 2 matches document B. Multi-segment citations must be validated cohesively against each candidate document context, requiring all segments to resolve monotonically within the same single source document buffer.
-- `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. For decorated functions (e.g. `@pytest.mark.asyncio`), the AST span start line is the first decorator line (`min(d.lineno for d in node.decorator_list)`), not the `def` keyword line.
+- `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. For decorated functions (specifically `@pytest.mark.asyncio`), the AST span start line is the first decorator line (`min(d.lineno for d in node.decorator_list)`), not the `def` keyword line.
 - In `scripts/_ast_guardrails.py`, `QGR023` flags any `tuple[int, int]` type annotation as an anonymous state tuple. Encapsulating segment boundaries inside `GateMatchResultDTO` replaces primitive coordinates with named properties (`start_idx`, `end_idx`), fulfilling `ban_anonymous_state_tuples` and passing `QGR023`.
 - `audit_warning_baseline.py` enforces a monotonic ratchet of 0 for Census T (`type-ignore` annotations in `backend_v2/tests`). Writing `# type: ignore` in test files causes Gate 9 failure; tests must use typed signatures without inline suppressions.
 - Natural-language prompt constants in `backend_v2/models/prompts/` (specifically: `matrix_evaluation.py`) can exceed 120 characters per line. Adding these modules to `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml` ensures alignment between isolated docstring checks and global lint passes.
@@ -425,14 +427,37 @@
 - In `AppExceptionBoundary`, mounting multiple instances simultaneously in `SduiBlocksRenderer` causes an `ErrorWidget.builder` LIFO/FIFO inversion race condition on widget teardown. Adding static reference counting (`_boundaryCount`) ensures only the outermost root boundary captures and restores `_rootOriginalErrorBuilder`, preventing framework teardown assertions from failing.
 
 - Completed Tier 8 Post-Implementation Red-Team Audit for Phase 7 (`red_team_audit_phase7_plan.md`): 100% of requirements REQ-158-038 through REQ-158-040 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, and global backend completion gate passed with 5,635 tests (97.77% coverage).
+- Completed Tier 0 Research & Red-Team analysis for Phase 8 (`08_phase8_plan.md`):
+  - Synthesized and injected 5-Column Architectural Directives Table across all 9 target scopes and boundaries into `08_phase8_plan.md`.
+  - Codified exact line bounds for `04_directory_reference.md` (`#L25-L30`, `#L62-L72`, `#L118-L122`) and `docs/tiede.md` (`#L66-L83`, `#L84-L93`, `#L214-L222`, `#L236-L241`, `#L876-L936`).
+  - Added Step 0 Pre-Implementation Cleanups targeting baseline checks.
+  - Enforced bidirectional Table-Protocol Parity (MBD008) ensuring every Column 1 & 2 target in the 5-Column table has a corresponding `<action>` in the execution protocol.
+  - Added ISTQB positive and negative test contracts for LaTeX mathematical syntax validity, unbalanced math delimiter detection, directory reference drift detection, and decoupled strictness parameter regression.
+  - Verified `08_phase8_plan.md` passes `audit_markdown_boundaries.py` with 0 findings.
+- Executed Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`):
+  - Registered `test_multi_segment_causal_e2e.py`, `quote_evidence.py`, and `run_ablation_benchmark.py` in `@[.agents/rules/04_directory_reference.md]`.
+  - Synchronized `@[docs/tiede.md]` with formal Definition 1 (multi-segment bounding span vector $\vec{\mathcal{C}}_i$, $1 \le m \le 3$, monotonic ordering, single-document buffer boundary isolation), Theorem 1 (Lexical Specificity Invariant $\text{Specificity}_{lex} = 1.000$), Section 4.1.1 Gate 5 Epistemic Strictness Decoupling ($\zeta_{lex}$ vs $\zeta_{score}$), Section 4.2 Bounded Deliverable Root Axiom Anchoring ($K_{axiom}^{max} = 8, W_{min} = 12, M_{win} \le 20$), and Section 8 benchmark tables (False Omission Rate $\widehat{\text{FOR}} \le 2.00\%$, pass rate $58.2\%$, $\bar{\kappa} \ge 0.9800$).
+  - Implemented `backend_v2/tests/unit/test_phase8_documentation_contracts.py` with 4 test contracts (positive LaTeX syntax validity, negative unbalanced math detector, negative directory reference drift detector, negative decoupled strictness parameter regression).
+  - Executed parameterized Tier 7 As-Built architecture audit: updated the 4 target KIs (`ki_structured_forensic_quotes.md`, `ki_topological_engine.md`, `ki_unified_matrix_scoring_strictness.md`, `ki_prompt_orchestration_and_matrix_evaluation.md`) with valid `metadata.json` timestamps, and synchronized timeless architecture pillars (`01_system_context_and_invariants.md`, `03_cognitive_orchestration_engine.md`, `04_server_driven_ui_and_presentation.md`) in present tense with zero historical language or phase references.
+  - Universal Quality Gate passed: `backend_audit_loop.py` completed 10/10 quality stages cleanly with strict AST guardrails, clean imports across 365 modules, 52/52 DTO parity, zero residual debt baseline violations, zero naked dict violations, and 4/4 tests passed in 0.25s.
+
+- In LaTeX math blocks in `docs/tiede.md`, percentage symbols must be escaped as `\%` (e.g. `2.00\%`) to prevent LaTeX renderers and validation parsers from interpreting `%` as a line comment delimiter.
+- `Workflow.model_registry_id` enforces regex pattern `^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$`. Negative parameter regression tests must provide conforming IDs (e.g. `cfg_model_registry_01`) to isolate strictness boundary testing from registry format validation.
+- In `Workflow`, `historical_context_mode` defaults to `LaxHistoricalContextMode` without a fallback default value, requiring explicit assignment (`HistoricalContextMode.DISABLED`) when constructing test instances.
+- To prevent architectural documentation from decaying into historical narratives, `docs/architecture/` pillars strictly forbid phase names ("Phase 1"), development stages, or Epic IDs, describing purely what the physical system currently possesses in present tense.
 
 ## Remaining
-- Research and execute Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`).
+- Execute Tier 8 Post-Implementation Red-Team Audit for Phase 8: `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Post-Implementation Gates:
+  - Golden Master & Test Restoration Audit
+  - Proxy Sunset & Consumer Migration
+  - Tier 2 Hardening (Backend) across the 19 modified files
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
+
 
 
 
