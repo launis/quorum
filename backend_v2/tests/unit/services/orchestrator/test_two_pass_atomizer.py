@@ -478,3 +478,47 @@ async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock
     assert len(result) == 1
     assert result[0].resolved_claim == "Claim in packet"
     assert result[0].source_quotes == ("valid text",)
+
+
+@pytest.mark.asyncio
+async def test_extract_atoms_from_chunk_bounds_anchor_quote_over_1000_chars(
+    mock_executor: MagicMock,
+    mock_client: MagicMock,
+    settings_mock: MagicMock,
+) -> None:
+    """Verify that TwoPassAtomizer bounds hydrated anchor quotes exceeding 1,000 chars to Gate 2 ceiling."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    compiled_prompt = CompiledPrompt(static_messages=[], dynamic_messages=[])
+
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="Extracted premise from massive block",
+                resolved_claim="Claim from oversized block",
+                source_block_id="B0",
+                draft_id="a0",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
+    )
+
+    oversized_block_text = "X" * 1250
+    result, usage = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B0",
+        packet_keys=["B0"],
+        chunk_index=0,
+        hydrated_text=f"[B0] {oversized_block_text}",
+    )
+
+    assert len(result) == 1
+    assert result[0].source_quotes is not None
+    assert len(result[0].source_quotes[0]) == 1000
+    assert result[0].source_quotes[0] == "X" * 1000
+

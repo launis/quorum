@@ -117,6 +117,22 @@ def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_erro
         )
 
 
+
+def test_extracted_atom_allows_segment_up_to_1000_chars_gate2_ceiling():
+    """Prove Gate 2 safety ceiling: ExtractedAtom must accept quotes up to 1,000 characters."""
+    valid_long_quote = "A" * 602  # Exact length from Sitra block B4
+    atom = ExtractedAtom(
+        reasoning="Extracted premise from multi-sentence paragraph.",
+        resolved_claim="Resolved empirical claim.",
+        is_logical_deduction=False,
+        source_quotes=(valid_long_quote,),
+        tda_id="tda_1234567890abcdef",
+        source_id="src_1",
+        source_sequence_index=0,
+    )
+    assert atom.source_quotes == (valid_long_quote,)
+
+
 def test_linked_atom_graph_valid():
     """Test LinkedAtomGraph with valid data."""
     atom = ExtractedAtom(
@@ -281,13 +297,13 @@ def test_extracted_atom_more_than_3_segments_raises_error() -> None:
         )
 
 
-def test_extracted_atom_segment_over_500_chars_raises_error() -> None:
-    """Test ExtractedAtom raises ValidationError if any segment exceeds 500 chars."""
+def test_extracted_atom_segment_over_1000_chars_raises_error() -> None:
+    """Test ExtractedAtom raises ValidationError if any segment exceeds 1,000 chars."""
     with pytest.raises(ValidationError, match="source_quotes segment exceeds maximum allowed length"):
         ExtractedAtom(
             reasoning="Valid reasoning text.",
             resolved_claim="Valid claim text.",
-            source_quotes=("A" * 501,),
+            source_quotes=("A" * 1001,),
             tda_id="tda_1234567890abcdef",
             source_sequence_index=0,
         )

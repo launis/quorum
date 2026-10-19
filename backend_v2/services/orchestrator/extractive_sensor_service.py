@@ -115,9 +115,10 @@ class BooleanEvaluationResult(BaseModel):
             return None
         if len(v) > 3:
             raise ValueError("source_quotes cannot contain more than 3 segments.")
+        # Step 2: Enforce Gate 2 SSOT contiguous safety ceiling (1,000 characters)
         for seg in v:
-            if len(seg) > 500:
-                raise ValueError("source_quotes segment exceeds maximum allowed length of 500 characters.")
+            if len(seg) > 1000:
+                raise ValueError("source_quotes segment exceeds maximum allowed length of 1000 characters.")
             if len(v) == 1 and len(seg.strip()) < 10:
                 raise ValueError("source_quotes single segment must be at least 10 characters.")
         if len(v) > 1:

@@ -139,7 +139,7 @@ class ExtractedAtom(BaseModel):
         Raises:
             ValueError: If source_quotes is present on a logical deduction or inverse claim,
                 or missing on an empirical claim, or contains segments under 30 characters
-                when m > 1, or exceeds 3 segments, or segment > 500 chars.
+                when m > 1, or exceeds 3 segments, or segment > 1000 chars.
         """
         if (self.is_logical_deduction or self.is_inverse) and self.source_quotes is not None:
             raise ValueError("source_quotes must be None if is_logical_deduction or is_inverse is True.")
@@ -152,9 +152,10 @@ class ExtractedAtom(BaseModel):
                 for seg in self.source_quotes:
                     if len(seg.strip()) < 30:
                         raise ValueError("source_quotes segment floor is at least 30 characters when m > 1.")
+            # Step 1: Enforce Gate 2 SSOT contiguous safety ceiling (1,000 characters)
             for seg in self.source_quotes:
-                if len(seg) > 500:
-                    raise ValueError("source_quotes segment exceeds maximum allowed length of 500 characters.")
+                if len(seg) > 1000:
+                    raise ValueError("source_quotes segment exceeds maximum allowed length of 1000 characters.")
         return self
 
 

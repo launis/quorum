@@ -662,14 +662,25 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
 
 
 def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:
-    """Verifies that BooleanEvaluationResult enforces strict 500-char boundary validation without in-place mutation."""
-    long_quote = "Ensimmäinen lause tekstissä. " * 20  # ~580 chars
+    """Verifies that BooleanEvaluationResult enforces strict 1,000-char boundary validation without in-place mutation."""
+    # Positive: 602-char quote (like Sitra block B4) passes under Gate 2 ceiling
+    valid_long_quote = "Ensimmäinen lause tekstissä. " * 20  # ~580 chars
+    res = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Test reasoning",
+        is_true=True,
+        source_quotes=valid_long_quote,
+    )
+    assert res.source_quotes == (valid_long_quote.strip(),)
+
+    # Negative: quote exceeding 1,000 chars raises ValidationError
+    too_long_quote = "A" * 1001
     with pytest.raises(ValidationError, match="exceeds maximum allowed length"):
         BooleanEvaluationResult(
             alias="a0",
             reasoning="Test reasoning",
             is_true=True,
-            source_quotes=long_quote,
+            source_quotes=too_long_quote,
         )
 
 
