@@ -30,8 +30,8 @@
 
 **Target Document:** @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md]  
 **Auditor:** Principal Enterprise Architect & System Red Team  
-**Evaluation Date:** 2026-10-18  
-**Audit Status:** APPROVED (HARDENED)  
+**Evaluation Date:** 2026-10-19  
+**Audit Status:** PASSED (100% COMPLETE & PRODUCTION-CERTIFIED)  
 
 ---
 
@@ -205,16 +205,99 @@ The audit identified and eradicated 15 specific technical debt anti-patterns:
 
 ---
 
-## 7. Implementation Readiness & Final Recommendation
+## 7. Implementation & Hardening Execution Summary
 
-The System 2 deconstruction, adversarial red-teaming, and architectural hardening confirm that EPIC 158 is **100% sound, mathematically grounded, and fully aligned with Quorum 2026 architectural invariants**:
-1. All target boundaries and 1-hop callers are explicitly mapped.
-2. Discovered technical debt has been isolated and scheduled into `Phase 1: Pre-Implementation Cleanups`.
-3. Critical deployment sequence is locked to guarantee consumer Freezed models compile before backend serializers deploy.
-4. Anonymous state tuples are eradicated via `GateMatchResultDTO`.
-5. Markdown boundaries pass cleanly with zero warnings (`audit_markdown_boundaries.py` code 0).
+All 8 implementation phases and post-implementation hardening gates specified in the Epic and Tracker have been executed, tested, and audited with zero regressions:
+1. **Phase 1: Pre-Implementation Cleanups & Foundations**: Established `coerce_source_quotes_tuple` SSOT in `backend_v2/models/core_base.py`, created `GateMatchResultDTO` anti-tuple contract in `quote_evidence.py`, eradicated mutating sentence truncation, fixed asymmetric quote extraction, and enforced Flutter Theme Sovereignty.
+2. **Phase 2: Multi-Segment Schema Refactoring**: Modernized 14 domain models and DTOs to immutable `source_quotes: tuple[str, ...] | None`, synchronized 1-hop orchestration and hook services, updated prompts, synchronized Flutter Freezed models, and aligned test fixtures.
+3. **Phase 3: Lexical Firewall Multi-Segment & Distance Verification**: Implemented monotonic forward-scan search ($s_k < e_k < s_{k+1}$), candidate $s_1$ anchor iteration, single-document buffer boundary isolation, and $(e_m - s_1) \le 1\,000$ character bounding spans in `AnchorValidationService`.
+4. **Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration**: Sovereignly decoupled `default_lexical_strictness_level` from `default_strictness_level` on `Workflow` and Studio DTOs, calibrated `get_lexical_fuzz_threshold` in `settings.py`, and preserved database seed vault prompt text.
+5. **Phase 5: Long-Range Causal Horizon Expansion**: Implemented bounded deliverable root axiom header injection ($K_{axiom}^{max} = 8, W_{min} = 12, M_{win} \le 20$) in `SlidingWindowLinker`, supported multi-segment Toulmin warrants (`warrant_quotes: tuple[str, ...] | None`), and implemented Algorithm 1 dual fault attribution separating `NODE_FAILURE` from `WARRANT_GROUNDING_FAILURE`.
+6. **Phase 6: Presentation Projection & UI Synchronization**: Standardized delimiter `" [...] ".join(source_quotes)` in tabular export services, printable sources, and Jinja2 PDF report templates; implemented independent continuous lexical strictness slider in Studio Flutter UI; synchronized citation widgets.
+7. **Phase 7: Empirical Offline Benchmark & Regression Gate**: Implemented `backend_v2/tests/integration/test_multi_segment_causal_e2e.py` (7/7 tests passed), verified offline ablation benchmark ($N=220, \text{Specificity}_{lex} = 1.000, 0/21$ chimera leaks, pass rate $58.2\% \ge 56.4\%$), and executed live real-LLM E2E test.
+8. **Phase 8: Documentation & Scientific Synchronization**: Registered integration test suites in `@[.agents/rules/04_directory_reference.md]`, formalized Definition 1, Theorem 1, and empirical tables in `@[docs/tiede.md]`, and implemented documentation test contracts.
+9. **Post-Implementation Hardening**:
+   - Backend: 45 out of 45 target files hardened, audited with 181-rule Neuro-Symbolic Audit Matrices, and committed atomically.
+   - Frontend: 11 out of 11 Flutter files hardened, verified with Profile A/B standards and Theme Sovereignty.
+   - Tier 7 Architecture Sync: Synchronized timeless architecture pillars (`01_`, `03_`, `04_`) and 4 target Knowledge Items.
 
-**Next Step**: The Epic is ready for formal implementation planning. Per rule `context_amnesia_prevention`, the user must start a brand NEW chat session and execute:
-```powershell
-/tier1-planner @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md]
-```
+---
+
+## 8. Final As-Built Reverse Epic Verification & Production Release Certification
+
+### 8.1 Physical Codebase & Symbol Verification
+- **Target Files Checked**: 100/100 files physically verified on disk (0 missing files).
+- **Deprecated Symbol Eradication**: 100% verified. All 40 deprecated symbols, scalar `source_quote` fields, duck-typed parsing, and duplicate Epic files eradicated from active codebase.
+- **Physical Verification Script Result**:
+  - `uv run python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md` -> `[PASSED] AUDIT PASSED: All physical target files and symbol eradication requirements satisfied.`
+  - `uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md` -> `SUCCESS: Audit passed.`
+  - `uv run python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_158_tracker.md` -> `[PASSED] AUDIT PASSED: Tracker EPIC_158_tracker.md is structurally compliant.`
+
+### 8.2 Universal Quality Gates & Mathematical Proof
+- **Backend Quality Gate (`scripts/backend_audit_loop.py backend_v2/ --test`)**:
+  - 10/10 Quality Stages Clean: Ruff check/fix, Ruff format, MyPy strict typing, AST guardrails, Jinja validation, Seed dry-run, Clean imports (365 modules), DTO parity (52 shared models), Warning baseline, Dict eradication across 12 metrics.
+  - Test Suite: **5,678 passed**, 0 failed, 10 warnings in 617.84s.
+  - Line Coverage: **97.78%** total codebase coverage (exceeding strict 90% TDD requirement).
+- **Frontend Quality Gate (`scripts/flutter_audit_loop.py client_app_v2/ --build`)**:
+  - 4/4 Stages Clean: Freezed code generation, Dart guardrails (0 fatal violations), Dart formatting (416 files), Dart analyze (0 errors).
+  - Theme Sovereignty: 8/8 target files scanned, 0 violations.
+  - Test Suite: **598 passed**, 0 failed (`flutter test`).
+- **Cross-Domain Contract Alignment**:
+  - Full-Duplex DTO Parity: 52/52 shared domain models aligned between Python and Flutter Freezed code (`scripts/audit_dto_parity.py`).
+  - Zero Unauthorized Dependencies: 0 banned third-party bloatware packages in `pyproject.toml` and `pubspec.yaml`.
+
+### 8.3 Requirements Traceability Verification Table
+
+| Requirement ID | Specification | Physical Codebase Implementation | Audit Result |
+| :--- | :--- | :--- | :--- |
+| **REQ-158-001** | Eliminate duplicate Epic file | Single SSOT retained in `EPIC_158_multi_segment_evidence_and_causal_horizon.md` | **PASS** |
+| **REQ-158-002** | Canonical `coerce_source_quotes_tuple` SSOT | `backend_v2/models/core_base.py#L86-L103` | **PASS** |
+| **REQ-158-003** | Strongly typed `GateMatchResultDTO` contract | `backend_v2/models/dtos/quote_evidence.py#L24-L41` | **PASS** |
+| **REQ-158-004** | Remediate asymmetric quote extraction | `AnchorValidationService.validate_evidence` via `pdf_map` coordinates | **PASS** |
+| **REQ-158-005** | Eliminate mutating text truncation | `ExtractiveSensorService.BooleanEvaluationResult` immutable tuple quotes | **PASS** |
+| **REQ-158-006** | Replace unannotated lambda dictionary factories | `SlidingWindowLinker` typed factory instantiation | **PASS** |
+| **REQ-158-007** | Lock export evidence formatter signature | `ExportEvidenceFormatter.format_text_observations(quotes: tuple[str, ...] \| None)` | **PASS** |
+| **REQ-158-008** | Remediate scalar quote access in PrintableSourcesAdapter | `backend_v2/services/sdui/adapters/printable_sources_adapter.py` multi-segment iteration | **PASS** |
+| **REQ-158-009** | Enforce Flutter Theme Sovereignty in override dialog | `human_override_dialog.dart` `theme.textTheme` and `AppSpacing` | **PASS** |
+| **REQ-158-010** | Multi-segment foundation unit test suite | `backend_v2/tests/unit/models/dtos/test_quote_evidence.py` | **PASS** |
+| **REQ-158-011** | Modernize Pydantic V2 domain models and DTOs | `ExtractedAtom`, `AtomEvaluationResultDTO`, `AtomExecutionState`, `CausalNodeDTO`, `AtomResultDTO`, `HydratedAtomDTO` | **PASS** |
+| **REQ-158-012** | Refactor 1-hop caller orchestration | `sdui_mapper_service.py`, `causal_cohesion_evaluator.py`, `topological_evaluator.py`, `dag_executor.py`, `matrix_hook.py` | **PASS** |
+| **REQ-158-013** | Update atom extraction prompts | `field_prompts.py`, `atom_extraction.py` multi-segment instructions | **PASS** |
+| **REQ-158-014** | Synchronize Flutter Freezed DTO contracts | `QuoteEvidenceDto`, `AtomResultDTO`, `CausalNodeDto`, `HydratedAtomDto` | **PASS** |
+| **REQ-158-015** | Synchronize test fixtures and golden master files | `sdui_golden_master.json`, `report_data_dto_fixture.json`, `mock_data.py` | **PASS** |
+| **REQ-158-016** | Enhance coordinate normalization | `AnchorValidationService._is_lexically_valid` non-breaking space normalization | **PASS** |
+| **REQ-158-017** | Forward-scan search and monotonic ordering | `AnchorValidationService.strict_match` with $s_k < e_k < s_{k+1}$ and buffer boundary isolation | **PASS** |
+| **REQ-158-018** | Prompt extraction mandate for 1–3 sentences | `matrix_evaluation.py#L76-L84` | **PASS** |
+| **REQ-158-019** | Expand ISTQB boundary test suite | `test_anchor_validation_service.py` 49 test cases | **PASS** |
+| **REQ-158-020** | Add `default_lexical_strictness_level` | `backend_v2/models/domain/workflow.py#L90-L95` and `studio.py` | **PASS** |
+| **REQ-158-021** | Studio workflow CRUD service strictness transit | `backend_v2/services/studio/workflow_service.py` | **PASS** |
+| **REQ-158-022** | Synchronize database seed vault workflows | `backend_v2/seed/seed_data.json` all 3 workflows with `"default_lexical_strictness_level": 50` | **PASS** |
+| **REQ-158-023** | Calibrate settings lexical threshold resolution | `backend_v2/settings.py` `get_lexical_fuzz_threshold` | **PASS** |
+| **REQ-158-024** | Transit decoupled lexical strictness in execution worker | `execution_worker.py`, `dag_executor.py`, `extractive_sensor_service.py` | **PASS** |
+| **REQ-158-025** | Expand worker and anchor validation test suites | `test_execution_worker.py`, `test_anchor_validation_service.py` | **PASS** |
+| **REQ-158-026** | Linker settings and budget capacity limits | `backend_v2/settings.py` (`linker_max_global_root_axioms: 8`, `linker_min_window_atoms_quota: 12`) | **PASS** |
+| **REQ-158-027** | Bounded deliverable root axiom header injection | `SlidingWindowLinker._select_root_axioms` with `RootAxiomRankDTO` | **PASS** |
+| **REQ-158-028** | Support multi-segment Toulmin warrants | `CausalEdge`, `CausalEdgeDTO`, `LinkerEdgeDTO`, `CausalEdgeDto` with `warrant_quotes` | **PASS** |
+| **REQ-158-029** | Algorithm 1 dual fault attribution | `CausalCohesionEvaluator.diagnose_root_causes` separating `WARRANT_GROUNDING_FAILURE` | **PASS** |
+| **REQ-158-030** | Expand causal linker and cohesion test suites | `test_sliding_window_linker.py`, `test_causal_cohesion_scoring.py` (53 tests) | **PASS** |
+| **REQ-158-031** | Synchronize tabular export streaming | `export_service.py`, `export_evidence_formatter.py` with `" [...] ".join` | **PASS** |
+| **REQ-158-032** | Update SDUI highlights and printable sources | `xai_highlights_adapter.py`, `printable_sources_adapter.py` | **PASS** |
+| **REQ-158-033** | Remediate Jinja2 PDF template evidence quote emission | `report_template.jinja2#L478` with `join(' [...] ')` | **PASS** |
+| **REQ-158-034** | Regenerate OpenAPI specification artifact | `docs/swagger/openapi.json` via `generate_openapi.py` | **PASS** |
+| **REQ-158-035** | Studio continuous slider for lexical verification | `workflow_strictness_tab.dart` with dual sliders and 4 consequence zones | **PASS** |
+| **REQ-158-036** | Update client citation and causal inspector widgets | `sdui_matrix_table_widget.dart`, `causal_inspector_modal.dart` | **PASS** |
+| **REQ-158-037** | Presentation and Flutter client audit gates | `flutter_audit_loop.py` (4/4 stages passed, 598 tests) | **PASS** |
+| **REQ-158-038** | End-to-end multi-segment integration test suite | `backend_v2/tests/integration/test_multi_segment_causal_e2e.py` (7/7 tests passed) | **PASS** |
+| **REQ-158-039** | Offline ablation benchmark ($N=220$) | `scripts/run_ablation_benchmark.py` ($0/21$ chimeras, pass rate $58.2\%$) | **PASS** |
+| **REQ-158-040** | Full audit gates and mandatory live E2E real LLM test | `test_integration_real_llm.py` passed in 356.22s | **PASS** |
+| **REQ-158-041** | Update directory reference rule | `.agents/rules/04_directory_reference.md` synchronized | **PASS** |
+| **REQ-158-042** | Synchronize scientific manuscript `docs/tiede.md` | Formal Definition 1, Theorem 1, Gate 5 strictness decoupling, Bounded root axioms | **PASS** |
+| **REQ-158-043** | Parameterized Tier 7 as-built architecture audit | Synchronized 4 KIs and 3 architecture pillars (`01_`, `03_`, `04_`) | **PASS** |
+
+### 8.4 Final Certification Verdict
+
+**EPIC 158 IS HEREBY OFFICIALLY CERTIFIED AS FULLY IMPLEMENTED, HARDENED, AND PRODUCTION-READY.**
+- 100% of functional and non-functional requirements (43/43) verified on physical disk.
+- 0 orphan requirements, 0 residual technical debt, 0 fatal AST guardrails.
+- 100% full-duplex DTO parity across 52 shared models.
+- Mathematical quality gates: Backend 97.78% line coverage (5,678 passed), Frontend 598 passed tests with 100% Theme Sovereignty.

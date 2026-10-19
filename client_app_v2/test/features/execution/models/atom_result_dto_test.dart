@@ -86,10 +86,7 @@ void main() {
         'status': 'NOT_A_REAL_STATUS',
       };
 
-      expect(
-        () => AtomResultDTO.fromJson(invalidEnumJson),
-        throwsA(anything),
-      );
+      expect(() => AtomResultDTO.fromJson(invalidEnumJson), throwsA(anything));
     });
   });
 }

@@ -15,7 +15,10 @@ void main() {
       final json = dto.toJson();
       expect(json['sdui_component'], 'boolean_card');
       expect(json['resolved_claim'], 'Claim has been fully verified.');
-      expect(json['source_quotes'], ['Verified citation segment 1', 'Segment 2']);
+      expect(json['source_quotes'], [
+        'Verified citation segment 1',
+        'Segment 2',
+      ]);
     });
 
     test('test_hydrated_atom_dto_deserialization_success', () {
