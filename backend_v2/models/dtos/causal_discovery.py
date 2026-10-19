@@ -26,7 +26,20 @@ __all__ = [
 
 
 class CausalNodeDTO(V2CoreBase):
-    """Node representation in an argument causal graph."""
+    """Node representation in an argument causal graph.
+
+    Attributes:
+        node_id: Unique identifier for the causal node.
+        claim: Textual claim statement evaluated in the node.
+        source_quotes: Exact verbatim source quote segments from document.
+        paragraph_ref: Paragraph or block reference in source text.
+        status: Execution and verification status.
+        blame_parent_ids: IDs of upstream parent nodes contributing to failure.
+        dependent_child_ids: IDs of downstream nodes affected by this node.
+        tda_score: Evaluated TDA cognitive score.
+        tda_level_key: TDA qualitative level key.
+        source_input_key: Dynamic input key indicating source document provenance.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -57,7 +70,14 @@ class CausalNodeDTO(V2CoreBase):
 
 
 class CausalEdgeDTO(V2CoreBase):
-    """Directed causal dependency edge between two argument nodes."""
+    """Directed causal dependency edge between two argument nodes.
+
+    Attributes:
+        source_id: Source/parent node ID in the causal dependency.
+        target_id: Target/dependent node ID in the causal dependency.
+        reasoning: Logical reasoning explaining the dependency relationship.
+        warrant_quotes: Verbatim source quotes grounding the Toulmin inferential warrant.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -75,7 +95,17 @@ class CausalEdgeDTO(V2CoreBase):
 
 
 class CausalGraphPayloadDTO(V2CoreBase):
-    """Full causal argument graph payload."""
+    """Full causal argument graph payload.
+
+    Attributes:
+        nodes: List of causal argument nodes.
+        edges: List of directed dependency edges.
+        root_cause_node_ids: IDs of identified root cause failure nodes.
+        cycle_detected: Flag indicating if cycle was detected during traversal.
+        isolated_node_ids: IDs of isolated claims lacking inbound/outbound links.
+        partition_node_ids: Mapping of dynamic input_key to list of contained causal node IDs.
+        edge_root_causes: List of serialized edge IDs failing warrant grounding or validation.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -146,7 +176,16 @@ class CausalGraphPayloadDTO(V2CoreBase):
 
 
 class CausalRootCauseDiagnosisDTO(V2CoreBase):
-    """Root cause diagnostic detail for an argument failure."""
+    """Root cause diagnostic detail for an argument failure.
+
+    Attributes:
+        failing_node_id: ID of the failing dependent node.
+        root_cause_parent_id: ID of the upstream root cause parent.
+        paragraph_ref: Source paragraph reference.
+        explanation: Causal chain explanation of why the root cause led to failure.
+        penalty_points: Attributed penalty points.
+        root_cause_type: Categorization of failure as node, warrant, or precondition failure.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -167,7 +206,15 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
 
 
 class AntiFluffAuditDTO(V2CoreBase):
-    """Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion."""
+    """Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion.
+
+    Attributes:
+        isolated_concept_count: Number of isolated unlinked claims.
+        cycle_detected: Whether causal loops or circular reasoning occurred.
+        unsupported_claims_count: Count of claims lacking evidentiary foundation.
+        logical_cohesion_score: Overall structural cohesion score (0.0 - 1.0).
+        detected_hollow_terms: Detected hollow or performative buzzwords.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -182,7 +229,14 @@ class AntiFluffAuditDTO(V2CoreBase):
 
 
 class PrescriptiveRemediationDTO(V2CoreBase):
-    """Actionable prescriptive remediation unlocking downstream score improvements."""
+    """Actionable prescriptive remediation unlocking downstream score improvements.
+
+    Attributes:
+        target_node_id: Target node requiring remediation.
+        required_action: Concrete action required to rectify the logical flaw.
+        unlocks_node_ids: Downstream nodes unlocked if this node is fixed.
+        potential_score_impact: Estimated positive impact on total evaluation score.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -196,7 +250,15 @@ class PrescriptiveRemediationDTO(V2CoreBase):
 
 
 class FairScoringBreakdownDTO(V2CoreBase):
-    """Fair scoring breakdown attributing penalties and savings across causal chains."""
+    """Fair scoring breakdown attributing penalties and savings across causal chains.
+
+    Attributes:
+        independent_error_count: Count of independent, non-cascading errors.
+        cascading_fault_count: Count of secondary cascading faults.
+        raw_penalty_points: Raw unpenalized deduction points.
+        deduplicated_penalty_points: Penalty points after deduplicating cascading faults.
+        dampened_savings_points: Points saved via secondary fault dampening.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -241,7 +303,16 @@ class FairScoringBreakdownDTO(V2CoreBase):
 
 
 class CausalTdaFusionResultDTO(V2CoreBase):
-    """Composite fusion result combining causal graph discovery and TDA evaluation."""
+    """Composite fusion result combining causal graph discovery and TDA evaluation.
+
+    Attributes:
+        graph: Complete causal argument graph.
+        root_cause_diagnoses: Root cause diagnostics for all cascade failures.
+        anti_fluff_audit: Anti-fluff and cohesion audit metrics.
+        prescriptive_remediations: Prescriptive remediation steps to unlock performance.
+        fair_scoring: Fair scoring arithmetic breakdown.
+        total_deliverable_nodes: Total node count in deliverable subgraph.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
