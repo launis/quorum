@@ -170,4 +170,3 @@ def test_lightweight_matrix_dto_rejects_missing_execution_id() -> None:
                 "global_metrics": {},
             }
         )
-

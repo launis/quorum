@@ -133,4 +133,3 @@ def test_global_atom_blackboard_operations() -> None:
     assert "**Quote**: Confirmed launch date. [...] Next quarter target." in md
     assert "### ATOM: a2" in md
     assert "**Quote**: [Logical Deduction]" in md
-

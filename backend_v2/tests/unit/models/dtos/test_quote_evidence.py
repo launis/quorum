@@ -227,4 +227,3 @@ def test_quote_evidence_non_dict_and_base_model_inputs() -> None:
 
     with pytest.raises(ValidationError):
         QuoteEvidenceDTO.model_validate("invalid_input_type")
-

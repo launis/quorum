@@ -111,4 +111,3 @@ def test_sdui_mapper_service_map_report_with_na_cards_and_override() -> None:
     assert isinstance(na_card, SduiNACard)
     assert na_card.short_circuit_reason_tda_ids == ["tda_prereq_1"]
     assert "Skipped based on rule: Prerequisite metric satisfied" in na_card.message
-

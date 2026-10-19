@@ -1519,11 +1519,7 @@ class TestCoverageExpansion:
             "status": "PASSED",
             "inputs": {"doc": "This is authoritative ground truth text."},
             "step_states": {
-                "st_1": {
-                    "evaluations": [
-                        {"status": "PASSED", "source_quotes": ["ground truth"], "tda_id": "a_1"}
-                    ]
-                }
+                "st_1": {"evaluations": [{"status": "PASSED", "source_quotes": ["ground truth"], "tda_id": "a_1"}]}
             },
         }
         ok, msg = validate_execution_kelvollisuus(exec_record)
@@ -1558,15 +1554,7 @@ class TestCoverageExpansion:
         trace_file = tmp_path / "trace.json"
         trace_file.write_text(
             json.dumps(
-                [
-                    {
-                        "content": {
-                            "evaluations": [
-                                {"status": "PASSED", "exact_quotes": ["valid slice"], "tda_id": "a_2"}
-                            ]
-                        }
-                    }
-                ]
+                [{"content": {"evaluations": [{"status": "PASSED", "exact_quotes": ["valid slice"], "tda_id": "a_2"}]}}]
             ),
             encoding="utf-8",
         )
@@ -1644,4 +1632,3 @@ class TestCoverageExpansion:
         print_model_telemetry(empty_db)
         out = capsys.readouterr().out
         assert "Varoitus: Mallirekisteriä ei löytynyt" in out
-

@@ -249,4 +249,3 @@ def test_scorecard_atom_map_contested_non_dict_passthrough() -> None:
     non_dict_obj = "raw_string_data"
     result = ScorecardAtomDTO.map_contested_to_warning(non_dict_obj)
     assert result == "raw_string_data"
-
