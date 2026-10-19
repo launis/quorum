@@ -3,7 +3,8 @@
 Verifies WP4 completion contracts for EPIC 158:
 1. DAG execution with multi-segment evidence quotes (2-3 non-contiguous sentences).
 2. SlidingWindowLinker candidate deliverable root axiom header linking and dynamic quota allocation.
-3. Decoupled lexical strictness tolerance calibration (strictness 50 permits morphology, strictness 100 rejects fail-fast).
+3. Decoupled lexical strictness tolerance calibration
+   (strictness 50 permits morphology, strictness 100 rejects fail-fast).
 4. SDUI, Jinja2 HTML, and Tabular export generation with ' [...] ' delimiter formatting.
 5. Negative ISTQB boundary partitions: bounding span > 1000 chars, inverted order, and cross-document chimeras.
 6. CausalCohesionEvaluator diagnosing WARRANT_GROUNDING_FAILURE vs NODE_FAILURE.

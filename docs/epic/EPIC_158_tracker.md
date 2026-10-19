@@ -125,7 +125,7 @@
   - [x] Step 7.2: Execute offline ablation benchmark ($N=220$) and verify zero chimera leaks
   - [x] Step 7.3: Execute full audit gates and mandatory live E2E real LLM test
 - [x] **[OK] Test Coverage Assertions:** Offline ablation benchmark ($N=220$) verified Table 7 metrics ($P_o=95.00\%$, $\kappa=0.8974$, pass rate $58.2\% \ge 56.4\%$, $0/21$ chimera leaks under Configuration 1; Config 2 chimera rate $13.9\%$). End-to-end multi-segment causal test suite passed 7/7 tests in 1.31s (`test_multi_segment_causal_e2e.py`). Localized backend audit loop passed 10/10 stages. Universal Quality Gate passed with 5,635 tests (97.77% line coverage). Flutter audit loop passed 4/4 stages with 0 errors. Live real-LLM E2E test passed in 356.22s.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Post-Implementation Red-Team Audit (`red_team_audit_phase7_plan.md`): 100% of requirements REQ-158-038 through REQ-158-040 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, and global backend completion gate passed with 5,635 tests (97.77% coverage).
 
 ### Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`)
 - **Plan:** @[docs/epic/tasks_EPIC_158/08_phase8_plan.md]
@@ -182,6 +182,7 @@
   - [ ] @[backend_v2/services/orchestrator/prompts/atom_extraction.py]
   - [ ] @[backend_v2/scripts/generate_openapi.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
+  - [ ] @[scripts/run_ablation_benchmark.py]
   - [ ] @[backend_v2/services/sdui/sdui_mapper_service.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
@@ -281,9 +282,9 @@
 | **REQ-158-035** | Implement Studio continuous slider for lexical verification strictness | Phase 6, Step 5 | IMPLEMENTED |
 | **REQ-158-036** | Update client citation and causal inspector widgets | Phase 6, Step 6 | IMPLEMENTED |
 | **REQ-158-037** | Execute presentation and Flutter client audit gates | Phase 6, Step 7 | IMPLEMENTED |
-| **REQ-158-038** | Implement end-to-end multi-segment integration test suite | Phase 7, Step 1 | PENDING |
-| **REQ-158-039** | Execute offline ablation benchmark ($N=220$) and verify zero chimera leaks | Phase 7, Step 2 | PENDING |
-| **REQ-158-040** | Execute full audit gates and mandatory live E2E real LLM test | Phase 7, Step 3 | PENDING |
+| **REQ-158-038** | Implement end-to-end multi-segment integration test suite | Phase 7, Step 1 | IMPLEMENTED |
+| **REQ-158-039** | Execute offline ablation benchmark ($N=220$) and verify zero chimera leaks | Phase 7, Step 2 | IMPLEMENTED |
+| **REQ-158-040** | Execute full audit gates and mandatory live E2E real LLM test | Phase 7, Step 3 | IMPLEMENTED |
 | **REQ-158-041** | Update directory reference rule with new integration tests and services | Phase 8, Step 1 | PENDING |
 | **REQ-158-042** | Synchronize scientific manuscript `docs/tiede.md` with formal definitions and theorems | Phase 8, Step 2 | PENDING |
 | **REQ-158-043** | Execute parameterized Tier 7 as-built architecture audit | Phase 8, Step 3 | PENDING |
@@ -423,13 +424,14 @@
 - In `backend_v2/services/sdui/adapters/printable_sources_adapter.py#L99-L341`, taking `matched_quotes[0]` causes citation truncation for multi-segment quotes. Formatting multi-segment citations using `" [...] ".join(eq.source_quotes)` preserves complete forensic provenance.
 - In `AppExceptionBoundary`, mounting multiple instances simultaneously in `SduiBlocksRenderer` causes an `ErrorWidget.builder` LIFO/FIFO inversion race condition on widget teardown. Adding static reference counting (`_boundaryCount`) ensures only the outermost root boundary captures and restores `_rootOriginalErrorBuilder`, preventing framework teardown assertions from failing.
 
+- Completed Tier 8 Post-Implementation Red-Team Audit for Phase 7 (`red_team_audit_phase7_plan.md`): 100% of requirements REQ-158-038 through REQ-158-040 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, and global backend completion gate passed with 5,635 tests (97.77% coverage).
+
 ## Remaining
-- Perform Tier 8 Post-Implementation Red-Team Audit for Phase 7 (`@[docs/epic/tasks_EPIC_158/07_phase7_plan.md]`).
 - Research and execute Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 

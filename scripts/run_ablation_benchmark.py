@@ -456,7 +456,8 @@ def format_ablation_table_markdown(
     )
     if has_cluster_ci:
         caption += (
-            f" *(Methodological Note on Cluster Bootstrap Resampling: In Table {table_num}, cluster-adjusted 95% CIs are"
+            f" *(Methodological Note on Cluster Bootstrap Resampling: In Table {table_num},"
+            " cluster-adjusted 95% CIs are"
             " estimated via a hierarchical two-stage cluster bootstrap—resampling $K = 10$ step clusters with"
             " replacement, followed by within-cluster atom resampling with replacement across"
             " $B = 2,000$ iterations—with conservative floor truncation"
