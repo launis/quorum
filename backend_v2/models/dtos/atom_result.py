@@ -39,8 +39,8 @@ class ErrorDetailsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    error_code: Annotated[str, Field(description="Standardized error code, e.g., LLM_TIMEOUT")]
-    message: Annotated[str, Field(description="Technical error message or stack trace")]
+    error_code: Annotated[str, Field(description="Standardized error code, e.g., LLM_TIMEOUT.")]
+    message: Annotated[str, Field(description="Technical error message or stack trace.")]
 
 
 class HydratedAtomDTO(V2CoreBase):
@@ -57,11 +57,11 @@ class HydratedAtomDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sdui_component: Annotated[LaxSDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
-    resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
+    resolved_claim: Annotated[str, Field(description="Cleaned claim in human language.")]
     source_quotes: Annotated[
         tuple[str, ...] | None,
         BeforeValidator(coerce_source_quotes_tuple),
-        Field(default=None, description="Verbatim original quote segments"),
+        Field(default=None, description="Verbatim original quote segments."),
     ] = None
 
 
@@ -75,8 +75,8 @@ class ExtractedValueDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    value: Annotated[str | float | int | bool, Field(description="Extracted quantitative or categorical value")]
-    unit: Annotated[str | None, Field(default=None, description="Unit of measurement, e.g., 'tCO2e' or 'EUR'")] = None
+    value: Annotated[str | float | int | bool, Field(description="Extracted quantitative or categorical value.")]
+    unit: Annotated[str | None, Field(default=None, description="Unit of measurement, e.g., 'tCO2e' or 'EUR'.")] = None
 
 
 class AtomResultDTO(V2CoreBase):
@@ -99,21 +99,21 @@ class AtomResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key")]
+    tda_id: Annotated[str, Field(description="Opaque ID pointing to the hydrated_references dictionary key.")]
     matrix_id: Annotated[
-        str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation")
+        str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation.")
     ] = None
-    status: Annotated[LaxExecutionStatus, Field(description="Evaluation execution status")]
+    status: Annotated[LaxExecutionStatus, Field(description="Evaluation execution status.")]
     extracted_data: Annotated[
-        ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
+        ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result.")
     ] = None
     source_quotes: Annotated[
         tuple[str, ...] | None,
         BeforeValidator(coerce_source_quotes_tuple),
-        Field(default=None, description="Verbatim original quote segments from the document"),
+        Field(default=None, description="Verbatim original quote segments from the document."),
     ] = None
     contextual_override: Annotated[
-        bool, Field(default=False, description="Allows cognitive override without a verbatim quote")
+        bool, Field(default=False, description="Allows cognitive override without a verbatim quote.")
     ] = False
     is_inverse_evidence: Annotated[
         bool,
@@ -123,15 +123,17 @@ class AtomResultDTO(V2CoreBase):
         ),
     ] = False
     evaluation_reasoning: Annotated[
-        str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors")
+        str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors.")
     ] = None
     error_details: Annotated[
-        ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR")
+        ErrorDetailsDTO | None, Field(default=None, description="Populated only if status is SYSTEM_ERROR.")
     ] = None
-    extensions: Annotated[dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping")]
+    extensions: Annotated[dict[str, str], Field(default_factory=dict, description="Requested XAI extensions mapping.")]
 
-    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list")]
-    short_circuit_reason_tda_ids: Annotated[list[str], Field(default_factory=list)]
+    depends_on_tda_ids: Annotated[list[str], Field(default_factory=list, description="DAG adjacency list.")]
+    short_circuit_reason_tda_ids: Annotated[
+        list[str], Field(default_factory=list, description="List of short-circuit reason TDA IDs.")
+    ]
 
     @model_validator(mode="after")
     def validate_cognitive_vs_system_state(self) -> Self:
@@ -181,7 +183,7 @@ class EvaluationFactsDTO(V2CoreBase):
 
     facts: Annotated[
         dict[str, bool | str],
-        Field(default_factory=dict, description="Mapping of variable keys to derived evaluation states"),
+        Field(default_factory=dict, description="Mapping of variable keys to derived evaluation states."),
     ]
 
 
@@ -204,23 +206,23 @@ class EvaluatedAtomDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    tda_id: Annotated[str, Field(description="Authoritative Opaque ID for the atom")]
-    atom_id: Annotated[str | None, Field(default=None, description="Optional alias identifier matching tda_id")] = None
-    status: Annotated[str | None, Field(default=None, description="Evaluation status string or enum")] = None
-    score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score")] = None
-    human_override: Annotated[str | None, Field(default=None, description="Human override status")] = None
-    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Verbatim extracted source quotes")]
+    tda_id: Annotated[str, Field(description="Authoritative Opaque ID for the atom.")]
+    atom_id: Annotated[str | None, Field(default=None, description="Optional alias identifier matching tda_id.")] = None
+    status: Annotated[str | None, Field(default=None, description="Evaluation status string or enum.")] = None
+    score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score.")] = None
+    human_override: Annotated[str | None, Field(default=None, description="Human override status.")] = None
+    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Verbatim extracted source quotes.")]
     source_quotes: Annotated[
         tuple[str, ...] | None,
         BeforeValidator(coerce_source_quotes_tuple),
-        Field(default=None, description="Verbatim source quote segments"),
+        Field(default=None, description="Verbatim source quote segments."),
     ] = None
-    evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation")] = (
+    evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation.")] = (
         None
     )
-    contextual_override: Annotated[bool, Field(default=False, description="Cognitive override flag")] = False
-    is_inverse_evidence: Annotated[bool, Field(default=False, description="Inverse evidence flag")] = False
-    facts: Annotated[EvaluationFactsDTO | None, Field(default=None, description="Evaluation facts")] = None
+    contextual_override: Annotated[bool, Field(default=False, description="Cognitive override flag.")] = False
+    is_inverse_evidence: Annotated[bool, Field(default=False, description="Inverse evidence flag.")] = False
+    facts: Annotated[EvaluationFactsDTO | None, Field(default=None, description="Evaluation facts.")] = None
 
 
 class ExecutionMetricsDTO(V2CoreBase):
@@ -239,7 +241,7 @@ class ExecutionMetricsDTO(V2CoreBase):
     evaluated: Annotated[int, Field(ge=0, description="Number of evaluated atoms.")]
     short_circuited_na: Annotated[int, Field(ge=0, description="Number of short-circuited NA atoms.")]
     duration_ms: Annotated[
-        int, Field(default=0, ge=0, description="Execution duration in milliseconds for observability")
+        int, Field(default=0, ge=0, description="Execution duration in milliseconds for observability.")
     ] = 0
 
 
@@ -257,11 +259,11 @@ class ExtensionMetricsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    authenticity_score: Annotated[float | None, Field(default=None, description="Authenticity score")] = None
+    authenticity_score: Annotated[float | None, Field(default=None, description="Authenticity score.")] = None
     performative_phrases_count: Annotated[
-        float | None, Field(default=None, description="Performative phrases count")
+        float | None, Field(default=None, description="Performative phrases count.")
     ] = None
-    variance_score: Annotated[float | None, Field(default=None, description="Variance score")] = None
-    alignment_verdict: Annotated[str | None, Field(default=None, description="Alignment verdict")] = None
-    jargon_density: Annotated[float | None, Field(default=None, description="Jargon density")] = None
-    total_word_count: Annotated[int | None, Field(default=None, ge=0, description="Total word count")] = None
+    variance_score: Annotated[float | None, Field(default=None, description="Variance score.")] = None
+    alignment_verdict: Annotated[str | None, Field(default=None, description="Alignment verdict.")] = None
+    jargon_density: Annotated[float | None, Field(default=None, description="Jargon density.")] = None
+    total_word_count: Annotated[int | None, Field(default=None, ge=0, description="Total word count.")] = None
