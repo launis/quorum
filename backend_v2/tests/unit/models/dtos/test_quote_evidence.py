@@ -204,3 +204,27 @@ def test_quote_evidence_dto_empty_string_resolves_none() -> None:
     """Test that empty string or whitespace resolves source_quotes to None."""
     dto = QuoteEvidenceDTO(source_quotes="   ")
     assert dto.source_quotes is None
+
+
+def test_gate_match_result_dto_bool() -> None:
+    """Test GateMatchResultDTO __bool__ method."""
+    assert bool(GateMatchResultDTO(is_valid=True, start_idx=0, end_idx=5)) is True
+    assert bool(GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)) is False
+
+
+def test_quote_evidence_non_dict_and_base_model_inputs() -> None:
+    """Test validation from BaseModel and rejection of non-dict inputs."""
+    existing_quote = LLMExtractedQuote(text="Sample quote text", source_id="doc_id")
+    validated_from_model = LLMExtractedQuote.model_validate(existing_quote)
+    assert validated_from_model.text == "Sample quote text"
+
+    with pytest.raises(ValidationError):
+        LLMExtractedQuote.model_validate(12345)
+
+    existing_dto = QuoteEvidenceDTO(source_quotes=("Evidence",))
+    validated_dto_from_model = QuoteEvidenceDTO.model_validate(existing_dto)
+    assert validated_dto_from_model.source_quotes == ("Evidence",)
+
+    with pytest.raises(ValidationError):
+        QuoteEvidenceDTO.model_validate("invalid_input_type")
+
