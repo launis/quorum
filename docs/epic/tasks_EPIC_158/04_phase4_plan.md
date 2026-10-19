@@ -7,7 +7,7 @@
 **Target Files:**
 - `[MODIFY]` @[backend_v2/models/domain/workflow.py#L25-L208]
 - `[MODIFY]` @[backend_v2/models/dtos/studio.py#L89-L138]
-- `[MODIFY]` @[backend_v2/models/dtos/studio.py#L579-L608]
+- `[MODIFY]` @[backend_v2/models/dtos/studio.py#L582-L615]
 - `[MODIFY]` @[backend_v2/services/studio/workflow_service.py#L40-L672]
 - `[MODIFY]` @[backend_v2/seed/seed_data.json#L20538-L21331]
 - `[MODIFY]` @[backend_v2/settings.py#L985-L1006]
@@ -25,7 +25,7 @@
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Workflow Domain Model**<br>`@[backend_v2/models/domain/workflow.py#L25-L208]` | Conflating scoring dampening strictness with lexical verification strictness; using untyped or loose int fields. | Strict `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` SSOT contract. | Reject duplicate strictness sub-models or complex nested policy configurations. | Pydantic `ValidationError` on $s < 0$ or $s > 100$; full-duplex DTO parity via `test_dto_parity.py`. |
-| **Studio Workflow DTOs**<br>`@[backend_v2/models/dtos/studio.py#L89-L138]`<br>`@[backend_v2/models/dtos/studio.py#L579-L608]` | Omitting `default_lexical_strictness_level` from `WorkflowCreateDTO` or `WorkflowUpdateDTO`, causing silent field erasure during Studio saves. | Mirror `default_lexical_strictness_level` across `WorkflowCreateDTO` and `WorkflowUpdateDTO` with strict boundary validation. | Reject separate specialized DTO classes for lexical strictness mutations. | Unit test serialization roundtrips in `test_studio.py` and `test_workflows.py`. |
+| **Studio Workflow DTOs**<br>`@[backend_v2/models/dtos/studio.py#L89-L138]`<br>`@[backend_v2/models/dtos/studio.py#L582-L615]` | Omitting `default_lexical_strictness_level` from `WorkflowCreateDTO` or `WorkflowUpdateDTO`, causing silent field erasure during Studio saves. | Mirror `default_lexical_strictness_level` across `WorkflowCreateDTO` and `WorkflowUpdateDTO` with strict boundary validation. | Reject separate specialized DTO classes for lexical strictness mutations. | Unit test serialization roundtrips in `test_studio.py` and `test_workflows.py`. |
 | **Studio Workflow Service**<br>`@[backend_v2/services/studio/workflow_service.py#L40-L672]` | Relying on dictionary key fetching (`.get("default_lexical_strictness_level", 50)`) or loose unvalidated assignment. | Direct dot-notation attribute access and typed Pydantic instantiation during draft creation and cloning. | Avoid custom strictness validation logic; delegate 100% to Pydantic domain invariants. | Unit test workflow cloning and draft creation asserting `default_lexical_strictness_level` preservation. |
 | **Database Seed Vault**<br>`@[backend_v2/seed/seed_data.json#L20538-L21331]` | Missing explicit lexical strictness field in seeded workflows; mutating qualitative prompt descriptions. | Add `"default_lexical_strictness_level": 50` to all 3 seeded workflows while keeping prompt texts 100% pristine. | Reject redundant per-step strictness overrides in seed data. | `uv run python backend_v2/seed/run_seed.py local --dry-run` validates all seeded workflows with zero errors. |
 | **Settings Lexical Threshold**<br>`@[backend_v2/settings.py#L985-L1006]` | Hardcoding multiplier logic in callers (`anchor_validation_service.py`); ignoring decoupled lexical strictness. | Centralized SSOT `get_lexical_fuzz_threshold(locale, lexical_strictness_level)` computing dynamic calibrated thresholds. | Prune caller-side multiplier branches; resolve threshold deterministically in single pure function. | Unit tests in `test_linguistics.py` asserting exact thresholds across all strictness tiers (0, 30, 50, 85, 100). |
@@ -52,7 +52,7 @@
   <touched_artifacts>
     <backend>@[backend_v2/models/domain/workflow.py#L25-L208]</backend>
     <backend>@[backend_v2/models/dtos/studio.py#L89-L138]</backend>
-    <backend>@[backend_v2/models/dtos/studio.py#L579-L608]</backend>
+    <backend>@[backend_v2/models/dtos/studio.py#L582-L615]</backend>
     <backend>@[backend_v2/services/studio/workflow_service.py#L40-L672]</backend>
     <backend>@[backend_v2/seed/seed_data.json#L20538-L21331]</backend>
     <backend>@[backend_v2/settings.py#L985-L1006]</backend>
@@ -67,7 +67,7 @@
   </touched_artifacts>
 
   <dod_checklist>
-    <item>`default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` added to `Workflow` in @[backend_v2/models/domain/workflow.py#L25-L208] and Studio DTOs in @[backend_v2/models/dtos/studio.py#L89-L138] and @[backend_v2/models/dtos/studio.py#L579-L608].</item>
+    <item>`default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` added to `Workflow` in @[backend_v2/models/domain/workflow.py#L25-L208] and Studio DTOs in @[backend_v2/models/dtos/studio.py#L89-L138] and @[backend_v2/models/dtos/studio.py#L582-L615].</item>
     <item>Studio workflow CRUD service updated in @[backend_v2/services/studio/workflow_service.py#L40-L672] to transit `default_lexical_strictness_level`.</item>
     <item>All 3 seeded workflows in @[backend_v2/seed/seed_data.json#L20538-L21331] synchronized with `"default_lexical_strictness_level": 50`.</item>
     <item>`get_lexical_fuzz_threshold` in @[backend_v2/settings.py#L985-L1006] calibrated to resolve threshold dynamically from decoupled lexical strictness.</item>
@@ -111,7 +111,7 @@
   <step id="1" name="EXPAND WORKFLOW DOMAIN MODEL &amp; STUDIO DTOS">
     <action>In @[backend_v2/models/domain/workflow.py#L25-L208]: Verify field `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Sovereign workflow lexical strictness level (0-100 continuous).")] = 50` on `Workflow` domain model.</action>
     <action>In @[backend_v2/models/dtos/studio.py#L89-L138]: Add field `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Lexical strictness level")] = 50` to `WorkflowCreateDTO`.</action>
-    <action>In @[backend_v2/models/dtos/studio.py#L579-L608]: Add field `default_lexical_strictness_level: Annotated[int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow lexical strictness level")] = None` to `WorkflowUpdateDTO`.</action>
+    <action>In @[backend_v2/models/dtos/studio.py#L582-L615]: Add field `default_lexical_strictness_level: Annotated[int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow lexical strictness level")] = None` to `WorkflowUpdateDTO`.</action>
     <constraint invariant="variable_and_schema_preservation_mandate">Preserve exact field nomenclature `default_lexical_strictness_level` across backend and studio DTOs.</constraint>
   </step>
 

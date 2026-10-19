@@ -90,7 +90,7 @@
 
 ### Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3)
 - **Plan:** @[docs/epic/tasks_EPIC_158/05_phase5_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]`
   - [ ] Step 5.0: Strategic alignment check and baseline verification
   - [ ] Step 5.1: Configure linker settings and budget capacity limits in `settings.py`
@@ -339,6 +339,16 @@
   - Zero orphan requirements, zero AST violations, zero supply chain violations.
   - Clean full-duplex DTO parity (52/52 models).
   - Executed Five-Axis System 2 Adversarial As-Built Evaluation and 5-Column Architectural Verification Table.
+- Completed Tier 0 Research & Red-Team analysis for Phase 5 (`05_phase5_plan.md`):
+  - Synthesized and injected 5-Column Architectural Directives Table across all 9 target scopes and boundaries into `05_phase5_plan.md`.
+  - Audited and verified exact AST line bounds spanning complete `ClassDef` and `FunctionDef` nodes (`settings.py#L54-L972`, `dag_models.py#L30-L69`, `causal_discovery.py#L59-L66`, `sliding_window_linker.py#L48-L61`, `sliding_window_linker.py#L120-L365`, `causal_cohesion_evaluator.py#L79-L290`, `causal_cohesion_evaluator.py#L94-L149`, and `causal_discovery_engine.py#L42-L370`).
+  - Added Step 0 Pre-Implementation Cleanups targeting discovered technical debt: eliminating mutable collection default arguments in helper methods, parameterizing hardcoded window limits into SSOT settings (`max_causal_window_atoms: int = 20`, `min_current_window_reserve_atoms: int = 12`, `max_root_axiom_header_atoms: int = 8`), and updating `LinkerEdgeDTO` to support multi-segment warrants without loss.
+  - Specified dynamic allocation equation $K_{eff} = \min(K_{max}, \max(0, M_{win} - W_{current}))$ guaranteeing reservation floor $W_{min} = 12$ while capping global window size at $M_{win} \le 20$.
+  - Specified candidate root axiom selection: filtered by candidate deliverable document keys, zero in-degree within the deliverable document ($InDegree_{deliv}(v) = 0$), and sorted deterministically by $(-OutDegree(v), atom.source_sequence_index)$.
+  - Standardized multi-segment Toulmin warrant transit via immutable `warrant_quotes: tuple[str, ...] | None` with `coerce_source_quotes_tuple` across `CausalEdge`, `CausalEdgeDTO`, and `LinkerEdgeDTO`.
+  - Defined Algorithm 1 dual fault attribution separating intrinsic premise flaws (`NODE_FAILURE`) from inferential warrant flaws (`WARRANT_GROUNDING_FAILURE`).
+  - Added comprehensive ISTQB test contracts covering positive, boundary, and negative partitions.
+  - Verified `05_phase5_plan.md` passes `audit_markdown_boundaries.py` with 0 errors and all 8 plans pass `audit_planner_output.py` with 116/116 AST bounds verified.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -354,13 +364,16 @@
 - In `backend_v2/settings.py`, `get_lexical_fuzz_threshold(locale, lexical_strictness_level)` is the sole mathematical SSOT for lexical verification thresholds (Free 70%, Normal 82%, Strict 88%, Zero-Trust 95%). Gate 5 Snowball stemming enablement is strictly controlled by `lexical_strictness_level < 85`, fully decoupled from scoring dampening exponent $\zeta_{score}$.
 - `WorkflowCreateDTO` and `WorkflowUpdateDTO` in `backend_v2/models/dtos/studio.py` lacked `default_lexical_strictness_level`, which would cause Studio workflow updates to drop the setting on roundtrip. Extending both DTOs with `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` guarantees full-duplex CRUD parity.
 - Conflating scoring dampening exponent $\zeta_{score}$ with lexical matching threshold $\zeta_{lex}$ artificially blocked Snowball morphological stemming when scoring strictness was high ($\zeta_{score} = 85$). Decoupling `lexical_strictness_level` allows high cognitive dampening while still permitting authentic Finnish grammatical case inflections at normal lexical strictness ($\zeta_{lex} = 50$).
+- Without root axiom pinning, extended documents ($N \in [141, 252]$) suffer from sliding-window horizon truncation where introductory axioms lack local descendants within their initial window ($M_{win} \le 20$), inflating isolated claim ratios $r_{\text{iso}}$. Prepended Global Context Anchor headers bounded by $K_{eff} = \min(8, \max(0, M_{win} - W_{current}))$ eliminate this truncation while guaranteeing current window reservations ($W_{min} = 12$).
+- `CausalEdge` in `dag_models.py` and `CausalEdgeDTO` in `causal_discovery.py` enforce `ConfigDict(extra="forbid", strict=True, frozen=True)`. Attempting to instantiate them with `warrant_quotes` without first updating their schema triggers immediate validation failure. They must be updated synchronously in Step 2.
+- In Algorithm 1, when an upstream premise evaluates cleanly (`status == PASSED`) but the dependent child fails, the fault is attributed to `CausalRootCauseType.WARRANT_GROUNDING_FAILURE` rather than `NODE_FAILURE`, preventing unfair double-penalization of authors for valid premise assertions.
 
 ## Remaining
-- Proceed to Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3).
+- Execute Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 
