@@ -156,4 +156,97 @@ def test_matrix_scorecard_models_forbid_extra() -> None:
         HumanOverrideRequest.model_validate({"new_status": "PASSED", "reason": "test", "extra_field": "forbidden"})
 
     with pytest.raises(ValidationError):
+        HumanOverrideDTO.model_validate(
+            {
+                "new_status": "PASSED",
+                "reason": "test",
+                "evidence_quotes": [],
+                "overridden_by": "usr_1",
+                "overridden_at": datetime.now(timezone.utc),
+                "extra": "bad",
+            }
+        )
+
+    with pytest.raises(ValidationError):
         TDAPending.model_validate({"runtimeType": "pending", "extra": 123})
+
+    with pytest.raises(ValidationError):
+        TDAEvaluated.model_validate(
+            {
+                "runtimeType": "evaluated",
+                "passed": True,
+                "display_quote": "q",
+                "raw_anchor": "a",
+                "extra_prop": "bad",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        TDADlq.model_validate(
+            {
+                "runtimeType": "dlq",
+                "user_reason": "r",
+                "backend_trace": "t",
+                "extra_prop": "bad",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        ScorecardAtomDTO.model_validate(
+            {
+                "atom_id": "atm_1",
+                "level": 1,
+                "level_name": "T1",
+                "claim_label": "C",
+                "extracted_facts": {},
+                "exact_quotes": [],
+                "internal_logic_en": {
+                    "step_1_identify_premise": "1",
+                    "step_2_scan_source": "2",
+                    "step_3_evaluate_anti_patterns": "3",
+                    "step_4_final_conclusion": "4",
+                },
+                "status": "PASSED",
+                "semantic_reasoning": "R",
+                "contextual_override": False,
+                "chart_display_label": "CD",
+                "visual_intent": "NEUTRAL",
+                "unauthorized_prop": "error",
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        MatrixScorecardRowDTO.model_validate(
+            {
+                "block_id": "blk_1",
+                "name": "N",
+                "label_i18n": {"translations": {"en": "E"}},
+                "row_explanation": "X",
+                "is_evaluative": True,
+                "unexpected_field": "error",
+            }
+        )
+
+
+def test_matrix_scorecard_models_require_mandatory_fields() -> None:
+    """Test that missing mandatory fields trigger ValidationError fail-fast."""
+    with pytest.raises(ValidationError):
+        HumanOverrideRequest.model_validate({"reason": "missing status"})
+
+    with pytest.raises(ValidationError):
+        MatrixScorecardRowDTO.model_validate(
+            {
+                "name": "Missing block_id",
+                "label_i18n": {"translations": {"en": "E"}},
+                "row_explanation": "X",
+                "is_evaluative": True,
+            }
+        )
+
+
+def test_scorecard_atom_map_contested_non_dict_passthrough() -> None:
+    """Test map_contested_to_warning passes through non-dict data untouched."""
+    non_dict_obj = "raw_string_data"
+    result = ScorecardAtomDTO.map_contested_to_warning(non_dict_obj)
+    assert result == "raw_string_data"
+
