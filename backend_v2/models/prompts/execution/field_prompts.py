@@ -3,6 +3,33 @@
 Enforces DRY and ensures exact matching across all dynamic and static DTOs.
 """
 
+__all__ = [
+    "DESC_ALIAS",
+    "DESC_COACHING",
+    "DESC_CONTEXTUAL_OVERRIDE",
+    "DESC_EVALUATION_NOTES",
+    "DESC_EXACT_QUOTES",
+    "DESC_EXACT_QUOTE_TEXT",
+    "DESC_FALSIFICATION",
+    "DESC_IS_TRUE",
+    "DESC_REASONING_TRACE",
+    "DESC_REMEDIATION_STEPS",
+    "DESC_SEMANTIC_REASONING",
+    "DESC_SOURCE_QUOTE",
+    "DESC_SOURCE_QUOTES",
+    "STRICT_JSON_STRUCTURE_MANDATE",
+    "XAI_DESC_CITATION",
+    "XAI_DESC_COACHING",
+    "XAI_DESC_CONFIDENCE",
+    "XAI_DESC_EMOTIONAL_SENTIMENT",
+    "XAI_DESC_FALSIFICATION",
+    "XAI_DESC_JUSTIFICATION",
+    "XAI_DESC_MISSING_CONTEXT",
+    "XAI_DESC_REMEDIATION_STEPS",
+    "XAI_DESC_RISK_FLAG",
+    "XAI_DESC_THEORY_LINK",
+]
+
 DESC_EXACT_QUOTES = (
     "List of physically contiguous sentences extracted verbatim as evidence strictly entailing "
     "the claim in its asserted modality."

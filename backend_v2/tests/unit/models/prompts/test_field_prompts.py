@@ -16,6 +16,7 @@ from backend_v2.models.prompts.execution.field_prompts import (
     DESC_REMEDIATION_STEPS,
     DESC_SEMANTIC_REASONING,
     DESC_SOURCE_QUOTE,
+    DESC_SOURCE_QUOTES,
     STRICT_JSON_STRUCTURE_MANDATE,
     XAI_DESC_CITATION,
     XAI_DESC_COACHING,
@@ -39,6 +40,7 @@ def test_field_prompts_constants() -> None:
     assert isinstance(DESC_CONTEXTUAL_OVERRIDE, str) and len(DESC_CONTEXTUAL_OVERRIDE) > 0
     assert isinstance(DESC_SEMANTIC_REASONING, str) and len(DESC_SEMANTIC_REASONING) > 0
     assert isinstance(DESC_SOURCE_QUOTE, str) and len(DESC_SOURCE_QUOTE) > 0
+    assert isinstance(DESC_SOURCE_QUOTES, str) and len(DESC_SOURCE_QUOTES) > 0
     assert isinstance(DESC_COACHING, str) and len(DESC_COACHING) > 0
     assert isinstance(DESC_FALSIFICATION, str) and len(DESC_FALSIFICATION) > 0
     assert isinstance(DESC_REMEDIATION_STEPS, str) and len(DESC_REMEDIATION_STEPS) > 0
