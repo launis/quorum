@@ -6,9 +6,25 @@ from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 
+__all__ = [
+    "DraftAtomList",
+    "DraftExtractedAtom",
+    "GlobalAtomBlackboard",
+    "LLMDraftAtom",
+    "LLMDraftAtomList",
+]
+
 
 class LLMDraftAtom(V2CoreBase):
-    """Schema for LLM to extract atoms using Anchor Hydration."""
+    """Schema for LLM to extract atoms using Anchor Hydration.
+
+    Attributes:
+        reasoning: Chain-of-thought logic.
+        resolved_claim: The cleaned claim.
+        is_logical_deduction: True if claim is deduced purely via logic, allowing a null quote.
+        source_block_id: Block ID where quote resides. Must be None if is_logical_deduction is True.
+        draft_id: A short temporary ID assigned by LLM, e.g. a0, a1.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
@@ -31,6 +47,14 @@ class LLMDraftAtom(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_source(self) -> Self:
+        """Validates that source_block_id presence strictly matches is_logical_deduction flag.
+
+        Returns:
+            Self if validation succeeds.
+
+        Raises:
+            ValueError: If logical deduction flag contradicts source_block_id presence.
+        """
         if self.is_logical_deduction and self.source_block_id is not None:
             raise ValueError("source_block_id must be None if is_logical_deduction is True.")
         if not self.is_logical_deduction and not self.source_block_id:
@@ -39,6 +63,12 @@ class LLMDraftAtom(V2CoreBase):
 
 
 class LLMDraftAtomList(V2CoreBase):
+    """List container of draft atoms returned by LLM extraction.
+
+    Attributes:
+        atoms: List of extracted draft atoms.
+    """
+
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
     atoms: Annotated[list[LLMDraftAtom], Field(description="List of extracted draft atoms.")]
 
@@ -68,6 +98,14 @@ class DraftExtractedAtom(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_source(self) -> Self:
+        """Validates that source_quotes presence strictly matches is_logical_deduction flag.
+
+        Returns:
+            Self if validation succeeds.
+
+        Raises:
+            ValueError: If logical deduction flag contradicts source_quotes presence.
+        """
         if self.is_logical_deduction and self.source_quotes is not None:
             raise ValueError("source_quotes must be None if is_logical_deduction is True.")
         if not self.is_logical_deduction and not self.source_quotes:
@@ -76,7 +114,12 @@ class DraftExtractedAtom(V2CoreBase):
 
 
 class DraftAtomList(V2CoreBase):
-    """Wrapper for a list of draft atoms returned by structured task execution."""
+    """Wrapper for a list of draft atoms returned by structured task execution.
+
+    Attributes:
+        atoms: List of extracted draft atoms.
+        dlq_status: DLQ sentinel marker. Set to 'FAILED/DLQ' on structural failures.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
@@ -92,6 +135,7 @@ class GlobalAtomBlackboard(V2CoreBase):
 
     Attributes:
         atoms_by_input: Mapping of input file keys to their extracted atom lists.
+        is_data_starved: True when RAG preflight skips extraction due to data starvation.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
@@ -106,15 +150,23 @@ class GlobalAtomBlackboard(V2CoreBase):
     ] = False
 
     def get_all_atom_ids(self) -> list[str]:
-        """Returns a flat list of all draft_id strings across all inputs."""
-        ids = []
+        """Returns a flat list of all unique draft_id strings across all inputs.
+
+        Returns:
+            Deterministic list of draft atom IDs.
+        """
+        ids: list[str] = []
         for v in self.atoms_by_input.values():
             for atom in v.atoms:
                 ids.append(atom.draft_id)
-        return list(set(ids))
+        return sorted(set(ids))
 
     def to_markdown_synthesis_injection(self) -> str:
-        """Serializes the blackboard into a structured Markdown payload for LLM injection."""
+        """Serializes the blackboard into a structured Markdown payload for LLM injection.
+
+        Returns:
+            Structured Markdown string containing claims, evidence quotes, and reasoning.
+        """
         lines = []
         for input_key, atom_list in self.atoms_by_input.items():
             lines.append(f"## SOURCE: {input_key}")
