@@ -1020,4 +1020,3 @@ def get_lexical_fuzz_threshold(locale: str | None = None, lexical_strictness_lev
             multiplier = 0.80
 
     return min(100.0, base_threshold * multiplier)
-

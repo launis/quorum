@@ -86,7 +86,7 @@
   - [x] Step 4.5: Transit decoupled lexical strictness in execution worker and DAG executor
   - [x] Step 4.6: Expand worker and anchor validation test suites verifying morphological calibration
 - [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 93% line coverage on `anchor_validation_service.py` (53 passed, 0 failures), 100% on `workflow_service.py` and `execution_worker.py` (18 passed, 0 failures), dry-run seed validation 100% clean, 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and 100% DTO parity.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Post-Implementation Red-Team Audit (`red_team_audit_phase4_plan.md`): 100% of requirements REQ-158-020 through REQ-158-025 verified on disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, and global backend completion gate passed.
 
 ### Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3)
 - **Plan:** @[docs/epic/tasks_EPIC_158/05_phase5_plan.md]
@@ -263,12 +263,12 @@
 | **REQ-158-017** | Implement forward-scan search, monotonic ordering, and single-document buffer isolation | Phase 3, Step 2 | IMPLEMENTED |
 | **REQ-158-018** | Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences | Phase 3, Step 3 | IMPLEMENTED |
 | **REQ-158-019** | Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py` | Phase 3, Step 4 | IMPLEMENTED |
-| **REQ-158-020** | Add `default_lexical_strictness_level` to `Workflow` model and Studio DTOs | Phase 4, Step 1 | PENDING |
-| **REQ-158-021** | Update Studio workflow CRUD service to transit decoupled lexical strictness | Phase 4, Step 2 | PENDING |
-| **REQ-158-022** | Synchronize database seed vault workflows and add localization strings | Phase 4, Step 3 | PENDING |
-| **REQ-158-023** | Calibrate settings lexical threshold resolution function | Phase 4, Step 4 | PENDING |
-| **REQ-158-024** | Transit decoupled lexical strictness in execution worker and DAG executor | Phase 4, Step 5 | PENDING |
-| **REQ-158-025** | Expand worker and anchor validation test suites verifying morphological calibration | Phase 4, Step 6 | PENDING |
+| **REQ-158-020** | Add `default_lexical_strictness_level` to `Workflow` model and Studio DTOs | Phase 4, Step 1 | IMPLEMENTED |
+| **REQ-158-021** | Update Studio workflow CRUD service to transit decoupled lexical strictness | Phase 4, Step 2 | IMPLEMENTED |
+| **REQ-158-022** | Synchronize database seed vault workflows and add localization strings | Phase 4, Step 3 | IMPLEMENTED |
+| **REQ-158-023** | Calibrate settings lexical threshold resolution function | Phase 4, Step 4 | IMPLEMENTED |
+| **REQ-158-024** | Transit decoupled lexical strictness in execution worker and DAG executor | Phase 4, Step 5 | IMPLEMENTED |
+| **REQ-158-025** | Expand worker and anchor validation test suites verifying morphological calibration | Phase 4, Step 6 | IMPLEMENTED |
 | **REQ-158-026** | Configure linker settings and budget capacity limits in `settings.py` | Phase 5, Step 1 | PENDING |
 | **REQ-158-027** | Implement bounded deliverable root axiom header injection with dynamic quota allocation | Phase 5, Step 2 | PENDING |
 | **REQ-158-028** | Support multi-segment Toulmin warrants in causal edge records | Phase 5, Step 3 | PENDING |
@@ -334,6 +334,11 @@
   - Transited `lexical_strictness_level` through `execution_worker.py`, `dag_executor.py` (`execute_workflow`, `node_executor.execute`), `StrategyContext`, and `extractive_sensor_service.py` (`_fuzzy_match`, `pre_evaluate`, `_batch_fuzzy_match`, `batch_pre_evaluate`).
   - Added unit tests: `test_execution_worker_transits_decoupled_strictness_parameters` in `test_execution_worker.py`; and `test_strictness_decoupling_high_scoring_allows_morphology`, `test_strictness_decoupling_absolute_lexical_rejects_morphology`, `test_lexical_strictness_bounds_validation_negative`, and `test_get_lexical_fuzz_threshold_strictness_tiers` in `test_anchor_validation_service.py`.
   - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`) across all touched targets: 10/10 quality gates clean, 53 anchor validation tests passed (93% line coverage), 18 worker tests passed, dry-run seed validation 100% clean, 0 fatal AST guardrails, 0 residual debt ceiling violations, and clean DTO parity.
+- Completed Tier 8 Red-Team Audit for Phase 4 (`red_team_audit_phase4_plan.md`):
+  - Verified 100% of requirements REQ-158-020 through REQ-158-025 on physical disk with line bounds.
+  - Zero orphan requirements, zero AST violations, zero supply chain violations.
+  - Clean full-duplex DTO parity (52/52 models).
+  - Executed Five-Axis System 2 Adversarial As-Built Evaluation and 5-Column Architectural Verification Table.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -351,12 +356,11 @@
 - Conflating scoring dampening exponent $\zeta_{score}$ with lexical matching threshold $\zeta_{lex}$ artificially blocked Snowball morphological stemming when scoring strictness was high ($\zeta_{score} = 85$). Decoupling `lexical_strictness_level` allows high cognitive dampening while still permitting authentic Finnish grammatical case inflections at normal lexical strictness ($\zeta_{lex} = 50$).
 
 ## Remaining
-- Complete Phase 4 audit via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Proceed to Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 

@@ -996,4 +996,3 @@ def test_get_lexical_fuzz_threshold_strictness_tiers() -> None:
     assert get_lexical_fuzz_threshold("en", lexical_strictness_level=50) == pytest.approx(92.0, rel=1e-3)
     assert get_lexical_fuzz_threshold("en", lexical_strictness_level=85) == pytest.approx(93.84, rel=1e-3)
     assert get_lexical_fuzz_threshold("en", lexical_strictness_level=100) == 100.0
-
