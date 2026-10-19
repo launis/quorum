@@ -270,6 +270,7 @@ repomix-*.xml
 
 # Temp and Logs
 tmp/
+knowledge/
 .logfire/
 timestamps.json
 **/timestamps.json

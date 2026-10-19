@@ -128,11 +128,11 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
         - Verify full suite pass via: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path>` (append `--build` only if Freezed/Riverpod source models were modified).
       </action>
 
-      <constraint name="DESTRUCTIVE VETO">You operate autonomously EXCEPT for Destructive Operations. If fixing requires destroying files or critical UI components, you MUST stop and ask for separate permission from the user before deleting.</constraint>
+      <constraint name="DESTRUCTIVE VETO">You operate autonomously EXCEPT for Destructive Operations. This veto applies strictly to External Boundary Contracts: deleting physical files, permanently discarding user-facing routes, or altering public network schemas without authorization. Conversely, refactoring internal Flutter presentation widgets or state notifiers (e.g. replacing raw Map casting or manual TextStyle with Theme tokens and Freezed DTOs) is MANDATORY, provided that all 1-hop callers and widget tests are updated synchronously in the same atomic commit.</constraint>
 
       <constraint name="AUDIT LOOP MANDATE &amp; CIRCUIT BREAKER">
         After code changes, you MUST run the Universal Quality Gate YOURSELF via `run_command` using `flutter_audit_loop.py`. If the Quality Gate fails, inspect the analyzer or test error output to immediately pinpoint the failing component before attempting fixes.
-        DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your refactor (Circuit Breaker trips), you MUST STOP attempting to duct-tape the code. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to wipe the corrupted workspace state. Because `hardening_state.json` resides in the conversation sandbox outside the repository tree, `git clean -fd` will not wipe your progress. CRITICALLY: You MUST execute the rollback FIRST before updating any state trackers to prevent the rollback from wiping the state updates.
+        DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your refactor (Circuit Breaker trips), you MUST STOP attempting to duct-tape the code. You MUST execute targeted rollback YOURSELF via `run_command` using `git restore <target_path> <test_path>` to wipe the corrupted changes while preserving persistent sandbox states and diagnostic logs. CRITICALLY: You MUST execute the rollback FIRST before updating any state trackers to prevent the rollback from wiping the state updates.
       </constraint>
 
       <constraint name="DOCUMENTATION &amp; KI AUDIT">

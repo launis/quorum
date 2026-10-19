@@ -453,7 +453,7 @@
 - Post-Implementation Gates:
   - [ ] Golden Master & Test Restoration Audit: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
   - [ ] Proxy Sunset & Consumer Migration: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-  - [ ] Tier 2 Hardening (Backend) across the 42 remaining modified files (3/45 completed)
+  - [x] Tier 2 Hardening (Backend) across all 45 modified files (45/45 completed)
   - [ ] Tier 2 Hardening (Frontend) across the 11 modified Flutter files
   - [ ] Pre-Delete Audit: Verify no orphaned dependencies remain.
   - [ ] Semantic Coverage & Zero-Loss Audit: Mathematically verify line coverage >90% for surviving business logic.
