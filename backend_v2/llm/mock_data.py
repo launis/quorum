@@ -64,6 +64,35 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.view.sdui import ParagraphBlock
 
+__all__ = [
+    "AGENT_CLASS_TO_MOCK_KEY",
+    "MOCK_ANALYST_OUTPUT",
+    "MOCK_ARCHIVIST_OUTPUT",
+    "MOCK_CAUSAL_ANALYSIS",
+    "MOCK_CAUSAL_OUTPUT",
+    "MOCK_CHAT_HISTORY",
+    "MOCK_EXECUTIVE_SUMMARY_OUTPUT",
+    "MOCK_FALSIFIER_DATA",
+    "MOCK_FALSIFIER_OUTPUT",
+    "MOCK_INPUT_PROCESSING_OUTPUT",
+    "MOCK_INTERACTION_OUTPUT",
+    "MOCK_JUDGE_OUTPUT",
+    "MOCK_LOGICIAN_DATA",
+    "MOCK_LOGICIAN_OUTPUT",
+    "MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT",
+    "MOCK_METADATA",
+    "MOCK_OVERSEER_DATA",
+    "MOCK_OVERSEER_OUTPUT",
+    "MOCK_PERFORMATIVITY_ANALYSIS",
+    "MOCK_PERFORMATIVITY_OUTPUT",
+    "MOCK_PROFILER_OUTPUT",
+    "MOCK_REGISTRY",
+    "MOCK_SYNTHESIS_OUTPUT",
+    "MOCK_XAI_HIGHLIGHTS_OUTPUT",
+    "MOCK_XAI_OUTPUT",
+    "get_fallback_data",
+]
+
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
     luontiaika=datetime.now(timezone.utc), agentti="MockAgent", vaihe=1, versio="1.0", suoritus_ymparisto="Testing"
