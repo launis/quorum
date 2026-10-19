@@ -181,7 +181,7 @@ def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
     generated_id = f"{prefix_str}_{hex_token}"
     if not re.match(OPAQUE_STRIPE_ID_REGEX, generated_id):
         msg = f"Generated ID '{generated_id}' does not match OPAQUE_STRIPE_ID_REGEX."
-        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
