@@ -262,3 +262,32 @@ def test_chunk_packet_dto_forbids_extra() -> None:
                 "extra_field": "disallowed",
             }
         )
+
+
+def test_extracted_atom_more_than_3_segments_raises_error() -> None:
+    """Test ExtractedAtom raises ValidationError if source_quotes has > 3 segments."""
+    with pytest.raises(ValidationError, match="source_quotes cannot contain more than 3 segments"):
+        ExtractedAtom(
+            reasoning="Valid reasoning text.",
+            resolved_claim="Valid claim text.",
+            source_quotes=(
+                "Valid quote segment 1 with at least thirty chars.",
+                "Valid quote segment 2 with at least thirty chars.",
+                "Valid quote segment 3 with at least thirty chars.",
+                "Valid quote segment 4 with at least thirty chars.",
+            ),
+            tda_id="tda_1234567890abcdef",
+            source_sequence_index=0,
+        )
+
+
+def test_extracted_atom_segment_over_500_chars_raises_error() -> None:
+    """Test ExtractedAtom raises ValidationError if any segment exceeds 500 chars."""
+    with pytest.raises(ValidationError, match="source_quotes segment exceeds maximum allowed length"):
+        ExtractedAtom(
+            reasoning="Valid reasoning text.",
+            resolved_claim="Valid claim text.",
+            source_quotes=("A" * 501,),
+            tda_id="tda_1234567890abcdef",
+            source_sequence_index=0,
+        )

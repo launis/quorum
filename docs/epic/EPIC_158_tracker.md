@@ -151,7 +151,7 @@
   - [x] @[backend_v2/models/core_base.py]
   - [x] @[backend_v2/models/dtos/quote_evidence.py]
   - [x] @[backend_v2/models/domain/blackboard.py]
-  - [ ] @[backend_v2/models/dtos/dag_models.py]
+  - [x] @[backend_v2/models/dtos/dag_models.py]
   - [ ] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/dtos/atom_result.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]

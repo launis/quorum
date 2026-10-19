@@ -44,6 +44,7 @@ class CausalEdge(BaseModel):
         tda_id: The identifier of the parent atom (Topological Directed Atom ID).
         source_id: The identifier of the spatial anchor (e.g., chunk ID).
         expected_status: The expected status of the parent for this edge to be satisfied.
+        warrant_quotes: Verbatim source quotes grounding the Toulmin inferential warrant.
     """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
@@ -85,7 +86,7 @@ class ExtractedAtom(BaseModel):
         resolved_claim: The standalone, contextualized claim.
         is_logical_deduction: Whether the claim is deduced logically (allowing null quote).
         is_inverse: Whether this is an inverse assertion.
-        source_quote: The exact verbatim quote from the source text.
+        source_quotes: The exact verbatim quotes from the source text.
         tda_id: The globally unique canonical Opaque Stripe ID of this Topological Directed Atom (tda_ prefix).
         source_id: The spatial anchor (Chunk ID) indicating where the claim originated.
         source_sequence_index: The chronological sequence index indicating extraction order.
@@ -191,7 +192,7 @@ class AtomEvaluationResultDTO(BaseModel):
     Attributes:
         status: Evaluated cognitive or execution status.
         reasoning: Cognitive chain-of-thought justification.
-        source_quote: Exact verbatim quote in original source language.
+        source_quotes: Exact verbatim quotes in original source language.
         extensions: Extracted XAI extensions.
     """
 
@@ -223,7 +224,7 @@ class AtomExecutionState(BaseModel):
         status: The current evaluation status.
         short_circuit_reason_tda_ids: The list of parent IDs that caused a short-circuit (N/A) or block.
         evaluation_reasoning: Detailed reasoning for the assigned status.
-        source_quote: Exact verbatim quote extracted by the sensor during evaluation in original language.
+        source_quotes: Exact verbatim quotes extracted by the sensor during evaluation in original language.
         extensions: Extracted XAI extensions mapped from BooleanEvaluationResult.
     """
 
@@ -308,6 +309,6 @@ class ChunkPacketDTO(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    start_block: Annotated[str, Field(description="Starting block marker ID")]
-    end_block: Annotated[str, Field(description="Ending block marker ID")]
-    packet_keys: Annotated[list[str], Field(description="List of block keys in packet")]
+    start_block: Annotated[str, Field(description="Starting block marker ID.")]
+    end_block: Annotated[str, Field(description="Ending block marker ID.")]
+    packet_keys: Annotated[list[str], Field(description="List of block keys in packet.")]
