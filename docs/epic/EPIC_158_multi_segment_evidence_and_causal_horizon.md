@@ -358,6 +358,7 @@ To prevent runtime deserialization crashes (`disallowUnrecognizedKeys: true` on 
 - **Target Boundaries**:
   - `[NEW] @[backend_v2/tests/integration/test_multi_segment_causal_e2e.py]` (end-to-end integration test exercising multi-segment quotes and long-range causal links)
   - `[MODIFY] @[scripts/run_e2e_variance_test.py]` (verify benchmark passes with multi-segment verification enabled)
+  - `[MODIFY] @[scripts/run_ablation_benchmark.py]` (modernize ablation proposition DTOs for multi-segment quotes and fix GateMatchResultDTO validity evaluation)
 - **Verification Gate**:
   - Offline ablation benchmark ($N=220$) passes with $\ge 56.4\,\%$ acceptance and zero chimera leaks ($0/21$).
   - Full backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict`

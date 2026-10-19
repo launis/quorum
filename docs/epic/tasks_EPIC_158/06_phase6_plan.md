@@ -18,7 +18,7 @@
 - `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
 - `[MODIFY]` @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart#L499-L535]
 - `[MODIFY]` @[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147]
-- `[MODIFY]` @[backend_v2/tests/unit/test_pdf_generator.py#L231-L317]
+- `[MODIFY]` @[backend_v2/tests/unit/test_pdf_generator.py#L232-L319]
 - `[MODIFY]` @[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78]
 
 ## Five-Column Architectural Directives
@@ -37,7 +37,7 @@
 | **SDUI Matrix Table Widget**<br>`@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]` | Raw `TextStyle(...)` instantiation at line 566 violating theme sovereignty; scalar quote rendering ignoring `sourceQuotes` array. | Refactor line 566 to `Theme.of(context).textTheme.bodySmall?.copyWith(...)` and update quote interpolation at line 563 to `"${q.sourceQuotes?.join(' [...] ') ?? ''}"`. | Avoid client-side regex parsing or string manipulation on quote text. | Flutter analyze and widget test pass via `flutter_audit_loop.py`. |
 | **Causal Inspector Modal**<br>`@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart#L499-L535]` | Scalar quote checks `node.quote != null` dropping multi-segment quotes; rendering only scalar quote text in causal evidence cards. | Update lines 499-500 null check and line 530 text rendering to `(node.sourceQuotes != null && node.sourceQuotes!.isNotEmpty)` and `node.sourceQuotes!.join(' [...] ')`. | Avoid client-side node mutation or multi-tab citation navigation inside inspector. | Flutter build and widget tests pass without regressions. |
 | **Report Headers & L10n Parity Test Suite**<br>`@[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147]` | Desynchronized metadata mappings between backend and frontend ARB files; omission of `metaLexicalStrictness` in cross-platform parity tests. | Add `("metaLexicalStrictness", "metadata_lexical_strictness")` to `metadata_mappings` in `test_cross_platform_studio_ui_arb_parity`. | Avoid ad-hoc fixture parsing; rely on centralized `ReportHeaderResolver`. | `uv run pytest backend_v2/tests/unit/test_report_headers_l10n_parity.py` passing 100%. |
-| **PDF Generator Test Suite**<br>`@[backend_v2/tests/unit/test_pdf_generator.py#L231-L317]` | Incomplete PDF rendering tests verifying only scalar quotes; omitting multi-segment citation emission assertions. | Add `test_pdf_generator_renders_multi_segment_quotes` verifying that multi-segment quotes joined with `" [...] "` are present in rendered HTML/PDF. | Avoid live PDF rendering to disk or binary rasterization during unit tests. | `uv run pytest backend_v2/tests/unit/test_pdf_generator.py` passing 100%. |
+| **PDF Generator Test Suite**<br>`@[backend_v2/tests/unit/test_pdf_generator.py#L232-L319]` | Incomplete PDF rendering tests verifying only scalar quotes; omitting multi-segment citation emission assertions. | Add `test_pdf_generator_renders_multi_segment_quotes` verifying that multi-segment quotes joined with `" [...] "` are present in rendered HTML/PDF. | Avoid live PDF rendering to disk or binary rasterization during unit tests. | `uv run pytest backend_v2/tests/unit/test_pdf_generator.py` passing 100%. |
 | **Export Evidence Formatter Test Suite**<br>`@[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78]` | Stale assertions expecting multiline numbered quotes `[1] Quote 1\n[2] Quote 2`; failing when standardized `" [...] "` delimiter is applied. | Update `test_format_text_observations_multi_quote_list` to assert `"Quote 1 [...] Quote 2"` matching tabular export standard. | Avoid testing irrelevant tabular styling details. | `uv run pytest backend_v2/tests/unit/services/test_export_evidence_formatter.py` passing 100%. |
 
 ```xml
@@ -62,7 +62,7 @@
     <backend>@[backend_v2/services/sdui/adapters/printable_sources_adapter.py#L99-L341]</backend>
     <backend>@[backend_v2/templates/report_template.jinja2]</backend>
     <backend>@[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147]</backend>
-    <backend>@[backend_v2/tests/unit/test_pdf_generator.py#L231-L317]</backend>
+    <backend>@[backend_v2/tests/unit/test_pdf_generator.py#L232-L319]</backend>
     <backend>@[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78]</backend>
     <frontend>@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart]</frontend>
     <frontend>@[client_app_v2/lib/l10n/app_fi.arb]</frontend>
@@ -78,7 +78,7 @@
     <item>OpenAPI schema generator in @[backend_v2/scripts/generate_openapi.py#L33-L74] synchronized and @[docs/swagger/openapi.json] regenerated.</item>
     <item>Independent continuous slider for lexical verification strictness implemented in @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart] with localization in @[client_app_v2/lib/l10n/app_fi.arb] and @[client_app_v2/lib/l10n/app_en.arb].</item>
     <item>UI widgets in @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart] and @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart#L499-L535] updated to render `"${node.sourceQuotes?.join(' [...] ') ?? ''}"`.</item>
-    <item>Tests in @[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147], @[backend_v2/tests/unit/test_pdf_generator.py#L231-L317], and @[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78] pass 100%.</item>
+    <item>Tests in @[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147], @[backend_v2/tests/unit/test_pdf_generator.py#L232-L319], and @[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78] pass 100%.</item>
   </dod_checklist>
 
   <required_context_rules>
@@ -149,7 +149,7 @@
 
   <step id="7" name="EXECUTE PRESENTATION &amp; CLIENT AUDIT GATES">
     <action>In @[backend_v2/tests/unit/test_report_headers_l10n_parity.py#L82-L147]: Verify report header localization parity and assert `metaLexicalStrictness` metadata parity between Backend JSON and Flutter ARB.</action>
-    <action>In @[backend_v2/tests/unit/test_pdf_generator.py#L231-L317]: Assert that rendered PDF contains verified multi-segment evidence citations.</action>
+    <action>In @[backend_v2/tests/unit/test_pdf_generator.py#L232-L319]: Assert that rendered PDF contains verified multi-segment evidence citations.</action>
     <action>In @[backend_v2/tests/unit/services/test_export_evidence_formatter.py#L69-L78]: Update and execute tests for formatted multi-segment citation observations.</action>
     <action>Execute Flutter audit loop: `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`.</action>
     <constraint invariant="universal_quality_gate">All presentation and client tests must pass 100%.</constraint>

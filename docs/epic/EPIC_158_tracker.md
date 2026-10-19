@@ -118,7 +118,7 @@
 
 ### Phase 7: Empirical Offline Benchmark & Regression Gate (WP4)
 - **Plan:** @[docs/epic/tasks_EPIC_158/07_phase7_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`
   - [ ] Step 7.0: Strategic alignment check and baseline verification
   - [ ] Step 7.1: Implement end-to-end multi-segment integration test suite
@@ -382,8 +382,14 @@
   - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`): 10/10 quality gates passed, 97 backend unit tests passed.
   - Passed Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) and 590/590 Flutter tests (`flutter test`).
   - Completed Tier 8 Post-Implementation Red-Team Audit for Phase 6 (`red_team_audit_phase6_plan.md`): 100% of requirements REQ-158-031 through REQ-158-037 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, and global backend completion gate passed with 5,635 tests (97.77% coverage).
+  - Completed Tier 0 Research & Red-Teaming for Phase 7 (`07_phase7_plan.md`): Verified 100% AST line bound alignment across all 195 AST spans and 101 target files with `audit_planner_output.py`. Passed `audit_markdown_boundaries.py` with 0 errors.
+  - Remediated critical silent truthiness bug in `scripts/run_ablation_benchmark.py#L627` where `AnchorValidationService._is_lexically_valid(...)` returns a `GateMatchResultDTO` whose boolean truthiness is always `True`, masking all chimera quote leaks.
+  - Codified Phase 1 Pre-Implementation Cleanups in Step 0 of `07_phase7_plan.md` to modernize `AblationPropositionDTO` and `AblationAtomEvaluationDTO` with tuple quotes (`source_quotes`, `synthetic_quotes`), fix line 627 truthiness extraction (`is_quote_valid = match_res.is_valid`), and assert multi-segment kelvollisuus in `scripts/run_e2e_variance_test.py`.
+  - Synthesized exhaustive 5-Column Directives Table and bidirectional `<action>` protocol in `07_phase7_plan.md` adhering to MBD008 parity and ISTQB boundary conditions.
 
 ## Learned
+- In `scripts/run_ablation_benchmark.py#L627`, `AnchorValidationService._is_lexically_valid(...)` returns a `GateMatchResultDTO` instance, not a boolean or tuple. Evaluating `is_quote_valid = AnchorValidationService._is_lexically_valid(...)` causes `bool(dto)` to evaluate to `True` for any returned model, masking all unanchored or hallucinated quotes and falsely reporting zero chimeras. Explicitly extracting `match_res.is_valid` is required to ensure truth-preserving lexical validation.
+- In `scripts/run_ablation_benchmark.py`, `AblationPropositionDTO` and `AblationAtomEvaluationDTO` strictly enforced single string quote fields (`synthetic_quote`, `source_quote`), breaking compatibility with multi-segment propositions. Extending them to `tuple[str, ...] | None` with `coerce_source_quotes_tuple` validator maintains strict Pydantic V2 schema parity with core extraction models.
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
 - `audit_dto_parity.py` compares `WorkflowResponseDTO` with `Workflow` in `workflow.dart`. When `default_lexical_strictness_level` is present on Flutter's `Workflow`, backend `Workflow` must define `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` to maintain full-duplex DTO parity.
 - In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
@@ -411,12 +417,12 @@
 - In `AppExceptionBoundary`, mounting multiple instances simultaneously in `SduiBlocksRenderer` causes an `ErrorWidget.builder` LIFO/FIFO inversion race condition on widget teardown. Adding static reference counting (`_boundaryCount`) ensures only the outermost root boundary captures and restores `_rootOriginalErrorBuilder`, preventing framework teardown assertions from failing.
 
 ## Remaining
-- Research and execute Phase 7: Empirical Offline Benchmark & Regression Gate (WP4) via `/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Execute Phase 7: Empirical Offline Benchmark & Regression Gate (WP4) via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Research and execute Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 
