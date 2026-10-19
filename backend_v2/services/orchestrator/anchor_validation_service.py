@@ -21,6 +21,13 @@ MAX_CITATION_SPAN_CHARS: int = 1000
 MIN_MULTI_SEGMENT_FLOOR_CHARS: int = 30
 MIN_ENTROPY_GATE_CHARS: int = 10
 
+__all__ = [
+    "MAX_CITATION_SPAN_CHARS",
+    "MIN_ENTROPY_GATE_CHARS",
+    "MIN_MULTI_SEGMENT_FLOOR_CHARS",
+    "AnchorValidationService",
+]
+
 
 class AnchorValidationService:
     """TDD-testable service for deterministic evidence anchoring using strict substring matching.
