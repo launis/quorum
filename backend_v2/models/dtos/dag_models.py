@@ -67,6 +67,14 @@ class CausalEdge(BaseModel):
             description="Allows for negative conditions. The dependency is met only if the parent reaches this status."
         ),
     ] = ExecutionStatus.PASSED
+    warrant_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(
+            default=None,
+            description="Verbatim source quotes grounding the Toulmin inferential warrant.",
+        ),
+    ] = None
 
 
 class ExtractedAtom(BaseModel):

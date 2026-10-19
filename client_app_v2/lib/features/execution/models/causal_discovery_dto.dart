@@ -33,6 +33,7 @@ abstract class CausalEdgeDto with _$CausalEdgeDto {
     @JsonKey(name: 'source_id') required String sourceId,
     @JsonKey(name: 'target_id') required String targetId,
     required String reasoning,
+    @JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes,
   }) = _CausalEdgeDto;
 
   factory CausalEdgeDto.fromJson(Map<String, dynamic> json) =>

@@ -3,16 +3,36 @@ from __future__ import annotations
 import pytest
 
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import ExtractedAtom
-from backend_v2.services.orchestrator.sliding_window_linker import SlidingWindowLinker
+from backend_v2.models.dtos.dag_models import (
+    CausalEdge,
+    ExtractedAtom,
+    GlobalOntologyMap,
+    LinkedAtomGraph,
+)
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.services.orchestrator.sliding_window_linker import (
+    LinkerDependencyDTO,
+    LinkerEdgeDTO,
+    LinkerResponseDTO,
+    SlidingWindowLinker,
+    WindowCausalEdgesDTO,
+)
+
+
+class MockLinkerSettings:
+    """Mock settings for sliding window linker tests."""
+
+    linker_max_atoms_per_window: int = 20
+    linker_max_global_root_axioms: int = 8
+    linker_min_window_atoms_quota: int = 12
+    max_concurrent_llm_steps: int = 3
 
 
 def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the sliding window correctly batches atoms with overlap."""
 
-    class MockSettings:
-        linker_max_atoms_per_window = 20
-        max_concurrent_llm_steps = 3
+    class MockSettings(MockLinkerSettings):
+        pass
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -88,9 +108,8 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
 def test_sliding_window_linker_get_windows_empty(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test sliding window with empty chunks."""
 
-    class MockSettings:
-        linker_max_atoms_per_window = 20
-        max_concurrent_llm_steps = 3
+    class MockSettings(MockLinkerSettings):
+        pass
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
@@ -101,9 +120,8 @@ def test_sliding_window_linker_get_windows_empty(monkeypatch: pytest.MonkeyPatch
 def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test sliding window with chunks less than window size."""
 
-    class MockSettings:
-        linker_max_atoms_per_window = 20
-        max_concurrent_llm_steps = 3
+    class MockSettings(MockLinkerSettings):
+        pass
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
     linker = SlidingWindowLinker(window_size=3, overlap=1)
@@ -135,9 +153,8 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
 def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that chunks exceeding max_atoms are subdivided."""
 
-    class MockSettings:
+    class MockSettings(MockLinkerSettings):
         linker_max_atoms_per_window = 2
-        max_concurrent_llm_steps = 3
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -208,9 +225,8 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
     from backend_v2.models.dtos.dag_models import GlobalOntologyMap
     from backend_v2.services.orchestrator.sliding_window_linker import LinkerDependencyDTO, LinkerEdgeDTO
 
-    class MockSettings:
-        linker_max_atoms_per_window = 20
-        max_concurrent_llm_steps = 3
+    class MockSettings(MockLinkerSettings):
+        pass
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -315,9 +331,8 @@ async def test_link_graph_llm_failure_raises_app_exception(monkeypatch: pytest.M
     from backend_v2.exceptions import AppException, ErrorCodes
     from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 
-    class MockSettings:
-        linker_max_atoms_per_window = 20
-        max_concurrent_llm_steps = 3
+    class MockSettings(MockLinkerSettings):
+        pass
 
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
 
@@ -429,3 +444,234 @@ async def test_sliding_window_linker_link_graph_rejects_unexpected_semaphore_kwa
             ontology_map=ontology,
             **unexpected_kwargs,
         )
+
+
+def test_sliding_window_linker_root_axiom_header_quota(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify 8 root axioms are injected when window has 10 current atoms and 12 eligible root axioms.
+
+    Tests budget guard: 10 current + 8 injected = 18 <= 20.
+    Candidates must be sorted by OutDegree desc and sequence index asc.
+    """
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    processed_atoms: dict[str, ExtractedAtom] = {}
+    for i in range(12):
+        tda_id = f"tda_{i:08x}"
+        processed_atoms[tda_id] = ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=f"Axiom claim {i}",
+            reasoning=f"Reason {i}",
+            source_quotes=(f"Quote {i}",),
+            source_sequence_index=i,
+        )
+
+    # Master deps: Give axiom 5 and axiom 2 highest out-degree (3 children each), axiom 1 out-degree 1
+    master_deps: dict[str, WindowCausalEdgesDTO] = {
+        "tda_c0000001": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000005": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000005",
+                    source_id="c1",
+                ),
+                "tda_00000002": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000002",
+                    source_id="c1",
+                ),
+            }
+        ),
+        "tda_c0000002": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000005": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000005",
+                    source_id="c2",
+                ),
+                "tda_00000002": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000002",
+                    source_id="c2",
+                ),
+            }
+        ),
+        "tda_c0000003": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000005": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000005",
+                    source_id="c3",
+                ),
+                "tda_00000002": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000002",
+                    source_id="c3",
+                ),
+                "tda_00000001": CausalEdge(
+                    edge_reasoning="r",
+                    tda_id="tda_00000001",
+                    source_id="c3",
+                ),
+            }
+        ),
+    }
+
+    current_window_ids = {f"tda_d000{j:04x}" for j in range(10)}
+    selected = linker._select_root_axioms(
+        processed_atoms=processed_atoms,
+        current_window_ids=current_window_ids,
+        master_deps=master_deps,
+        current_window_size=10,
+    )
+
+    # Must select exactly 8 root axioms (K_eff = min(8, 20 - 10) = 8)
+    assert len(selected) == 8
+    # Top 2 by out-degree (both have out_degree=3, so sorted by sequence_index asc: 2 before 5)
+    assert selected[0].tda_id == "tda_00000002"
+    assert selected[1].tda_id == "tda_00000005"
+    # Third has out_degree=1
+    assert selected[2].tda_id == "tda_00000001"
+
+
+def test_sliding_window_linker_budget_guard_exceeded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify at most 4 root axioms injected when window has 16 atoms so total <= 20."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    processed_atoms: dict[str, ExtractedAtom] = {}
+    for i in range(10):
+        tda_id = f"tda_{i:08x}"
+        processed_atoms[tda_id] = ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=f"Axiom claim {i}",
+            reasoning=f"Reason {i}",
+            source_quotes=(f"Quote {i}",),
+            source_sequence_index=i,
+        )
+
+    current_window_ids = {f"tda_d000{j:04x}" for j in range(16)}
+    selected = linker._select_root_axioms(
+        processed_atoms=processed_atoms,
+        current_window_ids=current_window_ids,
+        master_deps={},
+        current_window_size=16,
+    )
+
+    # K_eff = min(8, max(0, 20 - 16)) = 4
+    assert len(selected) == 4
+    assert 16 + len(selected) <= 20
+
+
+def test_sliding_window_linker_zero_root_axioms(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify 0 root axioms injected when 0 eligible root axioms exist."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    current_window_ids = {f"tda_d000{j:04x}" for j in range(12)}
+    selected = linker._select_root_axioms(
+        processed_atoms={},
+        current_window_ids=current_window_ids,
+        master_deps={},
+        current_window_size=12,
+    )
+
+    assert len(selected) == 0
+
+
+def test_sliding_window_linker_full_capacity_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify 0 root axioms injected when window is already at full capacity (20 atoms)."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    processed_atoms: dict[str, ExtractedAtom] = {}
+    for i in range(15):
+        tda_id = f"tda_{i:08x}"
+        processed_atoms[tda_id] = ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=f"Axiom claim {i}",
+            reasoning=f"Reason {i}",
+            source_quotes=(f"Quote {i}",),
+            source_sequence_index=i,
+        )
+
+    current_window_ids = {f"tda_d000{j:04x}" for j in range(20)}
+    selected = linker._select_root_axioms(
+        processed_atoms=processed_atoms,
+        current_window_ids=current_window_ids,
+        master_deps={},
+        current_window_size=20,
+    )
+
+    # K_eff = min(8, max(0, 20 - 20)) = 0
+    assert len(selected) == 0
+
+
+@pytest.mark.asyncio
+async def test_sliding_window_linker_warrant_quotes_transit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify structured LLM response with warrant_quotes transits cleanly into CausalEdge.warrant_quotes."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
+
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    atoms = [
+        ExtractedAtom(
+            tda_id="tda_00000001",
+            resolved_claim="Parent premise",
+            reasoning="Reason 1",
+            source_quotes=("Premise Quote",),
+            source_sequence_index=0,
+        ),
+        ExtractedAtom(
+            tda_id="tda_00000002",
+            resolved_claim="Child conclusion",
+            reasoning="Reason 2",
+            source_quotes=("Conclusion Quote",),
+            source_sequence_index=1,
+        ),
+    ]
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    mock_executor = AsyncMock()
+    mock_executor.execute_structured_task.return_value = (
+        LinkerResponseDTO(
+            dependencies=[
+                LinkerDependencyDTO(
+                    child_alias="a1",
+                    parent_dependencies=[
+                        LinkerEdgeDTO(
+                            edge_reasoning="Toulmin warrant grounding connection",
+                            tda_id="a0",
+                            expected_status=ExecutionStatus.PASSED,
+                            warrant_quotes=("Warrant segment 1", "Warrant segment 2"),
+                        )
+                    ],
+                )
+            ]
+        ),
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    mock_client = AsyncMock()
+
+    results, _ = await linker.link_graph(
+        executor=mock_executor,
+        client=mock_client,
+        atoms=atoms,
+        ontology_map=ontology,
+    )
+
+    assert len(results) == 2
+    child_graph = next(g for g in results if g.atom.tda_id == "tda_00000002")
+    assert len(child_graph.depends_on) == 1
+    edge = child_graph.depends_on[0]
+    assert edge.tda_id == "tda_00000001"
+    assert edge.warrant_quotes == ("Warrant segment 1", "Warrant segment 2")
+    assert isinstance(edge.warrant_quotes, tuple)

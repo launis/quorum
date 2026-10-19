@@ -102,16 +102,29 @@ _CausalEdgeDto _$CausalEdgeDtoFromJson(Map<String, dynamic> json) =>
       ($checkedConvert) {
         $checkKeys(
           json,
-          allowedKeys: const ['source_id', 'target_id', 'reasoning'],
+          allowedKeys: const [
+            'source_id',
+            'target_id',
+            'reasoning',
+            'warrant_quotes',
+          ],
         );
         final val = _CausalEdgeDto(
           sourceId: $checkedConvert('source_id', (v) => v as String),
           targetId: $checkedConvert('target_id', (v) => v as String),
           reasoning: $checkedConvert('reasoning', (v) => v as String),
+          warrantQuotes: $checkedConvert(
+            'warrant_quotes',
+            (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+          ),
         );
         return val;
       },
-      fieldKeyMap: const {'sourceId': 'source_id', 'targetId': 'target_id'},
+      fieldKeyMap: const {
+        'sourceId': 'source_id',
+        'targetId': 'target_id',
+        'warrantQuotes': 'warrant_quotes',
+      },
     );
 
 Map<String, dynamic> _$CausalEdgeDtoToJson(_CausalEdgeDto instance) =>
@@ -119,6 +132,7 @@ Map<String, dynamic> _$CausalEdgeDtoToJson(_CausalEdgeDto instance) =>
       'source_id': instance.sourceId,
       'target_id': instance.targetId,
       'reasoning': instance.reasoning,
+      'warrant_quotes': instance.warrantQuotes,
     };
 
 _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(

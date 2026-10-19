@@ -226,9 +226,25 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 overlap=settings.causal_discovery_overlap,
             )
 
+            deliverable_keys: set[str] = set()
+            if request.context.expected_inputs:
+                deliverable_keys = {
+                    ei.input_key for ei in request.context.expected_inputs if ei.is_endorsed_deliverable
+                }
+                if not deliverable_keys:
+                    deliverable_keys = {
+                        ei.input_key
+                        for ei in request.context.expected_inputs
+                        if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
+                    }
+
             async def link_cb(c: int, t: int) -> None:
                 if request.progress_callback and t > 0:
                     await request.progress_callback(60 + int((c / t) * 20), 100)
+
+            target_deliverable_keys: set[str] | None = None
+            if len(deliverable_keys) > 0:
+                target_deliverable_keys = deliverable_keys
 
             linked_nodes, u_link = await linker.link_graph(
                 executor=llm_executor,
@@ -236,6 +252,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 atoms=valid_atoms,
                 ontology_map=ontology,
                 progress_callback=link_cb,
+                deliverable_input_keys=target_deliverable_keys,
             )
 
             # Step 3.5: Topological Wave Execution and Cycle Defense
@@ -277,7 +294,14 @@ class CausalDiscoveryEngine(ExecutionEngine):
                     if pid in extracted_ids and pid != cid:
                         in_deps[cid].append(pid)
                         out_deps[pid].append(cid)
-                        causal_edges.append(CausalEdgeDTO(source_id=pid, target_id=cid, reasoning=edge.edge_reasoning))
+                        causal_edges.append(
+                            CausalEdgeDTO(
+                                source_id=pid,
+                                target_id=cid,
+                                reasoning=edge.edge_reasoning,
+                                warrant_quotes=edge.warrant_quotes,
+                            )
+                        )
 
             isolated_ids = [aid for aid in extracted_ids if not in_deps[aid] and not out_deps[aid]]
 

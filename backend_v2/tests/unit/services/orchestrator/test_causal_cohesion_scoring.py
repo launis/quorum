@@ -813,3 +813,92 @@ def test_causal_cohesion_subgraph_cumulative_guttman_invariant(evaluator: Causal
     statuses = [a.status == ExecutionStatus.PASSED for a in res.atom_results]
     # L1, L2, L3, L4 pass; L5 fails (0.10 isolation > 0.05 L5 max)
     assert statuses == [True, True, True, True, False]
+
+
+def test_causal_cohesion_algorithm_1_dual_fault_attribution_warrant_failure(
+    evaluator: CausalCohesionEvaluator,
+) -> None:
+    """Verify Algorithm 1 dual fault attribution separates warrant failures and includes warrant quotes."""
+    parent_node = CausalNodeDTO(
+        node_id="tda_p000000000000001",
+        claim="Sound premise",
+        source_quotes=("Premise Quote",),
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_c000000000000002"],
+    )
+    child_node = CausalNodeDTO(
+        node_id="tda_c000000000000002",
+        claim="Child conclusion with broken inferential warrant",
+        source_quotes=("Conclusion Quote",),
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_p000000000000001"],
+        dependent_child_ids=[],
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_p000000000000001",
+        target_id="tda_c000000000000002",
+        reasoning="Broken warrant link",
+        warrant_quotes=("Warrant quote segment 1", "Warrant quote segment 2"),
+    )
+    graph = _create_test_graph(
+        nodes=[parent_node, child_node],
+        edges=[edge],
+        edge_root_causes=["tda_p000000000000001->tda_c000000000000002"],
+    )
+
+    diagnoses = evaluator.diagnose_root_causes(graph)
+
+    assert len(diagnoses) == 1
+    diag = diagnoses[0]
+    assert diag.failing_node_id == "tda_c000000000000002"
+    assert diag.root_cause_parent_id == "tda_p000000000000001"
+    assert diag.root_cause_type == CausalRootCauseType.WARRANT_GROUNDING_FAILURE
+    assert "Inferential warrant failure" in diag.explanation
+    assert "grounding quotes:" in diag.explanation
+    assert "Warrant quote segment 1 [...] Warrant quote segment 2" in diag.explanation
+
+
+def test_causal_cohesion_algorithm_1_dual_fault_attribution_node_failure(
+    evaluator: CausalCohesionEvaluator,
+) -> None:
+    """Verify Algorithm 1 dual fault attribution separates node failure when parent premise is refuted."""
+    parent_node = CausalNodeDTO(
+        node_id="tda_p000000000000001",
+        claim="Refuted premise",
+        source_quotes=None,
+        paragraph_ref="[B0]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_c000000000000002"],
+    )
+    child_node = CausalNodeDTO(
+        node_id="tda_c000000000000002",
+        claim="Child conclusion failing due to premise flaw",
+        source_quotes=("Conclusion Quote",),
+        paragraph_ref="[B1]",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_p000000000000001"],
+        dependent_child_ids=[],
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_p000000000000001",
+        target_id="tda_c000000000000002",
+        reasoning="Valid logical consequence",
+    )
+    graph = _create_test_graph(
+        nodes=[parent_node, child_node],
+        edges=[edge],
+        edge_root_causes=[],
+    )
+
+    diagnoses = evaluator.diagnose_root_causes(graph)
+
+    assert len(diagnoses) == 1
+    diag = diagnoses[0]
+    assert diag.failing_node_id == "tda_c000000000000002"
+    assert diag.root_cause_parent_id == "tda_p000000000000001"
+    assert diag.root_cause_type == CausalRootCauseType.NODE_FAILURE
+    assert "Cascading failure caused by root issue in parent" in diag.explanation

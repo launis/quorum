@@ -311,7 +311,7 @@ as String?,
 /// @nodoc
 mixin _$CausalEdgeDto {
 
-@JsonKey(name: 'source_id') String get sourceId;@JsonKey(name: 'target_id') String get targetId; String get reasoning;
+@JsonKey(name: 'source_id') String get sourceId;@JsonKey(name: 'target_id') String get targetId; String get reasoning;@JsonKey(name: 'warrant_quotes') List<String>? get warrantQuotes;
 /// Create a copy of CausalEdgeDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -326,7 +326,7 @@ $CausalEdgeDtoCopyWith<CausalEdgeDto> get copyWith => _$CausalEdgeDtoCopyWithImp
 
 @override
 String toString() {
-  return 'CausalEdgeDto(sourceId: $sourceId, targetId: $targetId, reasoning: $reasoning)';
+  return 'CausalEdgeDto(sourceId: $sourceId, targetId: $targetId, reasoning: $reasoning, warrantQuotes: $warrantQuotes)';
 }
 
 
@@ -337,7 +337,7 @@ abstract mixin class $CausalEdgeDtoCopyWith<$Res>  {
   factory $CausalEdgeDtoCopyWith(CausalEdgeDto value, $Res Function(CausalEdgeDto) _then) = _$CausalEdgeDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'target_id') String targetId, String reasoning
+@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'target_id') String targetId, String reasoning,@JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes
 });
 
 
@@ -354,12 +354,13 @@ class _$CausalEdgeDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalEdgeDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? sourceId = null,Object? targetId = null,Object? reasoning = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sourceId = null,Object? targetId = null,Object? reasoning = null,Object? warrantQuotes = freezed,}) {
   return _then(_self.copyWith(
 sourceId: null == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
 as String,targetId: null == targetId ? _self.targetId : targetId // ignore: cast_nullable_to_non_nullable
 as String,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
-as String,
+as String,warrantQuotes: freezed == warrantQuotes ? _self.warrantQuotes : warrantQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -444,10 +445,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CausalEdgeDto() when $default != null:
-return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
+return $default(_that.sourceId,_that.targetId,_that.reasoning,_that.warrantQuotes);case _:
   return orElse();
 
 }
@@ -465,10 +466,10 @@ return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)  $default,) {final _that = this;
 switch (_that) {
 case _CausalEdgeDto():
-return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
+return $default(_that.sourceId,_that.targetId,_that.reasoning,_that.warrantQuotes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -485,10 +486,10 @@ return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'target_id')  String targetId,  String reasoning, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)?  $default,) {final _that = this;
 switch (_that) {
 case _CausalEdgeDto() when $default != null:
-return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
+return $default(_that.sourceId,_that.targetId,_that.reasoning,_that.warrantQuotes);case _:
   return null;
 
 }
@@ -500,12 +501,21 @@ return $default(_that.sourceId,_that.targetId,_that.reasoning);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _CausalEdgeDto implements CausalEdgeDto {
-  const _CausalEdgeDto({@JsonKey(name: 'source_id') required this.sourceId, @JsonKey(name: 'target_id') required this.targetId, required this.reasoning});
+  const _CausalEdgeDto({@JsonKey(name: 'source_id') required this.sourceId, @JsonKey(name: 'target_id') required this.targetId, required this.reasoning, @JsonKey(name: 'warrant_quotes') final  List<String>? warrantQuotes}): _warrantQuotes = warrantQuotes;
   factory _CausalEdgeDto.fromJson(Map<String, dynamic> json) => _$CausalEdgeDtoFromJson(json);
 
 @override@JsonKey(name: 'source_id') final  String sourceId;
 @override@JsonKey(name: 'target_id') final  String targetId;
 @override final  String reasoning;
+ final  List<String>? _warrantQuotes;
+@override@JsonKey(name: 'warrant_quotes') List<String>? get warrantQuotes {
+  final value = _warrantQuotes;
+  if (value == null) return null;
+  if (_warrantQuotes is EqualUnmodifiableListView) return _warrantQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of CausalEdgeDto
 /// with the given fields replaced by the non-null parameter values.
@@ -522,7 +532,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'CausalEdgeDto(sourceId: $sourceId, targetId: $targetId, reasoning: $reasoning)';
+  return 'CausalEdgeDto(sourceId: $sourceId, targetId: $targetId, reasoning: $reasoning, warrantQuotes: $warrantQuotes)';
 }
 
 
@@ -533,7 +543,7 @@ abstract mixin class _$CausalEdgeDtoCopyWith<$Res> implements $CausalEdgeDtoCopy
   factory _$CausalEdgeDtoCopyWith(_CausalEdgeDto value, $Res Function(_CausalEdgeDto) _then) = __$CausalEdgeDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'target_id') String targetId, String reasoning
+@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'target_id') String targetId, String reasoning,@JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes
 });
 
 
@@ -550,12 +560,13 @@ class __$CausalEdgeDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalEdgeDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? sourceId = null,Object? targetId = null,Object? reasoning = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sourceId = null,Object? targetId = null,Object? reasoning = null,Object? warrantQuotes = freezed,}) {
   return _then(_CausalEdgeDto(
 sourceId: null == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
 as String,targetId: null == targetId ? _self.targetId : targetId // ignore: cast_nullable_to_non_nullable
 as String,reasoning: null == reasoning ? _self.reasoning : reasoning // ignore: cast_nullable_to_non_nullable
-as String,
+as String,warrantQuotes: freezed == warrantQuotes ? _self._warrantQuotes : warrantQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 

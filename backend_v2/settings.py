@@ -165,6 +165,22 @@ class Settings(BaseSettings):
     linker_max_atoms_per_window: Annotated[
         int, Field(description="Max atoms per LLM sliding window to prevent output truncation")
     ] = 20
+    linker_max_global_root_axioms: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=20,
+            description="Max persistent deliverable root axioms injected into window headers",
+        ),
+    ] = 8
+    linker_min_window_atoms_quota: Annotated[
+        int,
+        Field(
+            ge=1,
+            le=20,
+            description="Minimum current window atom quota before root axiom injection",
+        ),
+    ] = 12
     tda_linker_window_size: Annotated[int, Field(description="Sliding window size for TDA linker.")] = 4
     tda_linker_overlap: Annotated[int, Field(description="Overlap between sliding windows in TDA linker.")] = 2
     sensor_batch_size: Annotated[

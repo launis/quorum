@@ -15,6 +15,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
+    CausalEdgeDTO,
     CausalGraphPayloadDTO,
     CausalRootCauseDiagnosisDTO,
 )
@@ -110,6 +111,7 @@ class CausalCohesionEvaluator:
         """
         diagnoses: list[CausalRootCauseDiagnosisDTO] = []
         node_map = {n.node_id: n for n in graph.nodes}
+        edge_map = {(e.source_id, e.target_id): e for e in graph.edges}
         edge_failures = set(graph.edge_root_causes)
 
         for node in graph.nodes:
@@ -126,12 +128,22 @@ class CausalCohesionEvaluator:
                         if parent_node.status == ExecutionStatus.PASSED:
                             parent_is_passed = True
 
+                    edge: CausalEdgeDTO | None = None
+                    if (parent_id, node.node_id) in edge_map:
+                        edge = edge_map[(parent_id, node.node_id)]
                     is_warrant_failure = edge_key in edge_failures or parent_is_passed
                     if is_warrant_failure:
                         rc_type = CausalRootCauseType.WARRANT_GROUNDING_FAILURE
-                        explanation = (
-                            f"Inferential warrant failure on dependency from '{parent_id}' to '{node.node_id}'."
-                        )
+                        if edge is not None and edge.warrant_quotes:
+                            warrant_text = " [...] ".join(edge.warrant_quotes)
+                            explanation = (
+                                f"Inferential warrant failure on dependency from '{parent_id}' to '{node.node_id}' "
+                                f"(grounding quotes: '{warrant_text}')."
+                            )
+                        else:
+                            explanation = (
+                                f"Inferential warrant failure on dependency from '{parent_id}' to '{node.node_id}'."
+                            )
                     else:
                         rc_type = CausalRootCauseType.NODE_FAILURE
                         explanation = f"Cascading failure caused by root issue in parent '{parent_id}'."

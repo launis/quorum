@@ -64,6 +64,14 @@ class CausalEdgeDTO(V2CoreBase):
     source_id: Annotated[str, Field(description="Source/parent node ID in the causal dependency.")]
     target_id: Annotated[str, Field(description="Target/dependent node ID in the causal dependency.")]
     reasoning: Annotated[str, Field(description="Logical reasoning explaining the dependency relationship.")]
+    warrant_quotes: Annotated[
+        tuple[str, ...] | None,
+        BeforeValidator(coerce_source_quotes_tuple),
+        Field(
+            default=None,
+            description="Verbatim source quotes grounding the Toulmin inferential warrant.",
+        ),
+    ] = None
 
 
 class CausalGraphPayloadDTO(V2CoreBase):

@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
@@ -59,19 +60,21 @@ def create_engine_request(
     source_text: str,
     client: MagicMock,
     compiler: MagicMock,
+    expected_inputs: list[ExpectedInput] | None = None,
 ) -> EngineExecutionRequest:
     """Helper creating typed EngineExecutionRequest with zero raw dictionaries."""
     step = StepRule(
         id="stp_1111111111111111",
         task_blueprint="bp_1111111111111111",
     )
+    inputs_list = expected_inputs if expected_inputs is not None else []
     context = StrategyContext(
         execution_id="exe_1111111111111111",
         workflow_id="wf_1111111111111111",
         output_profile_id="prof_1111111111111111",
         target_locale="en",
         metadata=ExecutionMetadata(),
-        expected_inputs=[],
+        expected_inputs=inputs_list,
         strictness_level=0,
         global_context_vars=GlobalContextVarsDTO(),
         context_variables=ContextVariablesDTO(),
@@ -538,6 +541,7 @@ async def test_causal_discovery_with_progress_callback_and_deductions(
         atoms: list[ExtractedAtom],
         ontology_map: GlobalOntologyMap,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        deliverable_input_keys: set[str] | None = None,
     ) -> tuple[list[LinkedAtomGraph], TokenUsage]:
         if progress_callback:
             await progress_callback(1, 1)
@@ -932,3 +936,165 @@ async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
     assert payload.edges[0].source_id == "tda_11111111"
     assert payload.edges[0].target_id == "tda_22222222"
     assert isinstance(payload.edge_root_causes, list)
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_warrant_quotes_transit_to_dto(
+    mock_client: MagicMock, mock_prompt_compiler: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify warrant_quotes on CausalEdge are projected cleanly into CausalEdgeDTO."""
+    source_text = "Premise A leads to Conclusion B."
+    request = create_engine_request(source_text, mock_client, mock_prompt_compiler)
+    engine = CausalDiscoveryEngine(mock_prompt_compiler)
+
+    mock_atomizer = MagicMock()
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    u_p0 = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_atomizer.execute_phase_0 = AsyncMock(return_value=(ontology, u_p0))
+
+    atom_a = ExtractedAtom(
+        tda_id="tda_aaaaaaaa",
+        resolved_claim="Premise A",
+        reasoning="Extracted premise",
+        source_quotes=("Premise A",),
+        source_id="B0",
+        source_sequence_index=0,
+    )
+    atom_b = ExtractedAtom(
+        tda_id="tda_bbbbbbbb",
+        resolved_claim="Conclusion B",
+        reasoning="Extracted conclusion",
+        source_quotes=("Conclusion B",),
+        source_id="B0",
+        source_sequence_index=1,
+    )
+    u_p1 = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_atomizer.execute_phase_1 = AsyncMock(return_value=([atom_a, atom_b], u_p1))
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.TwoPassAtomizer",
+        lambda executor: mock_atomizer,
+    )
+
+    mock_linker = MagicMock()
+    mock_linked_nodes = [
+        LinkedAtomGraph(atom=atom_a, depends_on=[]),
+        LinkedAtomGraph(
+            atom=atom_b,
+            depends_on=[
+                CausalEdge(
+                    edge_reasoning="A causes B due to Toulmin warrant",
+                    tda_id="tda_aaaaaaaa",
+                    source_id="B0",
+                    warrant_quotes=("Toulmin inferential warrant quote 1", "Toulmin inferential warrant quote 2"),
+                )
+            ],
+        ),
+    ]
+    u_link = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_linker.link_graph = AsyncMock(return_value=(mock_linked_nodes, u_link))
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.SlidingWindowLinker",
+        lambda window_size, overlap: mock_linker,
+    )
+
+    output = await engine.execute(request)
+    assert isinstance(output.synthesis_output, CausalGraphPayloadDTO)
+    payload: CausalGraphPayloadDTO = output.synthesis_output
+
+    assert len(payload.edges) == 1
+    edge_dto = payload.edges[0]
+    assert edge_dto.source_id == "tda_aaaaaaaa"
+    assert edge_dto.target_id == "tda_bbbbbbbb"
+    assert edge_dto.warrant_quotes == ("Toulmin inferential warrant quote 1", "Toulmin inferential warrant quote 2")
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_empty_document_raises_app_exception(
+    mock_client: MagicMock, mock_prompt_compiler: MagicMock
+) -> None:
+    """Verify empty document text raises AppException CAUSAL_DISCOVERY_EMPTY_DOCUMENT."""
+    request = create_engine_request("   \n\n   ", mock_client, mock_prompt_compiler)
+    engine = CausalDiscoveryEngine(mock_prompt_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(request)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value
+
+
+@pytest.mark.asyncio
+async def test_causal_discovery_endorsed_deliverable_scoping_and_prefix(
+    mock_client: MagicMock, mock_prompt_compiler: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify deliverable input keys scoping and document text pre-directive prefix handling."""
+    source_text = (
+        "Preliminary unanchored header context.\n\n"
+        '<ai_context_directive doc_key="deliverable_report">'
+        "Crucial deliverable proposition sentence."
+        "</ai_context_directive>"
+    )
+    expected_input = ExpectedInput(
+        input_key="deliverable_report",
+        label=I18nText(translations={"en": "Deliverable Report"}),
+        required=True,
+        is_endorsed_deliverable=True,
+        input_modes=["text"],
+        description=I18nText(translations={"en": "Deliverable doc"}),
+    )
+    request = create_engine_request(
+        source_text,
+        mock_client,
+        mock_prompt_compiler,
+        expected_inputs=[expected_input],
+    )
+
+    engine = CausalDiscoveryEngine(mock_prompt_compiler)
+
+    mock_atomizer = MagicMock()
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+    u_p0 = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_atomizer.execute_phase_0 = AsyncMock(return_value=(ontology, u_p0))
+
+    atom = ExtractedAtom(
+        tda_id="tda_11111111",
+        resolved_claim="Crucial deliverable proposition sentence.",
+        reasoning="Extracted premise",
+        source_quotes=("Crucial deliverable proposition sentence.",),
+        source_id="B1",
+        source_sequence_index=0,
+    )
+    u_p1 = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_atomizer.execute_phase_1 = AsyncMock(return_value=([atom], u_p1))
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.TwoPassAtomizer",
+        lambda executor: mock_atomizer,
+    )
+
+    captured_deliverable_keys: list[set[str] | None] = []
+
+    async def fake_link(
+        executor: Any,
+        client: Any,
+        atoms: list[ExtractedAtom],
+        ontology_map: GlobalOntologyMap,
+        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
+        deliverable_input_keys: set[str] | None = None,
+    ) -> tuple[list[LinkedAtomGraph], TokenUsage]:
+        captured_deliverable_keys.append(deliverable_input_keys)
+        nodes = [LinkedAtomGraph(atom=atom, depends_on=[])]
+        return nodes, TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+
+    mock_linker = MagicMock()
+    mock_linker.link_graph = fake_link
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.engines.causal_discovery_engine.SlidingWindowLinker",
+        lambda window_size, overlap: mock_linker,
+    )
+
+    output = await engine.execute(request)
+    assert isinstance(output.synthesis_output, CausalGraphPayloadDTO)
+    assert len(captured_deliverable_keys) == 1
+    assert captured_deliverable_keys[0] == {"deliverable_report"}
+
+
