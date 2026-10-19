@@ -54,6 +54,18 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+type JSONRaw = Any
+
+READINESS_PROBE_TIMEOUT: float = 2.0
+READINESS_PROBE_INTERVAL: float = 2.0
+SERVICE_CLEANUP_TIMEOUT: float = 30.0
+POWERSHELL_KILL_TIMEOUT: float = 15.0
+REDIS_FLUSH_TIMEOUT: float = 5.0
+PORT_CLEANUP_INTERVAL: float = 1.0
+POST_CLEANUP_PAUSE: float = 2.0
+EXECUTION_POST_TIMEOUT: float = 300.0
+
+
 if TYPE_CHECKING:
     from scripts.run_ablation_benchmark import AblationBenchmarkReportDTO
 
@@ -80,8 +92,12 @@ from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 
 __all__ = [
     "MarkedInputsPayloadDTO",
+    "MatrixTelemetryDTO",
     "RunMarkerMetadataDTO",
+    "ScaleTelemetryDTO",
+    "StepTelemetryDTO",
     "UNICODE_SPACE_REGISTRY",
+    "WorkflowTelemetryDTO",
     "check_backend",
     "force_kill_services",
     "inject_unique_run_marker",
@@ -114,13 +130,13 @@ def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int
     """
     for attempt in range(max_retries):
         try:
-            r = requests.get(base_url, timeout=2)
+            r = requests.get(base_url, timeout=READINESS_PROBE_TIMEOUT)
             if r.status_code == 200:
                 return True
         except requests.RequestException as e:
             if attempt % 10 == 0:
                 print(f"[Probe] Readiness probe attempt {attempt + 1}/{max_retries}: {e}")
-        time.sleep(2)
+        time.sleep(READINESS_PROBE_INTERVAL)
     return False
 
 
@@ -317,7 +333,7 @@ def load_inputs_from_path(
             elif ext == ".json":
                 with file_path.open("r", encoding="utf-8") as f:
                     json_data = json.load(f)
-                    if file_path.name == "inputs.json" and isinstance(json_data, dict):
+                    if file_path.name == "inputs.json" and type(json_data) is dict:
                         for sub_k, sub_v in json_data.items():
                             matched_sub = _match_input_key(sub_k, expected_inputs) if expected_inputs else None
                             target_sub = matched_sub if matched_sub is not None else sub_k
@@ -338,7 +354,7 @@ def load_inputs_from_path(
 
     with input_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
-        if not isinstance(data, dict):
+        if type(data) is not dict:
             msg = "JSON inputs file must contain a dictionary."
             raise ValueError(msg)
         if expected_inputs is not None:
@@ -386,6 +402,76 @@ class MarkedInputsPayloadDTO(BaseModel):
     marker_metadata: RunMarkerMetadataDTO = Field(..., description="Metadata describing the injected marker")
 
 
+class ScaleTelemetryDTO(BaseModel):
+    """Telemetry describing a single score scale within a matrix block."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    score: int = Field(..., description="Numerical score level")
+    name: str = Field(..., description="Localized name of scale level")
+    ai_label: str = Field(default="", description="AI instruction label for this scale")
+    claim_count: int = Field(default=0, description="Total claims linked to this scale")
+    atom_count: int = Field(default=0, description="Total atoms linked to this scale")
+    high_entropy_count: int = Field(default=0, description="Count of high-entropy atoms in this scale")
+
+
+class MatrixTelemetryDTO(BaseModel):
+    """Telemetry describing an evaluation matrix block bound to a step."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    block_id: str = Field(..., description="Matrix block identifier")
+    label: str = Field(..., description="Display label for the matrix")
+    category: str = Field(default="matrix", description="Category identifier")
+    computed_min: int = Field(..., description="Minimum score of the matrix")
+    computed_max: int = Field(..., description="Maximum score of the matrix")
+    allow_contextual_override: bool = Field(default=False, description="Whether contextual override is allowed")
+    target_input_key: str | None = Field(default=None, description="Optional target input slot key")
+    total_claims: int = Field(default=0, description="Total claims in the matrix")
+    total_atoms: int = Field(default=0, description="Total atoms in the matrix")
+    high_entropy_atoms: int = Field(default=0, description="Count of high-entropy atoms in the matrix")
+    scales: list[ScaleTelemetryDTO] = Field(default_factory=list, description="List of scale level telemetries")
+
+
+class StepTelemetryDTO(BaseModel):
+    """Telemetry describing a workflow step and its attached matrices."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    step_rule_id: str = Field(..., description="Step rule identifier")
+    blueprint_id: str = Field(..., description="Task blueprint identifier")
+    name: str = Field(..., description="Step name")
+    type: str = Field(..., description="Step execution type")
+    cognitive_tier: str | None = Field(default=None, description="Cognitive tier or model strategy")
+    model_strategy: str | None = Field(default=None, description="Model strategy alias")
+    is_synthesis_source: bool = Field(default=True, description="Whether step is a synthesis source")
+    matrices: list[MatrixTelemetryDTO] = Field(default_factory=list, description="Attached matrix telemetries")
+
+
+class WorkflowTelemetryDTO(BaseModel):
+    """Telemetry describing a complete workflow and its evaluated matrices."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    source_path: str = Field(..., description="Source path where workflow was loaded from")
+    workflow_id: str = Field(..., description="Canonical workflow identifier")
+    workflow_name: str = Field(..., description="Localized workflow name")
+    workflow_slug: str = Field(default="", description="Workflow slug")
+    strictness_level: int = Field(default=50, description="Evaluator strictness percentage 0-100")
+    strictness_exponent: float = Field(..., description="Calculated strictness exponent")
+    enable_contextual_overrides: bool = Field(default=False, description="Whether contextual overrides are enabled")
+    security_penalty: float = Field(default=0.0, description="Security penalty multiplier")
+    post_hoc_penalty: float = Field(default=0.0, description="Post-hoc penalty multiplier")
+    passivity_penalty: float = Field(default=0.0, description="Passivity penalty multiplier")
+    default_profile_id: str | None = Field(default=None, description="Default output profile identifier")
+    total_matrices: int = Field(default=0, description="Total matrices bound to workflow")
+    total_scales: int = Field(default=0, description="Total scale levels across matrices")
+    total_claims: int = Field(default=0, description="Total claims across matrices")
+    total_atoms: int = Field(default=0, description="Total atoms across matrices")
+    total_high_entropy_atoms: int = Field(default=0, description="Total high-entropy atoms across matrices")
+    steps: list[StepTelemetryDTO] = Field(default_factory=list, description="List of step telemetries")
+
+
 # Phase 1, Step 1.6: Guarantee user-turn marker injection for conversational inputs
 def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
     """Guarantee that conversational text carries the Unicode marker in human user turns.
@@ -405,7 +491,7 @@ def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
             is_raw_list = isinstance(parsed, list)
             if is_raw_list:
                 chat_dto = ChatHistoryDTO.model_validate({"conversation": parsed})
-            elif isinstance(parsed, dict):
+            elif type(parsed) is dict:
                 chat_dto = ChatHistoryDTO.model_validate(parsed)
             else:
                 chat_dto = None
@@ -531,7 +617,7 @@ def inject_unique_run_marker(
     char_to_inject = variants[variant_idx]
     replacement_offset = run_index // num_variants
 
-    marked_inputs = copy.deepcopy(inputs)
+    marked_inputs: dict[str, JsonValue] = dict(copy.deepcopy(inputs))
     injected_keys: list[str] = []
 
     for k, v in marked_inputs.items():
@@ -627,7 +713,7 @@ def force_kill_services() -> None:
                 errors="replace",
                 capture_output=True,
                 shell=True,
-                timeout=30,
+                timeout=SERVICE_CLEANUP_TIMEOUT,
             )
         except (subprocess.SubprocessError, OSError) as e:
             print(f"Warning running kill_services.bat: {e}")
@@ -650,7 +736,7 @@ def force_kill_services() -> None:
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=15,
+            timeout=POWERSHELL_KILL_TIMEOUT,
         )
         if res.stdout.strip():
             print(f"[Clean-up] Terminated lingering process PIDs: {res.stdout.strip().split()}")
@@ -663,12 +749,12 @@ def force_kill_services() -> None:
     subprocess.run("taskkill /F /IM arq.exe /T 2>nul", shell=True, capture_output=True)
 
     try:
-        subprocess.run("redis-cli flushall", shell=True, capture_output=True, timeout=5)
+        subprocess.run("redis-cli flushall", shell=True, capture_output=True, timeout=REDIS_FLUSH_TIMEOUT)
         subprocess.run(
             "docker exec quorum-redis-1 redis-cli FLUSHALL",
             shell=True,
             capture_output=True,
-            timeout=5,
+            timeout=REDIS_FLUSH_TIMEOUT,
         )
     except (subprocess.SubprocessError, OSError) as e:
         print(f"[Clean-up] Redis flush skipped or unavailable: {e}")
@@ -716,11 +802,11 @@ def force_kill_services() -> None:
                     pid = parts[-1]
                     subprocess.run(f"taskkill /F /T /PID {pid} 2>nul", shell=True, capture_output=True)
 
-        time.sleep(1)
+        time.sleep(PORT_CLEANUP_INTERVAL)
     else:
         print("[Clean-up] Warning: Port or worker verification timed out after 10s.")
 
-    time.sleep(2)
+    time.sleep(READINESS_PROBE_INTERVAL)
 
 
 def trigger_execution(
@@ -751,7 +837,7 @@ def trigger_execution(
     headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
     base_url = "http://127.0.0.1:8000/api/v2"
 
-    w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=10)
+    w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds)
     w_res.raise_for_status()
     workflows = w_res.json()
     if not workflows:
@@ -784,10 +870,10 @@ def trigger_execution(
 
     final_workflow_id = str(resolved_workflow["id"])
 
-    # Resolve profile_id if not explicitly provided
     final_profile_id = profile_id
     if not final_profile_id:
-        final_profile_id = resolved_workflow.get("default_profile_id")
+        def_prof = resolved_workflow.get("default_profile_id")
+        final_profile_id = str(def_prof) if def_prof else None
     if not final_profile_id:
         msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
         raise RuntimeError(msg)
@@ -812,7 +898,7 @@ def trigger_execution(
         f"{base_url}/execution/executions/",
         headers=headers,
         json=req_body,
-        timeout=300,
+        timeout=EXECUTION_POST_TIMEOUT,
     )
     if not resp.ok:
         print(f"HTTP ERROR {resp.status_code}: {resp.text}")
@@ -859,11 +945,11 @@ def validate_execution_kelvollisuus(
 
     # 1. Check profile_syntheses for DataStarvationEvent
     profile_syntheses = target_exec.get("profile_syntheses", {})
-    if isinstance(profile_syntheses, dict):
+    if type(profile_syntheses) is dict:
         for profile_id, synth in profile_syntheses.items():
-            if isinstance(synth, dict):
+            if type(synth) is dict:
                 starvation = synth.get("data_starvation")
-                if starvation and isinstance(starvation, dict):
+                if starvation and type(starvation) is dict:
                     reason = starvation.get("reason", "Data starvation: insufficient observations")
                     return False, f"Profile '{profile_id}' data starvation: {reason}"
 
@@ -877,9 +963,9 @@ def validate_execution_kelvollisuus(
                     trace_data = loaded
             if trace_data:
                 for step in trace_data:
-                    if isinstance(step, dict):
+                    if type(step) is dict:
                         content = step.get("content")
-                        if isinstance(content, dict) and content.get("event_type") == "starvation":
+                        if type(content) is dict and content.get("event_type") == "starvation":
                             reason = content.get("reason", "Data starvation in step trace")
                             return (
                                 False,
@@ -891,35 +977,35 @@ def validate_execution_kelvollisuus(
     # 3. Multi-segment quote grounding & zero chimera leakage verification
     corpus_text_parts: list[str] = []
     inputs = target_exec.get("inputs", {})
-    if isinstance(inputs, dict):
+    if type(inputs) is dict:
         for val in inputs.values():
             if isinstance(val, str) and val.strip():
                 corpus_text_parts.append(val)
 
     if corpus_text_parts:
         corpus_buffer = "\n\n".join(corpus_text_parts)
-        evals_to_check: list[object] = []
+        evals_to_check: list[JSONRaw] = []
 
         # Collect atom evaluations from step_states
         step_states = target_exec.get("step_states", {})
-        if isinstance(step_states, dict):
+        if type(step_states) is dict:
             for st in step_states.values():
-                if isinstance(st, dict):
+                if type(st) is dict:
                     for k in ("evaluations", "results", "extracted_atoms"):
                         items = st.get(k)
                         if isinstance(items, list):
-                            evals_to_check.extend(item for item in items if isinstance(item, dict))
+                            evals_to_check.extend(item for item in items if type(item) is dict)
 
         # Also collect from trace_data if present
         if trace_data:
             for step in trace_data:
-                if isinstance(step, dict):
+                if type(step) is dict:
                     content = step.get("content")
-                    if isinstance(content, dict):
+                    if type(content) is dict:
                         for k in ("evaluations", "results"):
                             items = content.get(k)
                             if isinstance(items, list):
-                                evals_to_check.extend(item for item in items if isinstance(item, dict))
+                                evals_to_check.extend(item for item in items if type(item) is dict)
 
         for ev in evals_to_check:
             ev_status = str(ev.get("status", "")).upper()
@@ -950,7 +1036,7 @@ def validate_execution_kelvollisuus(
 def resolve_model_telemetry(
     db_path: Path,
     registry_id: str | None = None,
-):
+) -> dict[str, JSONRaw]:
     """Load model registry from active database and resolve physical and effective parameters.
 
     Supports Option A flat tier definitions (fast, balanced, deep, reasoning) and multi-registry
@@ -970,15 +1056,15 @@ def resolve_model_telemetry(
     try:
         with target_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    except UnicodeDecodeError, OSError:
+    except json.JSONDecodeError, UnicodeDecodeError, OSError:
         return {}
 
     sys_configs = data.get("system_config", [])
     configs_list = []
-    if isinstance(sys_configs, dict):
-        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
+    if type(sys_configs) is dict:
+        configs_list = [v for v in sys_configs.values() if type(v) is dict]
     elif isinstance(sys_configs, list):
-        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+        configs_list = [v for v in sys_configs if type(v) is dict]
 
     registries = [c for c in configs_list if c.get("type") == "model_registry"]
     if not registries:
@@ -1008,9 +1094,9 @@ def resolve_model_telemetry(
     for cfg in target_registries:
         reg_provider = str(cfg.get("default_provider", "google")).lower()
         tier_defs = cfg.get("tier_definitions", {})
-        if isinstance(tier_defs, dict) and tier_defs:
+        if type(tier_defs) is dict and tier_defs:
             for key, val in tier_defs.items():
-                if isinstance(val, dict):
+                if type(val) is dict:
                     if "model_name" in val:
                         tier_name = key
                         prov_key = f"{tier_name} ({reg_provider})"
@@ -1019,14 +1105,16 @@ def resolve_model_telemetry(
                             models_dict[tier_name] = (val, cfg)
                     else:
                         for t_name, mcfg in val.items():
-                            if isinstance(mcfg, dict):
+                            if type(mcfg) is dict:
                                 prov_key = f"{t_name} ({key})"
                                 models_dict[prov_key] = (mcfg, cfg)
                                 if t_name not in models_dict:
                                     models_dict[t_name] = (mcfg, cfg)
-        for m_name, m_cfg in cfg.get("models", {}).items():
-            if isinstance(m_cfg, dict):
-                models_dict[m_name] = (m_cfg, cfg)
+        models_raw = cfg.get("models")
+        if type(models_raw) is dict:
+            for m_name, m_cfg in models_raw.items():
+                if type(m_cfg) is dict:
+                    models_dict[m_name] = (m_cfg, cfg)
 
     result = {}
     for strat, (mcfg, cfg) in models_dict.items():
@@ -1034,11 +1122,16 @@ def resolve_model_telemetry(
         provider = str(mcfg.get("provider", cfg.get("default_provider", "unknown")))
         db_temp = mcfg.get("temperature")
         max_tokens = mcfg.get("max_tokens")
-        thinking_budget = int(mcfg.get("thinking_budget_tokens", 0) or 0)
+        thinking_budget_raw = mcfg.get("thinking_budget_tokens", 0)
+        thinking_budget = (
+            int(thinking_budget_raw)
+            if isinstance(thinking_budget_raw, (int, str)) and str(thinking_budget_raw).isdigit()
+            else 0
+        )
         tpm_limit = mcfg.get("tpm_limit")
         rpm_limit = mcfg.get("rpm_limit")
         add_params = mcfg.get("additional_params", {})
-        explicit_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+        explicit_effort = add_params.get("reasoning_effort") if type(add_params) is dict else None
 
         is_gemini_v3 = ("gemini-3" in model_name.lower()) or ("gemini-2.5" in model_name.lower())
         is_openai_reasoning = any(p in model_name.lower() for p in ("o1", "o3", "o4", "o5", "gpt-5"))
@@ -1108,7 +1201,7 @@ def print_model_telemetry(
     first_item = next(iter(telemetry.values()))
     reg_name = first_item.get("registry_name")
     reg_id = first_item.get("registry_id")
-    reg_prov = first_item.get("provider", "").upper()
+    reg_prov = str(first_item.get("provider", "")).upper()
 
     print("\n" + "=" * 80)
     if registry_id and reg_name:
@@ -1127,7 +1220,7 @@ def print_model_telemetry(
         if not t:
             continue
         marker = " [AKTIIVINEN TESTIKOHDE]" if active_strategies and strat in active_strategies else ""
-        print(f"  • Strategia '{strat}' ({t['provider'].upper()} / {t['backend']}){marker}:")
+        print(f"  • Strategia '{strat}' ({str(t['provider']).upper()} / {t['backend']}){marker}:")
         print(f"    - Fyysinen malli:       {t['model_name']}")
         print(f"    - DB-lämpötila:         {t['db_temperature']}")
         print(f"    - Todellinen lämpötila: {t['effective_temperature']}")
@@ -1167,10 +1260,10 @@ def resolve_comparison_registries(
 
     sys_configs = data.get("system_config", [])
     configs_list = []
-    if isinstance(sys_configs, dict):
-        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
+    if type(sys_configs) is dict:
+        configs_list = [v for v in sys_configs.values() if type(v) is dict]
     elif isinstance(sys_configs, list):
-        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+        configs_list = [v for v in sys_configs if type(v) is dict]
 
     registries = [c for c in configs_list if c.get("type") == "model_registry"]
     if len(registries) < 2:
@@ -1224,22 +1317,18 @@ def resolve_comparison_registries(
 
     # Auto comparison: Registry A is workflow's bound registry, Registry B is the first alternate
     wfs_raw = data.get("workflows", {})
-    wfs_list = list(wfs_raw.values()) if isinstance(wfs_raw, dict) else list(wfs_raw)
+    wfs_list = list(wfs_raw.values()) if type(wfs_raw) is dict else list(wfs_raw)
     target_wf: Mapping[str, JsonValue] | None = None
     if workflow_id:
         target_wf = next(
-            (
-                w
-                for w in wfs_list
-                if isinstance(w, dict) and (w.get("id") == workflow_id or w.get("slug") == workflow_id)
-            ),
+            (w for w in wfs_list if type(w) is dict and (w.get("id") == workflow_id or w.get("slug") == workflow_id)),
             None,
         )
     if not target_wf:
-        core_wfs = [w for w in wfs_list if isinstance(w, dict) and w.get("is_system_core")]
+        core_wfs = [w for w in wfs_list if type(w) is dict and w.get("is_system_core")]
         if len(core_wfs) == 1:
             target_wf = core_wfs[0]
-        elif len(wfs_list) == 1 and isinstance(wfs_list[0], dict):
+        elif len(wfs_list) == 1 and type(wfs_list[0]) is dict:
             target_wf = wfs_list[0]
 
     wf_reg_id = target_wf.get("model_registry_id") if target_wf else None
@@ -1256,7 +1345,7 @@ def resolve_comparison_registries(
     return (reg_a, reg_b)
 
 
-def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> Mapping[str, JsonValue] | None:
+def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> WorkflowTelemetryDTO | None:
     """Resolve single workflow and attached matrix parameters loaded directly from the database.
 
     Args:
@@ -1271,22 +1360,22 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
     if not all_wfs:
         return None
     if workflow_id:
-        return next((w for w in all_wfs if w["workflow_id"] == workflow_id or w["workflow_slug"] == workflow_id), None)
+        return next((w for w in all_wfs if w.workflow_id == workflow_id or w.workflow_slug == workflow_id), None)
     # Dynamically find unique core workflow, or sole workflow in database
     target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
     with target_path.open("r", encoding="utf-8") as f:
         raw_db = json.load(f)
     wfs_raw = raw_db.get("workflows", {})
-    wfs_list = list(wfs_raw.values()) if isinstance(wfs_raw, dict) else list(wfs_raw)
-    core_ids = [str(w.get("id")) for w in wfs_list if isinstance(w, dict) and w.get("is_system_core")]
+    wfs_list = list(wfs_raw.values()) if type(wfs_raw) is dict else list(wfs_raw)
+    core_ids = [str(w.get("id")) for w in wfs_list if type(w) is dict and w.get("is_system_core")]
     if len(core_ids) == 1:
-        return next((w for w in all_wfs if w["workflow_id"] == core_ids[0]), None)
+        return next((w for w in all_wfs if w.workflow_id == core_ids[0]), None)
     if len(all_wfs) == 1:
         return all_wfs[0]
     return None
 
 
-def resolve_all_workflows_matrix_telemetry(db_path: Path):
+def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTelemetryDTO]:
     """Resolve all workflows and attached matrix parameters loaded directly from the database.
 
     Args:
@@ -1302,15 +1391,15 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
     with target_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    def _to_id_map(raw: Any):
+    def _to_id_map(raw: Any) -> dict[str, JSONRaw]:
         m = {}
-        if isinstance(raw, dict):
+        if type(raw) is dict:
             for v in raw.values():
-                if isinstance(v, dict) and "id" in v:
+                if type(v) is dict and "id" in v:
                     m[str(v["id"])] = v
         elif isinstance(raw, list):
             for v in raw:
-                if isinstance(v, dict) and "id" in v:
+                if type(v) is dict and "id" in v:
                     m[str(v["id"])] = v
         return m
 
@@ -1322,12 +1411,12 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
         return []
 
     def _resolve_text(val: Any) -> str:
-        if isinstance(val, dict):
+        if type(val) is dict:
             trans = val.get("translations", {})
             return trans.get("fi") or trans.get("en") or next(iter(trans.values()), "")
         return str(val or "")
 
-    results = []
+    results: list[WorkflowTelemetryDTO] = []
 
     for target_wf in workflows_map.values():
         wf_id = str(target_wf.get("id"))
@@ -1340,9 +1429,9 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
         security_penalty = float(target_wf.get("security_penalty", 0.0))
         post_hoc_penalty = float(target_wf.get("post_hoc_penalty", 0.0))
         passivity_penalty = float(target_wf.get("passivity_penalty", 0.0))
-        default_profile_id = target_wf.get("default_profile_id")
+        default_profile_id = str(target_wf.get("default_profile_id")) if target_wf.get("default_profile_id") else None
 
-        steps_telemetry = []
+        steps_telemetry: list[StepTelemetryDTO] = []
         total_matrices = 0
         total_scales = 0
         total_claims = 0
@@ -1356,9 +1445,10 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
             sname = _resolve_text(sdef.get("name"))
             stype = str(sdef.get("type", "llm"))
             strat = sdef.get("cognitive_tier") or sdef.get("model_strategy")
+            strat_val = str(strat) if strat else None
             crit_ids = sdef.get("criteria_block_ids", [])
 
-            step_matrices = []
+            step_matrices: list[MatrixTelemetryDTO] = []
             for cid in crit_ids:
                 blk = blocks_map.get(cid)
                 if not blk or blk.get("category_id") != "matrix":
@@ -1368,13 +1458,13 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
                 scales_raw = blk.get("scales", [])
                 total_scales += len(scales_raw)
 
-                m_scales = []
+                m_scales: list[ScaleTelemetryDTO] = []
                 m_atoms = 0
                 m_high_entropy = 0
                 m_claims = 0
 
                 for sc in scales_raw:
-                    sc_score = sc.get("score")
+                    sc_score = int(sc.get("score", 1))
                     sc_name = _resolve_text(sc.get("name"))
                     sc_ai_label = str(sc.get("ai_label", ""))
                     claims = sc.get("claims", [])
@@ -1394,67 +1484,67 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path):
                     total_high_entropy += sc_high_entropy
 
                     m_scales.append(
-                        {
-                            "score": sc_score,
-                            "name": sc_name,
-                            "ai_label": sc_ai_label,
-                            "claim_count": len(claims),
-                            "atom_count": sc_atoms,
-                            "high_entropy_count": sc_high_entropy,
-                        }
+                        ScaleTelemetryDTO(
+                            score=sc_score,
+                            name=sc_name,
+                            ai_label=sc_ai_label,
+                            claim_count=len(claims),
+                            atom_count=sc_atoms,
+                            high_entropy_count=sc_high_entropy,
+                        )
                     )
 
                 step_matrices.append(
-                    {
-                        "block_id": cid,
-                        "label": m_label,
-                        "category": "matrix",
-                        "computed_min": blk.get("computed_min", min((s["score"] for s in m_scales), default=1)),
-                        "computed_max": blk.get(
-                            "computed_max", max((s["score"] for s in m_scales), default=len(m_scales))
+                    MatrixTelemetryDTO(
+                        block_id=cid,
+                        label=m_label,
+                        category="matrix",
+                        computed_min=int(blk.get("computed_min", min((s.score for s in m_scales), default=1))),
+                        computed_max=int(
+                            blk.get("computed_max", max((s.score for s in m_scales), default=len(m_scales)))
                         ),
-                        "allow_contextual_override": bool(blk.get("allow_contextual_override", False)),
-                        "target_input_key": blk.get("target_input_key"),
-                        "total_claims": m_claims,
-                        "total_atoms": m_atoms,
-                        "high_entropy_atoms": m_high_entropy,
-                        "scales": m_scales,
-                    }
+                        allow_contextual_override=bool(blk.get("allow_contextual_override", False)),
+                        target_input_key=str(blk.get("target_input_key")) if blk.get("target_input_key") else None,
+                        total_claims=m_claims,
+                        total_atoms=m_atoms,
+                        high_entropy_atoms=m_high_entropy,
+                        scales=m_scales,
+                    )
                 )
 
             steps_telemetry.append(
-                {
-                    "step_rule_id": srule_id,
-                    "blueprint_id": bp_id,
-                    "name": sname,
-                    "type": stype,
-                    "cognitive_tier": strat,
-                    "model_strategy": strat,
-                    "is_synthesis_source": bool(srule.get("is_synthesis_source", True)),
-                    "matrices": step_matrices,
-                }
+                StepTelemetryDTO(
+                    step_rule_id=srule_id,
+                    blueprint_id=bp_id,
+                    name=sname,
+                    type=stype,
+                    cognitive_tier=strat_val,
+                    model_strategy=strat_val,
+                    is_synthesis_source=bool(srule.get("is_synthesis_source", True)),
+                    matrices=step_matrices,
+                )
             )
 
         results.append(
-            {
-                "source_path": str(target_path),
-                "workflow_id": wf_id,
-                "workflow_name": wf_name,
-                "workflow_slug": wf_slug,
-                "strictness_level": strictness_level,
-                "strictness_exponent": strictness_exponent,
-                "enable_contextual_overrides": enable_contextual_overrides,
-                "security_penalty": security_penalty,
-                "post_hoc_penalty": post_hoc_penalty,
-                "passivity_penalty": passivity_penalty,
-                "default_profile_id": default_profile_id,
-                "total_matrices": total_matrices,
-                "total_scales": total_scales,
-                "total_claims": total_claims,
-                "total_atoms": total_atoms,
-                "total_high_entropy_atoms": total_high_entropy,
-                "steps": steps_telemetry,
-            }
+            WorkflowTelemetryDTO(
+                source_path=str(target_path),
+                workflow_id=wf_id,
+                workflow_name=wf_name,
+                workflow_slug=wf_slug,
+                strictness_level=strictness_level,
+                strictness_exponent=strictness_exponent,
+                enable_contextual_overrides=enable_contextual_overrides,
+                security_penalty=security_penalty,
+                post_hoc_penalty=post_hoc_penalty,
+                passivity_penalty=passivity_penalty,
+                default_profile_id=default_profile_id,
+                total_matrices=total_matrices,
+                total_scales=total_scales,
+                total_claims=total_claims,
+                total_atoms=total_atoms,
+                total_high_entropy_atoms=total_high_entropy,
+                steps=steps_telemetry,
+            )
         )
 
     return results
@@ -1479,8 +1569,8 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
         return
 
     for t_idx, telemetry in enumerate(telemetries, 1):
-        he_total = telemetry["total_high_entropy_atoms"]
-        tot_total = telemetry["total_atoms"]
+        he_total = telemetry.total_high_entropy_atoms
+        tot_total = telemetry.total_atoms
         sp_total = tot_total - he_total
         total_calls = he_total * 3 + sp_total * 1
         he_total_pct = (he_total / tot_total * 100.0) if tot_total > 0 else 0.0
@@ -1491,25 +1581,25 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
             else "[Työnkulun ja Arviointimatriisien Parametrit]"
         )
         print("\n" + "=" * 80)
-        print(f"{header_prefix} (Lähde: {telemetry['source_path']})")
+        print(f"{header_prefix} (Lähde: {telemetry.source_path})")
         print("=" * 80)
-        print(f"  Työnkulku:                 {telemetry['workflow_name']}")
-        print(f"    - Tunniste:              {telemetry['workflow_id']}")
+        print(f"  Työnkulku:                 {telemetry.workflow_name}")
+        print(f"    - Tunniste:              {telemetry.workflow_id}")
         print(
-            f"  • Sovereign Strictness:     {telemetry['strictness_level']}% -> "
-            f"Teho-eksponentti: {telemetry['strictness_exponent']:.4f} (UnifiedScoringEngine)"
+            f"  • Sovereign Strictness:     {telemetry.strictness_level}% -> "
+            f"Teho-eksponentti: {telemetry.strictness_exponent:.4f} (UnifiedScoringEngine)"
         )
         print(
             f"  • Kontekstuaaliset ohitukset: "
-            f"{'SALLITTU (True)' if telemetry['enable_contextual_overrides'] else 'ESTETTY (False)'}"
+            f"{'SALLITTU (True)' if telemetry.enable_contextual_overrides else 'ESTETTY (False)'}"
         )
         print("  • Sakkokertoimet:")
-        print(f"    - Passiivisuussakko:      {telemetry['passivity_penalty']:.2f}")
-        print(f"    - Jälkikäteissakko:       {telemetry['post_hoc_penalty']:.2f}")
-        print(f"    - Tietoturvasakko:        {telemetry['security_penalty']:.2f}")
+        print(f"    - Passiivisuussakko:      {telemetry.passivity_penalty:.2f}")
+        print(f"    - Jälkikäteissakko:       {telemetry.post_hoc_penalty:.2f}")
+        print(f"    - Tietoturvasakko:        {telemetry.security_penalty:.2f}")
         print(
-            f"  • Matriisien kokonaisvolyymi: {telemetry['total_matrices']} matriisia | "
-            f"{telemetry['total_scales']} tasoa | {tot_total} atomia"
+            f"  • Matriisien kokonaisvolyymi: {telemetry.total_matrices} matriisia | "
+            f"{telemetry.total_scales} tasoa | {tot_total} atomia"
         )
         print(
             f"  • Rinnakkaisäänestys (E2E):   {he_total} / {tot_total} atomia ({he_total_pct:.1f}%) "
@@ -1521,20 +1611,20 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
         )
         print("-" * 80)
 
-        for idx, s in enumerate(telemetry["steps"], 1):
-            tier = s.get("cognitive_tier") or s.get("model_strategy")
+        for idx, s in enumerate(telemetry.steps, 1):
+            tier = s.cognitive_tier or s.model_strategy
             strat_display = f"Taso: {tier.upper()}" if tier else "Ei LLM-kutsua (Logiikkakoukku)"
-            if s["type"] == "logic":
+            if s.type == "logic":
                 strat_display = "Deterministinen UnifiedScoringEngine"
-            matrices_count = len(s["matrices"])
-            print(f"  [{idx}] Askel: {s['name']}")
-            print(f"      - Tunnisteet:            sääntö={s['step_rule_id']} / pohja={s['blueprint_id']}")
-            print(f"      - Tyyppi ja taso:        {s['type']} | {strat_display}")
+            matrices_count = len(s.matrices)
+            print(f"  [{idx}] Askel: {s.name}")
+            print(f"      - Tunnisteet:            sääntö={s.step_rule_id} / pohja={s.blueprint_id}")
+            print(f"      - Tyyppi ja taso:        {s.type} | {strat_display}")
             print(f"      - Matriiseja sidottu:    {matrices_count} kpl")
 
-            for m in s["matrices"]:
-                he_atoms = m["high_entropy_atoms"]
-                tot_atoms = m["total_atoms"]
+            for m in s.matrices:
+                he_atoms = m.high_entropy_atoms
+                tot_atoms = m.total_atoms
                 sp_atoms = tot_atoms - he_atoms
                 llm_calls = he_atoms * 3 + sp_atoms * 1
                 he_pct = (he_atoms / tot_atoms * 100.0) if tot_atoms > 0 else 0.0
@@ -1545,23 +1635,22 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
                     if he_atoms > 0
                     else "EI KÄYTÖSSÄ (Single Pass, 100% atomeista)"
                 )
-                print(f"      -> MATRIISI '{m['block_id']}': \"{m['label']}\"")
+                print(f"      -> MATRIISI '{m.block_id}': \"{m.label}\"")
                 print(
-                    f"         * Asteikko (min..max):    {m['computed_min']} .. {m['computed_max']} "
-                    f"({len(m['scales'])} tasoa)"
+                    f"         * Asteikko (min..max):    {m.computed_min} .. {m.computed_max} ({len(m.scales)} tasoa)"
                 )
-                print(f"         * Atomit ja väitteet:     {tot_atoms} atomia ({m['total_claims']} väitettä)")
+                print(f"         * Atomit ja väitteet:     {tot_atoms} atomia ({m.total_claims} väitettä)")
                 print(f"         * Rinnakkaisäänestys:     {voting_status}")
                 print(
                     f"           -> LLM-arviointikutsut: {he_atoms} × 3 + {sp_atoms} × 1 = "
                     f"{llm_calls} rinnakkaiskutsua (2/3 enemmistökonsensus)"
                 )
-                print(f"         * Contextual override:    {'Kyllä' if m['allow_contextual_override'] else 'Ei'}")
+                print(f"         * Contextual override:    {'Kyllä' if m.allow_contextual_override else 'Ei'}")
                 print("         * Asteikkotasokohtainen entropia- ja äänestyserittely:")
-                for sc in m["scales"]:
-                    ai_lbl = f" ({sc['ai_label']})" if sc["ai_label"] else ""
-                    sc_he = sc["high_entropy_count"]
-                    sc_tot = sc["atom_count"]
+                for sc in m.scales:
+                    ai_lbl = f" ({sc.ai_label})" if sc.ai_label else ""
+                    sc_he = sc.high_entropy_count
+                    sc_tot = sc.atom_count
                     sc_sp = sc_tot - sc_he
                     sc_calls = sc_he * 3 + sc_sp * 1
                     voting_tag = (
@@ -1572,8 +1661,8 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
                         else f"Single Pass (1x LLM, {sc_calls} kutsua)"
                     )
                     print(
-                        f"           - Taso {sc['score']}: {sc['name']}{ai_lbl} | "
-                        f"{sc['claim_count']} väitettä, {sc_tot} atomia | "
+                        f"           - Taso {sc.score}: {sc.name}{ai_lbl} | "
+                        f"{sc.claim_count} väitettä, {sc_tot} atomia | "
                         f"Äänestys: {voting_tag}"
                     )
 
@@ -1598,7 +1687,8 @@ def poll_database_for_execution(
     print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
     start = time.time()
     while time.time() - start < timeout_seconds:
-        time.sleep(5)
+        poll_interval: float = 5.0
+        time.sleep(poll_interval)
         try:
             with target_db_path.open("r", encoding="utf-8") as f:
                 db_data = json.load(f)
@@ -1607,7 +1697,7 @@ def poll_database_for_execution(
                 found_exec = next((e for e in execs if e.get("id") == exec_id), None)
                 if found_exec:
                     status = str(found_exec.get("status")).upper()
-                    if status in ["PASSED", "FAILED", "SYSTEM_ERROR"] and isinstance(found_exec, dict):
+                    if status in ["PASSED", "FAILED", "SYSTEM_ERROR"] and type(found_exec) is dict:
                         print(f"Execution {exec_id} finished with status: {status}")
                         return found_exec
         except (json.JSONDecodeError, OSError) as e:
@@ -1771,7 +1861,7 @@ def run_variance_test(
             active_provider = providers[i].lower()
             print(f"[Provider Routing] Run {i + 1} targeting provider: '{active_provider}'")
             telemetry = resolve_model_telemetry(target_db_path)
-            matching_t = {k: v for k, v in telemetry.items() if v.get("provider", "").lower() == active_provider}
+            matching_t = {k: v for k, v in telemetry.items() if str(v.get("provider", "")).lower() == active_provider}
             if matching_t:
                 print(f"   -> Aktiivisen tarjoajan ('{active_provider}') kognitiiviset tasot:")
                 for tk, tv in matching_t.items():
@@ -1789,7 +1879,7 @@ def run_variance_test(
                     f", Reasoning Effort={active_t['reasoning_effort']}" if active_t["is_openai_reasoning"] else ""
                 )
                 print(
-                    f"   -> Fyysinen malli: `{active_t['model_name']}` ({active_t['provider'].upper()}) | "
+                    f"   -> Fyysinen malli: `{active_t['model_name']}` ({str(active_t['provider']).upper()}) | "
                     f"Todellinen T={active_t['effective_temperature']} | "
                     f"Ajattelu={active_t['thinking_budget']}{effort_detail} | "
                     f"MaxTok={active_t['max_tokens']}"
@@ -1846,7 +1936,9 @@ def run_variance_test(
         headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
         base_url = "http://127.0.0.1:8000/api/v2"
 
-        w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=10)
+        w_res = requests.get(
+            f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds
+        )
         w_res.raise_for_status()
         workflows = w_res.json()
         if not workflows:
@@ -1877,25 +1969,35 @@ def run_variance_test(
                 raise RuntimeError(msg)
 
         final_workflow_id = str(resolved_workflow["id"])
-        wf_strictness = int(resolved_workflow.get("default_strictness_level", 50))
+
+        strictness_val = resolved_workflow.get("default_strictness_level", 50)
+        wf_strictness = int(strictness_val) if isinstance(strictness_val, (int, str)) else 50
         wf_exponent = calculate_strictness_exponent(wf_strictness)
+        passivity_raw = resolved_workflow.get("passivity_penalty", 0.0)
+        post_hoc_raw = resolved_workflow.get("post_hoc_penalty", 0.0)
+        security_raw = resolved_workflow.get("security_penalty", 0.0)
+        passivity_val = float(passivity_raw) if isinstance(passivity_raw, (int, float, str)) else 0.0
+        post_hoc_val = float(post_hoc_raw) if isinstance(post_hoc_raw, (int, float, str)) else 0.0
+        security_val = float(security_raw) if isinstance(security_raw, (int, float, str)) else 0.0
         print(
             f"[Matrix Governance] Workflow '{final_workflow_id}' | "
             f"Strictness={wf_strictness}% (Power Exponent: {wf_exponent:.4f}) | "
             f"Overrides={resolved_workflow.get('enable_contextual_overrides')} | "
-            f"Penalties (passivity={float(resolved_workflow.get('passivity_penalty', 0.0)):.2f}, "
-            f"post_hoc={float(resolved_workflow.get('post_hoc_penalty', 0.0)):.2f}, "
-            f"security={float(resolved_workflow.get('security_penalty', 0.0)):.2f})"
+            f"Penalties (passivity={passivity_val:.2f}, "
+            f"post_hoc={post_hoc_val:.2f}, "
+            f"security={security_val:.2f})"
         )
 
         final_profile_id = profile
         if not final_profile_id:
-            final_profile_id = resolved_workflow.get("default_profile_id")
+            def_prof_raw = resolved_workflow.get("default_profile_id")
+            final_profile_id = str(def_prof_raw) if def_prof_raw else None
         if not final_profile_id:
             msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
             raise RuntimeError(msg)
 
-        expected_inputs = resolved_workflow.get("expected_inputs", [])
+        exp_inputs_raw = resolved_workflow.get("expected_inputs", [])
+        expected_inputs = exp_inputs_raw if isinstance(exp_inputs_raw, Sequence) else None
         if no_noise and cached_raw_inputs is not None:
             raw_inputs = copy.deepcopy(cached_raw_inputs)
         else:

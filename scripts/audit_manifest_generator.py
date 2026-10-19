@@ -294,7 +294,7 @@ def load_physical_execution_items(
                         norm_quote=norm_q,
                         norm_text=norm_doc,
                         strictness_level=50,
-                    )
+                    ).is_valid
                 is_chimera = (quote is not None) and (not is_valid_quote)
 
                 meta = seed_meta[tda_id] if tda_id in seed_meta else None

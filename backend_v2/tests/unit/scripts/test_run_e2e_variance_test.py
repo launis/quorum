@@ -465,39 +465,39 @@ class TestWorkflowMatrixTelemetry:
             workflow_id="wf_9d68c573802341db",
         )
         assert telemetry is not None
-        assert telemetry["workflow_id"] == "wf_9d68c573802341db"
-        assert telemetry["strictness_level"] == 0
-        assert abs(telemetry["strictness_exponent"] - 1.0) < 0.001
-        assert telemetry["enable_contextual_overrides"] is True
-        assert telemetry["security_penalty"] == 0.0
-        assert telemetry["post_hoc_penalty"] == 0.0
-        assert telemetry["passivity_penalty"] == 0.0
+        assert telemetry.workflow_id == "wf_9d68c573802341db"
+        assert telemetry.strictness_level == 0
+        assert abs(telemetry.strictness_exponent - 1.0) < 0.001
+        assert telemetry.enable_contextual_overrides is True
+        assert telemetry.security_penalty == 0.0
+        assert telemetry.post_hoc_penalty == 0.0
+        assert telemetry.passivity_penalty == 0.0
 
-        assert telemetry["total_matrices"] == 10
-        assert telemetry["total_scales"] == 46
-        assert telemetry["total_atoms"] == 237
-        assert telemetry["total_high_entropy_atoms"] == 237
+        assert telemetry.total_matrices == 10
+        assert telemetry.total_scales == 46
+        assert telemetry.total_atoms == 237
+        assert telemetry.total_high_entropy_atoms == 237
 
-        steps = {s["step_rule_id"]: s for s in telemetry["steps"]}
+        steps = {s.step_rule_id: s for s in telemetry.steps}
         assert len(steps) == 14
 
         # Step 2: Analyst (Kahneman)
         analyst = steps["sr_5a8ae009eee44fe2"]
-        assert analyst["cognitive_tier"] == "deep"
-        assert analyst["model_strategy"] == "deep"
-        assert len(analyst["matrices"]) == 1
-        kahneman = analyst["matrices"][0]
-        assert kahneman["block_id"] == "blk_109dab5b6b3f403a"
-        assert kahneman["computed_min"] == 1
-        assert kahneman["computed_max"] == 3
-        assert len(kahneman["scales"]) == 3
-        assert kahneman["total_atoms"] == 15
-        assert kahneman["high_entropy_atoms"] == 15
+        assert analyst.cognitive_tier == "deep"
+        assert analyst.model_strategy == "deep"
+        assert len(analyst.matrices) == 1
+        kahneman = analyst.matrices[0]
+        assert kahneman.block_id == "blk_109dab5b6b3f403a"
+        assert kahneman.computed_min == 1
+        assert kahneman.computed_max == 3
+        assert len(kahneman.scales) == 3
+        assert kahneman.total_atoms == 15
+        assert kahneman.high_entropy_atoms == 15
 
         # Step 13: Scoring Engine (Logic hook)
         scoring = steps["sr_2fa56dc36614469a"]
-        assert scoring["type"] == "logic"
-        assert len(scoring["matrices"]) == 0
+        assert scoring.type == "logic"
+        assert len(scoring.matrices) == 0
 
     def test_resolve_all_workflows_matrix_telemetry(self) -> None:
         """Verify all workflows in seed data are parsed dynamically with matrix stats."""
@@ -508,7 +508,7 @@ class TestWorkflowMatrixTelemetry:
 
         all_wfs = resolve_all_workflows_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
         assert len(all_wfs) == 3
-        wf_ids = {w["workflow_id"] for w in all_wfs}
+        wf_ids = {w.workflow_id for w in all_wfs}
         assert "wf_9d68c573802341db" in wf_ids
         assert "wf_a8f1d71000000001" in wf_ids
         assert "wf_b9e2d71000000002" in wf_ids
@@ -529,15 +529,15 @@ class TestWorkflowMatrixTelemetry:
             workflow_id="wf_a8f1d71000000001",
         )
         assert telemetry_by_id is not None
-        assert telemetry_by_id["workflow_id"] == "wf_a8f1d71000000001"
-        assert telemetry_by_id["total_matrices"] == 4
+        assert telemetry_by_id.workflow_id == "wf_a8f1d71000000001"
+        assert telemetry_by_id.total_matrices == 4
 
         telemetry_by_slug = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
             workflow_id="kokonaisvaltainen_auditointi",
         )
         assert telemetry_by_slug is not None
-        assert telemetry_by_slug["workflow_id"] == "wf_9d68c573802341db"
+        assert telemetry_by_slug.workflow_id == "wf_9d68c573802341db"
 
     def test_print_workflow_matrix_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify print_workflow_matrix_telemetry outputs formatted telemetry cleanly."""
@@ -1507,3 +1507,141 @@ class TestRunVarianceTestEdgeCases:
 
             res = run_variance_test(inputs_target=str(tmp_path), num_runs=1, db_path=db_file)
             assert res == []
+
+
+class TestCoverageExpansion:
+    """Additional unit tests to satisfy 90% strict coverage threshold."""
+
+    def test_validate_kelvollisuus_with_valid_corpus_and_quotes(self) -> None:
+        from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
+
+        exec_record = {
+            "status": "PASSED",
+            "inputs": {"doc": "This is authoritative ground truth text."},
+            "step_states": {
+                "st_1": {
+                    "evaluations": [
+                        {"status": "PASSED", "source_quotes": ["ground truth"], "tda_id": "a_1"}
+                    ]
+                }
+            },
+        }
+        ok, msg = validate_execution_kelvollisuus(exec_record)
+        assert ok is True
+        assert "Execution is valid" in msg
+
+    def test_validate_kelvollisuus_chimera_leakage_detected(self) -> None:
+        from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
+
+        exec_record = {
+            "status": "PASSED",
+            "inputs": {"doc": "This is authoritative ground truth text."},
+            "step_states": {
+                "st_1": {
+                    "evaluations": [
+                        {
+                            "status": "PASSED",
+                            "source_quotes": ["completely fabricated quote"],
+                            "tda_id": "a_hallucinated",
+                        }
+                    ]
+                }
+            },
+        }
+        ok, msg = validate_execution_kelvollisuus(exec_record)
+        assert ok is False
+        assert "Chimera leakage detected" in msg
+
+    def test_validate_kelvollisuus_trace_data_evaluations(self, tmp_path: Path) -> None:
+        from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
+
+        trace_file = tmp_path / "trace.json"
+        trace_file.write_text(
+            json.dumps(
+                [
+                    {
+                        "content": {
+                            "evaluations": [
+                                {"status": "PASSED", "exact_quotes": ["valid slice"], "tda_id": "a_2"}
+                            ]
+                        }
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        exec_record = {
+            "status": "PASSED",
+            "inputs": {"doc": "Here is a valid slice of text in corpus."},
+            "step_states": {},
+        }
+        ok, msg = validate_execution_kelvollisuus(exec_record, trace_path=trace_file)
+        assert ok is True
+
+    def test_validate_kelvollisuus_trace_starvation_event(self, tmp_path: Path) -> None:
+        from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
+
+        trace_file = tmp_path / "trace.json"
+        trace_file.write_text(
+            json.dumps([{"step_id": "stp_starve", "content": {"event_type": "starvation", "reason": "Out of data"}}]),
+            encoding="utf-8",
+        )
+
+        exec_record = {"status": "PASSED", "inputs": {}, "step_states": {}}
+        ok, msg = validate_execution_kelvollisuus(exec_record, trace_path=trace_file)
+        assert ok is False
+        assert "Trace event starvation" in msg
+
+    def test_resolve_model_telemetry_reasoning_tiers(self, tmp_path: Path) -> None:
+        from scripts.run_e2e_variance_test import resolve_model_telemetry
+
+        db_file = tmp_path / "db.json"
+        seed = {
+            "system_config": [
+                {
+                    "id": "cfg_1",
+                    "type": "model_registry",
+                    "default_provider": "openai",
+                    "models": {
+                        "o1_low": {"model_name": "o1-mini", "thinking_budget_tokens": 1000},
+                        "o1_high": {"model_name": "o3-mini", "thinking_budget_tokens": 5000},
+                        "claude_custom": {
+                            "model_name": "claude-3-5",
+                            "provider": "anthropic",
+                            "temperature": 0.7,
+                            "thinking_budget_tokens": 0,
+                        },
+                    },
+                }
+            ]
+        }
+        db_file.write_text(json.dumps(seed), encoding="utf-8")
+        res = resolve_model_telemetry(db_file)
+        assert "o1_low" in res
+        assert "'low'" in res["o1_low"]["reasoning_effort"]
+        assert "o1_high" in res
+        assert "'high'" in res["o1_high"]["reasoning_effort"]
+        assert "claude_custom" in res
+        assert res["claude_custom"]["provider"] == "anthropic"
+
+    def test_resolve_model_telemetry_missing_paths_and_registries(self, tmp_path: Path) -> None:
+        from scripts.run_e2e_variance_test import resolve_model_telemetry
+
+        empty_db = tmp_path / "empty.json"
+        empty_db.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+        assert resolve_model_telemetry(empty_db) == {}
+
+        bad_json = tmp_path / "bad.json"
+        bad_json.write_text("INVALID JSON", encoding="utf-8")
+        assert resolve_model_telemetry(bad_json) == {}
+
+    def test_print_model_telemetry_empty_warning(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        from scripts.run_e2e_variance_test import print_model_telemetry
+
+        empty_db = tmp_path / "empty.json"
+        empty_db.write_text(json.dumps({"system_config": []}), encoding="utf-8")
+        print_model_telemetry(empty_db)
+        out = capsys.readouterr().out
+        assert "Varoitus: Mallirekisteriä ei löytynyt" in out
+

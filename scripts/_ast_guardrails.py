@@ -706,7 +706,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR002: 1-argument and 2-argument .get(key) / .get(key, default) fallback in domain code
-        if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
+        if self._is_domain_code and isinstance(node.func, ast.Attribute) and node.func.attr == "get":
             # 3. Standard Library Exclusion: 0-argument .get() (specifically ContextVar .get()) is exempt
             if len(node.args) == 0 and not any(
                 kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
@@ -1737,7 +1737,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     )
             # QGR027: Banned Unauthorized Open-JSON / JsonValue Dictionaries in Domain & DTO Models
             jsonvalue_sub = _find_jsonvalue_dict_subscript(node.annotation)
-            if jsonvalue_sub is not None and not self._is_open_json_exempt:
+            if jsonvalue_sub is not None and self._is_domain_code and not self._is_open_json_exempt:
                 self._add_violation(
                     node,
                     "QGR027",
