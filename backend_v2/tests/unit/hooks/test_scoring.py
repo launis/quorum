@@ -1280,7 +1280,7 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
                         "tda_id": atom_hash,
                         "status": ExecutionStatus.PASSED,
                         "evaluation_reasoning": "Valid reasoning",
-                        "source_quote": "mock quote",
+                        "source_quotes": ("mock quote",),
                         "contextual_override": False,
                     }
                 ],
@@ -1308,7 +1308,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
                 "tda_id": atom_hash,
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": "Hyväksytty",
-                "source_quote": "mock quote",
+                "source_quotes": ("mock quote",),
                 "contextual_override": False,
             }
         )
@@ -1344,7 +1344,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
             "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"Positive competence {i}",
-            "source_quote": "clean text",
+            "source_quotes": ("clean text",),
             "contextual_override": False,
         }
         for i in range(1, 6)
@@ -1353,7 +1353,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
             "tda_id": generate_atom_hash(f"atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"No penalty {i}",
-            "source_quote": "clean text",
+            "source_quotes": ("clean text",),
             "contextual_override": False,
         }
         for i in range(1, 6)
@@ -1390,7 +1390,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
                 "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": f"Positive competence {i}",
-                "source_quote": "clean text",
+                "source_quotes": ("clean text",),
                 "contextual_override": False,
             }
             for i in range(1, 6)
@@ -1400,7 +1400,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
                 "tda_id": generate_atom_hash("atom_1", mandate),
                 "status": ExecutionStatus.FAILED,
                 "evaluation_reasoning": "Penalty detected",
-                "source_quote": None,
+                "source_quotes": None,
                 "contextual_override": False,
             }
         ]
@@ -1409,7 +1409,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
                 "tda_id": generate_atom_hash(f"atom_{i}", mandate),
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": f"No penalty {i}",
-                "source_quote": "clean text",
+                "source_quotes": ("clean text",),
                 "contextual_override": False,
             }
             for i in range(2, 6)
@@ -1438,7 +1438,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
 
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survives_disabled_overrides() -> None:
-    """Verifies that inverse_evidence=True with status=PASSED and source_quote=None satisfies levels even with enable_contextual_overrides=False."""
+    """Verifies that inverse_evidence=True with status=PASSED and source_quotes=None satisfies levels even with enable_contextual_overrides=False."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
 
     evaluations = [
@@ -1446,7 +1446,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
             "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"Positive competence {i}",
-            "source_quote": "clean text",
+            "source_quotes": ("clean text",),
             "contextual_override": False,
         }
         for i in range(1, 6)
@@ -1455,7 +1455,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
             "tda_id": generate_atom_hash(f"atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"Inverse verified without quote {i}",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": False,
             "is_inverse_evidence": True,
         }
@@ -1492,7 +1492,7 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
             "tda_id": generate_atom_hash("atom_1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Contextual override without empirical quote",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": True,
             "is_inverse_evidence": False,
         }
@@ -1501,7 +1501,7 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
             "tda_id": generate_atom_hash(f"atom_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"Valid quote {i}",
-            "source_quote": "exact quote",
+            "source_quotes": ("exact quote",),
             "contextual_override": False,
             "is_inverse_evidence": False,
         }
@@ -1539,7 +1539,7 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
                 "tda_id": generate_atom_hash(f"pos_atom_{i}", mandate),
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": f"Positive competence {i}",
-                "source_quote": "clean text",
+                "source_quotes": ("clean text",),
                 "contextual_override": False,
             }
             for i in range(1, 6)
@@ -1549,7 +1549,7 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
                 "tda_id": generate_atom_hash("atom_1", mandate),
                 "status": ExecutionStatus.FAILED,
                 "evaluation_reasoning": "Negative condition detected in text",
-                "source_quote": None,
+                "source_quotes": None,
                 "contextual_override": False,
                 "is_inverse_evidence": False,
             }
@@ -1559,7 +1559,7 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
                 "tda_id": generate_atom_hash(f"atom_{i}", mandate),
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": f"No violation {i}",
-                "source_quote": None,
+                "source_quotes": None,
                 "contextual_override": False,
                 "is_inverse_evidence": True,
             }
@@ -1619,7 +1619,7 @@ async def test_matrix_scoring_hook_pure_inverse_without_positive_competence_yiel
             "tda_id": generate_atom_hash(f"pure_inv_{i}", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": f"No defect {i}",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": False,
             "is_inverse_evidence": True,
         }
@@ -1665,7 +1665,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
             "contextual_override": False,
         }
         if is_hit:
-            evaluation["source_quote"] = "mock quote"
+            evaluation["source_quotes"] = ("mock quote",)
         evaluations.append(evaluation)
 
     state = HookState(
@@ -1702,7 +1702,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
                 "tda_id": atom_hash,
                 "status": ExecutionStatus.PASSED if is_hit else "FAIL",
                 "evaluation_reasoning": reasoning,
-                "source_quote": "mock quote",
+                "source_quotes": ("mock quote",),
                 "contextual_override": False,
             }
         )
@@ -1739,35 +1739,35 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "tda_id": generate_atom_hash("L1_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
             "tda_id": generate_atom_hash("L1_A2", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
             "tda_id": generate_atom_hash("L2_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
             "tda_id": generate_atom_hash("L2_A2", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
             "tda_id": generate_atom_hash("L3_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Oikein",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
@@ -1780,7 +1780,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
             "tda_id": generate_atom_hash("L4_A1", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Hieno oivallus!",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
@@ -1819,7 +1819,7 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
     evaluations: list[Mapping[str, JsonValue]] = [
         {
             "evaluation_reasoning": "Valid analytical statement",
-            "source_quote": "mock quote",
+            "source_quotes": ("mock quote",),
             "contextual_override": False,
         },
         {
@@ -1857,7 +1857,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
                 "tda_id": generate_atom_hash(f"atom_{i}", mandate),
                 "status": ExecutionStatus.PASSED,
                 "evaluation_reasoning": "Hyväksytty",
-                "source_quote": "mock quote",
+                "source_quotes": ("mock quote",),
                 "contextual_override": False,
             }
         )
@@ -1866,7 +1866,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
             "tda_id": generate_atom_hash("atom_5", mandate),
             "status": ExecutionStatus.PASSED,
             "evaluation_reasoning": "Overridden correctly",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": True,
         }
     )
@@ -1903,7 +1903,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
             "tda_id": atom_hash,
             "status": ExecutionStatus.FAILED,
             "evaluation_reasoning": "Hylätty",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": False,
         }
     ]
@@ -1966,7 +1966,7 @@ async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
                         "tda_id": atom_hash,
                         "status": ExecutionStatus.SYSTEM_ERROR,
                         "evaluation_reasoning": "DLQ reasoning",
-                        "source_quote": "mock quote",
+                        "source_quotes": ("mock quote",),
                         "contextual_override": False,
                         "error_details": {"error_code": "LLM_TIMEOUT", "message": "Request timed out"},
                     }
@@ -2002,7 +2002,7 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
                         "tda_id": atom_hash,
                         "status": ExecutionStatus.PASSED,
                         "evaluation_reasoning": "Override attempted",
-                        "source_quote": None,
+                        "source_quotes": None,
                         "contextual_override": True,
                     }
                 ],
@@ -2037,7 +2037,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
                         "matrix_id": "pb_other_matrix_1111",
                         "status": ExecutionStatus.PASSED,
                         "evaluation_reasoning": "Belongs to other matrix",
-                        "source_quote": "mock quote",
+                        "source_quotes": ("mock quote",),
                         "contextual_override": False,
                     }
                 ],
@@ -2119,7 +2119,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
                         "tda_id": tda_dlq_id,
                         "status": ExecutionStatus.SYSTEM_ERROR,
                         "evaluation_reasoning": "Infra failure",
-                        "source_quote": None,
+                        "source_quotes": None,
                         "error_details": {"error_code": "INFRA_FAILURE", "message": "Infra failure"},
                     }
                 ],
@@ -2147,7 +2147,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
             "tda_id": atom_hash,
             "status": ExecutionStatus.FAILED,
             "evaluation_reasoning": "Missing requirement",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": False,
             "extensions": {"coaching": "This is a coaching tip."},
         }
@@ -2194,7 +2194,7 @@ async def test_scoring_matrix_namespace_isolation() -> None:
         "matrix_id": "pb_OTHER_MATRIX",
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Reason",
-        "source_quote": "mock quote",
+        "source_quotes": ("mock quote",),
         "contextual_override": False,
     }
 
@@ -2232,7 +2232,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
         "matrix_id": None,
         "status": ExecutionStatus.PASSED,
         "evaluation_reasoning": "Reason",
-        "source_quote": "mock quote",
+        "source_quotes": ("mock quote",),
         "contextual_override": False,
     }
 
@@ -2270,7 +2270,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
         matrix_id="pb_1234567890123456",
         status=ExecutionStatus.FAILED,
         evaluation_reasoning="Failed reason",
-        source_quote=None,
+        source_quotes=None,
         contextual_override=False,
     )
 
@@ -2310,7 +2310,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
                 matrix_id="pb_1234567890123456",
                 status=ExecutionStatus.PASSED,
                 evaluation_reasoning="Hyväksytty",
-                source_quote="mock quote",
+                source_quotes=("mock quote",),
                 contextual_override=False,
             )
         )
@@ -2320,7 +2320,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
             matrix_id="pb_1234567890123456",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Contested",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=True,
         )
     )
@@ -3631,7 +3631,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L1_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No ad hominem",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3639,7 +3639,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L1_02,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No circular reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3647,7 +3647,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L2_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No anecdotal reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3655,7 +3655,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L3_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="No empirical data",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3663,7 +3663,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L4_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="No warrant",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3671,7 +3671,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L5_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="No rebuttal",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3709,7 +3709,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L1_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No ad hominem",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3717,7 +3717,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L1_02,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No circular reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3725,7 +3725,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L2_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No anecdotal reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3733,7 +3733,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L3_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Valid data",
-            source_quote="data quote",
+            source_quotes=("data quote",),
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3741,7 +3741,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L4_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Valid warrant",
-            source_quote="warrant quote",
+            source_quotes=("warrant quote",),
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3749,7 +3749,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
             tda_id=_TOULMIN_L5_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Valid rebuttal",
-            source_quote="rebuttal quote",
+            source_quotes=("rebuttal quote",),
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3856,7 +3856,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L1_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="Ad hominem detected",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3864,7 +3864,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L1_02,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No circular reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3872,7 +3872,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L2_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="No anecdotal reasoning",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=True,
         ),
@@ -3880,7 +3880,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L3_01,
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Valid data",
-            source_quote="data quote",
+            source_quotes=("data quote",),
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3888,7 +3888,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L4_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="No warrant",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3896,7 +3896,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
             tda_id=_TOULMIN_L5_01,
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="No rebuttal",
-            source_quote=None,
+            source_quotes=None,
             contextual_override=False,
             is_inverse_evidence=False,
         ),
@@ -3927,4 +3927,4 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
     assert output_flawed.xai_log.engine_debug_trace["penalty_multiplier"] == 0.95
     # Level 1 awards 0 positive points
     assert output_flawed.level_breakdown is not None
-    assert output_flawed.level_breakdown["1.0"].hits == 0
+    assert output_flawed.level_breakdown["1"].pos_hits == 0

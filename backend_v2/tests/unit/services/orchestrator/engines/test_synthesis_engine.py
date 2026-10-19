@@ -37,7 +37,7 @@ def make_atom(
         reasoning=reasoning,
         resolved_claim=claim,
         is_logical_deduction=False,
-        source_quote=quote,
+        source_quotes=(quote,),
         source_sequence_index=0,
     )
 

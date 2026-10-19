@@ -170,7 +170,7 @@ async def test_causal_discovery_exact_quote_anchoring_passes(
         tda_id="tda_11111111",
         resolved_claim="The system orders nodes topologically.",
         reasoning="Direct statement in text.",
-        source_quote=quote,
+        source_quotes=(quote,),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -200,7 +200,7 @@ async def test_causal_discovery_exact_quote_anchoring_passes(
     payload = result.synthesis_output
     assert len(payload.nodes) == 1
     assert payload.nodes[0].node_id == "tda_11111111"
-    assert payload.nodes[0].source_quote == quote
+    assert payload.nodes[0].source_quotes == (quote,)
     assert payload.nodes[0].status == ExecutionStatus.PASSED
     assert payload.cycle_detected is False
 
@@ -219,7 +219,7 @@ async def test_causal_discovery_inexact_quote_fails_validation(
         tda_id="tda_aaaaaaaa",
         resolved_claim="Completely fabricated assertion.",
         reasoning="Hallucinated evidence.",
-        source_quote="This sentence never appeared in original text.",
+        source_quotes=("This sentence never appeared in original text.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -258,7 +258,7 @@ async def test_causal_discovery_single_atom_zero_edges(
         tda_id="tda_11111111",
         resolved_claim="Solitary single proposition in document.",
         reasoning="Solo statement.",
-        source_quote="Solitary single proposition in document.",
+        source_quotes=("Solitary single proposition in document.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -308,7 +308,7 @@ async def test_causal_discovery_circular_graph_marks_system_error(
         tda_id="tda_aaaaaaaa",
         resolved_claim="Claim A requires Claim B.",
         reasoning="Premise A.",
-        source_quote="Claim A requires Claim B.",
+        source_quotes=("Claim A requires Claim B.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -316,7 +316,7 @@ async def test_causal_discovery_circular_graph_marks_system_error(
         tda_id="tda_bbbbbbbb",
         resolved_claim="Conversely, Claim B requires Claim A.",
         reasoning="Premise B.",
-        source_quote="Conversely, Claim B requires Claim A.",
+        source_quotes=("Conversely, Claim B requires Claim A.",),
         source_id="chunk_0",
         source_sequence_index=1,
     )
@@ -384,7 +384,7 @@ async def test_causal_discovery_token_usage_aggregated(
         tda_id="tda_11111111",
         resolved_claim="Proposition for token tracking.",
         reasoning="Token claim.",
-        source_quote="Proposition for token tracking.",
+        source_quotes=("Proposition for token tracking.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -430,7 +430,7 @@ async def test_causal_discovery_phantom_edges_filtered(
         tda_id="tda_11111111",
         resolved_claim="Real valid proposition.",
         reasoning="Fact.",
-        source_quote="Real valid proposition.",
+        source_quotes=("Real valid proposition.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -493,7 +493,7 @@ async def test_causal_discovery_with_progress_callback_and_deductions(
         resolved_claim="Logical deduction without quote.",
         reasoning="Inferred logically.",
         is_logical_deduction=True,
-        source_quote=None,
+        source_quotes=None,
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -501,7 +501,7 @@ async def test_causal_discovery_with_progress_callback_and_deductions(
         tda_id="tda_bbbbbbbb",
         resolved_claim="Proposition with progress and deduction.",
         reasoning="Grounded claim.",
-        source_quote="Proposition with progress and deduction.",
+        source_quotes=("Proposition with progress and deduction.",),
         source_id="chunk_0",
         source_sequence_index=1,
     )
@@ -575,7 +575,7 @@ async def test_causal_discovery_multi_hop_blame_propagation(
         tda_id="tda_11111111",
         resolved_claim="Claim 1",
         reasoning="R1",
-        source_quote="Node 1 causes Node 2 and Node 3.",
+        source_quotes=("Node 1 causes Node 2 and Node 3.",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -583,7 +583,7 @@ async def test_causal_discovery_multi_hop_blame_propagation(
         tda_id="tda_22222222",
         resolved_claim="Claim 2",
         reasoning="R2",
-        source_quote="Node 1 causes Node 2 and Node 3.",
+        source_quotes=("Node 1 causes Node 2 and Node 3.",),
         source_id="chunk_0",
         source_sequence_index=1,
     )
@@ -591,7 +591,7 @@ async def test_causal_discovery_multi_hop_blame_propagation(
         tda_id="tda_33333333",
         resolved_claim="Claim 3",
         reasoning="R3",
-        source_quote="Node 1 causes Node 2 and Node 3.",
+        source_quotes=("Node 1 causes Node 2 and Node 3.",),
         source_id="chunk_0",
         source_sequence_index=2,
     )
@@ -599,7 +599,7 @@ async def test_causal_discovery_multi_hop_blame_propagation(
         tda_id="tda_44444444",
         resolved_claim="Claim 4",
         reasoning="R4",
-        source_quote="Both cause Node 4.",
+        source_quotes=("Both cause Node 4.",),
         source_id="chunk_0",
         source_sequence_index=3,
     )
@@ -729,7 +729,7 @@ async def test_causal_discovery_duplicate_paragraphs_must_have_unique_block_ids(
                 reasoning="R",
                 resolved_claim="C",
                 is_logical_deduction=True,
-                source_quote=None,
+                source_quotes=None,
                 tda_id="tda_11111111",
                 source_id="chunk_0",
                 source_sequence_index=0,
@@ -747,7 +747,7 @@ async def test_causal_discovery_duplicate_paragraphs_must_have_unique_block_ids(
             reasoning="R",
             resolved_claim="C",
             is_logical_deduction=True,
-            source_quote=None,
+            source_quotes=None,
             tda_id="tda_11111111",
             source_id="chunk_0",
             source_sequence_index=0,
@@ -836,7 +836,7 @@ async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
                     reasoning="Throughput need",
                     resolved_claim="Customer needs higher throughput.",
                     is_logical_deduction=True,
-                    source_quote=None,
+                    source_quotes=None,
                     tda_id="tda_11111111",
                     source_id="B0",
                     source_sequence_index=0,
@@ -845,7 +845,7 @@ async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
                     reasoning="Architecture scaling",
                     resolved_claim="Architecture leverages Kubernetes clusters.",
                     is_logical_deduction=True,
-                    source_quote=None,
+                    source_quotes=None,
                     tda_id="tda_22222222",
                     source_id="B2",
                     source_sequence_index=1,
@@ -865,7 +865,7 @@ async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
                 reasoning="Throughput need",
                 resolved_claim="Customer needs higher throughput.",
                 is_logical_deduction=True,
-                source_quote=None,
+                source_quotes=None,
                 tda_id="tda_11111111",
                 source_id="B0",
                 source_sequence_index=0,
@@ -877,7 +877,7 @@ async def test_causal_discovery_dynamic_directive_provenance_and_tag_stripping(
                 reasoning="Architecture scaling",
                 resolved_claim="Architecture leverages Kubernetes clusters.",
                 is_logical_deduction=True,
-                source_quote=None,
+                source_quotes=None,
                 tda_id="tda_22222222",
                 source_id="B2",
                 source_sequence_index=1,

@@ -19,7 +19,7 @@ def create_atom(tda_id: str) -> ExtractedAtom:
     return ExtractedAtom(
         reasoning="reason",
         resolved_claim="claim",
-        source_quote="quote",
+        source_quotes=("quote",),
         tda_id=tda_id,
         source_id="src",
         source_sequence_index=0,
@@ -54,7 +54,7 @@ async def test_successful_evaluation() -> None:
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="quote",
+                source_quotes=("quote",),
                 extensions={},
             )
             for node in batch_nodes
@@ -93,7 +93,7 @@ async def test_phantom_edge_isolation() -> None:
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="quote",
+                source_quotes=("quote",),
                 extensions={},
             )
             for node in batch_nodes
@@ -144,7 +144,7 @@ async def test_cyclic_dependency_detected() -> None:
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="quote",
+                source_quotes=("quote",),
                 extensions={},
             )
             for node in batch_nodes
@@ -199,7 +199,7 @@ async def test_blocked_cascade() -> None:
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="quote",
+                source_quotes=("quote",),
                 extensions={},
             )
             for node in batch_nodes
@@ -256,14 +256,14 @@ async def test_na_short_circuit_cascade() -> None:
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.FAILED,
                     reasoning="failed",
-                    source_quote=None,
+                    source_quotes=None,
                     extensions={},
                 )
             else:
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="passed",
-                    source_quote="quote",
+                    source_quotes=("quote",),
                     extensions={},
                 )
         return results
@@ -330,7 +330,7 @@ async def test_missing_node_from_batch_response() -> None:
             "tda_1111111111111111": AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="quote",
+                source_quotes=("quote",),
                 extensions={},
             )
         }

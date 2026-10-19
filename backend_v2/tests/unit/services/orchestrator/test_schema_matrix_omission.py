@@ -52,7 +52,7 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         "tda_1234567890abcdef1234567890abcdef": AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
             status=ExecutionStatus.PASSED,
-            source_quote="Valid quote",
+            source_quotes=("Valid quote",),
             evaluation_reasoning="Valid reason",
         )
     }

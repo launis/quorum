@@ -437,7 +437,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 rsn = ev_dto.evaluation_reasoning
                                             block_atom_quotes.append(
                                                 QuoteEvidenceDTO(
-                                                    source_quotes=f"[OVERRIDE] {loc}: {rsn}",
+                                                    source_quotes=(f"[OVERRIDE] {loc}: {rsn}",),
                                                     verified_source_ids=[],
                                                 )
                                             )
@@ -453,7 +453,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 if ext_key_str in visible_ext_set and ext_v:
                                                     block_atom_quotes.append(
                                                         QuoteEvidenceDTO(
-                                                            source_quotes=f"[{ext_key_str.upper()}]: {ext_v}",
+                                                            source_quotes=(f"[{ext_key_str.upper()}]: {ext_v}",),
                                                             verified_source_ids=[],
                                                         )
                                                     )

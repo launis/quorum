@@ -11,6 +11,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
@@ -783,15 +784,26 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
 
             mock_repo.set_prompt_blocks(
                 [
-                    {
-                        "id": "blk_1111222233334444",
-                        "slug": "target_1",
-                        "type": "instruction",
-                        "label": {"translations": {"en": "Target Matrix"}},
-                        "description": {"translations": {"en": "Desc"}},
-                        "instruction_text": "Target Matrix evaluation",
-                        "category_id": "system_rule",
-                    }
+                    MatrixPromptBlock.model_validate(
+                        {
+                            "id": "blk_1111222233334444",
+                            "slug": "target_1",
+                            "type": "float",
+                            "label": {"translations": {"en": "Target Matrix"}},
+                            "description": {"translations": {"en": "Desc"}},
+                            "category_id": "matrix",
+                            "scales": [
+                                {
+                                    "score": 1,
+                                    "ai_label": "L1",
+                                },
+                                {
+                                    "score": 5,
+                                    "ai_label": "L5",
+                                },
+                            ],
+                        }
+                    )
                 ]
             )
             mock_repo.set_model_registry(_get_base_model_registry())

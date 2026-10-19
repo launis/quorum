@@ -380,7 +380,7 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
         extracted_facts={},
         exact_quotes=[
             QuoteEvidenceDTO.model_validate(
-                {"quote": "Verbatim input document extract quote.", "source_alias": []},
+                {"source_quotes": "Verbatim input document extract quote.", "source_alias": []},
                 context={"alias_registry": {}},
             )
         ],

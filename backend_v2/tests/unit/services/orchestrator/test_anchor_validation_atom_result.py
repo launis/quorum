@@ -6,7 +6,7 @@ from backend_v2.services.orchestrator.anchor_validation_service import AnchorVal
 
 def _make_atom(
     status: ExecutionStatus = ExecutionStatus.PASSED,
-    source_quote: str | None = None,
+    source_quotes: tuple[str, ...] | list[str] | str | None = None,
     contextual_override: bool = False,
     evaluation_reasoning: str | None = "a1 holds evidence",
 ) -> AtomResultDTO:
@@ -15,7 +15,7 @@ def _make_atom(
         matrix_id="mat_1",
         status=status,
         extracted_data=None,
-        source_quote=source_quote,
+        source_quotes=source_quotes,
         contextual_override=contextual_override,
         evaluation_reasoning=evaluation_reasoning,
         error_details=None,
@@ -26,7 +26,7 @@ def _make_atom(
 
 
 def test_process_atom_evaluation_with_atom_result_dto() -> None:
-    atom = _make_atom(source_quote="valid quote here")
+    atom = _make_atom(source_quotes=("valid quote here",))
     source_docs = [
         SourceDocumentContext(
             opaque_id="doc_1", text_content="Some long valid quote here in the text", display_name="Doc 1"
@@ -43,13 +43,13 @@ def test_process_atom_evaluation_with_atom_result_dto() -> None:
         strictness_level=100,
     )
 
-    assert result.source_quote == "valid quote here"
+    assert result.source_quotes == ("valid quote here",)
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning
 
 
 def test_process_atom_evaluation_with_inflected_quote_matching() -> None:
-    atom = _make_atom(source_quote="johtajuus ja selkeät tavoitteet")
+    atom = _make_atom(source_quotes=("johtajuus ja selkeät tavoitteet",))
     source_docs = [
         SourceDocumentContext(
             opaque_id="doc_1",
@@ -68,7 +68,7 @@ def test_process_atom_evaluation_with_inflected_quote_matching() -> None:
         strictness_level=50,
     )
 
-    assert result.source_quote == "johtajuus ja selkeät tavoitteet"
+    assert result.source_quotes == ("johtajuus ja selkeät tavoitteet",)
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning
 
@@ -79,7 +79,7 @@ def test_process_atom_evaluation_contextual_override_clears_quote() -> None:
         matrix_id="mat_1",
         status=ExecutionStatus.PASSED,
         extracted_data=None,
-        source_quote=None,
+        source_quotes=None,
         contextual_override=True,
         evaluation_reasoning="override active",
         error_details=None,
@@ -87,18 +87,18 @@ def test_process_atom_evaluation_contextual_override_clears_quote() -> None:
         depends_on_tda_ids=[],
         short_circuit_reason_tda_ids=[],
     )
-    assert atom.source_quote is None
+    assert atom.source_quotes is None
 
     result = AnchorValidationService.process_atom_evaluation(
         atom=atom,
         alias_map={},
         source_documents=[],
     )
-    assert result.source_quote is None
+    assert result.source_quotes is None
 
 
 def test_process_atom_evaluation_no_match_preserves_quote() -> None:
-    atom = _make_atom(source_quote="unmatched quote")
+    atom = _make_atom(source_quotes=("unmatched quote",))
     source_docs = [
         SourceDocumentContext(opaque_id="doc_1", text_content="Completely different text", display_name="Doc 1")
     ]
@@ -113,11 +113,11 @@ def test_process_atom_evaluation_no_match_preserves_quote() -> None:
         strictness_level=100,
     )
 
-    assert result.source_quote == "unmatched quote"
+    assert result.source_quotes == ("unmatched quote",)
 
 
 def test_process_atom_evaluation_mcp_source_match() -> None:
-    atom = _make_atom(source_quote="mcp matching quote")
+    atom = _make_atom(source_quotes=("mcp matching quote",))
     alias_map = {"a1": "doc_1"}
     mcp_texts = {"a1": "Here is the mcp matching quote for the test"}
 
@@ -130,16 +130,16 @@ def test_process_atom_evaluation_mcp_source_match() -> None:
         strictness_level=100,
     )
 
-    assert result.source_quote == "mcp matching quote"
+    assert result.source_quotes == ("mcp matching quote",)
 
 
 def test_process_atom_evaluation_none_source_quote_skips_matching() -> None:
-    atom = _make_atom(source_quote=None, contextual_override=True, evaluation_reasoning="a1 reason")
+    atom = _make_atom(source_quotes=None, contextual_override=True, evaluation_reasoning="a1 reason")
 
     result = AnchorValidationService.process_atom_evaluation(
         atom=atom, alias_map={"a1": "doc_1"}, source_documents=[], mcp_source_texts=None
     )
 
-    assert result.source_quote is None
+    assert result.source_quotes is None
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning

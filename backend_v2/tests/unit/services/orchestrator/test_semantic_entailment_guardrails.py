@@ -30,7 +30,7 @@ def _create_test_node(tda_id: str, claim: str) -> LinkedAtomGraph:
         tda_id=tda_id,
         reasoning="Test atom reasoning.",
         resolved_claim=claim,
-        source_quote="Initial quote anchor",
+        source_quotes=("Initial quote anchor",),
         is_logical_deduction=False,
         source_id="chunk_0",
         source_sequence_index=0,
@@ -57,7 +57,7 @@ async def test_positive_partition_declarative_affirmation_entails_claim() -> Non
         alias="a0",
         reasoning="Teksti toteaa nimenomaisesti kaksi erillistä toteutusvaihtoehtoa.",
         is_true=True,
-        source_quote=valid_quote,
+        source_quotes=(valid_quote,),
     )
     executor.execute_structured_task.return_value = (
         BatchEvaluationResponse(results=[mock_result]),
@@ -81,7 +81,7 @@ async def test_positive_partition_declarative_affirmation_entails_claim() -> Non
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
-        assert results[tda_id].source_quote == valid_quote
+        assert results[tda_id].source_quotes == (valid_quote,)
         assert "kaksi erillistä toteutusvaihtoehtoa" in str(results[tda_id].reasoning)
         assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
@@ -101,7 +101,7 @@ async def test_negative_partition_interrogative_inquiry_rejected_under_null_hypo
         alias="a0",
         reasoning="Avoin kysymys tai pohdinta ei osoita päätöstä tai vaihtoehtojen toteutumista.",
         is_true=False,
-        source_quote=None,
+        source_quotes=None,
     )
     executor.execute_structured_task.return_value = (
         BatchEvaluationResponse(results=[mock_result]),
@@ -125,7 +125,7 @@ async def test_negative_partition_interrogative_inquiry_rejected_under_null_hypo
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.FAILED
-        assert results[tda_id].source_quote is None
+        assert results[tda_id].source_quotes is None
         assert "pohdinta ei osoita" in str(results[tda_id].reasoning)
 
 
@@ -143,7 +143,7 @@ async def test_negative_partition_counterfactual_refuted_premise_rejected() -> N
         alias="a0",
         reasoning="Hypoteettinen ja hylätty vaihtoehto ei toteuta väitettä.",
         is_true=False,
-        source_quote=None,
+        source_quotes=None,
     )
     executor.execute_structured_task.return_value = (
         BatchEvaluationResponse(results=[mock_result]),
@@ -167,7 +167,7 @@ async def test_negative_partition_counterfactual_refuted_premise_rejected() -> N
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.FAILED
-        assert results[tda_id].source_quote is None
+        assert results[tda_id].source_quotes is None
 
 
 @pytest.mark.asyncio
@@ -184,7 +184,7 @@ async def test_negative_partition_inverse_evidence_refutes_defect_without_quote(
         alias="a0",
         reasoning="Teksti ei sisällä hätiköityä yleistystä, vaan perustuu kenttäkokeeseen.",
         is_true=False,
-        source_quote=None,
+        source_quotes=None,
     )
     executor.execute_structured_task.return_value = (
         BatchEvaluationResponse(results=[mock_result]),
@@ -219,7 +219,7 @@ async def test_negative_partition_inverse_evidence_refutes_defect_without_quote(
 
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
-        assert results[tda_id].source_quote is None
+        assert results[tda_id].source_quotes is None
 
 
 @pytest.mark.asyncio

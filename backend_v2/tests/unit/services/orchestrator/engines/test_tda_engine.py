@@ -295,7 +295,7 @@ async def test_tda_engine_typed_blackboard_success(
                                             draft_id="d1",
                                             reasoning="Reasoning step",
                                             resolved_claim="Claim",
-                                            source_quote="Quote",
+                                            source_quotes=("Quote",),
                                             source_sequence_index=0,
                                         )
                                     ]

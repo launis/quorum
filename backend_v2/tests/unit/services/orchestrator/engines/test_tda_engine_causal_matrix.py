@@ -366,7 +366,7 @@ async def test_istqb_partition_3_cyclic_graph_isolation(
             AtomResultDTO(
                 tda_id=id_c,
                 status=ExecutionStatus.PASSED,
-                source_quote="Direct factual observation verified in text.",
+                source_quotes=("Direct factual observation verified in text.",),
                 evaluation_reasoning="Independent node passed.",
                 depends_on_tda_ids=[],
                 short_circuit_reason_tda_ids=[],
@@ -528,7 +528,7 @@ async def test_istqb_partition_5_multi_parent_conflicting_dependencies(
             AtomResultDTO(
                 tda_id=id_a,
                 status=ExecutionStatus.PASSED,
-                source_quote="Found explicit statement A.",
+                source_quotes=("Found explicit statement A.",),
                 evaluation_reasoning="Passed.",
                 depends_on_tda_ids=[],
                 short_circuit_reason_tda_ids=[],

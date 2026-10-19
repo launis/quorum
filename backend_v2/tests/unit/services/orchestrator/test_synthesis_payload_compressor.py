@@ -418,7 +418,7 @@ def test_compress_synthesis_payload_with_hydrated_atom_dto_dict() -> None:
     atom_dto = HydratedAtomDTO(
         sdui_component="boolean_card",
         resolved_claim="Claim text for atom 1",
-        source_quote="Verbatim quote",
+        source_quotes=("Verbatim quote",),
     )
     payload: dict[str, HydratedAtomDTO] = {
         "tda_01b1d71000000001": atom_dto,

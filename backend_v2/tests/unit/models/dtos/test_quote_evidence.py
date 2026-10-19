@@ -204,4 +204,3 @@ def test_quote_evidence_dto_empty_string_resolves_none() -> None:
     """Test that empty string or whitespace resolves source_quotes to None."""
     dto = QuoteEvidenceDTO(source_quotes="   ")
     assert dto.source_quotes is None
-

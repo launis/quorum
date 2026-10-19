@@ -242,7 +242,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
         "tda_12345678901234567890123456789012": AtomResultDTO(
             tda_id="tda_12345678901234567890123456789012",
             status=ExecutionStatus.PASSED,
-            source_quote="Valid quote",
+            source_quotes=("Valid quote",),
             evaluation_reasoning="Valid reason",
         )
     }
@@ -475,7 +475,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
             payload=AtomResultDTO(
                 tda_id="tda_12345678901234567890123456789012",
                 status=ExecutionStatus.PASSED,
-                source_quote="Valid quote 1",
+                source_quotes=("Valid quote 1",),
                 evaluation_reasoning="Valid reason 1",
             ),
         ),
@@ -487,7 +487,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
                 AtomResultDTO(
                     tda_id="tda_99999999999999999999999999999999",
                     status=ExecutionStatus.PASSED,
-                    source_quote="Valid quote 2",
+                    source_quotes=("Valid quote 2",),
                     evaluation_reasoning="Valid reason 2",
                 )
             ],

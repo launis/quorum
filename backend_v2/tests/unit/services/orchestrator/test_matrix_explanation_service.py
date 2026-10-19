@@ -93,8 +93,10 @@ def _make_step_dtos(
                 }
                 if "evaluation_reasoning" in r:
                     atom_data["evaluation_reasoning"] = r["evaluation_reasoning"]
-                if "source_quote" in r:
-                    atom_data["source_quote"] = r["source_quote"]
+                if "source_quotes" in r:
+                    atom_data["source_quotes"] = r["source_quotes"]
+                elif "source_quote" in r:
+                    atom_data["source_quotes"] = r["source_quote"]
                 if "contextual_override" in r:
                     atom_data["contextual_override"] = r["contextual_override"]
                 if "is_inverse_evidence" in r:
@@ -132,7 +134,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
             "tda_id": "tda_00000000000000000000000000000001",
             "status": "PASSED",
             "evaluation_reasoning": "Reason",
-            "source_quote": "Quote A from source verbatim statement.",
+            "source_quotes": "Quote A from source verbatim statement.",
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -140,7 +142,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
             "tda_id": "tda_00000000000000000000000000000002",
             "status": "PASSED",
             "evaluation_reasoning": "Reason",
-            "source_quote": "Quote B from source verbatim statement.",
+            "source_quotes": "Quote B from source verbatim statement.",
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -202,7 +204,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
             "tda_id": "tda_00000000000000000000000000000001",
             "status": "PASSED",
             "evaluation_reasoning": "Reason",
-            "source_quote": None,
+            "source_quotes": None,
             "contextual_override": True,
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
@@ -237,7 +239,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                 "tda_id": "tda_00000000000000000000000000000001",
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": "Quote 1 from the first step output.",
+                "source_quotes": "Quote 1 from the first step output.",
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -252,7 +254,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
                 "tda_id": "tda_00000000000000000000000000000001",
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": "Quote 2 from the second step output.",
+                "source_quotes": "Quote 2 from the second step output.",
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -280,7 +282,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
             "tda_id": tda_id_1,
             "status": "FAILED",
             "evaluation_reasoning": "Reason",
-            "source_quote": None,
+            "source_quotes": None,
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -288,7 +290,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
             "tda_id": tda_id_3,
             "status": "N_A",
             "evaluation_reasoning": "Reason",
-            "source_quote": None,
+            "source_quotes": None,
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -389,7 +391,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 "tda_id": tda_a,
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": f"Alpha long verbatim quote sentence number {i}.",
+                "source_quotes": f"Alpha long verbatim quote sentence number {i}.",
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -399,7 +401,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 "tda_id": tda_b,
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": f"Beta long verbatim quote sentence number {i}.",
+                "source_quotes": f"Beta long verbatim quote sentence number {i}.",
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -476,7 +478,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 "tda_id": tda_a,
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": quote_a,
+                "source_quotes": quote_a,
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -486,7 +488,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 "tda_id": tda_b,
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": quote_b,
+                "source_quotes": quote_b,
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -583,7 +585,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     "tda_id": tda_id,
                     "status": "FAILED",
                     "evaluation_reasoning": "Reason",
-                    "source_quote": None,
+                    "source_quotes": None,
                     "depends_on_tda_ids": [],
                     "short_circuit_reason_tda_ids": [],
                 }
@@ -624,7 +626,7 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
             "tda_id": "tda_00000000000000000000000000000001",
             "status": "PASSED",
             "evaluation_reasoning": "Reason",
-            "source_quote": "yes",  # 3 chars < 15
+            "source_quotes": "yes",  # 3 chars < 15
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -632,7 +634,7 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
             "tda_id": "tda_00000000000000000000000000000002",
             "status": "PASSED",
             "evaluation_reasoning": "Reason",
-            "source_quote": "This is a sufficiently long valid quote from document.",
+            "source_quotes": "This is a sufficiently long valid quote from document.",
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         },
@@ -686,7 +688,7 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
             "tda_id": tda_id,
             "status": "FAILED",
             "evaluation_reasoning": "Reason",
-            "source_quote": None,
+            "source_quotes": None,
             "depends_on_tda_ids": [],
             "short_circuit_reason_tda_ids": [],
         }
@@ -780,7 +782,7 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
                 "tda_id": tda_id,
                 "status": "PASSED",
                 "evaluation_reasoning": "Reason",
-                "source_quote": f"Valid quote number {i} with sufficient character length.",
+                "source_quotes": f"Valid quote number {i} with sufficient character length.",
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -794,7 +796,7 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
                 "tda_id": tda_id,
                 "status": "FAILED",
                 "evaluation_reasoning": "Failed reason",
-                "source_quote": None,
+                "source_quotes": None,
                 "depends_on_tda_ids": [],
                 "short_circuit_reason_tda_ids": [],
             }
@@ -1048,7 +1050,7 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
                     tda_id=tda_id,
                     status=ExecutionStatus.FAILED,
                     reasoning="Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
-                    source_quote=None,
+                    source_quotes=None,
                     extracted_data=None,
                 )
             ],
@@ -1068,7 +1070,7 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
                     tda_id=tda_id,
                     status=ExecutionStatus.FAILED,
                     evaluation_reasoning="Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
-                    source_quote=None,
+                    source_quotes=None,
                 )
             ],
         ),

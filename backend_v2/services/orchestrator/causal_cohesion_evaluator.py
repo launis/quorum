@@ -212,7 +212,7 @@ class CausalCohesionEvaluator:
                     status=ExecutionStatus.PASSED,
                     contextual_override=True,
                     is_inverse_evidence=False,
-                    source_quote=None,
+                    source_quotes=None,
                     evaluation_reasoning=(
                         f"Topological causal cohesion score {audit.logical_cohesion_score:.2f} "
                         f"satisfies Level {level} threshold."
@@ -228,7 +228,7 @@ class CausalCohesionEvaluator:
                     status=ExecutionStatus.FAILED,
                     contextual_override=False,
                     is_inverse_evidence=False,
-                    source_quote=None,
+                    source_quotes=None,
                     evaluation_reasoning=(
                         f"Topological causal cohesion score {audit.logical_cohesion_score:.2f} "
                         f"does not satisfy Level {level} threshold."

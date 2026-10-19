@@ -72,4 +72,3 @@ def test_passed_atom_with_override_and_quote_fails_fast() -> None:
             source_quotes=("This quote should be ignored",),
             evaluation_reasoning="Because I said so",
         )
-

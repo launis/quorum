@@ -25,7 +25,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
                 tda_id="tda_0123456789abcdef",
                 resolved_claim="claim 1",
                 reasoning="reason 1",
-                source_quote="quote 1",
+                source_quotes=("quote 1",),
                 source_sequence_index=0,
             )
         ],
@@ -34,7 +34,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
                 tda_id="tda_0123456789abcde0",
                 resolved_claim="claim 2",
                 reasoning="reason 2",
-                source_quote="quote 2",
+                source_quotes=("quote 2",),
                 source_sequence_index=0,
             )
         ],
@@ -43,7 +43,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
                 tda_id="tda_0123456789abcde1",
                 resolved_claim="claim 3",
                 reasoning="reason 3",
-                source_quote="quote 3",
+                source_quotes=("quote 3",),
                 source_sequence_index=0,
             )
         ],
@@ -52,7 +52,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
                 tda_id="tda_0123456789abcde2",
                 resolved_claim="claim 4",
                 reasoning="reason 4",
-                source_quote="quote 4",
+                source_quotes=("quote 4",),
                 source_sequence_index=0,
             )
         ],
@@ -61,7 +61,7 @@ def test_sliding_window_linker_get_windows(monkeypatch: pytest.MonkeyPatch) -> N
                 tda_id="tda_0123456789abcde3",
                 resolved_claim="claim 5",
                 reasoning="reason 5",
-                source_quote="quote 5",
+                source_quotes=("quote 5",),
                 source_sequence_index=0,
             )
         ],
@@ -113,7 +113,7 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
                 tda_id="tda_0123456789abcdef",
                 resolved_claim="claim 1",
                 reasoning="reason 1",
-                source_quote="quote 1",
+                source_quotes=("quote 1",),
                 source_sequence_index=0,
             )
         ],
@@ -122,7 +122,7 @@ def test_sliding_window_linker_get_windows_small(monkeypatch: pytest.MonkeyPatch
                 tda_id="tda_0123456789abcde0",
                 resolved_claim="claim 2",
                 reasoning="reason 2",
-                source_quote="quote 2",
+                source_quotes=("quote 2",),
                 source_sequence_index=0,
             )
         ],
@@ -147,7 +147,7 @@ def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.M
             tda_id=f"tda_0000000{i}",
             resolved_claim=f"claim {i}",
             reasoning=f"reason {i}",
-            source_quote=f"quote {i}",
+            source_quotes=(f"quote {i}",),
             source_sequence_index=0,
         )
         for i in range(5)
@@ -222,7 +222,7 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
             tda_id="tda_00000000",
             resolved_claim="claim 0",
             reasoning="r0",
-            source_quote="q0",
+            source_quotes=("q0",),
             source_id="chunk_0",
             source_sequence_index=0,
         ),
@@ -230,7 +230,7 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
             tda_id="tda_11111111",
             resolved_claim="claim 1",
             reasoning="r1",
-            source_quote="q1",
+            source_quotes=("q1",),
             source_id="chunk_0",
             source_sequence_index=0,
         ),
@@ -327,7 +327,7 @@ async def test_link_graph_llm_failure_raises_app_exception(monkeypatch: pytest.M
             tda_id="tda_00000000",
             resolved_claim="claim 0",
             reasoning="r0",
-            source_quote="q0",
+            source_quotes=("q0",),
             source_sequence_index=0,
         )
     ]
@@ -382,7 +382,7 @@ async def test_sliding_window_linker_link_graph_without_semaphore() -> None:
             tda_id="tda_00000000",
             resolved_claim="claim 0",
             reasoning="r0",
-            source_quote="q0",
+            source_quotes=("q0",),
             source_sequence_index=0,
         )
     ]

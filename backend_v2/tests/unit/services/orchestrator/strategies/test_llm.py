@@ -2691,13 +2691,13 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
                         tda_id="atm_1",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Reasoning 1",
-                        source_quote="Quote 1",
+                        source_quotes="Quote 1",
                     ),
                     AtomResultDTO(
                         tda_id="atm_2",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Reasoning 2",
-                        source_quote="Quote 2",
+                        source_quotes="Quote 2",
                     ),
                 ]
             },
@@ -2737,7 +2737,7 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
                 tda_id="tda_direct_dto",
                 status=ExecutionStatus.PASSED,
                 evaluation_reasoning="Direct DTO",
-                source_quote="Quote",
+                source_quotes="Quote",
             ),
         },
         dynamic_inputs={

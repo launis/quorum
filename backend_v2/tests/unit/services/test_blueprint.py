@@ -2925,7 +2925,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                             "status": ExecutionStatus.PASSED,
                             "evaluation_reasoning": "Well done",
                             "contextual_override": False,
-                            "source_quote": "Found quote",
+                            "source_quotes": ["Found quote"],
                             "depends_on_tda_ids": [],
                             "short_circuit_reason_tda_ids": [],
                         }
@@ -2934,7 +2934,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                         "tda_00000000000000000000000000000000": {
                             "sdui_component": SDUIComponentType.BOOLEAN_CARD,
                             "resolved_claim": "Atom 1",
-                            "source_quote": "Found quote",
+                            "source_quotes": ["Found quote"],
                         }
                     },
                     "source_id": "mcp_00000000000000000000000000000001",
@@ -3250,14 +3250,14 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
                             "status": "PASSED",
                             "evaluation_reasoning": "Reason",
                             "contextual_override": False,
-                            "source_quote": "Found quote",
+                            "source_quotes": ["Found quote"],
                         }
                     ],
                     "hydrated_references": {
                         "tda_0000000000000001": {
                             "sdui_component": "boolean_card",
                             "resolved_claim": "Claim",
-                            "source_quote": "Found quote",
+                            "source_quotes": ["Found quote"],
                         }
                     },
                     "blk_0000000000000001": {"raw_score": 4.5},
@@ -3819,7 +3819,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     hydrated_dto = HydratedAtomDTO(
         sdui_component=SDUIComponentType.BOOLEAN_CARD,
         resolved_claim="Claim text",
-        source_quote="Quote text",
+        source_quotes=("Quote text",),
     )
     mock_repo_transformer.set_execution(
         ExecutionRecord(
@@ -3946,14 +3946,14 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
     atom_res = AtomResultDTO(
         tda_id="tda_00000000000000000000000000000001",
         status=ExecutionStatus.PASSED,
-        source_quote="sample quote",
+        source_quotes=("sample quote",),
         evaluation_reasoning="Passed valid reason",
     )
 
     hydrated_dto = HydratedAtomDTO(
         sdui_component=SDUIComponentType.BOOLEAN_CARD,
         resolved_claim="Claim text",
-        source_quote="sample quote",
+        source_quotes=("sample quote",),
     )
 
     exec_record = ExecutionRecord(

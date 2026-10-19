@@ -475,7 +475,9 @@
                                                                     {% if quote.verified_source_ids %}
                                                                         <span style="background-color: #e3f2fd; border: 1px solid #bbdefb; padding: 1px 4px; border-radius: 2px; font-size: 8px; font-weight: bold; color: #1565c0; margin-right: 4px;">{{ quote.verified_source_ids | join(', ') }}</span>
                                                                     {% endif %}
-                                                                    "{{ quote.quote }}"
+                                                                    {% if quote.source_quotes %}
+                                                                        "{{ quote.source_quotes | join(' [...] ') }}"
+                                                                    {% endif %}
                                                                 </div>
                                                             {% endfor %}
                                                         {% elif axis.allow_contextual_override and atom.contextual_override and (atom.status and (atom.status|string|lower).endswith('passed')) %}

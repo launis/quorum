@@ -11,6 +11,7 @@ from pydantic import JsonValue
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
@@ -244,7 +245,30 @@ async def _setup_mock_repo_for_metrics(
         "instruction_text": "You are an AI.",
         "category_id": "system_rule",
     }
-    mock_repo.set_prompt_blocks([pb_synth])
+    pb_target = {
+        "id": "blk_53f32679aa514fcb",
+        "slug": "matrix_goodhart",
+        "type": "float",
+        "label": {"translations": {"en": "Target Matrix"}},
+        "description": {"translations": {"en": "Desc"}},
+        "category_id": "matrix",
+        "scales": [
+            {
+                "score": 1,
+                "ai_label": "L1",
+            },
+            {
+                "score": 5,
+                "ai_label": "L5",
+            },
+        ],
+    }
+    mock_repo.set_prompt_blocks(
+        [
+            SystemRulePromptBlock.model_validate(pb_synth),
+            MatrixPromptBlock.model_validate(pb_target),
+        ]
+    )
 
     default_prof = {
         "id": "prof_1111111111111111",

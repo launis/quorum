@@ -91,7 +91,7 @@ def test_causal_cohesion_level_5_full_mastery(evaluator: CausalCohesionEvaluator
         assert atom.tda_id == CAUSAL_COHESION_TDA_IDS[level - 1]
         assert atom.matrix_id == settings.causal_cohesion_matrix_block_id
         assert atom.contextual_override is True
-        assert atom.source_quote is None
+        assert atom.source_quotes is None
         assert atom.evaluation_reasoning is not None and len(atom.evaluation_reasoning.strip()) > 0
 
     assert pytest.approx(result.score_result.score, 0.01) == 5.00
@@ -396,12 +396,12 @@ def test_causal_cohesion_cognitive_atom_validation(evaluator: CausalCohesionEval
         if atom.status == ExecutionStatus.PASSED:
             assert atom.contextual_override is True
             assert atom.is_inverse_evidence is False
-            assert atom.source_quote is None
+            assert atom.source_quotes is None
             assert atom.evaluation_reasoning is not None and len(atom.evaluation_reasoning.strip()) > 0
         elif atom.status == ExecutionStatus.FAILED:
             assert atom.contextual_override is False
             assert atom.is_inverse_evidence is False
-            assert atom.source_quote is None
+            assert atom.source_quotes is None
             assert atom.evaluation_reasoning is not None and len(atom.evaluation_reasoning.strip()) > 0
 
 
@@ -714,7 +714,7 @@ def test_causal_cohesion_algorithm_1_warrant_vs_node_failure(evaluator: CausalCo
     parent_node = CausalNodeDTO(
         node_id="tda_p000000000000001",
         claim="Valid premise assertion",
-        source_quote="Quote 1",
+        source_quotes=("Quote 1",),
         paragraph_ref="[B0]",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -723,7 +723,7 @@ def test_causal_cohesion_algorithm_1_warrant_vs_node_failure(evaluator: CausalCo
     child_node = CausalNodeDTO(
         node_id="tda_c000000000000002",
         claim="Dependent conclusion with ungrounded inferential leap",
-        source_quote="Quote 2",
+        source_quotes=("Quote 2",),
         paragraph_ref="[B1]",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_p000000000000001"],
@@ -755,7 +755,7 @@ def test_causal_cohesion_algorithm_1_cascading_node_failure(evaluator: CausalCoh
     parent_node = CausalNodeDTO(
         node_id="tda_p000000000000001",
         claim="Refuted premise assertion",
-        source_quote=None,
+        source_quotes=None,
         paragraph_ref="[B0]",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
@@ -764,7 +764,7 @@ def test_causal_cohesion_algorithm_1_cascading_node_failure(evaluator: CausalCoh
     child_node = CausalNodeDTO(
         node_id="tda_c000000000000002",
         claim="Dependent conclusion blocked by invalid parent premise",
-        source_quote="Quote 2",
+        source_quotes=("Quote 2",),
         paragraph_ref="[B1]",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_p000000000000001"],

@@ -13,7 +13,7 @@ def test_sdui_mapper_service_canonical_import_and_evidence_mapping() -> None:
     """Verify SduiMapperService functions correctly from canonical path."""
     mapper = SduiMapperService()
     evidence = QuoteEvidenceDTO.model_validate(
-        {"quote": "Direct quote from source.", "source_alias": "DOC-1"},
+        {"source_quotes": "Direct quote from source.", "source_alias": "DOC-1"},
         context={"alias_registry": {"DOC-1": "opaque_source_1"}},
     )
     card = mapper.map_evidence_to_sdui(evidence, lang="en")
@@ -26,7 +26,7 @@ def test_sdui_mapper_service_unverified_evidence_warning_card() -> None:
     """Verify unverified quote evidence maps to SduiWarningCard."""
     mapper = SduiMapperService()
     evidence = QuoteEvidenceDTO.model_validate(
-        {"quote": "Unverified claim.", "source_alias": "UNKNOWN-ALIAS"},
+        {"source_quotes": "Unverified claim.", "source_alias": "UNKNOWN-ALIAS"},
         context={"alias_registry": {"DOC-1": "opaque_source_1"}},
     )
     card = mapper.map_evidence_to_sdui(evidence, lang="en")

@@ -235,7 +235,7 @@ async def test_matrix_scoring_hook_happy_path_returns_typed_dto(matrix_setup: Ma
         tda_id=tda_id,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Candidate explicitly demonstrated alignment with vision.",
-        source_quote="Our five-year roadmap directly establishes this vision.",
+        source_quotes=("Our five-year roadmap directly establishes this vision.",),
     )
 
     raw_inputs: dict[str, JsonValue] = {"results": [atom_result]}
@@ -444,7 +444,7 @@ async def test_matrix_scoring_hook_contextual_override_without_emojis(matrix_set
         status=ExecutionStatus.PASSED,
         contextual_override=True,
         evaluation_reasoning="Implicit alignment verified via cross-departmental initiative context.",
-        source_quote=None,
+        source_quotes=None,
     )
 
     state = HookState(
@@ -467,9 +467,11 @@ async def test_matrix_scoring_hook_contextual_override_without_emojis(matrix_set
 
     # Ensure each quote contains [OVERRIDE] text and ZERO emoji characters
     for quote in quotes_list:
-        assert "[OVERRIDE]" in quote.quote
-        for emoji in ("📍", "💡", "⚠️", "🛠️"):
-            assert emoji not in quote.quote
+        assert quote.source_quotes is not None
+        for q_text in quote.source_quotes:
+            assert "[OVERRIDE]" in q_text
+            for emoji in ("📍", "💡", "⚠️", "🛠️"):
+                assert emoji not in q_text
 
 
 # ==============================================================================
@@ -786,7 +788,7 @@ async def test_matrix_scoring_hook_xai_extensions_and_unsupported_extension(matr
         tda_id=tda_id,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Evaluation complete.",
-        source_quote="Verbatim quote",
+        source_quotes=("Verbatim quote",),
         extensions={"coaching": "Executive coaching recommendation here."},
     )
 

@@ -387,7 +387,7 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
                     tda_id="tda_1",
                     status=LaxExecutionStatus.PASSED,
                     evaluation_reasoning="Claim was supported.",
-                    source_quote="Verbatim quote for tda_1.",
+                    source_quotes=("Verbatim quote for tda_1.",),
                     extensions={},
                     depends_on_tda_ids=[],
                     short_circuit_reason_tda_ids=[],
@@ -475,21 +475,19 @@ def test_source_document_packer_extended_coverage() -> None:
     assert "Model summary content" in packed_step
 
     # 4. JSON serialization error in StepOutputDTO payload
-    from unittest.mock import patch
+    circular_payload: list[object] = []
+    circular_payload.append(circular_payload)
 
     invalid_step = StepOutputDTO.model_construct(
         step_id="step_unserializable",
         block_id="blk_bad",
         data_type="matrix",
-        payload={"error": 1.0},
+        payload=circular_payload,
     )
-    with patch(
-        "backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer.json.dumps",
-        side_effect=TypeError("Circular reference detected"),
-    ):
-        with pytest.raises(AppException) as exc_info:
-            SourceDocumentPacker.pack(step_outputs=[invalid_step])
-        assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
+    with pytest.raises(AppException) as exc_info:
+        SourceDocumentPacker.pack(step_outputs=[invalid_step])
+    assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
+    assert "Circular reference detected" in str(exc_info.value)
 
 
 def test_source_document_packer_endorsed_deliverable_provenance() -> None:

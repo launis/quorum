@@ -67,4 +67,3 @@ def test_draft_extracted_atom_multi_segment_quotes_valid():
         source_sequence_index=0,
     )
     assert atom.source_quotes == ("Premise quote with sufficient length.", "Conclusion quote with sufficient length.")
-

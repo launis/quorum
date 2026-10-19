@@ -137,7 +137,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
         CausalNodeDTO(
             node_id="tda_0000000000000001",
             claim="Higher prices decrease customer demand.",
-            source_quote="When prices rose by 10%, volume dropped.",
+            source_quotes="When prices rose by 10%, volume dropped.",
             paragraph_ref="P1",
             status=ExecutionStatus.PASSED,
             blame_parent_ids=[],
@@ -146,7 +146,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
         CausalNodeDTO(
             node_id="tda_0000000000000002",
             claim="Lower demand reduces quarterly revenues.",
-            source_quote="Revenues contracted following the volume drop.",
+            source_quotes="Revenues contracted following the volume drop.",
             paragraph_ref="P2",
             status=ExecutionStatus.PASSED,
             blame_parent_ids=[],
@@ -155,7 +155,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
         CausalNodeDTO(
             node_id="tda_0000000000000003",
             claim="Supply chain costs offset revenue gains.",
-            source_quote="Freight rate surcharges erased margin gains.",
+            source_quotes="Freight rate surcharges erased margin gains.",
             paragraph_ref="P3",
             status=ExecutionStatus.FAILED,
             blame_parent_ids=[],
@@ -171,7 +171,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
         assert atom.atom_id == node.node_id
         assert atom.question == node.claim
         assert atom.anchor_target == node.paragraph_ref
-        assert atom.extraction_rule == node.source_quote
+        assert atom.extraction_rule == (" [...] ".join(node.source_quotes) if node.source_quotes else "")
         assert atom.depends_on == ()
         assert atom.acceptance_criteria == ()
         assert atom.anti_patterns == ()
@@ -199,7 +199,7 @@ def test_transform_causal_nodes_with_none_quote_transforms_cleanly() -> None:
     node = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Market share expanded without explicit source quote.",
-        source_quote=None,
+        source_quotes=None,
         paragraph_ref=None,
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -381,7 +381,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Discovered proposition 1",
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -390,7 +390,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Discovered proposition 2",
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -429,7 +429,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
                         tda_id="tda_0000000000000001",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Validly passed downstream TDA.",
-                        source_quote="Quote 1",
+                        source_quotes="Quote 1",
                         extensions={},
                         depends_on_tda_ids=[],
                         short_circuit_reason_tda_ids=[],
@@ -475,7 +475,7 @@ def test_fair_scoring_deduplication_applies_dampening() -> None:
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Root cause error",
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
@@ -484,7 +484,7 @@ def test_fair_scoring_deduplication_applies_dampening() -> None:
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Cascading secondary fault",
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -549,7 +549,7 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Fundamental assumption error",
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
@@ -558,7 +558,7 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Derivative projection 1",
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -567,7 +567,7 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
     node3 = CausalNodeDTO(
         node_id="tda_0000000000000003",
         claim="Derivative projection 2",
-        source_quote="Quote 3",
+        source_quotes="Quote 3",
         paragraph_ref="P3",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -602,7 +602,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     node1 = CausalNodeDTO(
         node_id="tda_0000000000000001",
         claim="Connected core premise",
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -611,7 +611,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     node2 = CausalNodeDTO(
         node_id="tda_0000000000000002",
         claim="Connected conclusion",
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=["tda_0000000000000001"],
@@ -620,7 +620,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     node3 = CausalNodeDTO(
         node_id="tda_0000000000000003",
         claim="Decorative non-sequitur assertion",
-        source_quote="Quote 3",
+        source_quotes="Quote 3",
         paragraph_ref="P3",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -692,7 +692,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
             CausalNodeDTO(
                 node_id="tda_0000000000000001",
                 claim="Autonomous claim",
-                source_quote="Quote",
+                source_quotes="Quote",
                 paragraph_ref="P1",
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
@@ -750,7 +750,7 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
         dependent_child_ids=["nod_2222333344445555"],
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         tda_score=2.0,
     )
@@ -760,7 +760,7 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         status=ExecutionStatus.PENDING,
         blame_parent_ids=["nod_1111222233334444"],
         dependent_child_ids=[],
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="P2",
         tda_score=3.0,
     )
@@ -770,7 +770,7 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         tda_id="nod_1111222233334444",
         matrix_id="mat_1111222233334444",
         status=ExecutionStatus.PASSED,
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         evaluation_reasoning="Valid claim verified",
         extracted_data=ExtractedValueDTO(value=4.8),
         extensions={},
@@ -1066,7 +1066,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
         dependent_child_ids=[],
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         tda_score=2.0,
     )
@@ -1097,7 +1097,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
                         tda_id="nod_1111222233334444",
                         matrix_id="mat_x",
                         status=ExecutionStatus.PASSED,
-                        source_quote="Quote 1",
+                        source_quotes="Quote 1",
                         evaluation_reasoning="Passed valid claim",
                         extracted_data=ExtractedValueDTO(value=4.5),
                         extensions={},
@@ -1401,7 +1401,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
         dependent_child_ids=[],
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="P1",
         tda_score=2.0,
     )
@@ -1411,7 +1411,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
         tda_id="nod_1111222233334444",
         matrix_id="mat_x",
         status=ExecutionStatus.PASSED,
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         evaluation_reasoning="Passed valid claim",
         extracted_data=ExtractedValueDTO(value=4.5),
         extensions={},
@@ -1797,7 +1797,7 @@ def _create_test_node(
     node_id: str,
     claim: str,
     *,
-    source_quote: str | None = None,
+    source_quotes: tuple[str, ...] | list[str] | str | None = None,
     paragraph_ref: str | None = None,
     status: ExecutionStatus = ExecutionStatus.PASSED,
     source_input_key: str | None = None,
@@ -1808,7 +1808,7 @@ def _create_test_node(
     return CausalNodeDTO(
         node_id=node_id,
         claim=claim,
-        source_quote=source_quote,
+        source_quotes=source_quotes,
         paragraph_ref=paragraph_ref,
         status=status,
         source_input_key=source_input_key,
@@ -1838,7 +1838,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
     node_d1 = _create_test_node(
         node_id="tda_d100000000000001",
         claim="Deliverable core claim 1",
-        source_quote="Quote 1",
+        source_quotes="Quote 1",
         paragraph_ref="[B0]",
         status=ExecutionStatus.PASSED,
         source_input_key="deliverable",
@@ -1846,7 +1846,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
     node_d2 = _create_test_node(
         node_id="tda_d200000000000002",
         claim="Deliverable core claim 2",
-        source_quote="Quote 2",
+        source_quotes="Quote 2",
         paragraph_ref="[B1]",
         status=ExecutionStatus.PASSED,
         source_input_key="deliverable",
@@ -1854,7 +1854,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
     node_chat = _create_test_node(
         node_id="tda_c100000000000003",
         claim="Isolated conversational claim",
-        source_quote="Quote 3",
+        source_quotes="Quote 3",
         paragraph_ref="[B2]",
         status=ExecutionStatus.PASSED,
         source_input_key="chat",
@@ -1897,7 +1897,7 @@ def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
     node_chat = _create_test_node(
         node_id="tda_c100000000000001",
         claim="Dialogue context assumption",
-        source_quote="Chat quote",
+        source_quotes="Chat quote",
         paragraph_ref="[B0]",
         status=ExecutionStatus.PASSED,
         source_input_key="chat",
@@ -1905,7 +1905,7 @@ def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
     node_deliv = _create_test_node(
         node_id="tda_d100000000000002",
         claim="Deliverable final recommendation",
-        source_quote="Deliverable quote",
+        source_quotes="Deliverable quote",
         paragraph_ref="[B1]",
         status=ExecutionStatus.PASSED,
         source_input_key="deliverable",
@@ -1953,7 +1953,7 @@ def test_causal_fusion_topological_denominator_dilution_prevention() -> None:
             _create_test_node(
                 node_id=nid,
                 claim=f"Deliverable claim {i}",
-                source_quote=f"Quote {i}",
+                source_quotes=f"Quote {i}",
                 paragraph_ref=f"[B{i}]",
                 status=ExecutionStatus.PASSED,
                 source_input_key="deliverable",
@@ -1975,7 +1975,7 @@ def test_causal_fusion_topological_denominator_dilution_prevention() -> None:
             _create_test_node(
                 node_id=nid,
                 claim=f"Chat message {i}",
-                source_quote=f"Chat quote {i}",
+                source_quotes=f"Chat quote {i}",
                 paragraph_ref=f"[B{10 + i}]",
                 status=ExecutionStatus.PASSED,
                 source_input_key="chat",
@@ -2013,7 +2013,7 @@ def test_causal_fusion_unflagged_inputs_positive_deliverable_resolution() -> Non
     node_report = _create_test_node(
         node_id="tda_rep000000000001",
         claim="Executive report claim",
-        source_quote="Report quote",
+        source_quotes="Report quote",
         paragraph_ref="[B0]",
         status=ExecutionStatus.PASSED,
         source_input_key="main_report",
@@ -2021,7 +2021,7 @@ def test_causal_fusion_unflagged_inputs_positive_deliverable_resolution() -> Non
     node_chat = _create_test_node(
         node_id="tda_cht000000000002",
         claim="Interview dialogue claim",
-        source_quote="Chat quote",
+        source_quotes="Chat quote",
         paragraph_ref="[B1]",
         status=ExecutionStatus.PASSED,
         source_input_key="interview_chat",
@@ -2029,7 +2029,7 @@ def test_causal_fusion_unflagged_inputs_positive_deliverable_resolution() -> Non
     node_brief = _create_test_node(
         node_id="tda_brf000000000003",
         claim="Task brief directive claim",
-        source_quote="Brief quote",
+        source_quotes="Brief quote",
         paragraph_ref="[B2]",
         status=ExecutionStatus.PASSED,
         source_input_key="task_brief",

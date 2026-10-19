@@ -63,7 +63,7 @@ class TestPhase1QuoteEvidenceDTORegex:
     def test_raw_string_single_doc(self) -> None:
         """Single DOC-X string is normalized to a single-element list."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Test quote", "source_alias": "DOC-1"},
+            {"source_quotes": "Test quote", "source_alias": "DOC-1"},
             context={"alias_registry": {}},
         )
         # Empty context resolves aliases to UNVERIFIED
@@ -72,7 +72,7 @@ class TestPhase1QuoteEvidenceDTORegex:
     def test_raw_string_multi_doc(self) -> None:
         """Concatenated 'DOC-1, DOC-2' string is split correctly."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Multi doc", "source_alias": "DOC-1, DOC-2"},
+            {"source_quotes": "Multi doc", "source_alias": "DOC-1, DOC-2"},
             context={"alias_registry": {"DOC-1": "id_1", "DOC-2": "id_2"}},
         )
         assert dto.verified_source_ids == ["id_1", "id_2"]
@@ -80,7 +80,7 @@ class TestPhase1QuoteEvidenceDTORegex:
     def test_list_with_embedded_doc_refs(self) -> None:
         """List items containing DOC-X patterns are extracted correctly."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Test", "source_alias": ["Some text DOC-3 here", "DOC-4"]},
+            {"source_quotes": "Test", "source_alias": ["Some text DOC-3 here", "DOC-4"]},
             context={"alias_registry": {"DOC-3": "id_3", "DOC-4": "id_4"}},
         )
         assert "id_3" in dto.verified_source_ids
@@ -89,7 +89,7 @@ class TestPhase1QuoteEvidenceDTORegex:
     def test_empty_string_raises(self) -> None:
         """Empty string produces empty regex match list."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "No alias", "source_alias": ""},
+            {"source_quotes": "No alias", "source_alias": ""},
             context={"alias_registry": {}},
         )
         # Empty string yields no DOC-X matches → empty list
@@ -99,7 +99,7 @@ class TestPhase1QuoteEvidenceDTORegex:
     def test_non_doc_string_passthrough(self) -> None:
         """A list item without DOC-X pattern passes through as-is."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Test", "source_alias": ["some_opaque_id"]},
+            {"source_quotes": "Test", "source_alias": ["some_opaque_id"]},
             context={"alias_registry": {}},
         )
         # Non DOC-X items pass through, then resolve to UNVERIFIED without context
@@ -113,7 +113,7 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
         """All DOC-X aliases are resolved via the alias_registry context."""
         registry = {"DOC-1": "opaque_abc", "DOC-2": "opaque_def"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Full resolution", "source_alias": ["DOC-1", "DOC-2"]},
+            {"source_quotes": "Full resolution", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
         assert dto.verified_source_ids == ["opaque_abc", "opaque_def"]
@@ -122,7 +122,7 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
         """Missing aliases map strictly to OpaqueID.UNVERIFIED."""
         registry = {"DOC-1": "opaque_abc"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Partial", "source_alias": ["DOC-1", "DOC-99"]},
+            {"source_quotes": "Partial", "source_alias": ["DOC-1", "DOC-99"]},
             context={"alias_registry": registry},
         )
         assert dto.verified_source_ids == ["opaque_abc"]
@@ -132,13 +132,13 @@ class TestPhase1QuoteEvidenceDTOAliasResolution:
         """Without context, resolution is blocked and raises RuntimeError."""
         with pytest.raises(RuntimeError, match="ValidationInfo.context is missing"):
             QuoteEvidenceDTO.model_validate(
-                {"quote": "No context", "source_alias": ["DOC-1"]},
+                {"source_quotes": "No context", "source_alias": ["DOC-1"]},
             )
 
     def test_empty_registry_all_unverified(self) -> None:
         """Empty registry means all aliases are unverified."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Empty registry", "source_alias": ["DOC-1", "DOC-2"]},
+            {"source_quotes": "Empty registry", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": {}},
         )
         assert dto.unverified_aliases == ["DOC-1", "DOC-2"]
@@ -194,7 +194,7 @@ class TestPhase3SduiMapperValidEvidence:
         # Use model_validate with context to simulate real pipeline resolution
         registry = {"DOC-1": "src_1", "DOC-2": "src_2"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "A real quote", "source_alias": ["DOC-1", "DOC-2"]},
+            {"source_quotes": "A real quote", "source_alias": ["DOC-1", "DOC-2"]},
             context={"alias_registry": registry},
         )
         result = SduiMapperService().map_evidence_to_sdui(dto)
@@ -206,7 +206,7 @@ class TestPhase3SduiMapperValidEvidence:
     def test_empty_alias_list_yields_quote_card(self) -> None:
         """Empty alias list (no sources) still produces a quote card, not a warning."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "No sources", "source_alias": []},
+            {"source_quotes": "No sources", "source_alias": []},
             context={"alias_registry": {}},
         )
         result = SduiMapperService().map_evidence_to_sdui(dto)
@@ -219,7 +219,7 @@ class TestPhase3SduiMapperHallucinatedEvidence:
     def test_single_unverified_yields_warning_card(self) -> None:
         """A single OpaqueID.UNVERIFIED produces a SduiWarningCard."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Hallucinated quote", "source_alias": ["OpaqueID.UNVERIFIED"]},
+            {"source_quotes": "Hallucinated quote", "source_alias": ["OpaqueID.UNVERIFIED"]},
             context={"alias_registry": {}},
         )
         result = SduiMapperService().map_evidence_to_sdui(dto)
@@ -229,7 +229,7 @@ class TestPhase3SduiMapperHallucinatedEvidence:
     def test_mixed_valid_and_unverified_yields_warning(self) -> None:
         """Even one OpaqueID.UNVERIFIED among valid aliases triggers warning."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Mixed sources", "source_alias": ["valid_id_1", "OpaqueID.UNVERIFIED", "valid_id_2"]},
+            {"source_quotes": "Mixed sources", "source_alias": ["valid_id_1", "OpaqueID.UNVERIFIED", "valid_id_2"]},
             context={"alias_registry": {}},
         )
         result = SduiMapperService().map_evidence_to_sdui(dto)
@@ -240,7 +240,7 @@ class TestPhase3SduiMapperHallucinatedEvidence:
     def test_rfc7807_dual_reporting_logging(self, caplog: pytest.LogCaptureFixture) -> None:
         """RFC 7807 mandates logger.error on hallucinated alias detection."""
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Logging test", "source_alias": ["OpaqueID.UNVERIFIED"]},
+            {"source_quotes": "Logging test", "source_alias": ["OpaqueID.UNVERIFIED"]},
             context={"alias_registry": {}},
         )
         with caplog.at_level(logging.WARNING):
@@ -307,7 +307,7 @@ class TestCrossPhaseIntegration:
         """End-to-end: DOC string → DTO → resolved alias → SduiQuoteCard."""
         registry = {"DOC-1": "opaque_abc123", "DOC-2": "opaque_def456"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "This is verified evidence.", "source_alias": "DOC-1, DOC-2"},
+            {"source_quotes": "This is verified evidence.", "source_alias": "DOC-1, DOC-2"},
             context={"alias_registry": registry},
         )
         # Phase 1 output: resolved aliases
@@ -323,7 +323,7 @@ class TestCrossPhaseIntegration:
         """End-to-end: DOC with missing alias → DTO → OpaqueID.UNVERIFIED → SduiWarningCard."""
         registry = {"DOC-1": "opaque_abc123"}
         dto = QuoteEvidenceDTO.model_validate(
-            {"quote": "Hallucinated evidence.", "source_alias": "DOC-1, DOC-99"},
+            {"source_quotes": "Hallucinated evidence.", "source_alias": "DOC-1, DOC-99"},
             context={"alias_registry": registry},
         )
         # Phase 1 output: one resolved, one unverified
@@ -339,11 +339,11 @@ class TestCrossPhaseIntegration:
         registry = {"DOC-1": "id_1", "DOC-2": "id_2"}
         quotes = [
             QuoteEvidenceDTO.model_validate(
-                {"quote": "Valid", "source_alias": ["DOC-1"]},
+                {"source_quotes": "Valid", "source_alias": ["DOC-1"]},
                 context={"alias_registry": registry},
             ),
             QuoteEvidenceDTO.model_validate(
-                {"quote": "Invalid", "source_alias": ["DOC-99"]},
+                {"source_quotes": "Invalid", "source_alias": ["DOC-99"]},
                 context={"alias_registry": registry},
             ),
         ]

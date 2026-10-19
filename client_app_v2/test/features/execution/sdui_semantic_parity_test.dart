@@ -131,6 +131,8 @@ void main() {
       dumpFile.writeAsStringSync(jsonEncode(extractedTokens));
     } finally {
       semanticsHandle.dispose();
+      await tester.pumpWidget(const SizedBox());
+      ErrorWidget.builder = originalErrorBuilder;
     }
   });
 }

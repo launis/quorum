@@ -204,7 +204,7 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
         reasoning="Test reasoning",
         resolved_claim="Test claim",
         is_logical_deduction=False,
-        source_quote="Paragraph one is substantive and provides context.",
+        source_quotes=("Paragraph one is substantive and provides context.",),
         source_sequence_index=0,
     )
 
@@ -275,7 +275,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
         reasoning="Test",
         resolved_claim="Test",
         is_logical_deduction=False,
-        source_quote="Valid long input text with more than fifty characters for analysis.",
+        source_quotes=("Valid long input text with more than fifty characters for analysis.",),
         source_sequence_index=0,
     )
 
@@ -433,7 +433,7 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
         reasoning="Test reasoning",
         resolved_claim="Test claim",
         is_logical_deduction=False,
-        source_quote="Olen toiminut tiiminvetäjänä viisi vuotta ja kehittänyt useita järjestelmiä",
+        source_quotes=("Olen toiminut tiiminvetäjänä viisi vuotta ja kehittänyt useita järjestelmiä",),
         source_sequence_index=0,
     )
 
@@ -610,7 +610,7 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
         reasoning="Test",
         resolved_claim="Test",
         is_logical_deduction=False,
-        source_quote="Unique paragraph one.",
+        source_quotes=("Unique paragraph one.",),
         source_sequence_index=0,
     )
 

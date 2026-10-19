@@ -40,7 +40,7 @@ def _build_sample_fusion_result() -> CausalTdaFusionResultDTO:
     node1 = CausalNodeDTO(
         node_id="atm_01",
         claim="Foundational architecture assumption holds true.",
-        source_quote="Foundational verified quote.",
+        source_quotes=("Foundational verified quote.",),
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
@@ -51,7 +51,7 @@ def _build_sample_fusion_result() -> CausalTdaFusionResultDTO:
     node2 = CausalNodeDTO(
         node_id="atm_02",
         claim="Downstream interface verification.",
-        source_quote="Interface failure quote.",
+        source_quotes=("Interface failure quote.",),
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["atm_01"],
@@ -248,7 +248,7 @@ def test_causal_graph_adapter_no_critical_nodes_falls_back_to_all_nodes() -> Non
     node = CausalNodeDTO(
         node_id="atm_clean",
         claim="Clean proposition.",
-        source_quote="Clean quote.",
+        source_quotes=("Clean quote.",),
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],

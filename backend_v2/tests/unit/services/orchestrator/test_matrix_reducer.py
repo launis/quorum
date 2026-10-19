@@ -57,7 +57,7 @@ def test_reduce_matrix() -> None:
     atom_passed = AtomResultDTO(
         tda_id="tda_11111111111111111111111111111111",
         status=ExecutionStatus.PASSED,
-        source_quote="Passed quote",
+        source_quotes=("Passed quote",),
         evaluation_reasoning="Passed without data",
     )
 
@@ -70,7 +70,7 @@ def test_reduce_matrix() -> None:
     atom_pass_with_data = AtomResultDTO(
         tda_id="tda_33333333333333333333333333333333",
         status=ExecutionStatus.PASSED,
-        source_quote="Data quote",
+        source_quotes=("Data quote",),
         extracted_data=ExtractedValueDTO(value="1M", unit="EUR"),
         evaluation_reasoning="Passed with extracted data",
     )
@@ -126,9 +126,9 @@ def test_reduce_matrix() -> None:
 
     # Verify source_quote extraction
     passed_data_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_33333333333333333333333333333333")
-    assert passed_data_atom.source_quote == "Data quote"
+    assert passed_data_atom.source_quotes == ("Data quote",)
     failed_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_22222222222222222222222222222222")
-    assert failed_atom.source_quote is None
+    assert failed_atom.source_quotes is None
 
     assert reduced.execution_id == "exe_12345678901234567890123456789012"
     assert reduced.global_metrics["total_atoms"] == 4
@@ -164,7 +164,7 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     atom_1 = AtomResultDTO(
         tda_id="tda_11111111111111111111111111111111",
         status=ExecutionStatus.PASSED,
-        source_quote="Valid quote",
+        source_quotes=("Valid quote",),
         evaluation_reasoning="Passed reasoning",
     )
     atom_2 = AtomResultDTO(
@@ -175,7 +175,7 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     atom_3 = AtomResultDTO(
         tda_id="tda_33333333333333333333333333333333",
         status=ExecutionStatus.PASSED,
-        source_quote="Data quote",
+        source_quotes=("Data quote",),
         evaluation_reasoning="Passed with quantitative data",
         extracted_data=ExtractedValueDTO(value="100", unit="EUR"),
     )
@@ -232,7 +232,7 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
     atom_in_list = AtomResultDTO(
         tda_id="tda_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         status=ExecutionStatus.PASSED,
-        source_quote="Direct list quote",
+        source_quotes=("Direct list quote",),
         extracted_data=ExtractedValueDTO(value="42", unit="pts"),
         evaluation_reasoning="Passed in direct list payload",
     )

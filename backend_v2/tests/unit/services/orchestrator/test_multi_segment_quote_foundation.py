@@ -111,13 +111,13 @@ def test_gate_match_result_dto_boolean_coercion() -> None:
 
 def test_quote_evidence_dto_get_quotes_with_quote() -> None:
     """Positive: Populated quote returns 1-tuple of stripped quote."""
-    dto = QuoteEvidenceDTO(quote="A valid evidence quote.")
+    dto = QuoteEvidenceDTO(source_quotes="A valid evidence quote.")
     assert dto.get_quotes() == ("A valid evidence quote.",)
 
 
 def test_quote_evidence_dto_get_quotes_empty_or_none() -> None:
     """Boundary: Whitespace-only quote returns empty tuple."""
-    dto_whitespace = QuoteEvidenceDTO(quote="   ")
+    dto_whitespace = QuoteEvidenceDTO(source_quotes="   ")
     assert dto_whitespace.get_quotes() == ()
 
 

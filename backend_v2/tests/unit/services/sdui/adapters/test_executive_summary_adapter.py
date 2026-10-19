@@ -589,7 +589,7 @@ def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
     node = CausalNodeDTO(
         node_id="atm_01",
         claim="Claim 1",
-        source_quote="Quote 1",
+        source_quotes=("Quote 1",),
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],

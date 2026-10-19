@@ -30,8 +30,6 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
-from scripts.diff_executions import get_all_evals
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +246,9 @@ def load_physical_execution_items(
     Raises:
         FileNotFoundError: If any explicitly provided trace file does not exist.
     """
+    from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+    from scripts.diff_executions import get_all_evals
+
     traces_map = trace_paths_by_case or DEFAULT_PRODUCTION_TRACES
     seed_meta = load_seed_atom_metadata(seed_path)
     items: list[AuditManifestItemDTO] = []

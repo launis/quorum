@@ -54,7 +54,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="test text",
+            source_quotes=("test text",),
             source_id="src",
             source_sequence_index=0,
         ),
@@ -80,7 +80,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
                 "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="OK",
-                    source_quote="test text",
+                    source_quotes=("test text",),
                     extensions={},
                 )
             },
@@ -125,7 +125,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="test text",
+            source_quotes=("test text",),
             source_id="src",
             source_sequence_index=0,
         ),
@@ -168,7 +168,7 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
                     "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
                         status=ExecutionStatus.PASSED,
                         reasoning="OK",
-                        source_quote="test text",
+                        source_quotes=("test text",),
                         extensions={},
                     )
                 },
@@ -201,7 +201,7 @@ async def test_execute_graph_callback_persistent_error(
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="test text",
+            source_quotes=("test text",),
             source_id="src",
             source_sequence_index=0,
         ),
@@ -257,7 +257,7 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
             tda_id="tda_11111111111111111111111111111111",
             reasoning="reason",
             resolved_claim="claim",
-            source_quote="test text",
+            source_quotes=("test text",),
             source_id="src",
             source_sequence_index=0,
         ),

@@ -169,7 +169,7 @@ def test_build_compiled_prompt_with_assertions() -> None:
             tda_id="tda_11111111",
             resolved_claim="This is not used because assertion exists.",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -213,7 +213,7 @@ def test_build_compiled_prompt_fallback_claim() -> None:
             tda_id="tda_22222222",
             resolved_claim="Fallback claim text.",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -255,7 +255,7 @@ def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
             tda_id="tda_11111111",
             resolved_claim="Claim text.",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -284,7 +284,7 @@ def test_build_compiled_prompt_with_inverse_assertion() -> None:
             tda_id="tda_33333333",
             resolved_claim="Claim",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -317,7 +317,7 @@ def test_build_compiled_prompt_with_dependencies_and_status_map() -> None:
             tda_id="tda_33333333",
             resolved_claim="Child claim.",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -369,7 +369,7 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
             tda_id=tda_id,
             resolved_claim="Claim",
             reasoning="Reasoning",
-            source_quote="Quote",
+            source_quotes="Quote",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -396,7 +396,7 @@ def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_local
             tda_id="tda_11111111",
             resolved_claim="Claim",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -436,7 +436,7 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
             tda_id=tda_user,
             resolved_claim="User requirements",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -446,7 +446,7 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
             tda_id=tda_ai,
             resolved_claim="AI accuracy",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_2",
             source_sequence_index=2,
         ),
@@ -492,7 +492,7 @@ def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -
             tda_id="tda_99999999",
             resolved_claim="Claim text.",
             reasoning="R",
-            source_quote="Q",
+            source_quotes="Q",
             source_id="chk_1",
             source_sequence_index=1,
         ),
@@ -542,7 +542,7 @@ def test_build_compiled_prompt_polyfactory_cdata_encapsulation() -> None:
     matrix_ctx = MatrixEvaluationContextFactory.build(matrix_assertions=[flat_atom])
 
     atom = ExtractedAtomFactory.build(
-        tda_id=atom_id, resolved_claim="Resolved", is_logical_deduction=True, source_quote=None
+        tda_id=atom_id, resolved_claim="Resolved", is_logical_deduction=True, source_quotes=None
     )
     node = LinkedAtomGraphFactory.build(atom=atom)
 

@@ -96,7 +96,7 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     assert len(result) == 2
     assert isinstance(result[0], ExtractedAtom)
     assert result[0].resolved_claim == "Claim1"
-    assert result[0].source_quote == "chunk1"
+    assert result[0].source_quotes == ("chunk1",)
     assert result[0].source_id == "chunk_0"
     assert result[0].tda_id.startswith("tda_")
     assert len(result[0].tda_id) == 12
@@ -148,7 +148,7 @@ async def test_execute_phase_1_drafts(mock_executor, mock_client, settings_mock)
 
     assert len(result.atoms) == 2
     assert result.atoms[0].is_logical_deduction is True
-    assert result.atoms[1].source_quote == "Content of B0"
+    assert result.atoms[1].source_quotes == ("Content of B0",)
     assert usage.total_tokens == 125
     assert len(progress_calls) == 1
 
@@ -477,4 +477,4 @@ async def test_extract_atoms_from_chunk_outside_packet_dropped_with_warning(mock
 
     assert len(result) == 1
     assert result[0].resolved_claim == "Claim in packet"
-    assert result[0].source_quote == "valid text"
+    assert result[0].source_quotes == ("valid text",)

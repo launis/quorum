@@ -297,7 +297,11 @@ class SynthesisPayloadCompressor:
                     if "exact_quotes" in ev:
                         eval_dict["exact_quotes"] = ev["exact_quotes"]
                     elif "source_quotes" in ev and ev["source_quotes"]:
-                        eval_dict["exact_quotes"] = list(ev["source_quotes"])
+                        raw_sq = ev["source_quotes"]
+                        if isinstance(raw_sq, (list, tuple)):
+                            eval_dict["exact_quotes"] = [str(item) for item in raw_sq]
+                        elif isinstance(raw_sq, str) and raw_sq.strip():
+                            eval_dict["exact_quotes"] = [raw_sq.strip()]
                     if "semantic_reasoning" in ev:
                         eval_dict["semantic_reasoning"] = ev["semantic_reasoning"]
                     elif "output_text" in ev:

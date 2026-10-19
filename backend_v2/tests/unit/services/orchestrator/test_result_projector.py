@@ -17,7 +17,7 @@ def test_result_projector_logical_deduction_crash():
         reasoning="Test",
         resolved_claim="Test Claim",
         is_logical_deduction=True,
-        source_quote=None,
+        source_quotes=None,
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -32,7 +32,7 @@ def test_result_projector_logical_deduction_crash():
     assert isinstance(projected, ProjectedResultsDTO)
     assert len(projected.results) == 1
     assert projected.results[0].contextual_override is True
-    assert projected.results[0].source_quote is None
+    assert projected.results[0].source_quotes is None
 
 
 def test_result_projector_injects_matrix_id():
@@ -42,7 +42,7 @@ def test_result_projector_injects_matrix_id():
         reasoning="Test",
         resolved_claim="Claim",
         is_logical_deduction=False,
-        source_quote="Quote",
+        source_quotes=("Quote",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -63,7 +63,7 @@ def test_result_projector_topological_sort_with_dependencies():
         reasoning="Parent reasoning",
         resolved_claim="Parent Claim",
         is_logical_deduction=False,
-        source_quote="Parent quote",
+        source_quotes=("Parent quote",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -72,7 +72,7 @@ def test_result_projector_topological_sort_with_dependencies():
         reasoning="Child reasoning",
         resolved_claim="Child Claim",
         is_logical_deduction=False,
-        source_quote="Child quote",
+        source_quotes=("Child quote",),
         source_id="chunk_0",
         source_sequence_index=1,
     )
@@ -108,7 +108,7 @@ def test_result_projector_system_error_and_na_cards():
         reasoning="Error node",
         resolved_claim="Error Claim",
         is_logical_deduction=False,
-        source_quote="Error quote",
+        source_quotes=("Error quote",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -117,7 +117,7 @@ def test_result_projector_system_error_and_na_cards():
         reasoning="NA node",
         resolved_claim="NA Claim",
         is_logical_deduction=False,
-        source_quote="NA quote",
+        source_quotes=("NA quote",),
         source_id="chunk_0",
         source_sequence_index=1,
     )
@@ -156,7 +156,7 @@ def test_result_projector_missing_reasoning_fails_fast():
         reasoning="Reason",
         resolved_claim="Claim",
         is_logical_deduction=False,
-        source_quote="Quote",
+        source_quotes=("Quote",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -175,14 +175,14 @@ def test_result_projector_missing_reasoning_fails_fast():
 
 
 def test_result_projector_inverse_evidence_passed():
-    """Positive: assert projecting a passed inverse atom yields source_quote=None, contextual_override=False, and is_inverse_evidence=True."""
+    """Positive: assert projecting a passed inverse atom yields source_quotes=None, contextual_override=False, and is_inverse_evidence=True."""
     atom = ExtractedAtom(
         tda_id="tda_1111aaaa",
         reasoning="Testing inverse pass",
         resolved_claim="Candidate does not display hostility",
         is_logical_deduction=False,
         is_inverse=True,
-        source_quote=None,
+        source_quotes=None,
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -198,7 +198,7 @@ def test_result_projector_inverse_evidence_passed():
     assert isinstance(projected, ProjectedResultsDTO)
     assert len(projected.results) == 1
     assert projected.results[0].status == ExecutionStatus.PASSED
-    assert projected.results[0].source_quote is None
+    assert projected.results[0].source_quotes is None
     assert projected.results[0].contextual_override is False
     assert projected.results[0].is_inverse_evidence is True
 
@@ -211,7 +211,7 @@ def test_result_projector_non_inverse_missing_quote_override():
         resolved_claim="Logical deduction claim",
         is_logical_deduction=True,
         is_inverse=False,
-        source_quote=None,
+        source_quotes=None,
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -227,20 +227,20 @@ def test_result_projector_non_inverse_missing_quote_override():
     assert isinstance(projected, ProjectedResultsDTO)
     assert len(projected.results) == 1
     assert projected.results[0].status == ExecutionStatus.PASSED
-    assert projected.results[0].source_quote is None
+    assert projected.results[0].source_quotes is None
     assert projected.results[0].contextual_override is True
     assert projected.results[0].is_inverse_evidence is False
 
 
 def test_result_projector_inverse_evidence_failed():
-    """Negative Partition 2: assert failed atom projection yields source_quote=None, contextual_override=False, and is_inverse_evidence=False regardless of whether claim was inverse."""
+    """Negative Partition 2: assert failed atom projection yields source_quotes=None, contextual_override=False, and is_inverse_evidence=False regardless of whether claim was inverse."""
     atom = ExtractedAtom(
         tda_id="tda_3333cccc",
         reasoning="Testing inverse failure",
         resolved_claim="Candidate does not display hostility",
         is_logical_deduction=False,
         is_inverse=True,
-        source_quote=None,
+        source_quotes=None,
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -256,7 +256,7 @@ def test_result_projector_inverse_evidence_failed():
     assert isinstance(projected, ProjectedResultsDTO)
     assert len(projected.results) == 1
     assert projected.results[0].status == ExecutionStatus.FAILED
-    assert projected.results[0].source_quote is None
+    assert projected.results[0].source_quotes is None
     assert projected.results[0].contextual_override is False
     assert projected.results[0].is_inverse_evidence is False
 
@@ -269,7 +269,7 @@ def test_result_projector_project_matrix_results():
         reasoning="Valid claim reasoning",
         resolved_claim="Active listening displayed",
         is_logical_deduction=False,
-        source_quote="I hear you clearly",
+        source_quotes=("I hear you clearly",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -278,7 +278,7 @@ def test_result_projector_project_matrix_results():
         tda_id=tda_id,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Verified in chunk 0.",
-        source_quote="I hear you clearly",
+        source_quotes=("I hear you clearly",),
         extensions={XaiExtensionType.COACHING: "Good pacing."},
     )
 
@@ -341,7 +341,7 @@ def test_result_projector_external_edge_and_missing_context() -> None:
         reasoning="Child reasoning",
         resolved_claim="Child Claim",
         is_logical_deduction=False,
-        source_quote="Quote",
+        source_quotes=("Quote",),
         source_id="chunk_0",
         source_sequence_index=0,
     )
@@ -363,7 +363,7 @@ def test_result_projector_external_edge_and_missing_context() -> None:
         reasoning="Sys error",
         resolved_claim="Sys Claim",
         is_logical_deduction=False,
-        source_quote="Error quote",
+        source_quotes=("Error quote",),
         source_id="chunk_0",
         source_sequence_index=1,
     )

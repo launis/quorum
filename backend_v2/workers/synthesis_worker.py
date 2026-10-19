@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from enum import Enum
 from typing import Any
 
 from pydantic import ValidationError
@@ -524,11 +525,19 @@ async def generate_profile_synthesis_and_pdf_task(
         user_role_val: str | None = None
         user_role_just: str | None = None
         exec_dto = exec_reduction.exec_dto
+        if exec_dto is not None and exec_dto.user_role is not None:
+            user_role_val = (
+                exec_dto.user_role.value if isinstance(exec_dto.user_role, Enum) else str(exec_dto.user_role)
+            )
+            user_role_just = exec_dto.user_role_justification
         if active_profile_dto and active_profile_dto.user_role_target_block:
-            user_role_val, user_role_just = extract_user_role_from_trace(
+            role_from_trace, just_from_trace = extract_user_role_from_trace(
                 execution=execution,
                 role_target_block_id=active_profile_dto.user_role_target_block,
             )
+            if role_from_trace is not None:
+                user_role_val = role_from_trace
+                user_role_just = just_from_trace
 
         cited_sources: list[str] = []
         if exec_dto is not None and exec_dto.cited_sources:

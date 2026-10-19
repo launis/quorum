@@ -14,7 +14,7 @@ from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 def test_map_evidence_to_sdui_verified() -> None:
     mapper = SduiMapperService()
     evidence = QuoteEvidenceDTO.model_validate(
-        {"quote": "Verified quote.", "source_alias": "DOC-1"},
+        {"source_quotes": "Verified quote.", "source_alias": "DOC-1"},
         context={"alias_registry": {"DOC-1": "opaque_1"}},
     )
     result = mapper.map_evidence_to_sdui(evidence)
@@ -26,7 +26,7 @@ def test_map_evidence_to_sdui_verified() -> None:
 def test_map_evidence_to_sdui_unverified() -> None:
     mapper = SduiMapperService()
     evidence = QuoteEvidenceDTO.model_validate(
-        {"quote": "Unverified quote.", "source_alias": "DOC-99"},
+        {"source_quotes": "Unverified quote.", "source_alias": "DOC-99"},
         context={"alias_registry": {"DOC-1": "opaque_1"}},
     )
     result = mapper.map_evidence_to_sdui(evidence, lang="en")
