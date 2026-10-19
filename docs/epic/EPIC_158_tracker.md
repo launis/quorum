@@ -76,7 +76,7 @@
 
 ### Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
   - [ ] Step 4.0: Strategic alignment check and baseline verification
   - [ ] Step 4.1: Add `default_lexical_strictness_level` to `Workflow` domain model and Studio DTOs
@@ -316,6 +316,14 @@
   - Expanded ISTQB boundary and negative test suite in `test_anchor_validation_service.py` to 49 test cases covering monotonic order, inverted order failure, distance bounding failure, cross-document chimeras, multi-segment floor, candidate $s_1$ iteration, MCP texts, and branch fallbacks.
   - Passed Universal Quality Gate with strict AST mode (`backend_audit_loop.py backend_v2/services/orchestrator/anchor_validation_service.py backend_v2/models/prompts/execution/matrix_evaluation.py --test --ast-strict`): 10/10 quality gates clean, 49 unit tests passed with 93% line coverage on `anchor_validation_service.py` and 100% on `matrix_evaluation.py`, 0 fatal AST guardrail violations, and 0 residual debt ceiling violations.
 - Completed Tier 8 Red-Team Audit for Phase 3 (`red_team_audit_phase3_plan.md`): 100% of requirements REQ-158-016 through REQ-158-019 verified on disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, and global backend completion gate passed with 5,616 tests and 97.78% coverage.
+- Completed Tier 0 Research & Red-Team analysis for Phase 4 (`04_phase4_plan.md`):
+  - Synthesized and injected 5-Column Architectural Directives Table across all 9 target scopes and boundaries into `04_phase4_plan.md`.
+  - Audited and locked exact AST line bounds spanning complete `ClassDef` and `FunctionDef` nodes (`workflow.py#L25-L208`, `studio.py#L89-L138`, `studio.py#L579-L608`, `workflow_service.py#L40-L672`, `settings.py#L985-L1006`, `execution_worker.py#L75-L538`, `dag_executor.py#L597-L1794`, `extractive_sensor_service.py#L175-L728`, `anchor_validation_service.py#L25-L836`, and `seed_data.json#L20538-L21331`).
+  - Added Step 0 Pre-Implementation Cleanups targeting discovered technical debt: eliminating inline ternary fallback expressions per QGR016, parameterizing hardcoded strictness constants into SSOT thresholds in `settings.py`, and updating Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`) to transit `default_lexical_strictness_level` without loss.
+  - Resolved seed vault target discrepancy: verified exactly 3 active workflows in `seed_data.json#L20538-L21331` (`wf_9d68c573802341db`, `wf_a8f1d71000000001`, `wf_b9e2d71000000002`) and targeted them with zero prompt text mutation.
+  - Enforced full bidirectional parity (MBD008) ensuring every Column 1 target has a matching action tag in the execution protocol.
+  - Added ISTQB boundary value analysis and negative test contracts ($s < 0, s > 100$) and threshold scaling tests in `test_settings_lexical_thresholds.py`, `test_execution_worker.py`, and `test_anchor_validation_service.py`.
+  - Passed both `audit_markdown_boundaries.py` and `audit_planner_output.py` with 100% compliance.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -326,14 +334,19 @@
 - `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. Module-level constant files without class or function definitions (specifically: `matrix_evaluation.py`) must be referenced without `#L` line numbers to satisfy `MBD004`.
 - In `scripts/_ast_guardrails.py`, `QGR023` flags any `tuple[int, int]` type annotation as an anonymous state tuple. Encapsulating segment boundaries inside `GateMatchResultDTO` replaces primitive coordinates with named properties (`start_idx`, `end_idx`), fulfilling `ban_anonymous_state_tuples` and passing `QGR023`.
 - `audit_warning_baseline.py` enforces a monotonic ratchet of 0 for Census T (`type-ignore` annotations in `backend_v2/tests`). Writing `# type: ignore` in test files causes Gate 9 failure; tests must use typed signatures without inline suppressions.
-- Natural-language prompt constants in `backend_v2/models/prompts/` (e.g., `matrix_evaluation.py`) can exceed 120 characters per line. Adding these modules to `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml` ensures alignment between isolated docstring checks and global lint passes.
+- Natural-language prompt constants in `backend_v2/models/prompts/` (specifically: `matrix_evaluation.py`) can exceed 120 characters per line. Adding these modules to `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml` ensures alignment between isolated docstring checks and global lint passes.
+- In `seed_data.json`, lines 20538-21331 contain exactly 3 active workflow objects (`wf_9d68c573802341db`, `wf_a8f1d71000000001`, `wf_b9e2d71000000002`). Updating seed documentation to reference these 3 explicit IDs instead of an ambiguous "8 workflows" eliminates domain guessing while respecting the Prompt Preservation Mandate.
+- In `backend_v2/settings.py`, `get_lexical_fuzz_threshold(locale, lexical_strictness_level)` is the sole mathematical SSOT for lexical verification thresholds (Free 70%, Normal 82%, Strict 88%, Zero-Trust 95%). Gate 5 Snowball stemming enablement is strictly controlled by `lexical_strictness_level < 85`, fully decoupled from scoring dampening exponent $\zeta_{score}$.
+- `WorkflowCreateDTO` and `WorkflowUpdateDTO` in `backend_v2/models/dtos/studio.py` lacked `default_lexical_strictness_level`, which would cause Studio workflow updates to drop the setting on roundtrip. Extending both DTOs with `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` guarantees full-duplex CRUD parity.
 
 ## Remaining
-- Perform Tier 0 Research & Red-Teaming on Phase 4 Plan via `/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
-- Implement Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2).
+- Implement Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2) via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Complete Phase 4 audit via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Proceed to Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
+
 
