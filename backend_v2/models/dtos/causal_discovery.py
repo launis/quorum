@@ -103,7 +103,10 @@ class CausalGraphPayloadDTO(V2CoreBase):
         list[str],
         Field(
             default_factory=list,
-            description="List of serialized edge IDs ('source_id->target_id') failing warrant grounding or precondition validation.",
+            description=(
+                "List of serialized edge IDs ('source_id->target_id') failing warrant grounding "
+                "or precondition validation."
+            ),
         ),
     ]
 
@@ -156,7 +159,9 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
         LaxCausalRootCauseType,
         Field(
             default=CausalRootCauseType.NODE_FAILURE,
-            description="Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch.",
+            description=(
+                "Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch."
+            ),
         ),
     ] = CausalRootCauseType.NODE_FAILURE
 

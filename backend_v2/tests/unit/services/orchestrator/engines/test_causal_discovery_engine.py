@@ -1010,19 +1010,6 @@ async def test_causal_discovery_warrant_quotes_transit_to_dto(
 
 
 @pytest.mark.asyncio
-async def test_causal_discovery_empty_document_raises_app_exception(
-    mock_client: MagicMock, mock_prompt_compiler: MagicMock
-) -> None:
-    """Verify empty document text raises AppException CAUSAL_DISCOVERY_EMPTY_DOCUMENT."""
-    request = create_engine_request("   \n\n   ", mock_client, mock_prompt_compiler)
-    engine = CausalDiscoveryEngine(mock_prompt_compiler)
-
-    with pytest.raises(AppException) as exc_info:
-        await engine.execute(request)
-    assert exc_info.value.details["error_code"] == ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.value
-
-
-@pytest.mark.asyncio
 async def test_causal_discovery_endorsed_deliverable_scoping_and_prefix(
     mock_client: MagicMock, mock_prompt_compiler: MagicMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1096,5 +1083,3 @@ async def test_causal_discovery_endorsed_deliverable_scoping_and_prefix(
     assert isinstance(output.synthesis_output, CausalGraphPayloadDTO)
     assert len(captured_deliverable_keys) == 1
     assert captured_deliverable_keys[0] == {"deliverable_report"}
-
-

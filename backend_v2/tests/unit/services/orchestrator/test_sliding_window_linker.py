@@ -186,10 +186,6 @@ def test_sliding_window_linker_subdivides_oversized_chunks(monkeypatch: pytest.M
     assert windows[2][0][0].tda_id == "tda_00000004"
 
 
-from backend_v2.models.enums import ExecutionStatus
-from backend_v2.services.orchestrator.sliding_window_linker import LinkerResponseDTO
-
-
 def test_linker_response_dto_schema_no_dicts() -> None:
     payload = {
         "dependencies": [
@@ -222,7 +218,6 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
     """Test that a hallucinated alias from the LLM is gracefully dropped without crashing."""
     from unittest.mock import AsyncMock
 
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
     from backend_v2.services.orchestrator.sliding_window_linker import LinkerDependencyDTO, LinkerEdgeDTO
 
     class MockSettings(MockLinkerSettings):
@@ -309,8 +304,6 @@ async def test_link_graph_empty_atoms() -> None:
     """Test that link_graph with empty atoms returns immediately with 0 usage."""
     from unittest.mock import AsyncMock
 
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
-
     linker = SlidingWindowLinker()
     mock_executor = AsyncMock()
     mock_client = AsyncMock()
@@ -329,7 +322,6 @@ async def test_link_graph_llm_failure_raises_app_exception(monkeypatch: pytest.M
     from unittest.mock import AsyncMock
 
     from backend_v2.exceptions import AppException, ErrorCodes
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 
     class MockSettings(MockLinkerSettings):
         pass
@@ -388,7 +380,6 @@ async def test_sliding_window_linker_link_graph_without_semaphore() -> None:
     """Test that link_graph executes successfully without semaphore arguments."""
     from unittest.mock import AsyncMock
 
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap, LinkedAtomGraph
     from backend_v2.services.orchestrator.sliding_window_linker import LinkerResponseDTO
 
     linker = SlidingWindowLinker(window_size=2, overlap=1)
@@ -427,8 +418,6 @@ async def test_sliding_window_linker_link_graph_rejects_unexpected_semaphore_kwa
     """Test that link_graph rejects deprecated semaphore keyword argument fail-fast."""
     import asyncio
     from unittest.mock import AsyncMock
-
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 
     linker = SlidingWindowLinker()
     mock_executor = AsyncMock()
@@ -615,8 +604,6 @@ def test_sliding_window_linker_full_capacity_window(monkeypatch: pytest.MonkeyPa
 async def test_sliding_window_linker_warrant_quotes_transit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify structured LLM response with warrant_quotes transits cleanly into CausalEdge.warrant_quotes."""
     from unittest.mock import AsyncMock
-
-    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 
     settings = MockLinkerSettings()
     monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)

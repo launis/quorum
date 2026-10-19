@@ -136,8 +136,9 @@ class ExtractedAtom(BaseModel):
             Self: The validated model instance.
 
         Raises:
-            ValueError: If source_quotes is present on a logical deduction or inverse claim, or missing on an empirical claim,
-                        or contains segments under 30 characters when m > 1, or exceeds 3 segments, or segment > 500 chars.
+            ValueError: If source_quotes is present on a logical deduction or inverse claim,
+                or missing on an empirical claim, or contains segments under 30 characters
+                when m > 1, or exceeds 3 segments, or segment > 500 chars.
         """
         if (self.is_logical_deduction or self.is_inverse) and self.source_quotes is not None:
             raise ValueError("source_quotes must be None if is_logical_deduction or is_inverse is True.")

@@ -99,7 +99,7 @@
   - [x] Step 5.4: Implement Algorithm 1 dual fault attribution separating warrant grounding failures
   - [x] Step 5.5: Expand causal linker and cohesion scoring test suites
 - [x] **[OK] Test Coverage Assertions:** Universal Quality Gate passed with 100% clean check across all 10 gates. 53 unit tests passing across sliding window linker, causal cohesion scoring, and causal discovery engine. Strict 90% TDD line coverage achieved across all targets (sliding_window_linker.py 90%, causal_cohesion_evaluator.py 90%, settings.py 90%, dag_models.py 90%, causal_discovery.py 90%, causal_discovery_engine.py 90%). 0 fatal AST guardrail violations (QGR016, QGR023 resolved), 0 residual debt ceiling violations, 365 clean imports, and 100% full-duplex DTO parity (52/52 models aligned between Python and Flutter Freezed code).
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Post-Implementation Red-Team Audit (`red_team_audit_phase5_plan.md`): 100% of requirements REQ-158-026 through REQ-158-030 verified on disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, 54 unit tests passing, and global backend completion gate passed.
 
 ### Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3)
 - **Plan:** @[docs/epic/tasks_EPIC_158/06_phase6_plan.md]
@@ -269,11 +269,11 @@
 | **REQ-158-023** | Calibrate settings lexical threshold resolution function | Phase 4, Step 4 | IMPLEMENTED |
 | **REQ-158-024** | Transit decoupled lexical strictness in execution worker and DAG executor | Phase 4, Step 5 | IMPLEMENTED |
 | **REQ-158-025** | Expand worker and anchor validation test suites verifying morphological calibration | Phase 4, Step 6 | IMPLEMENTED |
-| **REQ-158-026** | Configure linker settings and budget capacity limits in `settings.py` | Phase 5, Step 1 | PENDING |
-| **REQ-158-027** | Implement bounded deliverable root axiom header injection with dynamic quota allocation | Phase 5, Step 2 | PENDING |
-| **REQ-158-028** | Support multi-segment Toulmin warrants in causal edge records | Phase 5, Step 3 | PENDING |
-| **REQ-158-029** | Implement Algorithm 1 dual fault attribution separating warrant grounding failures | Phase 5, Step 4 | PENDING |
-| **REQ-158-030** | Expand causal linker and cohesion scoring test suites | Phase 5, Step 5 | PENDING |
+| **REQ-158-026** | Configure linker settings and budget capacity limits in `settings.py` | Phase 5, Step 1 | IMPLEMENTED |
+| **REQ-158-027** | Implement bounded deliverable root axiom header injection with dynamic quota allocation | Phase 5, Step 2 | IMPLEMENTED |
+| **REQ-158-028** | Support multi-segment Toulmin warrants in causal edge records | Phase 5, Step 3 | IMPLEMENTED |
+| **REQ-158-029** | Implement Algorithm 1 dual fault attribution separating warrant grounding failures | Phase 5, Step 4 | IMPLEMENTED |
+| **REQ-158-030** | Expand causal linker and cohesion scoring test suites | Phase 5, Step 5 | IMPLEMENTED |
 | **REQ-158-031** | Synchronize tabular export streaming services for CSV and Excel formats | Phase 6, Step 1 | PENDING |
 | **REQ-158-032** | Update SDUI highlights and printable sources adapters | Phase 6, Step 2 | PENDING |
 | **REQ-158-033** | Remediate Jinja2 PDF template evidence quote emission | Phase 6, Step 3 | PENDING |
@@ -359,6 +359,12 @@
   - Implemented Algorithm 1 dual fault attribution in `CausalCohesionEvaluator.diagnose_root_causes`, distinguishing `WARRANT_GROUNDING_FAILURE` from `NODE_FAILURE` and formatting warrant quote details into diagnostic explanations.
   - Implemented all 7 ISTQB test contracts across `test_sliding_window_linker.py` and `test_causal_cohesion_scoring.py`, and added coverage tests to `test_causal_discovery_engine.py`, achieving 100% pass across 53 unit tests.
   - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`): 10/10 quality gates clean, strict 90% TDD line coverage across all 6 target modules, 0 fatal AST guardrails, 0 residual debt ceiling violations, and clean imports.
+- Completed Tier 8 Red-Team Audit for Phase 5 (`red_team_audit_phase5_plan.md`):
+  - Verified 100% of requirements REQ-158-026 through REQ-158-030 on physical disk with exact AST bounds.
+  - Zero orphan requirements, zero AST violations, zero supply chain violations.
+  - Clean full-duplex DTO parity (52/52 models).
+  - Executed Five-Axis System 2 Adversarial As-Built Evaluation and 5-Column Architectural Verification Table.
+  - Global backend completion gate passed 10/10 stages with 365 clean imports.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -384,12 +390,12 @@
 - `StrategyContext` enforces `ConfigDict(frozen=True)`. Tests configuring `expected_inputs` must inject them during construction via `create_engine_request` rather than mutating `request.context` post-instantiation.
 
 ## Remaining
-- Perform Tier 8 Red-Team Audit on Phase 5 (`05_phase5_plan.md`): `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Research and Red-Team Phase 6 Plan (`06_phase6_plan.md`): `/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Execute Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/05_phase5_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 
