@@ -445,10 +445,7 @@ def test_anchor_validation_multi_segment_ordered_monotonic_success() -> None:
 
 def test_anchor_validation_inverted_segment_order_raises_semantic_error() -> None:
     """Error-path ISTQB test: tuple of 2 segments where segment 2 precedes segment 1 in source text."""
-    pdf_text = (
-        "Ensimmäinen lause esitetään tässä järjestyksessä. "
-        "Toinen lause tulee vasta tämän jälkeen tekstissä."
-    )
+    pdf_text = "Ensimmäinen lause esitetään tässä järjestyksessä. Toinen lause tulee vasta tämän jälkeen tekstissä."
     seg1 = "Ensimmäinen lause esitetään tässä järjestyksessä."
     seg2 = "Toinen lause tulee vasta tämän jälkeen tekstissä."
 
@@ -494,10 +491,7 @@ def test_anchor_validation_cross_document_chimera_raises_semantic_error() -> Non
 
 def test_anchor_validation_multi_segment_floor_under_30_chars_raises_semantic_error() -> None:
     """Boundary ISTQB test: multi-segment citation with one segment under 30 characters raises SemanticEvidenceError."""
-    pdf_text = (
-        "Tämä on ensimmäinen riittävän pitkä lause dokumentissa. "
-        "Lyhyt lause täällä."
-    )
+    pdf_text = "Tämä on ensimmäinen riittävän pitkä lause dokumentissa. Lyhyt lause täällä."
     seg1 = "Tämä on ensimmäinen riittävän pitkä lause dokumentissa."  # 55 chars (>= 30)
     seg2 = "Lyhyt lause täällä."  # 19 chars (< 30)
     assert len(seg1) >= 30
@@ -515,10 +509,7 @@ def test_anchor_validation_candidate_s1_iteration_repeated_phrase_success() -> N
     seg1 = "Toistuva johdantolause esiintyy tässä dokumentin alussa useasti."
     seg2 = "Vasta toisen esiintymän jälkeen saavutetaan toinen tärkeä lause."
     intervening_filler = "Pitkää analyyttistä väliosaa tekstiä. " * 35  # ~1330 characters
-    pdf_text = (
-        f"{seg1} {intervening_filler} "
-        f"{seg1} Lyhyt väliosa tähän. {seg2}"
-    )
+    pdf_text = f"{seg1} {intervening_filler} {seg1} Lyhyt väliosa tähän. {seg2}"
     assert len(seg1) >= 30
     assert len(seg2) >= 30
 
@@ -750,9 +741,7 @@ def test_anchor_validation_validate_evidence_edge_cases() -> None:
         "</ai_context_directive>"
     )
     seg_fuzzy = "Tämä on ensimmäinen lause direktiivissä riittävän pitkänä tekstina."
-    res_fuzzy = AnchorValidationService.validate_evidence(
-        fuzzy_directive, (seg_fuzzy,), strictness_level=50
-    )
+    res_fuzzy = AnchorValidationService.validate_evidence(fuzzy_directive, (seg_fuzzy,), strictness_level=50)
     assert res_fuzzy is not None
 
     # Line 659-660: candidate s1 where subsequent segment is not found after first occurrence

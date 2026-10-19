@@ -72,7 +72,7 @@
   - [x] Step 3.4: Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences
   - [x] Step 3.5: Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py`
 - [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 93% line coverage on `anchor_validation_service.py` (49 passed, 0 failures) and 100% on `matrix_evaluation.py` (4 passed, 0 failures), 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and clean DTO parity.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/04_phase4_plan.md]
@@ -315,6 +315,7 @@
   - Updated `<evidence_extraction_mandate>` in `matrix_evaluation.py` instructing foundational models on 1–3 non-contiguous sentence segments in `source_quotes` with unbroken character substrings, single-document boundaries, and zero banned ambiguities.
   - Expanded ISTQB boundary and negative test suite in `test_anchor_validation_service.py` to 49 test cases covering monotonic order, inverted order failure, distance bounding failure, cross-document chimeras, multi-segment floor, candidate $s_1$ iteration, MCP texts, and branch fallbacks.
   - Passed Universal Quality Gate with strict AST mode (`backend_audit_loop.py backend_v2/services/orchestrator/anchor_validation_service.py backend_v2/models/prompts/execution/matrix_evaluation.py --test --ast-strict`): 10/10 quality gates clean, 49 unit tests passed with 93% line coverage on `anchor_validation_service.py` and 100% on `matrix_evaluation.py`, 0 fatal AST guardrail violations, and 0 residual debt ceiling violations.
+- Completed Tier 8 Red-Team Audit for Phase 3 (`red_team_audit_phase3_plan.md`): 100% of requirements REQ-158-016 through REQ-158-019 verified on disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, and global backend completion gate passed with 5,616 tests and 97.78% coverage.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -325,12 +326,14 @@
 - `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. Module-level constant files without class or function definitions (specifically: `matrix_evaluation.py`) must be referenced without `#L` line numbers to satisfy `MBD004`.
 - In `scripts/_ast_guardrails.py`, `QGR023` flags any `tuple[int, int]` type annotation as an anonymous state tuple. Encapsulating segment boundaries inside `GateMatchResultDTO` replaces primitive coordinates with named properties (`start_idx`, `end_idx`), fulfilling `ban_anonymous_state_tuples` and passing `QGR023`.
 - `audit_warning_baseline.py` enforces a monotonic ratchet of 0 for Census T (`type-ignore` annotations in `backend_v2/tests`). Writing `# type: ignore` in test files causes Gate 9 failure; tests must use typed signatures without inline suppressions.
+- Natural-language prompt constants in `backend_v2/models/prompts/` (e.g., `matrix_evaluation.py`) can exceed 120 characters per line. Adding these modules to `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml` ensures alignment between isolated docstring checks and global lint passes.
 
 ## Remaining
-- Execute Tier 8 Red-Team Audit for Phase 3 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Perform Tier 0 Research & Red-Teaming on Phase 4 Plan via `/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Implement Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
+
