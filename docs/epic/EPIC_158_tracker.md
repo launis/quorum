@@ -63,13 +63,14 @@
 
 ### Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/03_phase3_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 3.0: Strategic alignment check and baseline verification
+  - [ ] Step 3.0: Strategic alignment check and pre-implementation technical debt cleanups
   - [ ] Step 3.1: Enhance coordinate normalization and strict matching for multi-segment tuples
   - [ ] Step 3.2: Implement forward-scan search, monotonic ordering, and single-document buffer isolation in `AnchorValidationService`
-  - [ ] Step 3.3: Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences
-  - [ ] Step 3.4: Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py`
+  - [ ] Step 3.3: Enforce single-document buffer isolation in atom processing
+  - [ ] Step 3.4: Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences
+  - [ ] Step 3.5: Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py`
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
@@ -305,16 +306,20 @@
 - Passed full strict backend audit loop (`backend_audit_loop.py backend_v2/models/ --test --ast-strict`): 10/10 quality gates passed, 810 unit tests passed, 96.15% TDD line coverage, 0 fatal AST guardrail violations, 0 residual debt ceiling violations, and clean DTO parity.
 - Passed full Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) with 0 errors.
 - Completed Tier 8 Red-Team Audit for Phase 2 (`red_team_audit_phase2_plan.md`): 100% of requirements REQ-158-011 through REQ-158-015 verified, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, and clean full-duplex DTO parity.
+- Completed Tier 0 Research & Red-Team analysis for Phase 3 (`03_phase3_plan.md`): hardened plan with 5-column directives table, Pre-Implementation Technical Debt Cleanups (parameter typing, immutable tuple return, explicit magic number constants), candidate $s_1$ anchor iteration, single-document buffer boundary isolation, and comprehensive ISTQB test contracts.
 
 ## Learned
-- In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions like `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''` trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
+- In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
 - `audit_dto_parity.py` compares `WorkflowResponseDTO` with `Workflow` in `workflow.dart`. When `default_lexical_strictness_level` is present on Flutter's `Workflow`, backend `Workflow` must define `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` to maintain full-duplex DTO parity.
 - In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
+- In `AnchorValidationService`, when $q_1$ repeats earlier in a document preamble, greedy single-pass forward-scan causes false rejection of valid evidence downstream. Implementing candidate $s_1$ anchor iteration ensures that subsequent occurrences of $q_1$ are evaluated within the $[s_1, s_1 + 1\,000]$ window.
+- In `AnchorValidationService.process_atom_evaluation`, independent per-segment document matching creates cross-document chimera vulnerabilities where segment 1 matches document A and segment 2 matches document B. Multi-segment citations must be validated cohesively against each candidate document context, requiring all segments to resolve monotonically within the same single source document buffer.
+- `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. Module-level constant files without class or function definitions (specifically: `matrix_evaluation.py`) must be referenced without `#L` line numbers to satisfy `MBD004`.
 
 ## Remaining
-- Proceed through Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2).
+- Execute Phase 3 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
