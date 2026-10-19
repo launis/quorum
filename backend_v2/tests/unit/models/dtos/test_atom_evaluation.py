@@ -97,3 +97,77 @@ def test_raw_xai_extension_dto_rejects_extra() -> None:
     """Verify RawXAIExtensionDTO extra fields are forbidden."""
     with pytest.raises(ValidationError):
         RawXAIExtensionDTO.model_validate({"id": "ext_1", "forbidden_prop": 999})
+
+
+def test_reasoning_step_dto_rejects_extra() -> None:
+    """Verify ReasoningStepDTO rejects unexpected extra fields."""
+    with pytest.raises(ValidationError):
+        ReasoningStepDTO.model_validate(
+            {
+                "step_1_identify_premise": "Premise",
+                "step_2_scan_source": "Source",
+                "step_3_evaluate_anti_patterns": "None",
+                "step_4_final_conclusion": "Conclusion",
+                "unauthorized_field": "illegal",
+            }
+        )
+
+
+def test_reasoning_step_dto_rejects_missing_required() -> None:
+    """Verify ReasoningStepDTO rejects missing required premise."""
+    with pytest.raises(ValidationError):
+        ReasoningStepDTO.model_validate(
+            {
+                "step_2_scan_source": "Source",
+                "step_3_evaluate_anti_patterns": "None",
+                "step_4_final_conclusion": "Conclusion",
+            }
+        )
+
+
+def test_reduced_atom_dto_rejects_extra() -> None:
+    """Verify ReducedAtomDTO rejects unauthorized extra fields."""
+    with pytest.raises(ValidationError):
+        ReducedAtomDTO.model_validate(
+            {
+                "tda_id": "atm_1",
+                "status": "PASSED",
+                "unexpected_prop": "error",
+            }
+        )
+
+
+def test_reduced_atom_dto_rejects_invalid_status() -> None:
+    """Verify ReducedAtomDTO rejects unknown execution status."""
+    with pytest.raises(ValidationError):
+        ReducedAtomDTO.model_validate(
+            {
+                "tda_id": "atm_1",
+                "status": "NON_EXISTENT_STATUS",
+            }
+        )
+
+
+def test_lightweight_matrix_dto_rejects_extra() -> None:
+    """Verify LightweightMatrixDTO rejects unauthorized extra fields."""
+    with pytest.raises(ValidationError):
+        LightweightMatrixDTO.model_validate(
+            {
+                "execution_id": "exe_1",
+                "reduced_atoms": [],
+                "global_metrics": {},
+                "extra_key": "forbidden",
+            }
+        )
+
+
+def test_lightweight_matrix_dto_rejects_missing_execution_id() -> None:
+    """Verify LightweightMatrixDTO rejects missing execution_id."""
+    with pytest.raises(ValidationError):
+        LightweightMatrixDTO.model_validate(
+            {
+                "reduced_atoms": [],
+                "global_metrics": {},
+            }
+        )
+
