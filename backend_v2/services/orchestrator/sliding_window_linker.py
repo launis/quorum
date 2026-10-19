@@ -39,6 +39,7 @@ __all__ = [
     "LinkerDependencyDTO",
     "LinkerEdgeDTO",
     "LinkerResponseDTO",
+    "RootAxiomRankDTO",
     "SlidingWindowLinker",
     "WindowCausalEdgesDTO",
 ]
