@@ -25,7 +25,7 @@ void main() {
             'tda_id': 'node_1',
             'status': 'PASSED',
             'extracted_data': {'value': 42.0, 'unit': 'kg'},
-            'source_quote': 'It is 42 kg',
+            'source_quotes': ['It is 42 kg'],
             'contextual_override': false,
             'evaluation_reasoning': 'Matches exactly',
             'depends_on_tda_ids': [],
@@ -36,7 +36,7 @@ void main() {
           'node_1': {
             'sdui_component': 'extracted_value_card',
             'resolved_claim': 'The weight',
-            'source_quote': 'It is 42 kg',
+            'source_quotes': ['It is 42 kg'],
           },
         },
       };

@@ -553,3 +553,73 @@ def test_printable_sources_rules_export() -> None:
     )
     assert "popper" in PRINTABLE_SOURCES_RULES.theory_evidence_map
     assert PRINTABLE_SOURCES_RULES.default_tool.display_name_en == "External Information Retrieval Gateway"
+
+
+def test_sdui_printable_sources_multi_segment_provenance(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """Contract: PrintableSourcesAdapter rendering evidence quotes with source_quotes=('Clause A', 'Clause B') includes 'Clause A [...] Clause B'."""
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+    from backend_v2.models.enums import VisualIntent
+
+    atom = ScorecardAtomDTO(
+        atom_id="atm_0123456789abcdef",
+        level=1,
+        level_name="Level 1",
+        claim_label="Claim",
+        extracted_facts={},
+        exact_quotes=[
+            QuoteEvidenceDTO(
+                source_quotes=("Clause A", "Clause B"),
+                verified_source_ids=["src_0"],
+            )
+        ],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="p1",
+            step_2_scan_source="s1",
+            step_3_evaluate_anti_patterns="a1",
+            step_4_final_conclusion="c1",
+        ),
+        status="PASSED",
+        semantic_reasoning="Reasoning",
+        contextual_override=False,
+        structural_location=None,
+        chart_display_label="A1",
+        visual_intent=VisualIntent.SUCCESS,
+    )
+    matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Test Matrix",
+        label_i18n=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
+        is_evaluative=True,
+        allow_contextual_override=False,
+        level_names={"1": "Level 1"},
+        level_breakdown={"1": "1/1"},
+        evaluated_atoms=[atom],
+        row_explanation="Explanation",
+        ui_plot_ratio=1.0,
+        score_display_label="100%",
+    )
+    profile_cache = RenderedSynthesisCache(
+        cited_sources=["Popper, K. (1959). The Logic of Scientific Discovery."],
+        section_syntheses={},
+    )
+    ctx = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        mcp_tools_map={},
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=profile_cache,
+        parsed_matrices={"blk_0123456789abcdef": matrix},
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PrintableSourcesAdapter.build(ctx)
+    assert len(blocks) == 1
+    assert "Clause A [...] Clause B" in blocks[0].text
+

@@ -3781,6 +3781,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metaStrictness => 'Strictness';
 
   @override
+  String get metaLexicalStrictness => 'Lexical Strictness';
+
+  @override
   String get metaCost => 'Cost';
 
   @override
@@ -5079,6 +5082,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String strictnessSliderSemanticLabel(int percentage) {
     return 'Scoring strictness level: $percentage percent';
+  }
+
+  @override
+  String get lexicalStrictnessSliderHeader =>
+      'Lexical Verification Strictness Level';
+
+  @override
+  String get lexicalStrictnessPresetFlexible => '0% Flexible';
+
+  @override
+  String get lexicalStrictnessPresetCalibrated => '50% Calibrated';
+
+  @override
+  String get lexicalStrictnessPresetStrict => '85% Strict';
+
+  @override
+  String get lexicalStrictnessPresetAbsolute => '100% Absolute';
+
+  @override
+  String get lexicalStrictnessConsequenceTitle =>
+      'Semantic Consequences of Lexical Verification';
+
+  @override
+  String get lexicalStrictnessConsequenceFlexible =>
+      'Flexible (0%): Highly tolerant fuzzy matching (0.80x multiplier) and full morphological stemming allowed.';
+
+  @override
+  String get lexicalStrictnessConsequenceCalibrated =>
+      'Calibrated (50%): Standard balanced lexical verification (1.0x multiplier) with Snowball morphological stemming enabled.';
+
+  @override
+  String get lexicalStrictnessConsequenceStrict =>
+      'Strict (85%): Elevated lexical threshold (1.02x multiplier) with strict morphological stemming.';
+
+  @override
+  String get lexicalStrictnessConsequenceAbsolute =>
+      'Absolute (100%): 100% exact lexical string matching required. Morphological stemming and fuzzy fallbacks completely disabled.';
+
+  @override
+  String lexicalStrictnessSliderSemanticLabel(int percentage) {
+    return 'Lexical verification strictness level: $percentage percent';
   }
 
   @override

@@ -13,8 +13,12 @@ void main() {
         'claim_label': 'Test Claim',
         'extracted_facts': {'fact1': 'value'},
         'exact_quotes': [
-          {'quote': 'quote 1'},
-          {'quote': 'quote 2'},
+          {
+            'source_quotes': ['quote 1'],
+          },
+          {
+            'source_quotes': ['quote 2'],
+          },
         ],
         'internal_logic_en': {
           'step_1_identify_premise': 'p',

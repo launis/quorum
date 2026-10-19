@@ -9,7 +9,7 @@ void main() {
       final json = {
         'node_id': 'claim_node_01',
         'claim': 'Process execution failed due to memory starvation.',
-        'source_quote': 'Out of memory at step 4',
+        'source_quotes': ['Out of memory at step 4'],
         'paragraph_ref': 'p_01',
         'status': 'FAILED',
         'blame_parent_ids': ['parent_01'],

@@ -6894,6 +6894,12 @@ abstract class AppLocalizations {
   /// **'Strictness'**
   String get metaStrictness;
 
+  /// No description provided for @metaLexicalStrictness.
+  ///
+  /// In en, this message translates to:
+  /// **'Lexical Strictness'**
+  String get metaLexicalStrictness;
+
   /// No description provided for @metaCost.
   ///
   /// In en, this message translates to:
@@ -9161,6 +9167,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scoring strictness level: {percentage} percent'**
   String strictnessSliderSemanticLabel(int percentage);
+
+  /// Header for lexical verification strictness slider
+  ///
+  /// In en, this message translates to:
+  /// **'Lexical Verification Strictness Level'**
+  String get lexicalStrictnessSliderHeader;
+
+  /// Preset chip for flexible lexical strictness (0%)
+  ///
+  /// In en, this message translates to:
+  /// **'0% Flexible'**
+  String get lexicalStrictnessPresetFlexible;
+
+  /// Preset chip for calibrated lexical strictness (50%)
+  ///
+  /// In en, this message translates to:
+  /// **'50% Calibrated'**
+  String get lexicalStrictnessPresetCalibrated;
+
+  /// Preset chip for strict lexical strictness (85%)
+  ///
+  /// In en, this message translates to:
+  /// **'85% Strict'**
+  String get lexicalStrictnessPresetStrict;
+
+  /// Preset chip for absolute lexical strictness (100%)
+  ///
+  /// In en, this message translates to:
+  /// **'100% Absolute'**
+  String get lexicalStrictnessPresetAbsolute;
+
+  /// Title for lexical verification consequence card
+  ///
+  /// In en, this message translates to:
+  /// **'Semantic Consequences of Lexical Verification'**
+  String get lexicalStrictnessConsequenceTitle;
+
+  /// Consequence description for flexible lexical strictness
+  ///
+  /// In en, this message translates to:
+  /// **'Flexible (0%): Highly tolerant fuzzy matching (0.80x multiplier) and full morphological stemming allowed.'**
+  String get lexicalStrictnessConsequenceFlexible;
+
+  /// Consequence description for calibrated lexical strictness
+  ///
+  /// In en, this message translates to:
+  /// **'Calibrated (50%): Standard balanced lexical verification (1.0x multiplier) with Snowball morphological stemming enabled.'**
+  String get lexicalStrictnessConsequenceCalibrated;
+
+  /// Consequence description for strict lexical strictness
+  ///
+  /// In en, this message translates to:
+  /// **'Strict (85%): Elevated lexical threshold (1.02x multiplier) with strict morphological stemming.'**
+  String get lexicalStrictnessConsequenceStrict;
+
+  /// Consequence description for absolute lexical strictness
+  ///
+  /// In en, this message translates to:
+  /// **'Absolute (100%): 100% exact lexical string matching required. Morphological stemming and fuzzy fallbacks completely disabled.'**
+  String get lexicalStrictnessConsequenceAbsolute;
+
+  /// Accessibility semantic label for lexical strictness slider
+  ///
+  /// In en, this message translates to:
+  /// **'Lexical verification strictness level: {percentage} percent'**
+  String lexicalStrictnessSliderSemanticLabel(int percentage);
 
   /// No description provided for @modelRegistryNameLabel.
   ///

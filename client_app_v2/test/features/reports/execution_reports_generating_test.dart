@@ -335,7 +335,7 @@ void main() {
 
       expect(find.byType(DataTable), findsOneWidget);
       expect(find.text('Kriteeri'), findsOneWidget);
-      expect(find.text('Pisteet'), findsOneWidget);
+      expect(find.text('Tulos / Tila'), findsOneWidget);
       expect(find.text('Selitys'), findsOneWidget);
       expect(find.text('Maksimi'), findsNothing);
 

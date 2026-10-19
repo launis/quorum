@@ -99,6 +99,7 @@ def test_cross_platform_studio_ui_arb_parity() -> None:
         ("metaUser", "metadata_user"),
         ("metaScoringEngine", "metadata_scoring_engine"),
         ("metaStrictness", "metadata_strictness"),
+        ("metaLexicalStrictness", "metadata_lexical_strictness"),
         ("metaCost", "metadata_cost"),
         ("metaTokens", "metadata_tokens"),
     ]

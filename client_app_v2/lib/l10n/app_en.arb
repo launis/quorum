@@ -1986,6 +1986,7 @@
   "metaUser": "User",
   "metaScoringEngine": "Scoring Engine",
   "metaStrictness": "Strictness",
+  "metaLexicalStrictness": "Lexical Strictness",
   "metaCost": "Cost",
   "metaTokens": "Tokens",
   "maxExtensionItemsLabel": "Max Extension Items",
@@ -2509,6 +2510,55 @@
   "strictnessSliderSemanticLabel": "Scoring strictness level: {percentage} percent",
   "@strictnessSliderSemanticLabel": {
     "description": "Accessibility semantic label for strictness slider",
+    "placeholders": {
+      "percentage": {
+        "type": "int"
+      }
+    }
+  },
+  "lexicalStrictnessSliderHeader": "Lexical Verification Strictness Level",
+  "@lexicalStrictnessSliderHeader": {
+    "description": "Header for lexical verification strictness slider"
+  },
+  "lexicalStrictnessPresetFlexible": "0% Flexible",
+  "@lexicalStrictnessPresetFlexible": {
+    "description": "Preset chip for flexible lexical strictness (0%)"
+  },
+  "lexicalStrictnessPresetCalibrated": "50% Calibrated",
+  "@lexicalStrictnessPresetCalibrated": {
+    "description": "Preset chip for calibrated lexical strictness (50%)"
+  },
+  "lexicalStrictnessPresetStrict": "85% Strict",
+  "@lexicalStrictnessPresetStrict": {
+    "description": "Preset chip for strict lexical strictness (85%)"
+  },
+  "lexicalStrictnessPresetAbsolute": "100% Absolute",
+  "@lexicalStrictnessPresetAbsolute": {
+    "description": "Preset chip for absolute lexical strictness (100%)"
+  },
+  "lexicalStrictnessConsequenceTitle": "Semantic Consequences of Lexical Verification",
+  "@lexicalStrictnessConsequenceTitle": {
+    "description": "Title for lexical verification consequence card"
+  },
+  "lexicalStrictnessConsequenceFlexible": "Flexible (0%): Highly tolerant fuzzy matching (0.80x multiplier) and full morphological stemming allowed.",
+  "@lexicalStrictnessConsequenceFlexible": {
+    "description": "Consequence description for flexible lexical strictness"
+  },
+  "lexicalStrictnessConsequenceCalibrated": "Calibrated (50%): Standard balanced lexical verification (1.0x multiplier) with Snowball morphological stemming enabled.",
+  "@lexicalStrictnessConsequenceCalibrated": {
+    "description": "Consequence description for calibrated lexical strictness"
+  },
+  "lexicalStrictnessConsequenceStrict": "Strict (85%): Elevated lexical threshold (1.02x multiplier) with strict morphological stemming.",
+  "@lexicalStrictnessConsequenceStrict": {
+    "description": "Consequence description for strict lexical strictness"
+  },
+  "lexicalStrictnessConsequenceAbsolute": "Absolute (100%): 100% exact lexical string matching required. Morphological stemming and fuzzy fallbacks completely disabled.",
+  "@lexicalStrictnessConsequenceAbsolute": {
+    "description": "Consequence description for absolute lexical strictness"
+  },
+  "lexicalStrictnessSliderSemanticLabel": "Lexical verification strictness level: {percentage} percent",
+  "@lexicalStrictnessSliderSemanticLabel": {
+    "description": "Accessibility semantic label for lexical strictness slider",
     "placeholders": {
       "percentage": {
         "type": "int"

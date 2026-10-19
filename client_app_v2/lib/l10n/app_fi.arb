@@ -1311,6 +1311,7 @@
   "metaUser": "Käyttäjä",
   "metaScoringEngine": "Arviointimoottori",
   "metaStrictness": "Tiukkuusaste",
+  "metaLexicalStrictness": "Leksikaalinen tiukkuus",
   "metaCost": "Kustannukset",
   "metaTokens": "Tokenit",
   "maxExtensionItemsLabel": "Max Extension Items",
@@ -1796,6 +1797,25 @@
   "strictnessSliderSemanticLabel": "Pisteytyksen ankaruustaso: {percentage} prosenttia",
   "@strictnessSliderSemanticLabel": {
     "description": "Accessibility semantic label for strictness slider",
+    "placeholders": {
+      "percentage": {
+        "type": "int"
+      }
+    }
+  },
+  "lexicalStrictnessSliderHeader": "Leksikaalisen tarkistuksen tiukkuustaso",
+  "lexicalStrictnessPresetFlexible": "0% Joustava",
+  "lexicalStrictnessPresetCalibrated": "50% Kalibroitu",
+  "lexicalStrictnessPresetStrict": "85% Tiukka",
+  "lexicalStrictnessPresetAbsolute": "100% Ehdoton",
+  "lexicalStrictnessConsequenceTitle": "Leksikaalisen tarkistuksen semanttiset seuraukset",
+  "lexicalStrictnessConsequenceFlexible": "Joustava (0%): Erittäin salliva sumea kohdistus (0.80x-kerroin) ja morfologinen taivutusmuotojen tunnistus sallittu.",
+  "lexicalStrictnessConsequenceCalibrated": "Kalibroitu (50%): Standardi tasapainotettu leksikaalinen tarkistus (1.0x-kerroin) Snowball-morfologialla. Suositeltu oletustaso.",
+  "lexicalStrictnessConsequenceStrict": "Tiukka (85%): Korotettu leksikaalinen vaatimustaso (1.02x-kerroin) ja tiukka morfologinen suodatus.",
+  "lexicalStrictnessConsequenceAbsolute": "Ehdoton (100%): Täysin eksakti leksikaalinen alimerkkijonon kohdistus vaaditaan (100.0). Morfologinen taivutusmuotojen tunnistus ja sumeat korjaukset estetty.",
+  "lexicalStrictnessSliderSemanticLabel": "Leksikaalisen tarkistuksen tiukkuustaso: {percentage} prosenttia",
+  "@lexicalStrictnessSliderSemanticLabel": {
+    "description": "Accessibility semantic label for lexical strictness slider",
     "placeholders": {
       "percentage": {
         "type": "int"

@@ -315,8 +315,16 @@ class PrintableSourcesAdapter:
                         for mat in context.parsed_matrices.values():
                             for atom in mat.evaluated_atoms:
                                 for eq in atom.exact_quotes:
-                                    for quote_str in eq.get_quotes():
-                                        matched_quotes.append(quote_str)
+                                    if eq.source_quotes:
+                                        joined_quote = " [...] ".join(
+                                            q.strip() for q in eq.source_quotes if q and q.strip()
+                                        )
+                                        if joined_quote:
+                                            matched_quotes.append(joined_quote)
+                                    else:
+                                        for quote_str in eq.get_quotes():
+                                            if quote_str and quote_str.strip():
+                                                matched_quotes.append(quote_str.strip())
 
                     if matched_quotes:
                         evidence_lines.append(f'  - **{observation_label}** "{matched_quotes[0]}"')

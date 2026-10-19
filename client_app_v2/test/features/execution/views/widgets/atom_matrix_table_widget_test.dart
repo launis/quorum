@@ -58,8 +58,8 @@ void main() {
 
     expect(find.text('Cognition *'), findsOneWidget);
     expect(find.text('3.5 / 5.0'), findsOneWidget);
-    expect(find.text('1 - T1: 3 / 5'), findsOneWidget);
-    expect(find.text('2 - T2: 2 / 5'), findsOneWidget);
+    expect(find.text('L1 - 1 (3 / 5)'), findsOneWidget);
+    expect(find.text('L2 - 2 (2 / 5)'), findsOneWidget);
     expect(find.textContaining('80.0'), findsOneWidget);
   });
 
@@ -161,7 +161,7 @@ void main() {
       await tester.tap(find.text('Cognition *'));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 - T1: 3 / 5'), findsOneWidget);
+      expect(find.text('L1 - 1 (3 / 5)'), findsOneWidget);
     },
   );
 

@@ -8,6 +8,7 @@ from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
@@ -315,6 +316,64 @@ async def test_pdf_generator_filters_and_matrix_summary() -> None:
     html = await svc.generate_execution_html(execution_id="exe_matrix33333333", report_dto=dto, locale="fi")
     assert "Test Axis" in html
     assert "Testiprofiili" in html
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_renders_multi_segment_quotes() -> None:
+    """Positive contract: PDF HTML renders multi-segment quotes joined with ' [...] ' without errors."""
+    svc = PdfReportService()
+    atom = ScorecardAtomDTO(
+        atom_id="atm_11111111111111111111111111111111",
+        level=1,
+        level_name="Level 1",
+        claim_label="Claim 1",
+        extracted_facts={"fact1": "val1"},
+        exact_quotes=[
+            QuoteEvidenceDTO(
+                source_quotes=("Part 1", "Part 2"),
+                verified_source_ids=["src_0"],
+            )
+        ],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="p1",
+            step_2_scan_source="s1",
+            step_3_evaluate_anti_patterns="a1",
+            step_4_final_conclusion="c1",
+        ),
+        status="PASSED",
+        semantic_reasoning="reasoning",
+        contextual_override=False,
+        structural_location=None,
+        chart_display_label="A1",
+        visual_intent=VisualIntent.SUCCESS,
+    )
+    axis = MatrixScorecardRowDTO(
+        block_id="axis_1",
+        name="Test Axis",
+        label_i18n=I18nText(translations={"en": "Test Axis", "fi": "Testi Akseli"}),
+        is_evaluative=True,
+        allow_contextual_override=True,
+        level_names={"1": "Level 1"},
+        level_breakdown={"1": "1/1"},
+        evaluated_atoms=[atom],
+        row_explanation="All good",
+        ui_plot_ratio=0.85,
+        score_display_label="85%",
+    )
+    block = SduiMatrixTableBlock(
+        matrix_visible_columns=["label", "quotes", "distribution", "row_explanation", "normalized_score"],
+        axes=[axis],
+    )
+    dto = ReportDataDTO(
+        execution_id="exe_matrix_multi_segment",
+        strictness_level=85,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
+        inner_sdui_blocks=[block],
+    )
+    html = await svc.generate_execution_html(execution_id="exe_matrix_multi_segment", report_dto=dto, locale="fi")
+    assert "Part 1 [...] Part 2" in html
 
 
 def test_pdf_generator_raise_unrecognized_sdui_block() -> None:

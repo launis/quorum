@@ -48,14 +48,14 @@ def format_text_observations(quotes: tuple[str, ...] | None) -> str:
 
     For empty or None collections, returns empty string.
     For single quote tuples, strips whitespace.
-    For multi-quote collections, strips each item and returns a clean, newline-delimited
-    numbered enumeration list (e.g. '[1] ...\n[2] ...').
+    For multi-quote collections, strips each item and returns a standardized
+    delimiter-joined string (" [...] ").
 
     Args:
         quotes: Tuple of quote strings or None.
 
     Returns:
-        Cleaned, formatted multi-line observation string or empty string.
+        Cleaned, formatted observation string or empty string.
     """
     if quotes is None:
         return ""
@@ -72,9 +72,8 @@ def format_text_observations(quotes: tuple[str, ...] | None) -> str:
     if len(cleaned_items) == 1:
         return cleaned_items[0]
 
-    # Multiple quotes: format with numbered brackets on separate lines
-    formatted_lines = [f"[{idx}] {q}" for idx, q in enumerate(cleaned_items, start=1)]
-    return "\n".join(formatted_lines)
+    # Multiple quotes: join with standardized tabular delimiter
+    return " [...] ".join(cleaned_items)
 
 
 def format_ai_reasoning(reasoning: str | None) -> str:

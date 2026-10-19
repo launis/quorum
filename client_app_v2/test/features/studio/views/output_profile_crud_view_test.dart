@@ -397,10 +397,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Expected on Tab 3 detail: finds FilterChip for citation and justification in XaiExtensionsBlockCard
-      expect(
-        find.widgetWithText(FilterChip, 'Source Citation'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(FilterChip, 'Citation'), findsOneWidget);
       expect(find.widgetWithText(FilterChip, 'Justification'), findsOneWidget);
     });
 
@@ -554,8 +551,8 @@ void main() {
 
         // Expected: MetadataBlockCard is rendered and displays metadata FilterChips
         expect(find.byType(MetadataBlockCard), findsOneWidget);
-        expect(find.widgetWithText(FilterChip, 'date'), findsOneWidget);
-        expect(find.widgetWithText(FilterChip, 'organization'), findsOneWidget);
+        expect(find.widgetWithText(FilterChip, 'Date'), findsOneWidget);
+        expect(find.widgetWithText(FilterChip, 'Organization'), findsOneWidget);
       },
     );
 
@@ -608,10 +605,7 @@ void main() {
 
         // Expected: XaiExtensionsBlockCard is rendered with filter chips
         expect(find.byType(XaiExtensionsBlockCard), findsOneWidget);
-        expect(
-          find.widgetWithText(FilterChip, 'Source Citation'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(FilterChip, 'Citation'), findsOneWidget);
       },
     );
 

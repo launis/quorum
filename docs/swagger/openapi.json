@@ -6213,6 +6213,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -6225,6 +6228,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Input",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -6359,6 +6363,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -6371,6 +6378,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Output",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -6592,6 +6600,48 @@
         "title": "AnalystOutput",
         "description": "Output schema for the Analyst Agent."
       },
+      "AntiFluffAuditDTO": {
+        "properties": {
+          "isolated_concept_count": {
+            "type": "integer",
+            "title": "Isolated Concept Count",
+            "description": "Number of isolated unlinked claims."
+          },
+          "cycle_detected": {
+            "type": "boolean",
+            "title": "Cycle Detected",
+            "description": "Whether causal loops or circular reasoning occurred."
+          },
+          "unsupported_claims_count": {
+            "type": "integer",
+            "title": "Unsupported Claims Count",
+            "description": "Count of claims lacking evidentiary foundation."
+          },
+          "logical_cohesion_score": {
+            "type": "number",
+            "title": "Logical Cohesion Score",
+            "description": "Overall structural cohesion score (0.0 - 1.0)."
+          },
+          "detected_hollow_terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Detected Hollow Terms",
+            "description": "Detected hollow or performative buzzwords."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "isolated_concept_count",
+          "cycle_detected",
+          "unsupported_claims_count",
+          "logical_cohesion_score"
+        ],
+        "title": "AntiFluffAuditDTO",
+        "description": "Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion."
+      },
       "AntiPattern": {
         "properties": {
           "pattern": {
@@ -6728,17 +6778,20 @@
             ],
             "description": "Quantitative or isolated result"
           },
-          "source_quote": {
+          "source_quotes": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Quote",
-            "description": "Verbatim original quote from the document"
+            "title": "Source Quotes",
+            "description": "Verbatim original quote segments from the document"
           },
           "contextual_override": {
             "type": "boolean",
@@ -6806,7 +6859,7 @@
           "status"
         ],
         "title": "AtomResultDTO",
-        "description": "Dynamic execution data (DAG node).\n\nAttributes:\n    tda_id: Opaque ID pointing to the hydrated_references dictionary key.\n    matrix_id: Opaque ID of the matrix block that requested this evaluation.\n    status: Evaluation execution status.\n    extracted_data: Quantitative or isolated result.\n    source_quote: Verbatim original quote from the document.\n    contextual_override: Allows cognitive override without a verbatim quote.\n    is_inverse_evidence: True if assertion evaluates absence of negative evidence.\n    evaluation_reasoning: Strictly AI cognitive reasoning, no infra errors.\n    error_details: Populated only if status is SYSTEM_ERROR.\n    extensions: Requested XAI extensions mapping.\n    depends_on_tda_ids: DAG adjacency list.\n    short_circuit_reason_tda_ids: List of short-circuit reason TDA IDs."
+        "description": "Dynamic execution data (DAG node).\n\nAttributes:\n    tda_id: Opaque ID pointing to the hydrated_references dictionary key.\n    matrix_id: Opaque ID of the matrix block that requested this evaluation.\n    status: Evaluation execution status.\n    extracted_data: Quantitative or isolated result.\n    source_quotes: Verbatim original quote segments from the document.\n    contextual_override: Allows cognitive override without a verbatim quote.\n    is_inverse_evidence: True if assertion evaluates absence of negative evidence.\n    evaluation_reasoning: Strictly AI cognitive reasoning, no infra errors.\n    error_details: Populated only if status is SYSTEM_ERROR.\n    extensions: Requested XAI extensions mapping.\n    depends_on_tda_ids: DAG adjacency list.\n    short_circuit_reason_tda_ids: List of short-circuit reason TDA IDs."
       },
       "AuditLogEntry": {
         "properties": {
@@ -7072,6 +7125,21 @@
             "$ref": "#/components/schemas/ExecutionStatus",
             "description": "Allows for negative conditions. The dependency is met only if the parent reaches this status.",
             "default": "PASSED"
+          },
+          "warrant_quotes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warrant Quotes",
+            "description": "Verbatim source quotes grounding the Toulmin inferential warrant."
           }
         },
         "additionalProperties": false,
@@ -7083,6 +7151,325 @@
         ],
         "title": "CausalEdge",
         "description": "Represents a directional causal dependency between two atoms in the DAG.\n\nIn accordance with the Local Causal Markov Condition over a Directed Acyclic Graph\nG = (V, E), the joint verification probability factorizes strictly over causal parents:\n    P(A_1, ..., A_n | D) = prod_{i=1}^n P(A_i | Parents_G(A_i), D)\n\nCausal dependencies enforce structural conditioning: downstream child atoms are evaluated\nconditionally upon the deterministic resolution of their causal parents. If any parent fails\nits expected_status, downstream execution is deterministically short-circuited with\nP(A_i = BLOCKED | Parent != expected) = 1.0, assigning ExecutionStatus.N_A without LLM invocation.\n\nAttributes:\n    edge_reasoning: Chain-of-thought reasoning explaining the causal relationship.\n    tda_id: The identifier of the parent atom (Topological Directed Atom ID).\n    source_id: The identifier of the spatial anchor (e.g., chunk ID).\n    expected_status: The expected status of the parent for this edge to be satisfied."
+      },
+      "CausalEdgeDTO": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id",
+            "description": "Source/parent node ID in the causal dependency."
+          },
+          "target_id": {
+            "type": "string",
+            "title": "Target Id",
+            "description": "Target/dependent node ID in the causal dependency."
+          },
+          "reasoning": {
+            "type": "string",
+            "title": "Reasoning",
+            "description": "Logical reasoning explaining the dependency relationship."
+          },
+          "warrant_quotes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warrant Quotes",
+            "description": "Verbatim source quotes grounding the Toulmin inferential warrant."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "target_id",
+          "reasoning"
+        ],
+        "title": "CausalEdgeDTO",
+        "description": "Directed causal dependency edge between two argument nodes."
+      },
+      "CausalGraphPayloadDTO": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CausalNodeDTO"
+            },
+            "type": "array",
+            "title": "Nodes",
+            "description": "List of causal argument nodes."
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/CausalEdgeDTO"
+            },
+            "type": "array",
+            "title": "Edges",
+            "description": "List of directed dependency edges."
+          },
+          "root_cause_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Root Cause Node Ids",
+            "description": "IDs of identified root cause failure nodes."
+          },
+          "cycle_detected": {
+            "type": "boolean",
+            "title": "Cycle Detected",
+            "description": "Flag indicating if cycle was detected during traversal.",
+            "default": false
+          },
+          "isolated_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Isolated Node Ids",
+            "description": "IDs of isolated claims lacking inbound/outbound links."
+          },
+          "partition_node_ids": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Partition Node Ids",
+            "description": "Mapping of dynamic input_key to list of contained causal node IDs."
+          },
+          "edge_root_causes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Edge Root Causes",
+            "description": "List of serialized edge IDs ('source_id->target_id') failing warrant grounding or precondition validation."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nodes"
+        ],
+        "title": "CausalGraphPayloadDTO",
+        "description": "Full causal argument graph payload."
+      },
+      "CausalNodeDTO": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "title": "Node Id",
+            "description": "Unique identifier for the causal node."
+          },
+          "claim": {
+            "type": "string",
+            "title": "Claim",
+            "description": "Textual claim statement evaluated in the node."
+          },
+          "source_quotes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quotes",
+            "description": "Exact verbatim source quote segments from document."
+          },
+          "paragraph_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph Ref",
+            "description": "Paragraph or block reference in source text."
+          },
+          "status": {
+            "$ref": "#/components/schemas/ExecutionStatus",
+            "description": "Execution and verification status."
+          },
+          "blame_parent_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blame Parent Ids",
+            "description": "IDs of upstream parent nodes contributing to failure."
+          },
+          "dependent_child_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dependent Child Ids",
+            "description": "IDs of downstream nodes affected by this node."
+          },
+          "tda_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tda Score",
+            "description": "Evaluated TDA cognitive score."
+          },
+          "tda_level_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tda Level Key",
+            "description": "TDA qualitative level key."
+          },
+          "source_input_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Input Key",
+            "description": "Dynamic input key indicating source document provenance."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "node_id",
+          "claim",
+          "status"
+        ],
+        "title": "CausalNodeDTO",
+        "description": "Node representation in an argument causal graph."
+      },
+      "CausalRootCauseDiagnosisDTO": {
+        "properties": {
+          "failing_node_id": {
+            "type": "string",
+            "title": "Failing Node Id",
+            "description": "ID of the failing dependent node."
+          },
+          "root_cause_parent_id": {
+            "type": "string",
+            "title": "Root Cause Parent Id",
+            "description": "ID of the upstream root cause parent."
+          },
+          "paragraph_ref": {
+            "type": "string",
+            "title": "Paragraph Ref",
+            "description": "Source paragraph reference."
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "Causal chain explanation of why the root cause led to failure."
+          },
+          "penalty_points": {
+            "type": "number",
+            "title": "Penalty Points",
+            "description": "Attributed penalty points."
+          },
+          "root_cause_type": {
+            "$ref": "#/components/schemas/CausalRootCauseType",
+            "default": "node_failure"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "failing_node_id",
+          "root_cause_parent_id",
+          "paragraph_ref",
+          "explanation",
+          "penalty_points"
+        ],
+        "title": "CausalRootCauseDiagnosisDTO",
+        "description": "Root cause diagnostic detail for an argument failure."
+      },
+      "CausalRootCauseType": {
+        "type": "string",
+        "enum": [
+          "node_failure",
+          "warrant_grounding_failure",
+          "precondition_mismatch"
+        ],
+        "title": "CausalRootCauseType",
+        "description": "Categorization of failure as node claim flaw, warrant grounding failure, or precondition mismatch."
+      },
+      "CausalTdaFusionResultDTO": {
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/CausalGraphPayloadDTO",
+            "description": "Complete causal argument graph."
+          },
+          "root_cause_diagnoses": {
+            "items": {
+              "$ref": "#/components/schemas/CausalRootCauseDiagnosisDTO"
+            },
+            "type": "array",
+            "title": "Root Cause Diagnoses",
+            "description": "Root cause diagnostics for all cascade failures."
+          },
+          "anti_fluff_audit": {
+            "$ref": "#/components/schemas/AntiFluffAuditDTO",
+            "description": "Anti-fluff and cohesion audit metrics."
+          },
+          "prescriptive_remediations": {
+            "items": {
+              "$ref": "#/components/schemas/PrescriptiveRemediationDTO"
+            },
+            "type": "array",
+            "title": "Prescriptive Remediations",
+            "description": "Prescriptive remediation steps to unlock performance."
+          },
+          "fair_scoring": {
+            "$ref": "#/components/schemas/FairScoringBreakdownDTO",
+            "description": "Fair scoring arithmetic breakdown."
+          },
+          "total_deliverable_nodes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Deliverable Nodes",
+            "description": "Total node count in deliverable subgraph.",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "graph",
+          "anti_fluff_audit",
+          "fair_scoring"
+        ],
+        "title": "CausalTdaFusionResultDTO",
+        "description": "Composite fusion result combining causal graph discovery and TDA evaluation."
       },
       "CitationAudit": {
         "properties": {
@@ -7516,6 +7903,12 @@
             "title": "Execution Id",
             "description": "Optional execution ID matching URL path."
           },
+          "force_resynthesis": {
+            "type": "boolean",
+            "title": "Force Resynthesis",
+            "description": "Forces re-running LLM Phase 2 synthesis for profile.",
+            "default": false
+          },
           "custom_preface_md": {
             "anyOf": [
               {
@@ -7804,6 +8197,12 @@
             "$ref": "#/components/schemas/EvaluationFactsDTO"
           },
           {
+            "$ref": "#/components/schemas/CausalGraphPayloadDTO"
+          },
+          {
+            "$ref": "#/components/schemas/CausalTdaFusionResultDTO"
+          },
+          {
             "additionalProperties": {
               "type": "number"
             },
@@ -7880,9 +8279,6 @@
           },
           {
             "$ref": "#/components/schemas/LinguisticsResultDTO"
-          },
-          {
-            "$ref": "#/components/schemas/SanitizationResultDTO"
           },
           {
             "$ref": "#/components/schemas/InputProcessingOutputDTO"
@@ -8004,6 +8400,12 @@
             "$ref": "#/components/schemas/EvaluationFactsDTO"
           },
           {
+            "$ref": "#/components/schemas/CausalGraphPayloadDTO"
+          },
+          {
+            "$ref": "#/components/schemas/CausalTdaFusionResultDTO"
+          },
+          {
             "additionalProperties": {
               "type": "number"
             },
@@ -8080,9 +8482,6 @@
           },
           {
             "$ref": "#/components/schemas/LinguisticsResultDTO"
-          },
-          {
-            "$ref": "#/components/schemas/SanitizationResultDTO"
           },
           {
             "$ref": "#/components/schemas/InputProcessingOutputDTO"
@@ -8181,17 +8580,20 @@
             "description": "Set to True if the claim is deduced purely via logic, allowing a null quote.",
             "default": false
           },
-          "source_quote": {
+          "source_quotes": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Quote",
-            "description": "The exact verbatim quote. Must be None if is_logical_deduction is True."
+            "title": "Source Quotes",
+            "description": "The exact verbatim quotes. Must be None if is_logical_deduction is True."
           },
           "draft_id": {
             "type": "string",
@@ -8214,6 +8616,17 @@
         ],
         "title": "DraftExtractedAtom",
         "description": "Draft representation of an atom after AliasEngine hydration."
+      },
+      "EngineType": {
+        "type": "string",
+        "enum": [
+          "tda",
+          "synthesis",
+          "prompt",
+          "causal_discovery"
+        ],
+        "title": "EngineType",
+        "description": "Explicit ExecutionEngine responsible for computing a step."
       },
       "ErrorDetailsDTO": {
         "properties": {
@@ -8421,17 +8834,20 @@
             "title": "Exact Quotes",
             "description": "Verbatim extracted source quotes"
           },
-          "source_quote": {
+          "source_quotes": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Quote",
-            "description": "Verbatim source quote"
+            "title": "Source Quotes",
+            "description": "Verbatim source quote segments"
           },
           "evaluation_reasoning": {
             "anyOf": [
@@ -8475,7 +8891,7 @@
           "tda_id"
         ],
         "title": "EvaluatedAtomDTO",
-        "description": "Strongly typed evaluated atom representation in matrix context.\n\nAttributes:\n    tda_id: Authoritative identifier for the atom.\n    atom_id: Optional alias identifier matching tda_id.\n    status: Status of the evaluated atom.\n    score: Computed mathematical or categorical score.\n    human_override: Optional human override status.\n    exact_quotes: List of verbatim extracted source quotes.\n    source_quote: Verbatim extracted source quote.\n    evaluation_reasoning: Cognitive reasoning text.\n    contextual_override: Whether cognitive override without quote occurred.\n    is_inverse_evidence: Whether inverse evidence (null hypothesis) was evaluated.\n    facts: Associated evaluation facts if present."
+        "description": "Strongly typed evaluated atom representation in matrix context.\n\nAttributes:\n    tda_id: Authoritative identifier for the atom.\n    atom_id: Optional alias identifier matching tda_id.\n    status: Status of the evaluated atom.\n    score: Computed mathematical or categorical score.\n    human_override: Optional human override status.\n    exact_quotes: List of verbatim extracted source quotes.\n    source_quotes: Verbatim extracted source quote segments.\n    evaluation_reasoning: Cognitive reasoning text.\n    contextual_override: Whether cognitive override without quote occurred.\n    is_inverse_evidence: Whether inverse evidence (null hypothesis) was evaluated.\n    facts: Associated evaluation facts if present."
       },
       "EvaluatedMatrixContextDTO": {
         "properties": {
@@ -9512,7 +9928,8 @@
         "properties": {
           "strictness_level": {
             "type": "integer",
-            "minimum": 1.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Strictness Level",
             "description": "Strictness level percentage for evaluation",
             "default": 100
@@ -9743,6 +10160,51 @@
         ],
         "title": "ExtractedValueDTO",
         "description": "Quantitative or categorical extracted value.\n\nAttributes:\n    value: The extracted quantitative or categorical value.\n    unit: Optional unit of measurement, e.g., 'tCO2e' or 'EUR'."
+      },
+      "FairScoringBreakdownDTO": {
+        "properties": {
+          "independent_error_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Independent Error Count",
+            "description": "Count of independent, non-cascading errors."
+          },
+          "cascading_fault_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cascading Fault Count",
+            "description": "Count of secondary cascading faults."
+          },
+          "raw_penalty_points": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Raw Penalty Points",
+            "description": "Raw unpenalized deduction points."
+          },
+          "deduplicated_penalty_points": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Deduplicated Penalty Points",
+            "description": "Penalty points after deduplicating cascading faults."
+          },
+          "dampened_savings_points": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Dampened Savings Points",
+            "description": "Points saved via secondary fault dampening."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "independent_error_count",
+          "cascading_fault_count",
+          "raw_penalty_points",
+          "deduplicated_penalty_points",
+          "dampened_savings_points"
+        ],
+        "title": "FairScoringBreakdownDTO",
+        "description": "Fair scoring breakdown attributing penalties and savings across causal chains."
       },
       "FlattenedAtom": {
         "properties": {
@@ -10138,12 +10600,178 @@
             ],
             "title": "External Evidence",
             "description": "Aggregated external search evidence."
+          },
+          "evaluative_matrices": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluative Matrices",
+            "description": "Dynamic prompt block scores."
+          },
+          "passivity_detected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passivity Detected",
+            "description": "Whether passivity was detected."
+          },
+          "archivist_precedents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PrecedentDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archivist Precedents",
+            "description": "Historical archivist precedents retrieved from prior executions."
+          },
+          "shuffled_atoms": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FlattenedAtom"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shuffled Atoms",
+            "description": "Shuffled flattened atoms for matrix evaluation."
+          },
+          "profiler_metrics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfilerMetricsDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Profiler telemetry metrics."
+          },
+          "distillation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SynthesisDistillationDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Synthesis distillation payload."
+          },
+          "scoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringResultDTO"
+              },
+              {
+                "$ref": "#/components/schemas/TraceScoringPayloadDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scoring",
+            "description": "Scoring result payload."
+          },
+          "interaction_analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InteractionAnalysisDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Interaction analysis payload."
+          },
+          "bibliography": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BibliographyResultDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bibliography citations payload."
+          },
+          "llm_anomaly_retry_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Anomaly Retry Requested",
+            "description": "Whether LLM anomaly retry was requested."
+          },
+          "input_control_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Control Ratio",
+            "description": "Input control ratio metric."
+          },
+          "integrity_verified_output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalystOutput"
+              },
+              {
+                "$ref": "#/components/schemas/EvaluationResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrity Verified Output",
+            "description": "Integrity verified analyst output or evaluation result."
+          },
+          "step_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StepMetadataDTO"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Step metadata payload."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "GlobalContextVarsDTO",
-        "description": "Strictly typed global context variables container.\n\nAttributes:\n    language: Target translation or execution language.\n    target_locale: Client localized language code.\n    system_locale: System runtime default locale.\n    profile_id: Active output profile identifier.\n    organization_id: Multi-tenant organization identifier.\n    initiator_id: Execution initiator user identifier.\n    step_coach: Coach stage execution telemetry payload.\n    knowledge_base: Grounding knowledge context attributes.\n    hydration_results: Upstream hydrated input source payloads.\n    step_linguistics: Evaluated linguistic statistics and metrics.\n    external_evidence: Aggregated external search evidence."
+        "description": "Strictly typed global context variables container.\n\nAttributes:\n    language: Target translation or execution language.\n    target_locale: Client localized language code.\n    system_locale: System runtime default locale.\n    profile_id: Active output profile identifier.\n    organization_id: Multi-tenant organization identifier.\n    initiator_id: Execution initiator user identifier.\n    step_coach: Coach stage execution telemetry payload.\n    knowledge_base: Grounding knowledge context attributes.\n    hydration_results: Upstream hydrated input source payloads.\n    step_linguistics: Evaluated linguistic statistics and metrics.\n    external_evidence: Aggregated external search evidence.\n    evaluative_matrices: Dynamic prompt block scores.\n    passivity_detected: Whether passivity was detected.\n    archivist_precedents: Historical archivist precedents retrieved from prior executions.\n    shuffled_atoms: Shuffled flattened atoms for matrix evaluation.\n    profiler_metrics: Profiler telemetry metrics.\n    distillation: Synthesis distillation payload.\n    scoring: Scoring result payload.\n    interaction_analysis: Interaction analysis payload.\n    bibliography: Bibliography citations payload.\n    sanitization: Sanitization payload.\n    llm_anomaly_retry_requested: Whether LLM anomaly retry was requested.\n    input_control_ratio: Input control ratio metric.\n    integrity_verified_output: Integrity verified analyst output or evaluation result.\n    step_metadata: Step metadata payload."
       },
       "GuidedReflectionInputDTO": {
         "properties": {
@@ -10405,17 +11033,20 @@
             "title": "Resolved Claim",
             "description": "Cleaned claim in human language"
           },
-          "source_quote": {
+          "source_quotes": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Quote",
-            "description": "Verbatim original quote"
+            "title": "Source Quotes",
+            "description": "Verbatim original quote segments"
           }
         },
         "additionalProperties": false,
@@ -10425,7 +11056,7 @@
           "resolved_claim"
         ],
         "title": "HydratedAtomDTO",
-        "description": "Static ontology data. Perfectly cacheable.\n\nMust not contain any dynamic execution-related data.\n\nAttributes:\n    sdui_component: Server-Driven UI hint for frontend.\n    resolved_claim: Cleaned claim in human language.\n    source_quote: Optional verbatim original quote."
+        "description": "Static ontology data. Perfectly cacheable.\n\nMust not contain any dynamic execution-related data.\n\nAttributes:\n    sdui_component: Server-Driven UI hint for frontend.\n    resolved_claim: Cleaned claim in human language.\n    source_quotes: Optional verbatim original quote segments."
       },
       "HydrationInputSourceDTO": {
         "properties": {
@@ -11264,33 +11895,50 @@
       "LevelStatsDTO": {
         "properties": {
           "hits": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "number"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Hits",
             "description": "Number of passing criteria at this level"
           },
           "total": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "number"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0.0,
             "title": "Total",
             "description": "Total number of criteria at this level"
           },
           "dlqs": {
             "type": "integer",
+            "minimum": 0.0,
             "title": "Dlqs",
             "description": "Number of items that hit the dead letter queue",
+            "default": 0
+          },
+          "pos_hits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pos Hits",
+            "description": "Affirmative passing criteria at this level",
+            "default": 0
+          },
+          "pos_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pos Total",
+            "description": "Affirmative total criteria at this level",
+            "default": 0
+          },
+          "inv_clean": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Inv Clean",
+            "description": "Inverse clean criteria at this level",
+            "default": 0
+          },
+          "inv_total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Inv Total",
+            "description": "Inverse total criteria at this level",
             "default": 0
           }
         },
@@ -11301,7 +11949,7 @@
           "total"
         ],
         "title": "LevelStatsDTO",
-        "description": "Strict execution stats per scale level.\n\nAttributes:\n    hits: Number of passing criteria at this level.\n    total: Total number of criteria at this level.\n    dlqs: Number of items that hit the dead letter queue (defaults to 0)."
+        "description": "Strict execution stats per scale level.\n\nAttributes:\n    hits: Number of passing criteria at this level.\n    total: Total number of criteria at this level.\n    dlqs: Number of items that hit the dead letter queue (defaults to 0).\n    pos_hits: Affirmative passing criteria at this level.\n    pos_total: Affirmative total criteria at this level.\n    inv_clean: Inverse clean criteria at this level.\n    inv_total: Inverse total criteria at this level."
       },
       "LightweightMatrixDTO": {
         "properties": {
@@ -11845,6 +12493,14 @@
             "type": "array",
             "title": "Atom Quotes",
             "description": "List of QuoteEvidenceDTO instances."
+          },
+          "display_stats": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LevelStatsDTO"
+            },
+            "type": "object",
+            "title": "Display Stats",
+            "description": "Map of level key to empirical LevelStatsDTO."
           }
         },
         "additionalProperties": false,
@@ -11896,6 +12552,14 @@
             "type": "array",
             "title": "Atom Quotes",
             "description": "List of QuoteEvidenceDTO instances."
+          },
+          "display_stats": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LevelStatsDTO"
+            },
+            "type": "object",
+            "title": "Display Stats",
+            "description": "Map of level key to empirical LevelStatsDTO."
           }
         },
         "additionalProperties": false,
@@ -12262,6 +12926,42 @@
             "title": "Score",
             "description": "Raw scaled score."
           },
+          "raw_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Score",
+            "description": "Unscaled matrix raw score."
+          },
+          "raw_scale_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Scale Min",
+            "description": "Unscaled matrix raw scale minimum."
+          },
+          "raw_scale_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Scale Max",
+            "description": "Unscaled matrix raw scale maximum."
+          },
           "score_display_label": {
             "anyOf": [
               {
@@ -12543,6 +13243,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -12555,6 +13258,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Input",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -12723,7 +13427,7 @@
           "is_evaluative"
         ],
         "title": "MatrixScorecardRowDTO",
-        "description": "Represents a single evaluated matrix row in the scorecard and plot axes.\n\nAttributes:\n    block_id: The opaque Stripe ID of the prompt block.\n    name: Pre-localized name for PDF layouts and static charts.\n    label_i18n: Full I18n translations dictionary for the UI.\n    description: Detailed instructions or prompt context behind this axis.\n    score: Raw scaled score.\n    score_display_label: Human-readable score display label.\n    scale_min: Minimum possible score.\n    scale_max: Maximum possible score.\n    normalized_score: Normalized score (0-100) if evaluative.\n    true_atoms: Global hits found.\n    total_atoms: Total atoms available to evaluate.\n    row_explanation: The one-sentence justification.\n    evidence_type: The EvidenceType extracted from AtomResponse.\n    cited_source_id: Source ID cited.\n    cited_text_quote: Quoted text from source.\n    cited_web_citation: Web citation link if applicable.\n    cited_source_title: Title / citation reference of the theoretical framework.\n    cited_source_url: Authoritative external URL for the theoretical framework.\n    context_target: Dynamic input file or stream key evaluated.\n    context_target_label: Localized human-readable name of the evaluated input target.\n    remediation_steps: Concrete actionable remediation steps from XAI extensions.\n    coaching: Coaching tips and guidance from XAI extensions.\n    falsification: Falsification criteria from XAI extensions.\n    confidence: Confidence score of evaluation.\n    inner_sdui_blocks: Strict SDUI components rendered for this row.\n    contextual_override: Whether contextual override was applied.\n    semantic_reasoning: Detailed semantic justification for the override.\n    level_breakdown: Breakdown of hits vs total per scale floor.\n    level_names: Map of level keys to their human readable names.\n    ui_plot_ratio: Absolute normalized plot ratio [0.0 - 1.0].\n    ui_boundary_labels: Pre-computed labels for extremes.\n    is_evaluative: Whether this block contributes to global average.\n    allow_contextual_override: Whether contextual override is allowed.\n    used_evidence_ids: Trace IDs used for this row.\n    evaluated_atoms: Flat presentation-only atoms evaluated for this row.\n    clustered_row_sources: Cluster arrays at row level.\n    tda_state: TDAState union representation."
+        "description": "Represents a single evaluated matrix row in the scorecard and plot axes.\n\nAttributes:\n    block_id: The opaque Stripe ID of the prompt block.\n    name: Pre-localized name for PDF layouts and static charts.\n    label_i18n: Full I18n translations dictionary for the UI.\n    description: Detailed instructions or prompt context behind this axis.\n    score: Raw scaled score.\n    raw_score: Unscaled matrix raw score.\n    raw_scale_min: Unscaled matrix raw scale minimum.\n    raw_scale_max: Unscaled matrix raw scale maximum.\n    score_display_label: Human-readable score display label.\n    scale_min: Minimum possible score.\n    scale_max: Maximum possible score.\n    normalized_score: Normalized score (0-100) if evaluative.\n    true_atoms: Global hits found.\n    total_atoms: Total atoms available to evaluate.\n    row_explanation: The one-sentence justification.\n    evidence_type: The EvidenceType extracted from AtomResponse.\n    cited_source_id: Source ID cited.\n    cited_text_quote: Quoted text from source.\n    cited_web_citation: Web citation link if applicable.\n    cited_source_title: Title / citation reference of the theoretical framework.\n    cited_source_url: Authoritative external URL for the theoretical framework.\n    context_target: Dynamic input file or stream key evaluated.\n    context_target_label: Localized human-readable name of the evaluated input target.\n    remediation_steps: Concrete actionable remediation steps from XAI extensions.\n    coaching: Coaching tips and guidance from XAI extensions.\n    falsification: Falsification criteria from XAI extensions.\n    confidence: Confidence score of evaluation.\n    inner_sdui_blocks: Strict SDUI components rendered for this row.\n    contextual_override: Whether contextual override was applied.\n    semantic_reasoning: Detailed semantic justification for the override.\n    level_breakdown: Breakdown of hits vs total per scale floor.\n    level_names: Map of level keys to their human readable names.\n    ui_plot_ratio: Absolute normalized plot ratio [0.0 - 1.0].\n    ui_boundary_labels: Pre-computed labels for extremes.\n    is_evaluative: Whether this block contributes to global average.\n    allow_contextual_override: Whether contextual override is allowed.\n    used_evidence_ids: Trace IDs used for this row.\n    evaluated_atoms: Flat presentation-only atoms evaluated for this row.\n    clustered_row_sources: Cluster arrays at row level.\n    tda_state: TDAState union representation."
       },
       "MatrixScorecardRowDTO-Output": {
         "properties": {
@@ -12764,6 +13468,42 @@
             ],
             "title": "Score",
             "description": "Raw scaled score."
+          },
+          "raw_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Score",
+            "description": "Unscaled matrix raw score."
+          },
+          "raw_scale_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Scale Min",
+            "description": "Unscaled matrix raw scale minimum."
+          },
+          "raw_scale_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Scale Max",
+            "description": "Unscaled matrix raw scale maximum."
           },
           "score_display_label": {
             "anyOf": [
@@ -13046,6 +13786,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -13058,6 +13801,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Output",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -13226,7 +13970,7 @@
           "is_evaluative"
         ],
         "title": "MatrixScorecardRowDTO",
-        "description": "Represents a single evaluated matrix row in the scorecard and plot axes.\n\nAttributes:\n    block_id: The opaque Stripe ID of the prompt block.\n    name: Pre-localized name for PDF layouts and static charts.\n    label_i18n: Full I18n translations dictionary for the UI.\n    description: Detailed instructions or prompt context behind this axis.\n    score: Raw scaled score.\n    score_display_label: Human-readable score display label.\n    scale_min: Minimum possible score.\n    scale_max: Maximum possible score.\n    normalized_score: Normalized score (0-100) if evaluative.\n    true_atoms: Global hits found.\n    total_atoms: Total atoms available to evaluate.\n    row_explanation: The one-sentence justification.\n    evidence_type: The EvidenceType extracted from AtomResponse.\n    cited_source_id: Source ID cited.\n    cited_text_quote: Quoted text from source.\n    cited_web_citation: Web citation link if applicable.\n    cited_source_title: Title / citation reference of the theoretical framework.\n    cited_source_url: Authoritative external URL for the theoretical framework.\n    context_target: Dynamic input file or stream key evaluated.\n    context_target_label: Localized human-readable name of the evaluated input target.\n    remediation_steps: Concrete actionable remediation steps from XAI extensions.\n    coaching: Coaching tips and guidance from XAI extensions.\n    falsification: Falsification criteria from XAI extensions.\n    confidence: Confidence score of evaluation.\n    inner_sdui_blocks: Strict SDUI components rendered for this row.\n    contextual_override: Whether contextual override was applied.\n    semantic_reasoning: Detailed semantic justification for the override.\n    level_breakdown: Breakdown of hits vs total per scale floor.\n    level_names: Map of level keys to their human readable names.\n    ui_plot_ratio: Absolute normalized plot ratio [0.0 - 1.0].\n    ui_boundary_labels: Pre-computed labels for extremes.\n    is_evaluative: Whether this block contributes to global average.\n    allow_contextual_override: Whether contextual override is allowed.\n    used_evidence_ids: Trace IDs used for this row.\n    evaluated_atoms: Flat presentation-only atoms evaluated for this row.\n    clustered_row_sources: Cluster arrays at row level.\n    tda_state: TDAState union representation."
+        "description": "Represents a single evaluated matrix row in the scorecard and plot axes.\n\nAttributes:\n    block_id: The opaque Stripe ID of the prompt block.\n    name: Pre-localized name for PDF layouts and static charts.\n    label_i18n: Full I18n translations dictionary for the UI.\n    description: Detailed instructions or prompt context behind this axis.\n    score: Raw scaled score.\n    raw_score: Unscaled matrix raw score.\n    raw_scale_min: Unscaled matrix raw scale minimum.\n    raw_scale_max: Unscaled matrix raw scale maximum.\n    score_display_label: Human-readable score display label.\n    scale_min: Minimum possible score.\n    scale_max: Maximum possible score.\n    normalized_score: Normalized score (0-100) if evaluative.\n    true_atoms: Global hits found.\n    total_atoms: Total atoms available to evaluate.\n    row_explanation: The one-sentence justification.\n    evidence_type: The EvidenceType extracted from AtomResponse.\n    cited_source_id: Source ID cited.\n    cited_text_quote: Quoted text from source.\n    cited_web_citation: Web citation link if applicable.\n    cited_source_title: Title / citation reference of the theoretical framework.\n    cited_source_url: Authoritative external URL for the theoretical framework.\n    context_target: Dynamic input file or stream key evaluated.\n    context_target_label: Localized human-readable name of the evaluated input target.\n    remediation_steps: Concrete actionable remediation steps from XAI extensions.\n    coaching: Coaching tips and guidance from XAI extensions.\n    falsification: Falsification criteria from XAI extensions.\n    confidence: Confidence score of evaluation.\n    inner_sdui_blocks: Strict SDUI components rendered for this row.\n    contextual_override: Whether contextual override was applied.\n    semantic_reasoning: Detailed semantic justification for the override.\n    level_breakdown: Breakdown of hits vs total per scale floor.\n    level_names: Map of level keys to their human readable names.\n    ui_plot_ratio: Absolute normalized plot ratio [0.0 - 1.0].\n    ui_boundary_labels: Pre-computed labels for extremes.\n    is_evaluative: Whether this block contributes to global average.\n    allow_contextual_override: Whether contextual override is allowed.\n    used_evidence_ids: Trace IDs used for this row.\n    evaluated_atoms: Flat presentation-only atoms evaluated for this row.\n    clustered_row_sources: Cluster arrays at row level.\n    tda_state: TDAState union representation."
       },
       "MatrixSynthesisGroup": {
         "properties": {
@@ -14422,6 +15166,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -14434,6 +15181,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Input",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -14872,6 +15620,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -14884,6 +15635,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Output",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -15335,6 +16087,80 @@
         ],
         "title": "PreMortemAnalysis",
         "description": "Pre-Mortem Analysis results.\n\nAttributes:\n    performed: Was Pre-Mortem performed?\n    weak_signals: Detected weak signals."
+      },
+      "PrecedentDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id",
+            "description": "Opaque Stripe ID of the past execution."
+          },
+          "date": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Date",
+            "description": "ISO formatted completion date."
+          },
+          "scores": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Scores",
+            "description": "Formatted string of judge scores."
+          },
+          "verdict": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Verdict",
+            "description": "Truncated verdict from the execution."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "scores",
+          "verdict"
+        ],
+        "title": "ArchivalPrecedentDTO",
+        "description": "Strict schema for a single retrieved execution precedent.\n\nAttributes:\n    id: Opaque Stripe ID of the past execution.\n    date: ISO formatted completion date.\n    scores: Formatted string of judge scores.\n    verdict: Truncated verdict from the execution."
+      },
+      "PrescriptiveRemediationDTO": {
+        "properties": {
+          "target_node_id": {
+            "type": "string",
+            "title": "Target Node Id",
+            "description": "Target node requiring remediation."
+          },
+          "required_action": {
+            "type": "string",
+            "title": "Required Action",
+            "description": "Concrete action required to rectify the logical flaw."
+          },
+          "unlocks_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unlocks Node Ids",
+            "description": "Downstream nodes unlocked if this node is fixed."
+          },
+          "potential_score_impact": {
+            "type": "number",
+            "title": "Potential Score Impact",
+            "description": "Estimated positive impact on total evaluation score."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_node_id",
+          "required_action",
+          "potential_score_impact"
+        ],
+        "title": "PrescriptiveRemediationDTO",
+        "description": "Actionable prescriptive remediation unlocking downstream score improvements."
       },
       "PresetView": {
         "type": "string",
@@ -15954,10 +16780,20 @@
       },
       "QuoteEvidenceDTO-Input": {
         "properties": {
-          "quote": {
-            "type": "string",
-            "title": "Quote",
-            "description": "The exact text of the quote."
+          "source_quotes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quotes",
+            "description": "The exact text segments of the quote."
           },
           "verified_source_ids": {
             "items": {
@@ -16001,18 +16837,25 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "quote"
-        ],
         "title": "QuoteEvidenceDTO",
-        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases.\n    source_alias: Excluded raw alias field."
+        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    source_quotes: The exact text segments of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases.\n    source_alias: Excluded raw alias field."
       },
       "QuoteEvidenceDTO-Output": {
         "properties": {
-          "quote": {
-            "type": "string",
-            "title": "Quote",
-            "description": "The exact text of the quote."
+          "source_quotes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quotes",
+            "description": "The exact text segments of the quote."
           },
           "verified_source_ids": {
             "items": {
@@ -16039,11 +16882,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "quote"
-        ],
         "title": "QuoteEvidenceDTO",
-        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    quote: The exact text of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases.\n    source_alias: Excluded raw alias field."
+        "description": "Headless DTO for storing quote evidence with strict deterministic alias resolution.\n\nAttributes:\n    source_quotes: The exact text segments of the quote.\n    verified_source_ids: Resolved Opaque IDs.\n    unverified_aliases: Aliases that could not be verified.\n    is_verified: True if there are verified aliases and no unverified aliases.\n    source_alias: Excluded raw alias field."
       },
       "RawXAIExtensionDTO": {
         "properties": {
@@ -16361,16 +17201,20 @@
             ],
             "title": "Reasoning"
           },
-          "source_quote": {
+          "source_quotes": {
             "anyOf": [
               {
-                "type": "string"
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Source Quote"
+            "title": "Source Quotes",
+            "description": "Verbatim source quote segments"
           },
           "extracted_data": {
             "anyOf": [
@@ -16493,6 +17337,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SduiCausalGraphBlock"
                   }
                 ],
                 "discriminator": {
@@ -16505,6 +17352,7 @@
                     "alert_box": "#/components/schemas/AlertBlock",
                     "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                     "bullet_list": "#/components/schemas/BulletListBlock",
+                    "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                     "grid": "#/components/schemas/SduiGridBlock-Output",
                     "hero_insight": "#/components/schemas/HeroInsightBlock",
                     "markdown": "#/components/schemas/MarkdownBlock",
@@ -16995,6 +17843,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -17007,6 +17858,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Output",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -17308,7 +18160,13 @@
               }
             ],
             "title": "Quote",
-            "description": "Forensic source quote supporting evaluation."
+            "description": "Forensic source quote supporting evaluation (multi-segment quotes joined with ' [...] ')."
+          },
+          "is_inverse_evidence": {
+            "type": "boolean",
+            "title": "Is Inverse Evidence",
+            "description": "True if assertion evaluates absence of negative evidence.",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -17423,38 +18281,6 @@
         ],
         "title": "SDUIComponentType",
         "description": "no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."
-      },
-      "SanitizationResultDTO": {
-        "properties": {
-          "sanitized_inputs": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "type": "object",
-            "title": "Sanitized Inputs",
-            "description": "The inputs after sanitization"
-          },
-          "security_status": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Security Status",
-            "description": "Status of the security check"
-          },
-          "threat_detected": {
-            "type": "boolean",
-            "title": "Threat Detected",
-            "description": "Whether a threat was detected"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "sanitized_inputs",
-          "security_status",
-          "threat_detected"
-        ],
-        "title": "SanitizationResultDTO",
-        "description": "Result payload for text sanitization.\n\nAttributes:\n    sanitized_inputs: Original keys mapped to sanitized values.\n    security_status: Overall status of the security check.\n    threat_detected: Flag indicating if a threat was detected."
       },
       "ScorecardAtomDTO-Input": {
         "properties": {
@@ -17756,6 +18582,90 @@
         "title": "audit_trail",
         "description": "SDUI component representing the execution audit trail."
       },
+      "SduiCausalGraphBlock": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Optional block identifier"
+          },
+          "block_type": {
+            "type": "string",
+            "const": "causal_graph",
+            "title": "Block Type",
+            "default": "causal_graph"
+          },
+          "critical_path_nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CausalNodeDTO"
+            },
+            "type": "array",
+            "title": "Critical Path Nodes"
+          },
+          "critical_edges": {
+            "items": {
+              "$ref": "#/components/schemas/CausalEdgeDTO"
+            },
+            "type": "array",
+            "title": "Critical Edges"
+          },
+          "root_cause_diagnoses": {
+            "items": {
+              "$ref": "#/components/schemas/CausalRootCauseDiagnosisDTO"
+            },
+            "type": "array",
+            "title": "Root Cause Diagnoses"
+          },
+          "anti_fluff_audit": {
+            "$ref": "#/components/schemas/AntiFluffAuditDTO"
+          },
+          "prescriptive_remediations": {
+            "items": {
+              "$ref": "#/components/schemas/PrescriptiveRemediationDTO"
+            },
+            "type": "array",
+            "title": "Prescriptive Remediations"
+          },
+          "fair_scoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FairScoringBreakdownDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intact_claims_count": {
+            "type": "integer",
+            "title": "Intact Claims Count"
+          },
+          "total_claims_count": {
+            "type": "integer",
+            "title": "Total Claims Count"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/I18nText"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "anti_fluff_audit",
+          "intact_claims_count",
+          "total_claims_count",
+          "summary"
+        ],
+        "title": "causal_graph",
+        "description": "Specific block for Unified Causal Action Card and argument graph visualization."
+      },
       "SduiGridBlock-Input": {
         "properties": {
           "id": {
@@ -17832,6 +18742,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -17844,6 +18757,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Input",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -17944,6 +18858,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/SduiAuditTrailBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/SduiCausalGraphBlock"
                 }
               ],
               "discriminator": {
@@ -17956,6 +18873,7 @@
                   "alert_box": "#/components/schemas/AlertBlock",
                   "audit_trail": "#/components/schemas/SduiAuditTrailBlock",
                   "bullet_list": "#/components/schemas/BulletListBlock",
+                  "causal_graph": "#/components/schemas/SduiCausalGraphBlock",
                   "grid": "#/components/schemas/SduiGridBlock-Output",
                   "hero_insight": "#/components/schemas/HeroInsightBlock",
                   "markdown": "#/components/schemas/MarkdownBlock",
@@ -18946,7 +19864,14 @@
             "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
           },
           "cognitive_tier": {
-            "$ref": "#/components/schemas/CognitiveTier",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CognitiveTier"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Step-level cognitive tier profile (e.g., 'fast', 'deep', 'reasoning').",
             "default": "fast"
           },
@@ -18963,6 +19888,11 @@
             "title": "Is System Core",
             "description": "Whether this step blueprint is a protected system foundational component.",
             "default": false
+          },
+          "engine_type": {
+            "$ref": "#/components/schemas/EngineType",
+            "description": "Explicit ExecutionEngine responsible for computing this step.",
+            "default": "prompt"
           }
         },
         "additionalProperties": false,
@@ -19146,10 +20076,11 @@
             "enum": [
               "text",
               "matrix",
+              "causal",
               "unknown"
             ],
             "title": "Data Type",
-            "description": "Inferred or explicitly parsed data type (e.g. matrix, text)."
+            "description": "Inferred or explicitly parsed data type (e.g. matrix, text, causal)."
           },
           "payload": {
             "$ref": "#/components/schemas/StepPayloadValue",
@@ -19227,6 +20158,12 @@
           },
           {
             "$ref": "#/components/schemas/ProfilerMetricsDTO"
+          },
+          {
+            "$ref": "#/components/schemas/CausalGraphPayloadDTO"
+          },
+          {
+            "$ref": "#/components/schemas/CausalTdaFusionResultDTO"
           },
           {
             "additionalProperties": {
@@ -19402,7 +20339,14 @@
             "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
           },
           "cognitive_tier": {
-            "$ref": "#/components/schemas/CognitiveTier",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CognitiveTier"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Step-level cognitive tier profile (e.g., 'fast', 'deep', 'reasoning').",
             "default": "fast"
           },
@@ -19419,6 +20363,11 @@
             "title": "Is System Core",
             "description": "Whether this step blueprint is a protected system foundational component.",
             "default": false
+          },
+          "engine_type": {
+            "$ref": "#/components/schemas/EngineType",
+            "description": "Explicit ExecutionEngine responsible for computing this step.",
+            "default": "prompt"
           }
         },
         "additionalProperties": false,
@@ -19483,6 +20432,19 @@
             "title": "Is Synthesis Source",
             "description": "Whether this step's narrative text output is forwarded to the synthesis LLM context.",
             "default": true
+          },
+          "causal_source_step_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Causal Source Step Id",
+            "description": "Reference to upstream causal discovery step for fusion atom extraction."
           },
           "ui_pos_x": {
             "type": "number",
@@ -19760,7 +20722,8 @@
         "type": "string",
         "enum": [
           "llm",
-          "logic"
+          "logic",
+          "causal_discovery"
         ],
         "title": "StepType",
         "description": "Execution taxonomy for workflow steps."
@@ -22093,6 +23056,14 @@
             "description": "Sovereign workflow strictness level (0-100 continuous).",
             "default": 50
           },
+          "default_lexical_strictness_level": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Default Lexical Strictness Level",
+            "description": "Sovereign workflow lexical strictness level (0-100 continuous).",
+            "default": 50
+          },
           "security_penalty": {
             "type": "number",
             "maximum": 1.0,
@@ -22473,6 +23444,14 @@
             "minimum": 0.0,
             "title": "Default Strictness Level",
             "description": "Sovereign workflow strictness level (0-100 continuous).",
+            "default": 50
+          },
+          "default_lexical_strictness_level": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Default Lexical Strictness Level",
+            "description": "Sovereign workflow lexical strictness level (0-100 continuous).",
             "default": 50
           },
           "security_penalty": {

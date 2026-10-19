@@ -276,7 +276,7 @@ void main() {
           {
             'node_id': 'atm_root_01',
             'claim': 'Prerequisite holds.',
-            'source_quote': 'Foundational quote.',
+            'source_quotes': ['Foundational quote.'],
             'paragraph_ref': 'Section 1.1',
             'status': 'PASSED',
             'blame_parent_ids': <String>[],

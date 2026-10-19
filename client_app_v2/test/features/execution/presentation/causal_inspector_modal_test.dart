@@ -137,7 +137,7 @@ void main() {
 
         // Detail Panel (failing node selected initially)
         expect(find.text('Node Details'), findsOneWidget);
-        expect(find.text('CITATION EVIDENCE'), findsOneWidget);
+        expect(find.text('Citation Evidence'), findsOneWidget);
         expect(
           find.text(
             '"Unverified interface coupling caused contract fracture."',

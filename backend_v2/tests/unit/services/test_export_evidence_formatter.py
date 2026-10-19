@@ -67,19 +67,19 @@ def test_format_text_observations_single_quote() -> None:
 
 
 def test_format_text_observations_multi_quote_list() -> None:
-    """Assert multi-quote collections are formatted as numbered lines."""
+    """Assert multi-quote collections are formatted as [...] joined string."""
     quotes = (
         "First evidence observation.",
         "Second corroborated finding.",
         "Third verified metric.",
     )
     formatted = format_text_observations(quotes)
-    expected = "[1] First evidence observation.\n[2] Second corroborated finding.\n[3] Third verified metric."
+    expected = "First evidence observation. [...] Second corroborated finding. [...] Third verified metric."
     assert formatted == expected
 
 
 def test_format_text_observations_filters_empty_items() -> None:
-    """Assert empty items in quote tuple are filtered out prior to numbering."""
+    """Assert empty items in quote tuple are filtered out prior to joining."""
     quotes = (
         "First observation.",
         "",
@@ -87,7 +87,7 @@ def test_format_text_observations_filters_empty_items() -> None:
         "Second observation.",
     )
     formatted = format_text_observations(quotes)
-    expected = "[1] First observation.\n[2] Second observation."
+    expected = "First observation. [...] Second observation."
     assert formatted == expected
 
 
@@ -99,10 +99,21 @@ def test_format_text_observations_with_coerced_tuple() -> None:
     assert format_text_observations(single) == "Raw string quote"
 
     multi = coerce_source_quotes_tuple(["Quote 1", "Quote 2"])
-    assert format_text_observations(multi) == "[1] Quote 1\n[2] Quote 2"
+    assert format_text_observations(multi) == "Quote 1 [...] Quote 2"
 
     empty = coerce_source_quotes_tuple(None)
     assert format_text_observations(empty) == ""
+
+
+def test_export_evidence_formatter_multi_segment_citations() -> None:
+    """Contract: Observation items with multi-segment quotes ('Quote 1', 'Quote 2') format to 'Quote 1 [...] Quote 2'."""
+    assert format_text_observations(("Quote 1", "Quote 2")) == "Quote 1 [...] Quote 2"
+
+
+def test_export_evidence_formatter_empty_tuple_safeguard() -> None:
+    """Contract: Observation items with empty source_quotes=() gracefully return empty string."""
+    assert format_text_observations(()) == ""
+
 
 
 # ============================================================================

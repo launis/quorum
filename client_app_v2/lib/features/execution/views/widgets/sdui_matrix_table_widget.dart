@@ -563,13 +563,16 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                                     ),
                                     child: Text(
                                       '"${q.sourceQuotes?.join(' [...] ') ?? ''}"',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontStyle: FontStyle.italic,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            fontSize: 10,
+                                            fontStyle: FontStyle.italic,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
                                     ),
                                   );
                                 }),

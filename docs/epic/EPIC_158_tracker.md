@@ -103,17 +103,17 @@
 
 ### Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3)
 - **Plan:** @[docs/epic/tasks_EPIC_158/06_phase6_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 6.0: Strategic alignment check and baseline verification
-  - [ ] Step 6.1: Synchronize tabular export streaming services for CSV and Excel formats
-  - [ ] Step 6.2: Update SDUI highlights and printable sources adapters
-  - [ ] Step 6.3: Remediate Jinja2 PDF template evidence quote emission
-  - [ ] Step 6.4: Regenerate OpenAPI specification artifact reflecting schema updates
-  - [ ] Step 6.5: Implement Studio continuous slider for lexical verification strictness
-  - [ ] Step 6.6: Update client citation and causal inspector widgets
-  - [ ] Step 6.7: Execute presentation and Flutter client audit gates
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+  - [x] Step 6.0: Strategic alignment check and baseline verification
+  - [x] Step 6.1: Synchronize tabular export streaming services for CSV and Excel formats
+  - [x] Step 6.2: Update SDUI highlights and printable sources adapters
+  - [x] Step 6.3: Remediate Jinja2 PDF template evidence quote emission
+  - [x] Step 6.4: Regenerate OpenAPI specification artifact reflecting schema updates
+  - [x] Step 6.5: Implement Studio continuous slider for lexical verification strictness
+  - [x] Step 6.6: Update client citation and causal inspector widgets
+  - [x] Step 6.7: Execute presentation and Flutter client audit gates
+- [x] **[OK] Test Coverage Assertions:** Universal Quality Gate passed with 100% clean check across all 10 backend quality gates (`backend_audit_loop.py`). All 97 backend unit tests passing across export formatter, export service, printable sources adapter, PDF generator, and report headers l10n parity. Flutter audit loop passed 4/4 stages with 0 errors (`flutter_audit_loop.py client_app_v2/ --build`). Full Flutter test suite passing 590/590 tests with 0 failures (`flutter test`). 0 fatal AST guardrail violations, 0 residual debt violations, 100% Theme Sovereignty with 0 raw TextStyle instantiations.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 7: Empirical Offline Benchmark & Regression Gate (WP4)
@@ -274,13 +274,13 @@
 | **REQ-158-028** | Support multi-segment Toulmin warrants in causal edge records | Phase 5, Step 3 | IMPLEMENTED |
 | **REQ-158-029** | Implement Algorithm 1 dual fault attribution separating warrant grounding failures | Phase 5, Step 4 | IMPLEMENTED |
 | **REQ-158-030** | Expand causal linker and cohesion scoring test suites | Phase 5, Step 5 | IMPLEMENTED |
-| **REQ-158-031** | Synchronize tabular export streaming services for CSV and Excel formats | Phase 6, Step 1 | PENDING |
-| **REQ-158-032** | Update SDUI highlights and printable sources adapters | Phase 6, Step 2 | PENDING |
-| **REQ-158-033** | Remediate Jinja2 PDF template evidence quote emission | Phase 6, Step 3 | PENDING |
-| **REQ-158-034** | Regenerate OpenAPI specification artifact reflecting schema updates | Phase 6, Step 4 | PENDING |
-| **REQ-158-035** | Implement Studio continuous slider for lexical verification strictness | Phase 6, Step 5 | PENDING |
-| **REQ-158-036** | Update client citation and causal inspector widgets | Phase 6, Step 6 | PENDING |
-| **REQ-158-037** | Execute presentation and Flutter client audit gates | Phase 6, Step 7 | PENDING |
+| **REQ-158-031** | Synchronize tabular export streaming services for CSV and Excel formats | Phase 6, Step 1 | IMPLEMENTED |
+| **REQ-158-032** | Update SDUI highlights and printable sources adapters | Phase 6, Step 2 | IMPLEMENTED |
+| **REQ-158-033** | Remediate Jinja2 PDF template evidence quote emission | Phase 6, Step 3 | IMPLEMENTED |
+| **REQ-158-034** | Regenerate OpenAPI specification artifact reflecting schema updates | Phase 6, Step 4 | IMPLEMENTED |
+| **REQ-158-035** | Implement Studio continuous slider for lexical verification strictness | Phase 6, Step 5 | IMPLEMENTED |
+| **REQ-158-036** | Update client citation and causal inspector widgets | Phase 6, Step 6 | IMPLEMENTED |
+| **REQ-158-037** | Execute presentation and Flutter client audit gates | Phase 6, Step 7 | IMPLEMENTED |
 | **REQ-158-038** | Implement end-to-end multi-segment integration test suite | Phase 7, Step 1 | PENDING |
 | **REQ-158-039** | Execute offline ablation benchmark ($N=220$) and verify zero chimera leaks | Phase 7, Step 2 | PENDING |
 | **REQ-158-040** | Execute full audit gates and mandatory live E2E real LLM test | Phase 7, Step 3 | PENDING |
@@ -364,7 +364,23 @@
   - Zero orphan requirements, zero AST violations, zero supply chain violations.
   - Clean full-duplex DTO parity (52/52 models).
   - Executed Five-Axis System 2 Adversarial As-Built Evaluation and 5-Column Architectural Verification Table.
-  - Global backend completion gate passed 10/10 stages with 365 clean imports.
+- Completed Phase 6 Tier 0 Research & Red-Team Audit (`06_phase6_plan.md`):
+  - Formulated 5-Column Architectural Directives Table across 14 target scopes and boundaries.
+  - Identified 4 pre-implementation technical debt items: raw `TextStyle` instantiation in `sdui_matrix_table_widget.dart#L566`, citation truncation in `printable_sources_adapter.py#L99-L341`, tabular cell shifting delimiter debt in `export_evidence_formatter.py#L46-L77`, and stale test assertions in `test_export_evidence_formatter.py#L69-L78`.
+  - Injected Step 0 Pre-Implementation Technical Debt Cleanups and explicit `<action>` tags satisfying MBD008 Table-Protocol Bidirectional Parity.
+  - Verified 159 Python AST line bounds against physical codebase, including decorated async functions (`test_pdf_generator.py#L231-L317`).
+  - Verified `06_phase6_plan.md` passes `audit_markdown_boundaries.py` with 0 errors and all 8 plans pass `audit_planner_output.py` with 159/159 AST bounds verified.
+- Completed Phase 6 Execution: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3):
+  - Formatted multi-segment quotes with standardized `" [...] ".join(source_quotes)` in `backend_v2/services/export_evidence_formatter.py` and `backend_v2/services/export_service.py`, preserving rectangular CSV/Excel geometry.
+  - Remediated single-segment quote truncation in `backend_v2/services/sdui/adapters/printable_sources_adapter.py` by formatting full multi-segment provenance context using `" [...] ".join(eq.source_quotes)`.
+  - Remediated Jinja2 PDF report template (`report_template.jinja2`) at line 478 to render `{{ quote.source_quotes | join(' [...] ') if quote.source_quotes else '' }}`, eliminating empty citation omissions.
+  - Regenerated `docs/swagger/openapi.json` from authoritative Pydantic V2 schemas via `generate_openapi.py`.
+  - Implemented independent continuous slider for lexical verification strictness [0, 100], 4 discrete preset chips (Flexible, Calibrated, Strict, Absolute), and dynamic semantic consequence card in `WorkflowStrictnessTab` with 100% Theme Sovereignty and 1:1 cross-language ARB localization (`app_fi.arb`, `app_en.arb`, `metaLexicalStrictness`).
+  - Eradicated raw `TextStyle(...)` instantiation in `sdui_matrix_table_widget.dart` via `Theme.of(context).textTheme.bodySmall?.copyWith(...)`.
+  - Synchronized `causal_inspector_modal.dart` and `sdui_matrix_table_widget.dart` to interpolate `node.sourceQuotes?.join(' [...] ')`.
+  - Resolved `AppExceptionBoundary` multi-instance `ErrorWidget.builder` race condition using static reference counting.
+  - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`): 10/10 quality gates passed, 97 backend unit tests passed.
+  - Passed Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) and 590/590 Flutter tests (`flutter test`).
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -372,7 +388,7 @@
 - In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
 - In `AnchorValidationService`, when $q_1$ repeats earlier in a document preamble, greedy single-pass forward-scan causes false rejection of valid evidence downstream. Implementing candidate $s_1$ anchor iteration ensures that subsequent occurrences of $q_1$ are evaluated within the $[s_1, s_1 + 1\,000]$ window.
 - In `AnchorValidationService.process_atom_evaluation`, independent per-segment document matching creates cross-document chimera vulnerabilities where segment 1 matches document A and segment 2 matches document B. Multi-segment citations must be validated cohesively against each candidate document context, requiring all segments to resolve monotonically within the same single source document buffer.
-- `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. Module-level constant files without class or function definitions (specifically: `matrix_evaluation.py`) must be referenced without `#L` line numbers to satisfy `MBD004`.
+- `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. For decorated functions (e.g. `@pytest.mark.asyncio`), the AST span start line is the first decorator line (`min(d.lineno for d in node.decorator_list)`), not the `def` keyword line.
 - In `scripts/_ast_guardrails.py`, `QGR023` flags any `tuple[int, int]` type annotation as an anonymous state tuple. Encapsulating segment boundaries inside `GateMatchResultDTO` replaces primitive coordinates with named properties (`start_idx`, `end_idx`), fulfilling `ban_anonymous_state_tuples` and passing `QGR023`.
 - `audit_warning_baseline.py` enforces a monotonic ratchet of 0 for Census T (`type-ignore` annotations in `backend_v2/tests`). Writing `# type: ignore` in test files causes Gate 9 failure; tests must use typed signatures without inline suppressions.
 - Natural-language prompt constants in `backend_v2/models/prompts/` (specifically: `matrix_evaluation.py`) can exceed 120 characters per line. Adding these modules to `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml` ensures alignment between isolated docstring checks and global lint passes.
@@ -388,14 +404,19 @@
 - When extending `CausalEdgeDTO` in `causal_discovery.py`, `audit_dto_parity.py` validates 1:1 alignment with Flutter's `CausalEdgeDto`. Synchronously adding `@JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes` to `causal_discovery_dto.dart` and running `flutter_audit_loop.py --build` satisfies Full-Duplex Serialization Parity.
 - In `test_sliding_window_linker.py`, `ExtractedAtom.tda_id` enforces regex pattern `^tda_[a-fA-F0-9]{8,32}$`. Test fixture identifiers must use hexadecimal encoding (`f"tda_{i:08x}"`) rather than arbitrary string suffixes.
 - `StrategyContext` enforces `ConfigDict(frozen=True)`. Tests configuring `expected_inputs` must inject them during construction via `create_engine_request` rather than mutating `request.context` post-instantiation.
+- In `client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart#L566`, a raw `TextStyle(...)` instantiation violates `flutter_theme_sovereignty_mandate`. It must be refactored to `Theme.of(context).textTheme.bodySmall?.copyWith(...)`.
+- In `backend_v2/services/export_evidence_formatter.py#L46-L77`, formatting multiple quotes with numbered newlines (`[1] ...\n[2] ...`) deforms rectangular Excel/CSV cells and causes column shifting. Standardizing to `" [...] ".join(cleaned_items)` preserves clean rectangular grid geometry.
+- In `backend_v2/services/sdui/adapters/printable_sources_adapter.py#L99-L341`, taking `matched_quotes[0]` causes citation truncation for multi-segment quotes. Formatting multi-segment citations using `" [...] ".join(eq.source_quotes)` preserves complete forensic provenance.
+- In `AppExceptionBoundary`, mounting multiple instances simultaneously in `SduiBlocksRenderer` causes an `ErrorWidget.builder` LIFO/FIFO inversion race condition on widget teardown. Adding static reference counting (`_boundaryCount`) ensures only the outermost root boundary captures and restores `_rootOriginalErrorBuilder`, preventing framework teardown assertions from failing.
 
 ## Remaining
-- Research and Red-Team Phase 6 Plan (`06_phase6_plan.md`): `/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
-- Execute Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3).
+- Audit Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3) via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Research and execute Phase 7: Empirical Offline Benchmark & Regression Gate (WP4).
+- Research and execute Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
 
 

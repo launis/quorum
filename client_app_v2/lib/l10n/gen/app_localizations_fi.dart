@@ -3811,6 +3811,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get metaStrictness => 'Tiukkuusaste';
 
   @override
+  String get metaLexicalStrictness => 'Leksikaalinen tiukkuus';
+
+  @override
   String get metaCost => 'Kustannukset';
 
   @override
@@ -5119,6 +5122,47 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String strictnessSliderSemanticLabel(int percentage) {
     return 'Pisteytyksen ankaruustaso: $percentage prosenttia';
+  }
+
+  @override
+  String get lexicalStrictnessSliderHeader =>
+      'Leksikaalisen tarkistuksen tiukkuustaso';
+
+  @override
+  String get lexicalStrictnessPresetFlexible => '0% Joustava';
+
+  @override
+  String get lexicalStrictnessPresetCalibrated => '50% Kalibroitu';
+
+  @override
+  String get lexicalStrictnessPresetStrict => '85% Tiukka';
+
+  @override
+  String get lexicalStrictnessPresetAbsolute => '100% Ehdoton';
+
+  @override
+  String get lexicalStrictnessConsequenceTitle =>
+      'Leksikaalisen tarkistuksen semanttiset seuraukset';
+
+  @override
+  String get lexicalStrictnessConsequenceFlexible =>
+      'Joustava (0%): Erittäin salliva sumea kohdistus (0.80x-kerroin) ja morfologinen taivutusmuotojen tunnistus sallittu.';
+
+  @override
+  String get lexicalStrictnessConsequenceCalibrated =>
+      'Kalibroitu (50%): Standardi tasapainotettu leksikaalinen tarkistus (1.0x-kerroin) Snowball-morfologialla. Suositeltu oletustaso.';
+
+  @override
+  String get lexicalStrictnessConsequenceStrict =>
+      'Tiukka (85%): Korotettu leksikaalinen vaatimustaso (1.02x-kerroin) ja tiukka morfologinen suodatus.';
+
+  @override
+  String get lexicalStrictnessConsequenceAbsolute =>
+      'Ehdoton (100%): Täysin eksakti leksikaalinen alimerkkijonon kohdistus vaaditaan (100.0). Morfologinen taivutusmuotojen tunnistus ja sumeat korjaukset estetty.';
+
+  @override
+  String lexicalStrictnessSliderSemanticLabel(int percentage) {
+    return 'Leksikaalisen tarkistuksen tiukkuustaso: $percentage prosenttia';
   }
 
   @override

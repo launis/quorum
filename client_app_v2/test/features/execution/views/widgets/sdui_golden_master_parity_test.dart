@@ -60,9 +60,9 @@ void main() {
     });
 
     test(
-      'verifies deserialization exhaustiveness across all 17 AnySduiBlock types',
+      'verifies deserialization exhaustiveness across all 18 AnySduiBlock types',
       () {
-        expect(parsedBlocks.length, equals(17));
+        expect(parsedBlocks.length, equals(18));
 
         final typesFound = parsedBlocks.map((b) => b.runtimeType).toSet();
         expect(typesFound, contains(SduiMetadataBlock));
@@ -82,12 +82,13 @@ void main() {
         expect(typesFound, contains(SduiScatterPlotBlock));
         expect(typesFound, contains(SduiMatrixTableBlock));
         expect(typesFound, contains(SduiAuditTrailBlock));
+        expect(typesFound, contains(SduiCausalGraphBlock));
       },
     );
 
     for (final locale in [const Locale('en'), const Locale('fi')]) {
       testWidgets(
-        'renders all 17 Golden Master SDUI blocks correctly in ${locale.languageCode}',
+        'renders all 18 Golden Master SDUI blocks correctly in ${locale.languageCode}',
         (tester) async {
           // Provide adequate desktop canvas dimensions for multi-block render
           tester.view.physicalSize = const Size(1920, 10800);
@@ -245,6 +246,10 @@ void main() {
             find.text('NonExistentQuantumWidgetString12345'),
             findsNothing,
           );
+
+          // Clean up widget tree to trigger AppErrorBoundary.dispose and restore ErrorWidget.builder
+          await tester.pumpWidget(const SizedBox());
+          await tester.pumpAndSettle();
         },
       );
     }

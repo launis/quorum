@@ -132,7 +132,7 @@ void main() {
         );
 
         // Tap Micro chip 'citation' (currently selected) to deselect
-        final citationChip = find.widgetWithText(FilterChip, 'Source Citation');
+        final citationChip = find.widgetWithText(FilterChip, 'Citation');
         expect(citationChip, findsOneWidget);
         await tester.tap(citationChip);
         await tester.pumpAndSettle();

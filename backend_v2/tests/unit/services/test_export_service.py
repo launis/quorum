@@ -47,6 +47,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
+from backend_v2.services.export_evidence_formatter import format_text_observations
 from backend_v2.services.export_service import ExportService
 from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -2172,3 +2173,22 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
     assert rows[3][14] == "0"  # is_inverse
     assert float(rows[3][15]) == 0.0  # points_awarded
     assert rows[3][19] == "root_cause"  # causal_status
+
+
+def test_export_service_multi_segment_quote_delimiter() -> None:
+    """Positive test contract verifying ExportForensicAtomDTO formats multi-segment quotes with ' [...] '."""
+    atom = ExportForensicAtomDTO(
+        matrix_label="Test Matrix",
+        context_target="",
+        level=1,
+        level_name="Level 1",
+        criterion="Test Criterion",
+        claim_type="Affirmative",
+        is_inverse=0,
+        points_awarded=1.0,
+        result_status=1,
+        quotes=format_text_observations(("Part 1", "Part 2")),
+        ai_reasoning="Reasoning",
+    )
+    assert atom.quotes == "Part 1 [...] Part 2"
+

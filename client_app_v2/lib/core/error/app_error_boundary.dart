@@ -21,12 +21,17 @@ class AppExceptionBoundary extends StatefulWidget {
 
 class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
   Object? _error;
-  late final ErrorWidgetBuilder _originalErrorBuilder;
+  static int _boundaryCount = 0;
+  static ErrorWidgetBuilder? _rootOriginalErrorBuilder;
 
   @override
   void initState() {
     super.initState();
-    _originalErrorBuilder = ErrorWidget.builder;
+    if (_boundaryCount == 0) {
+      _rootOriginalErrorBuilder = ErrorWidget.builder;
+    }
+    _boundaryCount++;
+
     // Catch framework-level errors gracefully without causing the Red Screen of Death
     ErrorWidget.builder = (FlutterErrorDetails details) {
       if (!mounted) return const SizedBox.shrink();
@@ -58,7 +63,14 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
 
   @override
   void dispose() {
-    ErrorWidget.builder = _originalErrorBuilder;
+    _boundaryCount--;
+    if (_boundaryCount <= 0) {
+      _boundaryCount = 0;
+      if (_rootOriginalErrorBuilder != null) {
+        ErrorWidget.builder = _rootOriginalErrorBuilder!;
+        _rootOriginalErrorBuilder = null;
+      }
+    }
     super.dispose();
   }
 
