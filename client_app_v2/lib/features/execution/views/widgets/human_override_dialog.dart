@@ -176,27 +176,29 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                   children: [
                     if (_errorMessage != null) ...[
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: AppSpacing.p8,
                         decoration: BoxDecoration(
                           color: theme.colorScheme.errorContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: TextStyle(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onErrorContainer,
-                            fontSize: 12,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      AppSpacing.h12,
                     ],
                     Text(
                       l10n.humanOverrideClaimLabel(widget.atom.claimLabel),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     DropdownButtonFormField<ExecutionStatus>(
+                      isExpanded: true,
                       initialValue: _selectedStatus,
                       items: [
                         DropdownMenuItem(
@@ -220,7 +222,7 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                         border: const OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     TextFormField(
                       controller: _reasonController,
                       decoration: InputDecoration(
@@ -235,16 +237,18 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    AppSpacing.h24,
                     Text(
                       l10n.humanOverrideQuotesTitle,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    AppSpacing.h8,
                     if (_quotes.isEmpty)
                       Text(
                         l10n.humanOverrideNoQuotes,
-                        style: TextStyle(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           fontStyle: FontStyle.italic,
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
