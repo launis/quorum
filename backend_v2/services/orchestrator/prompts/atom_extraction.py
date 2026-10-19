@@ -42,7 +42,14 @@ GLOBAL ONTOLOGY MAP:
 
 
 def build_phase_1_system_prompt(ontology_map_json: str) -> Template:
-    """Build the system prompt template for Phase 1 atom extraction."""
+    """Build the system prompt template for Phase 1 atom extraction.
+
+    Args:
+        ontology_map_json: Serialized JSON representation of the Global Ontology Map.
+
+    Returns:
+        Template instance populated with the ontology map execution parameters.
+    """
     return t"""
 ROLE: ATOM EXTRACTION SPECIALIST
 
