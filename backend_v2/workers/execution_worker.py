@@ -197,6 +197,7 @@ async def execute_workflow_job(
                 )
 
             strictness_level: int = workflow_def.default_strictness_level
+            lexical_strictness_level: int = workflow_def.default_lexical_strictness_level
 
             if not exec_record.target_locale:
                 msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale'."
@@ -219,6 +220,7 @@ async def execute_workflow_job(
                 workflow=workflow_def,
                 raw_inputs=inputs_obj,
                 strictness_level=strictness_level,
+                lexical_strictness_level=lexical_strictness_level,
                 arq_pool=redis,
             )
 

@@ -325,6 +325,7 @@ class StudioWorkflowService:
             historical_context_mode=HistoricalContextMode.DISABLED,
             default_profile_id="prf_0000000000000000",
             model_registry_id=chosen_registry_id,
+            default_lexical_strictness_level=50,
         )
         return await self.save_workflow(initiator, new_id, draft)
 

@@ -408,6 +408,7 @@ class NodeExecutor:
         frozen_ctx: FrozenContext | None = None,
         trace: list[TraceEvent] | None = None,
         strictness_level: int = StrictnessAnchor.STANDARD.value,
+        lexical_strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         context_variables: ContextVariablesDTO | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
@@ -429,6 +430,7 @@ class NodeExecutor:
             frozen_ctx: Frozen context snapshot.
             trace: Trace events history.
             strictness_level: Strictness level numeric value.
+            lexical_strictness_level: Lexical strictness level numeric value.
             arq_pool: Async Arq pool context.
             context_variables: Global state context dictionary or DTO.
             progress_callback: Progress observer async invocation handler.
@@ -562,6 +564,7 @@ class NodeExecutor:
                     expected_inputs=expected_inputs,
                     cognitive_tier=resolved_cognitive_tier,
                     strictness_level=strictness_level,
+                    lexical_strictness_level=lexical_strictness_level,
                     global_context_vars=resolved_global_vars,
                     context_variables=resolved_context_vars,
                     prompt_blocks=loaded_prompt_blocks,
@@ -686,6 +689,7 @@ class DAGExecutor:
         workflow: Workflow,
         raw_inputs: WorkflowInputs,
         strictness_level: int | None = None,
+        lexical_strictness_level: int | None = None,
         arq_pool: Any | None = None,
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution.
@@ -695,6 +699,7 @@ class DAGExecutor:
             workflow: Loaded configuration parameters.
             raw_inputs: Unprocessed raw input structures.
             strictness_level: User-override context threshold limits.
+            lexical_strictness_level: User-override lexical strictness threshold limits.
             arq_pool: Target task queue backend integration.
 
         Returns:
@@ -746,6 +751,9 @@ class DAGExecutor:
 
         if strictness_level is None:
             strictness_level = workflow.default_strictness_level
+
+        if lexical_strictness_level is None:
+            lexical_strictness_level = workflow.default_lexical_strictness_level
 
         raw_rec = await self.exec_repo.get_execution(execution_id)
         existing_record: ExecutionRecord | None = None
@@ -1317,6 +1325,7 @@ class DAGExecutor:
                             frozen_ctx=exec_record.frozen_context,
                             trace=exec_record.execution_trace,
                             strictness_level=strictness_level,
+                            lexical_strictness_level=lexical_strictness_level,
                             context_variables=exec_record.context_variables,
                             progress_callback=progress_callback,
                             step_def=node_step_def,

@@ -1,10 +1,14 @@
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO, SourceDocumentContext
+from backend_v2.models.dtos.studio import WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.settings import get_lexical_fuzz_threshold
 
 
 def test_anchor_validation_exact_match() -> None:
@@ -213,9 +217,9 @@ def test_anchor_validation_entropy_gate_failure() -> None:
 
 def test_anchor_validation_absolute_strictness() -> None:
     with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
-        # strictness 100 forces threshold >= 100 and requires 100% exact match
+        # lexical strictness 100 forces threshold >= 100 and requires 100% exact match
         AnchorValidationService.validate_evidence(
-            "almost perfect text", ["almost perfect texxxt"], strictness_level=100
+            "almost perfect text", ["almost perfect texxxt"], lexical_strictness_level=100
         )
 
 
@@ -225,7 +229,7 @@ def test_anchor_validation_coverage_fallback() -> None:
     # norm_text = "the quick brown fox"
     # Symmetric slice extraction extracts the matched portion from the physical source text
     extracted = AnchorValidationService.validate_evidence(
-        "the quick brown fox", ["the quick brown fox jumps"], strictness_level=0
+        "the quick brown fox", ["the quick brown fox jumps"], lexical_strictness_level=0
     )
     assert extracted is not None
     assert len(extracted) == 1
@@ -236,10 +240,10 @@ def test_anchor_validation_strictness_multiplier() -> None:
     source_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin."
     inflected_quote = ["johtajuus ja selkeät tavoitteet"]
 
-    # 1. Under strictness level 50, Finnish inflected quote matches via Stage 3 morphological stemming
+    # 1. Under lexical strictness level 50, Finnish inflected quote matches via Stage 3 morphological stemming
     # and symmetric extraction slices the physical source text
     extracted = AnchorValidationService.validate_evidence(
-        source_text, inflected_quote, strictness_level=50, locale="fi"
+        source_text, inflected_quote, lexical_strictness_level=50, locale="fi"
     )
     assert extracted is not None
     assert len(extracted) == 1
@@ -248,19 +252,25 @@ def test_anchor_validation_strictness_multiplier() -> None:
     # 2. Negative test: completely different words fail fail-fast with SemanticEvidenceError
     with pytest.raises(SemanticEvidenceError):
         AnchorValidationService.validate_evidence(
-            source_text, ["talousarvio ja budjetti"], strictness_level=50, locale="fi"
+            source_text, ["talousarvio ja budjetti"], lexical_strictness_level=50, locale="fi"
         )
 
-    # 3. Absolute strictness boundary test: under strictness level 100, inflected quote fails
+    # 3. Absolute strictness boundary test: under lexical strictness level 100, inflected quote fails
     with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
-        AnchorValidationService.validate_evidence(source_text, inflected_quote, strictness_level=100, locale="fi")
+        AnchorValidationService.validate_evidence(
+            source_text, inflected_quote, lexical_strictness_level=100, locale="fi"
+        )
 
     # 4. Strictness 85 and 30 paths
     with pytest.raises(SemanticEvidenceError):
-        AnchorValidationService.validate_evidence("some text", ["completely different text"], strictness_level=85)
+        AnchorValidationService.validate_evidence(
+            "some text", ["completely different text"], lexical_strictness_level=85
+        )
 
     with pytest.raises(SemanticEvidenceError):
-        AnchorValidationService.validate_evidence("some text", ["completely different text"], strictness_level=30)
+        AnchorValidationService.validate_evidence(
+            "some text", ["completely different text"], lexical_strictness_level=30
+        )
 
 
 def test_anchor_validation_no_tags_fallback() -> None:
@@ -865,6 +875,7 @@ def test_anchor_validation_zero_width_quote_matching() -> None:
         strictness_level=100,
         locale="fi",
         source_text=text,
+        lexical_strictness_level=100,
     )
     assert res.is_valid is True
 
@@ -877,3 +888,112 @@ def test_anchor_validation_candidate_s1_missing_subsequent_occurrence() -> None:
     res = AnchorValidationService.validate_evidence(pdf_text, (seg1, seg2))
     assert res is not None
     assert len(res) == 2
+
+
+def test_strictness_decoupling_high_scoring_allows_morphology() -> None:
+    """Verify high scoring strictness (85) with normal lexical strictness (50) allows morphology."""
+    source_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin ja strategiaan."
+    inflected_quote = ["johtajuus ja selkeät tavoitteet"]
+
+    extracted = AnchorValidationService.validate_evidence(
+        pdf_text=source_text,
+        exact_quotes=inflected_quote,
+        locale="fi",
+        strictness_level=85,
+        lexical_strictness_level=50,
+    )
+
+    assert extracted is not None
+    assert len(extracted) == 1
+    assert extracted[0] == "johtajuudessaan selkeisiin tavoitteisiin"
+
+
+def test_strictness_decoupling_absolute_lexical_rejects_morphology() -> None:
+    """Verify absolute lexical strictness (100) rejects morphology even when scoring strictness is normal."""
+    source_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin ja strategiaan."
+    inflected_quote = ["johtajuus ja selkeät tavoitteet"]
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        AnchorValidationService.validate_evidence(
+            pdf_text=source_text,
+            exact_quotes=inflected_quote,
+            locale="fi",
+            strictness_level=85,
+            lexical_strictness_level=100,
+        )
+
+    assert "not found" in str(exc_info.value)
+
+
+def test_lexical_strictness_bounds_validation_negative() -> None:
+    """Verify Pydantic ValidationError on out-of-bounds lexical strictness level (<0 or >100)."""
+    # Negative bounds on Workflow domain model
+    with pytest.raises(ValidationError):
+        Workflow(
+            id="wor_0123456789abcdef",
+            slug="test-wf",
+            name="Test Workflow",
+            description="Test",
+            status="active",
+            version=1,
+            default_strictness_level=50,
+            default_lexical_strictness_level=-1,
+        )
+
+    with pytest.raises(ValidationError):
+        Workflow(
+            id="wor_0123456789abcdef",
+            slug="test-wf",
+            name="Test Workflow",
+            description="Test",
+            status="active",
+            version=1,
+            default_strictness_level=50,
+            default_lexical_strictness_level=101,
+        )
+
+    # Bounds on WorkflowCreateDTO
+    with pytest.raises(ValidationError):
+        WorkflowCreateDTO(
+            slug="test-wf",
+            name="Test Workflow",
+            description="Test",
+            model_registry_id="sys_e26807f3bfa3454d",
+            steps=[],
+            default_lexical_strictness_level=-5,
+        )
+
+    with pytest.raises(ValidationError):
+        WorkflowCreateDTO(
+            slug="test-wf",
+            name="Test Workflow",
+            description="Test",
+            model_registry_id="sys_e26807f3bfa3454d",
+            steps=[],
+            default_lexical_strictness_level=150,
+        )
+
+    # Bounds on WorkflowUpdateDTO
+    with pytest.raises(ValidationError):
+        WorkflowUpdateDTO(default_lexical_strictness_level=-1)
+
+    with pytest.raises(ValidationError):
+        WorkflowUpdateDTO(default_lexical_strictness_level=105)
+
+
+def test_get_lexical_fuzz_threshold_strictness_tiers() -> None:
+    """Verify that get_lexical_fuzz_threshold scales with calibrated strictness multipliers."""
+    # Finnish (base 85.0)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=0) == pytest.approx(68.0, rel=1e-3)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=30) == pytest.approx(76.5, rel=1e-3)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=50) == pytest.approx(85.0, rel=1e-3)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=85) == pytest.approx(86.7, rel=1e-3)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=100) == 100.0
+
+    # English (base 92.0)
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=0) == pytest.approx(73.6, rel=1e-3)
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=30) == pytest.approx(82.8, rel=1e-3)
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=50) == pytest.approx(92.0, rel=1e-3)
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=85) == pytest.approx(93.84, rel=1e-3)
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=100) == 100.0
+

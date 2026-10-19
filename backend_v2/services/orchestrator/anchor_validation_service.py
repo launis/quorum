@@ -180,9 +180,10 @@ class AnchorValidationService:
         quote: str | Sequence[str] | tuple[str, ...] | list[str],
         norm_quote: str | Sequence[str] | tuple[str, ...] | list[str],
         norm_text: str,
-        strictness_level: int,
+        strictness_level: int = 50,
         locale: str | None = None,
         source_text: str | None = None,
+        lexical_strictness_level: int = 50,
     ) -> GateMatchResultDTO:
         """Helper to determine if a quote (or multi-segment quote) is lexically valid against normalized text.
 
@@ -196,6 +197,7 @@ class AnchorValidationService:
             strictness_level: Validation strictness level constraint.
             locale: Optional locale definition.
             source_text: Optional original source text prior to normalization for word-boundary stemming.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             GateMatchResultDTO indicating match validity and normalized coordinate bounds.
@@ -218,6 +220,7 @@ class AnchorValidationService:
                     strictness_level=strictness_level,
                     locale=locale,
                     source_text=source_text,
+                    lexical_strictness_level=lexical_strictness_level,
                 )
 
             # Multi-segment citation (m > 1):
@@ -303,20 +306,7 @@ class AnchorValidationService:
             )
             return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
 
-        if strictness_level >= 100:
-            tier_threshold = 100.0
-        else:
-            base_threshold = get_lexical_fuzz_threshold(locale)
-            match strictness_level:
-                case level if level >= 85:
-                    multiplier = 1.02
-                case level if level >= 50:
-                    multiplier = 1.0
-                case level if level >= 30:
-                    multiplier = 0.90
-                case _:
-                    multiplier = 0.80
-            tier_threshold = min(100.0, base_threshold * multiplier)
+        tier_threshold = get_lexical_fuzz_threshold(locale, lexical_strictness_level=lexical_strictness_level)
 
         if tier_threshold >= 100.0:
             logger.warning(
@@ -332,6 +322,7 @@ class AnchorValidationService:
                     "exact_quote_snippet": single_quote_str[:50],
                     "rapidfuzz_score": score,
                     "strictness_level": strictness_level,
+                    "lexical_strictness_level": lexical_strictness_level,
                 },
             )
             matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
@@ -344,8 +335,8 @@ class AnchorValidationService:
                 end_coord = 0
             return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
 
-        # Stage 3: Morphological Stemmed Sequence Verification (executed strictly when strictness_level < 100)
-        if strictness_level < 100:
+        # Stage 3: Morphological Stemmed Sequence Verification (executed strictly when lexical_strictness_level < 100)
+        if lexical_strictness_level < 100:
             stem_min_coverage = min(0.80, tier_threshold / 100.0)
             stem_result = StemmerService.match_stemmed_subsequence(
                 quote=single_quote_str,
@@ -363,6 +354,7 @@ class AnchorValidationService:
                         "stem_similarity_score": stem_result.similarity_score,
                         "matched_content_stems": stem_result.matched_content_stems,
                         "strictness_level": strictness_level,
+                        "lexical_strictness_level": lexical_strictness_level,
                     },
                 )
                 start_coord = -1
@@ -435,6 +427,7 @@ class AnchorValidationService:
         locale: str | None = None,
         strictness_level: int = 50,
         target_speaker: TargetSpeaker = TargetSpeaker.USER,
+        lexical_strictness_level: int = 50,
     ) -> tuple[str, ...] | None:
         """Validates evidence strictly and extracts the exact physical string segments.
 
@@ -451,6 +444,7 @@ class AnchorValidationService:
             locale: Optional locale string to determine the fuzzy fallback threshold.
             strictness_level: Strictness tolerance boundary percentage.
             target_speaker: Target speaker stream (USER or AI) for conversational dialogue.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             The exact physical quotes tuple if valid, or None if overridden.
@@ -500,13 +494,19 @@ class AnchorValidationService:
                 if AnchorValidationService.strict_match(d_text, quotes).is_valid:
                     matched_in_any_directive = True
                     break
-                if strictness_level < 100:
+                if lexical_strictness_level < 100:
                     norm_d, _ = AnchorValidationService.normalize_text_with_mapping(d_text)
                     all_segs_valid = True
                     for q in quotes:
                         norm_q, _ = AnchorValidationService.normalize_text_with_mapping(q)
                         if not AnchorValidationService._is_lexically_valid(
-                            q, norm_q, norm_d, strictness_level, locale, source_text=d_text
+                            q,
+                            norm_q,
+                            norm_d,
+                            strictness_level=strictness_level,
+                            locale=locale,
+                            source_text=d_text,
+                            lexical_strictness_level=lexical_strictness_level,
                         ).is_valid:
                             all_segs_valid = False
                             break
@@ -555,9 +555,10 @@ class AnchorValidationService:
                     quote,
                     norm_quote,
                     norm_allowed_source,
-                    strictness_level,
-                    locale,
+                    strictness_level=strictness_level,
+                    locale=locale,
                     source_text=allowed_source_text,
+                    lexical_strictness_level=lexical_strictness_level,
                 ).is_valid:
                     raise SemanticEvidenceError(
                         message="PROVENANCE_VIOLATION: Quote breached structured provenance boundary"
@@ -705,7 +706,13 @@ class AnchorValidationService:
             for idx, quote in enumerate(quotes):
                 norm_quote = norm_quotes[idx]
                 match_result = AnchorValidationService._is_lexically_valid(
-                    quote, norm_quote, norm_pdf, strictness_level, locale, source_text=pdf_text
+                    quote=quote,
+                    norm_quote=norm_quote,
+                    norm_text=norm_pdf,
+                    strictness_level=strictness_level,
+                    locale=locale,
+                    source_text=pdf_text,
+                    lexical_strictness_level=lexical_strictness_level,
                 )
                 if not match_result.is_valid:
                     raise SemanticEvidenceError(
@@ -733,6 +740,7 @@ class AnchorValidationService:
         mcp_source_texts: dict[str, str] | None = None,
         locale: str | None = None,
         strictness_level: int = 50,
+        lexical_strictness_level: int = 50,
     ) -> AtomResultDTO:
         """Process an atom evaluation item, resolving aliases and matching quotes cohesively.
 
@@ -747,6 +755,7 @@ class AnchorValidationService:
             mcp_source_texts: Dictionary of MCP provided source texts.
             locale: Optional locale definition.
             strictness_level: Strictness tier (0-100).
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             A new mutated AtomResultDTO instance with hydrated source_quote and evaluation_reasoning.
@@ -773,7 +782,7 @@ class AnchorValidationService:
                         if AnchorValidationService.strict_match(doc.text_content, atom.source_quotes).is_valid:
                             matched = True
                             break
-                        if strictness_level < 100:
+                        if lexical_strictness_level < 100:
                             norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(doc.text_content)
                             if AnchorValidationService._is_lexically_valid(
                                 quote=atom.source_quotes,
@@ -785,6 +794,7 @@ class AnchorValidationService:
                                 strictness_level=strictness_level,
                                 locale=locale,
                                 source_text=doc.text_content,
+                                lexical_strictness_level=lexical_strictness_level,
                             ).is_valid:
                                 matched = True
                                 break
@@ -799,6 +809,7 @@ class AnchorValidationService:
                                     strictness_level=strictness_level,
                                     locale=locale,
                                     source_text=doc.text_content,
+                                    lexical_strictness_level=lexical_strictness_level,
                                 ).is_valid:
                                     all_segs = False
                                     break
@@ -813,7 +824,7 @@ class AnchorValidationService:
                         if AnchorValidationService.strict_match(mcp_text, atom.source_quotes).is_valid:
                             matched = True
                             break
-                        if strictness_level < 100:
+                        if lexical_strictness_level < 100:
                             norm_mcp, _ = AnchorValidationService.normalize_text_with_mapping(mcp_text)
                             all_segs = True
                             for q in atom.source_quotes:
@@ -825,6 +836,7 @@ class AnchorValidationService:
                                     strictness_level=strictness_level,
                                     locale=locale,
                                     source_text=mcp_text,
+                                    lexical_strictness_level=lexical_strictness_level,
                                 ).is_valid:
                                     all_segs = False
                                     break

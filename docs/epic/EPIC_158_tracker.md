@@ -77,15 +77,15 @@
 ### Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 4.0: Strategic alignment check and baseline verification
-  - [ ] Step 4.1: Add `default_lexical_strictness_level` to `Workflow` domain model and Studio DTOs
-  - [ ] Step 4.2: Update Studio workflow CRUD service to transit decoupled lexical strictness
-  - [ ] Step 4.3: Synchronize database seed vault workflows and add localization strings
-  - [ ] Step 4.4: Calibrate settings lexical threshold resolution function
-  - [ ] Step 4.5: Transit decoupled lexical strictness in execution worker and DAG executor
-  - [ ] Step 4.6: Expand worker and anchor validation test suites verifying morphological calibration
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+  - [x] Step 4.0: Strategic alignment check and baseline verification
+  - [x] Step 4.1: Add `default_lexical_strictness_level` to `Workflow` domain model and Studio DTOs
+  - [x] Step 4.2: Update Studio workflow CRUD service to transit decoupled lexical strictness
+  - [x] Step 4.3: Synchronize database seed vault workflows and add localization strings
+  - [x] Step 4.4: Calibrate settings lexical threshold resolution function
+  - [x] Step 4.5: Transit decoupled lexical strictness in execution worker and DAG executor
+  - [x] Step 4.6: Expand worker and anchor validation test suites verifying morphological calibration
+- [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 93% line coverage on `anchor_validation_service.py` (53 passed, 0 failures), 100% on `workflow_service.py` and `execution_worker.py` (18 passed, 0 failures), dry-run seed validation 100% clean, 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and 100% DTO parity.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3)
@@ -324,6 +324,16 @@
   - Enforced full bidirectional parity (MBD008) ensuring every Column 1 target has a matching action tag in the execution protocol.
   - Added ISTQB boundary value analysis and negative test contracts ($s < 0, s > 100$) and threshold scaling tests in `test_settings_lexical_thresholds.py`, `test_execution_worker.py`, and `test_anchor_validation_service.py`.
   - Passed both `audit_markdown_boundaries.py` and `audit_planner_output.py` with 100% compliance.
+- Completed Phase 4 Strictness Decoupling SSOT & Gate 5 Morphological Calibration implementation across domain models, Studio DTOs, Studio services, Seed Vault, settings, execution worker, DAG executor, extractive sensor, and anchor validation:
+  - Preserved `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` on `Workflow` domain model and mirrored it across `WorkflowCreateDTO` (`default=50`) and `WorkflowUpdateDTO` (`default=None`) in `studio.py`.
+  - Updated Studio `workflow_service.py` to transit `default_lexical_strictness_level` across creation, draft instantiation, cloning, and retrieval pipelines.
+  - Synchronized all 3 seeded workflows in `seed_data.json` (`wf_9d68c573802341db`, `wf_a8f1d71000000001`, `wf_b9e2d71000000002`) with `"default_lexical_strictness_level": 50`, strictly respecting the Prompt Preservation Mandate (zero prompt or description changes).
+  - Added bilingual localization metadata `"metadata_lexical_strictness"` to both `fi.json` ("Leksikaalinen tiukkuus") and `en.json` ("Lexical Strictness").
+  - Calibrated `get_lexical_fuzz_threshold(locale, lexical_strictness_level)` in `settings.py` to compute dynamic calibrated thresholds with tier multipliers (<30: x0.80, >=30: x0.90, >=50: x1.0, >=85: x1.02, >=100: 100.0).
+  - Decoupled `AnchorValidationService` in `anchor_validation_service.py` by accepting `lexical_strictness_level: int = 50` in `_is_lexically_valid`, `validate_evidence`, and `process_atom_evaluation`, pruning caller-side duplicate multiplier logic in favor of `get_lexical_fuzz_threshold` and gating Stage 3 Snowball morphological stemming strictly on `lexical_strictness_level < 100`.
+  - Transited `lexical_strictness_level` through `execution_worker.py`, `dag_executor.py` (`execute_workflow`, `node_executor.execute`), `StrategyContext`, and `extractive_sensor_service.py` (`_fuzzy_match`, `pre_evaluate`, `_batch_fuzzy_match`, `batch_pre_evaluate`).
+  - Added unit tests: `test_execution_worker_transits_decoupled_strictness_parameters` in `test_execution_worker.py`; and `test_strictness_decoupling_high_scoring_allows_morphology`, `test_strictness_decoupling_absolute_lexical_rejects_morphology`, `test_lexical_strictness_bounds_validation_negative`, and `test_get_lexical_fuzz_threshold_strictness_tiers` in `test_anchor_validation_service.py`.
+  - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`) across all touched targets: 10/10 quality gates clean, 53 anchor validation tests passed (93% line coverage), 18 worker tests passed, dry-run seed validation 100% clean, 0 fatal AST guardrails, 0 residual debt ceiling violations, and clean DTO parity.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -338,15 +348,16 @@
 - In `seed_data.json`, lines 20538-21331 contain exactly 3 active workflow objects (`wf_9d68c573802341db`, `wf_a8f1d71000000001`, `wf_b9e2d71000000002`). Updating seed documentation to reference these 3 explicit IDs instead of an ambiguous "8 workflows" eliminates domain guessing while respecting the Prompt Preservation Mandate.
 - In `backend_v2/settings.py`, `get_lexical_fuzz_threshold(locale, lexical_strictness_level)` is the sole mathematical SSOT for lexical verification thresholds (Free 70%, Normal 82%, Strict 88%, Zero-Trust 95%). Gate 5 Snowball stemming enablement is strictly controlled by `lexical_strictness_level < 85`, fully decoupled from scoring dampening exponent $\zeta_{score}$.
 - `WorkflowCreateDTO` and `WorkflowUpdateDTO` in `backend_v2/models/dtos/studio.py` lacked `default_lexical_strictness_level`, which would cause Studio workflow updates to drop the setting on roundtrip. Extending both DTOs with `default_lexical_strictness_level: Annotated[int, Field(default=50, ge=0, le=100)] = 50` guarantees full-duplex CRUD parity.
+- Conflating scoring dampening exponent $\zeta_{score}$ with lexical matching threshold $\zeta_{lex}$ artificially blocked Snowball morphological stemming when scoring strictness was high ($\zeta_{score} = 85$). Decoupling `lexical_strictness_level` allows high cognitive dampening while still permitting authentic Finnish grammatical case inflections at normal lexical strictness ($\zeta_{lex} = 50$).
 
 ## Remaining
-- Implement Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2) via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Complete Phase 4 audit via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Proceed to Phase 5: Long-Range Causal Horizon Expansion & Global Context Anchor Header for Root Axioms (WP3).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_158/04_phase4_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
+
 
 

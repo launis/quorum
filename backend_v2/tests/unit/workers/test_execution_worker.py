@@ -18,7 +18,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 from backend_v2.workers.execution_worker import execute_workflow_job
 
 
-def _create_mock_workflow(strictness: int = 1) -> Workflow:
+def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> Workflow:
     return Workflow(
         id="wor_0123456789abcdef",
         slug="test-workflow",
@@ -27,6 +27,7 @@ def _create_mock_workflow(strictness: int = 1) -> Workflow:
         status="active",
         version=1,
         default_strictness_level=strictness,
+        default_lexical_strictness_level=lexical_strictness,
         model_registry_id="sys_e26807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
@@ -120,6 +121,39 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
     assert "enqueue_job" not in dir(mock_redis) or not mock_redis.enqueue_job.called
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_transits_decoupled_strictness_parameters() -> None:
+    """Verify that execute_workflow_job extracts and transits both decoupled strictness parameters."""
+    mock_workflow = _create_mock_workflow(strictness=85, lexical_strictness=70)
+    mock_record = _create_mock_record(target_locale="fi")
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(mock_record)
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0123456789abcdef",
+    )
+
+    assert result.status == "COMPLETED"
+    mock_engine.execute_workflow.assert_awaited_once()
+    _, kwargs = mock_engine.execute_workflow.call_args
+    assert kwargs["strictness_level"] == 85
+    assert kwargs["lexical_strictness_level"] == 70
 
 
 @pytest.mark.asyncio

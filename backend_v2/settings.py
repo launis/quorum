@@ -982,25 +982,42 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def get_lexical_fuzz_threshold(locale: str | None = None) -> float:
-    """Centralized helper for fetching the correct fuzzy threshold based on locale.
+def get_lexical_fuzz_threshold(locale: str | None = None, lexical_strictness_level: int = 50) -> float:
+    """Centralized helper for fetching the correct fuzzy threshold based on locale and strictness.
 
     Args:
         locale: Optional language code.
+        lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
     Returns:
-        The fuzzy matching threshold percentage as a float.
+        The calibrated fuzzy matching threshold percentage as a float.
     """
+    if lexical_strictness_level >= 100:
+        return 100.0
+
     settings = get_settings()
     if not locale:
-        return settings.pre_flight_fuzz_default
+        base_threshold = settings.pre_flight_fuzz_default
+    else:
+        match locale.lower():
+            case "fi" | "hu" | "tr":
+                base_threshold = settings.pre_flight_fuzz_agglutinative
+            case "en" | "sv" | "de" | "fr" | "es":
+                base_threshold = settings.pre_flight_fuzz_analytic
+            case "zh" | "ja" | "ko":
+                base_threshold = settings.pre_flight_fuzz_isolating
+            case _:
+                base_threshold = settings.pre_flight_fuzz_default
 
-    match locale.lower():
-        case "fi" | "hu" | "tr":
-            return settings.pre_flight_fuzz_agglutinative
-        case "en" | "sv" | "de" | "fr" | "es":
-            return settings.pre_flight_fuzz_analytic
-        case "zh" | "ja" | "ko":
-            return settings.pre_flight_fuzz_isolating
+    match lexical_strictness_level:
+        case level if level >= 85:
+            multiplier = 1.02
+        case level if level >= 50:
+            multiplier = 1.0
+        case level if level >= 30:
+            multiplier = 0.90
         case _:
-            return settings.pre_flight_fuzz_default
+            multiplier = 0.80
+
+    return min(100.0, base_threshold * multiplier)
+

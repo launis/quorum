@@ -3,6 +3,7 @@
   "metadata_organization": "Organisaatio",
   "metadata_scoring_engine": "Arviointimoottori",
   "metadata_strictness": "Tiukkuusaste",
+  "metadata_lexical_strictness": "Leksikaalinen tiukkuus",
   "variance_mechanical": "Kaavamaiset fraasit",
   "variance_cognitive": "Oman ajattelun syvyys",
   "variance_total": "Muodon ja sisällön epäsuhta",

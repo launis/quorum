@@ -179,7 +179,12 @@ class ExtractiveSensorService:
     """
 
     @staticmethod
-    def _fuzzy_match(source_text: str, anchor: str, locale: str | None = None) -> bool:
+    def _fuzzy_match(
+        source_text: str,
+        anchor: str,
+        locale: str | None = None,
+        lexical_strictness_level: int = 50,
+    ) -> bool:
         """Fuzzy match tolerating minor typos/OCR issues in the source text.
 
         Checks strict match first, then falls back to rapidfuzz partial ratio
@@ -189,6 +194,7 @@ class ExtractiveSensorService:
             source_text: The complete raw text context.
             anchor: The syntactic anchor string to look for.
             locale: Optional target locale/language code.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             True if the anchor is matched strictly or fuzzily within the text,
@@ -196,7 +202,7 @@ class ExtractiveSensorService:
         """
         if AnchorValidationService.strict_match(source_text, [anchor]):
             return True
-        threshold = get_lexical_fuzz_threshold(locale)
+        threshold = get_lexical_fuzz_threshold(locale, lexical_strictness_level=lexical_strictness_level)
         return fuzz.partial_ratio(anchor.lower(), source_text.lower()) >= threshold
 
     @staticmethod
@@ -205,6 +211,7 @@ class ExtractiveSensorService:
         source_text: str,
         locale: str | None = None,
         allow_contextual_override: bool = False,
+        lexical_strictness_level: int = 50,
     ) -> PreFlightResult:
         """Evaluates TDA against source text without LLM if pre-flight is enabled.
 
@@ -219,6 +226,7 @@ class ExtractiveSensorService:
             source_text: The raw source text.
             locale: Optional language code for dynamic fuzzy thresholding.
             allow_contextual_override: Flag indicating whether contextual overrides are permitted during pre-flight.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             A PreFlightResult indicating if the decision was resolved early.
@@ -230,7 +238,12 @@ class ExtractiveSensorService:
             if not quotes:
                 return PreFlightResult(decided=False)
 
-            if all(ExtractiveSensorService._fuzzy_match(source_text, q, locale) for q in quotes):
+            if all(
+                ExtractiveSensorService._fuzzy_match(
+                    source_text, q, locale, lexical_strictness_level=lexical_strictness_level
+                )
+                for q in quotes
+            ):
                 return PreFlightResult(decided=False)
 
             return PreFlightResult(
@@ -242,7 +255,13 @@ class ExtractiveSensorService:
         if not tda.enforce_pre_flight or not tda.syntactic_anchors:
             return PreFlightResult(decided=False)
 
-        found = [a for a in tda.syntactic_anchors if ExtractiveSensorService._fuzzy_match(source_text, a, locale)]
+        found = [
+            a
+            for a in tda.syntactic_anchors
+            if ExtractiveSensorService._fuzzy_match(
+                source_text, a, locale, lexical_strictness_level=lexical_strictness_level
+            )
+        ]
         logger.info(
             "[ExtractiveSensor] TDA %s | Anchors: %s | Found: %s | Aggregation: %s",
             tda.tda_id,
@@ -306,6 +325,7 @@ class ExtractiveSensorService:
         source_text: str,
         locale: str | None = None,
         allow_contextual_override: bool = False,
+        lexical_strictness_level: int = 50,
     ) -> tuple[dict[str, AtomEvaluationResultDTO], list[LinkedAtomGraph]]:
         """Synchronous batch fuzzy matching to determine pre-flight status.
 
@@ -314,6 +334,7 @@ class ExtractiveSensorService:
             source_text: The source document text.
             locale: Optional target locale.
             allow_contextual_override: Whether to permit contextual overrides in pre-evaluation.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             Tuple containing decided results and undecided nodes.
@@ -323,7 +344,11 @@ class ExtractiveSensorService:
 
         for node in nodes:
             pre_result = ExtractiveSensorService.pre_evaluate(
-                node.atom, source_text, locale, allow_contextual_override=allow_contextual_override
+                node.atom,
+                source_text,
+                locale,
+                allow_contextual_override=allow_contextual_override,
+                lexical_strictness_level=lexical_strictness_level,
             )
             if pre_result.decided:
                 if pre_result.result == ExecutionStatus.PASSED:
@@ -351,6 +376,7 @@ class ExtractiveSensorService:
         source_text: str,
         locale: str | None = None,
         allow_contextual_override: bool = False,
+        lexical_strictness_level: int = 50,
     ) -> tuple[dict[str, AtomEvaluationResultDTO], list[LinkedAtomGraph]]:
         """Asynchronous wrapper that offloads CPU-bound batch fuzzy matching to a thread.
 
@@ -359,12 +385,18 @@ class ExtractiveSensorService:
             source_text: The source document text.
             locale: Optional target locale.
             allow_contextual_override: Whether to permit contextual overrides in pre-evaluation.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
 
         Returns:
             Tuple containing decided results and undecided nodes.
         """
         return await asyncio.to_thread(
-            ExtractiveSensorService._batch_fuzzy_match, nodes, source_text, locale, allow_contextual_override
+            ExtractiveSensorService._batch_fuzzy_match,
+            nodes,
+            source_text,
+            locale,
+            allow_contextual_override,
+            lexical_strictness_level,
         )
 
     @staticmethod

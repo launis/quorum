@@ -123,6 +123,9 @@ class WorkflowCreateDTO(V2CoreBase):
     )
     model_registry_id: Annotated[str | None, Field(default=None, description="Model registry system config ID")] = None
     default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
+    default_lexical_strictness_level: Annotated[
+        int, Field(default=50, ge=0, le=100, description="Lexical strictness level")
+    ] = 50
     security_penalty: Annotated[
         float, Field(default=0.0, ge=0.0, le=1.0, description="Security threat penalty ratio")
     ] = 0.0
@@ -594,6 +597,9 @@ class WorkflowUpdateDTO(BaseDTO):
     default_profile_id: Annotated[str | None, Field(default=None)] = None
     default_strictness_level: Annotated[
         int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow strictness level")
+    ] = None
+    default_lexical_strictness_level: Annotated[
+        int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow lexical strictness level")
     ] = None
     security_penalty: Annotated[
         float | None, Field(default=None, ge=0.0, le=1.0, description="Updated security threat penalty ratio")

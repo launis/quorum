@@ -54,6 +54,7 @@ class StrategyContext(BaseModel):
         expected_inputs: Optional expected inputs definition.
         cognitive_tier: Cognitive tier determining model profile resolution.
         strictness_level: Int representing strictness level.
+        lexical_strictness_level: Int representing lexical strictness level.
         global_context_vars: Global context variables.
         context_variables: Local context variables.
         prompt_blocks: Hydrated prompt blocks for execution.
@@ -74,6 +75,9 @@ class StrategyContext(BaseModel):
         CognitiveTier, Field(description="Cognitive tier determining model profile resolution")
     ] = CognitiveTier.FAST
     strictness_level: Annotated[int, Field(description="Int representing strictness level")] = (
+        StrictnessAnchor.STANDARD.value
+    )
+    lexical_strictness_level: Annotated[int, Field(description="Int representing lexical strictness level")] = (
         StrictnessAnchor.STANDARD.value
     )
     global_context_vars: Annotated[

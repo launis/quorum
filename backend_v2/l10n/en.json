@@ -3,6 +3,7 @@
   "metadata_organization": "Organization",
   "metadata_scoring_engine": "Scoring Engine",
   "metadata_strictness": "Strictness",
+  "metadata_lexical_strictness": "Lexical Strictness",
   "variance_mechanical": "Formulaic phrases",
   "variance_cognitive": "Depth of reasoning",
   "variance_total": "Form-content disparity",
