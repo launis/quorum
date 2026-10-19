@@ -154,9 +154,9 @@
   - [x] @[backend_v2/models/dtos/dag_models.py]
   - [x] @[backend_v2/models/dtos/causal_discovery.py]
   - [x] @[backend_v2/models/dtos/atom_result.py]
-  - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
-  - [ ] @[backend_v2/models/dtos/matrix_scorecard.py]
-  - [ ] @[backend_v2/models/dtos/report_artifact.py]
+  - [x] @[backend_v2/models/dtos/atom_evaluation.py]
+  - [x] @[backend_v2/models/dtos/matrix_scorecard.py]
+  - [x] @[backend_v2/models/dtos/report_artifact.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/dtos/studio.py]
   - [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
@@ -484,7 +484,39 @@
      - Expanded unit test coverage in `test_blackboard.py` covering all atom lists, data starvation flag, deduction formatting, and multi-segment quote extraction.
      - Universal Quality Gate passed with 98% line coverage across 7 unit tests.
      - Committed: `f97e75615 chore(hardening): audit and verify backend_v2/models/domain/blackboard.py`.
-- Neuro-Symbolic Audit Matrices generated and verified for all 3 targets with 181 rules strictly validated and 0 AST violations.
+  4. `backend_v2/models/dtos/dag_models.py`:
+     - Harmonized docstrings to reflect `source_quotes` multi-segment tuple schema across `ExtractedAtom`, `AtomEvaluationResultDTO`, and `AtomExecutionState`.
+     - Documented `warrant_quotes` attribute on `CausalEdge`.
+     - Added missing periods to field descriptions in `ChunkPacketDTO`.
+     - Added boundary negative unit tests in `test_dag_models.py` for `source_quotes` max 3 segments and max 500 characters, bringing line coverage to 100% (23 passing tests).
+     - Universal Quality Gate passed with 10/10 stages clean.
+     - Committed: `2ffea4b61 chore(hardening): audit and harden dag_models.py`.
+  5. `backend_v2/models/dtos/causal_discovery.py`:
+     - Added complete Google-style PEP 257 `Attributes:` blocks to all 8 class docstrings (`CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`).
+     - Universal Quality Gate passed with 95% line coverage across 17 unit tests.
+     - Committed: `1dc7e7a72 chore(hardening): audit and harden causal_disco   6. `backend_v2/models/dtos/atom_result.py`:
+      - Enhanced field descriptions with trailing periods and added missing description to `short_circuit_reason_tda_ids`.
+      - Verified all 8 class docstrings have proper Google-style `Attributes:` blocks.
+      - Universal Quality Gate passed with 99% line coverage across 19 unit tests.
+      - Committed: `604a1ec9c chore(hardening): audit and harden atom_result.py`.
+   7. `backend_v2/models/dtos/atom_evaluation.py`:
+      - Added PEP 257 module docstring and Google-style `Attributes:` blocks to all 5 class docstrings (`ReasoningStepDTO`, `ReducedAtomDTO`, `EvaluatedMatrixRefDTO`, `RawXAIExtensionDTO`, `LightweightMatrixDTO`).
+      - Relocated docstring directly under class definitions before `model_config` and enforced `frozen=True` across all models.
+      - Added boundary and negative tests in `test_atom_evaluation.py`, achieving 100% line coverage across 14 passing unit tests.
+      - Universal Quality Gate passed with 10/10 stages clean.
+      - Committed: `d831d3a45 chore(hardening): audit and harden atom_evaluation.py`.
+   8. `backend_v2/models/dtos/matrix_scorecard.py`:
+      - Verified all 7 class docstrings have complete PEP 257 Google-style `Attributes:` blocks and all field descriptions end with periods.
+      - Expanded unit test suite in `test_matrix_scorecard.py` with boundary tests, negative validation tests, and non-dict passthrough tests for `map_contested_to_warning`.
+      - Reached 100% line coverage across 9 passing unit tests with 10/10 clean quality gate stages.
+      - Committed: `48b7e190c chore(hardening): audit and harden matrix_scorecard.py`.
+   9. `backend_v2/models/dtos/report_artifact.py`:
+      - Added complete PEP 257 Google-style `Attributes:` blocks to all 8 class docstrings (`ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `CreateReportRequestDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`).
+      - Enforced `model_config = ConfigDict(strict=True, extra="forbid", frozen=True)` across all 8 models.
+      - Created comprehensive dedicated unit test suite in `test_report_artifact.py` covering positive validation, roundtrips (Python and JSON), and negative tests asserting `ValidationError` on extra fields and invalid types.
+      - Reached 100% line coverage across 16 passing unit tests with 10/10 clean quality gate stages.
+      - Committed: `b6230a578 chore(hardening): audit and harden report_artifact.py`.
+- Neuro-Symbolic Audit Matrices generated and verified for all 9 targets with 181 rules strictly validated and 0 AST violations.
 - Full-duplex DTO parity verified clean across all 52 models (`audit_dto_parity.py`).
 - Warning baseline ledger passed with 0 fatal violations across `backend_v2`.
 
@@ -492,66 +524,62 @@
 - Syntactic calls to `.get(...)` in Python test or domain code trigger AST guardrail `QGR002` even when invoking custom methods named `get` on domain models like `I18nText`. Tests must test the underlying resolution method (`resolve`) directly rather than calling `.get(...)` to avoid syntactic AST false-positives.
 - In `audit_matrix_manager.py`, `check_conflicting_file_references` enforces that rule justifications must anchor strictly to the target stem or allowed system files (`settings.py`, `enums.py`, `conftest.py`, `audit_matrix_manager.py`, `backend_audit_loop.py`, `flutter_audit_loop.py`). Citing test file paths (e.g. `test_core_base.py`) inside rule justifications triggers validation failure; test suites should be referenced conceptually ("Unit tests for target.py...").
 - In `blackboard.py`, `GlobalAtomBlackboard.get_all_atom_ids()` returned non-deterministic order via `list(set(ids))`; sorting via `sorted(set(ids))` ensures deterministic downstream processing during synthesis.
+- In `dag_models.py`, `ExtractedAtom` validates both upper boundary (<= 3 segments and <= 500 chars/segment) and lower boundary (>= 30 chars/segment when m > 1). Testing both boundary partitions ensures 100% mathematical coverage of Pydantic model validators.
+- In Pydantic V2 models enforcing `strict=True`, validating a Python dictionary containing string representations of datetimes (e.g., from `model_dump(mode="json")`) fails in Python validation mode (`model_validate`). To roundtrip JSON-serialized datetimes, use `model_validate_json(model_dump_json())`, or use `model_dump(mode="python")` when testing in-memory Python dictionary validation.
 
 ### Hardening State Snapshot
 - `TARGETS`: 45 files
-- `DONE` (3 files):
+- `DONE` (9 files):
   - `backend_v2/models/core_base.py`
   - `backend_v2/models/dtos/quote_evidence.py`
   - `backend_v2/models/domain/blackboard.py`
-- `REMAINING = TARGETS - DONE`: 42 files
+  - `backend_v2/models/dtos/dag_models.py`
+  - `backend_v2/models/dtos/causal_discovery.py`
+  - `backend_v2/models/dtos/atom_result.py`
+  - `backend_v2/models/dtos/atom_evaluation.py`
+  - `backend_v2/models/dtos/matrix_scorecard.py`
+  - `backend_v2/models/dtos/report_artifact.py`
+- `REMAINING = TARGETS - DONE`: 36 files
 
 ### Remaining Files for Next Session
-1. `backend_v2/models/dtos/dag_models.py`
-2. `backend_v2/models/dtos/causal_discovery.py`
-3. `backend_v2/models/dtos/atom_result.py`
-4. `backend_v2/models/dtos/atom_evaluation.py`
-5. `backend_v2/models/dtos/matrix_scorecard.py`
-6. `backend_v2/models/dtos/report_artifact.py`
-7. `backend_v2/models/domain/workflow.py`
-8. `backend_v2/models/dtos/studio.py`
-9. `backend_v2/services/orchestrator/extractive_sensor_service.py`
-10. `backend_v2/services/orchestrator/anchor_validation_service.py`
-11. `backend_v2/services/orchestrator/sliding_window_linker.py`
-12. `backend_v2/services/orchestrator/causal_cohesion_evaluator.py`
-13. `backend_v2/services/orchestrator/result_projector.py`
-14. `backend_v2/services/orchestrator/matrix_reducer.py`
-15. `backend_v2/services/orchestrator/two_pass_atomizer.py`
-16. `backend_v2/services/orchestrator/topological_evaluator.py`
-17. `backend_v2/services/orchestrator/dag_executor.py`
-18. `backend_v2/services/orchestrator/engines/causal_discovery_engine.py`
-19. `backend_v2/services/studio/workflow_service.py`
-20. `backend_v2/workers/execution_worker.py`
-21. `backend_v2/hooks/scoring/matrix_hook.py`
-22. `backend_v2/services/matrix_domain_parser.py`
-23. `backend_v2/services/export_service.py`
-24. `backend_v2/services/export_evidence_formatter.py`
-25. `backend_v2/services/report_service.py`
-26. `backend_v2/services/sdui/adapters/xai_highlights_adapter.py`
-27. `backend_v2/services/sdui/adapters/printable_sources_adapter.py`
-28. `backend_v2/settings.py`
-29. `backend_v2/models/prompts/execution/matrix_evaluation.py`
-30. `backend_v2/models/prompts/execution/field_prompts.py`
-31. `backend_v2/services/orchestrator/prompts/atom_extraction.py`
-32. `backend_v2/scripts/generate_openapi.py`
-33. `scripts/run_e2e_variance_test.py`
-34. `scripts/run_ablation_benchmark.py`
-35. `backend_v2/services/sdui/sdui_mapper_service.py`
-36. `backend_v2/services/orchestrator/synthesis_distiller.py`
-37. `backend_v2/services/orchestrator/synthesis_payload_compressor.py`
-38. `backend_v2/services/orchestrator/matrix_explanation_service.py`
-39. `backend_v2/services/orchestrator/state_reducer.py`
-40. `backend_v2/services/orchestrator/engines/tda_engine.py`
-41. `backend_v2/services/studio/simulation_service.py`
-42. `backend_v2/llm/mock_data.py`
+1. `backend_v2/models/domain/workflow.py`
+2. `backend_v2/models/dtos/studio.py`
+3. `backend_v2/services/orchestrator/extractive_sensor_service.py`
+4. `backend_v2/services/orchestrator/anchor_validation_service.py`
+5. `backend_v2/services/orchestrator/sliding_window_linker.py`
+6. `backend_v2/services/orchestrator/causal_cohesion_evaluator.py`
+7. `backend_v2/services/orchestrator/result_projector.py`
+8. `backend_v2/services/orchestrator/matrix_reducer.py`
+9. `backend_v2/services/orchestrator/two_pass_atomizer.py`
+10. `backend_v2/services/orchestrator/topological_evaluator.py`
+11. `backend_v2/services/orchestrator/dag_executor.py`
+12. `backend_v2/services/orchestrator/engines/causal_discovery_engine.py`
+13. `backend_v2/services/studio/workflow_service.py`
+14. `backend_v2/workers/execution_worker.py`
+15. `backend_v2/hooks/scoring/matrix_hook.py`
+16. `backend_v2/services/matrix_domain_parser.py`
+17. `backend_v2/services/export_service.py`
+18. `backend_v2/services/export_evidence_formatter.py`
+19. `backend_v2/services/report_service.py`
+20. `backend_v2/services/sdui/adapters/xai_highlights_adapter.py`
+21. `backend_v2/services/sdui/adapters/printable_sources_adapter.py`
+22. `backend_v2/settings.py`
+23. `backend_v2/models/prompts/execution/matrix_evaluation.py`
+24. `backend_v2/models/prompts/execution/field_prompts.py`
+25. `backend_v2/services/orchestrator/prompts/atom_extraction.py`
+26. `backend_v2/scripts/generate_openapi.py`
+27. `scripts/run_e2e_variance_test.py`
+28. `scripts/run_ablation_benchmark.py`
+29. `backend_v2/services/sdui/sdui_mapper_service.py`
+30. `backend_v2/services/orchestrator/synthesis_distiller.py`
+31. `backend_v2/services/orchestrator/synthesis_payload_compressor.py`
+32. `backend_v2/services/orchestrator/matrix_explanation_service.py`
+33. `backend_v2/services/orchestrator/state_reducer.py`
+34. `backend_v2/services/orchestrator/engines/tda_engine.py`
+35. `backend_v2/services/studio/simulation_service.py`
+36. `backend_v2/llm/mock_data.py`
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/models/dtos/dag_models.py] @[backend_v2/models/dtos/causal_discovery.py] @[backend_v2/models/dtos/atom_result.py] @[backend_v2/models/dtos/atom_evaluation.py] @[backend_v2/models/dtos/matrix_scorecard.py] @[backend_v2/models/dtos/report_artifact.py] @[backend_v2/models/domain/workflow.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/services/orchestrator/extractive_sensor_service.py] @[backend_v2/services/orchestrator/anchor_validation_service.py] @[backend_v2/services/orchestrator/sliding_window_linker.py] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py] @[backend_v2/services/orchestrator/result_projector.py] @[backend_v2/services/orchestrator/matrix_reducer.py] @[backend_v2/services/orchestrator/two_pass_atomizer.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] @[backend_v2/services/studio/workflow_service.py] @[backend_v2/workers/execution_worker.py] @[backend_v2/hooks/scoring/matrix_hook.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/export_service.py] @[backend_v2/services/export_evidence_formatter.py] @[backend_v2/services/report_service.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/settings.py] @[backend_v2/models/prompts/execution/matrix_evaluation.py] @[backend_v2/models/prompts/execution/field_prompts.py] @[backend_v2/services/orchestrator/prompts/atom_extraction.py] @[backend_v2/scripts/generate_openapi.py] @[scripts/run_e2e_variance_test.py] @[scripts/run_ablation_benchmark.py] @[backend_v2/services/sdui/sdui_mapper_service.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/state_reducer.py] @[backend_v2/services/orchestrator/engines/tda_engine.py] @[backend_v2/services/studio/simulation_service.py] @[backend_v2/llm/mock_data.py]
+/tier2-hardening-backend @[backend_v2/models/domain/workflow.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/services/orchestrator/extractive_sensor_service.py] @[backend_v2/services/orchestrator/anchor_validation_service.py] @[backend_v2/services/orchestrator/sliding_window_linker.py] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py] @[backend_v2/services/orchestrator/result_projector.py] @[backend_v2/services/orchestrator/matrix_reducer.py] @[backend_v2/services/orchestrator/two_pass_atomizer.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] @[backend_v2/services/studio/workflow_service.py] @[backend_v2/workers/execution_worker.py] @[backend_v2/hooks/scoring/matrix_hook.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/export_service.py] @[backend_v2/services/export_evidence_formatter.py] @[backend_v2/services/report_service.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/settings.py] @[backend_v2/models/prompts/execution/matrix_evaluation.py] @[backend_v2/models/prompts/execution/field_prompts.py] @[backend_v2/services/orchestrator/prompts/atom_extraction.py] @[backend_v2/scripts/generate_openapi.py] @[scripts/run_e2e_variance_test.py] @[scripts/run_ablation_benchmark.py] @[backend_v2/services/sdui/sdui_mapper_service.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/state_reducer.py] @[backend_v2/services/orchestrator/engines/tda_engine.py] @[backend_v2/services/studio/simulation_service.py] @[backend_v2/llm/mock_data.py]
 ```
-
-
-
-
-
-
