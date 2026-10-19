@@ -209,7 +209,7 @@
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_158_tracker.md] @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md] @[ki_structured_forensic_quotes.md] @[ki_topological_engine.md] @[ki_unified_matrix_scoring_strictness.md] @[ki_prompt_orchestration_and_matrix_evaluation.md]
   ```
@@ -647,5 +647,25 @@
   - `client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart`
   - `client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart`
 - `REMAINING = TARGETS - DONE`: 0 files (100% COMPLETE)
+
+
+# Session Handover Context: Tier 7 As-Built Architectural Synchronization
+
+### Achieved
+- **Executed Parameterized Tier 7 Architectural Audit** conforming to the directives in `09_tier7_architecture_sync_plan.md`:
+  1. **Knowledge Items Synchronized (4/4 KIs)**:
+     - `@[ki_structured_forensic_quotes.md]`: Ordered multi-segment bounding span vectors ($\vec{\mathcal{C}}_i$, $1 \le m \le 3$, monotonic ordering $s_1 < e_1 < s_2 < e_2 \le s_1 + 1\,000$, buffer boundary isolation), Anti-Ellipsis quote mandate, Gate 5 Epistemic Strictness Decoupling, and immutable `source_quotes: tuple[str, ...] | None`.
+     - `@[ki_topological_engine.md]`: Bounded Deliverable Root Axiom Anchoring ($K_{\text{axiom}}^{\max} = 8, W_{\text{min}} = 12, M_{\text{win}} \le 20$, OutDegree rank sorting), Algorithm 1 dual fault attribution separating `NODE_FAILURE` and `WARRANT_GROUNDING_FAILURE`, and BARS 1–5 causal cohesion scale derivation.
+     - `@[ki_unified_matrix_scoring_strictness.md]`: Gate 5 Epistemic Strictness Decoupling (`Workflow.default_lexical_strictness_level` vs `Workflow.default_strictness_level`), continuous Studio strictness sliders, and Gate 5 Snowball morphological calibration.
+     - `@[ki_prompt_orchestration_and_matrix_evaluation.md]`: Evidence extraction prompt directives for ordered 1–3 non-contiguous sentence tuples with strict anti-chimera validation.
+  2. **Directory Reference Verification**: Confirmed that `test_multi_segment_causal_e2e.py`, `quote_evidence.py`, and `run_ablation_benchmark.py` are registered in canonical indices of `@[.agents/rules/04_directory_reference.md]`.
+  3. **Timeless Architecture Pillar Synchronization**:
+     - `docs/architecture/01_system_context_and_invariants.md`: Multi-Segment Forensic Quote Invariant (Section 2.16) and Bounded Deliverable Root Axiom Anchoring (Section 2.21).
+     - `docs/architecture/03_cognitive_orchestration_engine.md`: Bounded Deliverable Root Axiom Anchoring & Dual Fault Attribution in Section 2.6.
+     - `docs/architecture/04_server_driven_ui_and_presentation.md`: Multi-segment citation rendering (`join(' [...] ')`), Studio Workflow Strictness Controls (`WorkflowStrictnessTab`, Section 2.15), and interactive Causal Discovery Canvas (`CausalInspectorModal`, Section 2.16).
+  4. **Scientific Manuscript Formalization**: Verified `docs/tiede.md` containing Definition 1 (Evaluated Propositional Frame), Theorem 1 (Lexical Specificity Invariant under Multi-Segment Bounding), Gate 5 Epistemic Strictness Decoupling, Section 4.2 Bounded Root Axioms, and Section 8 empirical ablation benchmark metrics ($N=220$, $\text{Specificity}_{lex} = 1.000$).
+  5. **Verification & Quality Gate Passed**:
+     - `uv run pytest backend_v2/tests/unit/test_phase8_documentation_contracts.py` passed 4/4 tests in 0.43s.
+     - `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_phase8_documentation_contracts.py --test --ast-strict` passed 10/10 quality stages cleanly.
 
 

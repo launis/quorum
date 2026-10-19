@@ -189,6 +189,7 @@ Presentation rendering across all four surfaces (UI, PDF, Excel, and CSV) operat
    - Decoupled semantic badge rules via `ReportAtomColumn` and `is_inverse_evidence`:
      - Positive Claims (`is_inverse: false`): Passed atom displays `+1 p` (`points_awarded: 1.0`); unfulfilled atom displays `0 p` (`points_awarded: 0.0`).
      - Inverse Claims (`is_inverse: true`): Passed/clean atom (no error) displays `Puhdas` (`points_awarded: 0.0`, zero false positive points); failed/detected error atom displays `Negatiivinen löydös` with red visual alert, exact lexical quote citation, and triggers orthogonal malus deduction (`points_awarded: 0.0`).
+   - Multi-Segment Evidence Formatting: When citations contain multiple constituent segments (`source_quotes: tuple[str, ...] | None` / `quotes: list[str]`), the segments are formatted and rendered using `join(' [...] ')`. This preserves visual demarcation across non-contiguous excerpts without fabricating contiguous sentences or inserting chimera ellipses.
 3. **Excel Tab 1 (Yhteenveto)**:
    - Standard 13 Columns: Suoritustunniste, Logiikkamatriisi, Arvioinnin kohde, Jakauma, Osumat, Kriteerejä yhteensä, Osumasuhde, Pisteet, Maksimipisteet, Normalisoitu pisteytys, Selitys, Kriteerit, Lähde.
    - Track B Levels 1–2 hits do NOT count as positive capability points; total hits strictly reflect positive levels 3–5 (specifically: 0 / 8 instead of legacy 3 / 11), aligning normalized score at 0.0%.
@@ -206,6 +207,21 @@ Quorum Studio workflow authoring surfaces (`WorkflowStepsTab`, `WorkflowStepCard
 - **Defensive Dropdown Value Guard**: Dropdown values enforce defensive scoping: `(stepDef.causalSourceStepId != null && allowedCausalIds.contains(stepDef.causalSourceStepId)) ? stepDef.causalSourceStepId : null`, preventing Flutter dropdown assertion crashes when referencing unmapped or deleted steps.
 - **Cascading Step Deletion Referential Integrity**: Deleting a workflow step automatically scans all remaining steps; if any step referenced the deleted step as its `causalSourceStepId`, the pointer is reset to `null` while preserving the step definition.
 - **Flutter Theme Sovereignty**: All Studio workflow authoring widgets derive typography and color metrics strictly from `Theme.of(context).textTheme` and `Theme.of(context).colorScheme`, eradicating raw `TextStyle` instantiations, while static UI labels resolve through Axis 1 compile-time `.arb` localization keys (`studioWorkflowCausalSourceLabel`, `studioWorkflowCausalSourceNone`).
+
+### 2.15. Studio Workflow Strictness Controls & Epistemic Decoupling (`WorkflowStrictnessTab`)
+Workflow strictness authoring in Quorum Studio exposes Gate 5 Epistemic Strictness Decoupling within `WorkflowBuilderView` Tab 4 (`WorkflowStrictnessTab`), featuring independent continuous sliders (0–100%) for both Matrix Scoring Strictness (`defaultStrictnessLevel`) and Lexical Verification Strictness (`defaultLexicalStrictnessLevel`). The interface renders four calibrated consequence zones:
+- Free Zone ($0 \le S \le 30$): Free scoring dampening ($e(S) \in [1.00, 1.15]$) and relaxed lexical verification ($\tau_{\text{tier}} = 60.0\%$, Snowball stemming enabled).
+- Normal Zone ($30 < S \le 50$): Balanced scoring dampening ($e(S) \in [1.15, 1.25]$) and standard lexical threshold ($\tau_{\text{tier}} = 67.5\%$).
+- Strict Zone ($50 < S \le 85$): Rigorous scoring dampening ($e(S) \in [1.25, 1.70]$) and calibrated lexical threshold ($\tau_{\text{tier}} = 75.0\%$).
+- Absolute Zero-Trust Zone ($85 < S \le 100$): Uncompromising score dampening ($e(S) \in [1.70, 2.20]$) and strict lexical verification ($\tau_{\text{tier}} = 76.5\%$ for $S < 100$, jumping to $100.0\%$ exact-match only at $S = 100$, where all stemming and approximate fallbacks are completely deactivated).
+Both sliders operate with full Flutter Theme Sovereignty, live numerical indicators, and compile-time `.arb` localization keys, maintaining complete decoupling between scoring rigor and evidentiary citation thresholds.
+
+### 2.16. Interactive Causal Discovery Canvas (`CausalInspectorModal`)
+Presentation of extracted argument graphs integrates an interactive desktop modal (`CausalInspectorModal`) accessible directly from `SduiCausalGraphWidget`. Built with Flutter Desktop ergonomics:
+- **Interactive Pro Tool Canvas**: Utilizes `InteractiveViewer` with constrained scaling ($0.5\times$ to $2.5\times$) and smooth panning, rendering directed dependency edges and Toulmin backing warrants ($X \xrightarrow{\mathbf{W}_{XY}} Y$).
+- **Topological Node State Indicators**: Nodes display distinctive visual tokens for root causes (`ROOT_CAUSE`), blamed downstream nodes (`BLAMED`), and warrant grounding failures (`WARRANT_GROUNDING_FAILURE`).
+- **Inspection Detail Drawer**: Selecting an argument node reveals its verbatim text citations, Toulmin backing warrants, parent dependencies, and child reachability cascade.
+- **Theme Sovereignty & Containment**: Renders with 100% `Theme.of(context)` color and typography tokens, wrapped in `AppErrorBoundary` to prevent any visualization anomaly from compromising the primary dashboard.
 
 ## 3. Logical Data Flow & Rendering Pipeline
 ```mermaid
