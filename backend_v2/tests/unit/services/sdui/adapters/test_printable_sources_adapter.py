@@ -259,8 +259,7 @@ def test_build_verified_evidence_with_in_text_citation_match(valid_output_profil
     text = blocks[0].text
     assert (
         '**Synthesis finding:** "As Popper (1959) states in his falsification principle, '
-        'hypotheses must define failure criteria."'
-        in text
+        'hypotheses must define failure criteria."' in text
     )
     assert '**Synthesis finding:** "According to Toulmin (1958), claims require backing."' in text
     assert "**Theoretical framework:** Scientific evaluation framework: Empirical falsifiability" in text

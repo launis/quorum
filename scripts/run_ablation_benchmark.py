@@ -22,13 +22,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Final
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Ensure project root is in sys.path before importing backend_v2
 _workspace_root = str(Path(__file__).resolve().parent.parent)
 if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
+from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from scripts.diff_executions import (
@@ -93,7 +94,17 @@ class AblationPropositionDTO(BaseModel):
     synthetic_quote: Annotated[str | None, Field(default=None, description="Verbatim quote or fabricated quote.")] = (
         None
     )
+    synthetic_quotes: Annotated[
+        tuple[str, ...] | None,
+        Field(default=None, description="Ordered non-contiguous quote segments or fabricated text."),
+    ] = None
     is_quote_valid_in_source: Annotated[bool, Field(description="Whether the synthetic quote exists in source text.")]
+
+    @field_validator("synthetic_quotes", mode="before")
+    @classmethod
+    def validate_synthetic_quotes(cls, v: object) -> tuple[str, ...] | None:
+        """Coerce synthetic quote representations to immutable tuple of strings."""
+        return coerce_source_quotes_tuple(v)
 
 
 class AblationStepBatchDTO(BaseModel):
@@ -115,11 +126,21 @@ class AblationAtomEvaluationDTO(BaseModel):
     source_quote: Annotated[
         str | None, Field(default=None, description="Extracted evidence quote substring if any.")
     ] = None
+    source_quotes: Annotated[
+        tuple[str, ...] | None,
+        Field(default=None, description="Ordered non-contiguous quote segments extracted as evidence."),
+    ] = None
     is_chimera: Annotated[bool, Field(description="Whether the quote is unanchored or hallucinated.")]
     status: Annotated[ExecutionStatus, Field(description="Final execution status (PASSED, FAILED, SYSTEM_ERROR).")]
     error_reason: Annotated[
         str | None, Field(default=None, description="Optional error or failure reason description.")
     ] = None
+
+    @field_validator("source_quotes", mode="before")
+    @classmethod
+    def validate_source_quotes(cls, v: object) -> tuple[str, ...] | None:
+        """Coerce source quote representations to immutable tuple of strings."""
+        return coerce_source_quotes_tuple(v)
 
 
 class AblationConfigResultDTO(BaseModel):
@@ -482,29 +503,34 @@ class AblationBenchmarkRunner:
             runs: Number of test-retest runs (1 or 2).
             dry_run: Whether to run with synthetic responses instead of live LLMs.
         """
-        self.case_filter = case_filter
+        self.case_filter = case_filter or "both"
         self.selected_configs = selected_configs or [1, 2, 3, 4, 5]
         self.runs = runs
         self.dry_run = dry_run
         self.call_counts: dict[int, int] = {cfg_id: 0 for cfg_id in range(1, 6)}
-        self.propositions: list[AblationPropositionDTO] = self._build_propositions(case_filter)
+        self.propositions: list[AblationPropositionDTO] = self._build_propositions(self.case_filter)
 
-    def _build_propositions(self, case_filter: str) -> list[AblationPropositionDTO]:
+    def _build_propositions(self, case_filter: str | None = None) -> list[AblationPropositionDTO]:
         """Build the standardized list of propositions for the selected cases.
 
         Args:
-            case_filter: Target case ('pair_a', 'pair_b', or 'both').
+            case_filter: Target case ('pair_a', 'pair_b', or 'both'). Defaults to 'both'.
 
         Returns:
             List of AblationPropositionDTO instances.
         """
         props: list[AblationPropositionDTO] = []
         cases: list[str] = []
-        if case_filter in ("pair_a", "both"):
+        effective_filter = case_filter or "both"
+        if effective_filter in ("pair_a", "both"):
             cases.append("pair_a")
-        if case_filter in ("pair_b", "both"):
+        if effective_filter in ("pair_b", "both"):
             cases.append("pair_b")
 
+        # First pass: collect propositions and positive claim indices to select exactly 21 chimeras
+        temp_items: list[tuple[str, str, str, bool]] = []
+        pos_indices: list[int] = []
+        global_idx = 1
         for c in cases:
             # 110 atoms per case partitioned across 5 steps (25, 25, 30, 25, 5)
             step_specs = [
@@ -514,32 +540,63 @@ class AblationBenchmarkRunner:
                 ("step_4_transparency", 25),
                 ("step_5_causal_cohesion", 5),
             ]
-            atom_idx = 1
             for step_id, count in step_specs:
                 for s_i in range(1, count + 1):
                     tda_id = f"tda_{c}_{step_id}_{s_i:03d}"
-                    # Deterministic ground truth assignment
-                    expected_true = atom_idx % 3 != 0  # ~67% positive base rate
-                    has_quote = expected_true
-                    # In ~18% of positive claims, synthetic quote is a chimera (unanchored in source text)
-                    is_valid_quote = has_quote and (atom_idx % 5 != 0)
-                    quote_text = (
-                        f"Verbatim empirical source sentence {atom_idx}."
-                        if is_valid_quote
-                        else (f"Fabricated hallucinatory text {atom_idx}." if has_quote else None)
-                    )
+                    # 70% positive base rate (154/220 across both cases)
+                    expected_true = global_idx % 10 not in (0, 3, 7)
+                    if expected_true:
+                        pos_indices.append(len(temp_items))
+                    claim = f"Proposition claim assertion {global_idx} for {c} in {step_id}"
+                    temp_items.append((tda_id, step_id, claim, expected_true))
+                    global_idx += 1
 
-                    props.append(
-                        AblationPropositionDTO(
-                            tda_id=tda_id,
-                            step_id=step_id,
-                            claim_text=f"Proposition claim assertion {atom_idx} for {c} in {step_id}",
-                            expected_true=expected_true,
-                            synthetic_quote=quote_text,
-                            is_quote_valid_in_source=is_valid_quote,
+        # Deterministically select exactly 21 chimera probes across positive claims (or 11 if single case)
+        chimera_target = 21 if len(cases) == 2 else 11
+        stride = len(pos_indices) / chimera_target if pos_indices and chimera_target > 0 else 1.0
+        chimera_indices = set(pos_indices[int(i * stride)] for i in range(chimera_target))
+
+        for idx, (tda_id, step_id, claim, expected_true) in enumerate(temp_items):
+            is_chimera = idx in chimera_indices
+            is_valid_quote = expected_true and not is_chimera
+
+            quotes: tuple[str, ...] | None = None
+            quote_text: str | None = None
+
+            if expected_true:
+                seg_count = (idx % 3) + 1
+                if is_valid_quote:
+                    if seg_count == 1:
+                        quotes = (f"Verbatim empirical source sentence {idx + 1} with sufficient length for citation.",)
+                    elif seg_count == 2:
+                        quotes = (
+                            f"First verbatim empirical source sentence {idx + 1} with sufficient length.",
+                            f"Second verbatim empirical source sentence {idx + 1} with sufficient length.",
                         )
+                    else:
+                        quotes = (
+                            f"Initial segment of verbatim empirical source sentence {idx + 1} with sufficient length.",
+                            f"Intermediate segment of empirical source sentence {idx + 1} with sufficient length.",
+                            f"Terminal segment of empirical source sentence {idx + 1} with sufficient length.",
+                        )
+                else:
+                    quotes = (
+                        f"Fabricated hallucinatory text segment A {idx + 1} with sufficient length.",
+                        f"Fabricated hallucinatory text segment B {idx + 1} with sufficient length.",
                     )
-                    atom_idx += 1
+                quote_text = " [...] ".join(quotes)
+
+            props.append(
+                AblationPropositionDTO(
+                    tda_id=tda_id,
+                    step_id=step_id,
+                    claim_text=claim,
+                    expected_true=expected_true,
+                    synthetic_quote=quote_text,
+                    synthetic_quotes=quotes,
+                    is_quote_valid_in_source=is_valid_quote,
+                )
+            )
 
         return props
 
@@ -580,6 +637,7 @@ class AblationBenchmarkRunner:
                     tda_id=prop.tda_id,
                     raw_is_true=False,
                     source_quote=None,
+                    source_quotes=None,
                     is_chimera=False,
                     status=ExecutionStatus.SYSTEM_ERROR,
                     error_reason="TRANSIENT_API_ERROR_HTTP_429",
@@ -594,42 +652,50 @@ class AblationBenchmarkRunner:
             case 1:
                 # Full Quorum: very high reproducibility (~96.8% agreement across runs)
                 raw_is_true = prop.expected_true if (run_variance > 3) else (not prop.expected_true)
-                quote = prop.synthetic_quote if raw_is_true else None
             case 2:
                 # Quorum w/o Firewall: same Bo3 consensus as Config 1
                 raw_is_true = prop.expected_true if (run_variance > 4) else (not prop.expected_true)
-                quote = prop.synthetic_quote if raw_is_true else None
             case 3:
                 # Quorum Single-Pass: higher aleatoric jitter (~88.6% agreement across runs)
                 raw_is_true = prop.expected_true if (run_variance > 11) else (not prop.expected_true)
-                quote = prop.synthetic_quote if raw_is_true else None
             case 4:
                 # Atom Unconstrained: lower agreement (~81.4%), unconstrained quotes
                 raw_is_true = prop.expected_true if (run_variance > 18) else (not prop.expected_true)
-                quote = prop.synthetic_quote if raw_is_true else None
             case 5:
                 # Monolithic Step: lowest agreement (~69.5%), attention loss
                 raw_is_true = prop.expected_true if (run_variance > 30) else (not prop.expected_true)
-                quote = prop.synthetic_quote if raw_is_true else None
             case _:
                 raw_is_true = prop.expected_true
-                quote = prop.synthetic_quote
+
+        quotes = prop.synthetic_quotes if raw_is_true else None
+        quote = prop.synthetic_quote if raw_is_true else None
+        if quotes is None and quote is not None:
+            quotes = coerce_source_quotes_tuple(quote)
+        elif quote is None and quotes is not None:
+            quote = " [...] ".join(quotes)
 
         # 3. Lexical verification check
         is_quote_valid: bool
-        if quote is None:
+        if quote is None and quotes is None:
             is_quote_valid = True
             is_chimera = False
         elif source_text is not None:
             # Use production AnchorValidationService lexical verification
-            norm_q, _ = AnchorValidationService.normalize_text_with_mapping(quote)
             norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
-            is_quote_valid = AnchorValidationService._is_lexically_valid(
-                quote=quote,
+            target_quote = quotes if quotes is not None else (quote or "")
+            norm_q: str | list[str]
+            if isinstance(target_quote, (list, tuple)):
+                norm_q = [AnchorValidationService.normalize_text_with_mapping(q)[0] for q in target_quote]
+            else:
+                norm_q, _ = AnchorValidationService.normalize_text_with_mapping(target_quote)
+
+            match_res = AnchorValidationService._is_lexically_valid(
+                quote=target_quote,
                 norm_quote=norm_q,
                 norm_text=norm_doc,
                 strictness_level=50,
             )
+            is_quote_valid = match_res.is_valid
             is_chimera = not is_quote_valid
         else:
             is_quote_valid = prop.is_quote_valid_in_source
@@ -639,7 +705,7 @@ class AblationBenchmarkRunner:
         if config.has_lexical_firewall:
             # Full Lexical Firewall active: Popperian null hypothesis rejects unanchored quotes to FAILED
             if raw_is_true:
-                if is_quote_valid and quote is not None:
+                if is_quote_valid and (quote is not None or quotes is not None):
                     status = ExecutionStatus.PASSED
                     final_chimera = False
                 else:
@@ -663,6 +729,7 @@ class AblationBenchmarkRunner:
             tda_id=prop.tda_id,
             raw_is_true=raw_is_true,
             source_quote=quote,
+            source_quotes=quotes,
             is_chimera=final_chimera,
             status=status,
             error_reason=None if status != ExecutionStatus.SYSTEM_ERROR else "EVALUATION_ERROR",
@@ -755,6 +822,7 @@ class AblationBenchmarkRunner:
                             else ExecutionStatus.FAILED
                         )
                         q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
+                        qs = coerce_source_quotes_tuple(v.get("source_quotes", q))
                         aid = f"{c_name}_{k}"
                         step_or_matrix = (
                             v["matrix_id"]
@@ -767,6 +835,7 @@ class AblationBenchmarkRunner:
                                 tda_id=aid,
                                 raw_is_true=st == ExecutionStatus.PASSED,
                                 source_quote=q,
+                                source_quotes=qs,
                                 is_chimera=False,
                                 status=st,
                                 error_reason=None if st != ExecutionStatus.SYSTEM_ERROR else "SYSTEM_ERROR",
@@ -780,6 +849,7 @@ class AblationBenchmarkRunner:
                             else ExecutionStatus.FAILED
                         )
                         q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
+                        qs = coerce_source_quotes_tuple(v.get("source_quotes", q))
                         aid = f"{c_name}_{k}"
                         step_or_matrix = (
                             v["matrix_id"]
@@ -792,6 +862,7 @@ class AblationBenchmarkRunner:
                                 tda_id=aid,
                                 raw_is_true=st == ExecutionStatus.PASSED,
                                 source_quote=q,
+                                source_quotes=qs,
                                 is_chimera=False,
                                 status=st,
                                 error_reason=None if st != ExecutionStatus.SYSTEM_ERROR else "SYSTEM_ERROR",

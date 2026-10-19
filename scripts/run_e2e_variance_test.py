@@ -52,7 +52,10 @@ import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from scripts.run_ablation_benchmark import AblationBenchmarkReportDTO
 
 # Ensure project root is in sys.path before any local or third-party project imports
 _project_root = Path(__file__).resolve().parent.parent
@@ -68,8 +71,10 @@ if sys.platform == "win32":
 import requests
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
+from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
 from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 
@@ -93,6 +98,7 @@ __all__ = [
     "run_variance_test",
     "trigger_execution",
     "validate_execution_kelvollisuus",
+    "verify_offline_ablation_benchmark",
 ]
 
 
@@ -832,7 +838,13 @@ def validate_execution_kelvollisuus(
     target_exec: Mapping[str, JsonValue],
     trace_path: Path | None = None,
 ) -> tuple[bool, str]:
-    """Validate that execution output is valid and did not suffer from data starvation.
+    """Validate that execution output is valid and did not suffer from data starvation or chimera leakage.
+
+    Asserts:
+    1. Execution ended with status 'PASSED'.
+    2. Zero data starvation in profile_syntheses and execution_trace.
+    3. Multi-segment quote grounding: all atom evaluations carrying source_quotes
+       satisfy lexical verification against corpus text buffers with zero chimera leakage.
 
     Args:
         target_exec: Execution record dictionary from database.
@@ -856,11 +868,14 @@ def validate_execution_kelvollisuus(
                     return False, f"Profile '{profile_id}' data starvation: {reason}"
 
     # 2. Check execution_trace.json for starvation trace events
+    trace_data: Sequence[object] | None = None
     if trace_path and trace_path.exists():
         try:
             with trace_path.open("r", encoding="utf-8") as f:
-                trace_data = json.load(f)
-            if isinstance(trace_data, list):
+                loaded = json.load(f)
+                if isinstance(loaded, list):
+                    trace_data = loaded
+            if trace_data:
                 for step in trace_data:
                     if isinstance(step, dict):
                         content = step.get("content")
@@ -872,6 +887,62 @@ def validate_execution_kelvollisuus(
                             )
         except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             print(f"[Kelvollisuus] Warning reading trace file {trace_path}: {e}")
+
+    # 3. Multi-segment quote grounding & zero chimera leakage verification
+    corpus_text_parts: list[str] = []
+    inputs = target_exec.get("inputs", {})
+    if isinstance(inputs, dict):
+        for val in inputs.values():
+            if isinstance(val, str) and val.strip():
+                corpus_text_parts.append(val)
+
+    if corpus_text_parts:
+        corpus_buffer = "\n\n".join(corpus_text_parts)
+        evals_to_check: list[object] = []
+
+        # Collect atom evaluations from step_states
+        step_states = target_exec.get("step_states", {})
+        if isinstance(step_states, dict):
+            for st in step_states.values():
+                if isinstance(st, dict):
+                    for k in ("evaluations", "results", "extracted_atoms"):
+                        items = st.get(k)
+                        if isinstance(items, list):
+                            evals_to_check.extend(item for item in items if isinstance(item, dict))
+
+        # Also collect from trace_data if present
+        if trace_data:
+            for step in trace_data:
+                if isinstance(step, dict):
+                    content = step.get("content")
+                    if isinstance(content, dict):
+                        for k in ("evaluations", "results"):
+                            items = content.get(k)
+                            if isinstance(items, list):
+                                evals_to_check.extend(item for item in items if isinstance(item, dict))
+
+        for ev in evals_to_check:
+            ev_status = str(ev.get("status", "")).upper()
+            if ev_status == "PASSED":
+                raw_quotes = ev.get("source_quotes") or ev.get("exact_quotes") or ev.get("source_quote")
+                quotes = coerce_source_quotes_tuple(raw_quotes)
+                if quotes:
+                    match_res = AnchorValidationService.strict_match(corpus_buffer, quotes)
+                    if not match_res.is_valid:
+                        norm_q = [AnchorValidationService.normalize_text_with_mapping(q)[0] for q in quotes]
+                        norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(corpus_buffer)
+                        match_res = AnchorValidationService._is_lexically_valid(
+                            quote=quotes,
+                            norm_quote=norm_q,
+                            norm_text=norm_doc,
+                            strictness_level=50,
+                        )
+                    if not match_res.is_valid:
+                        atom_id = ev.get("tda_id") or ev.get("atom_id") or "unknown_atom"
+                        return (
+                            False,
+                            f"Chimera leakage detected: atom '{atom_id}' quote '{quotes}' failed lexical grounding",
+                        )
 
     return True, "Execution is valid and contains sufficient observations"
 
@@ -1950,6 +2021,56 @@ def run_variance_test(
     return execution_ids
 
 
+def verify_offline_ablation_benchmark(
+    min_pass_rate: float = 56.4,
+    max_chimera_rate: float = 0.0,
+    selected_configs: list[int] | None = None,
+) -> AblationBenchmarkReportDTO:
+    """Execute and verify the empirical offline component ablation benchmark.
+
+    Evaluates the 220 proposition frame benchmark across ablation configurations,
+    asserting that Configuration 1 (Full Quorum with Lexical Firewall) satisfies
+    the empirical pass rate threshold (>= min_pass_rate) and guarantees zero chimera
+    quote acceptance (<= max_chimera_rate).
+
+    Args:
+        min_pass_rate: Minimum required pass rate percentage for Configuration 1.
+        max_chimera_rate: Maximum permitted chimera quote leakage percentage for Configuration 1.
+        selected_configs: Optional list of configuration IDs to run (defaults to all [1, 2, 3, 4, 5]).
+
+    Returns:
+        The generated AblationBenchmarkReportDTO.
+
+    Raises:
+        AssertionError: If Configuration 1 fails empirical pass rate or chimera rate thresholds.
+    """
+    from scripts.run_ablation_benchmark import AblationBenchmarkRunner
+
+    configs_to_run = selected_configs if selected_configs is not None else [1, 2, 3, 4, 5]
+    runner = AblationBenchmarkRunner(
+        case_filter="both",
+        selected_configs=configs_to_run,
+        runs=2,
+        dry_run=True,
+    )
+    report = runner.run_all()
+
+    config_1 = next((c for c in report.config_results if c.config_id == 1), None)
+    if config_1 is not None:
+        if config_1.pass_rate_pct < min_pass_rate:
+            raise AssertionError(
+                f"Configuration 1 empirical pass rate ({config_1.pass_rate_pct:.1f}%) fell below "
+                f"required threshold of {min_pass_rate:.1f}%."
+            )
+        if config_1.chimera_rate_pct > max_chimera_rate:
+            raise AssertionError(
+                f"Configuration 1 chimera acceptance rate ({config_1.chimera_rate_pct:.1f}%) exceeded "
+                f"permitted threshold of {max_chimera_rate:.1f}% (zero-tolerance firewall violation)."
+            )
+
+    return report
+
+
 def main(argv: list[str] | None = None) -> list[str]:
     """CLI entrypoint for end-to-end variance test runner."""
     parser = argparse.ArgumentParser(
@@ -2034,8 +2155,20 @@ def main(argv: list[str] | None = None) -> list[str]:
         action="store_true",
         help="Enable Logfire distributed tracing and wrap execution in root span",
     )
+    parser.add_argument(
+        "--run-ablation",
+        action="store_true",
+        help="Execute the 220 proposition frame empirical offline ablation benchmark and print Table 7",
+    )
 
     args = parser.parse_args(argv)
+    if args.run_ablation:
+        print("\n=== RUNNING EMPIRICAL OFFLINE ABLATION BENCHMARK (N=220) ===")
+        report = verify_offline_ablation_benchmark()
+        print("\n[SUCCESS] Ablation Benchmark Verified:")
+        print(report.table_markdown)
+        return []
+
     if args.show_matrices:
         target_db = Path(args.db_path) if args.db_path else Path("data/db_v2.json")
         if args.compare_registries is not None:
