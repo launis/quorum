@@ -138,7 +138,7 @@
   - [x] Step 8.2: Synchronize scientific manuscript `docs/tiede.md` with formal definitions, theorems, and benchmark results
   - [x] Step 8.3: Execute parameterized Tier 7 as-built architecture audit
 - [x] **[OK] Test Coverage Assertions:** Implemented comprehensive test contracts in `backend_v2/tests/unit/test_phase8_documentation_contracts.py` covering positive LaTeX syntax validity (`test_tiede_latex_syntax_validity`), negative unbalanced math detector (`test_tiede_unbalanced_math_detector_negative`), negative directory reference drift detector (`test_directory_reference_drift_detector_negative`), and negative decoupled strictness parameter regression (`test_decoupled_strictness_parameter_regression_negative`). All 4 test contracts passed in 0.25s. Backend audit loop passed 10/10 stages with strict AST guardrails, clean imports across 365 modules, 52/52 DTO parity, zero residual debt baseline violations, and zero naked dict violations.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Post-Implementation Red-Team Audit (`red_team_audit_phase8_plan.md`): 100% of requirements REQ-158-041 through REQ-158-043 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, 4/4 documentation test contracts passing, Flutter audit loop passing 4/4 stages, and global backend completion gate passed with 5,639 tests (97.77% coverage).
 
 ### Integration Checkpoint: Full-Stack Validation
 - [x] **[OK] Backend Integration Suite**: Run `uv run pytest backend_v2/tests/integration/test_multi_segment_causal_e2e.py`
@@ -287,9 +287,9 @@
 | **REQ-158-038** | Implement end-to-end multi-segment integration test suite | Phase 7, Step 1 | IMPLEMENTED |
 | **REQ-158-039** | Execute offline ablation benchmark ($N=220$) and verify zero chimera leaks | Phase 7, Step 2 | IMPLEMENTED |
 | **REQ-158-040** | Execute full audit gates and mandatory live E2E real LLM test | Phase 7, Step 3 | IMPLEMENTED |
-| **REQ-158-041** | Update directory reference rule with new integration tests and services | Phase 8, Step 1 | PENDING |
-| **REQ-158-042** | Synchronize scientific manuscript `docs/tiede.md` with formal definitions and theorems | Phase 8, Step 2 | PENDING |
-| **REQ-158-043** | Execute parameterized Tier 7 as-built architecture audit | Phase 8, Step 3 | PENDING |
+| **REQ-158-041** | Update directory reference rule with new integration tests and services | Phase 8, Step 1 | IMPLEMENTED |
+| **REQ-158-042** | Synchronize scientific manuscript `docs/tiede.md` with formal definitions and theorems | Phase 8, Step 2 | IMPLEMENTED |
+| **REQ-158-043** | Execute parameterized Tier 7 as-built architecture audit | Phase 8, Step 3 | IMPLEMENTED |
 
 # Session Handover Context
 
@@ -446,16 +446,25 @@
 - In `Workflow`, `historical_context_mode` defaults to `LaxHistoricalContextMode` without a fallback default value, requiring explicit assignment (`HistoricalContextMode.DISABLED`) when constructing test instances.
 - To prevent architectural documentation from decaying into historical narratives, `docs/architecture/` pillars strictly forbid phase names ("Phase 1"), development stages, or Epic IDs, describing purely what the physical system currently possesses in present tense.
 
+- Completed Tier 8 Post-Implementation Red-Team Audit for Phase 8 (`red_team_audit_phase8_plan.md`): 100% of requirements REQ-158-041 through REQ-158-043 verified on physical disk with zero orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, 4/4 test contracts passing, Flutter audit loop passing 4/4 stages, and global backend completion gate passed with 5,639 tests (97.77% coverage).
+- All 8 implementation phases of Epic 158 are now 100% COMPLETE and AUDITED!
+
 ## Remaining
-- Execute Tier 8 Post-Implementation Red-Team Audit for Phase 8: `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Post-Implementation Gates:
-  - Golden Master & Test Restoration Audit
-  - Proxy Sunset & Consumer Migration
-  - Tier 2 Hardening (Backend) across the 19 modified files
+  - [ ] Golden Master & Test Restoration Audit: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+  - [ ] Proxy Sunset & Consumer Migration: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+  - [ ] Tier 2 Hardening (Backend) across the 43 modified files
+  - [ ] Tier 2 Hardening (Frontend) across the 11 modified Flutter files
+  - [ ] Pre-Delete Audit: Verify no orphaned dependencies remain.
+  - [ ] Semantic Coverage & Zero-Loss Audit: Mathematically verify line coverage >90% for surviving business logic.
+- Documentation & Knowledge Item Update:
+  - [ ] Parameterized `/tier7-describe-architecture`
+- Final Epic Audit:
+  - [ ] `/tier8-audit-epic @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/08_phase8_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier2-hardening-backend @[backend_v2/models/core_base.py] @[backend_v2/models/dtos/quote_evidence.py] @[backend_v2/models/domain/blackboard.py] @[backend_v2/models/dtos/dag_models.py] @[backend_v2/models/dtos/causal_discovery.py] @[backend_v2/models/dtos/atom_result.py] @[backend_v2/models/dtos/atom_evaluation.py] @[backend_v2/models/dtos/matrix_scorecard.py] @[backend_v2/models/dtos/report_artifact.py] @[backend_v2/models/domain/workflow.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/services/orchestrator/extractive_sensor_service.py] @[backend_v2/services/orchestrator/anchor_validation_service.py] @[backend_v2/services/orchestrator/sliding_window_linker.py] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py] @[backend_v2/services/orchestrator/result_projector.py] @[backend_v2/services/orchestrator/matrix_reducer.py] @[backend_v2/services/orchestrator/two_pass_atomizer.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] @[backend_v2/services/studio/workflow_service.py] @[backend_v2/workers/execution_worker.py] @[backend_v2/hooks/scoring/matrix_hook.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/export_service.py] @[backend_v2/services/export_evidence_formatter.py] @[backend_v2/services/report_service.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/settings.py] @[backend_v2/models/prompts/execution/matrix_evaluation.py] @[backend_v2/models/prompts/execution/field_prompts.py] @[backend_v2/services/orchestrator/prompts/atom_extraction.py] @[backend_v2/scripts/generate_openapi.py] @[scripts/run_e2e_variance_test.py] @[scripts/run_ablation_benchmark.py] @[backend_v2/services/sdui/sdui_mapper_service.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/state_reducer.py] @[backend_v2/services/orchestrator/engines/tda_engine.py] @[backend_v2/services/studio/simulation_service.py] @[backend_v2/llm/mock_data.py]
 ```
 
 
