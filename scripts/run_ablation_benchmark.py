@@ -63,6 +63,27 @@ if isinstance(sys.stderr, io.TextIOWrapper):
     except AttributeError, io.UnsupportedOperation:
         pass
 
+__all__ = [
+    "CONFIGURATIONS",
+    "AblationAtomEvaluationDTO",
+    "AblationBenchmarkReportDTO",
+    "AblationBenchmarkRunner",
+    "AblationConfigDTO",
+    "AblationConfigResultDTO",
+    "AblationPropositionDTO",
+    "AblationStepBatchDTO",
+    "build_arg_parser",
+    "calculate_chimera_rate",
+    "calculate_dlq_rate",
+    "calculate_pass_rate",
+    "compute_cluster_bootstrapped_kappa_for_runs",
+    "compute_cohens_kappa_for_runs",
+    "format_ablation_table_markdown",
+    "format_table_5_markdown",
+    "main",
+    "run_ablation_benchmark",
+]
+
 
 class AblationConfigDTO(BaseModel):
     """Configuration specification for an experimental ablation condition."""
