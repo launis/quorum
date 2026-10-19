@@ -114,7 +114,7 @@
   - [x] Step 6.6: Update client citation and causal inspector widgets
   - [x] Step 6.7: Execute presentation and Flutter client audit gates
 - [x] **[OK] Test Coverage Assertions:** Universal Quality Gate passed with 100% clean check across all 10 backend quality gates (`backend_audit_loop.py`). All 97 backend unit tests passing across export formatter, export service, printable sources adapter, PDF generator, and report headers l10n parity. Flutter audit loop passed 4/4 stages with 0 errors (`flutter_audit_loop.py client_app_v2/ --build`). Full Flutter test suite passing 590/590 tests with 0 failures (`flutter test`). 0 fatal AST guardrail violations, 0 residual debt violations, 100% Theme Sovereignty with 0 raw TextStyle instantiations.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Post-Implementation Red-Team Audit (`red_team_audit_phase6_plan.md`): 100% of requirements REQ-158-031 through REQ-158-037 verified on disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean DTO parity, 97 backend unit tests passing, Flutter audit loop passing 4/4 stages, and global backend completion gate passed with 5,635 tests (97.77% coverage).
 
 ### Phase 7: Empirical Offline Benchmark & Regression Gate (WP4)
 - **Plan:** @[docs/epic/tasks_EPIC_158/07_phase7_plan.md]
@@ -381,6 +381,7 @@
   - Resolved `AppExceptionBoundary` multi-instance `ErrorWidget.builder` race condition using static reference counting.
   - Passed Universal Quality Gate (`backend_audit_loop.py` with `--test --ast-strict`): 10/10 quality gates passed, 97 backend unit tests passed.
   - Passed Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) and 590/590 Flutter tests (`flutter test`).
+  - Completed Tier 8 Post-Implementation Red-Team Audit for Phase 6 (`red_team_audit_phase6_plan.md`): 100% of requirements REQ-158-031 through REQ-158-037 verified on physical disk, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, clean full-duplex DTO parity, and global backend completion gate passed with 5,635 tests (97.77% coverage).
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -410,14 +411,14 @@
 - In `AppExceptionBoundary`, mounting multiple instances simultaneously in `SduiBlocksRenderer` causes an `ErrorWidget.builder` LIFO/FIFO inversion race condition on widget teardown. Adding static reference counting (`_boundaryCount`) ensures only the outermost root boundary captures and restores `_rootOriginalErrorBuilder`, preventing framework teardown assertions from failing.
 
 ## Remaining
-- Audit Phase 6: Presentation Projection, Tabular Export, OpenAPI & Frontend UI Presentation Synchronization (WP1 & WP3) via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
-- Research and execute Phase 7: Empirical Offline Benchmark & Regression Gate (WP4).
+- Research and execute Phase 7: Empirical Offline Benchmark & Regression Gate (WP4) via `/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
 - Research and execute Phase 8: As-Built Architectural Documentation & Scientific Manuscript Synchronization (`@[docs/tiede.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/06_phase6_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/07_phase7_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
+
 
 
 

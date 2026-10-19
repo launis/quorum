@@ -163,7 +163,7 @@ def test_build_preserves_existing_bullet_prefix_fi(valid_output_profile_fixture:
 
 
 def test_build_filters_sr_internal_keys(valid_output_profile_fixture: OutputProfile) -> None:
-    """Negative: Filters out internal DAG step IDs (sr_..., stp_..., and _results) while preserving Harvard citations."""
+    """Negative: Filters internal DAG step IDs (sr_..., stp_..., and _results) preserving citations."""
     cache = RenderedSynthesisCache(
         cited_sources=[
             "sr_123456_results",
@@ -234,7 +234,10 @@ def test_build_verified_evidence_with_in_text_citation_match(valid_output_profil
         section_syntheses={
             "executive_summary_block": [
                 ParagraphBlock(
-                    text="As Popper (1959) states in his falsification principle, hypotheses must define failure criteria."
+                    text=(
+                        "As Popper (1959) states in his falsification principle, "
+                        "hypotheses must define failure criteria."
+                    )
                 ),
                 ParagraphBlock(text="According to Toulmin (1958), claims require backing."),
             ]
@@ -255,7 +258,8 @@ def test_build_verified_evidence_with_in_text_citation_match(valid_output_profil
     assert len(blocks) == 1
     text = blocks[0].text
     assert (
-        '**Synthesis finding:** "As Popper (1959) states in his falsification principle, hypotheses must define failure criteria."'
+        '**Synthesis finding:** "As Popper (1959) states in his falsification principle, '
+        'hypotheses must define failure criteria."'
         in text
     )
     assert '**Synthesis finding:** "According to Toulmin (1958), claims require backing."' in text
@@ -413,7 +417,10 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
         section_syntheses={
             "executive_summary_block": [
                 ParagraphBlock(
-                    text="As Popper (1959) states in his falsification principle, hypotheses must define failure criteria."
+                    text=(
+                        "As Popper (1959) states in his falsification principle, "
+                        "hypotheses must define failure criteria."
+                    )
                 ),
             ]
         },
@@ -558,7 +565,7 @@ def test_printable_sources_rules_export() -> None:
 def test_sdui_printable_sources_multi_segment_provenance(
     valid_output_profile_fixture: OutputProfile,
 ) -> None:
-    """Contract: PrintableSourcesAdapter rendering evidence quotes with source_quotes=('Clause A', 'Clause B') includes 'Clause A [...] Clause B'."""
+    """Contract: PrintableSourcesAdapter renders multi-segment citations with ' [...] ' delimiter."""
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -622,4 +629,3 @@ def test_sdui_printable_sources_multi_segment_provenance(
     blocks = PrintableSourcesAdapter.build(ctx)
     assert len(blocks) == 1
     assert "Clause A [...] Clause B" in blocks[0].text
-

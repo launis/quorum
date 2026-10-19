@@ -106,14 +106,13 @@ def test_format_text_observations_with_coerced_tuple() -> None:
 
 
 def test_export_evidence_formatter_multi_segment_citations() -> None:
-    """Contract: Observation items with multi-segment quotes ('Quote 1', 'Quote 2') format to 'Quote 1 [...] Quote 2'."""
+    """Contract: Multi-segment quotes ('Quote 1', 'Quote 2') format to 'Quote 1 [...] Quote 2'."""
     assert format_text_observations(("Quote 1", "Quote 2")) == "Quote 1 [...] Quote 2"
 
 
 def test_export_evidence_formatter_empty_tuple_safeguard() -> None:
     """Contract: Observation items with empty source_quotes=() gracefully return empty string."""
     assert format_text_observations(()) == ""
-
 
 
 # ============================================================================

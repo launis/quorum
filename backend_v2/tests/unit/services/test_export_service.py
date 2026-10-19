@@ -2191,4 +2191,3 @@ def test_export_service_multi_segment_quote_delimiter() -> None:
         ai_reasoning="Reasoning",
     )
     assert atom.quotes == "Part 1 [...] Part 2"
-
