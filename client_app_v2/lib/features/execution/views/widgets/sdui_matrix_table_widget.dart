@@ -58,7 +58,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
             label: Expanded(
               child: Text(
                 headerText,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
           );
@@ -86,7 +88,8 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           axis.labelI18n.get(locale) +
                               (axis.isEvaluative ? ' *' : '') +
                               (axis.allowContextualOverride ? ' **' : ''),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         if (targetLabel != null && targetLabel.isNotEmpty)
                           Padding(
@@ -142,9 +145,8 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 350),
                     child: Text(
                       targetText ?? '-',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
                       ),
                     ),
                   );
@@ -162,9 +164,8 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 350),
                     child: Text(
                       axis.rowExplanation,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontStyle: FontStyle.italic,
-                        fontSize: 12,
                       ),
                     ),
                   );
@@ -212,23 +213,21 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                 },
                                 child: Text(
                                   title ?? url,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    decoration: TextDecoration.underline,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               )
                             : Text(
                                 title!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(fontWeight: FontWeight.w500),
                                 overflow: TextOverflow.ellipsis,
                               ),
                       ),
@@ -252,12 +251,12 @@ class SduiMatrixTableWidget extends StatelessWidget {
                           },
                           child: Text(
                             webCitation,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              decoration: TextDecoration.underline,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.w500,
+                                ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -276,7 +275,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
                             ),
                             child: Text(
                               '${src.stepName}: ${src.query}',
-                              style: const TextStyle(fontSize: 10),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall?.copyWith(fontSize: 10),
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
@@ -427,10 +428,9 @@ class _MatrixSummaryCriteriaCell extends StatelessWidget {
             children: [
               Text(
                 '$lvl - $lvlName',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               AppSpacing.h4,
               ...lvlAtoms.map((atom) {
@@ -443,11 +443,10 @@ class _MatrixSummaryCriteriaCell extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: AppSpacing.s4),
                   child: Text(
                     '- $displayLabel',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: atom.status == ExecutionStatus.passed
                           ? FontWeight.bold
                           : FontWeight.normal,
-                      fontSize: 11,
                     ),
                   ),
                 );
@@ -515,9 +514,8 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                 children: [
                   Text(
                     '$lvl - $lvlName',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 11,
                     ),
                   ),
                   AppSpacing.h4,
@@ -588,8 +586,10 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                                           (Theme.of(
                                                     context,
                                                   ).textTheme.bodySmall ??
-                                                  const TextStyle(fontSize: 10))
-                                              .copyWith(
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.labelSmall)
+                                              ?.copyWith(
                                                 fontSize: 10,
                                                 color: Theme.of(context)
                                                     .colorScheme
@@ -619,24 +619,25 @@ class _MatrixSummaryQuotesCell extends StatelessWidget {
                             ),
                             child: Text.rich(
                               TextSpan(
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontSize: 10,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                                 children: [
                                   TextSpan(
                                     text: '** $labelPrefix',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   TextSpan(
                                     text: explanation,
-                                    style: const TextStyle(
-                                      fontStyle: FontStyle.italic,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(fontStyle: FontStyle.italic),
                                   ),
                                 ],
                               ),
@@ -683,7 +684,9 @@ class _MatrixSummaryDistributionCell extends StatelessWidget {
           final name = names[k] ?? 'T$k';
           return Text(
             '$numStr - $name: $hitStr',
-            style: const TextStyle(fontSize: 12),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontSize: 12),
           );
         }).toList(),
       ),
@@ -722,10 +725,9 @@ class _MatrixSummaryScoreCell extends StatelessWidget {
         ),
         child: Text(
           '${(uiPlotRatio! * 100).toStringAsFixed(1)} %',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onTertiaryContainer,
-            fontSize: 12,
           ),
         ),
       );
@@ -747,10 +749,9 @@ class _MatrixSummaryScoreCell extends StatelessWidget {
         ),
         child: Text(
           scoreLabel!,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontSize: 12,
           ),
         ),
       );
