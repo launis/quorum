@@ -59,7 +59,7 @@
   - [x] Step 2.4: Synchronize Flutter Freezed DTO contracts and client citation widgets
   - [x] Step 2.5: Synchronize test fixtures, factories, golden master files, and unit test suites
 - [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 96.15% line coverage (810 passed, 0 failures), 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and 100% Freezed build parity.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/03_phase3_plan.md]
@@ -188,6 +188,7 @@
   - [ ] @[backend_v2/services/orchestrator/state_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
   - [ ] @[backend_v2/services/studio/simulation_service.py]
+  - [ ] @[backend_v2/llm/mock_data.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` Flutter files. NEVER specify whole directories.
   - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/atom_result_dto.dart]
@@ -303,6 +304,7 @@
 - Synchronized test factories, golden master fixtures, and unit test suites across 20+ test modules with 100% pass rate.
 - Passed full strict backend audit loop (`backend_audit_loop.py backend_v2/models/ --test --ast-strict`): 10/10 quality gates passed, 810 unit tests passed, 96.15% TDD line coverage, 0 fatal AST guardrail violations, 0 residual debt ceiling violations, and clean DTO parity.
 - Passed full Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) with 0 errors.
+- Completed Tier 8 Red-Team Audit for Phase 2 (`red_team_audit_phase2_plan.md`): 100% of requirements REQ-158-011 through REQ-158-015 verified, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, and clean full-duplex DTO parity.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions like `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''` trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -310,10 +312,9 @@
 - In `ExtractedAtom`, `validate_logical_deduction_and_quote` requires that `source_quotes` is mandatory unless `is_logical_deduction` or `is_inverse` is True. Unit tests verifying early exit for empty quotes must set `is_logical_deduction=True` when `source_quotes=None`.
 
 ## Remaining
-- Execute Phase 2 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]`).
 - Proceed through Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_158/02_phase2_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
