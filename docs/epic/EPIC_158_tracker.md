@@ -64,14 +64,14 @@
 ### Phase 3: Lexical Firewall Multi-Segment & Distance Verification (Gates 1–4, WP2)
 - **Plan:** @[docs/epic/tasks_EPIC_158/03_phase3_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
-  - [ ] Step 3.0: Strategic alignment check and pre-implementation technical debt cleanups
-  - [ ] Step 3.1: Enhance coordinate normalization and strict matching for multi-segment tuples
-  - [ ] Step 3.2: Implement forward-scan search, monotonic ordering, and single-document buffer isolation in `AnchorValidationService`
-  - [ ] Step 3.3: Enforce single-document buffer isolation in atom processing
-  - [ ] Step 3.4: Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences
-  - [ ] Step 3.5: Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py`
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
+  - [x] Step 3.0: Strategic alignment check and pre-implementation technical debt cleanups
+  - [x] Step 3.1: Enhance coordinate normalization and strict matching for multi-segment tuples
+  - [x] Step 3.2: Implement forward-scan search, monotonic ordering, and single-document buffer isolation in `AnchorValidationService`
+  - [x] Step 3.3: Enforce single-document buffer isolation in atom processing
+  - [x] Step 3.4: Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences
+  - [x] Step 3.5: Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py`
+- [x] **[OK] Test Coverage Assertions:** Strict 90% TDD gate passed with 93% line coverage on `anchor_validation_service.py` (49 passed, 0 failures) and 100% on `matrix_evaluation.py` (4 passed, 0 failures), 0 fatal AST guardrails, 0 residual debt ceiling violations, clean imports, and clean DTO parity.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`
 
 ### Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2)
@@ -259,10 +259,10 @@
 | **REQ-158-013** | Update atom extraction prompts, system instructions, and schema descriptions | Phase 2, Step 3 | IMPLEMENTED |
 | **REQ-158-014** | Synchronize Flutter Freezed DTO contracts and client citation widgets | Phase 2, Step 4 | IMPLEMENTED |
 | **REQ-158-015** | Synchronize test fixtures, factories, golden master files, and unit tests | Phase 2, Step 5 | IMPLEMENTED |
-| **REQ-158-016** | Enhance coordinate normalization and strict matching for multi-segment tuples | Phase 3, Step 1 | PENDING |
-| **REQ-158-017** | Implement forward-scan search, monotonic ordering, and single-document buffer isolation | Phase 3, Step 2 | PENDING |
-| **REQ-158-018** | Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences | Phase 3, Step 3 | PENDING |
-| **REQ-158-019** | Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py` | Phase 3, Step 4 | PENDING |
+| **REQ-158-016** | Enhance coordinate normalization and strict matching for multi-segment tuples | Phase 3, Step 1 | IMPLEMENTED |
+| **REQ-158-017** | Implement forward-scan search, monotonic ordering, and single-document buffer isolation | Phase 3, Step 2 | IMPLEMENTED |
+| **REQ-158-018** | Update prompt extraction mandate in `matrix_evaluation.py` for 1–3 non-contiguous sentences | Phase 3, Step 3 | IMPLEMENTED |
+| **REQ-158-019** | Expand ISTQB boundary and negative test suite in `test_anchor_validation_service.py` | Phase 3, Step 4 | IMPLEMENTED |
 | **REQ-158-020** | Add `default_lexical_strictness_level` to `Workflow` model and Studio DTOs | Phase 4, Step 1 | PENDING |
 | **REQ-158-021** | Update Studio workflow CRUD service to transit decoupled lexical strictness | Phase 4, Step 2 | PENDING |
 | **REQ-158-022** | Synchronize database seed vault workflows and add localization strings | Phase 4, Step 3 | PENDING |
@@ -307,6 +307,14 @@
 - Passed full Flutter audit loop (`flutter_audit_loop.py client_app_v2/ --build`) with 0 errors.
 - Completed Tier 8 Red-Team Audit for Phase 2 (`red_team_audit_phase2_plan.md`): 100% of requirements REQ-158-011 through REQ-158-015 verified, 0 orphan requirements, 0 fatal AST violations, 0 supply chain violations, and clean full-duplex DTO parity.
 - Completed Tier 0 Research & Red-Team analysis for Phase 3 (`03_phase3_plan.md`): hardened plan with 5-column directives table, Pre-Implementation Technical Debt Cleanups (parameter typing, immutable tuple return, explicit magic number constants), candidate $s_1$ anchor iteration, single-document buffer boundary isolation, and comprehensive ISTQB test contracts.
+- Completed Phase 3 Lexical Firewall Multi-Segment & Distance Verification implementation across `AnchorValidationService` and `matrix_evaluation.py`:
+  - Modernized parameter and return signatures to strict sequences/tuples, eliminating magic numbers with SSOT constants `MAX_CITATION_SPAN_CHARS = 1000`, `MIN_MULTI_SEGMENT_FLOOR_CHARS = 30`, `MIN_ENTROPY_GATE_CHARS = 10`.
+  - Implemented candidate $s_1$ anchor iteration and monotonic forward-scan search ($s_k < e_k < s_{k+1}$) in `strict_match`, `_is_lexically_valid`, and `validate_evidence`, enforcing individual segment floor $\ge 30$ chars when $m > 1$ and bounding span $(e_m - s_1) \le 1\,000$ chars.
+  - Symmetrically extracted physical source text quotes via `pdf_map` using typed `GateMatchResultDTO` segments, eradicating anonymous primitive tuples per `ban_anonymous_state_tuples` and QGR023.
+  - Enforced single-document buffer boundary isolation across `<ai_context_directive>`, `SourceDocumentContext`, and `mcp_source_texts` in `validate_evidence` and `process_atom_evaluation`, eradicating cross-document chimera quotes while preserving immutable quote integrity.
+  - Updated `<evidence_extraction_mandate>` in `matrix_evaluation.py` instructing foundational models on 1–3 non-contiguous sentence segments in `source_quotes` with unbroken character substrings, single-document boundaries, and zero banned ambiguities.
+  - Expanded ISTQB boundary and negative test suite in `test_anchor_validation_service.py` to 49 test cases covering monotonic order, inverted order failure, distance bounding failure, cross-document chimeras, multi-segment floor, candidate $s_1$ iteration, MCP texts, and branch fallbacks.
+  - Passed Universal Quality Gate with strict AST mode (`backend_audit_loop.py backend_v2/services/orchestrator/anchor_validation_service.py backend_v2/models/prompts/execution/matrix_evaluation.py --test --ast-strict`): 10/10 quality gates clean, 49 unit tests passed with 93% line coverage on `anchor_validation_service.py` and 100% on `matrix_evaluation.py`, 0 fatal AST guardrail violations, and 0 residual debt ceiling violations.
 
 ## Learned
 - In `blackboard.py`, `two_pass_atomizer.py`, `report_service.py`, and `sdui_mapper_service.py`, inline ternary expressions (specifically: `' [...] '.join(atom.source_quotes) if atom.source_quotes else ''`) trigger AST Guardrail `QGR016` (banned ternary lazy fallback). Replacing them with explicit `if/elif/else` blocks satisfies `QGR016` deterministically.
@@ -315,11 +323,14 @@
 - In `AnchorValidationService`, when $q_1$ repeats earlier in a document preamble, greedy single-pass forward-scan causes false rejection of valid evidence downstream. Implementing candidate $s_1$ anchor iteration ensures that subsequent occurrences of $q_1$ are evaluated within the $[s_1, s_1 + 1\,000]$ window.
 - In `AnchorValidationService.process_atom_evaluation`, independent per-segment document matching creates cross-document chimera vulnerabilities where segment 1 matches document A and segment 2 matches document B. Multi-segment citations must be validated cohesively against each candidate document context, requiring all segments to resolve monotonically within the same single source document buffer.
 - `audit_markdown_boundaries.py` enforces AST bound matching via `ast.walk()` exclusively for `FunctionDef`, `AsyncFunctionDef`, and `ClassDef` nodes. Module-level constant files without class or function definitions (specifically: `matrix_evaluation.py`) must be referenced without `#L` line numbers to satisfy `MBD004`.
+- In `scripts/_ast_guardrails.py`, `QGR023` flags any `tuple[int, int]` type annotation as an anonymous state tuple. Encapsulating segment boundaries inside `GateMatchResultDTO` replaces primitive coordinates with named properties (`start_idx`, `end_idx`), fulfilling `ban_anonymous_state_tuples` and passing `QGR023`.
+- `audit_warning_baseline.py` enforces a monotonic ratchet of 0 for Census T (`type-ignore` annotations in `backend_v2/tests`). Writing `# type: ignore` in test files causes Gate 9 failure; tests must use typed signatures without inline suppressions.
 
 ## Remaining
-- Execute Phase 3 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Execute Tier 8 Red-Team Audit for Phase 3 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]`.
+- Implement Phase 4: Strictness Decoupling SSOT & Gate 5 Morphological Calibration (WP2).
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_158/03_phase3_plan.md] @[docs/epic/EPIC_158_tracker.md]
 ```
