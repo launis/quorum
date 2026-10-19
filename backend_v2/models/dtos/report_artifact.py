@@ -26,9 +26,16 @@ __all__ = [
 
 
 class ReportStoragePathsDTO(V2CoreBase):
-    """Storage artifact paths for materialized reports across different formats."""
+    """Storage artifact paths for materialized reports across different formats.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        pdf_path: Storage path for compiled PDF document.
+        sdui_json_path: Storage path for pre-compiled SDUI JSON tree.
+        excel_path: Storage path for generated forensic Excel workbook.
+        csv_path: Storage path for flat CSV export.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     pdf_path: Annotated[str | None, Field(default=None, description="Storage path for compiled PDF document.")] = None
     sdui_json_path: Annotated[
@@ -41,9 +48,20 @@ class ReportStoragePathsDTO(V2CoreBase):
 
 
 class ReportMetadataDTO(V2CoreBase):
-    """Execution and FinOps telemetry metadata captured during report generation."""
+    """Execution and FinOps telemetry metadata captured during report generation.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        cost_usd: Total financial cost in USD.
+        duration_ms: Report compilation latency in milliseconds.
+        tokens_used: Total tokens consumed by synthesis.
+        llm_model: Model identifier used for synthesis.
+        provider: LLM provider name.
+        cognitive_tier: Abstract cognitive tier assigned to synthesis.
+        model_registry_id: Resolved SystemConfig model registry ID.
+        thinking_tokens: Reasoning / thinking tokens consumed.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     cost_usd: Annotated[float | None, Field(default=None, description="Total financial cost in USD.")] = None
     duration_ms: Annotated[
@@ -64,9 +82,22 @@ class ReportMetadataDTO(V2CoreBase):
 
 
 class ReportRowItemDTO(V2CoreBase):
-    """B2B tabular row delivery DTO representing an evaluated scorecard row item."""
+    """B2B tabular row delivery DTO representing an evaluated scorecard row item.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        execution_id: Parent execution ID.
+        report_id: Parent report artifact ID.
+        metric_key: Canonical metric or prompt block ID.
+        metric_label: Human-readable metric label.
+        score: Evaluated numerical score.
+        max_scale: Maximum score on the evaluation scale.
+        weight: Relative weight of this metric.
+        reasoning: Analytical reasoning justification.
+        quote: Forensic source quote supporting evaluation.
+        is_inverse_evidence: True if assertion evaluates absence of negative evidence.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     execution_id: Annotated[StrictStr, Field(description="Parent execution ID.")]
     report_id: Annotated[StrictStr, Field(description="Parent report artifact ID.")]
@@ -89,9 +120,20 @@ class ReportRowItemDTO(V2CoreBase):
 
 
 class PublicReportDTO(V2CoreBase):
-    """Public read-only DTO for external report consumption."""
+    """Public read-only DTO for external report consumption.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        report_id: Unique report artifact identifier.
+        created_at: Timestamp when report was created.
+        title: Human-readable title of the report.
+        target_audience: Target audience classification.
+        overall_score: Overall evaluated score.
+        metrics: Flat key-value dictionary of evaluated metrics.
+        executive_summary_markdown: Synthesized executive summary in Markdown format.
+        downloads: Map of format keys to download URLs.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     report_id: Annotated[StrictStr, Field(description="Unique report artifact identifier.")]
     created_at: Annotated[datetime, Field(description="Timestamp when report was created.")]
@@ -112,9 +154,19 @@ class PublicReportDTO(V2CoreBase):
 
 
 class CreateReportRequestDTO(V2CoreBase):
-    """Payload for requesting report compilation for an execution."""
+    """Payload for requesting report compilation for an execution.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        profile_id: Presentation OutputProfile ID.
+        locale: Target output locale code ('fi' or 'en').
+        execution_id: Optional execution ID matching URL path.
+        force_resynthesis: Forces re-running LLM Phase 2 synthesis for profile.
+        custom_preface_md: Optional custom preface Markdown text.
+        model_registry_id: Optional override model registry ID.
+        provider_override: Optional LLM provider override.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     profile_id: Annotated[StrictStr, Field(description="Presentation OutputProfile ID.")]
     locale: Annotated[StrictStr, Field(default="fi", description="Target output locale code ('fi' or 'en').")] = "fi"
@@ -136,9 +188,19 @@ class CreateReportRequestDTO(V2CoreBase):
 
 
 class ReportArtifactCreateDTO(V2CoreBase):
-    """Payload for creating a new materialized report artifact."""
+    """Payload for creating a new materialized report artifact.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        execution_id: Target analytical execution ID.
+        profile_id: Presentation OutputProfile ID.
+        locale: Target output locale code ('fi' or 'en').
+        force_resynthesis: Forces re-running LLM Phase 2 synthesis for profile.
+        custom_preface_md: Optional custom preface Markdown text.
+        model_registry_id: Optional override model registry ID.
+        provider_override: Optional LLM provider override.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     execution_id: Annotated[StrictStr, Field(description="Target analytical execution ID.")]
     profile_id: Annotated[StrictStr, Field(description="Presentation OutputProfile ID.")]
@@ -158,9 +220,16 @@ class ReportArtifactCreateDTO(V2CoreBase):
 
 
 class ReportArtifactUpdateDTO(V2CoreBase):
-    """Payload for updating an existing report artifact."""
+    """Payload for updating an existing report artifact.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        status: Updated lifecycle status.
+        storage_paths: Updated storage paths for compiled files.
+        metadata: Updated FinOps metadata.
+        error_message: Error message details if generation failed.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     status: Annotated[ReportStatus | None, Field(default=None, description="Updated lifecycle status.")] = None
     storage_paths: Annotated[
@@ -173,9 +242,20 @@ class ReportArtifactUpdateDTO(V2CoreBase):
 
 
 class ReportArtifactSummaryDTO(V2CoreBase):
-    """Lightweight summary DTO for list endpoints and selector views."""
+    """Lightweight summary DTO for list endpoints and selector views.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        id: Report artifact Opaque Stripe ID.
+        execution_id: Associated execution ID.
+        profile_id: Associated presentation profile ID.
+        locale: Report locale code.
+        title: Report display title.
+        status: Current lifecycle status.
+        created_at: Creation timestamp.
+        updated_at: Last update timestamp.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: Annotated[StrictStr, Field(description="Report artifact Opaque Stripe ID.")]
     execution_id: Annotated[StrictStr, Field(description="Associated execution ID.")]
