@@ -148,9 +148,9 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` backend files. NEVER specify whole directories.
-  - [ ] @[backend_v2/models/core_base.py]
-  - [ ] @[backend_v2/models/dtos/quote_evidence.py]
-  - [ ] @[backend_v2/models/domain/blackboard.py]
+  - [x] @[backend_v2/models/core_base.py]
+  - [x] @[backend_v2/models/dtos/quote_evidence.py]
+  - [x] @[backend_v2/models/domain/blackboard.py]
   - [ ] @[backend_v2/models/dtos/dag_models.py]
   - [ ] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/dtos/atom_result.py]
@@ -453,7 +453,7 @@
 - Post-Implementation Gates:
   - [ ] Golden Master & Test Restoration Audit: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
   - [ ] Proxy Sunset & Consumer Migration: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-  - [ ] Tier 2 Hardening (Backend) across the 43 modified files
+  - [ ] Tier 2 Hardening (Backend) across the 42 remaining modified files (3/45 completed)
   - [ ] Tier 2 Hardening (Frontend) across the 11 modified Flutter files
   - [ ] Pre-Delete Audit: Verify no orphaned dependencies remain.
   - [ ] Semantic Coverage & Zero-Loss Audit: Mathematically verify line coverage >90% for surviving business logic.
@@ -462,10 +462,94 @@
 - Final Epic Audit:
   - [ ] `/tier8-audit-epic @[docs/epic/EPIC_158_multi_segment_evidence_and_causal_horizon.md] @[docs/epic/EPIC_158_tracker.md]`
 
+# Session Handover Context
+
+### Achieved
+- Commenced Post-Implementation Gate: **Tier 2 Hardening (Backend)** on Epic 158.
+- Audited, verified, and hardened 3 target backend files with 3 atomic Conventional Commits:
+  1. `backend_v2/models/core_base.py`:
+     - Added `exc_info=True` to `logger.error` before `raise AppException` in `generate_opaque_id` for 100% RFC 7807 compliance.
+     - Verified `V2CoreBase`, `I18nText`, `generate_opaque_id`, and `coerce_source_quotes_tuple` SSOT.
+     - Universal Quality Gate passed with 99% test coverage across 11 unit tests in `test_core_base.py`.
+     - Committed: `0f66990c8 chore(hardening): audit and fix backend_v2/models/core_base.py`.
+  2. `backend_v2/models/dtos/quote_evidence.py`:
+     - Verified `QuoteEvidenceDTO`, `GateMatchResultDTO`, `LLMExtractedQuote`, and `SourceDocumentContext` against `ki_structured_forensic_quotes.md`.
+     - Expanded unit test suite in `test_quote_evidence.py` to cover `GateMatchResultDTO.__bool__`, BaseModel input serialization, and error branches.
+     - Universal Quality Gate passed with 97% line coverage across 19 unit tests.
+     - Committed: `ef9be2309 chore(hardening): audit and verify backend_v2/models/dtos/quote_evidence.py`.
+  3. `backend_v2/models/domain/blackboard.py`:
+     - Added missing public encapsulation contract `__all__ = ["DraftAtomList", "DraftExtractedAtom", "GlobalAtomBlackboard", "LLMDraftAtom", "LLMDraftAtomList"]`.
+     - Added comprehensive Google-style PEP 257 docstrings to `LLMDraftAtomList`, `DraftAtomList`, `validate_logical_deduction_and_source`, `get_all_atom_ids`, and `to_markdown_synthesis_injection`.
+     - Stabilized deterministic ID sorting in `get_all_atom_ids()`.
+     - Expanded unit test coverage in `test_blackboard.py` covering all atom lists, data starvation flag, deduction formatting, and multi-segment quote extraction.
+     - Universal Quality Gate passed with 98% line coverage across 7 unit tests.
+     - Committed: `f97e75615 chore(hardening): audit and verify backend_v2/models/domain/blackboard.py`.
+- Neuro-Symbolic Audit Matrices generated and verified for all 3 targets with 181 rules strictly validated and 0 AST violations.
+- Full-duplex DTO parity verified clean across all 52 models (`audit_dto_parity.py`).
+- Warning baseline ledger passed with 0 fatal violations across `backend_v2`.
+
+### Learned
+- Syntactic calls to `.get(...)` in Python test or domain code trigger AST guardrail `QGR002` even when invoking custom methods named `get` on domain models like `I18nText`. Tests must test the underlying resolution method (`resolve`) directly rather than calling `.get(...)` to avoid syntactic AST false-positives.
+- In `audit_matrix_manager.py`, `check_conflicting_file_references` enforces that rule justifications must anchor strictly to the target stem or allowed system files (`settings.py`, `enums.py`, `conftest.py`, `audit_matrix_manager.py`, `backend_audit_loop.py`, `flutter_audit_loop.py`). Citing test file paths (e.g. `test_core_base.py`) inside rule justifications triggers validation failure; test suites should be referenced conceptually ("Unit tests for target.py...").
+- In `blackboard.py`, `GlobalAtomBlackboard.get_all_atom_ids()` returned non-deterministic order via `list(set(ids))`; sorting via `sorted(set(ids))` ensures deterministic downstream processing during synthesis.
+
+### Hardening State Snapshot
+- `TARGETS`: 45 files
+- `DONE` (3 files):
+  - `backend_v2/models/core_base.py`
+  - `backend_v2/models/dtos/quote_evidence.py`
+  - `backend_v2/models/domain/blackboard.py`
+- `REMAINING = TARGETS - DONE`: 42 files
+
+### Remaining Files for Next Session
+1. `backend_v2/models/dtos/dag_models.py`
+2. `backend_v2/models/dtos/causal_discovery.py`
+3. `backend_v2/models/dtos/atom_result.py`
+4. `backend_v2/models/dtos/atom_evaluation.py`
+5. `backend_v2/models/dtos/matrix_scorecard.py`
+6. `backend_v2/models/dtos/report_artifact.py`
+7. `backend_v2/models/domain/workflow.py`
+8. `backend_v2/models/dtos/studio.py`
+9. `backend_v2/services/orchestrator/extractive_sensor_service.py`
+10. `backend_v2/services/orchestrator/anchor_validation_service.py`
+11. `backend_v2/services/orchestrator/sliding_window_linker.py`
+12. `backend_v2/services/orchestrator/causal_cohesion_evaluator.py`
+13. `backend_v2/services/orchestrator/result_projector.py`
+14. `backend_v2/services/orchestrator/matrix_reducer.py`
+15. `backend_v2/services/orchestrator/two_pass_atomizer.py`
+16. `backend_v2/services/orchestrator/topological_evaluator.py`
+17. `backend_v2/services/orchestrator/dag_executor.py`
+18. `backend_v2/services/orchestrator/engines/causal_discovery_engine.py`
+19. `backend_v2/services/studio/workflow_service.py`
+20. `backend_v2/workers/execution_worker.py`
+21. `backend_v2/hooks/scoring/matrix_hook.py`
+22. `backend_v2/services/matrix_domain_parser.py`
+23. `backend_v2/services/export_service.py`
+24. `backend_v2/services/export_evidence_formatter.py`
+25. `backend_v2/services/report_service.py`
+26. `backend_v2/services/sdui/adapters/xai_highlights_adapter.py`
+27. `backend_v2/services/sdui/adapters/printable_sources_adapter.py`
+28. `backend_v2/settings.py`
+29. `backend_v2/models/prompts/execution/matrix_evaluation.py`
+30. `backend_v2/models/prompts/execution/field_prompts.py`
+31. `backend_v2/services/orchestrator/prompts/atom_extraction.py`
+32. `backend_v2/scripts/generate_openapi.py`
+33. `scripts/run_e2e_variance_test.py`
+34. `scripts/run_ablation_benchmark.py`
+35. `backend_v2/services/sdui/sdui_mapper_service.py`
+36. `backend_v2/services/orchestrator/synthesis_distiller.py`
+37. `backend_v2/services/orchestrator/synthesis_payload_compressor.py`
+38. `backend_v2/services/orchestrator/matrix_explanation_service.py`
+39. `backend_v2/services/orchestrator/state_reducer.py`
+40. `backend_v2/services/orchestrator/engines/tda_engine.py`
+41. `backend_v2/services/studio/simulation_service.py`
+42. `backend_v2/llm/mock_data.py`
+
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/models/core_base.py] @[backend_v2/models/dtos/quote_evidence.py] @[backend_v2/models/domain/blackboard.py] @[backend_v2/models/dtos/dag_models.py] @[backend_v2/models/dtos/causal_discovery.py] @[backend_v2/models/dtos/atom_result.py] @[backend_v2/models/dtos/atom_evaluation.py] @[backend_v2/models/dtos/matrix_scorecard.py] @[backend_v2/models/dtos/report_artifact.py] @[backend_v2/models/domain/workflow.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/services/orchestrator/extractive_sensor_service.py] @[backend_v2/services/orchestrator/anchor_validation_service.py] @[backend_v2/services/orchestrator/sliding_window_linker.py] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py] @[backend_v2/services/orchestrator/result_projector.py] @[backend_v2/services/orchestrator/matrix_reducer.py] @[backend_v2/services/orchestrator/two_pass_atomizer.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] @[backend_v2/services/studio/workflow_service.py] @[backend_v2/workers/execution_worker.py] @[backend_v2/hooks/scoring/matrix_hook.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/export_service.py] @[backend_v2/services/export_evidence_formatter.py] @[backend_v2/services/report_service.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/settings.py] @[backend_v2/models/prompts/execution/matrix_evaluation.py] @[backend_v2/models/prompts/execution/field_prompts.py] @[backend_v2/services/orchestrator/prompts/atom_extraction.py] @[backend_v2/scripts/generate_openapi.py] @[scripts/run_e2e_variance_test.py] @[scripts/run_ablation_benchmark.py] @[backend_v2/services/sdui/sdui_mapper_service.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/state_reducer.py] @[backend_v2/services/orchestrator/engines/tda_engine.py] @[backend_v2/services/studio/simulation_service.py] @[backend_v2/llm/mock_data.py]
+/tier2-hardening-backend @[backend_v2/models/dtos/dag_models.py] @[backend_v2/models/dtos/causal_discovery.py] @[backend_v2/models/dtos/atom_result.py] @[backend_v2/models/dtos/atom_evaluation.py] @[backend_v2/models/dtos/matrix_scorecard.py] @[backend_v2/models/dtos/report_artifact.py] @[backend_v2/models/domain/workflow.py] @[backend_v2/models/dtos/studio.py] @[backend_v2/services/orchestrator/extractive_sensor_service.py] @[backend_v2/services/orchestrator/anchor_validation_service.py] @[backend_v2/services/orchestrator/sliding_window_linker.py] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py] @[backend_v2/services/orchestrator/result_projector.py] @[backend_v2/services/orchestrator/matrix_reducer.py] @[backend_v2/services/orchestrator/two_pass_atomizer.py] @[backend_v2/services/orchestrator/topological_evaluator.py] @[backend_v2/services/orchestrator/dag_executor.py] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] @[backend_v2/services/studio/workflow_service.py] @[backend_v2/workers/execution_worker.py] @[backend_v2/hooks/scoring/matrix_hook.py] @[backend_v2/services/matrix_domain_parser.py] @[backend_v2/services/export_service.py] @[backend_v2/services/export_evidence_formatter.py] @[backend_v2/services/report_service.py] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py] @[backend_v2/settings.py] @[backend_v2/models/prompts/execution/matrix_evaluation.py] @[backend_v2/models/prompts/execution/field_prompts.py] @[backend_v2/services/orchestrator/prompts/atom_extraction.py] @[backend_v2/scripts/generate_openapi.py] @[scripts/run_e2e_variance_test.py] @[scripts/run_ablation_benchmark.py] @[backend_v2/services/sdui/sdui_mapper_service.py] @[backend_v2/services/orchestrator/synthesis_distiller.py] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py] @[backend_v2/services/orchestrator/matrix_explanation_service.py] @[backend_v2/services/orchestrator/state_reducer.py] @[backend_v2/services/orchestrator/engines/tda_engine.py] @[backend_v2/services/studio/simulation_service.py] @[backend_v2/llm/mock_data.py]
 ```
+
 
 
 
