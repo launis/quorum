@@ -50,17 +50,17 @@
   - [x] Step 8.2: Synchronize Directory Reference
   - [x] Step 8.3: Execute Tier 7 Architectural Documentation Workflow
 
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]`
+- [x] **[OK] Audit:** Completed via `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]` (Artifact: `@[red_team_audit_wikipedia_mcp_integration.md]`, Verdict: PASSED, 27/27 requirements verified, 5,771 backend tests passing with 97.82% coverage).
 
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verified no @pytest.mark.skip or commented-out tests remain in modified domains (0 skipped).
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend `.py` files:
-  - [ ] @[backend_v2/models/domain/system_config.py]
-  - [ ] @[backend_v2/models/domain/tools.py]
-  - [ ] @[backend_v2/models/domain/wikipedia.py] [NEW]
-  - [ ] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [x] @[backend_v2/models/domain/system_config.py]
+  - [x] @[backend_v2/models/domain/tools.py]
+  - [x] @[backend_v2/models/domain/wikipedia.py] [NEW]
+  - [x] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/mcp/tools/tavily.py]
   - [ ] @[backend_v2/services/mcp/tools/wikipedia.py] [NEW]
@@ -95,7 +95,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Completed via `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]` (Artifact: `@[red_team_audit_wikipedia_mcp_integration.md]`, Verdict: PASSED with 0 fatal errors, 27/27 requirements verified).
 
 ---
 
@@ -123,58 +123,85 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| **REQ-CAP-001** | Define `ToolCapability(StrEnum)` and `BaseSearchTool` contract with `StandardSearchInputDTO` | Step 1.1 | [ ] Pending |
-| **REQ-CAP-002** | Update Flutter `AllowedMcpTool` with `capability` field to guarantee Full-Duplex Serialization Parity | Step 1.2 | [ ] Pending |
-| **REQ-CAP-003** | Refactor `TavilyTool.execute` to validate inputs strictly via `StandardSearchInputDTO` | Step 1.3 | [ ] Pending |
-| **REQ-CAP-004** | Upgrade `DummyTestTool` with `capability` property to satisfy `BaseTool` abstract interface | Step 1.4 | [ ] Pending |
-| **REQ-CAP-005** | Verify Phase 1 foundational leaf contracts compile and pass backend audit loop | Step 1.5 | [ ] Pending |
-| **REQ-DISP-001** | Implement eager capability indexing and `resolve_primary_search_tool` in `ToolDispatcher` | Step 2.1 | [ ] Pending |
-| **REQ-DISP-002** | Refactor `mcp_tool_loop.py` to route search dynamically via `resolve_primary_search_tool` | Step 2.2 | [ ] Pending |
-| **REQ-CFG-001** | Centralize `mcp_wikipedia_*` settings on `Settings` model with binary dev clamping and test overrides | Step 2.3 | [ ] Pending |
-| **REQ-TEST-001** | Implement unit tests for domain tools, capability dispatcher, and settings invariants | Step 2.4 | [ ] Pending |
-| **REQ-DTO-001** | Create Wikipedia Pydantic V2 DTO hierarchy with `ConfigDict(strict=True, extra="forbid", frozen=True)` | Step 3.1 | [ ] Pending |
-| **REQ-CLI-001** | Implement asynchronous `WikipediaClient` with redirect following, title encoding, and fail-fast 404/500 | Step 3.2 | [ ] Pending |
-| **REQ-TEST-002** | Implement ISTQB unit tests for `WikipediaClient` covering positive, negative, and timeout paths | Step 3.3 | [ ] Pending |
-| **REQ-TOOL-001** | Implement `WikipediaSearchTool` and `WikipediaReadTool` conforming to `BaseSearchTool` and `BaseTool` | Step 4.1 | [ ] Pending |
-| **REQ-TOOL-002** | Register `WikipediaSearchTool` and `WikipediaReadTool` in global `DISPATCHER` in `mcp_tool_loop.py` | Step 4.2 | [ ] Pending |
-| **REQ-TEST-003** | Implement unit tests for Wikipedia tools validating schema declarations and audit traces | Step 4.3 | [ ] Pending |
-| **REQ-TEST-004** | Update MCP tool loop unit tests to verify dynamic capability-based multi-tool execution | Step 4.4 | [ ] Pending |
-| **REQ-SEED-001** | Add `capability: ToolCapability` field to `AllowedMCPTool` domain model | Step 5.1 | [ ] Pending |
-| **REQ-SEED-002** | Backup and surgically append Wikipedia tools with capabilities to `sys_8172bda70c8641c5` in `seed_data.json` | Step 5.2 | [ ] Pending |
-| **REQ-SEED-003** | Run pre-flight in-memory validation via `run_seed.py local --dry-run` and atom integrity audit | Step 5.3 | [ ] Pending |
-| **REQ-SEED-004** | Execute seed data injection into `data/db_v2.json` with automatic backup and parity check | Step 5.4 | [ ] Pending |
-| **REQ-SEED-005** | Verify physical database persistence roundtrip by deserializing injected record from TinyDB | Step 5.5 | [ ] Pending |
-| **REQ-AUD-001** | Execute targeted unit and integration tests across backend MCP subsystem | Step 6.1 | [ ] Pending |
-| **REQ-AUD-002** | Execute Flutter domain parity and gateway tests verifying strict capability parsing | Step 6.2 | [ ] Pending |
-| **REQ-AUD-003** | Execute global backend audit loop gate across entire `backend_v2` test suite | Step 7.1 | [ ] Pending |
-| **REQ-DOC-001** | Create `ki_mcp_tool_protocol.md` and synchronize existing architectural Knowledge Items | Step 8.1 | [ ] Pending |
-| **REQ-DOC-002** | Register all newly created domain models, clients, tools, and test suites in `04_directory_reference.md` | Step 8.2 | [ ] Pending |
-| **REQ-DOC-003** | Execute fully parameterized `/tier7-describe-architecture` updating architecture pillars | Step 8.3 | [ ] Pending |
+| **REQ-CAP-001** | Define `ToolCapability(StrEnum)` and `BaseSearchTool` contract with `StandardSearchInputDTO` | Step 1.1 | [x] Verified |
+| **REQ-CAP-002** | Update Flutter `AllowedMcpTool` with `capability` field to guarantee Full-Duplex Serialization Parity | Step 1.2 | [x] Verified |
+| **REQ-CAP-003** | Refactor `TavilyTool.execute` to validate inputs strictly via `StandardSearchInputDTO` | Step 1.3 | [x] Verified |
+| **REQ-CAP-004** | Upgrade `DummyTestTool` with `capability` property to satisfy `BaseTool` abstract interface | Step 1.4 | [x] Verified |
+| **REQ-CAP-005** | Verify Phase 1 foundational leaf contracts compile and pass backend audit loop | Step 1.5 | [x] Verified |
+| **REQ-DISP-001** | Implement eager capability indexing and `resolve_primary_search_tool` in `ToolDispatcher` | Step 2.1 | [x] Verified |
+| **REQ-DISP-002** | Refactor `mcp_tool_loop.py` to route search dynamically via `resolve_primary_search_tool` | Step 2.2 | [x] Verified |
+| **REQ-CFG-001** | Centralize `mcp_wikipedia_*` settings on `Settings` model with binary dev clamping and test overrides | Step 2.3 | [x] Verified |
+| **REQ-TEST-001** | Implement unit tests for domain tools, capability dispatcher, and settings invariants | Step 2.4 | [x] Verified |
+| **REQ-DTO-001** | Create Wikipedia Pydantic V2 DTO hierarchy with `ConfigDict(strict=True, extra="forbid", frozen=True)` | Step 3.1 | [x] Verified |
+| **REQ-CLI-001** | Implement asynchronous `WikipediaClient` with redirect following, title encoding, and fail-fast 404/500 | Step 3.2 | [x] Verified |
+| **REQ-TEST-002** | Implement ISTQB unit tests for `WikipediaClient` covering positive, negative, and timeout paths | Step 3.3 | [x] Verified |
+| **REQ-TOOL-001** | Implement `WikipediaSearchTool` and `WikipediaReadTool` conforming to `BaseSearchTool` and `BaseTool` | Step 4.1 | [x] Verified |
+| **REQ-TOOL-002** | Register `WikipediaSearchTool` and `WikipediaReadTool` in global `DISPATCHER` in `mcp_tool_loop.py` | Step 4.2 | [x] Verified |
+| **REQ-TEST-003** | Implement unit tests for Wikipedia tools validating schema declarations and audit traces | Step 4.3 | [x] Verified |
+| **REQ-TEST-004** | Update MCP tool loop unit tests to verify dynamic capability-based multi-tool execution | Step 4.4 | [x] Verified |
+| **REQ-SEED-001** | Add `capability: ToolCapability` field to `AllowedMCPTool` domain model | Step 5.1 | [x] Verified |
+| **REQ-SEED-002** | Backup and surgically append Wikipedia tools with capabilities to `sys_8172bda70c8641c5` in `seed_data.json` | Step 5.2 | [x] Verified |
+| **REQ-SEED-003** | Run pre-flight in-memory validation via `run_seed.py local --dry-run` and atom integrity audit | Step 5.3 | [x] Verified |
+| **REQ-SEED-004** | Execute seed data injection into `data/db_v2.json` with automatic backup and parity check | Step 5.4 | [x] Verified |
+| **REQ-SEED-005** | Verify physical database persistence roundtrip by deserializing injected record from TinyDB | Step 5.5 | [x] Verified |
+| **REQ-AUD-001** | Execute targeted unit and integration tests across backend MCP subsystem | Step 6.1 | [x] Verified |
+| **REQ-AUD-002** | Execute Flutter domain parity and gateway tests verifying strict capability parsing | Step 6.2 | [x] Verified |
+| **REQ-AUD-003** | Execute global backend audit loop gate across entire `backend_v2` test suite | Step 7.1 | [x] Verified |
+| **REQ-DOC-001** | Create `ki_mcp_tool_protocol.md` and synchronize existing architectural Knowledge Items | Step 8.1 | [x] Verified |
+| **REQ-DOC-002** | Register all newly created domain models, clients, tools, and test suites in `04_directory_reference.md` | Step 8.2 | [x] Verified |
+| **REQ-DOC-003** | Execute fully parameterized `/tier7-describe-architecture` updating architecture pillars | Step 8.3 | [x] Verified |
 
 ---
 
 # Session Handover Context
 
 ## Achieved
-- Formulated and verified standalone implementation plan `docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md` through Tier 0 System 2 Research, Red-Team Falsification, and Five-Axis Deconstruction.
-- Generated durable double-entry bookkeeping tracker `docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md` with 1:1 step tracking (27 steps), post-implementation hardening checklists (10 backend `.py` production targets, 1 frontend `.dart` production target), and complete Requirements Traceability Matrix.
+- Audited and verified 5 of 10 backend files against Phase 9, PEP 257 standards, and subsystem Knowledge Item (`ki_mcp_tool_protocol.md`) invariants:
+  1. `backend_v2/models/domain/system_config.py`: Added unit tests in `test_system_config.py`, 10/10 quality stages passed, 99% coverage, 181 matrix rules verified (commit `9b3f7eb73`).
+  2. `backend_v2/models/domain/tools.py`: 10/10 quality stages passed, 100% coverage, 181 matrix rules verified.
+  3. `backend_v2/models/domain/wikipedia.py`: 10/10 quality stages passed, 100% coverage, 181 matrix rules verified.
+  4. `backend_v2/models/enums.py`: Added unit tests for `ToolCapability` and `LaxToolCapability` in `test_enums.py`, 10/10 quality stages passed, 98% coverage, 181 matrix rules verified (commit `8e668ccbf`).
+  5. `backend_v2/services/mcp/dispatcher.py`: Added `__all__`, standard `logging.getLogger`, RFC 7807 dual-logging before `AppException`, PEP 257 error code docstrings, and strict encapsulation in `backend_v2/services/mcp/__init__.py`. 10/10 quality stages passed, 100% coverage, 181 matrix rules verified (commit `f102cab11`).
 
 ## Learned
-- Dynamic capability abstraction (ToolCapability SEARCH) completely eliminates provider branching (`TAVILY_TOOL_ID`) in `mcp_tool_loop.py`, enabling zero-touch addition of arbitrary future search engines.
-- Adding `capability` to backend `AllowedMCPTool` requires synchronous updating of Flutter Freezed `AllowedMcpTool` with `@Default('search') String capability` to prevent `CheckedFromJsonException` crashes during studio gateway fetching (`disallowUnrecognizedKeys: true`).
-- External Wikimedia response envelopes contain evolving metadata keys (`continue`, `batchcomplete`, `searchinfo`), requiring an Ingress Sanitization Gate in `WikipediaClient` before strict Pydantic `model_validate` (`extra="forbid"`).
+- `scripts/audit_warning_baseline.py` enforces an exact ratchet ceiling of `0` on Census `T` (type-ignores). Adding `# type: ignore` in tests fails Stage 9; explicit type annotations must be used instead.
+- Quorum backend uses standard Python `logging.getLogger(__name__)` (there is no `backend_v2.core.logger`).
+- `backend_v2/services/mcp/__init__.py` must explicitly export public symbols via `__all__ = ["ToolDispatcher"]` to satisfy the encapsulation audit.
+- Two minor E501 line-length lint issues in `backend_v2/services/mcp/tools/wikipedia.py` (L182) and `backend_v2/services/mcp/wikipedia_client.py` (L163) remain to be formatted during their respective audit steps.
 
 ## Remaining
-- Execute Phase 1: Pre-Implementation Cleanups & Foundational Contracts (Steps 1.1 to 1.5).
-- Execute Phase 2: Tool Dispatcher Capability Indexing, Conductor Loop & Settings SSOT (Steps 2.1 to 2.4).
-- Execute Phase 3: Domain Models & Asynchronous Wikipedia Client (Steps 3.1 to 3.3).
-- Execute Phase 4: Wikipedia MCP Tools & Dispatcher Registration (Steps 4.1 to 4.4).
-- Execute Phase 5: Seed Data Mutation, Ingress Injection & Database Transfer Program (Steps 5.1 to 5.5).
-- Execute Phase 6: Automated Testing Strategy (ISTQB & Parity Gates) (Steps 6.1 to 6.2).
-- Execute Phase 7: Global Audit & Quality Gates (Step 7.1).
-- Execute Phase 8: Knowledge Item Synchronization & Architectural Documentation (Steps 8.1 to 8.3).
+
+### Hardening State Snapshot
+- **TARGETS (10)**:
+  - `@[backend_v2/models/domain/system_config.py]`
+  - `@[backend_v2/models/domain/tools.py]`
+  - `@[backend_v2/models/domain/wikipedia.py]`
+  - `@[backend_v2/models/enums.py]`
+  - `@[backend_v2/services/mcp/dispatcher.py]`
+  - `@[backend_v2/services/mcp/mcp_tool_loop.py]`
+  - `@[backend_v2/services/mcp/tools/tavily.py]`
+  - `@[backend_v2/services/mcp/tools/wikipedia.py]`
+  - `@[backend_v2/services/mcp/wikipedia_client.py]`
+  - `@[backend_v2/settings.py]`
+- **DONE (5)**:
+  - `@[backend_v2/models/domain/system_config.py]`
+  - `@[backend_v2/models/domain/tools.py]`
+  - `@[backend_v2/models/domain/wikipedia.py]`
+  - `@[backend_v2/models/enums.py]`
+  - `@[backend_v2/services/mcp/dispatcher.py]`
+- **REMAINING (5)** (`REMAINING = TARGETS - DONE`):
+  - `@[backend_v2/services/mcp/mcp_tool_loop.py]`
+  - `@[backend_v2/services/mcp/tools/tavily.py]`
+  - `@[backend_v2/services/mcp/tools/wikipedia.py]`
+  - `@[backend_v2/services/mcp/wikipedia_client.py]`
+  - `@[backend_v2/settings.py]`
+
+### Next Phase
+- Complete remaining 5 backend files in Tier 2 Hardening (Backend).
+- Execute Tier 2 Hardening (Frontend) on `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]
+/tier2-hardening-backend @[backend_v2/services/mcp/mcp_tool_loop.py] @[backend_v2/services/mcp/tools/tavily.py] @[backend_v2/services/mcp/tools/wikipedia.py] @[backend_v2/services/mcp/wikipedia_client.py] @[backend_v2/settings.py] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]
 ```
+
