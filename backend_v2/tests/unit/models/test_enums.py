@@ -12,6 +12,7 @@ from backend_v2.models.enums import (
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxStepType,
+    LaxToolCapability,
     LaxXaiExtensionType,
     ReportAtomColumn,
     ReportMatrixColumn,
@@ -21,9 +22,11 @@ from backend_v2.models.enums import (
     SDUIComponentType,
     StepType,
     TitleKey,
+    ToolCapability,
     UiVariant,
     XaiExtensionType,
 )
+
 
 
 def test_lax_xai_extension_type() -> None:
@@ -142,3 +145,23 @@ def test_enum_l10n_properties() -> None:
     assert ReportAtomColumn.BLAME_PARENT_ID.l10n_key == "export_col_blame_parent_id"
     assert ReportAtomColumn.DEPENDENT_COUNT.l10n_key == "export_col_dependent_count"
     assert ReportSheetKey.SUMMARY.l10n_key == "export_sheet_summary"
+
+    assert ToolCapability.SEARCH.l10n_key == "mcp_capability_search"
+    assert ToolCapability.DOCUMENT_READER.l10n_key == "mcp_capability_document_reader"
+    assert ToolCapability.ACTION.l10n_key == "mcp_capability_action"
+
+
+def test_lax_tool_capability() -> None:
+    """Verify LaxToolCapability parses enums and string coercions, and rejects invalid strings."""
+    class DummyModel(BaseModel):
+        cap: LaxToolCapability
+
+    obj1 = DummyModel(cap=ToolCapability.SEARCH)
+    assert obj1.cap == ToolCapability.SEARCH
+
+    obj2 = DummyModel(cap="document_reader")
+    assert obj2.cap == ToolCapability.DOCUMENT_READER
+
+    with pytest.raises(ValidationError):
+        DummyModel(cap="invalid_capability")
+
