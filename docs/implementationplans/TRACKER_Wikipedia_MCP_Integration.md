@@ -34,10 +34,10 @@
   - [x] Step 3.1: Create Wikipedia Domain Models
   - [x] Step 3.2: Implement Wikipedia Client
   - [x] Step 3.3: Create unit tests for Wikipedia Client
-  - [ ] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
-  - [ ] Step 4.2: Register Wikipedia Tools in ToolDispatcher
-  - [ ] Step 4.3: Create unit tests for Wikipedia Tools
-  - [ ] Step 4.4: Update MCP tool loop unit tests
+  - [x] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
+  - [x] Step 4.2: Register Wikipedia Tools in ToolDispatcher
+  - [x] Step 4.3: Create unit tests for Wikipedia Tools
+  - [x] Step 4.4: Update MCP tool loop unit tests
   - [ ] Step 5.1: Add capability field to AllowedMCPTool
   - [ ] Step 5.2: Backup and mutate master seed_data.json
   - [ ] Step 5.3: Pre-flight in-memory validation gate

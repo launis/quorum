@@ -158,6 +158,53 @@ async def test_execute_tool_loop_deterministic_search() -> None:
 
 
 @pytest.mark.asyncio
+async def test_execute_tool_loop_with_wikipedia_search() -> None:
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["wikipedia claim 1"])
+
+    mock_settings = MagicMock()
+    mock_settings.max_tool_calls_per_step = 3
+    with (
+        patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_tool_exec,
+        patch("backend_v2.services.mcp.mcp_tool_loop.get_settings", return_value=mock_settings),
+    ):
+        from datetime import datetime, timezone
+
+        from backend_v2.models.domain.system_config import MCPAuditTrace
+
+        async def fake_wiki_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
+            query = "test"
+            if "query" in kwargs and kwargs["query"]:
+                query = str(kwargs["query"])
+            return MCPAuditTrace(
+                tool_id="mcp_wikipedia_search",
+                step_name="wiki_step",
+                query=query,
+                response_summary="Wikipedia evidence summary",
+                source_urls=["https://en.wikipedia.org/wiki/Test"],
+                timestamp=datetime.now(timezone.utc),
+                duration_ms=50,
+            )
+
+        mock_tool_exec.side_effect = fake_wiki_search
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "test"}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_wikipedia_search", "mcp_wikipedia_read"],
+            step_name="wiki_step",
+            source_context="wikipedia claim 1 is documented in encyclopedias.",
+        )
+
+    assert len(result.audit_traces) == 1
+    assert result.audit_traces[0].tool_id == "mcp_wikipedia_search"
+    assert result.audit_traces[0].query == "wikipedia claim 1"
+    assert mock_tool_exec.call_count == 1
+
+
+@pytest.mark.asyncio
 async def test_ensemble_vote_consensus() -> None:
     client = _make_mock_llm_client()
     executor = MagicMock()

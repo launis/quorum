@@ -45,10 +45,10 @@
 - [x] Step 3.3: Create unit tests for Wikipedia Client
 
 ### Phase 4: Wikipedia MCP Tools & Dispatcher Registration
-- [ ] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
-- [ ] Step 4.2: Register Wikipedia Tools in ToolDispatcher
-- [ ] Step 4.3: Create unit tests for Wikipedia Tools
-- [ ] Step 4.4: Update MCP tool loop unit tests
+- [x] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
+- [x] Step 4.2: Register Wikipedia Tools in ToolDispatcher
+- [x] Step 4.3: Create unit tests for Wikipedia Tools
+- [x] Step 4.4: Update MCP tool loop unit tests
 
 ### Phase 5: Seed Data Mutation, Ingress Injection & Database Transfer Program
 - [ ] Step 5.1: Add capability field to AllowedMCPTool
