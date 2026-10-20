@@ -42,6 +42,13 @@ from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DISPATCHER",
+    "execute_tool_loop",
+    "is_source_sufficient",
+    "validate_query_relevance",
+]
+
 # Global Dispatcher Instance
 DISPATCHER = ToolDispatcher(
     tools=[
@@ -173,9 +180,12 @@ async def execute_tool_loop[T: BaseModel](
         Structured tool loop results and audit traces.
 
     Raises:
-        AppException: If Phase 0 ensemble extraction, parameter validation, or Phase 2
-            completion fails critically (ErrorCodes.FETCH_FAILED,
-            ErrorCodes.VALIDATION_FAILED, or ErrorCodes.WORKFLOW_EXECUTION_FAILED).
+        AppException: If Phase 0 ensemble extraction, client initialization, parameter
+            validation, or Phase 2 completion fails (ErrorCodes.FETCH_FAILED,
+            ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONFIGURATION_ERROR, or
+            ErrorCodes.WORKFLOW_EXECUTION_FAILED).
+        SemanticEvidenceError: If physical anchoring verification or self-correction fails
+            to locate an exact quote in source context (ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION).
     """
     typed_messages: list[LLMMessageDTO] = [
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
@@ -311,7 +321,7 @@ async def execute_tool_loop[T: BaseModel](
         N = len(successful_runs)
         if N == 0:
             err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'. All ensemble runs failed."
-            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg)
+            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
             raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
 
         from collections import defaultdict
@@ -401,7 +411,7 @@ async def execute_tool_loop[T: BaseModel](
                             claim = corrected_claim
                         else:
                             err_msg = f"Self-correction failed to locate exact substring match for: '{claim}'."
-                            logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg)
+                            logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
                             raise SemanticEvidenceError(
                                 message=err_msg,
                                 details={
