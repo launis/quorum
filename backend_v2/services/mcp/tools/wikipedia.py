@@ -84,7 +84,7 @@ class WikipediaSearchTool(BaseSearchTool):
             MCPAuditTrace: Completed tool execution audit record.
 
         Raises:
-            AppException: Raised if search or validation fails.
+            AppException: Raised with FETCH_FAILED if search fails.
         """
         input_dto = StandardSearchInputDTO.model_validate(kwargs)
         start_ms = int(time.monotonic() * 1000)
@@ -179,7 +179,8 @@ class WikipediaReadTool(BaseTool):
                         "reasoning": {
                             "type": "string",
                             "description": (
-                                "Why you believe reading this specific article is mathematically necessary. Must be 1-2 sentences."
+                                "Why you believe reading this specific article is mathematically necessary. "
+                                "Must be 1-2 sentences."
                             ),
                         },
                     },
@@ -200,7 +201,7 @@ class WikipediaReadTool(BaseTool):
             MCPAuditTrace: Completed tool execution audit record.
 
         Raises:
-            AppException: Raised if article reading or validation fails.
+            AppException: Raised with RESOURCE_NOT_FOUND if missing or FETCH_FAILED if read fails.
         """
         input_dto = WikipediaReadInputDTO.model_validate(kwargs)
         start_ms = int(time.monotonic() * 1000)
