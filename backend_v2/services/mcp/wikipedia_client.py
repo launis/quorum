@@ -49,7 +49,7 @@ def resolve_wikipedia_language(lang_code: str | None) -> str:
         Canonical 2-letter subdomain string.
 
     Raises:
-        AppException: If language is not in SUPPORTED_WIKIPEDIA_LANGUAGES.
+        AppException: If language is not in SUPPORTED_WIKIPEDIA_LANGUAGES (VALIDATION_FAILED).
     """
     target = "en"
     if lang_code is not None:
@@ -86,7 +86,7 @@ async def wikipedia_search(
         Structured search response containing normalized result items.
 
     Raises:
-        AppException: If network request, parsing, or language resolution fails.
+        AppException: If network request, parsing, or language resolution fails (FETCH_FAILED or VALIDATION_FAILED).
     """
     lang = resolve_wikipedia_language(target_language)
     settings = get_settings()
@@ -160,7 +160,10 @@ async def wikipedia_search(
                 title=item.title,
                 snippet=html.unescape(re.sub(r"<[^>]+>", "", item.snippet)).strip(),
                 pageid=item.pageid,
-                url=f"https://{lang}.wikipedia.org/wiki/{urllib.parse.quote(item.title.strip().replace(' ', '_'), safe=':/@')}",
+                url=(
+                    f"https://{lang}.wikipedia.org/wiki/"
+                    f"{urllib.parse.quote(item.title.strip().replace(' ', '_'), safe=':/@')}"
+                ),
             )
             for item in api_dto.query.search
         ]
@@ -193,7 +196,8 @@ async def wikipedia_read_summary(
         Structured article summary result.
 
     Raises:
-        AppException: If article not found (404), timeout, or network failure occurs.
+        AppException: If article not found (RESOURCE_NOT_FOUND), language unsupported (VALIDATION_FAILED),
+            or network failure occurs (FETCH_FAILED).
     """
     lang = resolve_wikipedia_language(target_language)
     settings = get_settings()
