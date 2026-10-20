@@ -119,3 +119,14 @@ async def test_tavily_tool_execute_re_raises_app_exception() -> None:
             await tool.execute(query="app exception query")
 
         assert exc_info.value is app_exc
+
+
+@pytest.mark.asyncio
+async def test_tavily_tool_execute_extra_fields_forbidden() -> None:
+    """Test passing unmapped/forbidden arguments triggers AppException."""
+    tool = TavilyTool()
+    with pytest.raises(AppException) as exc_info:
+        await tool.execute(query="test query", unknown_field="invalid")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

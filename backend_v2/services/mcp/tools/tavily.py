@@ -76,9 +76,25 @@ class TavilyTool(BaseSearchTool):
             MCPAuditTrace: Completed tool execution audit record.
 
         Raises:
-            AppException: Raised with FETCH_FAILED error code if external search fails.
+            AppException: If argument validation fails (VALIDATION_FAILED) or external search fails (FETCH_FAILED).
         """
-        input_dto = StandardSearchInputDTO.model_validate(kwargs)
+        try:
+            input_dto = StandardSearchInputDTO.model_validate(kwargs)
+        except Exception as e:
+            msg = f"Validation failed for {self.tool_id} arguments: {e}"
+            logger.error(
+                "[TavilyTool] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "detail": str(e)},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "detail": str(e)},
+            ) from e
+
         start_ms = int(time.monotonic() * 1000)
         try:
             result = await tavily_search(input_dto.query)
