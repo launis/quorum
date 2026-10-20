@@ -71,6 +71,10 @@ class Settings(BaseSettings):
         default_model_strategy: Preferred routing blueprint.
         llm_default_timeout: Connection and execution timeouts.
         mcp_default_timeout_seconds: Default timeout in seconds for MCP tool executions.
+        mcp_wikipedia_max_search_results: Maximum Wikipedia search results returned.
+        mcp_wikipedia_max_chars: Maximum characters of Wikipedia article extract before truncation.
+        mcp_wikipedia_timeout_seconds: HTTP timeout in seconds for Wikipedia API calls.
+        mcp_wikipedia_user_agent: Wikimedia-compliant User-Agent header string.
         llm_retry_delay: Backoff pause between transient faults.
         llm_default_tpm: Maximum tokens allowed per minute.
         llm_default_rpm: Maximum requests allowed per minute.
