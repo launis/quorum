@@ -34,10 +34,10 @@
 - [x] Step 1.5: Verify Phase 1 Cleanups Quality Gate
 
 ### Phase 2: Tool Dispatcher Indexing, Conductor Loop & Settings SSOT
-- [ ] Step 2.1: Implement Capability Indexing in ToolDispatcher
-- [ ] Step 2.2: Refactor mcp_tool_loop.py to use resolve_primary_search_tool
-- [ ] Step 2.3: Add Wikipedia settings to settings.py and test overrides
-- [ ] Step 2.4: Unit tests for domain tools, dispatcher, and settings
+- [x] Step 2.1: Implement Capability Indexing in ToolDispatcher
+- [x] Step 2.2: Refactor mcp_tool_loop.py to use resolve_primary_search_tool
+- [x] Step 2.3: Add Wikipedia settings to settings.py and test overrides
+- [x] Step 2.4: Unit tests for domain tools, dispatcher, and settings
 
 ### Phase 3: Domain Models & Asynchronous Wikipedia Client
 - [ ] Step 3.1: Create Wikipedia Domain Models

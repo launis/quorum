@@ -34,6 +34,7 @@ TEST_SETTINGS_OVERRIDES: dict[str, int | str] = {
     "max_precedent_scan_depth": 0,
     "max_precedent_return_count": 0,
     "tavily_max_results": 1,
+    "mcp_wikipedia_max_search_results": 1,
     "tda_linker_window_size": 2,
     "tda_linker_overlap": 0,
 }

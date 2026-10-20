@@ -274,6 +274,7 @@ def test_settings_binary_environment_validation() -> None:
     assert dev_settings.ensemble_parallelism == 1
     assert dev_settings.matrix_sampling_limit == 1
     assert dev_settings.tavily_max_results == 1
+    assert dev_settings.mcp_wikipedia_max_search_results == 1
 
     prod_settings = Settings(use_mock_llm=True, environment="production")
     assert prod_settings.environment == "production"
@@ -281,6 +282,10 @@ def test_settings_binary_environment_validation() -> None:
     assert prod_settings.ensemble_parallelism == 3
     assert prod_settings.matrix_sampling_limit == 0
     assert prod_settings.tavily_max_results == 5
+    assert prod_settings.mcp_wikipedia_max_search_results == 5
+    assert prod_settings.mcp_wikipedia_max_chars == 8000
+    assert prod_settings.mcp_wikipedia_timeout_seconds == 10.0
+    assert "QuorumBot" in prod_settings.mcp_wikipedia_user_agent
 
     # Invalid environments must fail validation
     with pytest.raises(ValidationError):
@@ -403,3 +408,54 @@ def test_two_pass_atomizer_dynamic_packet_size() -> None:
     custom_packets = atomizer._calculate_packets(hydrated_text, packet_size=20)
     assert len(custom_packets) == 6
     assert len(custom_packets[0].packet_keys) == 20
+
+
+def test_wikipedia_settings_invariants() -> None:
+    """ISTQB BVA & Equivalence Partitioning for Wikipedia MCP settings."""
+    from pydantic import ValidationError
+
+    from backend_v2.core.test_settings import get_test_settings
+
+    # 1. Test settings parity (overridden in dev mode)
+    test_settings = get_test_settings()
+    assert test_settings.mcp_wikipedia_max_search_results == 1
+    assert test_settings.mcp_wikipedia_max_chars == 8000
+    assert test_settings.mcp_wikipedia_timeout_seconds == 10.0
+
+    # 2. Valid custom overrides
+    custom = Settings(
+        use_mock_llm=True,
+        environment="production",
+        mcp_wikipedia_max_search_results=10,
+        mcp_wikipedia_max_chars=12000,
+        mcp_wikipedia_timeout_seconds=25.0,
+        mcp_wikipedia_user_agent="CustomAgent/1.0 (https://example.com)",
+    )
+    assert custom.mcp_wikipedia_max_search_results == 10
+    assert custom.mcp_wikipedia_max_chars == 12000
+    assert custom.mcp_wikipedia_timeout_seconds == 25.0
+    assert custom.mcp_wikipedia_user_agent == "CustomAgent/1.0 (https://example.com)"
+
+    # 3. Boundary value validation (negative partitions)
+    # max_search_results must be between 1 and 20
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_max_search_results=0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_max_search_results=21)
+
+    # max_chars must be between 500 and 30000
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_max_chars=499)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_max_chars=30001)
+
+    # timeout must be between 1.0 and 60.0
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_timeout_seconds=0.5)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_timeout_seconds=60.1)
+
+    # user_agent min length 10
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_wikipedia_user_agent="short")
+

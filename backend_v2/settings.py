@@ -448,6 +448,41 @@ class Settings(BaseSettings):
     tavily_timeout_seconds: Annotated[int, Field(description="Timeout for Tavily requests")] = 15
     tavily_max_results: Annotated[int, Field(description="Max search results to fetch")] = 5
     tavily_content_char_limit: Annotated[int, Field(description="Max content characters from search")] = 8000
+    mcp_wikipedia_max_search_results: Annotated[
+        int,
+        Field(
+            default=5,
+            ge=1,
+            le=20,
+            description="Maximum number of search results returned from Wikipedia Action API.",
+        ),
+    ] = 5
+    mcp_wikipedia_max_chars: Annotated[
+        int,
+        Field(
+            default=8000,
+            ge=500,
+            le=30000,
+            description="Maximum characters of article extract to retrieve before truncation.",
+        ),
+    ] = 8000
+    mcp_wikipedia_timeout_seconds: Annotated[
+        float,
+        Field(
+            default=10.0,
+            ge=1.0,
+            le=60.0,
+            description="HTTP timeout in seconds for Wikipedia API calls.",
+        ),
+    ] = 10.0
+    mcp_wikipedia_user_agent: Annotated[
+        str,
+        Field(
+            default="QuorumBot/2.0 (https://github.com/launis/quorum; contact@launis.fi)",
+            min_length=10,
+            description="Wikimedia-compliant User-Agent identifying the client.",
+        ),
+    ] = "QuorumBot/2.0 (https://github.com/launis/quorum; contact@launis.fi)"
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
     discovery_location: Annotated[str, Field(description="Source Region for Model Discovery (e.g. us-central1)")] = (
         "us-central1"
@@ -840,6 +875,8 @@ class Settings(BaseSettings):
             self.schema_max_evaluations = 1
             if "tavily_max_results" not in self.model_fields_set:
                 self.tavily_max_results = 1
+            if "mcp_wikipedia_max_search_results" not in self.model_fields_set:
+                self.mcp_wikipedia_max_search_results = 1
             if "max_precedent_scan_depth" not in self.model_fields_set:
                 self.max_precedent_scan_depth = 0
             if "max_precedent_return_count" not in self.model_fields_set:

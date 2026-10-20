@@ -34,7 +34,7 @@ from backend_v2.models.prompts import (
     build_mcp_citation_extraction_directive,
 )
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
-from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID, TavilyTool
+from backend_v2.services.mcp.tools.tavily import TavilyTool
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -192,11 +192,13 @@ async def execute_tool_loop[T: BaseModel](
             usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
 
+    active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)
+
     # L3 Root Cause Fix: Source Sufficiency Gate
     # When the full document is already in the prompt, the LLM has no information
     # gap to fill. Suppress tool declarations entirely to prevent hallucinated
     # tool calls (e.g., EUR/USD, weather) that inject noise and break caching.
-    if is_source_sufficient(source_context) and TAVILY_TOOL_ID not in allowed_tools:
+    if is_source_sufficient(source_context) and active_search_tool is None:
         logger.info(
             "[MCPToolLoop] Source sufficiency gate: document (%d chars) exceeds threshold (%d). "
             "Suppressing tool declarations for step '%s'.",
@@ -231,7 +233,7 @@ async def execute_tool_loop[T: BaseModel](
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-    if TAVILY_TOOL_ID in allowed_tools:
+    if active_search_tool is not None:
         extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
@@ -417,12 +419,12 @@ async def execute_tool_loop[T: BaseModel](
                 continue
 
             logger.info(
-                "Executing Tavily search for validated claim",
-                extra={"step_name": step_name, "query": query},
+                "Executing primary search tool for validated claim",
+                extra={"step_name": step_name, "query": query, "tool_id": active_search_tool.tool_id},
             )
 
             audit = await DISPATCHER.execute_tool(
-                tool_id=TAVILY_TOOL_ID,
+                tool_id=active_search_tool.tool_id,
                 query=query,
                 step_name=step_name,
                 target_language=target_language,
