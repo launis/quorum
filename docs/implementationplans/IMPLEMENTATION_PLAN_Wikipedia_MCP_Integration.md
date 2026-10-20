@@ -16,7 +16,7 @@
   <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
   <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
   <knowledge_item>@[ki_ai_testing_standards.md]</knowledge_item>
-  <knowledge_item>@[ki_mcp_tool_protocol.md]</knowledge_item>
+  <knowledge_item>@[ki_system_audit_trail_xai.md]</knowledge_item>
   <knowledge_item>@[ki_prompt_generation_architecture.md]</knowledge_item>
   <knowledge_item>@[ki_opentelemetry_logfire_observability.md]</knowledge_item>
   <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
@@ -147,7 +147,7 @@ flowchart LR
 | :--- | :--- | :--- | :--- | :--- |
 | **Pre-Implementation Cleanups & 1-Hop Caller Conformance**<br>@[backend_v2/services/mcp/tools/tavily.py#L28-L151]<br>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]<br>@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25] | Untyped `**kwargs` unpacking with ad-hoc `if "query" in kwargs` fallbacks in `TavilyTool`; `DummyTestTool` missing abstract `capability` property crashing on instantiation; Flutter `AllowedMcpTool` missing `capability` field causing `CheckedFromJsonException` (`disallowUnrecognizedKeys: true`) upon receiving seeded gateway payloads. | Refactor `TavilyTool.execute` to validate inputs strictly via `StandardSearchInputDTO(query=str)`; implement `capability: ToolCapability = ToolCapability.SEARCH` on `DummyTestTool`; update Flutter `AllowedMcpTool` with `@Default('search') String capability` and execute `flutter_audit_loop.py client_app_v2/lib/features/studio/models/mcp_gateway.dart --build` to guarantee Full-Duplex Serialization Parity. | Prune speculative custom DTOs per search engine; enforce unified `StandardSearchInputDTO` across all `BaseSearchTool` implementations. | `backend_v2/tests/unit/services/mcp/test_dispatcher.py` verifies `DummyTestTool` capability dispatch; `client_app_v2/test/models/domain_parity_test.dart` verifies Flutter Freezed parsing without unrecognized key errors. |
 | **Settings SSOT**<br>@[backend_v2/settings.py#L54-L1022]<br>@[backend_v2/core/test_settings.py] | Hardcoded Wikipedia URLs, timeouts, character limits, or User-Agent strings in client logic; lazy default fallbacks (`or 8000`); clobbering test overrides with unconditional clamping. | Centralized `mcp_wikipedia_*` settings on authoritative `Settings` model using `Annotated[T, Field(...)] = default`, with development environment override in `_enforce_environment_limits` checking `self.model_fields_set` and test overrides in `TEST_SETTINGS_OVERRIDES`. | Prune speculative `SettingsWikipediaExtension` class; add 4 discrete fields directly to authoritative `Settings` class without multiple inheritance bloat. | `backend_v2/tests/unit/test_settings.py` asserts production defaults (5 search results, 8000 max chars) and development clamping (1 search result). |
-| **Tool Enums & Domain Contracts**<br>@[backend_v2/models/enums.py]<br>@[backend_v2/models/domain/tools.py#L10-L36] | Free-form string tool types; untyped tool metadata; omitting capability contract on `BaseTool`; unvalidated kwargs in `execute()`. | `ToolCapability(StrEnum)` (`SEARCH`, `DOCUMENT_READER`, `ACTION`) in SSOT enums; `BaseTool.capability` abstract property; `BaseSearchTool(BaseTool)` enforcing `StandardSearchInputDTO(query=str, step_name=str, target_language=str, reasoning=str, claim_text=str|None, llm_client=Any)` input contract. | Prune speculative 20-category taxonomies; lock to 3 discrete operational enums. | `backend_v2/tests/unit/models/domain/test_tools.py` asserts capability inheritance, `BaseSearchTool` specialization, and input schema validation. |
+| **Tool Enums & Domain Contracts**<br>@[backend_v2/models/enums.py]<br>@[backend_v2/models/domain/tools.py#L10-L36] | Free-form string tool types; untyped tool metadata; omitting capability contract on `BaseTool`; unvalidated kwargs in `execute()`. | `ToolCapability(StrEnum)` (`SEARCH`, `DOCUMENT_READER`, `ACTION`) and `LaxToolCapability` in SSOT enums; `BaseTool.capability` abstract property; `BaseSearchTool(BaseTool)` enforcing `StandardSearchInputDTO(query=str, step_name=str, target_language=str, reasoning=str, claim_text=str|None, llm_client=Any)` input contract. | Prune speculative 20-category taxonomies; lock to 3 discrete operational enums. | `backend_v2/tests/unit/models/domain/test_tools.py` asserts capability inheritance, `BaseSearchTool` specialization, and input schema validation. |
 | **Tavily MCP Tool Refactor**<br>@[backend_v2/services/mcp/tools/tavily.py#L28-L151] | Untyped `**kwargs` unpacking with `.get("query")` fallbacks; unclassified tool class lacking capability contract; manual string casts. | Inherit from `BaseSearchTool`; validate input arguments through `StandardSearchInputDTO.model_validate(kwargs)`; declare capability ToolCapability.SEARCH. | Keep focused single-responsibility class under 150 lines. | `backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py` proves Tavily search executes under ToolCapability.SEARCH. |
 | **Domain Models & DTOs**<br>[NEW] @[backend_v2/models/domain/wikipedia.py] | Untyped `dict[str, Any]` payloads; duck-typing with `isinstance(dict)`; imports from deprecated `v2_core.py`; naked dictionary parsing of HTTP JSON bodies; unpruned 3rd-party Wikimedia API envelope noise (`batchcomplete`, `continue`, `searchinfo`). | Dual-Shield Pydantic V2 Ingress Architecture: All models strictly enforce `ConfigDict(strict=True, extra="forbid", frozen=True)` to satisfy QGR007. External HTTP envelope noise is explicitly sanitized at the `WikipediaClient` ingress boundary prior to `model_validate`, guaranteeing zero unmapped keys reach the strict intake DTOs (`WikimediaActionApiResponseDTO`, `WikimediaRestSummaryResponseDTO`) or internal domain models (`WikipediaReadInputDTO`, `WikipediaSearchResultItem`, `WikipediaSearchResponseDTO`, `WikipediaPageSummaryResult`). | 30% Deletion Test: Pruned redundant `WikipediaSearchInputDTO` in favor of SSOT `StandardSearchInputDTO` shared across all search tools; direct payload mapping without intermediary wrappers. | Strict Pydantic validation rejects extra keys on all models (`ValidationError`); ISTQB tests verify ingress sanitization and model validation integrity. |
 | **Asynchronous Wikipedia Client**<br>[NEW] @[backend_v2/services/mcp/wikipedia_client.py] | Synchronous `requests` or `wikipedia` PyPI library; missing Wikimedia `User-Agent` header; unhandled 301/302 redirects (`follow_redirects=False`); URL space/special-character encoding failures; bare `except: pass`; unhandled 500/timeout exceptions; unbounded I/O; silent fallback to 'en' on invalid language; fake synthetic summary on 404. | Asynchronous `httpx.AsyncClient(follow_redirects=True)` with explicit `timeout` context manager, mandatory Wikimedia-compliant `User-Agent`, fail-fast language validation against `SUPPORTED_WIKIPEDIA_LANGUAGES`, URL-safe title normalization (`urllib.parse.quote` with spaces to `_`), `html.unescape` snippet sanitization, fail-fast HTTP 404 (`AppException(ErrorCodes.RESOURCE_NOT_FOUND)`), HTTP 500 / timeout fail-fast (`AppException(ErrorCodes.FETCH_FAILED)`), and 8000-character extract truncation. | Keep single-responsibility file under 150 lines; zero parallel client wrappers or complex retry queues. | `backend_v2/tests/unit/services/mcp/test_wikipedia_client.py` ISTQB suite proves 404 raises `AppException(ErrorCodes.RESOURCE_NOT_FOUND)`, invalid language raises `AppException(ErrorCodes.VALIDATION_FAILED)`, 500 error raising `AppException(ErrorCodes.FETCH_FAILED)`, timeout handling, extract truncation, redirect following, URL-safe title formatting, and language subdomain routing. |
@@ -155,7 +155,7 @@ flowchart LR
 | **Tool Dispatcher Registry**<br>@[backend_v2/services/mcp/dispatcher.py#L19-L85] | Flat dictionary lookup requiring manual iteration over `allowed_tools`; linear scans; untyped kwargs passing. | Two-tier indexing: `_registry: dict[str, BaseTool]` and `_capability_index: dict[ToolCapability, list[BaseTool]]`; typed query methods `get_tools_by_capability()` and `resolve_primary_search_tool()`. | Avoid dynamic plugin directory scanning or reflection; pass explicit list to constructor. | `backend_v2/tests/unit/services/mcp/test_dispatcher.py` asserts O(1) capability lookup, deterministic ordering, and empty-set resolution on unknown capabilities. |
 | **MCP Tool Loop Conductor**<br>@[backend_v2/services/mcp/mcp_tool_loop.py#L134-L541] | Hardcoded `TAVILY_TOOL_ID` in `allowed_tools` check and tool execution; hardcoded `and TAVILY_TOOL_ID not in allowed_tools` duct-tape in source sufficiency gate; bifurcated execution paths. | Dynamic capability resolution: `active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)` with zero provider name branching, dynamic tool execution, and uniform citation verification. | Single invariant pipeline for all MCP search and retrieval tools; zero parallel loop conductors. | `backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py` verifies tool execution with `mcp_tavily_search` and `mcp_wikipedia_search`. |
 | **Database Seed Vault & Full-Duplex System Config**<br>@[backend_v2/models/domain/system_config.py#L172-L182]<br>@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25]<br>@[backend_v2/seed/seed_data.json#L210-L235] | Uncategorized tool declarations; missing capability attribute in database seed; asymmetric schema mutation omitting Flutter `AllowedMcpTool` causing client-side deserialization crashes. | Add `capability: ToolCapability` to `AllowedMCPTool` with Pydantic validation; synchronously update Flutter `AllowedMcpTool` with `@Default('search') String capability`; update `sys_8172bda70c8641c5` in `seed_data.json` with capabilities for `mcp_tavily_search`, `mcp_wikipedia_search`, and `mcp_wikipedia_read`. | No separate capability database collections; co-locate directly on `AllowedMCPTool` and `AllowedMcpTool`. | `backend_v2/seed/run_seed.py local --dry-run` and `scripts/audit_database_atoms.py --strict` pass 100%; Flutter domain parity tests pass 100%. |
-| **Unit & Integration Test Suites**<br>@[backend_v2/tests/unit/test_settings.py#L265-L293]<br>[NEW] @[backend_v2/tests/unit/models/domain/test_tools.py]<br>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]<br>[NEW] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]<br>[NEW] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia_tools.py]<br>@[backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py#L111-L157] | Happy-path only testing; missing negative partitions; live HTTP network requests during test runs; ad-hoc mock classes. | ISTQB Equivalence Partitioning & Boundary Value Analysis (>=2 negative tests per component): empty inputs, 404 responses, transport timeouts, 500 errors, character truncation, language routing, and trace validation using local mock HTTP fixtures. | Test pure functions and tools directly using standard mock adapters; zero complex external test runners. | `scripts/backend_audit_loop.py` passes 100% across Ruff, MyPy strict, AST guardrails, and Pytest coverage >= 90%. |
+| **Unit & Integration Test Suites**<br>@[backend_v2/tests/unit/test_settings.py#L265-L293]<br>[NEW] @[backend_v2/tests/unit/models/domain/test_tools.py]<br>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]<br>[NEW] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]<br>[NEW] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia_tools.py]<br>@[backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py#L111-L157]<br>@[client_app_v2/test/models/domain_parity_test.dart#L1-L95]<br>@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L1-L73] | Happy-path only testing; missing negative partitions; live HTTP network requests during test runs; ad-hoc mock classes; omitting Flutter model verification for new capability fields. | ISTQB Equivalence Partitioning & Boundary Value Analysis (>=2 negative tests per component): empty inputs, 404 responses, transport timeouts, 500 errors, character truncation, language routing, and trace validation using local mock HTTP fixtures; Flutter Freezed model unit tests verifying capability parsing and strict unrecognized key rejection. | Test pure functions and tools directly using standard mock adapters; zero complex external test runners. | `scripts/backend_audit_loop.py` passes 100% across Ruff, MyPy strict, AST guardrails, and Pytest coverage >= 90%; `scripts/flutter_audit_loop.py` passes 100% on domain parity and gateway tests. |
 | **Architectural Documentation & KI Sync**<br>[NEW] @[ki_mcp_tool_protocol.md]<br>@[ki_prompt_generation_architecture.md]<br>@[ki_zero_permissive_typing.md]<br>@[ki_god_code_prevention.md]<br>@[ki_opentelemetry_logfire_observability.md]<br>@[.agents/rules/04_directory_reference.md]<br>@[docs/architecture/03_cognitive_orchestration_engine.md]<br>@[docs/architecture/02_data_seeding_and_ontology.md]<br>@[docs/architecture/00_README_META_ARCHITECTURE.md] | Ad-hoc manual edits to `docs/architecture/01_` through `06_` during code implementation; bare unparameterized `/tier7-describe-architecture` calls; neglecting KI documentation for new MCP protocols; historical changelog entries. | Dual-Axis Documentation Paradigm (`00-antigravity-core.md`): Physical implementation -> Knowledge Item creation (`ki_mcp_tool_protocol.md`) & KI sync -> Directory reference registration (`04_directory_reference.md`) -> Fully parameterized `/tier7-describe-architecture` execution updating architecture pillars in timeless present tense with zero project phases or dates. | Prune manual edits to unaffected architecture pillars; update purely and authoritatively what the system currently has; zero historical before/after narratives. | `scripts/audit_markdown_boundaries.py` validates all markdown links and invariants; `/tier7-describe-architecture` audit verifies 100% physical code anchoring to KIs and pillars. |
 
 ---
@@ -274,9 +274,9 @@ flowchart LR
 - @[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25] [MODIFY]: Add `@Default('search') String capability` to `AllowedMcpTool` and run `flutter_audit_loop.py --build`.
 - @[backend_v2/settings.py#L54-L1022] [MODIFY]: Add centralized `mcp_wikipedia_*` configuration fields and development validator on `Settings`.
 - @[backend_v2/core/test_settings.py] [MODIFY]: Add `mcp_wikipedia_max_search_results` to `TEST_SETTINGS_OVERRIDES`.
-- @[backend_v2/models/enums.py] [MODIFY]: Define `ToolCapability(StrEnum)` with `SEARCH`, `DOCUMENT_READER`, `ACTION`.
+- @[backend_v2/models/enums.py] [MODIFY]: Define `ToolCapability(StrEnum)` with `SEARCH`, `DOCUMENT_READER`, `ACTION` and export in `__all__`.
 - @[backend_v2/models/domain/tools.py#L10-L36] [MODIFY]: Defining `StandardSearchInputDTO` [NEW], `BaseTool.capability`, and `BaseSearchTool(BaseTool)`.
-- [NEW] @[backend_v2/models/domain/wikipedia.py]: Define `WikimediaActionApiResponseDTO`, `WikimediaRestSummaryResponseDTO` (External Intake DTOs with `extra="ignore"`), `WikipediaReadInputDTO`, `WikipediaSearchResultItem`, `WikipediaSearchResponseDTO`, and `WikipediaPageSummaryResult` (Internal Domain Models with `extra="forbid"`).
+- [NEW] @[backend_v2/models/domain/wikipedia.py]: Define `WikimediaActionApiResponseDTO`, `WikimediaRestSummaryResponseDTO`, `WikipediaReadInputDTO`, `WikipediaSearchResultItem`, `WikipediaSearchResponseDTO`, and `WikipediaPageSummaryResult` (all models strictly enforcing `ConfigDict(strict=True, extra="forbid", frozen=True)` per QGR007, with HTTP ingress sanitization filtering out unmodeled third-party envelope keys before `model_validate`).
 - [NEW] @[backend_v2/services/mcp/wikipedia_client.py]: Implement asynchronous HTTP client with language subdomain resolution, sanitization, and truncation.
 - [NEW] @[backend_v2/services/mcp/tools/wikipedia.py]: Implement `WikipediaSearchTool` and `WikipediaReadTool` conforming to `BaseSearchTool` and `BaseTool`.
 - @[backend_v2/services/mcp/dispatcher.py#L19-L85] [MODIFY]: Add eager `_capability_index` and `resolve_primary_search_tool()`.
@@ -288,6 +288,8 @@ flowchart LR
 - [NEW] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]: Add unit tests for Wikipedia client.
 - [NEW] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia_tools.py]: Add unit tests for Wikipedia search and read tools.
 - @[backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py#L111-L157] [MODIFY]: Add unit tests verifying dynamic capability-based tool selection and Wikipedia execution in tool loop.
+- @[client_app_v2/test/models/domain_parity_test.dart#L1-L95] [MODIFY]: Verify Freezed models parse updated seed vault without unrecognized key errors.
+- @[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L1-L73] [MODIFY]: Verify AllowedMcpTool capability deserialization and strict fail-fast validation.
 - [NEW] @[ki_mcp_tool_protocol.md]: Sovereign Knowledge Item for MCP Tool Capability and Dispatcher Protocol.
 - @[ki_prompt_generation_architecture.md]: Synchronize with multi-tool declaration injection standards.
 - @[ki_zero_permissive_typing.md]: Document `BaseSearchTool` and `StandardSearchInputDTO` contracts.
@@ -307,10 +309,111 @@ flowchart LR
 
 ## Detailed Step-by-Step Implementation
 
-### Phase 1: Pre-Implementation Cleanups & 1-Hop Caller Conformance
+### Phase 1: Pre-Implementation Cleanups & Foundational Contracts (Leaf-First Ordering)
 
-#### 1. Refactor TavilyTool Input Parsing (`backend_v2/services/mcp/tools/tavily.py#L28-L151`)
-Eradicate untyped `**kwargs` unpacking and ad-hoc `if "query" in kwargs` checks:
+#### 1. Define ToolCapability SSOT & BaseSearchTool Contract (`backend_v2/models/enums.py` & `backend_v2/models/domain/tools.py#L10-L36`)
+In strict adherence to `ki_god_code_prevention.md` (Bottom-Up Topological Leaf-First Order), define foundational enums and abstract tool contracts before updating dependent consumers:
+```python
+# In backend_v2/models/enums.py:
+class ToolCapability(StrEnum):
+    """Operational capability category for MCP tools."""
+
+    SEARCH = "search"
+    DOCUMENT_READER = "document_reader"
+    ACTION = "action"
+
+
+LaxToolCapability = Annotated[ToolCapability, Field(strict=False)]
+```
+
+In `backend_v2/models/domain/tools.py#L10-L36`, define `StandardSearchInputDTO`, `BaseTool.capability`, and `BaseSearchTool`:
+```python
+# In backend_v2/models/domain/tools.py:
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Annotated, Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.enums import ToolCapability
+
+if TYPE_CHECKING:
+    from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
+
+
+class StandardSearchInputDTO(BaseModel):
+    """Standardized validated input payload for all search capability tools."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
+
+    query: Annotated[str, Field(min_length=1, description="Search query string")]
+    step_name: Annotated[str, Field(description="Name of the calling step")] = "unknown_step"
+    target_language: Annotated[str, Field(description="Target language code")] = "en"
+    reasoning: Annotated[str, Field(description="Search rationale")] = ""
+    claim_text: Annotated[str | None, Field(description="Verbatim claim being verified")] = None
+    llm_client: Annotated[Any, Field(description="Optional LLM client for translation")] = None
+
+
+class BaseTool(ABC):
+    """Abstract interface for all MCP tools."""
+
+    @property
+    @abstractmethod
+    def tool_id(self) -> str:
+        """The strictly defined unique identifier for the tool."""
+        pass
+
+    @property
+    @abstractmethod
+    def capability(self) -> ToolCapability:
+        """The operational capability implemented by this tool."""
+        pass
+
+    @property
+    @abstractmethod
+    def declaration(self) -> MCPToolDeclarationDTO:
+        """The tool declaration in OpenAI JSON schema format."""
+        pass
+
+    @abstractmethod
+    async def execute(self, **kwargs: Any) -> MCPAuditTrace:
+        """Execute the tool logic and return a standard audit trace."""
+        pass
+
+
+class BaseSearchTool(BaseTool):
+    """Abstract base class for all search capability MCP tools."""
+
+    @property
+    def capability(self) -> ToolCapability:
+        """Return SEARCH capability."""
+        return ToolCapability.SEARCH
+```
+
+#### 2. Full-Duplex Flutter Parity (`client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25`)
+Add `capability` field to `AllowedMcpTool` to preserve 1:1 serialization contract with backend `AllowedMCPTool` and prevent `CheckedFromJsonException` (`disallowUnrecognizedKeys: true`):
+```dart
+@Freezed(equal: false)
+abstract class AllowedMcpTool with _$AllowedMcpTool {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory AllowedMcpTool({
+    @JsonKey(name: 'tool_id') required String toolId,
+    @Default('search') String capability,
+    required I18nText name,
+    required String description,
+    @JsonKey(name: 'input_schema')
+    @Default({})
+    Map<String, Object?> inputSchema,
+  }) = _AllowedMcpTool;
+
+  factory AllowedMcpTool.fromJson(Map<String, dynamic> json) =>
+      _$AllowedMcpToolFromJson(json);
+}
+```
+Run `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/mcp_gateway.dart --build` to regenerate Freezed artifacts.
+
+#### 3. Refactor TavilyTool Input Parsing (`backend_v2/services/mcp/tools/tavily.py#L28-L151`)
+Inherit from `BaseSearchTool` and validate via `StandardSearchInputDTO`, eradicating untyped `**kwargs` unpacking:
 ```python
 # In backend_v2/services/mcp/tools/tavily.py:
 class TavilyTool(BaseSearchTool):
@@ -408,112 +511,14 @@ class TavilyTool(BaseSearchTool):
             ) from e
 ```
 
-#### 2. Upgrade DummyTestTool (`backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43`)
+#### 4. Upgrade DummyTestTool (`backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43`)
 Update `DummyTestTool` to declare `capability: ToolCapability = ToolCapability.SEARCH` so it complies with the updated `BaseTool` abstract interface.
-
-#### 3. Full-Duplex Flutter Parity (`client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25`)
-Add `capability` field to `AllowedMcpTool` to preserve 1:1 serialization contract with backend `AllowedMCPTool` and prevent `CheckedFromJsonException` (`disallowUnrecognizedKeys: true`):
-```dart
-@Freezed(equal: false)
-abstract class AllowedMcpTool with _$AllowedMcpTool {
-  @JsonSerializable(disallowUnrecognizedKeys: true)
-  const factory AllowedMcpTool({
-    @JsonKey(name: 'tool_id') required String toolId,
-    @Default('search') String capability,
-    required I18nText name,
-    required String description,
-    @JsonKey(name: 'input_schema')
-    @Default({})
-    Map<String, Object?> inputSchema,
-  }) = _AllowedMcpTool;
-
-  factory AllowedMcpTool.fromJson(Map<String, dynamic> json) =>
-      _$AllowedMcpToolFromJson(json);
-}
-```
-Run `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/mcp_gateway.dart --build` to regenerate Freezed artifacts.
 
 ---
 
-### Phase 2: Tool Capability Enum, Dispatcher Indexing & Settings SSOT
+### Phase 2: Dispatcher Capability Indexing, Conductor Loop & Settings SSOT
 
-#### 1. SSOT Enums & Tool Domain Contracts (`backend_v2/models/enums.py` & `backend_v2/models/domain/tools.py#L10-L36`)
-Define `ToolCapability(StrEnum)`:
-```python
-# In backend_v2/models/enums.py:
-class ToolCapability(StrEnum):
-    """Operational capability category for MCP tools."""
-
-    SEARCH = "search"
-    DOCUMENT_READER = "document_reader"
-    ACTION = "action"
-```
-
-#### 2. Base Tool & Base Search Tool Contracts (Defining `StandardSearchInputDTO` [NEW] in `backend_v2/models/domain/tools.py#L10-L36`)
-```python
-# In backend_v2/models/domain/tools.py:
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Annotated, Any
-
-from pydantic import BaseModel, ConfigDict, Field
-
-from backend_v2.models.domain.system_config import MCPAuditTrace
-from backend_v2.models.enums import ToolCapability
-
-if TYPE_CHECKING:
-    from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
-
-
-class StandardSearchInputDTO(BaseModel):
-    """Standardized validated input payload for all search capability tools."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, arbitrary_types_allowed=True)
-
-    query: Annotated[str, Field(min_length=1, description="Search query string")]
-    step_name: Annotated[str, Field(description="Name of the calling step")] = "unknown_step"
-    target_language: Annotated[str, Field(description="Target language code")] = "en"
-    reasoning: Annotated[str, Field(description="Search rationale")] = ""
-    claim_text: Annotated[str | None, Field(description="Verbatim claim being verified")] = None
-    llm_client: Annotated[Any, Field(description="Optional LLM client for translation")] = None
-
-
-class BaseTool(ABC):
-    """Abstract interface for all MCP tools."""
-
-    @property
-    @abstractmethod
-    def tool_id(self) -> str:
-        """The strictly defined unique identifier for the tool."""
-        pass
-
-    @property
-    @abstractmethod
-    def capability(self) -> ToolCapability:
-        """The operational capability implemented by this tool."""
-        pass
-
-    @property
-    @abstractmethod
-    def declaration(self) -> MCPToolDeclarationDTO:
-        """The tool declaration in OpenAI JSON schema format."""
-        pass
-
-    @abstractmethod
-    async def execute(self, **kwargs: Any) -> MCPAuditTrace:
-        """Execute the tool logic and return a standard audit trace."""
-        pass
-
-
-class BaseSearchTool(BaseTool):
-    """Abstract base class for all search capability MCP tools."""
-
-    @property
-    def capability(self) -> ToolCapability:
-        """Return SEARCH capability."""
-        return ToolCapability.SEARCH
-```
-
-#### 2. Tool Dispatcher Capability Indexing (`backend_v2/services/mcp/dispatcher.py#L19-L85`)
+#### 1. Tool Dispatcher Capability Indexing (`backend_v2/services/mcp/dispatcher.py#L19-L85`)
 Update `ToolDispatcher` with eager capability index and priority resolution:
 ```python
 class ToolDispatcher:
@@ -659,6 +664,9 @@ Triple Pydantic V2 DTO Hierarchy:
 ```python
 from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
+
+# Single Source of Truth for supported Wikipedia subdomains
+SUPPORTED_WIKIPEDIA_LANGUAGES: frozenset[str] = frozenset({"fi", "en", "sv", "de"})
 
 # --- External Intake DTOs (sanitized at HTTP ingress boundary before validation) ---
 class WikimediaActionSearchItemDTO(BaseModel):
@@ -826,10 +834,6 @@ In accordance with rule `03_seed_vault.md`, create a timestamped backup copy in 
               "query": {
                 "type": "string",
                 "description": "The search term to query on Wikipedia."
-              },
-              "target_language": {
-                "type": "string",
-                "description": "Two-letter language code (fi, en, sv, de). Default is 'en'."
               }
             },
             "required": ["query"]
@@ -851,10 +855,6 @@ In accordance with rule `03_seed_vault.md`, create a timestamped backup copy in 
               "title": {
                 "type": "string",
                 "description": "The exact title of the Wikipedia article to read."
-              },
-              "target_language": {
-                "type": "string",
-                "description": "Two-letter language code (fi, en, sv, de). Default is 'en'."
               }
             },
             "required": ["title"]
@@ -916,7 +916,8 @@ uv run python scripts/audit_database_atoms.py --strict
 3. Unit tests for `WikipediaClient` in `[NEW] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]`.
 4. Unit tests for `WikipediaSearchTool` and `WikipediaReadTool` in `[NEW] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia_tools.py]`.
 5. Integration unit tests for `mcp_tool_loop.py` in `@[backend_v2/tests/unit/services/mcp/test_mcp_tool_loop.py#L111-L157]`.
-6. Flutter domain parity test in `client_app_v2/test/models/domain_parity_test.dart`.
+6. Flutter domain parity test in `@[client_app_v2/test/models/domain_parity_test.dart]`.
+7. Flutter MCP gateway model unit test in `@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart]`.
 
 ---
 
@@ -968,47 +969,51 @@ uv run python scripts/audit_database_atoms.py --strict
 ```xml
 <execution_protocol>
   <phase id="1" name="PRE-IMPLEMENTATION CLEANUPS &amp; 1-HOP CALLER CONFORMANCE">
-    <step id="1.1" name="Refactor TavilyTool input validation to use StandardSearchInputDTO">
-      <file>@[backend_v2/services/mcp/tools/tavily.py#L28-L151]</file>
-      <action>Refactor TavilyTool.execute in @[backend_v2/services/mcp/tools/tavily.py#L28-L151] to validate inputs strictly through StandardSearchInputDTO and eradicate ad-hoc kwargs subscripting.</action>
-      <constraint invariant="ki_zero_permissive_typing.md">Eradicate untyped kwargs parsing and enforce strict Pydantic V2 input validation.</constraint>
+    <step id="1.1" name="Add ToolCapability to enums.py and BaseSearchTool to tools.py">
+      <file>@[backend_v2/models/enums.py]</file>
+      <file>@[backend_v2/models/domain/tools.py#L10-L36]</file>
+      <action>Define ToolCapability enum with SEARCH, DOCUMENT_READER, ACTION and LaxToolCapability in @[backend_v2/models/enums.py], export ToolCapability and LaxToolCapability in __all__, and define BaseTool.capability, BaseSearchTool with StandardSearchInputDTO in @[backend_v2/models/domain/tools.py#L10-L36].</action>
+      <constraint invariant="ki_zero_permissive_typing.md">All tools must declare capability and enforce strict input validation.</constraint>
     </step>
-    <step id="1.2" name="Upgrade DummyTestTool in test_dispatcher.py">
-      <file>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]</file>
-      <action>Update DummyTestTool in @[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43] to implement capability: ToolCapability = ToolCapability.SEARCH preventing abstract instantiation errors.</action>
-      <constraint invariant="ai_testing_standards.md">Mock fixtures must satisfy abstract domain interfaces completely.</constraint>
-    </step>
-    <step id="1.3" name="Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity">
+    <step id="1.2" name="Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity">
       <file>@[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25]</file>
       <action>Add capability field with default 'search' to AllowedMcpTool in @[client_app_v2/lib/features/studio/models/mcp_gateway.dart#L11-L25] and execute uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/mcp_gateway.dart --build to regenerate Freezed models.</action>
       <constraint invariant="ban_drive_by_schema_mutations">Maintain 1:1 DTO serialization parity across Python and Flutter boundaries.</constraint>
     </step>
+    <step id="1.3" name="Refactor TavilyTool input validation to use StandardSearchInputDTO">
+      <file>@[backend_v2/services/mcp/tools/tavily.py#L28-L151]</file>
+      <action>Refactor TavilyTool.execute in @[backend_v2/services/mcp/tools/tavily.py#L28-L151] to inherit from BaseSearchTool and validate inputs strictly through StandardSearchInputDTO, eradicating ad-hoc kwargs subscripting.</action>
+      <constraint invariant="ki_zero_permissive_typing.md">Eradicate untyped kwargs parsing and enforce strict Pydantic V2 input validation.</constraint>
+    </step>
+    <step id="1.4" name="Upgrade DummyTestTool in test_dispatcher.py">
+      <file>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]</file>
+      <action>Update DummyTestTool in @[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43] to implement capability: ToolCapability = ToolCapability.SEARCH preventing abstract instantiation errors.</action>
+      <constraint invariant="ai_testing_standards.md">Mock fixtures must satisfy abstract domain interfaces completely.</constraint>
+    </step>
+    <step id="1.5" name="Verify Phase 1 Cleanups Quality Gate">
+      <action>Execute uv run python scripts/backend_audit_loop.py backend_v2/models/domain/tools.py --test --ast-strict to verify leaf-level contracts compile cleanly.</action>
+      <constraint invariant="zero_tolerance_audit_loop">Foundational leaf models must pass 100% audit testing before dependent services are touched.</constraint>
+    </step>
   </phase>
 
-  <phase id="2" name="TOOL CAPABILITY ENUM, DISPATCHER INDEXING &amp; SETTINGS SSOT">
-    <step id="2.1" name="Add ToolCapability to enums.py and BaseSearchTool to tools.py">
-      <file>@[backend_v2/models/enums.py]</file>
-      <file>@[backend_v2/models/domain/tools.py#L10-L36]</file>
-      <action>Define ToolCapability enum with SEARCH, DOCUMENT_READER, ACTION in @[backend_v2/models/enums.py] and BaseSearchTool with StandardSearchInputDTO in @[backend_v2/models/domain/tools.py#L10-L36].</action>
-      <constraint invariant="ki_zero_permissive_typing.md">All tools must declare capability and enforce strict input validation.</constraint>
-    </step>
-    <step id="2.2" name="Implement Capability Indexing in ToolDispatcher">
+  <phase id="2" name="TOOL DISPATCHER INDEXING, CONDUCTOR LOOP &amp; SETTINGS SSOT">
+    <step id="2.1" name="Implement Capability Indexing in ToolDispatcher">
       <file>@[backend_v2/services/mcp/dispatcher.py#L19-L85]</file>
       <action>Implement _capability_index, get_tools_by_capability, and resolve_primary_search_tool in @[backend_v2/services/mcp/dispatcher.py#L19-L85].</action>
       <constraint invariant="ban_heuristic_identifier_matching">Eradicate heuristic tool ID branching and enable dynamic capability resolution.</constraint>
     </step>
-    <step id="2.3" name="Refactor mcp_tool_loop.py to use resolve_primary_search_tool">
+    <step id="2.2" name="Refactor mcp_tool_loop.py to use resolve_primary_search_tool">
       <file>@[backend_v2/services/mcp/mcp_tool_loop.py#L134-L541]</file>
       <action>Replace hardcoded Tavily routing and source sufficiency duct-tape with resolve_primary_search_tool in @[backend_v2/services/mcp/mcp_tool_loop.py#L134-L541].</action>
       <constraint invariant="ban_heuristic_identifier_matching">Zero provider name checks in orchestrator loop.</constraint>
     </step>
-    <step id="2.4" name="Add Wikipedia settings to settings.py and test overrides">
+    <step id="2.3" name="Add Wikipedia settings to settings.py and test overrides">
       <file>@[backend_v2/settings.py#L54-L1022]</file>
       <file>@[backend_v2/core/test_settings.py]</file>
       <action>Add mcp_wikipedia_max_chars, mcp_wikipedia_timeout_seconds, mcp_wikipedia_user_agent, and mcp_wikipedia_max_search_results Annotated fields to @[backend_v2/settings.py#L54-L1022] and add overrides to @[backend_v2/core/test_settings.py].</action>
       <constraint invariant="ki_global_config_sovereignty.md">All thresholds must be centrally defined on Settings model in settings.py.</constraint>
     </step>
-    <step id="2.5" name="Unit tests for domain tools, dispatcher, and settings">
+    <step id="2.4" name="Unit tests for domain tools, dispatcher, and settings">
       <file>[NEW] @[backend_v2/tests/unit/models/domain/test_tools.py]</file>
       <file>@[backend_v2/tests/unit/services/mcp/test_dispatcher.py#L17-L43]</file>
       <file>@[backend_v2/tests/unit/test_settings.py#L265-L293]</file>
@@ -1093,8 +1098,10 @@ uv run python scripts/audit_database_atoms.py --strict
       <constraint invariant="zero_tolerance_audit_loop">100% pass on Ruff, MyPy strict, and Pytest coverage.</constraint>
     </step>
     <step id="6.2" name="Execute Flutter Domain Parity Verification">
-      <action>Run Flutter domain parity tests: uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart</action>
-      <constraint invariant="ban_drive_by_schema_mutations">Verify Freezed models accept updated seed configurations.</constraint>
+      <file>@[client_app_v2/test/models/domain_parity_test.dart#L1-L95]</file>
+      <file>@[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L1-L73]</file>
+      <action>Run Flutter domain parity tests in @[client_app_v2/test/models/domain_parity_test.dart#L1-L95] and model unit tests in @[client_app_v2/test/features/studio/models/mcp_gateway_test.dart#L1-L73] via uv run python scripts/flutter_audit_loop.py.</action>
+      <constraint invariant="ban_drive_by_schema_mutations">Verify Freezed models accept updated seed configurations and enforce strict capability deserialization.</constraint>
     </step>
   </phase>
 
@@ -1150,6 +1157,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/mcp/t
 uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/mcp/tools/test_wikipedia_tools.py --test
 uv run python scripts/backend_audit_loop.py backend_v2/services/mcp/mcp_tool_loop.py --test
 uv run python scripts/flutter_audit_loop.py client_app_v2/test/models/domain_parity_test.dart
+uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/models/mcp_gateway_test.dart
 ```
 
 ### Seed Data Verification & Re-Seed
