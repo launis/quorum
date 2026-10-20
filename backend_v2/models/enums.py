@@ -73,6 +73,7 @@ __all__ = [
     "LaxStrategicDepth",
     "LaxSystemLocale",
     "LaxTargetBlockType",
+    "LaxToolCapability",
     "LaxUiVariant",
     "LaxVerificationResult",
     "LaxVirtualSystemStepID",
@@ -105,6 +106,7 @@ __all__ = [
     "TargetBlockType",
     "TargetSpeaker",
     "TitleKey",
+    "ToolCapability",
     "UiVariant",
     "ValidationThresholdRatio",
     "VerificationResult",
@@ -1013,3 +1015,20 @@ class CausalRootCauseType(StrEnum):
 
 
 LaxCausalRootCauseType = Annotated[CausalRootCauseType, Field(strict=False)]
+
+
+class ToolCapability(StrEnum):
+    """Operational capability category of an MCP tool."""
+
+    SEARCH = "search"
+    DOCUMENT_READER = "document_reader"
+    ACTION = "action"
+
+    @property
+    def l10n_key(self) -> str:
+        """Returns the localization key in backend translation files."""
+        return f"mcp_capability_{self.value}"
+
+
+LaxToolCapability = Annotated[ToolCapability, Field(strict=False)]
+

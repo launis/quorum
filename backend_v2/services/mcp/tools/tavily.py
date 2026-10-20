@@ -11,7 +11,7 @@ from typing import Any
 import backend_v2.services.translation_service as translation_service
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
-from backend_v2.models.domain.tools import BaseTool
+from backend_v2.models.domain.tools import BaseSearchTool, StandardSearchInputDTO
 from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
@@ -25,7 +25,7 @@ __all__ = [
 TAVILY_TOOL_ID = "mcp_tavily_search"
 
 
-class TavilyTool(BaseTool):
+class TavilyTool(BaseSearchTool):
     """MCP tool for executing Tavily web searches."""
 
     @property
@@ -70,8 +70,7 @@ class TavilyTool(BaseTool):
         """Execute the Tavily search and return the MCPAuditTrace.
 
         Args:
-            **kwargs: Arbitrary keyword arguments including query, step_name,
-                target_language, llm_client, reasoning, and claim_text.
+            **kwargs: Keyword arguments validated strictly via StandardSearchInputDTO.
 
         Returns:
             MCPAuditTrace: Completed tool execution audit record.
@@ -79,40 +78,22 @@ class TavilyTool(BaseTool):
         Raises:
             AppException: Raised with FETCH_FAILED error code if external search fails.
         """
-        query = ""
-        if "query" in kwargs and kwargs["query"] is not None:
-            query = str(kwargs["query"])
-
-        step_name = "unknown_step"
-        if "step_name" in kwargs and kwargs["step_name"] is not None:
-            step_name = str(kwargs["step_name"])
-
-        target_language = ""
-        if "target_language" in kwargs and kwargs["target_language"] is not None:
-            target_language = str(kwargs["target_language"])
-
-        llm_client = None
-        if "llm_client" in kwargs:
-            llm_client = kwargs["llm_client"]
-
-        reasoning = ""
-        if "reasoning" in kwargs and kwargs["reasoning"] is not None:
-            reasoning = str(kwargs["reasoning"])
-
-        claim_text = None
-        if "claim_text" in kwargs and kwargs["claim_text"] is not None:
-            claim_text = str(kwargs["claim_text"])
-
+        input_dto = StandardSearchInputDTO.model_validate(kwargs)
         start_ms = int(time.monotonic() * 1000)
         try:
-            result = await tavily_search(query)
+            result = await tavily_search(input_dto.query)
             response_summary = result.answer
 
-            if target_language and target_language.lower() != "en" and response_summary and llm_client:
+            if (
+                input_dto.target_language
+                and input_dto.target_language.lower() != "en"
+                and response_summary
+                and input_dto.llm_client
+            ):
                 response_summary = await translation_service.translate_text(
                     text=response_summary,
-                    target_lang=target_language,
-                    llm_client=llm_client,
+                    target_lang=input_dto.target_language,
+                    llm_client=input_dto.llm_client,
                     source_language="English/Original",
                 )
 
@@ -123,10 +104,10 @@ class TavilyTool(BaseTool):
             return MCPAuditTrace(
                 id=trace_id,
                 tool_id=self.tool_id,
-                step_name=step_name,
-                claim_text=claim_text,
-                query=query,
-                reasoning=reasoning,
+                step_name=input_dto.step_name,
+                claim_text=input_dto.claim_text,
+                query=input_dto.query,
+                reasoning=input_dto.reasoning,
                 response_summary=response_summary,
                 source_urls=result.source_urls,
                 timestamp=datetime.now(timezone.utc),
@@ -134,7 +115,7 @@ class TavilyTool(BaseTool):
             )
         except Exception as e:
             # Zero-Compromise Fail-Fast: Crash the step if external search fails
-            msg = f"Tavily search failed for query: '{query}'"
+            msg = f"Tavily search failed for query: '{input_dto.query}'"
             logger.error(
                 "[TavilyTool] %s: %s",
                 ErrorCodes.FETCH_FAILED.name,

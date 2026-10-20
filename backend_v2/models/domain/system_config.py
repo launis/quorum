@@ -19,6 +19,7 @@ from backend_v2.models.enums import (
     LaxComponentType,
     LaxLLMProvider,
     LLMProvider,
+    ToolCapability,
 )
 
 __all__ = [
@@ -174,12 +175,17 @@ class AllowedMCPTool(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    tool_id: str = Field(description="Unique slug (e.g. 'mcp_tavily_search').")
-    name: I18nText = Field(description="Localized display name.")
-    description: str = Field(description="English-only LLM description for function calling schema.")
-    input_schema: dict[str, JsonValue] = Field(
-        default_factory=dict, description="JSON Schema defining the tool's input parameters."
-    )
+    tool_id: Annotated[str, Field(description="Unique slug (e.g. 'mcp_tavily_search').")]
+    capability: Annotated[
+        ToolCapability,
+        Field(default=ToolCapability.SEARCH, description="Operational capability category of the tool."),
+    ] = ToolCapability.SEARCH
+    name: Annotated[I18nText, Field(description="Localized display name.")]
+    description: Annotated[str, Field(description="English-only LLM description for function calling schema.")]
+    input_schema: Annotated[
+        dict[str, JsonValue],
+        Field(default_factory=dict, description="JSON Schema defining the tool's input parameters."),
+    ]
 
 
 class MCPAuditTrace(V2CoreBase):

@@ -11,6 +11,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseTool
 from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
+from backend_v2.models.enums import ToolCapability
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 
 
@@ -25,6 +26,10 @@ class DummyTestTool(BaseTool):
     @property
     def tool_id(self) -> str:
         return self._tool_id
+
+    @property
+    def capability(self) -> ToolCapability:
+        return ToolCapability.SEARCH
 
     @property
     def declaration(self) -> MCPToolDeclarationDTO:

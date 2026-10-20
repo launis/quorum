@@ -22,11 +22,11 @@
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md]
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration.md] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]`
-  - [ ] Step 1.1: Add ToolCapability to enums.py and BaseSearchTool to tools.py
-  - [ ] Step 1.2: Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity
-  - [ ] Step 1.3: Refactor TavilyTool input validation to use StandardSearchInputDTO
-  - [ ] Step 1.4: Upgrade DummyTestTool in test_dispatcher.py
-  - [ ] Step 1.5: Verify Phase 1 Cleanups Quality Gate
+  - [x] Step 1.1: Add ToolCapability to enums.py and BaseSearchTool to tools.py
+  - [x] Step 1.2: Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity
+  - [x] Step 1.3: Refactor TavilyTool input validation to use StandardSearchInputDTO
+  - [x] Step 1.4: Upgrade DummyTestTool in test_dispatcher.py
+  - [x] Step 1.5: Verify Phase 1 Cleanups Quality Gate
   - [ ] Step 2.1: Implement Capability Indexing in ToolDispatcher
   - [ ] Step 2.2: Refactor mcp_tool_loop.py to use resolve_primary_search_tool
   - [ ] Step 2.3: Add Wikipedia settings to settings.py and test overrides

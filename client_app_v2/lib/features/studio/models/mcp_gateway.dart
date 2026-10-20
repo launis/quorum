@@ -13,6 +13,7 @@ abstract class AllowedMcpTool with _$AllowedMcpTool {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory AllowedMcpTool({
     @JsonKey(name: 'tool_id') required String toolId,
+    @Default('search') String capability,
     required I18nText name,
     required String description,
     @JsonKey(name: 'input_schema')

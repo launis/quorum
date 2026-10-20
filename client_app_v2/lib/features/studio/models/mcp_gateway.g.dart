@@ -13,10 +13,20 @@ _AllowedMcpTool _$AllowedMcpToolFromJson(Map<String, dynamic> json) =>
       ($checkedConvert) {
         $checkKeys(
           json,
-          allowedKeys: const ['tool_id', 'name', 'description', 'input_schema'],
+          allowedKeys: const [
+            'tool_id',
+            'capability',
+            'name',
+            'description',
+            'input_schema',
+          ],
         );
         final val = _AllowedMcpTool(
           toolId: $checkedConvert('tool_id', (v) => v as String),
+          capability: $checkedConvert(
+            'capability',
+            (v) => v as String? ?? 'search',
+          ),
           name: $checkedConvert(
             'name',
             (v) => I18nText.fromJson(v as Map<String, dynamic>),
@@ -35,6 +45,7 @@ _AllowedMcpTool _$AllowedMcpToolFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$AllowedMcpToolToJson(_AllowedMcpTool instance) =>
     <String, dynamic>{
       'tool_id': instance.toolId,
+      'capability': instance.capability,
       'name': instance.name.toJson(),
       'description': instance.description,
       'input_schema': instance.inputSchema,

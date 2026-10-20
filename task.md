@@ -27,11 +27,11 @@
 
 ## Execution Steps
 ### Phase 1: Pre-Implementation Cleanups & 1-Hop Caller Conformance
-- [ ] Step 1.1: Add ToolCapability to enums.py and BaseSearchTool to tools.py
-- [ ] Step 1.2: Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity
-- [ ] Step 1.3: Refactor TavilyTool input validation to use StandardSearchInputDTO
-- [ ] Step 1.4: Upgrade DummyTestTool in test_dispatcher.py
-- [ ] Step 1.5: Verify Phase 1 Cleanups Quality Gate
+- [x] Step 1.1: Add ToolCapability to enums.py and BaseSearchTool to tools.py
+- [x] Step 1.2: Update Flutter AllowedMcpTool for Full-Duplex Serialization Parity
+- [x] Step 1.3: Refactor TavilyTool input validation to use StandardSearchInputDTO
+- [x] Step 1.4: Upgrade DummyTestTool in test_dispatcher.py
+- [x] Step 1.5: Verify Phase 1 Cleanups Quality Gate
 
 ### Phase 2: Tool Dispatcher Indexing, Conductor Loop & Settings SSOT
 - [ ] Step 2.1: Implement Capability Indexing in ToolDispatcher

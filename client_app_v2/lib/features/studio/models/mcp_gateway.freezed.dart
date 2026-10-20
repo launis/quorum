@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AllowedMcpTool {
 
-@JsonKey(name: 'tool_id') String get toolId; I18nText get name; String get description;@JsonKey(name: 'input_schema') Map<String, Object?> get inputSchema;
+@JsonKey(name: 'tool_id') String get toolId; String get capability; I18nText get name; String get description;@JsonKey(name: 'input_schema') Map<String, Object?> get inputSchema;
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $AllowedMcpToolCopyWith<AllowedMcpTool> get copyWith => _$AllowedMcpToolCopyWith
 
 @override
 String toString() {
-  return 'AllowedMcpTool(toolId: $toolId, name: $name, description: $description, inputSchema: $inputSchema)';
+  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $AllowedMcpToolCopyWith<$Res>  {
   factory $AllowedMcpToolCopyWith(AllowedMcpTool value, $Res Function(AllowedMcpTool) _then) = _$AllowedMcpToolCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId, I18nText name, String description,@JsonKey(name: 'input_schema') Map<String, Object?> inputSchema
+@JsonKey(name: 'tool_id') String toolId, String capability, I18nText name, String description,@JsonKey(name: 'input_schema') Map<String, Object?> inputSchema
 });
 
 
@@ -58,9 +58,10 @@ class _$AllowedMcpToolCopyWithImpl<$Res>
 
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? toolId = null,Object? name = null,Object? description = null,Object? inputSchema = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,}) {
   return _then(_self.copyWith(
 toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
+as String,capability: null == capability ? _self.capability : capability // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,inputSchema: null == inputSchema ? _self.inputSchema : inputSchema // ignore: cast_nullable_to_non_nullable
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  String capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool() when $default != null:
-return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  String capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)  $default,) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool():
-return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tool_id')  String toolId,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tool_id')  String toolId,  String capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  Map<String, Object?> inputSchema)?  $default,) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool() when $default != null:
-return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema);case _:
   return null;
 
 }
@@ -214,10 +215,11 @@ return $default(_that.toolId,_that.name,_that.description,_that.inputSchema);cas
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _AllowedMcpTool implements AllowedMcpTool {
-  const _AllowedMcpTool({@JsonKey(name: 'tool_id') required this.toolId, required this.name, required this.description, @JsonKey(name: 'input_schema') final  Map<String, Object?> inputSchema = const {}}): _inputSchema = inputSchema;
+  const _AllowedMcpTool({@JsonKey(name: 'tool_id') required this.toolId, this.capability = 'search', required this.name, required this.description, @JsonKey(name: 'input_schema') final  Map<String, Object?> inputSchema = const {}}): _inputSchema = inputSchema;
   factory _AllowedMcpTool.fromJson(Map<String, dynamic> json) => _$AllowedMcpToolFromJson(json);
 
 @override@JsonKey(name: 'tool_id') final  String toolId;
+@override@JsonKey() final  String capability;
 @override final  I18nText name;
 @override final  String description;
  final  Map<String, Object?> _inputSchema;
@@ -243,7 +245,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'AllowedMcpTool(toolId: $toolId, name: $name, description: $description, inputSchema: $inputSchema)';
+  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema)';
 }
 
 
@@ -254,7 +256,7 @@ abstract mixin class _$AllowedMcpToolCopyWith<$Res> implements $AllowedMcpToolCo
   factory _$AllowedMcpToolCopyWith(_AllowedMcpTool value, $Res Function(_AllowedMcpTool) _then) = __$AllowedMcpToolCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId, I18nText name, String description,@JsonKey(name: 'input_schema') Map<String, Object?> inputSchema
+@JsonKey(name: 'tool_id') String toolId, String capability, I18nText name, String description,@JsonKey(name: 'input_schema') Map<String, Object?> inputSchema
 });
 
 
@@ -271,9 +273,10 @@ class __$AllowedMcpToolCopyWithImpl<$Res>
 
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? toolId = null,Object? name = null,Object? description = null,Object? inputSchema = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,}) {
   return _then(_AllowedMcpTool(
 toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
+as String,capability: null == capability ? _self.capability : capability // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,inputSchema: null == inputSchema ? _self._inputSchema : inputSchema // ignore: cast_nullable_to_non_nullable
