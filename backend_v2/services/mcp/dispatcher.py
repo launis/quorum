@@ -4,6 +4,7 @@ Provides registry and execution dispatching for MCP tools with OpenTelemetry ins
 """
 
 import asyncio
+import logging
 from typing import Any
 
 import opentelemetry.trace as trace
@@ -15,6 +16,10 @@ from backend_v2.models.domain.tools import BaseSearchTool, BaseTool
 from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
 from backend_v2.models.enums import ToolCapability
 from backend_v2.settings import get_settings
+
+__all__ = ["ToolDispatcher"]
+
+logger = logging.getLogger(__name__)
 
 
 class ToolDispatcher:
@@ -108,9 +113,14 @@ class ToolDispatcher:
             MCPAuditTrace: The execution trace.
 
         Raises:
-            AppException: If the tool is not found, or execution times out.
+            AppException: If the tool is not found (ErrorCodes.VALIDATION_FAILED)
+                or execution times out (ErrorCodes.SERVICE_UNAVAILABLE).
         """
         if tool_id not in self._registry:
+            logger.error(
+                "MCP tool not found in registry",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
+            )
             raise AppException(
                 message=f"Tool '{tool_id}' not found in registry.",
                 status_code=400,
@@ -129,6 +139,15 @@ class ToolDispatcher:
             except TimeoutError as te:
                 span.record_exception(te)
                 span.set_status(trace.StatusCode.ERROR, f"MCP tool execution timed out after {timeout_sec}s")
+                logger.error(
+                    "MCP tool execution timed out",
+                    extra={
+                        "error_code": ErrorCodes.SERVICE_UNAVAILABLE.value,
+                        "tool_id": tool_id,
+                        "timeout_seconds": timeout_sec,
+                    },
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"MCP tool '{tool_id}' timed out after {timeout_sec} seconds.",
                     status_code=504,
