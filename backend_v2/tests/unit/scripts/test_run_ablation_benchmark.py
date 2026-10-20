@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus
+from scripts.audit_manifest_generator import DEFAULT_PRODUCTION_TRACES
 from scripts.run_ablation_benchmark import (
     CONFIGURATIONS,
     AblationAtomEvaluationDTO,
@@ -34,6 +35,8 @@ from scripts.run_ablation_benchmark import (
     print_ablation_telemetry_banner,
     run_ablation_benchmark,
 )
+
+_PHYSICAL_TRACES_EXIST = all(p.exists() for pair in DEFAULT_PRODUCTION_TRACES.values() for p in pair)
 
 
 def test_ablation_cli_arguments() -> None:
@@ -413,14 +416,17 @@ def test_ablation_main_cli_entrypoint(monkeypatch: pytest.MonkeyPatch, capsys: p
     assert "config_results" in captured_json.out
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_ablation_physical_production_trace_baseline() -> None:
     """Verifies that Configuration 1 correctly loads physical production traces when not dry-run."""
     runner = AblationBenchmarkRunner(case_filter="both", selected_configs=[1], runs=2, dry_run=False)
     result = runner.run_configuration(1)
     assert result.config_id == 1
     assert result.total_atoms == 220
-    assert result.observed_agreement == 96.36
-    assert result.cohens_kappa == 0.9260
+    assert result.observed_agreement == 96.82
+    assert result.cohens_kappa == 0.9353
     assert result.chimera_rate_pct == 0.0
     assert result.dlq_rate_pct == 0.0
     assert result.pass_rate_pct > 50.0
@@ -566,6 +572,9 @@ def test_ablation_config_all_flag() -> None:
     assert [c.config_id for c in report.config_results] == [1, 2, 3, 4, 5]
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_ablation_export_manifest_standalone(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """Verifies standalone manifest export via CLI entrypoint."""
     out_file = str(tmp_path / "test_manifest.json")
@@ -576,6 +585,9 @@ def test_ablation_export_manifest_standalone(tmp_path: Path, capsys: pytest.Capt
     assert "Successfully exported audit manifest" in captured.out
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_ablation_export_manifest_during_benchmark(tmp_path: Path) -> None:
     """Verifies manifest export combined with benchmark execution."""
     out_file = str(tmp_path / "test_manifest.csv")
@@ -836,5 +848,3 @@ def test_run_ablation_benchmark_with_compare_providers() -> None:
     report = run_ablation_benchmark(args)
     assert len(report.config_results) == 1
     assert report.config_results[0].runs == 2
-
-

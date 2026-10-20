@@ -73,7 +73,9 @@ async def test_wikipedia_search_tool_execute_success() -> None:
         assert trace.step_name == "step_verify"
         assert trace.reasoning == "Verify country data"
         assert trace.claim_text == "Finland is in Northern Europe"
-        assert "[Finland](https://en.wikipedia.org/wiki/Finland): Finland is a Nordic country." in trace.response_summary
+        assert (
+            "[Finland](https://en.wikipedia.org/wiki/Finland): Finland is a Nordic country." in trace.response_summary
+        )
         assert trace.source_urls == ["https://en.wikipedia.org/wiki/Finland"]
         assert trace.duration_ms >= 0
 
@@ -141,7 +143,9 @@ async def test_wikipedia_search_tool_execute_with_translation() -> None:
 async def test_wikipedia_search_tool_execute_app_exception_propagates() -> None:
     """Test that AppException from wikipedia_search is propagated directly."""
     tool = WikipediaSearchTool()
-    exc = AppException(message="Validation failed", status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+    exc = AppException(
+        message="Validation failed", status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+    )
 
     with patch("backend_v2.services.mcp.tools.wikipedia.wikipedia_search", new_callable=AsyncMock) as mock_search:
         mock_search.side_effect = exc
@@ -169,6 +173,7 @@ def test_wikipedia_search_tool_validation_error() -> None:
     with pytest.raises(ValidationError):
         # query is empty string (min_length=1)
         import asyncio
+
         asyncio.run(tool.execute(query=""))
 
 
@@ -255,7 +260,9 @@ async def test_wikipedia_read_tool_execute_with_translation() -> None:
 async def test_wikipedia_read_tool_execute_not_found_raises() -> None:
     """Test that 404 RESOURCE_NOT_FOUND AppException from client propagates."""
     tool = WikipediaReadTool()
-    exc = AppException(message="Not found", status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
+    exc = AppException(
+        message="Not found", status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+    )
 
     with patch("backend_v2.services.mcp.tools.wikipedia.wikipedia_read_summary", new_callable=AsyncMock) as mock_read:
         mock_read.side_effect = exc
@@ -283,4 +290,5 @@ def test_wikipedia_read_tool_validation_error() -> None:
     with pytest.raises(ValidationError):
         # title is empty string (min_length=1)
         import asyncio
+
         asyncio.run(tool.execute(title=""))

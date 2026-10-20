@@ -18,16 +18,13 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
 from backend_v2.models.llm import TokenUsage
 from scripts.ablation_live_executor import (
-    AblationAtomEvaluationDTO,
     AblationLiveExecutionConfigDTO,
     AblationLiveExecutor,
     AblationMode,
     AblationMonolithicItemDTO,
     AblationMonolithicResponseDTO,
     AblationPropositionDTO,
-    AblationStepBatchDTO,
     AblationStructuredResponseDTO,
-    ModelTelemetryItemDTO,
     TraceEvaluationRawDTO,
     build_monolithic_step_prompt,
     build_quorum_standard_prompt,
@@ -362,7 +359,9 @@ async def test_concurrency_semaphore_limit(
     active_requests = 0
     max_observed_concurrency = 0
 
-    async def _mock_structured_task(*args: object, **kwargs: object) -> tuple[AblationStructuredResponseDTO, TokenUsage]:
+    async def _mock_structured_task(
+        *args: object, **kwargs: object
+    ) -> tuple[AblationStructuredResponseDTO, TokenUsage]:
         nonlocal active_requests, max_observed_concurrency
         active_requests += 1
         max_observed_concurrency = max(max_observed_concurrency, active_requests)
@@ -441,44 +440,46 @@ def test_resolve_model_telemetry_live(tmp_path: Path) -> None:
     # Test mock custom DB with reasoning models, dict system_config, and various tiers
     mock_db = tmp_path / "mock_db.json"
     mock_db.write_text(
-        json.dumps({
-            "system_config": {
-                "reg_1": {
-                    "id": "sys_test",
-                    "slug": "test-registry-slug",
-                    "name": "Test Registry Name",
-                    "type": "model_registry",
-                    "default_provider": "google",
-                    "tier_definitions": {
-                        "fast": {
-                            "model_name": "gemini/gemini-3.8-flash",
-                            "provider": "google",
-                            "temperature": 1.0,
-                            "thinking_budget_tokens": 0,
+        json.dumps(
+            {
+                "system_config": {
+                    "reg_1": {
+                        "id": "sys_test",
+                        "slug": "test-registry-slug",
+                        "name": "Test Registry Name",
+                        "type": "model_registry",
+                        "default_provider": "google",
+                        "tier_definitions": {
+                            "fast": {
+                                "model_name": "gemini/gemini-3.8-flash",
+                                "provider": "google",
+                                "temperature": 1.0,
+                                "thinking_budget_tokens": 0,
+                            },
+                            "balanced": {
+                                "model_name": "o1-mini",
+                                "provider": "openai",
+                                "temperature": 1.0,
+                                "thinking_budget_tokens": 1024,
+                            },
+                            "deep": {
+                                "model_name": "o3-mini",
+                                "provider": "openai",
+                                "temperature": 1.0,
+                                "thinking_budget_tokens": 3000,
+                            },
+                            "reasoning": {
+                                "model_name": "gpt-5-preview",
+                                "provider": "openai",
+                                "temperature": 1.0,
+                                "thinking_budget_tokens": 5000,
+                                "additional_params": {"reasoning_effort": "high"},
+                            },
                         },
-                        "balanced": {
-                            "model_name": "o1-mini",
-                            "provider": "openai",
-                            "temperature": 1.0,
-                            "thinking_budget_tokens": 1024,
-                        },
-                        "deep": {
-                            "model_name": "o3-mini",
-                            "provider": "openai",
-                            "temperature": 1.0,
-                            "thinking_budget_tokens": 3000,
-                        },
-                        "reasoning": {
-                            "model_name": "gpt-5-preview",
-                            "provider": "openai",
-                            "temperature": 1.0,
-                            "thinking_budget_tokens": 5000,
-                            "additional_params": {"reasoning_effort": "high"},
-                        },
-                    },
+                    }
                 }
             }
-        }),
+        ),
         encoding="utf-8",
     )
     # Target by id
@@ -559,27 +560,29 @@ def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixt
     # Populated DB
     mock_db = tmp_path / "pop_db.json"
     mock_db.write_text(
-        json.dumps({
-            "system_config": [
-                {
-                    "id": "sys_pop",
-                    "name": "Populated Registry",
-                    "type": "model_registry",
-                    "default_provider": "google",
-                    "tier_definitions": {
-                        "fast": {
-                            "model_name": "gemini/gemini-2.5-flash",
-                            "provider": "google",
-                            "temperature": 0.2,
-                            "thinking_budget_tokens": 1024,
-                            "max_tokens": 2048,
-                            "rpm_limit": 100,
-                            "tpm_limit": 10000,
-                        }
-                    },
-                }
-            ]
-        }),
+        json.dumps(
+            {
+                "system_config": [
+                    {
+                        "id": "sys_pop",
+                        "name": "Populated Registry",
+                        "type": "model_registry",
+                        "default_provider": "google",
+                        "tier_definitions": {
+                            "fast": {
+                                "model_name": "gemini/gemini-2.5-flash",
+                                "provider": "google",
+                                "temperature": 0.2,
+                                "thinking_budget_tokens": 1024,
+                                "max_tokens": 2048,
+                                "rpm_limit": 100,
+                                "tpm_limit": 10000,
+                            }
+                        },
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     print_model_telemetry(mock_db, active_strategies=["fast"], registry_id="sys_pop")
@@ -684,9 +687,13 @@ async def test_evaluate_all_configurations_smoke(
     # Mock monolithic response
     mono_res = AblationMonolithicResponseDTO(
         evaluations=[
-            AblationMonolithicItemDTO(tda_id="tda_001", is_true=True, source_quote="Päätettiin hyväksyä uusi tekoälystrategia"),
+            AblationMonolithicItemDTO(
+                tda_id="tda_001", is_true=True, source_quote="Päätettiin hyväksyä uusi tekoälystrategia"
+            ),
             AblationMonolithicItemDTO(tda_id="tda_002", is_true=False, source_quote=None),
-            AblationMonolithicItemDTO(tda_id="tda_003", is_true=True, source_quote="Projektipäälliköksi nimitettiin Matti Meikäläinen."),
+            AblationMonolithicItemDTO(
+                tda_id="tda_003", is_true=True, source_quote="Projektipäälliköksi nimitettiin Matti Meikäläinen."
+            ),
         ]
     )
 
@@ -800,5 +807,3 @@ def test_print_model_telemetry_without_registry_id(capsys: pytest.CaptureFixture
     captured = capsys.readouterr()
     assert "Fyysiset Malliparametrit ja Telemetria" in captured.out
     assert "Strategia" in captured.out
-
-

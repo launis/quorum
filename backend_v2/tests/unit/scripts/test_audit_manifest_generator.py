@@ -32,6 +32,8 @@ from scripts.audit_manifest_generator import (
 )
 from scripts.run_ablation_benchmark import main as benchmark_main
 
+_PHYSICAL_TRACES_EXIST = all(p.exists() for pair in DEFAULT_PRODUCTION_TRACES.values() for p in pair)
+
 
 def test_audit_manifest_item_dto_valid() -> None:
     """Verify standard instantiation of AuditManifestItemDTO."""
@@ -152,6 +154,9 @@ def test_load_physical_execution_items_missing_file_raises(tmp_path: Path) -> No
         load_physical_execution_items(trace_paths_by_case={"pair_a": [missing]})
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_load_physical_execution_items_production() -> None:
     """Verify loading items from physical production traces."""
     items = load_physical_execution_items()
@@ -165,6 +170,9 @@ def test_load_physical_execution_items_production() -> None:
         assert isinstance(it.is_chimera, bool)
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_generate_audit_manifest_beta_sem_stratification() -> None:
     """Verify stratified generation of beta_sem manifest with sample_size=40."""
     manifest = generate_audit_manifest(
@@ -188,6 +196,9 @@ def test_generate_audit_manifest_beta_sem_stratification() -> None:
     assert len(matrices) > 1
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_generate_audit_manifest_chimera() -> None:
     """Verify generation of chimera/false-negative audit manifest."""
     manifest = generate_audit_manifest(
@@ -203,6 +214,9 @@ def test_generate_audit_manifest_chimera() -> None:
         assert it.is_chimera or (it.system_status == ExecutionStatus.FAILED)
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_generate_audit_manifest_all() -> None:
     """Verify generation of all items manifest."""
     manifest = generate_audit_manifest(
@@ -215,6 +229,9 @@ def test_generate_audit_manifest_all() -> None:
     assert len(manifest.items) == 50
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_generate_audit_manifest_boundary_zero_sample() -> None:
     """Verify boundary condition with sample_size=0."""
     manifest = generate_audit_manifest(
@@ -226,6 +243,9 @@ def test_generate_audit_manifest_boundary_zero_sample() -> None:
     assert manifest.sample_size == 0
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_export_manifest_json_roundtrip(tmp_path: Path) -> None:
     """Verify exporting manifest to JSON and validating roundtrip."""
     manifest = generate_audit_manifest(
@@ -245,6 +265,9 @@ def test_export_manifest_json_roundtrip(tmp_path: Path) -> None:
     assert roundtrip.items[0].tda_id == manifest.items[0].tda_id
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_export_manifest_csv_roundtrip(tmp_path: Path) -> None:
     """Verify exporting manifest to RFC-4180 CSV."""
     manifest = generate_audit_manifest(
@@ -266,6 +289,9 @@ def test_export_manifest_csv_roundtrip(tmp_path: Path) -> None:
         assert rows[0]["tda_id"] == manifest.items[0].tda_id
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_generator_main_cli(tmp_path: Path) -> None:
     """Verify CLI execution of audit_manifest_generator.py."""
     out_json = tmp_path / "cli_manifest.json"
@@ -293,6 +319,9 @@ def test_generator_main_cli_invalid_type() -> None:
         generator_main(["--type", "invalid_type"])
 
 
+@pytest.mark.skipif(
+    not _PHYSICAL_TRACES_EXIST, reason="Physical production execution trace files not present in data/files/executions/"
+)
 def test_run_ablation_benchmark_export_manifest_cli(tmp_path: Path) -> None:
     """Verify run_ablation_benchmark.py --export-manifest delegation."""
     out_csv = tmp_path / "ablation_manifest.csv"

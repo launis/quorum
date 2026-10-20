@@ -521,4 +521,3 @@ async def test_extract_atoms_from_chunk_bounds_anchor_quote_over_1000_chars(
     assert result[0].source_quotes is not None
     assert len(result[0].source_quotes[0]) == 1000
     assert result[0].source_quotes[0] == "X" * 1000
-

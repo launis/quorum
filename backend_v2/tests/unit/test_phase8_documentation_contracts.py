@@ -122,7 +122,8 @@ def test_tiede_latex_syntax_validity() -> None:
     validate_tiede_latex_syntax(content)
 
     # Formal Definitions, Theorems, and Sections
-    assert "Definition 1 (Evaluated Propositional Frame)" in content
+    assert "Definition 1A (Evaluated Rubric Proposition Frame)" in content
+    assert "Definition 1B (Mined Discourse Claim Node)" in content
     assert "Theorem 1 (Lexical Specificity Invariant under Multi-Segment Bounding)" in content
     assert "Gate 5 Epistemic Strictness Decoupling" in content
     assert "Bounded Deliverable Root Axiom Anchoring" in content

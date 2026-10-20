@@ -7,15 +7,22 @@ AnchorValidationService, and structured outputs under Python 3.14 TaskGroup conc
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import logging
 import re
+import sys
 import unicodedata
 from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Final
+
+# Ensure project root is in sys.path before importing backend_v2
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, field_validator
 
@@ -1080,3 +1087,44 @@ class AblationLiveExecutor:
                 )
 
         return [t.result() for t in tasks]
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser for the live ablation executor."""
+    parser = argparse.ArgumentParser(
+        prog="ablation_live_executor.py",
+        description=(
+            "Asynchronous live LLM execution engine for multi-tier ablation benchmarks.\n\n"
+            "Evaluates proposition atoms across the five research ablation configurations\n"
+            "using in-process LLMClient, AnchorValidationService, and structured outputs under Python 3.14."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--config",
+        type=int,
+        choices=[1, 2, 3, 4, 5],
+        default=1,
+        help="Target configuration ID to execute (1-5).",
+    )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="Number of evaluation runs to execute.",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """CLI entrypoint for ablation_live_executor."""
+    parser = build_arg_parser()
+    _ = parser.parse_args(argv)
+    print(
+        "AblationLiveExecutor CLI interface initialized. Use run_ablation_benchmark.py for end-to-end benchmark execution."
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

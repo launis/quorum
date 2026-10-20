@@ -242,4 +242,3 @@ def test_tool_dispatcher_has_capability() -> None:
     assert dispatcher.has_capability(["search_1"], ToolCapability.SEARCH) is True
     assert dispatcher.has_capability(["search_1"], ToolCapability.DOCUMENT_READER) is False
     assert dispatcher.has_capability([], ToolCapability.SEARCH) is False
-

@@ -458,4 +458,3 @@ def test_wikipedia_settings_invariants() -> None:
     # user_agent min length 10
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, mcp_wikipedia_user_agent="short")
-

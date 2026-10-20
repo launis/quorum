@@ -132,17 +132,17 @@ async def test_base_tool_abstract_super_calls() -> None:
     class DelegatingTool(BaseTool):
         @property
         def tool_id(self) -> str:
-            super().tool_id
+            _ = super().tool_id
             return "delegating_tool"
 
         @property
         def capability(self) -> ToolCapability:
-            super().capability
+            _ = super().capability
             return ToolCapability.ACTION
 
         @property
         def declaration(self) -> MCPToolDeclarationDTO:
-            super().declaration
+            _ = super().declaration
             return MCPToolDeclarationDTO(
                 type="function",
                 function=MCPFunctionDefinitionDTO(
@@ -167,4 +167,3 @@ async def test_base_tool_abstract_super_calls() -> None:
     assert tool.declaration.function.name == "delegating_tool"
     trace = await tool.execute()
     assert trace.tool_id == "delegating_tool"
-

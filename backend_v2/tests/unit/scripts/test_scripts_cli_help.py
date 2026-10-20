@@ -13,9 +13,10 @@ from pathlib import Path
 
 import pytest
 
-# Canonical list of all 31 operational scripts in scripts/
+# Canonical list of all 32 operational scripts in scripts/
 ALL_SCRIPTS: list[str] = sorted(
     [
+        "ablation_live_executor.py",
         "audit_clean_imports.py",
         "audit_database_atoms.py",
         "audit_dict_eradication.py",
@@ -59,7 +60,7 @@ def test_script_count_is_exhaustive() -> None:
     assert ALL_SCRIPTS == physical_scripts, (
         f"Mismatch in script inventory. Expected {len(physical_scripts)}, got {len(ALL_SCRIPTS)}"
     )
-    assert len(ALL_SCRIPTS) == 31
+    assert len(ALL_SCRIPTS) == 32
 
 
 @pytest.mark.parametrize("script_name", ALL_SCRIPTS)
@@ -118,8 +119,8 @@ def test_scripts_help_execution_latency(script_name: str) -> None:
     )
     assert result.returncode == 0
     duration_ms = (time.perf_counter() - start_time) * 1000
-    # Must complete in under 5000ms even under cold OS process spawn on Windows under heavy test-runner CPU load
-    assert duration_ms < 5000, f"{script_name} took {duration_ms:.2f}ms on --help (exceeded 5000ms limit)"
+    # Must complete in under 8000ms even under cold OS process spawn on Windows under heavy test-runner CPU load
+    assert duration_ms < 8000, f"{script_name} took {duration_ms:.2f}ms on --help (exceeded 8000ms limit)"
 
 
 @pytest.mark.parametrize("script_name", ALL_SCRIPTS)

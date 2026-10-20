@@ -117,7 +117,6 @@ def test_extracted_atom_segment_under_30_chars_when_m_greater_than_1_raises_erro
         )
 
 
-
 def test_extracted_atom_allows_segment_up_to_1000_chars_gate2_ceiling():
     """Prove Gate 2 safety ceiling: ExtractedAtom must accept quotes up to 1,000 characters."""
     valid_long_quote = "A" * 602  # Exact length from Sitra block B4

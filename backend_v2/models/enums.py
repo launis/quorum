@@ -1031,4 +1031,3 @@ class ToolCapability(StrEnum):
 
 
 LaxToolCapability = Annotated[ToolCapability, Field(strict=False)]
-
