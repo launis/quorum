@@ -31,9 +31,9 @@
   - [x] Step 2.2: Refactor mcp_tool_loop.py to use resolve_primary_search_tool
   - [x] Step 2.3: Add Wikipedia settings to settings.py and test overrides
   - [x] Step 2.4: Unit tests for domain tools, dispatcher, and settings
-  - [ ] Step 3.1: Create Wikipedia Domain Models
-  - [ ] Step 3.2: Implement Wikipedia Client
-  - [ ] Step 3.3: Create unit tests for Wikipedia Client
+  - [x] Step 3.1: Create Wikipedia Domain Models
+  - [x] Step 3.2: Implement Wikipedia Client
+  - [x] Step 3.3: Create unit tests for Wikipedia Client
   - [ ] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
   - [ ] Step 4.2: Register Wikipedia Tools in ToolDispatcher
   - [ ] Step 4.3: Create unit tests for Wikipedia Tools

@@ -40,9 +40,9 @@
 - [x] Step 2.4: Unit tests for domain tools, dispatcher, and settings
 
 ### Phase 3: Domain Models & Asynchronous Wikipedia Client
-- [ ] Step 3.1: Create Wikipedia Domain Models
-- [ ] Step 3.2: Implement Wikipedia Client
-- [ ] Step 3.3: Create unit tests for Wikipedia Client
+- [x] Step 3.1: Create Wikipedia Domain Models
+- [x] Step 3.2: Implement Wikipedia Client
+- [x] Step 3.3: Create unit tests for Wikipedia Client
 
 ### Phase 4: Wikipedia MCP Tools & Dispatcher Registration
 - [ ] Step 4.1: Implement WikipediaSearchTool and WikipediaReadTool
