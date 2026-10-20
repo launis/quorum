@@ -36,7 +36,29 @@ void main() {
       expect(gateway.slug, 'filesystem_gateway');
       expect(gateway.tools.length, 1);
       expect(gateway.tools.first.toolId, 'read_file');
+      expect(gateway.tools.first.capability, 'search');
       expect(gateway.tools.first.name.translations['en'], 'Read File');
+    });
+
+    test('test_mcp_gateway_with_explicit_capability', () {
+      final validJson = {
+        'id': 'gw_1234567812345678',
+        'type': 'stdio',
+        'tools': [
+          {
+            'tool_id': 'mcp_wikipedia_read',
+            'capability': 'document_reader',
+            'name': {
+              'translations': {'en': 'Wikipedia Article Reader'},
+            },
+            'description': 'Reads article',
+            'input_schema': {'type': 'object'},
+          },
+        ],
+      };
+
+      final gateway = McpGateway.fromJson(validJson);
+      expect(gateway.tools.first.capability, 'document_reader');
     });
 
     test('test_mcp_gateway_hallucinated_fields_fail_fast', () {

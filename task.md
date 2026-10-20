@@ -58,8 +58,8 @@
 - [x] Step 5.5: Post-seeding database persistence roundtrip verification
 
 ### Phase 6: Automated Testing Strategy (ISTQB & Parity Gates)
-- [ ] Step 6.1: Execute Targeted Unit and Integration Tests
-- [ ] Step 6.2: Execute Flutter Domain Parity Verification
+- [x] Step 6.1: Execute Targeted Unit and Integration Tests
+- [x] Step 6.2: Execute Flutter Domain Parity Verification
 
 ### Phase 7: Global Audit & Quality Gates
 - [ ] Step 7.1: Run Backend Global Quality Gate

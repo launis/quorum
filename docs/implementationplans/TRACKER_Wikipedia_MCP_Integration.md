@@ -43,8 +43,8 @@
   - [x] Step 5.3: Pre-flight in-memory validation gate
   - [x] Step 5.4: Execute seed data injection and database transfer
   - [x] Step 5.5: Post-seeding database persistence roundtrip verification
-  - [ ] Step 6.1: Execute Targeted Unit and Integration Tests
-  - [ ] Step 6.2: Execute Flutter Domain Parity Verification
+  - [x] Step 6.1: Execute Targeted Unit and Integration Tests
+  - [x] Step 6.2: Execute Flutter Domain Parity Verification
   - [ ] Step 7.1: Run Backend Global Quality Gate
   - [ ] Step 8.1: Create and Synchronize Knowledge Items
   - [ ] Step 8.2: Synchronize Directory Reference
