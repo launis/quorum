@@ -427,19 +427,19 @@ class TestModelTelemetry:
         assert "deep (openai)" in telemetry
 
         fast_gemini = telemetry["fast (ai_studio)"]
-        assert fast_gemini["provider"] == "ai_studio"
-        assert "gemini" in fast_gemini["model_name"].lower()
-        assert fast_gemini["is_gemini_v3"] is True
-        assert "1.0" in fast_gemini["effective_temperature"]
-        assert "0 tok" in fast_gemini["thinking_budget"]
+        assert fast_gemini.provider == "ai_studio"
+        assert "gemini" in fast_gemini.model_name.lower()
+        assert fast_gemini.is_gemini_v3 is True
+        assert "1.0" in fast_gemini.effective_temperature
+        assert "0 tok" in fast_gemini.thinking_budget
 
         openai_deep = telemetry["deep (openai)"]
-        assert openai_deep["provider"] == "openai"
-        assert "gpt-5" in openai_deep["model_name"].lower()
-        assert openai_deep["is_openai_reasoning"] is True
-        assert "1.0" in openai_deep["effective_temperature"]
-        assert "'medium'" in openai_deep["reasoning_effort"]
-        assert "4096 tok" in openai_deep["thinking_budget"]
+        assert openai_deep.provider == "openai"
+        assert "gpt-5" in openai_deep.model_name.lower()
+        assert openai_deep.is_openai_reasoning is True
+        assert "1.0" in openai_deep.effective_temperature
+        assert "'medium'" in openai_deep.reasoning_effort
+        assert "4096 tok" in openai_deep.thinking_budget
 
     def test_print_model_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify print_model_telemetry formats output without error."""
@@ -618,16 +618,16 @@ class TestModelRegistryComparison:
             registry_id="openai",
         )
         assert "fast" in telemetry_openai
-        assert telemetry_openai["fast"]["provider"] == "openai"
-        assert "gpt-5" in telemetry_openai["fast"]["model_name"].lower()
+        assert telemetry_openai["fast"].provider == "openai"
+        assert "gpt-5" in telemetry_openai["fast"].model_name.lower()
 
         telemetry_google = resolve_model_telemetry(
             Path("backend_v2/seed/seed_data.json"),
             registry_id="google",
         )
         assert "fast" in telemetry_google
-        assert telemetry_google["fast"]["provider"] in ("ai_studio", "vertex_ai")
-        assert "gemini" in telemetry_google["fast"]["model_name"].lower()
+        assert telemetry_google["fast"].provider in ("ai_studio", "vertex_ai")
+        assert "gemini" in telemetry_google["fast"].model_name.lower()
 
     def test_main_show_matrices_compare_registries(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify main() with --show-matrices and --compare-registries prints comparison preview."""
@@ -1607,11 +1607,11 @@ class TestCoverageExpansion:
         db_file.write_text(json.dumps(seed), encoding="utf-8")
         res = resolve_model_telemetry(db_file)
         assert "o1_low" in res
-        assert "'low'" in res["o1_low"]["reasoning_effort"]
+        assert "'low'" in res["o1_low"].reasoning_effort
         assert "o1_high" in res
-        assert "'high'" in res["o1_high"]["reasoning_effort"]
+        assert "'high'" in res["o1_high"].reasoning_effort
         assert "claude_custom" in res
-        assert res["claude_custom"]["provider"] == "anthropic"
+        assert res["claude_custom"].provider == "anthropic"
 
     def test_resolve_model_telemetry_missing_paths_and_registries(self, tmp_path: Path) -> None:
         from scripts.run_e2e_variance_test import resolve_model_telemetry
@@ -1631,4 +1631,4 @@ class TestCoverageExpansion:
         empty_db.write_text(json.dumps({"system_config": []}), encoding="utf-8")
         print_model_telemetry(empty_db)
         out = capsys.readouterr().out
-        assert "Varoitus: Mallirekisteriä ei löytynyt" in out
+        assert "Warning: Model registry not found" in out

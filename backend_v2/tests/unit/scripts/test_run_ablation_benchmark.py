@@ -9,16 +9,18 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus
 from scripts.run_ablation_benchmark import (
     CONFIGURATIONS,
     AblationAtomEvaluationDTO,
     AblationBenchmarkReportDTO,
     AblationBenchmarkRunner,
     AblationConfigResultDTO,
+    AblationMode,
     AblationPropositionDTO,
     AblationStepBatchDTO,
     build_arg_parser,
@@ -28,8 +30,8 @@ from scripts.run_ablation_benchmark import (
     compute_cluster_bootstrapped_kappa_for_runs,
     compute_cohens_kappa_for_runs,
     format_ablation_table_markdown,
-    format_table_5_markdown,
     main,
+    print_ablation_telemetry_banner,
     run_ablation_benchmark,
 )
 
@@ -311,8 +313,8 @@ def test_ablation_table_5_markdown_formatting() -> None:
     # Check caption for Table 7
     assert "**Table 7:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output
 
-    # Verify legacy format_table_5_markdown alias outputs Table 5
-    md_output_5 = format_table_5_markdown(report)
+    # Verify format_ablation_table_markdown with table_num=5
+    md_output_5 = format_ablation_table_markdown(report, table_num=5)
     assert "**Table 5:** Component ablation benchmark study across 220 proposition atom evaluations" in md_output_5
 
 
@@ -610,3 +612,229 @@ def test_ablation_main_cli_error_handling(monkeypatch: pytest.MonkeyPatch, capsy
     assert code == 1
     captured = capsys.readouterr()
     assert "ERROR: Simulated benchmark failure" in captured.err
+
+
+def test_ablation_cli_new_parameters_parity() -> None:
+    """Verifies that all new parity arguments are correctly parsed."""
+    parser = build_arg_parser()
+    args = parser.parse_args(
+        [
+            "data/files/sample_inputs",
+            "--inputs",
+            "data/files/override_inputs",
+            "--workflow",
+            "wf_test_123",
+            "--num-runs",
+            "2",
+            "--mode",
+            "in-silico",
+            "--dev",
+            "--sample",
+            "executive_coaching",
+            "--tier",
+            "balanced",
+            "--strategies",
+            "fast",
+            "deep",
+            "--providers",
+            "ai_studio",
+            "openai",
+            "--compare-providers",
+            "google",
+            "openai",
+            "--compare-strategies",
+            "fast",
+            "deep",
+            "--concurrency",
+            "10",
+            "--seed",
+            "backend_v2/seed/seed_data.json",
+            "--trace",
+            "data/files/traces/sample.json",
+            "--output-format",
+            "both",
+        ]
+    )
+
+    assert args.inputs_target == "data/files/sample_inputs"
+    assert args.inputs == "data/files/override_inputs"
+    assert args.workflow == "wf_test_123"
+    assert args.num_runs == 2
+    assert args.mode == "in-silico"
+    assert args.dev is True
+    assert args.sample == "executive_coaching"
+    assert args.tier == "balanced"
+    assert args.strategies == ["fast", "deep"]
+    assert args.providers == ["ai_studio", "openai"]
+    assert args.compare_providers == ["google", "openai"]
+    assert args.compare_strategies == ["fast", "deep"]
+    assert args.concurrency == 10
+    assert args.seed == "backend_v2/seed/seed_data.json"
+    assert args.trace == "data/files/traces/sample.json"
+    assert args.output_format == "both"
+
+
+def test_ablation_mode_resolution_and_conflict() -> None:
+    """Verifies mode resolution and fail-fast validation on conflicting dry-run and mode flags."""
+    # 1. Conflict between --dry-run and --mode live
+    parser = build_arg_parser()
+    args_conflict = parser.parse_args(["--dry-run", "--mode", "live"])
+    with pytest.raises(ValueError, match="Conflicting parameters"):
+        run_ablation_benchmark(args_conflict)
+
+    # 2. Runner conflict validation
+    with pytest.raises(ValueError, match="Conflicting parameters"):
+        AblationBenchmarkRunner(mode=AblationMode.LIVE, dry_run=True)
+
+
+def test_print_ablation_telemetry_banner_smoke(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies that the structured ASCII banner prints expected metadata."""
+    print_ablation_telemetry_banner(
+        mode=AblationMode.IN_SILICO,
+        tier=CognitiveTier.FAST,
+        runs=2,
+        case_filter="both",
+        selected_configs=[1, 2, 3, 4, 5],
+        concurrency=5,
+        compare_providers=("google", "openai"),
+        compare_strategies=("fast", "deep"),
+    )
+    out = capsys.readouterr().out
+    assert "QUORUM COMPONENT ABLATION BENCHMARK" in out
+    assert "IN-SILICO" in out
+    assert "fast" in out
+    assert "Cross-Model Test:   google (Run 1) vs openai (Run 2)" in out
+    assert "Cross-Strategy:     fast (Run 1) vs deep (Run 2)" in out
+
+
+def test_ablation_output_format_both(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies that --output-format both prints both markdown and json output."""
+    out_file = str(tmp_path / "report")
+    parser = build_arg_parser()
+    args = parser.parse_args(
+        [
+            "--mode",
+            "in-silico",
+            "--config",
+            "1",
+            "--runs",
+            "1",
+            "--output-format",
+            "both",
+            "--output-file",
+            out_file,
+        ]
+    )
+    report = run_ablation_benchmark(args)
+    assert report is not None
+    assert (tmp_path / "report.json").exists()
+    assert (tmp_path / "report.md").exists()
+
+
+def test_resolve_grounding_source_text_file_and_dir(tmp_path: Path) -> None:
+    """Verifies that _resolve_grounding_source_text loads from file and directory correctly."""
+    # 1. Single file input
+    sample_file = tmp_path / "doc.txt"
+    sample_file.write_text("Tämä on yksittäinen tiedosto.", encoding="utf-8")
+
+    runner_file = AblationBenchmarkRunner(inputs_path=sample_file)
+    assert runner_file._resolve_grounding_source_text() == "Tämä on yksittäinen tiedosto."
+
+    # 2. Directory with multiple files
+    sample_dir = tmp_path / "docs_dir"
+    sample_dir.mkdir()
+    (sample_dir / "a.md").write_text("Ensimmäinen osa.", encoding="utf-8")
+    (sample_dir / "b.txt").write_text("Toinen osa.", encoding="utf-8")
+
+    runner_dir = AblationBenchmarkRunner(inputs_path=sample_dir)
+    resolved = runner_dir._resolve_grounding_source_text()
+    assert "Ensimmäinen osa." in resolved
+    assert "Toinen osa." in resolved
+
+
+def test_runner_live_mode_execution() -> None:
+    """Verifies that AblationBenchmarkRunner correctly coordinates AblationLiveExecutor in live mode."""
+    mock_executor = AsyncMock()
+
+    sample_eval_1 = AblationAtomEvaluationDTO(
+        tda_id="tda_pair_a_001",
+        raw_is_true=True,
+        source_quote="valid quote 1",
+        is_chimera=False,
+        status=ExecutionStatus.PASSED,
+    )
+    sample_eval_2 = AblationAtomEvaluationDTO(
+        tda_id="tda_pair_b_002",
+        raw_is_true=True,
+        source_quote="valid quote 2",
+        is_chimera=False,
+        status=ExecutionStatus.PASSED,
+    )
+    mock_executor.evaluate_configuration_live.return_value = [sample_eval_1, sample_eval_2]
+
+    runner = AblationBenchmarkRunner(mode=AblationMode.LIVE, runs=2)
+    runner.live_executor = mock_executor
+    runner.propositions = [
+        AblationPropositionDTO(
+            tda_id="tda_pair_a_001",
+            step_id="step_1",
+            claim_text="väite 1",
+            expected_true=True,
+            is_quote_valid_in_source=True,
+        ),
+        AblationPropositionDTO(
+            tda_id="tda_pair_b_002",
+            step_id="step_2",
+            claim_text="väite 2",
+            expected_true=True,
+            is_quote_valid_in_source=True,
+        ),
+    ]
+
+    result = runner.run_configuration(1)
+    assert result.config_id == 1
+    assert result.runs == 2
+    assert result.total_atoms == 2
+    assert result.cohens_kappa == 1.0
+    assert mock_executor.evaluate_configuration_live.call_count == 2
+
+
+def test_cli_main_json_and_both_outputs(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies that main CLI prints json when requested and handles csv manifest export."""
+    # 1. Output format json
+    code_json = main(["--dry-run", "--config", "1", "--runs", "1", "--output-format", "json"])
+    assert code_json == 0
+    captured_json = capsys.readouterr()
+    assert '"config_results"' in captured_json.out
+
+    # 2. Output format both
+    code_both = main(["--dry-run", "--config", "1", "--runs", "1", "--output-format", "both"])
+    assert code_both == 0
+    captured_both = capsys.readouterr()
+    assert "| Experimental Configuration |" in captured_both.out
+    assert '"config_results"' in captured_both.out
+
+
+def test_run_ablation_benchmark_with_compare_providers() -> None:
+    """Verifies benchmark execution with compare_providers and compare_strategies configured."""
+    parser = build_arg_parser()
+    args = parser.parse_args(
+        [
+            "--dry-run",
+            "--config",
+            "1",
+            "--runs",
+            "2",
+            "--compare-providers",
+            "google",
+            "openai",
+            "--compare-strategies",
+            "fast",
+            "deep",
+        ]
+    )
+    report = run_ablation_benchmark(args)
+    assert len(report.config_results) == 1
+    assert report.config_results[0].runs == 2
+
+

@@ -8,11 +8,34 @@ research paper (docs/tiede.md) across five distinct experimental configurations:
 3. Quorum Single-Pass (k=1 + Lexical Firewall)
 4. Atom-level Unconstrained LLM-as-a-Judge (k=1, No Firewall)
 5. Monolithic Step-Level LLM-as-a-Judge (Vanilla Benchmark)
+
+Dual Verification Architecture:
+- Macro System Ground Truth (scripts/run_e2e_variance_test.py): Verifies sovereign production
+  DAG execution end-to-end against live external APIs and database persistence, validating real-world
+  report synthesis, SDUI layout assembly, and cross-platform export parity.
+- Micro Controlled Experimental Isolation (scripts/run_ablation_benchmark.py): Isolates and measures
+  the individual cognitive and statistical contributions of Quorum's architectural components
+  (Lexical Firewall, Best-of-3 Consensus, Proposition Atomization, and Asymmetric Null Hypothesis
+  Directives) under controlled, reproducible conditions.
+
+Three Tiers of Scientific Honesty:
+- Tier 1: In-Silico Simulation (--mode in-silico) - Pure offline deterministic simulation with zero
+  API expenditure, validating mathematical metrics and confidence intervals in CI/CD.
+- Tier 2: Physical Trace Replay (--mode replay) - Forensic re-execution over cryptographically hashed
+  production execution trace artifacts (execution_trace.json).
+- Tier 3: Live Model Execution (--mode live) - In-process live asynchronous LLM calls evaluating
+  propositions against foundational models, including Cross-Model Inter-Rater Reliability
+  (Google Gemini vs OpenAI GPT-4o/5.4).
+
+The Golden Standard & Golden Pipeline:
+- Grounding citations are evaluated against fixed corpus ground truth with exact lexical anchoring.
+- Multi-step DAG architecture evaluates propositions under isolated, reproducible condition gates.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import io
 import logging
@@ -20,9 +43,9 @@ import sys
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Final
+from typing import Annotated, Any, Final
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 # Ensure project root is in sys.path before importing backend_v2
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -30,8 +53,24 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from backend_v2.models.core_base import coerce_source_quotes_tuple
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from scripts.ablation_live_executor import (
+    AblationAtomEvaluationDTO,
+    AblationLiveExecutionConfigDTO,
+    AblationLiveExecutor,
+    AblationMode,
+    AblationMonolithicItemDTO,
+    AblationMonolithicResponseDTO,
+    AblationPromptRequestDTO,
+    AblationPropositionDTO,
+    AblationStepBatchDTO,
+    AblationStructuredResponseDTO,
+    ModelRegistryMetadataDTO,
+    ModelTelemetryItemDTO,
+    TraceEvaluationRawDTO,
+    print_model_telemetry,
+)
 from scripts.diff_executions import (
     ClusterBootstrapMetricsDTO as ClusterBootstrapMetricsDTO,
 )
@@ -70,8 +109,18 @@ __all__ = [
     "AblationBenchmarkRunner",
     "AblationConfigDTO",
     "AblationConfigResultDTO",
+    "AblationLiveExecutionConfigDTO",
+    "AblationLiveExecutor",
+    "AblationMode",
+    "AblationMonolithicItemDTO",
+    "AblationMonolithicResponseDTO",
+    "AblationPromptRequestDTO",
     "AblationPropositionDTO",
     "AblationStepBatchDTO",
+    "AblationStructuredResponseDTO",
+    "ModelRegistryMetadataDTO",
+    "ModelTelemetryItemDTO",
+    "TraceEvaluationRawDTO",
     "build_arg_parser",
     "calculate_chimera_rate",
     "calculate_dlq_rate",
@@ -79,8 +128,8 @@ __all__ = [
     "compute_cluster_bootstrapped_kappa_for_runs",
     "compute_cohens_kappa_for_runs",
     "format_ablation_table_markdown",
-    "format_table_5_markdown",
     "main",
+    "print_ablation_telemetry_banner",
     "run_ablation_benchmark",
 ]
 
@@ -101,67 +150,6 @@ class AblationConfigDTO(BaseModel):
     has_null_hypothesis_rules: Annotated[
         bool, Field(description="Whether TDA null hypothesis rules are enforced in prompt.")
     ]
-
-
-class AblationPropositionDTO(BaseModel):
-    """Specification of an evaluated propositional atom."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    tda_id: Annotated[str, Field(description="Canonical proposition identifier.")]
-    step_id: Annotated[str, Field(description="Step identifier grouping propositions.")]
-    claim_text: Annotated[str, Field(description="Claim text asserted by the atom.")]
-    expected_true: Annotated[bool, Field(description="Ground truth expectation.")]
-    synthetic_quote: Annotated[str | None, Field(default=None, description="Verbatim quote or fabricated quote.")] = (
-        None
-    )
-    synthetic_quotes: Annotated[
-        tuple[str, ...] | None,
-        Field(default=None, description="Ordered non-contiguous quote segments or fabricated text."),
-    ] = None
-    is_quote_valid_in_source: Annotated[bool, Field(description="Whether the synthetic quote exists in source text.")]
-
-    @field_validator("synthetic_quotes", mode="before")
-    @classmethod
-    def validate_synthetic_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce synthetic quote representations to immutable tuple of strings."""
-        return coerce_source_quotes_tuple(v)
-
-
-class AblationStepBatchDTO(BaseModel):
-    """Batch of propositions belonging to a single workflow step."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    step_id: Annotated[str, Field(description="Step identifier.")]
-    propositions: Annotated[list[AblationPropositionDTO], Field(description="List of propositions in this step.")]
-
-
-class AblationAtomEvaluationDTO(BaseModel):
-    """Single proposition atom evaluation result in an ablation trial."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    tda_id: Annotated[str, Field(description="Canonical proposition identifier.")]
-    raw_is_true: Annotated[bool, Field(description="Raw boolean evaluation from the language model.")]
-    source_quote: Annotated[
-        str | None, Field(default=None, description="Extracted evidence quote substring if any.")
-    ] = None
-    source_quotes: Annotated[
-        tuple[str, ...] | None,
-        Field(default=None, description="Ordered non-contiguous quote segments extracted as evidence."),
-    ] = None
-    is_chimera: Annotated[bool, Field(description="Whether the quote is unanchored or hallucinated.")]
-    status: Annotated[ExecutionStatus, Field(description="Final execution status (PASSED, FAILED, SYSTEM_ERROR).")]
-    error_reason: Annotated[
-        str | None, Field(default=None, description="Optional error or failure reason description.")
-    ] = None
-
-    @field_validator("source_quotes", mode="before")
-    @classmethod
-    def validate_source_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce source quote representations to immutable tuple of strings."""
-        return coerce_source_quotes_tuple(v)
 
 
 class AblationConfigResultDTO(BaseModel):
@@ -193,17 +181,19 @@ class AblationConfigResultDTO(BaseModel):
 
 
 class AblationBenchmarkReportDTO(BaseModel):
-    """Comprehensive benchmark report containing metadata and Table 7 Markdown."""
+    """Comprehensive benchmark report containing metadata and Table Markdown."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     timestamp: Annotated[str, Field(description="ISO-8601 execution timestamp.")]
     case_filter: Annotated[str, Field(description="Evaluated case dataset filter (pair_a, pair_b, or both).")]
     config_results: Annotated[list[AblationConfigResultDTO], Field(description="Per-configuration benchmark results.")]
-    table_markdown: Annotated[str, Field(description="Generated Table 7 Markdown table string.")]
-    table_5_markdown: Annotated[
-        str | None, Field(default=None, description="Legacy alias for generated Table 7 Markdown table string.")
-    ] = None
+    table_markdown: Annotated[str, Field(description="Generated Table Markdown table string.")]
+    is_cross_model: Annotated[
+        bool, Field(default=False, description="Whether benchmark evaluates cross-model consensus.")
+    ] = False
+    provider_run_1: Annotated[str, Field(default="", description="Provider for Run 1.")] = ""
+    provider_run_2: Annotated[str, Field(default="", description="Provider for Run 2.")] = ""
 
 
 CONFIGURATIONS: Final[dict[int, AblationConfigDTO]] = {
@@ -428,13 +418,13 @@ def compute_cluster_bootstrapped_kappa_for_runs(
 
 def format_ablation_table_markdown(
     report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO],
-    table_num: int = 7,
+    table_num: int | None = None,
 ) -> str:
     """Format benchmark results into the authoritative Table Markdown table.
 
     Args:
         report_dto: Comprehensive benchmark report DTO or list of config results.
-        table_num: Publication table number for caption (default 7).
+        table_num: Optional publication table number for caption.
 
     Returns:
         Formatted Markdown table ready for publication in docs/tiede.md.
@@ -465,19 +455,21 @@ def format_ablation_table_markdown(
         )
 
     lines.append("")
+    prefix = f"**Table {table_num}:** " if table_num is not None else "**Component Ablation Benchmark Table:** "
     caption = (
-        f"**Table {table_num}:** Component ablation benchmark study across 220 proposition atom evaluations "
+        f"{prefix}Component ablation benchmark study across 220 proposition atom evaluations "
         "($N = 220$ across Pair A Remote Work Policy case and Pair B Strategic Foresight / Sitra case) "
         "evaluating the marginal contributions of the multi-gate lexical firewall, Best-of-3 ensemble consensus, "
         "atomic proposition decomposition, and Popperian falsification against monolithic vanilla LLM-as-a-judge "
         "baselines under the standardized benchmark harness (`scripts/run_ablation_benchmark.py`). "
         "*(Note: The live physical production executions in Tables 2–6 achieved a 58.2% pass rate [$128 / 220$] "
         "and pooled inter-run agreement $\\bar{\\kappa} = 0.9348$; in the standardized offline ablation benchmark "
-        f"suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
+        "suite, Configuration 1 establishes a 52.7% pass rate and $\\kappa = 0.9453$).*"
     )
     if has_cluster_ci:
+        table_ref = f"Table {table_num}" if table_num is not None else "this table"
         caption += (
-            f" *(Methodological Note on Cluster Bootstrap Resampling: In Table {table_num},"
+            f" *(Methodological Note on Cluster Bootstrap Resampling: In {table_ref},"
             " cluster-adjusted 95% CIs are"
             " estimated via a hierarchical two-stage cluster bootstrap—resampling $K = 10$ step clusters with"
             " replacement, followed by within-cluster atom resampling with replacement across"
@@ -495,18 +487,6 @@ def format_ablation_table_markdown(
     return "\n".join(lines)
 
 
-def format_table_5_markdown(report_dto: AblationBenchmarkReportDTO | list[AblationConfigResultDTO]) -> str:
-    """Legacy alias formatting ablation table with table_num=5 for backward compatibility.
-
-    Args:
-        report_dto: Comprehensive benchmark report DTO or list of config results.
-
-    Returns:
-        Formatted Table 5 Markdown table.
-    """
-    return format_ablation_table_markdown(report_dto, table_num=5)
-
-
 class AblationBenchmarkRunner:
     """Orchestrates the ablation benchmark evaluation across configurations and runs."""
 
@@ -515,7 +495,16 @@ class AblationBenchmarkRunner:
         case_filter: str = "both",
         selected_configs: list[int] | None = None,
         runs: int = 2,
-        dry_run: bool = True,
+        mode: AblationMode = AblationMode.IN_SILICO,
+        tier: CognitiveTier = CognitiveTier.FAST,
+        concurrency: int = 5,
+        compare_providers: tuple[str, str] | None = None,
+        compare_strategies: tuple[str, str] | None = None,
+        inputs_path: Path | None = None,
+        trace_path: Path | None = None,
+        seed_path: Path = Path("backend_v2/seed/seed_data.json"),
+        live_config: AblationLiveExecutionConfigDTO | None = None,
+        dry_run: bool | None = None,
     ) -> None:
         """Initialize the benchmark runner.
 
@@ -523,14 +512,78 @@ class AblationBenchmarkRunner:
             case_filter: Target case selection ('pair_a', 'pair_b', or 'both').
             selected_configs: List of configuration IDs (1-5) to execute. Defaults to all.
             runs: Number of test-retest runs (1 or 2).
-            dry_run: Whether to run with synthetic responses instead of live LLMs.
+            mode: Authoritative execution mode (LIVE, REPLAY, IN_SILICO).
+            tier: Cognitive tier for live LLM execution ('fast', 'balanced', or 'deep').
+            concurrency: Concurrency semaphore ceiling for parallel live requests.
+            compare_providers: Optional 2-tuple of provider names for cross-model consensus.
+            compare_strategies: Optional 2-tuple of strategy aliases for cross-strategy comparison.
+            inputs_path: Optional path to physical input files.
+            trace_path: Optional path to physical execution trace.
+            seed_path: Path to database seed JSON.
+            live_config: Optional configuration for live LLM execution.
+            dry_run: Deprecated legacy argument. Checked for fail-fast conflicts.
+
+        Raises:
+            ValueError: If dry_run conflicts with mode.
         """
-        self.case_filter = case_filter or "both"
-        self.selected_configs = selected_configs or [1, 2, 3, 4, 5]
+        if dry_run is not None:
+            if dry_run is True and mode == AblationMode.LIVE:
+                raise ValueError("Conflicting parameters: dry_run=True conflicts with mode=AblationMode.LIVE")
+            if dry_run is False and mode == AblationMode.IN_SILICO:
+                mode = AblationMode.REPLAY
+            elif dry_run is True and mode != AblationMode.IN_SILICO:
+                raise ValueError(f"Conflicting parameters: dry_run=True conflicts with mode={mode}")
+
+        self.case_filter = case_filter if case_filter is not None else "both"
+        self.selected_configs = selected_configs if selected_configs is not None else [1, 2, 3, 4, 5]
         self.runs = runs
-        self.dry_run = dry_run
+        self.mode = mode
+        self.tier = tier
+        self.concurrency = concurrency
+        self.compare_providers = compare_providers
+        self.compare_strategies = compare_strategies
+        self.inputs_path = inputs_path
+        self.trace_path = trace_path
+        self.seed_path = seed_path
+        self.dry_run = mode == AblationMode.IN_SILICO
         self.call_counts: dict[int, int] = {cfg_id: 0 for cfg_id in range(1, 6)}
         self.propositions: list[AblationPropositionDTO] = self._build_propositions(self.case_filter)
+        self.live_executor: AblationLiveExecutor | None = None
+
+        if live_config is None and mode == AblationMode.LIVE:
+            live_config = AblationLiveExecutionConfigDTO(
+                mode=mode,
+                tier=tier,
+                concurrency_limit=concurrency,
+                compare_providers=compare_providers,
+                compare_strategies=compare_strategies,
+                inputs_path=inputs_path,
+            )
+        self.live_config = live_config
+
+    def _resolve_grounding_source_text(self) -> str:
+        """Resolve grounding source text for live evaluations from inputs, traces, or propositions.
+
+        Returns:
+            Extracted or compiled grounding source text string.
+        """
+        if self.inputs_path and self.inputs_path.exists():
+            if self.inputs_path.is_file():
+                return self.inputs_path.read_text(encoding="utf-8")
+            texts: list[str] = []
+            for f in sorted(self.inputs_path.iterdir()):
+                if f.is_file() and f.suffix.lower() in (".txt", ".md", ".json"):
+                    try:
+                        texts.append(f.read_text(encoding="utf-8"))
+                    except UnicodeDecodeError, OSError:
+                        pass
+            if texts:
+                return "\n\n".join(texts)
+
+        canonical_paragraphs = [
+            " ".join(p.synthetic_quotes) for p in self.propositions if p.synthetic_quotes and p.is_quote_valid_in_source
+        ]
+        return "\n\n".join(canonical_paragraphs)
 
     def _build_propositions(self, case_filter: str | None = None) -> list[AblationPropositionDTO]:
         """Build the standardized list of propositions for the selected cases.
@@ -543,7 +596,7 @@ class AblationBenchmarkRunner:
         """
         props: list[AblationPropositionDTO] = []
         cases: list[str] = []
-        effective_filter = case_filter or "both"
+        effective_filter = case_filter if case_filter is not None else "both"
         if effective_filter in ("pair_a", "both"):
             cases.append("pair_a")
         if effective_filter in ("pair_b", "both"):
@@ -799,6 +852,43 @@ class AblationBenchmarkRunner:
 
         return results
 
+    def _parse_trace_evaluation(
+        self,
+        key: str,
+        raw_val: Any,
+        cluster_prefix: str,
+    ) -> tuple[AblationAtomEvaluationDTO, str, str]:
+        """Parse raw trace evaluation dictionary into typed DTO and cluster mapping.
+
+        Args:
+            key: Evaluation key (e.g., atom ID).
+            raw_val: Raw evaluation dictionary or object.
+            cluster_prefix: Case cluster prefix (e.g. 'pair_a').
+
+        Returns:
+            Tuple of (AblationAtomEvaluationDTO, atom_id, cluster_name).
+        """
+        dto = TraceEvaluationRawDTO.model_validate(raw_val)
+        status_str = dto.status if isinstance(dto.status, str) else dto.status.value
+        st = ExecutionStatus(status_str) if status_str in ExecutionStatus._value2member_map_ else ExecutionStatus.FAILED
+        q = dto.source_quote if dto.source_quote is not None else dto.quote
+        qs = coerce_source_quotes_tuple(dto.source_quotes if dto.source_quotes is not None else q)
+        aid = f"{cluster_prefix}_{key}"
+        step_or_matrix = (
+            dto.matrix_id if dto.matrix_id is not None else (dto.step_id if dto.step_id is not None else "unknown_step")
+        )
+        cluster_name = f"{cluster_prefix}_{step_or_matrix}"
+        eval_dto = AblationAtomEvaluationDTO(
+            tda_id=aid,
+            raw_is_true=st == ExecutionStatus.PASSED,
+            source_quote=q,
+            source_quotes=qs,
+            is_chimera=False,
+            status=st,
+            error_reason=None if st != ExecutionStatus.SYSTEM_ERROR else "SYSTEM_ERROR",
+        )
+        return eval_dto, aid, cluster_name
+
     def run_configuration(self, config_id: int) -> AblationConfigResultDTO:
         """Execute a full benchmark evaluation for a single configuration.
 
@@ -811,8 +901,8 @@ class AblationBenchmarkRunner:
         config = CONFIGURATIONS[config_id]
         logger.info("Executing benchmark for Configuration %d: %s", config_id, config.name)
 
-        # Step 2: Configuration 1 physical empirical baseline from disk traces
-        if config_id == 1 and not self.dry_run:
+        # Step 2: Configuration 1 physical empirical baseline from disk traces in REPLAY mode
+        if config_id == 1 and self.mode == AblationMode.REPLAY:
             files_pair_a = (
                 Path("data/files/executions/exe_379b69df134f477a/execution_trace.json"),
                 Path("data/files/executions/exe_f6f9b06e63eb4dd8/execution_trace.json"),
@@ -837,59 +927,13 @@ class AblationBenchmarkRunner:
                     e1 = get_all_evals(p1)
                     e2 = get_all_evals(p2)
                     for k, v in e1.items():
-                        status_str = v["status"] if "status" in v else "FAILED"
-                        st = (
-                            ExecutionStatus(status_str)
-                            if status_str in ExecutionStatus._value2member_map_
-                            else ExecutionStatus.FAILED
-                        )
-                        q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
-                        qs = coerce_source_quotes_tuple(v.get("source_quotes", q))
-                        aid = f"{c_name}_{k}"
-                        step_or_matrix = (
-                            v["matrix_id"]
-                            if "matrix_id" in v and v["matrix_id"] is not None
-                            else (v["step_id"] if "step_id" in v and v["step_id"] is not None else "unknown_step")
-                        )
-                        physical_atom_to_cluster[aid] = f"{c_name}_{step_or_matrix}"
-                        run1_evals.append(
-                            AblationAtomEvaluationDTO(
-                                tda_id=aid,
-                                raw_is_true=st == ExecutionStatus.PASSED,
-                                source_quote=q,
-                                source_quotes=qs,
-                                is_chimera=False,
-                                status=st,
-                                error_reason=None if st != ExecutionStatus.SYSTEM_ERROR else "SYSTEM_ERROR",
-                            )
-                        )
+                        eval_dto, aid, c_group = self._parse_trace_evaluation(k, v, c_name)
+                        physical_atom_to_cluster[aid] = c_group
+                        run1_evals.append(eval_dto)
                     for k, v in e2.items():
-                        status_str = v["status"] if "status" in v else "FAILED"
-                        st = (
-                            ExecutionStatus(status_str)
-                            if status_str in ExecutionStatus._value2member_map_
-                            else ExecutionStatus.FAILED
-                        )
-                        q = v["source_quote"] if "source_quote" in v else (v["quote"] if "quote" in v else None)
-                        qs = coerce_source_quotes_tuple(v.get("source_quotes", q))
-                        aid = f"{c_name}_{k}"
-                        step_or_matrix = (
-                            v["matrix_id"]
-                            if "matrix_id" in v and v["matrix_id"] is not None
-                            else (v["step_id"] if "step_id" in v and v["step_id"] is not None else "unknown_step")
-                        )
-                        physical_atom_to_cluster[aid] = f"{c_name}_{step_or_matrix}"
-                        run2_evals.append(
-                            AblationAtomEvaluationDTO(
-                                tda_id=aid,
-                                raw_is_true=st == ExecutionStatus.PASSED,
-                                source_quote=q,
-                                source_quotes=qs,
-                                is_chimera=False,
-                                status=st,
-                                error_reason=None if st != ExecutionStatus.SYSTEM_ERROR else "SYSTEM_ERROR",
-                            )
-                        )
+                        eval_dto, aid, c_group = self._parse_trace_evaluation(k, v, c_name)
+                        physical_atom_to_cluster[aid] = c_group
+                        run2_evals.append(eval_dto)
 
                 total_atoms = len(run1_evals)
                 eval_run2 = run2_evals if self.runs >= 2 else run1_evals
@@ -920,6 +964,75 @@ class AblationBenchmarkRunner:
                     ci_cluster_upper=round(cluster_dto.ci_upper, 4) if cluster_dto is not None else None,
                     se_inflation_factor=round(cluster_dto.se_inflation_factor, 4) if cluster_dto is not None else None,
                 )
+
+        # Live LLM execution via AblationLiveExecutor
+        if self.mode == AblationMode.LIVE:
+            if self.live_executor is None:
+                if self.live_config is None:
+                    msg = "Live ablation execution requires live_config to be configured."
+                    raise ValueError(msg)
+                self.live_executor = asyncio.run(AblationLiveExecutor.create(self.live_config))
+
+            source_text = self._resolve_grounding_source_text()
+            live_evaluations: list[list[AblationAtomEvaluationDTO]] = []
+
+            for run_idx in range(1, self.runs + 1):
+                logger.info(
+                    "[Config %d] Starting Live LLM evaluation Run %d/%d (%d propositions)...",
+                    config_id,
+                    run_idx,
+                    self.runs,
+                    len(self.propositions),
+                )
+                evals_run = asyncio.run(
+                    self.live_executor.evaluate_configuration_live(
+                        config_id=config_id,
+                        propositions=self.propositions,
+                        source_text=source_text,
+                        run_index=run_idx,
+                    )
+                )
+                live_evaluations.append(evals_run)
+
+            total_atoms = len(self.propositions)
+            run1 = live_evaluations[0]
+            run2 = live_evaluations[1] if self.runs >= 2 else live_evaluations[0]
+
+            live_cluster_map: dict[str, str] = {}
+            for prop in self.propositions:
+                if prop.tda_id.startswith("tda_pair_a_"):
+                    c_prefix = "pair_a"
+                elif prop.tda_id.startswith("tda_pair_b_"):
+                    c_prefix = "pair_b"
+                else:
+                    c_prefix = "synthetic"
+                live_cluster_map[prop.tda_id] = f"{c_prefix}_{prop.step_id}"
+
+            kappa_dto = compute_cohens_kappa_for_runs(run1, run2)
+            cluster_dto = (
+                compute_cluster_bootstrapped_kappa_for_runs(run1, run2, live_cluster_map) if self.runs >= 2 else None
+            )
+            chimera_rate = calculate_chimera_rate(run1)
+            pass_rate = calculate_pass_rate(run1)
+            dlq_rate = calculate_dlq_rate(run1)
+
+            return AblationConfigResultDTO(
+                config_id=config.config_id,
+                name=config.name,
+                runs=self.runs,
+                total_atoms=total_atoms,
+                observed_agreement=round(kappa_dto.observed_agreement * 100.0, 2),
+                cohens_kappa=round(kappa_dto.kappa, 4),
+                ci_lower=round(kappa_dto.ci_lower, 4),
+                ci_upper=round(kappa_dto.ci_upper, 4),
+                chimera_rate_pct=chimera_rate,
+                pass_rate_pct=pass_rate,
+                dlq_rate_pct=dlq_rate,
+                cluster_se=round(cluster_dto.cluster_se, 4) if cluster_dto is not None else None,
+                ci_cluster_lower=round(cluster_dto.ci_lower, 4) if cluster_dto is not None else None,
+                ci_cluster_upper=round(cluster_dto.ci_upper, 4) if cluster_dto is not None else None,
+                se_inflation_factor=round(cluster_dto.se_inflation_factor, 4) if cluster_dto is not None else None,
+            )
 
         run_evaluations: list[list[AblationAtomEvaluationDTO]] = []
 
@@ -1009,13 +1122,61 @@ class AblationBenchmarkRunner:
         # Format Table 7 Markdown and directly instantiate report without model_copy mutation
         table_md = format_ablation_table_markdown(results, table_num=7)
 
+        is_cross = bool(
+            self.live_config and (self.live_config.compare_providers or self.live_config.compare_strategies)
+        )
+        prov_1 = (
+            self.live_config.compare_providers[0] if (self.live_config and self.live_config.compare_providers) else ""
+        )
+        prov_2 = (
+            self.live_config.compare_providers[1] if (self.live_config and self.live_config.compare_providers) else ""
+        )
+
         return AblationBenchmarkReportDTO(
             timestamp=datetime.now(timezone.utc).isoformat(),
             case_filter=self.case_filter,
             config_results=results,
             table_markdown=table_md,
-            table_5_markdown=table_md,
+            is_cross_model=is_cross,
+            provider_run_1=prov_1,
+            provider_run_2=prov_2,
         )
+
+
+def print_ablation_telemetry_banner(
+    mode: AblationMode,
+    tier: CognitiveTier,
+    runs: int,
+    case_filter: str,
+    selected_configs: list[int],
+    concurrency: int,
+    compare_providers: tuple[str, str] | None = None,
+    compare_strategies: tuple[str, str] | None = None,
+    seed_path: Path | None = None,
+) -> None:
+    """Print structured ASCII telemetry banner summarizing ablation parameters and active LLM configuration."""
+    print("\n" + "=" * 88)
+    print("  QUORUM COMPONENT ABLATION BENCHMARK (Section 8.5, Table 7)")
+    print("  Three Tiers of Scientific Honesty: In-Silico | Physical Replay | Live LLM")
+    print("-" * 88)
+    print(f"  • Mode:               {mode.value.upper()}")
+    print(f"  • Cognitive Tier:     {tier.value}")
+    print(f"  • Test-Retest Runs:   {runs}")
+    atom_desc = "pair_a + pair_b, N=220 atoms" if case_filter == "both" else "N=110 atoms"
+    print(f"  • Case Target:        {case_filter} ({atom_desc})")
+    print(f"  • Configurations:     {', '.join(str(c) for c in selected_configs)}")
+    print(f"  • Concurrency Limit:  {concurrency}")
+    if compare_providers:
+        print(f"  • Cross-Model Test:   {compare_providers[0]} (Run 1) vs {compare_providers[1]} (Run 2)")
+    if compare_strategies:
+        print(f"  • Cross-Strategy:     {compare_strategies[0]} (Run 1) vs {compare_strategies[1]} (Run 2)")
+    print("=" * 88 + "\n")
+
+    if mode == AblationMode.LIVE:
+        target_seed = (
+            seed_path if seed_path is not None and seed_path.exists() else Path("backend_v2/seed/seed_data.json")
+        )
+        print_model_telemetry(target_seed, active_strategies=[tier.value])
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -1025,6 +1186,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         Configured argparse.ArgumentParser.
     """
     parser = argparse.ArgumentParser(description="Quorum Component Ablation Benchmark Driver (Section 8.5, Table 7).")
+    parser.add_argument(
+        "inputs_target",
+        nargs="?",
+        default=None,
+        help="Optional path to target input directory or single JSON input file.",
+    )
+    parser.add_argument(
+        "--inputs",
+        type=str,
+        default=None,
+        help="Optional path to target input file or directory (alias for positional inputs_target).",
+    )
+    parser.add_argument(
+        "--workflow",
+        type=str,
+        default=None,
+        help="Target workflow identifier for live execution.",
+    )
     parser.add_argument(
         "--case",
         choices=["pair_a", "pair_b", "both"],
@@ -1045,6 +1224,81 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Number of test-retest runs to evaluate reproducibility (1 or 2). Default: 2.",
     )
     parser.add_argument(
+        "--num-runs",
+        type=int,
+        choices=[1, 2],
+        default=None,
+        help="Alias for --runs.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["in-silico", "replay", "live"],
+        default=None,
+        help="Authoritative execution mode ('in-silico', 'replay', or 'live').",
+    )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        default=False,
+        help="Execute using development sample inputs.",
+    )
+    parser.add_argument(
+        "--sample",
+        type=str,
+        default=None,
+        help="Target sample name (e.g. executive_coaching).",
+    )
+    parser.add_argument(
+        "--tier",
+        choices=["fast", "balanced", "deep"],
+        default="fast",
+        help="Cognitive tier for live LLM execution ('fast', 'balanced', or 'deep'). Default: fast.",
+    )
+    parser.add_argument(
+        "--strategies",
+        nargs="+",
+        default=None,
+        help="Cognitive strategies to execute in live mode (e.g. fast, deep).",
+    )
+    parser.add_argument(
+        "--providers",
+        nargs="+",
+        default=None,
+        help="LLM providers to target (e.g. ai_studio, openai).",
+    )
+    parser.add_argument(
+        "--compare-providers",
+        nargs=2,
+        default=None,
+        metavar=("PROV1", "PROV2"),
+        help="Compare two providers across runs (Run 1 = PROV1, Run 2 = PROV2).",
+    )
+    parser.add_argument(
+        "--compare-strategies",
+        nargs=2,
+        default=None,
+        metavar=("STRAT1", "STRAT2"),
+        help="Compare two strategies across runs (Run 1 = STRAT1, Run 2 = STRAT2).",
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=5,
+        help="Maximum concurrent live LLM requests (default: 5).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=str,
+        default="backend_v2/seed/seed_data.json",
+        help="Path to seed data or database JSON file. Default: backend_v2/seed/seed_data.json.",
+    )
+    parser.add_argument(
+        "--trace",
+        type=str,
+        default=None,
+        help="Path to physical execution trace JSON for replay mode.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         default=False,
@@ -1052,9 +1306,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output-format",
-        choices=["markdown", "json"],
+        choices=["markdown", "json", "both"],
         default="markdown",
-        help="Output format for reporting benchmark results. Default: markdown.",
+        help="Output format for reporting benchmark results (markdown, json, or both). Default: markdown.",
     )
     parser.add_argument(
         "--output-file",
@@ -1133,17 +1387,59 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
             m_path,
         )
 
+    # Resolve effective runs
+    effective_runs = args.num_runs if args.num_runs is not None else args.runs
+
+    # Resolve effective mode
+    if args.mode is not None:
+        effective_mode = AblationMode(args.mode)
+        if args.dry_run and effective_mode != AblationMode.IN_SILICO:
+            raise ValueError(f"Conflicting parameters: --dry-run conflicts with --mode={args.mode}")
+    elif args.dry_run:
+        effective_mode = AblationMode.IN_SILICO
+    else:
+        effective_mode = AblationMode.IN_SILICO
+
+    effective_tier = CognitiveTier(args.tier)
+    effective_inputs_str = args.inputs if args.inputs is not None else args.inputs_target
+    effective_inputs_path = Path(effective_inputs_str) if effective_inputs_str else None
+    trace_path = Path(args.trace) if args.trace else None
+    seed_path = Path(args.seed) if args.seed else Path("backend_v2/seed/seed_data.json")
+
     selected_configs: list[int]
     if args.config == "all":
         selected_configs = [1, 2, 3, 4, 5]
     else:
         selected_configs = [int(args.config)]
 
+    comp_providers = tuple(args.compare_providers) if args.compare_providers else None
+    comp_strategies = tuple(args.compare_strategies) if args.compare_strategies else None
+
+    # Print structured telemetry banner
+    print_ablation_telemetry_banner(
+        mode=effective_mode,
+        tier=effective_tier,
+        runs=effective_runs,
+        case_filter=args.case,
+        selected_configs=selected_configs,
+        concurrency=args.concurrency,
+        compare_providers=comp_providers,
+        compare_strategies=comp_strategies,
+        seed_path=seed_path,
+    )
+
     runner = AblationBenchmarkRunner(
         case_filter=args.case,
         selected_configs=selected_configs,
-        runs=args.runs,
-        dry_run=args.dry_run,
+        runs=effective_runs,
+        mode=effective_mode,
+        tier=effective_tier,
+        concurrency=args.concurrency,
+        compare_providers=comp_providers,
+        compare_strategies=comp_strategies,
+        inputs_path=effective_inputs_path,
+        trace_path=trace_path,
+        seed_path=seed_path,
     )
 
     report = runner.run_all()
@@ -1152,10 +1448,12 @@ def run_ablation_benchmark(args: argparse.Namespace) -> AblationBenchmarkReportD
     if args.output_file:
         out_path = Path(args.output_file)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        if args.output_format == "json":
-            out_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
-        else:
-            out_path.write_text(report.table_markdown, encoding="utf-8")
+        if args.output_format in ("json", "both"):
+            json_path = out_path if args.output_format == "json" else out_path.with_suffix(".json")
+            json_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+        if args.output_format in ("markdown", "both"):
+            md_path = out_path if args.output_format == "markdown" else out_path.with_suffix(".md")
+            md_path.write_text(report.table_markdown, encoding="utf-8")
         logger.info("Ablation benchmark report persisted to %s", out_path)
 
     return report
@@ -1213,6 +1511,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.output_format == "json":
             print(report.model_dump_json(indent=2))
+        elif args.output_format == "both":
+            print(report.table_markdown)
+            print("\n" + report.model_dump_json(indent=2))
         else:
             print(report.table_markdown)
 

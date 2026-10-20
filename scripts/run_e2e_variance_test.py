@@ -3,6 +3,28 @@
 Orchestrates sequential end-to-end execution runs with verified process isolation,
 Unicode noise perturbation, database polling, and automated differential report synthesis.
 
+Dual Verification Architecture:
+- Macro System Ground Truth (scripts/run_e2e_variance_test.py): Verifies the sovereign production
+  DAG execution pipeline end-to-end against live external APIs and database persistence, validating real-world
+  report synthesis, SDUI layout generation, and full system integration under perturbed inputs.
+- Micro Controlled Experimental Isolation (scripts/run_ablation_benchmark.py): Isolates and measures
+  the individual cognitive contributions of Quorum's architectural components (Lexical Firewall,
+  Best-of-3 Consensus, Proposition Atomization, and Asymmetric Null Hypothesis Directives) to scientifically
+  prove hallucination elimination and inter-rater reliability under fixed experimental controls.
+
+Three Tiers of Scientific Honesty:
+- Tier 1: In-Silico Simulation (scripts/run_ablation_benchmark.py --mode in-silico) - Pure offline deterministic
+  simulation with zero API expenditure for instant CI regression tests.
+- Tier 2: Physical Trace Replay (scripts/run_ablation_benchmark.py --mode replay) - Forensic re-execution
+  and audit over genuine, cryptographically hashed production trace artifacts (execution_trace.json).
+- Tier 3: Live Model Execution (scripts/run_ablation_benchmark.py --mode live & run_e2e_variance_test.py) -
+  In-process live asynchronous LLM calls evaluating propositions against foundational models, including
+  Cross-Model Inter-Rater Reliability (Google Gemini vs OpenAI GPT-4o/5.4).
+
+The Golden Standard & Golden Pipeline:
+- Fixed corpus ground truth, exact lexical anchoring, and empirical consensus.
+- Multi-step DAG architecture where each proposition is judged under controlled conditions.
+
 Usage Examples:
     # 1. Run with default synthetic test inputs fixture:
     uv run python scripts/run_e2e_variance_test.py
@@ -52,7 +74,7 @@ import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 type JSONRaw = Any
 
@@ -65,9 +87,6 @@ PORT_CLEANUP_INTERVAL: float = 1.0
 POST_CLEANUP_PAUSE: float = 2.0
 EXECUTION_POST_TIMEOUT: float = 300.0
 
-
-if TYPE_CHECKING:
-    from scripts.run_ablation_benchmark import AblationBenchmarkReportDTO
 
 # Ensure project root is in sys.path before any local or third-party project imports
 _project_root = Path(__file__).resolve().parent.parent
@@ -85,14 +104,27 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.domain.step import ExpectedInput
-from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.domain.system_config import (
+    ChatHistoryDTO,
+    ChatMessageDTO,
+)
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
+from scripts.ablation_live_executor import (
+    AblationMode,
+    ModelRegistryMetadataDTO,
+    ModelTelemetryItemDTO,
+    print_model_telemetry,
+    resolve_model_telemetry,
+)
 from scripts.diff_executions import UNICODE_SPACE_REGISTRY
+from scripts.run_ablation_benchmark import AblationBenchmarkReportDTO, AblationBenchmarkRunner
 
 __all__ = [
     "MarkedInputsPayloadDTO",
     "MatrixTelemetryDTO",
+    "ModelRegistryMetadataDTO",
+    "ModelTelemetryItemDTO",
     "RunMarkerMetadataDTO",
     "ScaleTelemetryDTO",
     "StepTelemetryDTO",
@@ -1033,205 +1065,6 @@ def validate_execution_kelvollisuus(
     return True, "Execution is valid and contains sufficient observations"
 
 
-def resolve_model_telemetry(
-    db_path: Path,
-    registry_id: str | None = None,
-) -> dict[str, JSONRaw]:
-    """Load model registry from active database and resolve physical and effective parameters.
-
-    Supports Option A flat tier definitions (fast, balanced, deep, reasoning) and multi-registry
-    keyed lookup by ID, slug, name, or provider.
-
-    Args:
-        db_path: Path to database (data/db_v2.json) or seed file.
-        registry_id: Optional model registry ID, slug, provider, or name substring.
-
-    Returns:
-        Dictionary mapping strategy/tier names to structured telemetry dictionaries.
-    """
-    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
-    if not target_path.exists():
-        return {}
-
-    try:
-        with target_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except json.JSONDecodeError, UnicodeDecodeError, OSError:
-        return {}
-
-    sys_configs = data.get("system_config", [])
-    configs_list = []
-    if type(sys_configs) is dict:
-        configs_list = [v for v in sys_configs.values() if type(v) is dict]
-    elif isinstance(sys_configs, list):
-        configs_list = [v for v in sys_configs if type(v) is dict]
-
-    registries = [c for c in configs_list if c.get("type") == "model_registry"]
-    if not registries:
-        return {}
-
-    # Target specific registry if requested
-    selected_registry: Mapping[str, JsonValue] | None = None
-    if registry_id:
-        reg_term = registry_id.strip().lower()
-        for r in registries:
-            if str(r.get("id", "")).lower() == reg_term:
-                selected_registry = r
-                break
-            if str(r.get("slug", "")).lower() == reg_term:
-                selected_registry = r
-                break
-            if reg_term in str(r.get("name", "")).lower():
-                selected_registry = r
-                break
-            if str(r.get("default_provider", "")).lower() == reg_term:
-                selected_registry = r
-                break
-
-    target_registries = [selected_registry] if selected_registry else registries
-
-    models_dict = {}
-    for cfg in target_registries:
-        reg_provider = str(cfg.get("default_provider", "google")).lower()
-        tier_defs = cfg.get("tier_definitions", {})
-        if type(tier_defs) is dict and tier_defs:
-            for key, val in tier_defs.items():
-                if type(val) is dict:
-                    if "model_name" in val:
-                        tier_name = key
-                        prov_key = f"{tier_name} ({reg_provider})"
-                        models_dict[prov_key] = (val, cfg)
-                        if tier_name not in models_dict or selected_registry is not None:
-                            models_dict[tier_name] = (val, cfg)
-                    else:
-                        for t_name, mcfg in val.items():
-                            if type(mcfg) is dict:
-                                prov_key = f"{t_name} ({key})"
-                                models_dict[prov_key] = (mcfg, cfg)
-                                if t_name not in models_dict:
-                                    models_dict[t_name] = (mcfg, cfg)
-        models_raw = cfg.get("models")
-        if type(models_raw) is dict:
-            for m_name, m_cfg in models_raw.items():
-                if type(m_cfg) is dict:
-                    models_dict[m_name] = (m_cfg, cfg)
-
-    result = {}
-    for strat, (mcfg, cfg) in models_dict.items():
-        model_name = str(mcfg.get("model_name", "unknown"))
-        provider = str(mcfg.get("provider", cfg.get("default_provider", "unknown")))
-        db_temp = mcfg.get("temperature")
-        max_tokens = mcfg.get("max_tokens")
-        thinking_budget_raw = mcfg.get("thinking_budget_tokens", 0)
-        thinking_budget = (
-            int(thinking_budget_raw)
-            if isinstance(thinking_budget_raw, (int, str)) and str(thinking_budget_raw).isdigit()
-            else 0
-        )
-        tpm_limit = mcfg.get("tpm_limit")
-        rpm_limit = mcfg.get("rpm_limit")
-        add_params = mcfg.get("additional_params", {})
-        explicit_effort = add_params.get("reasoning_effort") if type(add_params) is dict else None
-
-        is_gemini_v3 = ("gemini-3" in model_name.lower()) or ("gemini-2.5" in model_name.lower())
-        is_openai_reasoning = any(p in model_name.lower() for p in ("o1", "o3", "o4", "o5", "gpt-5"))
-
-        if is_gemini_v3:
-            provider_backend = "Google AI Studio" if "gemini/" in model_name.lower() else "Google Vertex AI"
-            eff_temp = "1.0 (kiinteä oletus; Gemini-adapteri suodattaa sampling-parametrit)"
-            think_str = f"{thinking_budget} tok" if thinking_budget > 0 else "0 tok (ei ajattelua)"
-            effort_str = f"N/A ({provider_backend} käyttää thinkingBudget-tokeneita)"
-        elif is_openai_reasoning:
-            provider_backend = "OpenAI"
-            eff_temp = "1.0 (kiinteä oletus; openai_adapter suodattaa sampling-parametrit)"
-            if explicit_effort:
-                effort = explicit_effort
-            elif thinking_budget <= 2048:
-                effort = "low"
-            elif thinking_budget <= 4096:
-                effort = "medium"
-            else:
-                effort = "high"
-            think_str = f"{thinking_budget} tok"
-            effort_str = f"'{effort}' (muunnettu thinking_budget_tokens {thinking_budget} perusteella)"
-        else:
-            provider_backend = provider
-            eff_temp = str(db_temp)
-            think_str = f"{thinking_budget} tok" if thinking_budget > 0 else "N/A"
-            effort_str = "N/A"
-
-        result[strat] = {
-            "strategy": strat,
-            "registry_id": str(cfg.get("id", "")),
-            "registry_name": str(cfg.get("name", "Default Model Registry")),
-            "provider": provider,
-            "backend": provider_backend,
-            "model_name": model_name,
-            "db_temperature": db_temp,
-            "effective_temperature": eff_temp,
-            "thinking_budget": think_str,
-            "reasoning_effort": effort_str,
-            "max_tokens": max_tokens,
-            "tpm_limit": tpm_limit,
-            "rpm_limit": rpm_limit,
-            "is_gemini_v3": is_gemini_v3,
-            "is_openai_reasoning": is_openai_reasoning,
-        }
-    return result
-
-
-def print_model_telemetry(
-    db_path: Path,
-    active_strategies: list[str] | None = None,
-    registry_id: str | None = None,
-) -> None:
-    """Print verified physical and effective model parameters loaded from the database.
-
-    Args:
-        db_path: Path to database or seed file.
-        active_strategies: Optional targeted strategies list.
-        registry_id: Optional model registry ID or slug to target.
-    """
-    telemetry = resolve_model_telemetry(db_path, registry_id=registry_id)
-    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
-    if not telemetry:
-        print(f"[Model Telemetry] Varoitus: Mallirekisteriä ei löytynyt kohteesta {target_path}")
-        return
-
-    first_item = next(iter(telemetry.values()))
-    reg_name = first_item.get("registry_name")
-    reg_id = first_item.get("registry_id")
-    reg_prov = str(first_item.get("provider", "")).upper()
-
-    print("\n" + "=" * 80)
-    if registry_id and reg_name:
-        print(f"[Fyysiset Malliparametrit ja Telemetria] Stack: '{reg_name}' (ID: {reg_id}, Provider: {reg_prov})")
-    else:
-        print(f"[Fyysiset Malliparametrit ja Telemetria] (Lähde: {target_path})")
-    print("=" * 80)
-
-    ordered_keys = list(active_strategies) if active_strategies else []
-    for k in sorted(telemetry.keys()):
-        if k not in ordered_keys:
-            ordered_keys.append(k)
-
-    for strat in ordered_keys:
-        t = telemetry.get(strat)
-        if not t:
-            continue
-        marker = " [AKTIIVINEN TESTIKOHDE]" if active_strategies and strat in active_strategies else ""
-        print(f"  • Strategia '{strat}' ({str(t['provider']).upper()} / {t['backend']}){marker}:")
-        print(f"    - Fyysinen malli:       {t['model_name']}")
-        print(f"    - DB-lämpötila:         {t['db_temperature']}")
-        print(f"    - Todellinen lämpötila: {t['effective_temperature']}")
-        print(f"    - Ajattelubudjetti:     {t['thinking_budget']}")
-        if t["is_openai_reasoning"]:
-            print(f"    - Reasoning Effort:     {t['reasoning_effort']}")
-        print(f"    - Max Tokens:           {t['max_tokens']}")
-
-    print("=" * 80 + "\n")
-
-
 def resolve_comparison_registries(
     db_path: Path,
     workflow_id: str | None = None,
@@ -1861,13 +1694,13 @@ def run_variance_test(
             active_provider = providers[i].lower()
             print(f"[Provider Routing] Run {i + 1} targeting provider: '{active_provider}'")
             telemetry = resolve_model_telemetry(target_db_path)
-            matching_t = {k: v for k, v in telemetry.items() if str(v.get("provider", "")).lower() == active_provider}
+            matching_t = {k: v for k, v in telemetry.items() if str(v.provider).lower() == active_provider}
             if matching_t:
                 print(f"   -> Aktiivisen tarjoajan ('{active_provider}') kognitiiviset tasot:")
                 for tk, tv in matching_t.items():
                     print(
-                        f"      • {tk}: `{tv['model_name']}` ({tv['backend']}) | "
-                        f"Ajattelu={tv['thinking_budget']} | MaxTok={tv['max_tokens']}"
+                        f"      • {tk}: `{tv.model_name}` ({tv.backend}) | "
+                        f"Ajattelu={tv.thinking_budget} | MaxTok={tv.max_tokens}"
                     )
         elif strategies:
             active_strategy = strategies[i]
@@ -1876,13 +1709,13 @@ def run_variance_test(
             active_t = telemetry.get(active_strategy)
             if active_t:
                 effort_detail = (
-                    f", Reasoning Effort={active_t['reasoning_effort']}" if active_t["is_openai_reasoning"] else ""
+                    f", Reasoning Effort={active_t.reasoning_effort}" if active_t.is_openai_reasoning else ""
                 )
                 print(
-                    f"   -> Fyysinen malli: `{active_t['model_name']}` ({str(active_t['provider']).upper()}) | "
-                    f"Todellinen T={active_t['effective_temperature']} | "
-                    f"Ajattelu={active_t['thinking_budget']}{effort_detail} | "
-                    f"MaxTok={active_t['max_tokens']}"
+                    f"   -> Fyysinen malli: `{active_t.model_name}` ({str(active_t.provider).upper()}) | "
+                    f"Todellinen T={active_t.effective_temperature} | "
+                    f"Ajattelu={active_t.thinking_budget}{effort_detail} | "
+                    f"MaxTok={active_t.max_tokens}"
                 )
             aliases = {
                 s: active_strategy
@@ -2146,14 +1979,12 @@ def verify_offline_ablation_benchmark(
     Raises:
         AssertionError: If Configuration 1 fails empirical pass rate or chimera rate thresholds.
     """
-    from scripts.run_ablation_benchmark import AblationBenchmarkRunner
-
     configs_to_run = selected_configs if selected_configs is not None else [1, 2, 3, 4, 5]
     runner = AblationBenchmarkRunner(
         case_filter="both",
         selected_configs=configs_to_run,
         runs=2,
-        dry_run=True,
+        mode=AblationMode.IN_SILICO,
     )
     report = runner.run_all()
 
