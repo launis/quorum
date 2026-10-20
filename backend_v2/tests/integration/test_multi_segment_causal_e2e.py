@@ -129,7 +129,7 @@ def test_multi_segment_causal_e2e_root_axiom_header_linking() -> None:
     }
 
     current_window_ids = {f"tda_1000{j:04x}" for j in range(1, 11)}  # window size = 10
-    selected_axioms = linker._select_root_axioms(
+    selected_axioms = linker._select_structural_anchors(
         processed_atoms=processed_atoms,
         current_window_ids=current_window_ids,
         master_deps=master_deps,

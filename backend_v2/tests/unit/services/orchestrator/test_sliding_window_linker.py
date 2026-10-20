@@ -25,6 +25,8 @@ class MockLinkerSettings:
     linker_max_atoms_per_window: int = 20
     linker_max_global_root_axioms: int = 8
     linker_min_window_atoms_quota: int = 12
+    linker_max_root_axioms: int = 4
+    linker_max_bridge_axioms: int = 4
     max_concurrent_llm_steps: int = 3
 
 
@@ -508,7 +510,7 @@ def test_sliding_window_linker_root_axiom_header_quota(monkeypatch: pytest.Monke
     }
 
     current_window_ids = {f"tda_d000{j:04x}" for j in range(10)}
-    selected = linker._select_root_axioms(
+    selected = linker._select_structural_anchors(
         processed_atoms=processed_atoms,
         current_window_ids=current_window_ids,
         master_deps=master_deps,
@@ -542,7 +544,7 @@ def test_sliding_window_linker_budget_guard_exceeded(monkeypatch: pytest.MonkeyP
         )
 
     current_window_ids = {f"tda_d000{j:04x}" for j in range(16)}
-    selected = linker._select_root_axioms(
+    selected = linker._select_structural_anchors(
         processed_atoms=processed_atoms,
         current_window_ids=current_window_ids,
         master_deps={},
@@ -561,7 +563,7 @@ def test_sliding_window_linker_zero_root_axioms(monkeypatch: pytest.MonkeyPatch)
     linker = SlidingWindowLinker()
 
     current_window_ids = {f"tda_d000{j:04x}" for j in range(12)}
-    selected = linker._select_root_axioms(
+    selected = linker._select_structural_anchors(
         processed_atoms={},
         current_window_ids=current_window_ids,
         master_deps={},
@@ -589,7 +591,7 @@ def test_sliding_window_linker_full_capacity_window(monkeypatch: pytest.MonkeyPa
         )
 
     current_window_ids = {f"tda_d000{j:04x}" for j in range(20)}
-    selected = linker._select_root_axioms(
+    selected = linker._select_structural_anchors(
         processed_atoms=processed_atoms,
         current_window_ids=current_window_ids,
         master_deps={},
@@ -662,3 +664,464 @@ async def test_sliding_window_linker_warrant_quotes_transit(monkeypatch: pytest.
     assert edge.tda_id == "tda_00000001"
     assert edge.warrant_quotes == ("Warrant segment 1", "Warrant segment 2")
     assert isinstance(edge.warrant_quotes, tuple)
+
+
+def test_sliding_window_linker_intermediate_lemma_retention(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify intermediate deductive bridges and convergence nodes are retained in headers."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    atom_a = ExtractedAtom(
+        tda_id="tda_0000000a",
+        resolved_claim="Foundational premise A",
+        reasoning="Reason A",
+        source_quotes=("Quote A",),
+        source_sequence_index=0,
+    )
+    atom_b = ExtractedAtom(
+        tda_id="tda_0000000b",
+        resolved_claim="Intermediate lemma B",
+        reasoning="Reason B",
+        source_quotes=("Quote B",),
+        source_sequence_index=5,
+    )
+    atom_c = ExtractedAtom(
+        tda_id="tda_0000000c",
+        resolved_claim="Convergence synthesis C",
+        reasoning="Reason C",
+        source_quotes=("Quote C",),
+        source_sequence_index=8,
+    )
+
+    processed_atoms = {
+        "tda_0000000a": atom_a,
+        "tda_0000000b": atom_b,
+        "tda_0000000c": atom_c,
+    }
+
+    master_deps = {
+        "tda_0000000b": WindowCausalEdgesDTO(
+            edges={
+                "tda_0000000a": CausalEdge(
+                    edge_reasoning="A -> B",
+                    tda_id="tda_0000000a",
+                    source_id="tda_0000000b",
+                )
+            }
+        ),
+        "tda_0000000c": WindowCausalEdgesDTO(
+            edges={
+                "tda_0000000b": CausalEdge(
+                    edge_reasoning="B -> C",
+                    tda_id="tda_0000000b",
+                    source_id="tda_0000000c",
+                ),
+                "tda_0000000a": CausalEdge(
+                    edge_reasoning="A -> C",
+                    tda_id="tda_0000000a",
+                    source_id="tda_0000000c",
+                ),
+            }
+        ),
+    }
+
+    current_window_ids = {"tda_0000000d", "tda_0000000e"}
+    selected = linker._select_structural_anchors(
+        processed_atoms=processed_atoms,
+        current_window_ids=current_window_ids,
+        master_deps=master_deps,
+        current_window_size=2,
+    )
+
+    selected_ids = {a.tda_id for a in selected}
+    assert "tda_0000000a" in selected_ids
+    assert "tda_0000000b" in selected_ids
+    assert "tda_0000000c" in selected_ids
+
+
+def test_sliding_window_linker_dynamic_slack_waterfall(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify bidirectional starvation-immune dynamic slack waterfall across all edge cases."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    def build_test_pool(
+        num_roots: int, num_bridges: int
+    ) -> tuple[dict[str, ExtractedAtom], dict[str, WindowCausalEdgesDTO]]:
+        atoms: dict[str, ExtractedAtom] = {}
+        deps: dict[str, WindowCausalEdgesDTO] = {}
+
+        for i in range(num_roots):
+            r_id = f"tda_a000{i:04x}"
+            atoms[r_id] = ExtractedAtom(
+                tda_id=r_id,
+                resolved_claim=f"Root {i}",
+                reasoning="R",
+                source_quotes=("QR",),
+                source_sequence_index=i,
+            )
+
+        for j in range(num_bridges):
+            b_id = f"tda_b000{j:04x}"
+            atoms[b_id] = ExtractedAtom(
+                tda_id=b_id,
+                resolved_claim=f"Bridge {j}",
+                reasoning="B",
+                source_quotes=("QB",),
+                source_sequence_index=100 + j,
+            )
+
+        for j in range(num_bridges):
+            b_id = f"tda_b000{j:04x}"
+            deps[b_id] = WindowCausalEdgesDTO(
+                edges={
+                    f"tda_c000{j:04x}": CausalEdge(
+                        edge_reasoning="r",
+                        tda_id=f"tda_c000{j:04x}",
+                        source_id=b_id,
+                    )
+                }
+            )
+            consumer_id = f"tda_d000{j:04x}"
+            deps[consumer_id] = WindowCausalEdgesDTO(
+                edges={
+                    b_id: CausalEdge(
+                        edge_reasoning="r",
+                        tda_id=b_id,
+                        source_id=consumer_id,
+                    )
+                }
+            )
+
+        for i in range(num_roots):
+            r_id = f"tda_a000{i:04x}"
+            c_id = f"tda_e000{i:04x}"
+            deps[c_id] = WindowCausalEdgesDTO(
+                edges={
+                    r_id: CausalEdge(
+                        edge_reasoning="r",
+                        tda_id=r_id,
+                        source_id=c_id,
+                    )
+                }
+            )
+
+        return atoms, deps
+
+    # Case A: 0 bridges, 10 roots => roots expand to all 8 slots (K_eff=8)
+    atoms_a, deps_a = build_test_pool(num_roots=10, num_bridges=0)
+    res_a = linker._select_structural_anchors(atoms_a, set(), deps_a, current_window_size=10)
+    assert len(res_a) == 8
+    assert all(a.tda_id.startswith("tda_a") for a in res_a)
+
+    # Case B: 0 roots, 10 bridges => bridges expand to all 8 slots (K_eff=8)
+    atoms_b, deps_b = build_test_pool(num_roots=0, num_bridges=10)
+    res_b = linker._select_structural_anchors(atoms_b, set(), deps_b, current_window_size=10)
+    assert len(res_b) == 8
+    assert all(a.tda_id.startswith("tda_b") for a in res_b)
+
+    # Case C: 2 bridges, 10 roots => 2 bridges + 6 roots = 8 anchors
+    atoms_c, deps_c = build_test_pool(num_roots=10, num_bridges=2)
+    res_c = linker._select_structural_anchors(atoms_c, set(), deps_c, current_window_size=10)
+    assert len(res_c) == 8
+    num_roots_c = sum(1 for a in res_c if a.tda_id.startswith("tda_a"))
+    num_bridges_c = sum(1 for a in res_c if a.tda_id.startswith("tda_b"))
+    assert num_roots_c == 6
+    assert num_bridges_c == 2
+
+    # Case D: 10 bridges, 2 roots => 2 roots + 6 bridges = 8 anchors
+    atoms_d, deps_d = build_test_pool(num_roots=2, num_bridges=10)
+    res_d = linker._select_structural_anchors(atoms_d, set(), deps_d, current_window_size=10)
+    assert len(res_d) == 8
+    num_roots_d = sum(1 for a in res_d if a.tda_id.startswith("tda_a"))
+    num_bridges_d = sum(1 for a in res_d if a.tda_id.startswith("tda_b"))
+    assert num_roots_d == 2
+    assert num_bridges_d == 6
+
+    # Case E: 5 bridges, 5 roots => 4 roots + 4 bridges = 8 anchors
+    atoms_e, deps_e = build_test_pool(num_roots=5, num_bridges=5)
+    res_e = linker._select_structural_anchors(atoms_e, set(), deps_e, current_window_size=10)
+    assert len(res_e) == 8
+    num_roots_e = sum(1 for a in res_e if a.tda_id.startswith("tda_a"))
+    num_bridges_e = sum(1 for a in res_e if a.tda_id.startswith("tda_b"))
+    assert num_roots_e == 4
+    assert num_bridges_e == 4
+
+    # Case F: 5 bridges, 5 roots, window size 16 (K_eff=4) => 2 roots + 2 bridges = 4 anchors
+    atoms_f, deps_f = build_test_pool(num_roots=5, num_bridges=5)
+    res_f = linker._select_structural_anchors(atoms_f, set(), deps_f, current_window_size=16)
+    assert len(res_f) == 4
+    num_roots_f = sum(1 for a in res_f if a.tda_id.startswith("tda_a"))
+    num_bridges_f = sum(1 for a in res_f if a.tda_id.startswith("tda_b"))
+    assert num_roots_f == 2
+    assert num_bridges_f == 2
+
+    # Case G: 5 bridges, 5 roots, window size 18 (K_eff=2) => 1 root + 1 bridge = 2 anchors
+    atoms_g, deps_g = build_test_pool(num_roots=5, num_bridges=5)
+    res_g = linker._select_structural_anchors(atoms_g, set(), deps_g, current_window_size=18)
+    assert len(res_g) == 2
+    num_roots_g = sum(1 for a in res_g if a.tda_id.startswith("tda_a"))
+    num_bridges_g = sum(1 for a in res_g if a.tda_id.startswith("tda_b"))
+    assert num_roots_g == 1
+    assert num_bridges_g == 1
+
+
+def test_sliding_window_linker_tie_breaker_directionality(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify roots prioritize earlier sequence indices (asc), while bridges prioritize recent sequence indices (desc)."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    root_early = ExtractedAtom(
+        tda_id="tda_00000001",
+        resolved_claim="Root early",
+        reasoning="R",
+        source_quotes=("QR",),
+        source_sequence_index=1,
+    )
+    root_late = ExtractedAtom(
+        tda_id="tda_00000002",
+        resolved_claim="Root late",
+        reasoning="R",
+        source_quotes=("QR",),
+        source_sequence_index=10,
+    )
+
+    bridge_early = ExtractedAtom(
+        tda_id="tda_00000003",
+        resolved_claim="Bridge early",
+        reasoning="B",
+        source_quotes=("QB",),
+        source_sequence_index=2,
+    )
+    bridge_late = ExtractedAtom(
+        tda_id="tda_00000004",
+        resolved_claim="Bridge late",
+        reasoning="B",
+        source_quotes=("QB",),
+        source_sequence_index=20,
+    )
+
+    processed_atoms = {
+        "tda_00000001": root_early,
+        "tda_00000002": root_late,
+        "tda_00000003": bridge_early,
+        "tda_00000004": bridge_late,
+    }
+
+    master_deps = {
+        "tda_00000003": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000011": CausalEdge(edge_reasoning="r", tda_id="tda_00000011", source_id="tda_00000003"),
+                "tda_00000012": CausalEdge(edge_reasoning="r", tda_id="tda_00000012", source_id="tda_00000003"),
+            }
+        ),
+        "tda_00000004": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000013": CausalEdge(edge_reasoning="r", tda_id="tda_00000013", source_id="tda_00000004"),
+                "tda_00000014": CausalEdge(edge_reasoning="r", tda_id="tda_00000014", source_id="tda_00000004"),
+            }
+        ),
+    }
+
+    selected = linker._select_structural_anchors(
+        processed_atoms=processed_atoms,
+        current_window_ids=set(),
+        master_deps=master_deps,
+        current_window_size=18,
+    )
+
+    assert len(selected) == 2
+    assert selected[0].tda_id == "tda_00000001"
+    assert selected[1].tda_id == "tda_00000004"
+
+
+def test_sliding_window_linker_rejects_single_premise_leaf_nodes_as_bridges(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify single-premise leaf claims (in_degree=1, out_degree=0) are excluded from both roots and bridges."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    leaf_atom = ExtractedAtom(
+        tda_id="tda_00000001",
+        resolved_claim="Single premise leaf",
+        reasoning="L",
+        source_quotes=("QL",),
+        source_sequence_index=5,
+    )
+    convergence_atom = ExtractedAtom(
+        tda_id="tda_00000002",
+        resolved_claim="Multi premise convergence",
+        reasoning="C",
+        source_quotes=("QC",),
+        source_sequence_index=6,
+    )
+
+    processed_atoms = {
+        "tda_00000001": leaf_atom,
+        "tda_00000002": convergence_atom,
+    }
+
+    master_deps = {
+        "tda_00000001": WindowCausalEdgesDTO(
+            edges={"tda_00000011": CausalEdge(edge_reasoning="r", tda_id="tda_00000011", source_id="tda_00000001")}
+        ),
+        "tda_00000002": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000011": CausalEdge(edge_reasoning="r", tda_id="tda_00000011", source_id="tda_00000002"),
+                "tda_00000012": CausalEdge(edge_reasoning="r", tda_id="tda_00000012", source_id="tda_00000002"),
+            }
+        ),
+    }
+
+    selected = linker._select_structural_anchors(
+        processed_atoms=processed_atoms,
+        current_window_ids=set(),
+        master_deps=master_deps,
+        current_window_size=10,
+    )
+
+    selected_ids = {a.tda_id for a in selected}
+    assert "tda_00000001" not in selected_ids
+    assert "tda_00000002" in selected_ids
+
+
+def test_sliding_window_linker_budget_ceiling_hard_guard(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that with large candidate pools, total window atoms never exceed max_atoms_per_window (20)."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    processed_atoms: dict[str, ExtractedAtom] = {}
+    master_deps: dict[str, WindowCausalEdgesDTO] = {}
+
+    for i in range(20):
+        tda_id = f"tda_a000{i:04x}"
+        processed_atoms[tda_id] = ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=f"Root {i}",
+            reasoning="R",
+            source_quotes=("QR",),
+            source_sequence_index=i,
+        )
+
+    for j in range(20):
+        tda_id = f"tda_b000{j:04x}"
+        processed_atoms[tda_id] = ExtractedAtom(
+            tda_id=tda_id,
+            resolved_claim=f"Bridge {j}",
+            reasoning="B",
+            source_quotes=("QB",),
+            source_sequence_index=100 + j,
+        )
+        master_deps[tda_id] = WindowCausalEdgesDTO(
+            edges={
+                f"tda_c000{j:04x}": CausalEdge(edge_reasoning="r", tda_id=f"tda_c000{j:04x}", source_id=tda_id),
+                f"tda_d000{j:04x}": CausalEdge(edge_reasoning="r", tda_id=f"tda_d000{j:04x}", source_id=tda_id),
+            }
+        )
+
+    for window_size in range(0, 25):
+        selected = linker._select_structural_anchors(
+            processed_atoms=processed_atoms,
+            current_window_ids=set(),
+            master_deps=master_deps,
+            current_window_size=window_size,
+        )
+        assert len(selected) <= 8
+        if window_size <= 20:
+            assert window_size + len(selected) <= 20
+
+
+def test_sliding_window_linker_deliverable_keys_filtering(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify non-deliverable input keys are excluded from both candidate roots and candidate bridges."""
+    settings = MockLinkerSettings()
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: settings)
+    linker = SlidingWindowLinker()
+
+    deliverable_root = ExtractedAtom(
+        tda_id="tda_00000001",
+        resolved_claim="Deliverable root",
+        reasoning="R",
+        source_quotes=("QR",),
+        source_sequence_index=1,
+        source_input_key="final_report",
+    )
+    non_deliverable_root = ExtractedAtom(
+        tda_id="tda_00000002",
+        resolved_claim="Non-deliverable root",
+        reasoning="R",
+        source_quotes=("QR",),
+        source_sequence_index=2,
+        source_input_key="scoping_context",
+    )
+    deliverable_bridge = ExtractedAtom(
+        tda_id="tda_00000003",
+        resolved_claim="Deliverable bridge",
+        reasoning="B",
+        source_quotes=("QB",),
+        source_sequence_index=3,
+        source_input_key="final_report",
+    )
+    non_deliverable_bridge = ExtractedAtom(
+        tda_id="tda_00000004",
+        resolved_claim="Non-deliverable bridge",
+        reasoning="B",
+        source_quotes=("QB",),
+        source_sequence_index=4,
+        source_input_key="scoping_context",
+    )
+
+    processed_atoms = {
+        "tda_00000001": deliverable_root,
+        "tda_00000002": non_deliverable_root,
+        "tda_00000003": deliverable_bridge,
+        "tda_00000004": non_deliverable_bridge,
+    }
+
+    master_deps = {
+        "tda_00000003": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000011": CausalEdge(edge_reasoning="r", tda_id="tda_00000011", source_id="tda_00000003"),
+                "tda_00000012": CausalEdge(edge_reasoning="r", tda_id="tda_00000012", source_id="tda_00000003"),
+            }
+        ),
+        "tda_00000004": WindowCausalEdgesDTO(
+            edges={
+                "tda_00000013": CausalEdge(edge_reasoning="r", tda_id="tda_00000013", source_id="tda_00000004"),
+                "tda_00000014": CausalEdge(edge_reasoning="r", tda_id="tda_00000014", source_id="tda_00000004"),
+            }
+        ),
+    }
+
+    selected = linker._select_structural_anchors(
+        processed_atoms=processed_atoms,
+        current_window_ids=set(),
+        master_deps=master_deps,
+        current_window_size=10,
+        deliverable_input_keys={"final_report"},
+    )
+
+    selected_ids = {a.tda_id for a in selected}
+    assert "tda_00000001" in selected_ids
+    assert "tda_00000003" in selected_ids
+    assert "tda_00000002" not in selected_ids
+    assert "tda_00000004" not in selected_ids
+
+
+def test_settings_linker_validator_fail_fast() -> None:
+    """Verify that Settings raises ValidationError if linker_max_bridge_axioms + linker_max_root_axioms > linker_max_global_root_axioms."""
+    from pydantic import ValidationError
+
+    from backend_v2.settings import Settings
+
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            linker_max_bridge_axioms=5,
+            linker_max_root_axioms=5,
+            linker_max_global_root_axioms=8,
+        )
+    assert "Combined linker axioms budget" in str(exc_info.value)

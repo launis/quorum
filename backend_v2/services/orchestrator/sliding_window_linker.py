@@ -39,8 +39,8 @@ __all__ = [
     "LinkerDependencyDTO",
     "LinkerEdgeDTO",
     "LinkerResponseDTO",
-    "RootAxiomRankDTO",
     "SlidingWindowLinker",
+    "StructuralAnchorRankDTO",
     "WindowCausalEdgesDTO",
 ]
 
@@ -128,24 +128,28 @@ class WindowCausalEdgesDTO(BaseModel):
     ]
 
 
-class RootAxiomRankDTO(BaseModel):
-    """Rank key for root axiom candidate sorting by out-degree and sequence index.
+class StructuralAnchorRankDTO(BaseModel):
+    """Rank key and container for structural anchor candidates.
 
     Attributes:
-        neg_out_degree: Negative out-degree for descending sort order.
-        source_sequence_index: Sequence index for ascending tie-break order.
+        neg_score: Negative composite score for descending priority ordering.
+        tie_breaker_index: Signed index for deterministic tie-break ordering (positive for asc, negative for desc).
+        atom: The underlying extracted atom.
     """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    neg_out_degree: Annotated[int, Field(description="Negative out-degree for descending sort.")]
-    source_sequence_index: Annotated[int, Field(description="Sequence index for ascending tie-break.")]
+    neg_score: Annotated[int, Field(description="Negative score for descending priority ordering.")]
+    tie_breaker_index: Annotated[int, Field(description="Signed index for deterministic tie-break ordering.")]
+    atom: Annotated[ExtractedAtom, Field(description="The underlying extracted atom.")]
 
-    def __lt__(self, other: RootAxiomRankDTO) -> bool:
-        """Compare two rank keys."""
-        if self.neg_out_degree != other.neg_out_degree:
-            return self.neg_out_degree < other.neg_out_degree
-        return self.source_sequence_index < other.source_sequence_index
+    def __lt__(self, other: StructuralAnchorRankDTO) -> bool:
+        """Compare two rank keys deterministically with strict total ordering."""
+        if self.neg_score != other.neg_score:
+            return self.neg_score < other.neg_score
+        if self.tie_breaker_index != other.tie_breaker_index:
+            return self.tie_breaker_index < other.tie_breaker_index
+        return self.atom.tda_id < other.atom.tda_id
 
 
 class SlidingWindowLinker:
@@ -154,6 +158,11 @@ class SlidingWindowLinker:
     Attributes:
         window_size: Number of chunks per window.
         overlap: Number of chunks to overlap between windows.
+        max_atoms_per_window: Maximum atoms allowed per sliding window.
+        max_global_root_axioms: Global maximum ceiling for injected context anchors.
+        min_window_atoms_quota: Minimum window atoms quota.
+        max_root_axioms: Maximum persistent deliverable root axioms.
+        max_bridge_axioms: Maximum persistent deliverable deductive bridge lemmas.
     """
 
     def __init__(
@@ -175,8 +184,10 @@ class SlidingWindowLinker:
         self.max_atoms_per_window = resolved_settings.linker_max_atoms_per_window
         self.max_global_root_axioms = resolved_settings.linker_max_global_root_axioms
         self.min_window_atoms_quota = resolved_settings.linker_min_window_atoms_quota
+        self.max_root_axioms = resolved_settings.linker_max_root_axioms
+        self.max_bridge_axioms = resolved_settings.linker_max_bridge_axioms
 
-    def _select_root_axioms(
+    def _select_structural_anchors(
         self,
         processed_atoms: dict[str, ExtractedAtom],
         current_window_ids: set[str],
@@ -184,12 +195,18 @@ class SlidingWindowLinker:
         current_window_size: int,
         deliverable_input_keys: set[str] | None = None,
     ) -> list[ExtractedAtom]:
-        """Select persistent deliverable root axioms to inject into the sliding window header.
+        """Select persistent deliverable structural anchors (foundational roots & deductive bridges) for header.
 
-        Identifies deliverable root axioms (InDegree(v) == 0 in master_deps) that are not
-        already in the current window. Candidates are sorted deterministically by
-        (-OutDegree(v), atom.source_sequence_index) and sliced to dynamic budget K_eff:
-            K_eff = min(self.max_global_root_axioms, max(0, self.max_atoms_per_window - current_window_size))
+        Single-pass O(|V| + |E|) metric precomputation resolves in_degree and out_degree for
+        all candidate atoms. Eligible atoms outside current_window_ids and within
+        deliverable_input_keys are partitioned into:
+          - Candidate Roots (V_root): in_degree == 0, ranked by <-out_degree, sequence_asc>
+          - Candidate Bridges (V_bridge): (in_degree >= 1 and out_degree >= 1) or in_degree >= 2,
+            ranked by <-in_degree * (out_degree + 1), sequence_desc>
+        Single-premise leaf nodes (in_degree == 1 and out_degree == 0) are excluded from both pools.
+
+        Dynamic slack waterfall divides K_eff base quotas evenly before distributing unused capacity,
+        guaranteeing foundational roots are never starved when K_eff <= 4.
 
         Args:
             processed_atoms: Atoms processed in preceding windows.
@@ -199,37 +216,72 @@ class SlidingWindowLinker:
             deliverable_input_keys: Optional set of deliverable input keys for scoping.
 
         Returns:
-            List of ExtractedAtom instances representing selected root axioms for the header.
+            List of ExtractedAtom instances representing selected structural anchors for the header.
         """
-        eligible_candidates: list[ExtractedAtom] = []
+        out_degree_counts: dict[str, int] = {tda_id: 0 for tda_id in processed_atoms}
+        for deps in master_deps.values():
+            for edge_target in deps.edges:
+                if edge_target in out_degree_counts:
+                    out_degree_counts[edge_target] += 1
+
+        candidate_roots: list[StructuralAnchorRankDTO] = []
+        candidate_bridges: list[StructuralAnchorRankDTO] = []
+
         for atom in processed_atoms.values():
             if atom.tda_id in current_window_ids:
                 continue
             if deliverable_input_keys is not None and len(deliverable_input_keys) > 0:
                 if atom.source_input_key not in deliverable_input_keys:
                     continue
-            in_degree = 0
-            if atom.tda_id in master_deps:
-                in_degree = len(master_deps[atom.tda_id].edges)
-            if in_degree == 0:
-                eligible_candidates.append(atom)
 
-        if not eligible_candidates:
+            in_deg = 0
+            if atom.tda_id in master_deps:
+                in_deg = len(master_deps[atom.tda_id].edges)
+            out_deg = out_degree_counts[atom.tda_id]
+
+            if in_deg == 0:
+                candidate_roots.append(
+                    StructuralAnchorRankDTO(
+                        neg_score=-out_deg,
+                        tie_breaker_index=atom.source_sequence_index,
+                        atom=atom,
+                    )
+                )
+            elif (in_deg >= 1 and out_deg >= 1) or in_deg >= 2:
+                candidate_bridges.append(
+                    StructuralAnchorRankDTO(
+                        neg_score=-(in_deg * (out_deg + 1)),
+                        tie_breaker_index=-atom.source_sequence_index,
+                        atom=atom,
+                    )
+                )
+
+        candidate_roots.sort()
+        candidate_bridges.sort()
+
+        k_eff = min(self.max_global_root_axioms, max(0, self.max_atoms_per_window - current_window_size))
+        if k_eff == 0:
             return []
 
-        def sort_key(atom: ExtractedAtom) -> RootAxiomRankDTO:
-            out_degree = sum(1 for deps in master_deps.values() if atom.tda_id in deps.edges)
-            return RootAxiomRankDTO(
-                neg_out_degree=-out_degree,
-                source_sequence_index=atom.source_sequence_index,
-            )
+        base_root_quota = min(self.max_root_axioms, (k_eff + 1) // 2)
+        base_bridge_quota = min(self.max_bridge_axioms, k_eff // 2)
 
-        eligible_candidates.sort(key=sort_key)
+        selected_roots = candidate_roots[:base_root_quota]
+        selected_bridges = candidate_bridges[:base_bridge_quota]
 
-        k_max = self.max_global_root_axioms
-        m_win = self.max_atoms_per_window
-        k_eff = min(k_max, max(0, m_win - current_window_size))
-        return eligible_candidates[:k_eff]
+        # Waterfall surplus slots to roots if bridges did not consume full quota
+        remaining_for_roots = k_eff - len(selected_roots) - len(selected_bridges)
+        if remaining_for_roots > 0 and len(candidate_roots) > len(selected_roots):
+            extra_roots = candidate_roots[len(selected_roots) : len(selected_roots) + remaining_for_roots]
+            selected_roots.extend(extra_roots)
+
+        # Waterfall surplus slots to bridges if roots did not consume full quota
+        remaining_for_bridges = k_eff - len(selected_roots) - len(selected_bridges)
+        if remaining_for_bridges > 0 and len(candidate_bridges) > len(selected_bridges):
+            extra_bridges = candidate_bridges[len(selected_bridges) : len(selected_bridges) + remaining_for_bridges]
+            selected_bridges.extend(extra_bridges)
+
+        return [anchor.atom for anchor in selected_roots + selected_bridges]
 
     def _get_sliding_windows(self, chunks: list[list[ExtractedAtom]]) -> list[list[list[ExtractedAtom]]]:
         """Yield sliding windows of chunks.
@@ -344,10 +396,10 @@ class SlidingWindowLinker:
 
             current_window_ids = {atom.tda_id for atom in window_atoms}
 
-            # Phase 5: Select deliverable root axioms for window index i > 0
-            selected_root_axioms: list[ExtractedAtom] = []
+            # Phase 5: Select deliverable structural anchors for window index i > 0
+            selected_structural_anchors: list[ExtractedAtom] = []
             if i > 0:
-                selected_root_axioms = self._select_root_axioms(
+                selected_structural_anchors = self._select_structural_anchors(
                     processed_atoms=processed_atoms,
                     current_window_ids=current_window_ids,
                     master_deps=master_deps,
@@ -357,9 +409,9 @@ class SlidingWindowLinker:
 
             alias_engine = AliasEngine()
             header_text = ""
-            if selected_root_axioms:
-                header_text = "--- GLOBAL CONTEXT ANCHORS (ROOT AXIOMS) ---\n"
-                for atom in selected_root_axioms:
+            if selected_structural_anchors:
+                header_text = "--- GLOBAL CONTEXT ANCHORS (FOUNDATIONAL ROOTS & DEDUCTIVE BRIDGES) ---\n"
+                for atom in selected_structural_anchors:
                     alias = alias_engine.register(atom.tda_id, "a")
                     header_text += f"[{alias}] {atom.resolved_claim}\n"
                     if atom.source_quotes:

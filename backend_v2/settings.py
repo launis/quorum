@@ -173,6 +173,22 @@ class Settings(BaseSettings):
             description="Max persistent deliverable root axioms injected into window headers",
         ),
     ] = 8
+    linker_max_bridge_axioms: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=10,
+            description="Max persistent deliverable deductive bridge lemmas injected into window headers",
+        ),
+    ] = 4
+    linker_max_root_axioms: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=10,
+            description="Max persistent deliverable root axioms injected into window headers",
+        ),
+    ] = 4
     linker_min_window_atoms_quota: Annotated[
         int,
         Field(
@@ -986,6 +1002,24 @@ class Settings(BaseSettings):
             description="Mock Analyst User ID",
         ),
     ] = "usr_8a9234f9a0c242a1"
+
+    @model_validator(mode="after")
+    def validate_linker_axiom_budgets(self) -> Self:
+        """Validate that component axiom quotas do not exceed global root axiom ceiling.
+
+        Returns:
+            The validated Settings instance.
+
+        Raises:
+            ValueError: If combined component axiom budgets exceed the global ceiling.
+        """
+        if self.linker_max_bridge_axioms + self.linker_max_root_axioms > self.linker_max_global_root_axioms:
+            raise ValueError(
+                f"Combined linker axioms budget ({self.linker_max_bridge_axioms} bridges + "
+                f"{self.linker_max_root_axioms} roots = {self.linker_max_bridge_axioms + self.linker_max_root_axioms}) "
+                f"exceeds linker_max_global_root_axioms ({self.linker_max_global_root_axioms})."
+            )
+        return self
 
 
 @lru_cache
