@@ -73,6 +73,12 @@ The static ontology includes pure system-evaluated metric matrices that assess s
 - **Topological BARS Grounding**: Scale levels reflect structural reasoning integrity under the Cumulative Guttman Invariant ($L_1 \subset L_2 \subset L_3 \subset L_4 \subset L_5$). Cyclic dependencies trigger immediate defect grounding at Level 1 (Novice), and empty proposition graphs ground safely at the Novice floor without arithmetic faults.
 - **Holistic Workflow Step Integration**: Workflows integrate causal discovery as a first-class execution step positioned in Zone B, establishing causal provenance for downstream specialist steps and funneling structural cohesion scores into synthesis comparison groups.
 
+### 2.16. Declarative MCP Gateway Ontology & Tool Capabilities
+External tool permissions and capabilities are configured declaratively in the static data vault under `system_config` (entity `sys_8172bda70c8641c5`):
+- **Full-Duplex Contract Parity**: Tool definitions enforce 1:1 schema parity between backend `AllowedMCPTool` and frontend `AllowedMcpTool` models, validating `tool_id`, `name`, `description`, `enabled`, and the authoritative `capability: ToolCapability` attribute (`search`, `document_reader`, `action`).
+- **Native Knowledge Ingress Tooling**: The seed vault registers primary information discovery and article extraction tools: `mcp_tavily_search` (`capability: search`), `mcp_wikipedia_search` (`capability: search`), and `mcp_wikipedia_read` (`capability: document_reader`).
+- **Dynamic Studio Governance**: Tool definitions expose bilingual labels and toggle controls in Quorum Studio, enabling administrators to activate or constrain external MCP capabilities per gateway with immediate schema validation.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

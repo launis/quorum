@@ -231,6 +231,14 @@ $$\text{effective\_penalty} = \min(\text{total\_penalty}, 0.40)$$
 $$\text{global\_score} = \text{round}(\max(0.0, \text{average\_score} \times (1.0 - \text{effective\_penalty})), 1)$$
 If matrix evaluations are absent without an explicit indeterminate justification, strict fail-fast validation halts execution to protect report integrity.
 
+### 2.23. Dynamic Capability-Driven MCP Tool Dispatching & Multi-Tool Orchestration
+Quorum's Model Context Protocol (MCP) tool execution subsystem enables external computational and information-retrieval tool calling within multi-turn agentic reasoning loops (`mcp_tool_loop.py`). The orchestration architecture is governed by dynamic capability indexing and zero provider branching:
+- **Capability Taxonomy (`ToolCapability`)**: All tools registered in `ToolDispatcher` declare an explicit `ToolCapability` enum attribute: `ToolCapability.SEARCH` (e.g., `TavilyTool`, `WikipediaSearchTool`), `ToolCapability.DOCUMENT_READER` (e.g., `WikipediaReadTool`), or `ToolCapability.ACTION`.
+- **Dynamic Capability Indexing**: `ToolDispatcher` maintains an internal index `_capability_index: dict[ToolCapability, list[BaseTool]]` populated at registration time. Orchestrators query tools dynamically via `dispatcher.get_tools_by_capability(capability)` and resolve primary tools via `dispatcher.resolve_primary_search_tool(allowed_tool_ids)`. Heuristic substring checks or hardcoded provider name matching in orchestrators are strictly prohibited.
+- **Multi-Tool OpenAI Schema Injection**: During reasoning loops, `mcp_tool_loop.py` compiles multi-tool declarations across all allowed tools, presenting standard OpenAI tool definitions to the LLM. When tool calls are generated, requests are dispatched dynamically to the appropriate tool instance.
+- **Strict Input Contracts & Zero Untyped Kwargs**: Tool implementations inherit from specialized base classes (e.g., `BaseSearchTool`) and enforce strict Pydantic V2 input validation (`StandardSearchInputDTO`, `WikipediaReadInputDTO`) configured with `ConfigDict(strict=True, extra="forbid", frozen=True)`. Untyped `kwargs` subscripting is eliminated across all tool layers.
+- **Audit Logging & Telemetry**: Every tool execution produces an immutable `MCPAuditTrace` entry recording tool identification, execution parameters, sanitized outputs, and execution duration. External calls are traced under OpenTelemetry `mcp.tool_call` spans.
+
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
 ```mermaid
