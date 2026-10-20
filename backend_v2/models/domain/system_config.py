@@ -178,7 +178,7 @@ class AllowedMCPTool(V2CoreBase):
     tool_id: Annotated[str, Field(description="Unique slug (e.g. 'mcp_tavily_search').")]
     capability: Annotated[
         ToolCapability,
-        Field(default=ToolCapability.SEARCH, description="Operational capability category of the tool."),
+        Field(default=ToolCapability.SEARCH, strict=False, description="Operational capability category of the tool."),
     ] = ToolCapability.SEARCH
     name: Annotated[I18nText, Field(description="Localized display name.")]
     description: Annotated[str, Field(description="English-only LLM description for function calling schema.")]

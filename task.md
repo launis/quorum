@@ -51,11 +51,11 @@
 - [x] Step 4.4: Update MCP tool loop unit tests
 
 ### Phase 5: Seed Data Mutation, Ingress Injection & Database Transfer Program
-- [ ] Step 5.1: Add capability field to AllowedMCPTool
-- [ ] Step 5.2: Backup and mutate master seed_data.json
-- [ ] Step 5.3: Pre-flight in-memory validation gate
-- [ ] Step 5.4: Execute seed data injection and database transfer
-- [ ] Step 5.5: Post-seeding database persistence roundtrip verification
+- [x] Step 5.1: Add capability field to AllowedMCPTool
+- [x] Step 5.2: Backup and mutate master seed_data.json
+- [x] Step 5.3: Pre-flight in-memory validation gate
+- [x] Step 5.4: Execute seed data injection and database transfer
+- [x] Step 5.5: Post-seeding database persistence roundtrip verification
 
 ### Phase 6: Automated Testing Strategy (ISTQB & Parity Gates)
 - [ ] Step 6.1: Execute Targeted Unit and Integration Tests

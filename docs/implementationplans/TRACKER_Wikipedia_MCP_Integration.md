@@ -38,11 +38,11 @@
   - [x] Step 4.2: Register Wikipedia Tools in ToolDispatcher
   - [x] Step 4.3: Create unit tests for Wikipedia Tools
   - [x] Step 4.4: Update MCP tool loop unit tests
-  - [ ] Step 5.1: Add capability field to AllowedMCPTool
-  - [ ] Step 5.2: Backup and mutate master seed_data.json
-  - [ ] Step 5.3: Pre-flight in-memory validation gate
-  - [ ] Step 5.4: Execute seed data injection and database transfer
-  - [ ] Step 5.5: Post-seeding database persistence roundtrip verification
+  - [x] Step 5.1: Add capability field to AllowedMCPTool
+  - [x] Step 5.2: Backup and mutate master seed_data.json
+  - [x] Step 5.3: Pre-flight in-memory validation gate
+  - [x] Step 5.4: Execute seed data injection and database transfer
+  - [x] Step 5.5: Post-seeding database persistence roundtrip verification
   - [ ] Step 6.1: Execute Targeted Unit and Integration Tests
   - [ ] Step 6.2: Execute Flutter Domain Parity Verification
   - [ ] Step 7.1: Run Backend Global Quality Gate

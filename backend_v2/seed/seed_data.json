@@ -212,22 +212,70 @@
       "tools": [
         {
           "tool_id": "mcp_tavily_search",
+          "capability": "search",
           "name": {
             "translations": {
               "en": "Tavily AI Search",
               "fi": "Tavily AI -haku"
             }
           },
-          "description": "Search the internet for factual information using Tavily AI.",
+          "description": "Perform an explicit search on the live internet using Tavily.",
           "input_schema": {
             "type": "object",
             "properties": {
               "query": {
-                "type": "string"
+                "type": "string",
+                "description": "The search query to submit to the Tavily search engine."
               }
             },
             "required": [
               "query"
+            ]
+          }
+        },
+        {
+          "tool_id": "mcp_wikipedia_search",
+          "capability": "search",
+          "name": {
+            "translations": {
+              "en": "Wikipedia Search",
+              "fi": "Wikipedia-haku"
+            }
+          },
+          "description": "Search Wikipedia articles and return top matching titles and snippets.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "The search term to query on Wikipedia."
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "tool_id": "mcp_wikipedia_read",
+          "capability": "document_reader",
+          "name": {
+            "translations": {
+              "en": "Wikipedia Article Reader",
+              "fi": "Wikipedia-artikkelin lukija"
+            }
+          },
+          "description": "Retrieve the full encyclopedic summary of a specific Wikipedia article by title.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "description": "The exact title of the Wikipedia article to read."
+              }
+            },
+            "required": [
+              "title"
             ]
           }
         }
