@@ -55,17 +55,17 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verified no @pytest.mark.skip or commented-out tests remain in modified domains (0 skipped).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend `.py` files:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend `.py` files:
   - [x] @[backend_v2/models/domain/system_config.py]
   - [x] @[backend_v2/models/domain/tools.py]
   - [x] @[backend_v2/models/domain/wikipedia.py] [NEW]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
-  - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
-  - [ ] @[backend_v2/services/mcp/tools/tavily.py]
-  - [ ] @[backend_v2/services/mcp/tools/wikipedia.py] [NEW]
-  - [ ] @[backend_v2/services/mcp/wikipedia_client.py] [NEW]
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
+  - [x] @[backend_v2/services/mcp/tools/tavily.py]
+  - [x] @[backend_v2/services/mcp/tools/wikipedia.py] [NEW]
+  - [x] @[backend_v2/services/mcp/wikipedia_client.py] [NEW]
+  - [x] @[backend_v2/settings.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced production Flutter `.dart` files:
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
 - [x] **[OK] Pre-Delete Audit**: Verified no orphaned symbols or broken dependencies remain (0 broken imports).
@@ -156,18 +156,25 @@
 # Session Handover Context
 
 ## Achieved
-- Audited and verified 5 of 10 backend files against Phase 9, PEP 257 standards, and subsystem Knowledge Item (`ki_mcp_tool_protocol.md`) invariants:
+- Audited and verified all 10 of 10 backend files against Phase 9, PEP 257 standards, and subsystem Knowledge Item (`ki_mcp_tool_protocol.md`) invariants:
   1. `backend_v2/models/domain/system_config.py`: Added unit tests in `test_system_config.py`, 10/10 quality stages passed, 99% coverage, 181 matrix rules verified (commit `9b3f7eb73`).
   2. `backend_v2/models/domain/tools.py`: 10/10 quality stages passed, 100% coverage, 181 matrix rules verified.
   3. `backend_v2/models/domain/wikipedia.py`: 10/10 quality stages passed, 100% coverage, 181 matrix rules verified.
   4. `backend_v2/models/enums.py`: Added unit tests for `ToolCapability` and `LaxToolCapability` in `test_enums.py`, 10/10 quality stages passed, 98% coverage, 181 matrix rules verified (commit `8e668ccbf`).
   5. `backend_v2/services/mcp/dispatcher.py`: Added `__all__`, standard `logging.getLogger`, RFC 7807 dual-logging before `AppException`, PEP 257 error code docstrings, and strict encapsulation in `backend_v2/services/mcp/__init__.py`. 10/10 quality stages passed, 100% coverage, 181 matrix rules verified (commit `f102cab11`).
+  6. `backend_v2/services/mcp/mcp_tool_loop.py`: Added explicit `__all__`, exported in `services/mcp/__init__.py`, added detailed `AppException` and `SemanticEvidenceError` docstring contracts, added RFC 7807 dual-logging with `exc_info=True`. 10/10 quality stages passed, 92% coverage, 181 matrix rules verified (commit `c8dcadb5e`).
+  7. `backend_v2/services/mcp/tools/tavily.py`: Added `try...except` input validation raising structured `AppException(VALIDATION_FAILED)` with RFC 7807 logging, added unit test verifying extra fields rejection. 10/10 quality stages passed, 100% coverage, 181 matrix rules verified (commit `b8e6fb2b3`).
+  8. `backend_v2/services/mcp/tools/wikipedia.py`: Resolved E501 line-length issue on L182, enumerated explicit error codes in docstrings. 10/10 quality stages passed, 100% coverage, 181 matrix rules verified (commit `f2f48fb1b`).
+  9. `backend_v2/services/mcp/wikipedia_client.py`: Resolved E501 line-length issue on L163, enumerated explicit error codes in docstrings. 10/10 quality stages passed, 100% coverage, 181 matrix rules verified (commit `7440970de`).
+  10. `backend_v2/settings.py`: Added complete attribute docstrings for `mcp_wikipedia_*` configuration variables. 10/10 quality stages passed, 98% coverage, 181 matrix rules verified (commit `e5e69e1c6`).
+- Transitioned `Tier 2 Hardening (Backend)` post-implementation gate from `[NOK]` to `[OK]` (10/10 items completed).
 
 ## Learned
 - `scripts/audit_warning_baseline.py` enforces an exact ratchet ceiling of `0` on Census `T` (type-ignores). Adding `# type: ignore` in tests fails Stage 9; explicit type annotations must be used instead.
 - Quorum backend uses standard Python `logging.getLogger(__name__)` (there is no `backend_v2.core.logger`).
-- `backend_v2/services/mcp/__init__.py` must explicitly export public symbols via `__all__ = ["ToolDispatcher"]` to satisfy the encapsulation audit.
-- Two minor E501 line-length lint issues in `backend_v2/services/mcp/tools/wikipedia.py` (L182) and `backend_v2/services/mcp/wikipedia_client.py` (L163) remain to be formatted during their respective audit steps.
+- `backend_v2/services/mcp/__init__.py` explicitly exports public symbols `DISPATCHER`, `ToolDispatcher`, and `execute_tool_loop` to satisfy the encapsulation audit.
+- Formatting long strings in schema declarations and URLs across multiple lines keeps lines strictly within the 120-character limit.
+- All MCP tool inputs are strictly validated against Pydantic V2 DTOs (`StandardSearchInputDTO` and `WikipediaReadInputDTO`) enforcing `extra="forbid"`, with violations cleanly caught and mapped to `AppException(ErrorCodes.VALIDATION_FAILED, status_code=400)`.
 
 ## Remaining
 
@@ -183,25 +190,25 @@
   - `@[backend_v2/services/mcp/tools/wikipedia.py]`
   - `@[backend_v2/services/mcp/wikipedia_client.py]`
   - `@[backend_v2/settings.py]`
-- **DONE (5)**:
+- **DONE (10)**:
   - `@[backend_v2/models/domain/system_config.py]`
   - `@[backend_v2/models/domain/tools.py]`
   - `@[backend_v2/models/domain/wikipedia.py]`
   - `@[backend_v2/models/enums.py]`
   - `@[backend_v2/services/mcp/dispatcher.py]`
-- **REMAINING (5)** (`REMAINING = TARGETS - DONE`):
   - `@[backend_v2/services/mcp/mcp_tool_loop.py]`
   - `@[backend_v2/services/mcp/tools/tavily.py]`
   - `@[backend_v2/services/mcp/tools/wikipedia.py]`
   - `@[backend_v2/services/mcp/wikipedia_client.py]`
   - `@[backend_v2/settings.py]`
+- **REMAINING (0)** (`REMAINING = TARGETS - DONE`):
+  - Backend hardening is 100% complete.
 
 ### Next Phase
-- Complete remaining 5 backend files in Tier 2 Hardening (Backend).
 - Execute Tier 2 Hardening (Frontend) on `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`.
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[backend_v2/services/mcp/mcp_tool_loop.py] @[backend_v2/services/mcp/tools/tavily.py] @[backend_v2/services/mcp/tools/wikipedia.py] @[backend_v2/services/mcp/wikipedia_client.py] @[backend_v2/settings.py] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]
+/tier2-hardening-frontend @[client_app_v2/lib/features/studio/models/mcp_gateway.dart] @[docs/implementationplans/TRACKER_Wikipedia_MCP_Integration.md]
 ```
 
