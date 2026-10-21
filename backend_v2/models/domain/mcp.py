@@ -96,6 +96,34 @@ class MCPToolLoopResult(V2CoreBase):
     ]
 
 
+class MCPRetrievalResultDTO(V2CoreBase):
+    """Result of an MCP retrieval phase.
+
+    Attributes:
+        audit_traces: Audit log of all tool invocations during retrieval.
+        usage: Token usage incurred during retrieval.
+        evidence_payload: Assembled evidence text formatted for prompt inclusion.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    audit_traces: Annotated[
+        list[MCPAuditTrace],
+        Field(default_factory=list, description="Audit log of all tool invocations during retrieval."),
+    ]
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage incurred during retrieval.",
+        ),
+    ]
+    evidence_payload: Annotated[
+        str,
+        Field(default="", description="Assembled evidence text formatted for prompt inclusion."),
+    ]
+
+
 class MCPSynthesisInstructionsDTO(V2CoreBase):
     """Execution parameters injected into the tool loop for formatting/synthesis constraints.
 

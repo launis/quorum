@@ -13,6 +13,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
+from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryOutputProfileRepository
 
 
@@ -51,10 +52,50 @@ def _make_valid_profile(profile_id: str, slug: str, workflow_id: str, org_id: st
 async def test_save_output_profile_allows_target_block_types(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
-    """Test that virtual blocks from TargetBlockType are allowed without failing validation."""
+    """Test that virtual blocks from TargetBlockType and system matrix block are allowed."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
+
+    settings = get_settings()
+    workflow = AsyncMock()
+    workflow.id = "wf_123"
+    workflow.slug = "test_wf"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(
+        return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, settings.causal_cohesion_matrix_block_id}
+    )
+
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    profile = _make_valid_profile("prf_1234567890abcdef", "opt_123", "wf_123", "root", "Test")
+    # Include causal cohesion system matrix block in matrix_synthesis_groups
+    profile = profile.model_copy(
+        update={
+            "matrix_synthesis_groups": [
+                MatrixSynthesisGroup(
+                    title=I18nText(translations={"en": "Causal Group"}),
+                    target_blocks=[settings.causal_cohesion_matrix_block_id],
+                )
+            ]
+        }
+    )
+    await service.output_profile_repo.create_output_profile(profile)
+
+    await service.save_output_profile(initiator, profile.id, profile)
+    saved = await service.output_profile_repo.get_output_profile_by_id(profile.id)
+    assert saved is not None
+    assert saved.id == profile.id
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_unmapped_block_fails(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """ISTQB Negative: Target component absent from allowed_blocks raises AppException(400, VALIDATION_FAILED)."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
 
     workflow = AsyncMock()
+    workflow.id = "wf_123"
     workflow.slug = "test_wf"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
@@ -63,12 +104,22 @@ async def test_save_output_profile_allows_target_block_types(
     mock_workflow_service.list_steps.return_value = []
 
     profile = _make_valid_profile("prf_1234567890abcdef", "opt_123", "wf_123", "root", "Test")
+    profile = profile.model_copy(
+        update={
+            "matrix_synthesis_groups": [
+                MatrixSynthesisGroup(
+                    title=I18nText(translations={"en": "Invalid Group"}),
+                    target_blocks=["blk_unmapped_component_001"],
+                )
+            ]
+        }
+    )
     await service.output_profile_repo.create_output_profile(profile)
 
-    await service.save_output_profile(initiator, profile.id, profile)
-    saved = await service.output_profile_repo.get_output_profile_by_id(profile.id)
-    assert saved is not None
-    assert saved.id == profile.id
+    with pytest.raises(AppException) as exc_info:
+        await service.save_output_profile(initiator, profile.id, profile)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio

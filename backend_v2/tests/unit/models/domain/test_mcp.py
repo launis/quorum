@@ -7,6 +7,7 @@ from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionItemDTO,
     CitationExtractionResult,
+    MCPRetrievalResultDTO,
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
     OpenAIFunctionCallDTO,
@@ -218,3 +219,42 @@ def test_citation_extraction_and_correction_results() -> None:
 
     correction = CitationCorrectionResult(corrected_claim="Corrected text.")
     assert correction.corrected_claim == "Corrected text."
+
+
+def test_mcp_retrieval_result_dto_valid_and_defaults() -> None:
+    # Defaults
+    result = MCPRetrievalResultDTO()
+    assert result.audit_traces == []
+    assert result.usage.total_tokens == 0
+    assert result.evidence_payload == ""
+
+    # Explicit values
+    audit = MCPAuditTrace(
+        tool_id="wikipedia_search",
+        step_name="archivist_step",
+        query="Kahneman bias",
+        response_summary="Found article on cognitive biases",
+        source_urls=["https://fi.wikipedia.org/wiki/Kognitiivinen_vinouma"],
+        timestamp=datetime.now(timezone.utc),
+        duration_ms=45,
+    )
+    populated = MCPRetrievalResultDTO(
+        audit_traces=[audit],
+        usage={"prompt_tokens": 150, "completion_tokens": 30, "total_tokens": 180},
+        evidence_payload="<external_evidence>evidence text</external_evidence>",
+    )
+    assert len(populated.audit_traces) == 1
+    assert populated.audit_traces[0].tool_id == "wikipedia_search"
+    assert populated.usage.total_tokens == 180
+    assert populated.evidence_payload == "<external_evidence>evidence text</external_evidence>"
+
+
+def test_mcp_retrieval_result_dto_forbids_extra_and_frozen() -> None:
+    # Negative: extra fields forbidden
+    with pytest.raises(ValidationError):
+        MCPRetrievalResultDTO.model_validate({"extra_key": "forbidden"})
+
+    # Negative: frozen immutability
+    result = MCPRetrievalResultDTO()
+    with pytest.raises(ValidationError):
+        result.evidence_payload = "new text"

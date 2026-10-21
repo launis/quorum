@@ -191,11 +191,16 @@ class Workflow(V2CoreBase):
                     allowed_prompt_blocks.update(step.criteria_block_ids)
         return allowed_prompt_blocks
 
-    def get_allowed_layout_targets(self, hydrated_steps: list[Step]) -> set[str]:
+    def get_allowed_layout_targets(
+        self,
+        hydrated_steps: list[Step],
+        causal_cohesion_block_id: str | None = None,
+    ) -> set[str]:
         """Calculates all allowed layout targets including system blocks.
 
         Args:
             hydrated_steps: List of full Step objects from the database.
+            causal_cohesion_block_id: Optional explicit block ID override for testing.
 
         Returns:
             A set of allowed block IDs and system TargetBlockTypes.
@@ -204,5 +209,9 @@ class Workflow(V2CoreBase):
 
         # Add system blocks natively supported by the architecture
         allowed_blocks.update([e.value for e in TargetBlockType])
+
+        # Add causal cohesion matrix block ID if provided by the service layer
+        if causal_cohesion_block_id:
+            allowed_blocks.add(causal_cohesion_block_id)
 
         return allowed_blocks
