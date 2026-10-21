@@ -48,6 +48,9 @@ class PromptBlockForm extends _$PromptBlockForm {
           .savePromptBlock(idToSave, block);
       return block;
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }
 

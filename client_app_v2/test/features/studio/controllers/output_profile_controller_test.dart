@@ -15,6 +15,13 @@ class MockOutputProfilesController extends OutputProfilesController {
   }
 }
 
+class MockOutputProfilesFailingController extends OutputProfilesController {
+  @override
+  Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
+    throw AppException.validation('Server validation failed');
+  }
+}
+
 void main() {
   group('OutputProfileForm Sanitization Tests', () {
     test(
@@ -104,7 +111,16 @@ void main() {
           final formProvider = outputProfileFormProvider('test_id');
           final formNotifier = container.read(formProvider.notifier);
 
-          await formNotifier.submit(profileMissingBounds);
+          await expectLater(
+            formNotifier.submit(profileMissingBounds),
+            throwsA(
+              isA<AppException>().having(
+                (e) => e.detail,
+                'detail',
+                contains('Custom Scale Min and Custom Scale Max are required'),
+              ),
+            ),
+          );
 
           final state = container.read(formProvider);
           expect(state.hasError, isTrue);
@@ -142,7 +158,16 @@ void main() {
           final formProvider = outputProfileFormProvider('test_id');
           final formNotifier = container.read(formProvider.notifier);
 
-          await formNotifier.submit(profileInvertedBounds);
+          await expectLater(
+            formNotifier.submit(profileInvertedBounds),
+            throwsA(
+              isA<AppException>().having(
+                (e) => e.detail,
+                'detail',
+                contains('Custom Scale Max must be strictly greater'),
+              ),
+            ),
+          );
 
           final state = container.read(formProvider);
           expect(state.hasError, isTrue);
@@ -180,7 +205,16 @@ void main() {
           final formProvider = outputProfileFormProvider('test_id');
           final formNotifier = container.read(formProvider.notifier);
 
-          await formNotifier.submit(profileEqualBounds);
+          await expectLater(
+            formNotifier.submit(profileEqualBounds),
+            throwsA(
+              isA<AppException>().having(
+                (e) => e.detail,
+                'detail',
+                contains('Custom Scale Max must be strictly greater'),
+              ),
+            ),
+          );
 
           final state = container.read(formProvider);
           expect(state.hasError, isTrue);
@@ -266,7 +300,10 @@ void main() {
         final formProvider = outputProfileFormProvider('');
         final formNotifier = container.read(formProvider.notifier);
 
-        await formNotifier.submit(invalidProfile);
+        await expectLater(
+          formNotifier.submit(invalidProfile),
+          throwsA(isA<AppException>()),
+        );
 
         final state = container.read(formProvider);
         expect(state.hasError, isTrue);
@@ -294,7 +331,47 @@ void main() {
         final formProvider = outputProfileFormProvider('prf_123');
         final formNotifier = container.read(formProvider.notifier);
 
-        await formNotifier.submit(noNameProfile);
+        await expectLater(
+          formNotifier.submit(noNameProfile),
+          throwsA(isA<AppException>()),
+        );
+
+        final state = container.read(formProvider);
+        expect(state.hasError, isTrue);
+        expect(state.error, isA<AppException>());
+      },
+    );
+
+    test(
+      'OutputProfileForm submit rethrows server AppException when saveProfile fails',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            outputProfilesControllerProvider.overrideWith(
+              () => MockOutputProfilesFailingController(),
+            ),
+          ],
+        );
+
+        final validProfile = OutputProfile(
+          id: 'prf_123',
+          workflowId: 'wf_1',
+          name: const I18nText(translations: {'en': 'Test'}),
+        );
+
+        final formProvider = outputProfileFormProvider('prf_123');
+        final formNotifier = container.read(formProvider.notifier);
+
+        await expectLater(
+          formNotifier.submit(validProfile),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Server validation failed'),
+            ),
+          ),
+        );
 
         final state = container.read(formProvider);
         expect(state.hasError, isTrue);

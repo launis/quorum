@@ -65,6 +65,9 @@ class WorkflowForm extends _$WorkflowForm {
           .saveWorkflow(idToSave, block);
       return block;
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }
 
@@ -102,6 +105,9 @@ class StepForm extends _$StepForm {
           .saveStep(idToSave, block);
       return block;
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }
 

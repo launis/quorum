@@ -221,5 +221,8 @@ class McpGatewayForm extends _$McpGatewayForm {
           .saveGateway(idToSave, updatedData);
       return updatedData; // Optimistic form state return
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }

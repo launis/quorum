@@ -172,7 +172,16 @@ void main() {
       final form = container.read(promptBlockFormProvider('new').notifier);
       final emptyBlock = validBlock.copyWith(id: '');
 
-      await form.submit(emptyBlock);
+      await expectLater(
+        form.submit(emptyBlock),
+        throwsA(
+          isA<AppException>().having(
+            (e) => e.detail,
+            'detail',
+            contains('Block ID is required'),
+          ),
+        ),
+      );
 
       final state = container.read(promptBlockFormProvider('new'));
       expect(state.hasError, isTrue);
@@ -247,7 +256,16 @@ void main() {
         final form = container.read(workflowFormProvider('new').notifier);
         final emptyWorkflow = validWorkflow.copyWith(id: '');
 
-        await form.submit(emptyWorkflow);
+        await expectLater(
+          form.submit(emptyWorkflow),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.detail,
+              'detail',
+              contains('Workflow ID is required'),
+            ),
+          ),
+        );
 
         final state = container.read(workflowFormProvider('new'));
         expect(state.hasError, isTrue);
@@ -345,6 +363,36 @@ void main() {
                 .having((e) => e.status, 'status', 400),
           ),
         );
+      },
+    );
+
+    test(
+      'Negative 3: ModelRegistryForm submit rethrows server error and maintains state.hasError',
+      () async {
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+        when(() => mockClient.saveSystemConfig(any(), any())).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(
+              path: '/studio/system-configs/cfg_0123456789abcdef',
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+
+        final form = container.read(
+          modelRegistryFormProvider('cfg_0123456789abcdef').notifier,
+        );
+
+        await expectLater(
+          form.submit(validConfig),
+          throwsA(isA<AppException>()),
+        );
+
+        final state = container.read(
+          modelRegistryFormProvider('cfg_0123456789abcdef'),
+        );
+        expect(state.hasError, isTrue);
+        expect(state.error, isA<AppException>());
       },
     );
   });

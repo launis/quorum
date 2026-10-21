@@ -248,6 +248,9 @@ class OutputProfileForm extends _$OutputProfileForm {
           .saveProfile(idToSave, sanitized);
       return sanitized;
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }
 

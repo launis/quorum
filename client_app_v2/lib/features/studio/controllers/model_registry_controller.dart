@@ -224,5 +224,8 @@ class ModelRegistryForm extends _$ModelRegistryForm {
           .saveConfig(configId, updatedData);
       return updatedData; // Optimistic form state return
     });
+    if (state.hasError) {
+      throw state.error!;
+    }
   }
 }
