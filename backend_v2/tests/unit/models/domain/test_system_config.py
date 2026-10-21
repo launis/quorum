@@ -76,7 +76,6 @@ def test_allowed_mcp_tool_rejects_unknown_attribute() -> None:
         )
 
 
-
 def test_system_config_model_registry_missing_tier_raises_value_error() -> None:
     """Verify SystemConfigModelRegistry raises ValueError when cognitive tiers are incomplete."""
     incomplete_tiers: dict[LaxCognitiveTier, ModelProfile] = {
@@ -89,5 +88,3 @@ def test_system_config_model_registry_missing_tier_raises_value_error() -> None:
             tier_definitions=incomplete_tiers,
         )
     assert "missing required cognitive tiers" in str(exc_info.value)
-
-

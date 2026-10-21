@@ -28,7 +28,6 @@ from backend_v2.models.enums import (
 )
 
 
-
 def test_lax_xai_extension_type() -> None:
     class DummyModel(BaseModel):
         ext: LaxXaiExtensionType
@@ -153,6 +152,7 @@ def test_enum_l10n_properties() -> None:
 
 def test_lax_tool_capability() -> None:
     """Verify LaxToolCapability parses enums and string coercions, and rejects invalid strings."""
+
     class DummyModel(BaseModel):
         cap: LaxToolCapability
 
@@ -164,4 +164,3 @@ def test_lax_tool_capability() -> None:
 
     with pytest.raises(ValidationError):
         DummyModel(cap="invalid_capability")
-

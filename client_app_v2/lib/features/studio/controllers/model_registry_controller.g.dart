@@ -379,7 +379,7 @@ final class ModelRegistryFormProvider
   }
 }
 
-String _$modelRegistryFormHash() => r'1e207c022b3287898931f91e8c30ed6c961da8b6';
+String _$modelRegistryFormHash() => r'5bf7ee704575a614efb570f91720c258dff7cead';
 
 final class ModelRegistryFormFamily extends $Family
     with

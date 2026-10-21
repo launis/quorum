@@ -133,7 +133,7 @@ final class PromptBlockFormProvider
   }
 }
 
-String _$promptBlockFormHash() => r'ab4098a8a22b1a783de2399f26f54988a466abaa';
+String _$promptBlockFormHash() => r'293a1b849e87006b90e95094fa45b100d70d3d2c';
 
 final class PromptBlockFormFamily extends $Family
     with
