@@ -21,6 +21,7 @@ from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionFailure,
     CitationExtractionResult,
+    MCPRetrievalResultDTO,
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
 )
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "DISPATCHER",
+    "execute_mcp_retrieval",
     "execute_tool_loop",
     "is_source_sufficient",
     "validate_query_relevance",
@@ -145,6 +147,327 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
     }
 
 
+async def execute_mcp_retrieval(
+    llm_client: Any,
+    executor: Any,
+    messages: Sequence[LLMMessageDTO],
+    allowed_tools: list[str],
+    step_name: str,
+    mock_identity: str | None = None,
+    target_language: str = "en",
+    validation_context: dict[str, JsonValue] | None = None,
+    source_context: str = "",
+    alias_engine: AliasEngine | None = None,
+    repository: Any = None,
+) -> MCPRetrievalResultDTO:
+    """Execute the MCP retrieval phase — citation extraction, anchoring, and tool dispatch.
+
+    Phase 1 (Probe): Uses an ensemble of extraction prompts to identify claims needing verification,
+    enforces physical anchoring against the source document, and executes resolved tools via DISPATCHER.
+
+    Args:
+        llm_client: Bound LLMClient instance.
+        executor: Bound LLMTaskExecutor instance.
+        messages: Compiled chat messages (system + user).
+        allowed_tools: List of tool IDs allowed for this step.
+        step_name: Current DAG step name (for audit logging).
+        mock_identity: Mock identity for testing.
+        target_language: Optional user requested language.
+        validation_context: Context dictionary passed to executor.
+        source_context: Source document text available in prompt.
+        alias_engine: Optional alias engine for registering evidence aliases.
+        repository: Optional system config repository for resolving cognitive tier.
+
+    Returns:
+        Structured retrieval result containing audit traces, usage, and assembled evidence payload.
+
+    Raises:
+        AppException: If Phase 0 ensemble extraction, client initialization, or parameter
+            validation fails (ErrorCodes.FETCH_FAILED or ErrorCodes.CONFIGURATION_ERROR).
+        SemanticEvidenceError: If physical anchoring verification or self-correction fails
+            to locate an exact quote in source context (ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION).
+    """
+    typed_messages: list[LLMMessageDTO] = [
+        m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
+    ]
+
+    tool_declarations = DISPATCHER.get_declarations(allowed_tools)
+    if not tool_declarations:
+        return MCPRetrievalResultDTO(
+            audit_traces=[],
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            evidence_payload="",
+        )
+
+    active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)
+
+    if is_source_sufficient(source_context) and active_search_tool is None:
+        logger.info(
+            "[MCPToolLoop] Source sufficiency gate: document (%d chars) exceeds threshold (%d). "
+            "Suppressing tool declarations for step '%s'.",
+            len(source_context),
+            SourceSufficiencyThreshold.MIN_CHARS.value,
+            step_name,
+        )
+        return MCPRetrievalResultDTO(
+            audit_traces=[],
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            evidence_payload="",
+        )
+
+    if active_search_tool is None:
+        return MCPRetrievalResultDTO(
+            audit_traces=[],
+            usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            evidence_payload="",
+        )
+
+    effective_max_calls = get_settings().max_tool_calls_per_step
+
+    strictness_level = 100
+    if validation_context and "strictness_level" in validation_context:
+        strictness_val = validation_context["strictness_level"]
+        if isinstance(strictness_val, int):
+            strictness_level = strictness_val
+        elif isinstance(strictness_val, (str, float)):
+            strictness_level = int(strictness_val)
+
+    total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+    audit_traces: list[MCPAuditTrace] = []
+
+    extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
+
+    extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
+    for msg in typed_messages:
+        if msg.role == "user":
+            content_val = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
+            extraction_messages.append({"role": "user", "content": content_val})
+
+    from backend_v2.llm.client import LLMClient
+
+    fast_client = llm_client
+    if repository is not None:
+        try:
+            fast_client = await LLMClient.from_tier(
+                CognitiveTier.FAST, repository=repository, pipeline_name="mcp_tool_loop"
+            )
+        except Exception as e:
+            logger.error("Could not initialize 'fast' client for extraction: %s", e, exc_info=True)
+            raise AppException(
+                message=f"Could not initialize 'fast' client for extraction: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            ) from e
+
+    async def run_single_extraction() -> tuple[CitationExtractionResult | CitationExtractionFailure, TokenUsage | None]:
+        try:
+            res, usage = await executor.execute_structured_task(
+                client=fast_client,
+                messages=extraction_messages,
+                response_model=CitationExtractionResult,
+                mock_identity=mock_identity,
+                validation_context=validation_context,
+            )
+            if not isinstance(res, CitationExtractionResult):
+                res = CitationExtractionResult.model_validate(res)
+            return res, usage
+        except Exception as ex:
+            logger.warning("Ensemble citation extraction call failed: %s", ex, exc_info=True)
+            return CitationExtractionFailure(error_message=str(ex)), None
+
+    try:
+        async with asyncio.TaskGroup() as tg:
+            task1 = tg.create_task(run_single_extraction())
+            task2 = tg.create_task(run_single_extraction())
+            task3 = tg.create_task(run_single_extraction())
+
+        res1, usage1 = task1.result()
+        res2, usage2 = task2.result()
+        res3, usage3 = task3.result()
+    except Exception as e:
+        err_msg = f"Phase 0 Citation Extraction TaskGroup failed for step '{step_name}'."
+        logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
+        raise AppException(
+            message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
+        ) from e
+
+    successful_runs: list[tuple[CitationExtractionResult, TokenUsage | None]] = []
+    for res, usage in [(res1, usage1), (res2, usage2), (res3, usage3)]:
+        if isinstance(res, CitationExtractionResult):
+            successful_runs.append((res, usage))
+            if usage:
+                total_usage += usage
+
+    N = len(successful_runs)
+    if N == 0:
+        err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'. All ensemble runs failed."
+        logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
+        raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
+
+    from collections import defaultdict
+
+    run_appearances: defaultdict[str, int] = defaultdict(int)
+    normalized_to_original = {}
+
+    for res, _ in successful_runs:
+        seen_in_this_run = set()
+        for citation in res.citations:
+            norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
+            if norm_claim not in seen_in_this_run:
+                seen_in_this_run.add(norm_claim)
+                run_appearances[norm_claim] += 1
+                if norm_claim not in normalized_to_original:
+                    normalized_to_original[norm_claim] = citation
+
+    required_count = 2 if N >= 2 else 1
+    consensus_citations = []
+    for res, _ in successful_runs:
+        for citation in res.citations:
+            norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
+            if run_appearances[norm_claim] >= required_count:
+                if citation not in consensus_citations:
+                    consensus_citations.append(citation)
+
+    extraction_result = CitationExtractionResult(citations=consensus_citations)
+
+    tool_call_count = 0
+
+    for citation in extraction_result.citations:
+        if tool_call_count >= effective_max_calls:
+            logger.warning(
+                "Max tool calls reached for step. Bypassing remaining citations.",
+                extra={"max_calls": effective_max_calls, "step_name": step_name},
+            )
+            break
+
+        claim = citation.claim_text.strip()
+        query = citation.search_query.strip()
+
+        # Physical Anchoring Mandate: Validate exact string match
+        if strictness_level >= 100:
+            is_match = AnchorValidationService.strict_match(source_context, [claim])
+            if not is_match:
+                logger.info(
+                    "Physical anchoring failed for claim: '%s'. Initiating self-correction.",
+                    claim,
+                )
+                correction_user_msg = (
+                    f"<failed_claim>\n{claim}\n</failed_claim>\n\n<source_context>\n{source_context}\n</source_context>"
+                )
+                correction_messages = [
+                    {"role": "system", "content": CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION},
+                    {"role": "user", "content": correction_user_msg},
+                ]
+                try:
+                    correction_res_raw, correction_usage = await executor.execute_structured_task(
+                        client=fast_client,
+                        messages=correction_messages,
+                        response_model=CitationCorrectionResult,
+                        mock_identity=mock_identity,
+                        validation_context=validation_context,
+                    )
+                    if correction_usage:
+                        total_usage += correction_usage
+
+                    if isinstance(correction_res_raw, CitationCorrectionResult):
+                        correction_res = correction_res_raw
+                    else:
+                        correction_res = CitationCorrectionResult.model_validate(correction_res_raw)
+
+                    corrected_claim = correction_res.corrected_claim.strip()
+
+                    if corrected_claim and AnchorValidationService.strict_match(source_context, [corrected_claim]):
+                        logger.info(
+                            "Self-correction succeeded. Corrected claim: '%s' (originally: '%s')",
+                            corrected_claim,
+                            claim,
+                        )
+                        claim = corrected_claim
+                    else:
+                        err_msg = f"Self-correction failed to locate exact substring match for: '{claim}'."
+                        logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
+                        raise SemanticEvidenceError(
+                            message=err_msg,
+                            details={
+                                "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
+                                "claim_text": claim,
+                            },
+                        )
+                except Exception as e:
+                    if isinstance(e, SemanticEvidenceError):
+                        raise
+                    err_msg = f"Self-correction failed due to task error: {e}"
+                    logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
+                    raise SemanticEvidenceError(
+                        message=err_msg,
+                        details={
+                            "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
+                            "claim_text": claim,
+                        },
+                    ) from e
+
+        if not query:
+            continue
+
+        logger.info(
+            "Executing primary search tool for validated claim",
+            extra={"step_name": step_name, "query": query, "tool_id": active_search_tool.tool_id},
+        )
+
+        audit = await DISPATCHER.execute_tool(
+            tool_id=active_search_tool.tool_id,
+            query=query,
+            step_name=step_name,
+            target_language=target_language,
+            llm_client=llm_client,
+            reasoning=citation.reasoning,
+            claim_text=claim,
+        )
+        audit_traces.append(audit)
+        tool_call_count += 1
+
+    evidence_payload = ""
+    if audit_traces:
+        evidence_blocks = []
+        if validation_context is None:
+            validation_context = {}
+        source_texts: dict[str, JsonValue] = {}
+        if (
+            "mcp_source_texts" in validation_context
+            and not isinstance(validation_context["mcp_source_texts"], (str, int, float, bool, list))
+            and validation_context["mcp_source_texts"] is not None
+        ):
+            source_texts = dict(validation_context["mcp_source_texts"])
+        validation_context["mcp_source_texts"] = source_texts
+
+        local_alias_engine = alias_engine if alias_engine else AliasEngine()
+
+        for audit in audit_traces:
+            real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
+            local_id = local_alias_engine.register(real_id, prefix="mcp")
+            local_alias_engine.source_document_aliases.append(local_id)
+            text_payload = f"Query: {audit.query}\n"
+            if audit.response_summary:
+                text_payload += f"Summary: {audit.response_summary}\n"
+            if audit.source_urls:
+                text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
+
+            source_texts[local_id] = text_payload
+
+            evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')
+
+        evidence_str = "\n".join(evidence_blocks)
+        evidence_payload = (
+            f"<external_evidence>\n{evidence_str}\n</external_evidence>\n\n{MCP_EVIDENCE_INJECTION_DIRECTIVE}"
+        )
+
+    return MCPRetrievalResultDTO(
+        audit_traces=audit_traces,
+        usage=total_usage,
+        evidence_payload=evidence_payload,
+    )
+
+
 async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
     executor: Any,
@@ -175,6 +498,10 @@ async def execute_tool_loop[T: BaseModel](
         mock_identity: Mock identity for testing.
         target_language: Optional user requested language.
         synthesis_instructions: Epic 13 OutputProfile limits and preamble constraints.
+        validation_context: Optional validation context.
+        source_context: The text of the document being evaluated.
+        alias_engine: Optional alias engine.
+        repository: Optional system config repository.
 
     Returns:
         Structured tool loop results and audit traces.
@@ -191,7 +518,6 @@ async def execute_tool_loop[T: BaseModel](
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    audit_traces: list[MCPAuditTrace] = []
     tool_declarations = DISPATCHER.get_declarations(allowed_tools)
 
     if not tool_declarations:
@@ -211,10 +537,6 @@ async def execute_tool_loop[T: BaseModel](
 
     active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)
 
-    # L3 Root Cause Fix: Source Sufficiency Gate
-    # When the full document is already in the prompt, the LLM has no information
-    # gap to fill. Suppress tool declarations entirely to prevent hallucinated
-    # tool calls (e.g., EUR/USD, weather) that inject noise and break caching.
     if is_source_sufficient(source_context) and active_search_tool is None:
         logger.info(
             "[MCPToolLoop] Source sufficiency gate: document (%d chars) exceeds threshold (%d). "
@@ -236,268 +558,30 @@ async def execute_tool_loop[T: BaseModel](
             usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         )
 
-    # Epic 13 M2: Restored to standard MAX_TOOL_CALLS_PER_STEP
-    # Controlled by settings to support Dev-Mode limits
-    effective_max_calls = get_settings().max_tool_calls_per_step
+    retrieval_result = await execute_mcp_retrieval(
+        llm_client=llm_client,
+        executor=executor,
+        messages=typed_messages,
+        allowed_tools=allowed_tools,
+        step_name=step_name,
+        mock_identity=mock_identity,
+        target_language=target_language,
+        validation_context=validation_context,
+        source_context=source_context,
+        alias_engine=alias_engine,
+        repository=repository,
+    )
 
-    strictness_level = 100
-    if validation_context and "strictness_level" in validation_context:
-        strictness_val = validation_context["strictness_level"]
-        if isinstance(strictness_val, int):
-            strictness_level = strictness_val
-        elif isinstance(strictness_val, (str, float)):
-            strictness_level = int(strictness_val)
-
-    total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-
-    if active_search_tool is not None:
-        extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
-
-        extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
-        for msg in typed_messages:
-            if msg.role == "user":
-                content_val = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
-                extraction_messages.append({"role": "user", "content": content_val})
-
-        # Internal Utility rule: lazy load LLMClient
-        from backend_v2.llm.client import LLMClient
-
-        # We attempt to fetch the fast client if repository is explicitly passed.
-        fast_client = llm_client
-        if repository is not None:
-            try:
-                fast_client = await LLMClient.from_tier(
-                    CognitiveTier.FAST, repository=repository, pipeline_name="mcp_tool_loop"
-                )
-            except Exception as e:
-                logger.error("Could not initialize 'fast' client for extraction: %s", e, exc_info=True)
-                raise AppException(
-                    message=f"Could not initialize 'fast' client for extraction: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                ) from e
-
-        async def run_single_extraction() -> tuple[
-            CitationExtractionResult | CitationExtractionFailure, TokenUsage | None
-        ]:
-            try:
-                res, usage = await executor.execute_structured_task(
-                    client=fast_client,
-                    messages=extraction_messages,
-                    response_model=CitationExtractionResult,
-                    mock_identity=mock_identity,
-                    validation_context=validation_context,
-                )
-                if not isinstance(res, CitationExtractionResult):
-                    res = CitationExtractionResult.model_validate(res)
-                return res, usage
-            except Exception as ex:
-                logger.warning("Ensemble citation extraction call failed: %s", ex, exc_info=True)
-                return CitationExtractionFailure(error_message=str(ex)), None
-
-        try:
-            async with asyncio.TaskGroup() as tg:
-                task1 = tg.create_task(run_single_extraction())
-                task2 = tg.create_task(run_single_extraction())
-                task3 = tg.create_task(run_single_extraction())
-
-            res1, usage1 = task1.result()
-            res2, usage2 = task2.result()
-            res3, usage3 = task3.result()
-        except Exception as e:
-            err_msg = f"Phase 0 Citation Extraction TaskGroup failed for step '{step_name}'."
-            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
-            raise AppException(
-                message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
-            ) from e
-
-        successful_runs: list[tuple[CitationExtractionResult, TokenUsage | None]] = []
-        for res, usage in [(res1, usage1), (res2, usage2), (res3, usage3)]:
-            if isinstance(res, CitationExtractionResult):
-                successful_runs.append((res, usage))
-                if usage:
-                    total_usage += usage
-
-        N = len(successful_runs)
-        if N == 0:
-            err_msg = f"Phase 0 Citation Extraction failed for step '{step_name}'. All ensemble runs failed."
-            logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
-            raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
-
-        from collections import defaultdict
-
-        run_appearances: defaultdict[str, int] = defaultdict(int)
-        normalized_to_original = {}
-
-        for res, _ in successful_runs:
-            seen_in_this_run = set()
-            for citation in res.citations:
-                norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
-                if norm_claim not in seen_in_this_run:
-                    seen_in_this_run.add(norm_claim)
-                    run_appearances[norm_claim] += 1
-                    if norm_claim not in normalized_to_original:
-                        normalized_to_original[norm_claim] = citation
-
-        required_count = 2 if N >= 2 else 1
-        consensus_citations = []
-        for res, _ in successful_runs:
-            for citation in res.citations:
-                norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
-                if run_appearances[norm_claim] >= required_count:
-                    if citation not in consensus_citations:
-                        consensus_citations.append(citation)
-
-        extraction_result = CitationExtractionResult(citations=consensus_citations)
-
-        tool_call_count = 0
-
-        for citation in extraction_result.citations:
-            if tool_call_count >= effective_max_calls:
-                logger.warning(
-                    "Max tool calls reached for step. Bypassing remaining citations.",
-                    extra={"max_calls": effective_max_calls, "step_name": step_name},
-                )
-                break
-
-            claim = citation.claim_text.strip()
-            query = citation.search_query.strip()
-
-            # Physical Anchoring Mandate: Validate exact string match
-            # If strictness_level < 100, bypass strict substring verification entirely.
-            if strictness_level >= 100:
-                is_match = AnchorValidationService.strict_match(source_context, [claim])
-                if not is_match:
-                    logger.info(
-                        "Physical anchoring failed for claim: '%s'. Initiating self-correction.",
-                        claim,
-                    )
-                    correction_user_msg = (
-                        "<failed_claim>\n"
-                        f"{claim}\n"
-                        "</failed_claim>\n\n"
-                        "<source_context>\n"
-                        f"{source_context}\n"
-                        "</source_context>"
-                    )
-                    correction_messages = [
-                        {"role": "system", "content": CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION},
-                        {"role": "user", "content": correction_user_msg},
-                    ]
-                    try:
-                        correction_res_raw, correction_usage = await executor.execute_structured_task(
-                            client=fast_client,
-                            messages=correction_messages,
-                            response_model=CitationCorrectionResult,
-                            mock_identity=mock_identity,
-                            validation_context=validation_context,
-                        )
-                        if correction_usage:
-                            total_usage += correction_usage
-
-                        if isinstance(correction_res_raw, CitationCorrectionResult):
-                            correction_res = correction_res_raw
-                        else:
-                            correction_res = CitationCorrectionResult.model_validate(correction_res_raw)
-
-                        corrected_claim = correction_res.corrected_claim.strip()
-
-                        if corrected_claim and AnchorValidationService.strict_match(source_context, [corrected_claim]):
-                            logger.info(
-                                "Self-correction succeeded. Corrected claim: '%s' (originally: '%s')",
-                                corrected_claim,
-                                claim,
-                            )
-                            claim = corrected_claim
-                        else:
-                            err_msg = f"Self-correction failed to locate exact substring match for: '{claim}'."
-                            logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
-                            raise SemanticEvidenceError(
-                                message=err_msg,
-                                details={
-                                    "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
-                                    "claim_text": claim,
-                                },
-                            )
-                    except Exception as e:
-                        if isinstance(e, SemanticEvidenceError):
-                            raise
-                        err_msg = f"Self-correction failed due to task error: {e}"
-                        logger.error("[MCPToolLoop] SemanticEvidenceError: %s", err_msg, exc_info=True)
-                        raise SemanticEvidenceError(
-                            message=err_msg,
-                            details={
-                                "error_code": ErrorCodes.SEMANTIC_EVIDENCE_HALLUCINATION.value,
-                                "claim_text": claim,
-                            },
-                        ) from e
-
-            if not query:
-                continue
-
-            logger.info(
-                "Executing primary search tool for validated claim",
-                extra={"step_name": step_name, "query": query, "tool_id": active_search_tool.tool_id},
-            )
-
-            audit = await DISPATCHER.execute_tool(
-                tool_id=active_search_tool.tool_id,
-                query=query,
-                step_name=step_name,
-                target_language=target_language,
-                llm_client=llm_client,
-                reasoning=citation.reasoning,
-                claim_text=claim,
-            )
-            audit_traces.append(audit)
-            tool_call_count += 1
-
-    # --- PHASE 2: Completion with evidence injected ---
-    # Build final messages: original system/user + any evidence injected
     final_messages = [{"role": m.role, "content": m.content} for m in typed_messages]
 
-    if audit_traces:
-        evidence_blocks = []
-        if validation_context is None:
-            validation_context = {}
-        source_texts: dict[str, JsonValue] = {}
-        if (
-            "mcp_source_texts" in validation_context
-            and not isinstance(validation_context["mcp_source_texts"], (str, int, float, bool, list))
-            and validation_context["mcp_source_texts"] is not None
-        ):
-            source_texts = dict(validation_context["mcp_source_texts"])
-        validation_context["mcp_source_texts"] = source_texts
-
-        # Tier 4 Fix: Use AliasEngine as the single source of truth for alias generation.
-        # Removed ad-hoc doc{N} counter and alias_map mutation that bypassed AliasEngine.
-        local_alias_engine = alias_engine if alias_engine else AliasEngine()
-
-        for audit in audit_traces:
-            real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
-            local_id = local_alias_engine.register(real_id, prefix="mcp")
-            local_alias_engine.source_document_aliases.append(local_id)
-            text_payload = f"Query: {audit.query}\n"
-            if audit.response_summary:
-                text_payload += f"Summary: {audit.response_summary}\n"
-            if audit.source_urls:
-                text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
-
-            source_texts[local_id] = text_payload
-
-            evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')
-
-        evidence_str = "\n".join(evidence_blocks)
+    if retrieval_result.evidence_payload:
         final_messages.append(
             {
                 "role": "user",
-                "content": (
-                    f"<external_evidence>\n{evidence_str}\n</external_evidence>\n\n{MCP_EVIDENCE_INJECTION_DIRECTIVE}"
-                ),
+                "content": retrieval_result.evidence_payload,
             }
         )
 
-    # EPIC 13: Dynamically inject runtime parameters from OutputProfile via hook extraction
     if synthesis_instructions:
         try:
             instructions = (
@@ -520,7 +604,6 @@ async def execute_tool_loop[T: BaseModel](
             formatting_msg += f"    <synthesis_length_limit>{limit}</synthesis_length_limit>\n"
         formatting_msg += "  </output_profile_formatting_constraints>\n</execution_parameters>\n\n"
 
-        # Prevent "Alternate Roles" strictly by patching the system prompt (index 0)
         if final_messages and "role" in final_messages[0] and final_messages[0]["role"] == "system":
             original = final_messages[0]["content"]
             final_messages[0]["content"] = f"{formatting_msg}{original}"
@@ -538,8 +621,8 @@ async def execute_tool_loop[T: BaseModel](
         completion_usage = usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
-            audit_traces=audit_traces,
-            usage=total_usage + completion_usage,
+            audit_traces=retrieval_result.audit_traces,
+            usage=retrieval_result.usage + completion_usage,
         )
     except AppException:
         raise

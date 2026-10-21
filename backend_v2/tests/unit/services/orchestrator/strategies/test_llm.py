@@ -1753,6 +1753,472 @@ async def test_execute_matrix_chunking_flow(
 
     assert len(traces) == 1
     assert traces[0].content["results"][0]["score"] == 5
+    assert len(traces[0].mcp_audit_traces) == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Test that allowed_mcp_tools triggers retrieval, enriches context, and emits traces on TraceEvent."""
+    import datetime
+    from unittest.mock import AsyncMock, patch
+
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+    from backend_v2.models.domain.mcp import MCPRetrievalResultDTO
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+    from backend_v2.models.dtos.engine import EngineExecutionResult
+
+    step = MagicMock()
+    step.id = "stp_1111111111111111"
+    step.task_blueprint = "stp_1111111111111111"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = ["mcp_tavily_search"]
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exe_1111111111111111"
+    context.workflow_id = "wor_1111111111111111"
+    context.global_context_vars = GlobalContextVarsDTO(
+        shuffled_atoms=[
+            FlattenedAtom(atom_id="atm_1111111111111111", question="Atom 1"),
+        ]
+    )
+    context.target_locale = "en"
+    context.output_profile_id = "prf_1111111111111111"
+    context.organization_id = None
+    context.metadata = ExecutionMetadata()
+    context.expected_inputs = []
+    context.strictness_level = 100
+    context.prompt_blocks = None
+
+    mock_repo.set_step(
+        {
+            "id": "stp_1111111111111111",
+            "slug": "mcp_step",
+            "name": {"translations": {"en": "MCP Step"}},
+            "description": {"translations": {"en": "MCP Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_1111111111111111"],
+            "cognitive_tier": "fast",
+            "allowed_mcp_tools": ["mcp_tavily_search"],
+        }
+    )
+
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_1111111111111111",
+                "slug": "eval_matrix",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Matrix"}},
+                "description": {"translations": {"en": "Matrix"}},
+                "ai_description": "Analyze against theoretical framework.",
+                "scales": [
+                    {"score": 1, "ai_label": "LOW", "claims": []},
+                    {"score": 5, "ai_label": "HIGH", "claims": []},
+                ],
+                "allow_contextual_override": True,
+                "is_lightweight_protocol": True,
+            },
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+
+    mock_repo.set_output_profile(
+        {
+            "id": "prf_1111111111111111",
+            "slug": "mcp_profile",
+            "workflow_id": "wor_1111111111111111",
+            "name": {"translations": {"en": "MCP Profile"}},
+            "description": {"translations": {"en": "MCP Profile"}},
+            "tone_instruction": "Professional and analytical.",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_1111111111111111",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
+        }
+    )
+
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_1111111111111111",
+            workflow_id="wor_1111111111111111",
+            output_profile_id="prf_1111111111111111",
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            source_identity_manifest={},
+        )
+    )
+
+    mock_engine = llm_strategy._engine
+    mock_engine.execute.return_value = EngineExecutionResult(
+        results=[],
+        hydrated_references={},
+        usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.002),
+    )
+
+    mock_trace = MCPAuditTrace(
+        id="trace_001",
+        tool_id="mcp_tavily_search",
+        step_name="step_mcp_test",
+        query="test search query",
+        response_summary="Verified evidence from search.",
+        source_urls=["https://example.com/verified"],
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        duration_ms=45,
+    )
+
+    mock_retrieval_result = MCPRetrievalResultDTO(
+        audit_traces=[mock_trace],
+        usage=TokenUsage(prompt_tokens=40, completion_tokens=20, total_tokens=60, cost_usd=0.001),
+        evidence_payload="<external_evidence>Verified evidence payload</external_evidence>",
+    )
+
+    mock_hook_state = _make_mock_hook_state(
+        {},
+        metadata=context.metadata,
+        global_context_vars=context.global_context_vars,
+    )
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+        ) as mock_retrieve,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = {"results": []}
+        mock_post.return_value = (mock_post_hook_state, [])
+        mock_retrieve.return_value = mock_retrieval_result
+
+        traces = await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=FrozenContext(),
+            trace=[],
+        )
+
+    assert len(traces) == 1
+    mock_retrieve.assert_called_once()
+    assert mock_retrieve.call_args.kwargs["allowed_tools"] == ["mcp_tavily_search"]
+    assert mock_retrieve.call_args.kwargs["step_name"] == "stp_1111111111111111"
+    assert len(traces[0].mcp_audit_traces) == 1
+    assert traces[0].mcp_audit_traces[0].query == "test search query"
+    meta = traces[0].content["_step_metadata"]
+    assert meta["token_usage"]["total_tokens"] == 210
+    assert meta["token_usage"]["prompt_tokens"] == 140
+    assert meta["token_usage"]["completion_tokens"] == 70
+
+
+@pytest.mark.asyncio
+async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Test that empty allowed_mcp_tools bypasses execute_mcp_retrieval entirely."""
+    from unittest.mock import AsyncMock, patch
+
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+    from backend_v2.models.dtos.engine import EngineExecutionResult
+
+    step = MagicMock()
+    step.id = "stp_2222222222222222"
+    step.task_blueprint = "stp_2222222222222222"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exe_2222222222222222"
+    context.workflow_id = "wor_2222222222222222"
+    context.global_context_vars = GlobalContextVarsDTO(
+        shuffled_atoms=[
+            FlattenedAtom(atom_id="atm_2222222222222222", question="Atom 2"),
+        ]
+    )
+    context.target_locale = "en"
+    context.output_profile_id = "prf_2222222222222222"
+    context.organization_id = None
+    context.metadata = ExecutionMetadata()
+    context.expected_inputs = []
+    context.strictness_level = 100
+    context.prompt_blocks = None
+
+    mock_repo.set_step(
+        {
+            "id": "stp_2222222222222222",
+            "slug": "no_mcp_step",
+            "name": {"translations": {"en": "No MCP Step"}},
+            "description": {"translations": {"en": "No MCP Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_2222222222222222"],
+            "cognitive_tier": "fast",
+            "allowed_mcp_tools": [],
+        }
+    )
+
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_2222222222222222",
+                "slug": "eval_matrix_2",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Matrix"}},
+                "description": {"translations": {"en": "Matrix"}},
+                "ai_description": "Analyze against theoretical framework.",
+                "scales": [
+                    {"score": 1, "ai_label": "LOW", "claims": []},
+                    {"score": 5, "ai_label": "HIGH", "claims": []},
+                ],
+                "allow_contextual_override": True,
+                "is_lightweight_protocol": True,
+            },
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+
+    mock_repo.set_output_profile(
+        {
+            "id": "prf_2222222222222222",
+            "slug": "no_mcp_profile",
+            "workflow_id": "wor_2222222222222222",
+            "name": {"translations": {"en": "No MCP Profile"}},
+            "description": {"translations": {"en": "No MCP Profile"}},
+            "tone_instruction": "Professional and analytical.",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_2222222222222222",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
+        }
+    )
+
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_2222222222222222",
+            workflow_id="wor_2222222222222222",
+            output_profile_id="prf_2222222222222222",
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            source_identity_manifest={},
+        )
+    )
+
+    mock_engine = llm_strategy._engine
+    mock_engine.execute.return_value = EngineExecutionResult(
+        results=[],
+        hydrated_references={},
+        usage=TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.002),
+    )
+
+    mock_hook_state = _make_mock_hook_state(
+        {},
+        metadata=context.metadata,
+        global_context_vars=context.global_context_vars,
+    )
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+        ) as mock_retrieve,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = {"results": []}
+        mock_post.return_value = (mock_post_hook_state, [])
+
+        traces = await llm_strategy.execute(
+            step=step,
+            projector=projector,
+            context=context,
+            frozen_ctx=FrozenContext(),
+            trace=[],
+        )
+
+    assert len(traces) == 1
+    mock_retrieve.assert_not_called()
+    assert len(traces[0].mcp_audit_traces) == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_failure_propagates_app_exception(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, mock_compiler: MagicMock
+) -> None:
+    """Test that AppException during MCP retrieval propagates fail-fast without swallowing."""
+    from unittest.mock import AsyncMock, patch
+
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+
+    step = MagicMock()
+    step.id = "stp_3333333333333333"
+    step.task_blueprint = "stp_3333333333333333"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = ["mcp_tavily_search"]
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exe_3333333333333333"
+    context.workflow_id = "wor_3333333333333333"
+    context.global_context_vars = GlobalContextVarsDTO(
+        shuffled_atoms=[
+            FlattenedAtom(atom_id="atm_3333333333333333", question="Atom 3"),
+        ]
+    )
+    context.target_locale = "en"
+    context.output_profile_id = "prf_3333333333333333"
+    context.organization_id = None
+    context.metadata = ExecutionMetadata()
+    context.expected_inputs = []
+    context.strictness_level = 100
+    context.prompt_blocks = None
+
+    mock_repo.set_step(
+        {
+            "id": "stp_3333333333333333",
+            "slug": "mcp_fail_step",
+            "name": {"translations": {"en": "MCP Fail Step"}},
+            "description": {"translations": {"en": "MCP Fail Step"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_3333333333333333"],
+            "cognitive_tier": "fast",
+            "allowed_mcp_tools": ["mcp_tavily_search"],
+        }
+    )
+
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_3333333333333333",
+                "slug": "eval_matrix_3",
+                "category_id": "matrix",
+                "type": "float",
+                "label": {"translations": {"en": "Matrix"}},
+                "description": {"translations": {"en": "Matrix"}},
+                "ai_description": "Analyze against theoretical framework.",
+                "scales": [
+                    {"score": 1, "ai_label": "LOW", "claims": []},
+                    {"score": 5, "ai_label": "HIGH", "claims": []},
+                ],
+                "allow_contextual_override": True,
+                "is_lightweight_protocol": True,
+            },
+            {
+                "id": "blk_573802341db9d68c",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+
+    mock_repo.set_output_profile(
+        {
+            "id": "prf_3333333333333333",
+            "slug": "fail_mcp_profile",
+            "workflow_id": "wor_3333333333333333",
+            "name": {"translations": {"en": "Fail MCP Profile"}},
+            "description": {"translations": {"en": "Fail MCP Profile"}},
+            "tone_instruction": "Professional and analytical.",
+            "matrix_synthesis_groups": [
+                {
+                    "id": "grp_3333333333333333",
+                    "title": {"translations": {"en": "Test"}},
+                    "target_blocks": ["*"],
+                }
+            ],
+        }
+    )
+
+    mock_repo.set_execution(
+        ExecutionRecord(
+            id="exe_3333333333333333",
+            workflow_id="wor_3333333333333333",
+            output_profile_id="prf_3333333333333333",
+            target_locale="en",
+            metadata=ExecutionMetadata(),
+            source_identity_manifest={},
+        )
+    )
+
+    mock_hook_state = _make_mock_hook_state(
+        {},
+        metadata=context.metadata,
+        global_context_vars=context.global_context_vars,
+    )
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch(
+            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+        ) as mock_retrieve,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_retrieve.side_effect = AppException(
+            message="Tool retrieval connection timed out.",
+            status_code=502,
+            details={"error_code": ErrorCodes.FETCH_FAILED.value},
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=FrozenContext(),
+                trace=[],
+            )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.details["error_code"] == ErrorCodes.FETCH_FAILED.value
 
 
 @pytest.mark.asyncio

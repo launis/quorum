@@ -7,9 +7,13 @@ import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import SemanticEvidenceError
-from backend_v2.models.domain.mcp import CitationExtractionItemDTO, CitationExtractionResult
+from backend_v2.models.domain.mcp import (
+    CitationExtractionItemDTO,
+    CitationExtractionResult,
+    MCPRetrievalResultDTO,
+)
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.services.mcp.mcp_tool_loop import execute_tool_loop
+from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval, execute_tool_loop
 
 
 class MockResponseModel(BaseModel):
@@ -823,3 +827,89 @@ async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
             validation_context={"strictness_level": 70.0},
         )
         assert result.result_data["score"] == 4.5
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_empty_tools() -> None:
+    """Verify execute_mcp_retrieval with empty tools returns empty MCPRetrievalResultDTO without task execution."""
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor()
+
+    result = await execute_mcp_retrieval(
+        llm_client=client,
+        executor=executor,
+        messages=[{"role": "user", "content": "test content"}],
+        allowed_tools=[],
+        step_name="test_empty_step",
+    )
+
+    assert isinstance(result, MCPRetrievalResultDTO)
+    assert len(result.audit_traces) == 0
+    assert result.evidence_payload == ""
+    assert result.usage.total_tokens == 0
+    executor.execute_structured_task.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_success_with_traces() -> None:
+    """Verify execute_mcp_retrieval executes tools, formats evidence payload, and registers aliases."""
+    import datetime
+
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+    from backend_v2.utils.alias_engine import AliasEngine
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["verified fact"])
+    alias_engine = AliasEngine()
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_tool:
+        mock_tool.return_value = MCPAuditTrace(
+            id="trc_001",
+            tool_id="mcp_tavily_search",
+            step_name="retrieval_step",
+            query="verified fact",
+            response_summary="Verified fact evidence summary.",
+            source_urls=["https://example.com/verified"],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=42,
+        )
+
+        result = await execute_mcp_retrieval(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "Here is a verified fact in text"}],
+            allowed_tools=["mcp_tavily_search"],
+            step_name="retrieval_step",
+            source_context="Here is a verified fact in text",
+            alias_engine=alias_engine,
+        )
+
+    assert isinstance(result, MCPRetrievalResultDTO)
+    assert len(result.audit_traces) == 1
+    assert result.audit_traces[0].query == "verified fact"
+    assert "<external_evidence>" in result.evidence_payload
+    assert '<source ID="mcp0">' in result.evidence_payload
+    assert "Verified fact evidence summary." in result.evidence_payload
+    assert "https://example.com/verified" in result.evidence_payload
+    assert result.usage.total_tokens > 0
+    assert "mcp0" in alias_engine.source_document_aliases
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_hallucinated_claim_rejected() -> None:
+    """Verify execute_mcp_retrieval raises SemanticEvidenceError when claims fail physical anchoring."""
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["completely hallucinated claim"])
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        await execute_mcp_retrieval(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "source text"}],
+            allowed_tools=["mcp_tavily_search"],
+            step_name="retrieval_step",
+            source_context="totally different source text",
+        )
+
+    assert exc_info.value.status_code == 400
+

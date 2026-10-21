@@ -39,6 +39,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -58,6 +59,8 @@ from backend_v2.models.enums import (
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
@@ -692,10 +695,41 @@ class LLMNodeStrategy(NodeStrategy):
             pipeline_name="chunk_worker",
         )
 
+        mcp_audit_traces: list[MCPAuditTrace] = []
+        retrieval_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+
+        if effective_mcp_tools:
+            task_executor = LLMTaskExecutor(prompt_compiler=self.compiler)
+            retrieval_result = await execute_mcp_retrieval(
+                llm_client=bound_client,
+                executor=task_executor,
+                messages=[LLMMessageDTO(role="user", content=global_source_text or user_payload)],
+                allowed_tools=effective_mcp_tools,
+                step_name=step.id,
+                target_language=target_locale,
+                validation_context={"strictness_level": context.strictness_level},
+                source_context=global_source_text or user_payload,
+                alias_engine=alias_engine,
+                repository=self.system_repo,
+            )
+            if retrieval_result.audit_traces:
+                if user_payload:
+                    user_payload = f"{user_payload}\n\n{retrieval_result.evidence_payload}"
+                else:
+                    user_payload = retrieval_result.evidence_payload
+
+                if global_source_text:
+                    global_source_text = f"{global_source_text}\n\n{retrieval_result.evidence_payload}"
+                else:
+                    global_source_text = retrieval_result.evidence_payload
+
+                retrieval_usage = retrieval_result.usage
+                mcp_audit_traces = list(retrieval_result.audit_traces)
+
         MAX_RETRIES = get_settings().llm_max_retries
         retry_count = 0
         final_dict = {}
-        usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        usage_agg = retrieval_usage
         latency_ms = 0
 
         while retry_count <= MAX_RETRIES:
@@ -851,10 +885,12 @@ class LLMNodeStrategy(NodeStrategy):
                 }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
-            if engine_result.usage is not None:
-                usage_agg = engine_result.usage
-            else:
-                usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            engine_usage = (
+                engine_result.usage
+                if engine_result.usage is not None
+                else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+            )
+            usage_agg = retrieval_usage + engine_usage
             all_prompt_contexts: list[str] = []
             post_target_locale: str | None = None
             post_user_role: Any | None = None
@@ -954,8 +990,11 @@ class LLMNodeStrategy(NodeStrategy):
             physical_model_val = bound_client.model_name
 
         effective_token_usage = meta_dto.token_usage
-        if (usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0) and effective_token_usage is None:
-            effective_token_usage = usage_agg
+        if effective_token_usage is None:
+            if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
+                effective_token_usage = usage_agg
+        elif retrieval_usage.total_tokens > 0 or retrieval_usage.cost_usd > 0.0:
+            effective_token_usage = effective_token_usage + retrieval_usage
 
         meta_dto = StepTraceMetadataDTO(
             task_blueprint=blueprint_id,
@@ -997,6 +1036,7 @@ class LLMNodeStrategy(NodeStrategy):
                     event_type="output",
                     content=final_dict,
                     metadata=trace_metadata,
+                    mcp_audit_traces=mcp_audit_traces,
                 )
             ]
         )
