@@ -58,14 +58,28 @@ MCP_EVIDENCE_INJECTION_DIRECTIVE: str = (
 )
 
 
-def build_mcp_citation_extraction_directive(target_language: str) -> str:
-    """Build dynamic system directive for extracting citations with specific target language."""
+def build_mcp_citation_extraction_directive(target_language: str, query_guidance: str | None = None) -> str:
+    """Build dynamic system directive for extracting citations with specific target language.
+
+    Args:
+        target_language: Two-letter ISO language code for reasoning output.
+        query_guidance: Optional step-level query guidance instruction to append.
+
+    Returns:
+        Structured XML system directive string.
+    """
+    guidance_rule = ""
+    if query_guidance and query_guidance.strip():
+        guidance_rule = f"  <rule>{query_guidance.strip()}</rule>\n"
+
     return (
         "<system_directive>\n"
         "<objective>Extract factual claims that require external verification.</objective>\n"
         "<rules>\n"
         "  <rule>Return a structured list of citations.</rule>\n"
         f"  <rule>Provide a short max 100 character reasoning sentence for each extraction in the language code '{target_language}'.</rule>\n"
+        "  <rule>Formulate 'search_query' strictly as concise entity or topic keywords (1-3 key terms, specifically: proper nouns, organization names, or core subject concepts). Do NOT include natural language questions, conjunctions, multi-entity clauses, or conversational filler phrases (specifically: 'tutkimus tulokset' or 'hybridityö tutkimus').</rule>\n"
+        f"{guidance_rule}"
         "</rules>\n"
         "</system_directive>"
     )

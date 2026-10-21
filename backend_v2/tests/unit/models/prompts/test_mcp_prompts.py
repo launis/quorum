@@ -38,14 +38,28 @@ def test_mcp_prompts_constants_exist_and_non_empty() -> None:
 
 
 def test_mcp_prompts_dynamic_builder() -> None:
-    """Verify that dynamic builder generates valid system directives with target language."""
+    """Verify that dynamic builder generates valid system directives with target language and query guidance."""
     directive_fi = build_mcp_citation_extraction_directive("fi")
     assert "<system_directive>" in directive_fi
     assert "language code 'fi'" in directive_fi
+    assert "Formulate 'search_query' strictly as concise entity or topic keywords" in directive_fi
 
     directive_en = build_mcp_citation_extraction_directive("en")
     assert "<system_directive>" in directive_en
     assert "language code 'en'" in directive_en
+    assert "Formulate 'search_query' strictly as concise entity or topic keywords" in directive_en
+
+    # Positive: with custom query guidance
+    directive_with_guidance = build_mcp_citation_extraction_directive(
+        "en", query_guidance="Focus search strictly on corporate acquisitions."
+    )
+    assert "<rule>Focus search strictly on corporate acquisitions.</rule>" in directive_with_guidance
+
+    # Negative / Boundary: empty or whitespace query guidance is ignored without empty rule tags
+    directive_whitespace = build_mcp_citation_extraction_directive("en", query_guidance="   \n\t  ")
+    assert "<rule></rule>" not in directive_whitespace
+    assert "<rule>   " not in directive_whitespace
+    assert directive_whitespace == directive_en
 
 
 def test_mcp_prompts_exports_integrity() -> None:

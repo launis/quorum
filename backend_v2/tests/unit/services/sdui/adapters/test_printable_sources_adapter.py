@@ -299,7 +299,46 @@ def test_build_verified_evidence_mode_with_mcp_traces(valid_output_profile_fixtu
     assert "**Tila:** Vahvistettu tutkimusnäytöllä" in text
     assert "**Todennusmenetelmä:** Tavily Search Gateway" in text
     assert '**Synteesin havainto:** "Yhtiön liikevaihto kasvoi 25 prosenttia."' in text
-    assert "**Teoreettinen viitekehys:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024." in text
+    assert (
+        "**Ulkoinen havainto / MCP-haun tulos:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024."
+        in text
+    )
+
+
+def test_build_mcp_traces_unverified_when_no_urls_or_articles_found(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """Negative: MCP trace without URLs or with empty results renders unverified status."""
+    mcp_audit_map = {
+        "trace_empty": MCPAuditTrace(
+            tool_id="mcp_wikipedia_search",
+            step_name="faktantarkistaja",
+            claim_text="Yrityksen perustamisvuosi oli 1888.",
+            query="Yritys Perustamisvuosi 1888",
+            response_summary="No Wikipedia articles found for query: 'Yritys Perustamisvuosi 1888'",
+            source_urls=[],
+        )
+    }
+    context = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=mcp_audit_map,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PrintableSourcesAdapter.build(context)
+    assert len(blocks) == 1
+    text = blocks[0].text
+    assert "**Tila:** Ei vahvistettu (ei osumia tietokannassa)" in text
+    assert (
+        "**Ulkoinen havainto / MCP-haun tulos:** No Wikipedia articles found for query: "
+        "'Yritys Perustamisvuosi 1888'" in text
+    )
+    assert "Vahvistettu tutkimusnäytöllä" not in text
 
 
 def test_build_simple_bibliography_mode(valid_output_profile_fixture: OutputProfile) -> None:
@@ -454,8 +493,10 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
     text = blocks[0].text
     assert "Custom Retrieval Tool Gateway" in text
     assert "- **custom query text without url**" in text
+    assert "**Status:** Unverified (no matching records found)" in text
     assert '**Synthesis finding:** "Custom tool verified statement."' in text
-    assert "**Theoretical framework:** Summary from custom gateway." in text
+    assert "**External finding / MCP retrieval result:** Summary from custom gateway." in text
+    assert "**Theoretical framework:** Scientific evaluation framework: Empirical falsifiability" in text
     assert '**Source observation:** "Verbatim input document extract quote."' in text
 
 

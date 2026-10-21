@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import re
 
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.sdui_rules import (
     PrintableSourcesRulesDTO,
     SourceDisplayNameDTO,
@@ -104,6 +105,32 @@ class PrintableSourcesAdapter:
     """
 
     @staticmethod
+    def _resolve_tool_badge(tool_id: str | None, context: AdapterContext, locale: str) -> str:
+        """Resolve localized tool display name badge from context or tool ID.
+
+        Args:
+            tool_id: Unique tool identifier or slug.
+            context: Adapter context containing configured tools.
+            locale: User target language locale.
+
+        Returns:
+            Human-readable formatted tool badge string.
+        """
+        if tool_id and tool_id in context.mcp_tools_map:
+            tool = context.mcp_tools_map[tool_id]
+            if isinstance(tool.name, str):
+                return tool.name
+            if isinstance(tool.name, I18nText):
+                return tool.name.resolve(locale)
+            return tool_id
+
+        if tool_id:
+            clean_name = tool_id.removeprefix("mcp_").replace("_", " ").title()
+            return f"{clean_name} Gateway"
+
+        return PRINTABLE_SOURCES_RULES.default_tool.get_display_name(locale)
+
+    @staticmethod
     def build(context: AdapterContext) -> list[AnySduiBlock]:
         """Build SDUI blocks from the adapter context.
 
@@ -170,24 +197,9 @@ class PrintableSourcesAdapter:
                 summary_lines.append(f"> - **{verified_claims_label}** {len(mcp_traces)}")
 
                 unique_tool_ids = sorted(list({t.tool_id for t in mcp_traces}))
-                tool_badges: list[str] = []
-                for t_id in unique_tool_ids:
-                    if t_id and t_id in context.mcp_tools_map:
-                        tool = context.mcp_tools_map[t_id]
-                        if isinstance(tool.name, str):
-                            t_name = tool.name
-                        elif locale in tool.name.translations:
-                            t_name = tool.name.translations[locale]
-                        elif "en" in tool.name.translations:
-                            t_name = tool.name.translations["en"]
-                        else:
-                            t_name = t_id
-                    elif t_id:
-                        clean_name = t_id.removeprefix("mcp_").replace("_", " ").title()
-                        t_name = f"{clean_name} Gateway"
-                    else:
-                        t_name = PRINTABLE_SOURCES_RULES.default_tool.get_display_name(locale)
-                    tool_badges.append(t_name)
+                tool_badges: list[str] = [
+                    PrintableSourcesAdapter._resolve_tool_badge(t_id, context, locale) for t_id in unique_tool_ids
+                ]
 
                 summary_lines.append(f"> - **{used_gateways_label}** {', '.join(tool_badges)}")
             else:
@@ -224,10 +236,12 @@ class PrintableSourcesAdapter:
             rendered_urls: set[str] = set()
 
             status_label = LocalizationService.translate("sources_status_label", locale)
-            status_text = LocalizationService.translate("sources_status_verified", locale)
+            verified_status_text = LocalizationService.translate("sources_status_verified", locale)
+            unverified_status_text = LocalizationService.translate("sources_status_unverified", locale)
             method_label = LocalizationService.translate("sources_verification_method", locale)
             synthesis_label = LocalizationService.translate("sources_synthesis_finding", locale)
             observation_label = LocalizationService.translate("sources_input_observation", locale)
+            mcp_result_label = LocalizationService.translate("sources_mcp_result", locale)
             theory_label = LocalizationService.translate("sources_theoretical_grounding", locale)
             no_obs_text = LocalizationService.translate("sources_no_observation_in_input", locale)
 
@@ -246,25 +260,20 @@ class PrintableSourcesAdapter:
                                     all_narrative_sentences.append(clean_s)
 
             for trace in mcp_traces:
-                if trace.tool_id and trace.tool_id in context.mcp_tools_map:
-                    tool = context.mcp_tools_map[trace.tool_id]
-                    if isinstance(tool.name, str):
-                        t_name = tool.name
-                    elif locale in tool.name.translations:
-                        t_name = tool.name.translations[locale]
-                    elif "en" in tool.name.translations:
-                        t_name = tool.name.translations["en"]
-                    else:
-                        t_name = trace.tool_id
-                elif trace.tool_id:
-                    clean_name = trace.tool_id.removeprefix("mcp_").replace("_", " ").title()
-                    t_name = f"{clean_name} Gateway"
-                else:
-                    t_name = PRINTABLE_SOURCES_RULES.default_tool.get_display_name(locale)
+                t_name = PrintableSourcesAdapter._resolve_tool_badge(trace.tool_id, context, locale)
 
-                urls_to_render = [u.strip() for u in trace.source_urls if u.strip()]
-                if not urls_to_render:
-                    urls_to_render = [trace.query]
+                clean_urls = [u.strip() for u in trace.source_urls if u.strip()]
+                is_verified = len(clean_urls) > 0
+                if is_verified:
+                    item_status_text = verified_status_text
+                    urls_to_render = clean_urls
+                else:
+                    item_status_text = unverified_status_text
+                    query_text = trace.query.strip()
+                    if query_text:
+                        urls_to_render = [query_text]
+                    else:
+                        urls_to_render = [trace.tool_id]
 
                 for url in urls_to_render:
                     rendered_urls.add(url)
@@ -273,13 +282,13 @@ class PrintableSourcesAdapter:
                     else:
                         evidence_lines.append(f"- **{url}**")
 
-                    evidence_lines.append(f"  - **{status_label}** {status_text}")
+                    evidence_lines.append(f"  - **{status_label}** {item_status_text}")
                     evidence_lines.append(f"  - **{method_label}** {t_name}")
 
                     if trace.claim_text and trace.claim_text.strip():
                         evidence_lines.append(f'  - **{synthesis_label}** "{trace.claim_text.strip()}"')
                     if trace.response_summary and trace.response_summary.strip():
-                        evidence_lines.append(f"  - **{theory_label}** {trace.response_summary.strip()}")
+                        evidence_lines.append(f"  - **{mcp_result_label}** {trace.response_summary.strip()}")
 
             # Render remaining standalone cited sources with full evidence details in VERIFIED_EVIDENCE mode
             lit_rule = PRINTABLE_SOURCES_RULES.literature_source
@@ -293,7 +302,7 @@ class PrintableSourcesAdapter:
                     else:
                         evidence_lines.append(f"- **{src}**")
 
-                    evidence_lines.append(f"  - **{status_label}** {status_text}")
+                    evidence_lines.append(f"  - **{status_label}** {verified_status_text}")
                     evidence_lines.append(f"  - **{method_label}** {lit_name}")
 
                     # Author token extraction (e.g. "Popper, K. (1959)..." -> "popper")

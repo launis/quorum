@@ -218,7 +218,15 @@ class CitationExtractionItemDTO(V2CoreBase):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     claim_text: Annotated[str, Field(description="Exact quote of the claim from the text.")]
-    search_query: Annotated[str, Field(description="Optimized search query for the tool to verify the claim.")]
+    search_query: Annotated[
+        str,
+        Field(
+            description=(
+                "Concise entity or topic keywords (1-3 key terms, specifically: proper nouns, organization names, or "
+                "core subject concepts) for tool verification."
+            )
+        ),
+    ]
     knowledge_gap: Annotated[str, Field(description="The specific knowledge gap needing resolution.")] = ""
     search_rationale: Annotated[str, Field(description="The rationale mapping the query to the knowledge gap.")] = ""
     reasoning: Annotated[
@@ -232,7 +240,7 @@ class CitationExtractionItemDTO(V2CoreBase):
         if isinstance(v, str) and len(v) > 400:
             truncated = v[:397]
             last_period = truncated.rfind(".")
-            if last_period > 50:  # Katkaistaan pisteeseen jos se on järkevässä kohdassa
+            if last_period > 50:  # Truncate at period if positioned reasonably
                 return truncated[: last_period + 1]
             return truncated + "..."
         return v

@@ -882,6 +882,7 @@ async def test_execute_mcp_retrieval_success_with_traces() -> None:
             step_name="retrieval_step",
             source_context="Here is a verified fact in text",
             alias_engine=alias_engine,
+            validation_context={"query_guidance": "Focus search strictly on financial filing names."},
         )
 
     assert isinstance(result, MCPRetrievalResultDTO)
@@ -893,6 +894,11 @@ async def test_execute_mcp_retrieval_success_with_traces() -> None:
     assert "https://example.com/verified" in result.evidence_payload
     assert result.usage.total_tokens > 0
     assert "mcp0" in alias_engine.source_document_aliases
+
+    call_args = executor.execute_structured_task.call_args
+    passed_messages = call_args.kwargs["messages"]
+    sys_content = passed_messages[0]["content"]
+    assert "<rule>Focus search strictly on financial filing names.</rule>" in sys_content
 
 
 @pytest.mark.asyncio

@@ -235,7 +235,15 @@ async def execute_mcp_retrieval(
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     audit_traces: list[MCPAuditTrace] = []
 
-    extraction_sys_msg = build_mcp_citation_extraction_directive(target_language)
+    query_guidance: str | None = None
+    if validation_context and "query_guidance" in validation_context:
+        raw_guidance = validation_context["query_guidance"]
+        if isinstance(raw_guidance, str) and raw_guidance.strip():
+            query_guidance = raw_guidance.strip()
+
+    extraction_sys_msg = build_mcp_citation_extraction_directive(
+        target_language=target_language, query_guidance=query_guidance
+    )
 
     extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
     for msg in typed_messages:
