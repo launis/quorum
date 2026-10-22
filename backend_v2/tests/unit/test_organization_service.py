@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend_v2.exceptions import (
+    AppException,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -715,9 +716,8 @@ async def test_delete_organization_non_empty_with_force_cascades_deletion_and_lo
 ) -> None:
     """TC-P3-19: Force deletion cascades delete to users in org and Firebase."""
     mock_audit = AsyncMock()
-    auth_service = AuthService(mock_repo, audit_service=mock_audit, use_firebase=True)
     mock_fb = MagicMock()
-    auth_service.firebase_auth = mock_fb
+    auth_service = AuthService(mock_repo, audit_service=mock_audit, use_firebase=True, firebase_auth=mock_fb)
 
     org = Organization(
         id="org_force00000001",
@@ -784,7 +784,7 @@ async def test_direct_organization_service_execution(
         org_repo=org_repo,
         user_repo=user_repo,
         audit_service=mock_audit,
-        create_user_fn=mock_create_user,
+        user_creator=mock_create_user,
     )
 
     root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
@@ -814,3 +814,30 @@ async def test_direct_organization_service_execution(
 
     await service.delete_organization(root_initiator, created.id)
     assert await org_repo.get_by_id(created.id) is None
+
+
+@pytest.mark.asyncio
+async def test_direct_organization_service_execution_missing_user_creator_fails_fast(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verifies that create_organization raises AppException if user_creator protocol is missing."""
+    org_repo = OrganizationRepository(mock_repo)
+    user_repo = UserRepository(mock_repo)
+    service = OrganizationService(
+        org_repo=org_repo,
+        user_repo=user_repo,
+        user_creator=None,
+    )
+    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    payload = OrganizationCreate(
+        name="Missing Creator Org",
+        admin_email="direct@org.com",
+        admin_name="Direct Admin",
+        admin_password="password123",
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.create_organization(root_initiator, payload)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value

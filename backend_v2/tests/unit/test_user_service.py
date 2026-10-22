@@ -171,10 +171,8 @@ async def test_auth_service_create_user_firebase_flow(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Test create_user with Firebase enabled and fallback."""
-    auth = AuthService(mock_repo, use_firebase=False)
-    auth.use_firebase = True
     mock_fb = MagicMock()
-    auth.firebase_auth = mock_fb
+    auth = AuthService(mock_repo, use_firebase=True, firebase_auth=mock_fb)
 
     creator_root = User(
         id="usr_rootcreator01",

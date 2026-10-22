@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -310,27 +311,37 @@ async def test_auth_service_facade_delegates_all_operations(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """TC-P4-39: AuthService facade delegates token, org, and user operations cleanly."""
-    auth_service = AuthService(mock_repo)
+    mock_fb = MagicMock()
+    auth_service = AuthService(mock_repo, use_firebase=True, firebase_auth=mock_fb)
     assert auth_service.token_service is not None
     assert auth_service.org_service is not None
     assert auth_service.user_service is not None
 
-    # Test property setters synchronize across subservices
-    auth_service.use_firebase = True
+    # Test immutable DI properties synchronize across subservices
+    assert auth_service.use_firebase is True
     assert auth_service.token_service.use_firebase is True
     assert auth_service.org_service.use_firebase is True
     assert auth_service.user_service.use_firebase is True
 
-    mock_fb = MagicMock()
-    auth_service.firebase_auth = mock_fb
     assert auth_service.firebase_auth is mock_fb
     assert auth_service.token_service.firebase_auth is mock_fb
     assert auth_service.org_service.firebase_auth is mock_fb
     assert auth_service.user_service.firebase_auth is mock_fb
 
-    auth_service._initialized_firebase = True
-    assert auth_service._initialized_firebase is True
-    assert auth_service.token_service._initialized_firebase is True
+    # Test that mutating property setters raises AttributeError (Immutable Facade)
+    assert AuthService.use_firebase.fset is None
+    assert AuthService.firebase_auth.fset is None
+
+    with pytest.raises(AttributeError):
+        AuthService.use_firebase.__set__(auth_service, False)
+
+    with pytest.raises(AttributeError):
+        AuthService.firebase_auth.__set__(auth_service, None)
+
+    # Test facade line count cap strictly < 300 lines
+    init_file = Path(__file__).parents[2] / "services" / "auth" / "__init__.py"
+    line_count = len(init_file.read_text(encoding="utf-8").splitlines())
+    assert line_count < 300, f"AuthService facade line count ({line_count}) exceeds 300 lines cap"
 
     # Test private and public helper delegations
     auth_service.token_service._init_firebase = MagicMock()

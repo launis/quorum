@@ -183,10 +183,8 @@ async def test_auth_service_verify_token_firebase_branches(
     mock_repo: InMemoryUnifiedWorkflowRepository,
 ) -> None:
     """Test verify_token in Firebase mode."""
-    auth = AuthService(mock_repo, use_firebase=False)
-    auth.use_firebase = True
     mock_fb = MagicMock()
-    auth.firebase_auth = mock_fb
+    auth = AuthService(mock_repo, use_firebase=True, firebase_auth=mock_fb)
 
     test_user = User(
         id="usr_fbuser000123",

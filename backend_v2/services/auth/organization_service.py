@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from collections.abc import Callable, Coroutine
 from datetime import datetime, timezone
 from typing import Any
 
@@ -23,12 +22,12 @@ from backend_v2.models.auth import (
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
-    User,
     UserCreate,
     UserRole,
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth.constants import LEGACY_SYSTEM_ORG_ID
+from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import (
     OrganizationRepository,
     UserRepository,
@@ -48,7 +47,7 @@ class OrganizationService:
         audit_service: Optional service for recording audit logs.
         use_firebase: Flag indicating if Firebase integration is enabled.
         firebase_auth: Optional Firebase authentication module or mock.
-        create_user_fn: Optional callable for creating users.
+        user_creator: Optional protocol handler for creating users.
     """
 
     def __init__(
@@ -58,7 +57,7 @@ class OrganizationService:
         audit_service: Any = None,
         use_firebase: bool = False,
         firebase_auth: Any = None,
-        create_user_fn: Callable[..., Coroutine[Any, Any, User]] | None = None,
+        user_creator: UserCreatorProtocol | None = None,
     ) -> None:
         """Initializes the OrganizationService.
 
@@ -68,14 +67,14 @@ class OrganizationService:
             audit_service: Optional service for recording audit logs.
             use_firebase: Flag indicating if Firebase integration is enabled.
             firebase_auth: Optional Firebase authentication module or mock.
-            create_user_fn: Optional callable for creating users.
+            user_creator: Optional protocol handler for creating users.
         """
         self.org_repo = org_repo
         self.user_repo = user_repo
         self.audit_service = audit_service
         self.use_firebase = use_firebase
         self.firebase_auth = firebase_auth
-        self.create_user_fn = create_user_fn
+        self.user_creator = user_creator
 
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it.
@@ -120,8 +119,14 @@ class OrganizationService:
             theme_mode="system",
         )
 
-        if self.create_user_fn is not None:
-            await self.create_user_fn(initiator.id, admin_payload, force_org_id=org_id)
+        if self.user_creator is None:
+            raise AppException(
+                message="Cannot create organization: UserCreatorProtocol is not configured.",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        await self.user_creator(initiator.id, admin_payload, force_org_id=org_id)
 
         if self.audit_service is not None:
             await self.audit_service.log_event(
