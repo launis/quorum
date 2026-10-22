@@ -31,8 +31,6 @@ def build_summary_dtos(
     summary_dtos: list[ExportMatrixSummaryRowDTO] = []
     for m in effective_matrices:
         lbl = m.label_i18n.resolve(target_locale=locale)
-        if not lbl:
-            lbl = m.name
         ctx_target = resolve_context_target(m, locale)
         dist = ""
         if m.level_breakdown:

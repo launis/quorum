@@ -142,3 +142,33 @@ def test_build_summary_dtos_no_sources() -> None:
     assert dtos[0].source == ""
     assert dtos[0].label == "No Source"
     assert dtos[0].criteria == "0/2"
+
+
+def test_build_summary_dtos_locale_resolution_english_fallback() -> None:
+    """Verify that when requested locale is missing, I18nText falls back to English."""
+    matrix = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Authoritative Fallback Name",
+        label_i18n=I18nText(translations={"en": "English Authoritative Label"}),
+        score=2.0,
+        raw_score=2.0,
+        scale_max=5.0,
+        normalized_score=40.0,
+        true_atoms=2,
+        total_atoms=5,
+        level_breakdown=None,
+        row_explanation="Testing English fallback.",
+        cited_source_title=None,
+        cited_source_id=None,
+        is_evaluative=True,
+    )
+
+    dtos = build_summary_dtos(
+        effective_matrices=[matrix],
+        locale="fi",
+        target_id="exe_0123456789abcdef",
+    )
+    assert len(dtos) == 1
+    assert dtos[0].label == "English Authoritative Label"
+
+
