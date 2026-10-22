@@ -1318,6 +1318,44 @@ def test_qgr017_modular_auth_package_allowed() -> None:
     assert len(qgr017) == 0
 
 
+def test_qgr017_import_from_export_service_fatal() -> None:
+    """QGR017: from backend_v2.services.export_service import ... emits FATAL violation."""
+    code = "from backend_v2.services.export_service import ExportService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.export_service" in qgr017[0].message
+
+
+def test_qgr017_import_export_service_module_fatal() -> None:
+    """QGR017: import backend_v2.services.export_service emits FATAL violation."""
+    code = "import backend_v2.services.export_service\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.export_service" in qgr017[0].message
+
+
+def test_qgr017_banned_export_service_god_file_path_fatal() -> None:
+    """QGR017: scanning backend_v2/services/export_service.py emits FATAL violation."""
+    code = "# Banned export_service god file\nclass ExportService:\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/export_service.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/services/export_service.py" in qgr017[0].message
+
+
+def test_qgr017_modular_export_package_allowed() -> None:
+    """QGR017: scanning modular export package files produces zero violations."""
+    code = "from backend_v2.services.export import ExportService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/export/__init__.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 0
+
+
 # ==============================================================================
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================

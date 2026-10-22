@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.dtos.export import ExportMatrixSummaryRowDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.services.export import ExportService
 from backend_v2.services.export.summary_builder import build_summary_dtos
-from backend_v2.services.export_service import ExportService
 
 
 def _create_sample_summary_matrix() -> MatrixScorecardRowDTO:

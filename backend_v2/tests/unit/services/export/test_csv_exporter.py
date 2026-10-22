@@ -22,8 +22,8 @@ from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import SduiRadarChartBlock
+from backend_v2.services.export import ExportService
 from backend_v2.services.export.csv_exporter import CsvExporter
-from backend_v2.services.export_service import ExportService
 from backend_v2.services.localization import ReportHeaderResolver
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryPromptBlockRepository
 

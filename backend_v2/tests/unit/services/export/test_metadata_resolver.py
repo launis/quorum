@@ -31,6 +31,7 @@ from backend_v2.models.dtos.matrix_scorecard import (
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.state import TraceEvent
+from backend_v2.services.export import ExportService
 from backend_v2.services.export.metadata_resolver import (
     build_matrix_atom_maps,
     build_scale_metadata,
@@ -39,7 +40,6 @@ from backend_v2.services.export.metadata_resolver import (
     resolve_context_target,
     resolve_matrix_label,
 )
-from backend_v2.services.export_service import ExportService
 
 
 def _create_sample_matrices() -> list[MatrixScorecardRowDTO]:

@@ -55,7 +55,7 @@ from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.auth import AuthService
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution import ExecutionService
-from backend_v2.services.export_service import ExportService
+from backend_v2.services.export import ExportService
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler

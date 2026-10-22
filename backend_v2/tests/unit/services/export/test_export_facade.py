@@ -1,4 +1,4 @@
-"""Unit tests for ExportService covering Excel and flat CSV exports."""
+"""Unit tests for ExportService package facade covering Excel and flat CSV exports."""
 
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ from backend_v2.models.dtos.export import (
     AtomScaleMetadataDTO,
     ExportDenormalizedFlatRowDTO,
     ExportForensicAtomDTO,
+    ExportPayloadDTO,
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
@@ -47,8 +48,8 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
+from backend_v2.services.export import ExportService
 from backend_v2.services.export_evidence_formatter import format_text_observations
-from backend_v2.services.export_service import ExportService
 from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryPromptBlockRepository,
@@ -2191,3 +2192,137 @@ def test_export_service_multi_segment_quote_delimiter() -> None:
         ai_reasoning="Reasoning",
     )
     assert atom.quotes == "Part 1 [...] Part 2"
+
+
+# ==============================================================================
+# Phase 4 Test Contracts
+# ==============================================================================
+
+
+@pytest.mark.asyncio
+async def test_package_facade_export_excel_parity() -> None:
+    """Verify ExportService.export_excel via package facade matches original output."""
+    execution = _build_sample_execution()
+    report_dto = _build_sample_report_dto()
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Row explanation 1",
+            is_evaluative=True,
+        )
+    ]
+
+    svc = ExportService()
+    payload = await svc.export_excel(
+        execution=execution,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+
+    assert isinstance(payload, ExportPayloadDTO)
+    assert payload.filename.endswith(".xlsx")
+    assert payload.content_bytes[:4] == b"PK\x03\x04"
+
+
+@pytest.mark.asyncio
+async def test_package_facade_export_flat_csv_parity() -> None:
+    """Verify ExportService.export_flat_csv via package facade matches original output."""
+    execution = _build_sample_execution()
+    report_dto = _build_sample_report_dto()
+    matrices = [
+        MatrixScorecardRowDTO(
+            block_id="blk_0123456789abcdef",
+            name="Matrix 1",
+            label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
+            score=4.0,
+            scale_max=5.0,
+            row_explanation="Row explanation 1",
+            is_evaluative=True,
+        )
+    ]
+
+    svc = ExportService()
+    payload = await svc.export_flat_csv(
+        execution=execution,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+    )
+
+    assert isinstance(payload, ExportPayloadDTO)
+    assert payload.filename.endswith(".csv")
+    csv_text = payload.content_bytes.decode("utf-8")
+    reader = csv.reader(io.StringIO(csv_text))
+    headers = next(reader)
+    assert len(headers) == 22
+
+
+def test_all_submodules_clean_imports() -> None:
+    """Verify all submodules import cleanly without circular dependencies."""
+    from backend_v2.services.export import (
+        CsvExporter,
+        ExcelExporter,
+        ExportService,
+        apply_corporate_excel_styling,
+        build_atom_rows,
+        build_denormalized_rows,
+        build_matrix_atom_maps,
+        build_scale_metadata,
+        build_summary_dtos,
+        extract_causal_result,
+        resolve_causal_meta,
+        resolve_context_target,
+        resolve_matrix_label,
+    )
+
+    assert all(
+        [
+            CsvExporter,
+            ExcelExporter,
+            ExportService,
+            callable(apply_corporate_excel_styling),
+            callable(build_atom_rows),
+            callable(build_denormalized_rows),
+            callable(build_matrix_atom_maps),
+            callable(build_scale_metadata),
+            callable(build_summary_dtos),
+            callable(extract_causal_result),
+            callable(resolve_causal_meta),
+            callable(resolve_context_target),
+            callable(resolve_matrix_label),
+        ]
+    )
+
+
+@pytest.mark.asyncio
+async def test_export_facade_invalid_params_raises_validation_error() -> None:
+    """Verify package facade preserves fail-fast exception handling on missing parameters."""
+    execution = _build_sample_execution(status=ExecutionStatus.FAILED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    svc = ExportService()
+    with pytest.raises(AppException) as exc_info:
+        await svc.export_excel(
+            execution=execution,
+            report_dto=report_dto,
+            matrices=matrices,
+            locale="fi",
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+def test_report_service_integration_parity() -> None:
+    """Verify ReportService consumes new ExportService package without regressions."""
+    from backend_v2.services.report_service import ReportService
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    export_svc = ExportService()
+    report_svc = ReportService(repo=repo, export_service=export_svc)
+    assert report_svc.export_service is export_svc

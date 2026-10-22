@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import openpyxl
 
+from backend_v2.services.export import ExportService
 from backend_v2.services.export.excel_styler import apply_corporate_excel_styling
-from backend_v2.services.export_service import ExportService
 
 
 def _create_sample_workbook() -> openpyxl.Workbook:

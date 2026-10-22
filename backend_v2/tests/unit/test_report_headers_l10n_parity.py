@@ -25,7 +25,7 @@ from backend_v2.models.enums import (
     ReportMatrixColumn,
     ReportSheetKey,
 )
-from backend_v2.services.export_service import ExportService
+from backend_v2.services.export import ExportService
 from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
 
 

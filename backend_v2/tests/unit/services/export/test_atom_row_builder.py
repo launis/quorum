@@ -20,11 +20,11 @@ from backend_v2.models.dtos.causal_discovery import (
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, VisualIntent
+from backend_v2.services.export import ExportService
 from backend_v2.services.export.atom_row_builder import (
     build_atom_rows,
     build_denormalized_rows,
 )
-from backend_v2.services.export_service import ExportService
 from backend_v2.services.localization import LocalizationService
 
 

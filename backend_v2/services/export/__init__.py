@@ -1,8 +1,12 @@
-"""Export domain service for generating forensic Excel and flat CSV reports.
+"""Export package facade providing Excel and CSV export capabilities.
 
-Adheres strictly to Tripartite Pipeline Architecture and Dual-Axis Localization:
-- Axis 1 (Flutter .arb) is segregated; backend export services use static SSOT mappings.
-- Separates presentation export logic from core execution lifecycle.
+Decomposed from monolithic export_service.py into focused sub-modules:
+- metadata_resolver: Prompt block metadata, scales, and causal graph extraction.
+- excel_styler: Openpyxl styling and corporate theme application.
+- summary_builder: 13-column summary row builder for Excel Tab 1.
+- atom_row_builder: Tabular atom and denormalized dataset builders.
+- excel_exporter: Workbook generation and Excel serialization.
+- csv_exporter: Flat CSV tabular streaming.
 """
 
 from __future__ import annotations
@@ -11,9 +15,7 @@ import openpyxl
 
 from backend_v2.database.interfaces import IPromptBlockRepository
 from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.models.domain.prompt_blocks import (
-    AnyPromptBlock,
-)
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.dtos.causal_discovery import (
     CausalGraphPayloadDTO,
     CausalNodeDTO,
@@ -30,27 +32,55 @@ from backend_v2.models.dtos.export import (
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.services.export.atom_row_builder import (
-    build_atom_rows,
-    build_denormalized_rows,
+    build_atom_rows as build_atom_rows,
 )
-from backend_v2.services.export.csv_exporter import CsvExporter
-from backend_v2.services.export.excel_exporter import ExcelExporter
-from backend_v2.services.export.excel_styler import apply_corporate_excel_styling
+from backend_v2.services.export.atom_row_builder import (
+    build_denormalized_rows as build_denormalized_rows,
+)
+from backend_v2.services.export.csv_exporter import CsvExporter as CsvExporter
+from backend_v2.services.export.excel_exporter import ExcelExporter as ExcelExporter
+from backend_v2.services.export.excel_styler import (
+    apply_corporate_excel_styling as apply_corporate_excel_styling,
+)
 from backend_v2.services.export.metadata_resolver import (
-    build_matrix_atom_maps,
-    build_scale_metadata,
-    extract_causal_result,
-    resolve_causal_meta,
-    resolve_context_target,
-    resolve_matrix_label,
+    build_matrix_atom_maps as build_matrix_atom_maps,
 )
-from backend_v2.services.export.summary_builder import build_summary_dtos
+from backend_v2.services.export.metadata_resolver import (
+    build_scale_metadata as build_scale_metadata,
+)
+from backend_v2.services.export.metadata_resolver import (
+    extract_causal_result as extract_causal_result,
+)
+from backend_v2.services.export.metadata_resolver import (
+    resolve_causal_meta as resolve_causal_meta,
+)
+from backend_v2.services.export.metadata_resolver import (
+    resolve_context_target as resolve_context_target,
+)
+from backend_v2.services.export.metadata_resolver import (
+    resolve_matrix_label as resolve_matrix_label,
+)
+from backend_v2.services.export.summary_builder import build_summary_dtos as build_summary_dtos
 
-__all__ = ["ExportService"]
+__all__ = [
+    "CsvExporter",
+    "ExcelExporter",
+    "ExportService",
+    "apply_corporate_excel_styling",
+    "build_atom_rows",
+    "build_denormalized_rows",
+    "build_matrix_atom_maps",
+    "build_scale_metadata",
+    "build_summary_dtos",
+    "extract_causal_result",
+    "resolve_causal_meta",
+    "resolve_context_target",
+    "resolve_matrix_label",
+]
 
 
 class ExportService:
-    """Domain service for generating forensic Excel and flat CSV exports."""
+    """Domain package facade for generating forensic Excel and flat CSV exports."""
 
     def __init__(self, prompt_block_repo: IPromptBlockRepository | None = None) -> None:
         """Initialize the ExportService with an optional prompt block repository.

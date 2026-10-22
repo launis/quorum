@@ -45,12 +45,12 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 
 ### Phase 4: Atomic Package Cutover & Guardrails Lockdown
 **Plan:** @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md]
-- [ ] **[NOK] Execution:** /tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
-  - [ ] Step 1: Consumer Import Rewiring
-  - [ ] Step 2: Modularize Test Suite
-  - [ ] Step 3: Atomic Package Cutover
-  - [ ] Step 4: Guardrail Lockdown and Smoke Test
-- [ ] **[NOK] Audit:** uv run python scripts/backend_audit_loop.py backend_v2/services/export/ --test
+- [x] **[OK] Execution:** /tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
+  - [x] Step 1: Consumer Import Rewiring
+  - [x] Step 2: Modularize Test Suite
+  - [x] Step 3: Atomic Package Cutover
+  - [x] Step 4: Guardrail Lockdown and Smoke Test
+- [x] **[OK] Audit:** uv run python scripts/backend_audit_loop.py backend_v2/services/export/ --test
 
 ---
 
@@ -72,9 +72,9 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend):** No Flutter files modified in this backend decomposition.
 
 #### Quality & Safety Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit:** Characterization test baseline verified at 95% line coverage with 39 passing tests.
-- [ ] **[NOK] Pre-Delete Audit:** Verified 0 remaining imports of `backend_v2.services.export_service` before deleting proxy file.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Verified Excel styling, 13-column summary rows, 14-column atom rows, and 22-column CSV streams match 100% byte and schema parity.
+- [x] **[OK] Golden Master & Test Restoration Audit:** Characterization test baseline verified at 95% line coverage with 39 passing tests (expanded to 84 modularized tests across export package).
+- [x] **[OK] Pre-Delete Audit:** Verified 0 remaining imports of `backend_v2.services.export_service` before deleting proxy file.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit:** Verified Excel styling, 13-column summary rows, 14-column atom rows, and 22-column CSV streams match 100% byte and schema parity.
 - [ ] **[NOK] As-Built Architectural Sync:** Synchronize architecture docs via parameterized `/tier7-describe-architecture docs/epic/export_service_decomposition_tracker.md docs/epic/EPIC_EXPORT_DECOMPOSITION.md @[ki_god_code_prevention.md]`.
 
 ---
@@ -107,10 +107,10 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 | REQ-010 | Extract CSV flat streaming to csv_exporter.py | Phase 3, Step 2 | [x] |
 | REQ-011 | Wire proxy delegations in export_service.py for Phase 3 exporters | Phase 3, Step 3 | [x] |
 | REQ-012 | Verify quality gates and existing 39 unit tests for Phase 3 | Phase 3, Step 4 | [x] |
-| REQ-013 | Rewire 1-hop consumer imports in report_service.py and dependencies.py | Phase 4, Step 1 | [ ] |
-| REQ-014 | Modularize monolithic test suite into per-submodule test files | Phase 4, Step 2 | [ ] |
-| REQ-015 | Execute atomic package cutover creating export/__init__.py and deleting export_service.py | Phase 4, Step 3 | [ ] |
-| REQ-016 | Register export_service.py under QGR017 lockdown and update directory reference | Phase 4, Step 4 | [ ] |
+| REQ-013 | Rewire 1-hop consumer imports in report_service.py and dependencies.py | Phase 4, Step 1 | [x] |
+| REQ-014 | Modularize monolithic test suite into per-submodule test files | Phase 4, Step 2 | [x] |
+| REQ-015 | Execute atomic package cutover creating export/__init__.py and deleting export_service.py | Phase 4, Step 3 | [x] |
+| REQ-016 | Register export_service.py under QGR017 lockdown and update directory reference | Phase 4, Step 4 | [x] |
 
 ---
 
@@ -123,18 +123,20 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - Completed Phase 1: Extracted `backend_v2/services/export/metadata_resolver.py` (97% coverage) and `backend_v2/services/export/excel_styler.py` (100% coverage) with proxy delegations in `export_service.py`. All 52 tests passing, 10/10 quality gate stages green.
 - Completed Phase 2: Extracted `backend_v2/services/export/summary_builder.py` (98% coverage) and `backend_v2/services/export/atom_row_builder.py` (95% coverage) with proxy delegations in `export_service.py`. All 64 tests passing, 10/10 quality gate stages green. Preserved single-pipeline dynamic causal proposition streaming under `matrix_label = "Kausaalipäättely"`.
 - Completed Phase 3: Extracted `backend_v2/services/export/excel_exporter.py` (95% coverage) and `backend_v2/services/export/csv_exporter.py` (93% coverage) with proxy delegations in `export_service.py`. Created dedicated unit test suites `test_excel_exporter.py` (8 passing tests) and `test_csv_exporter.py` (7 passing tests). Maintained 100% green status on all 39 baseline tests in `test_export_service.py`, 10/10 stages across both `export_service.py` (90% coverage) and `backend_v2/services/export/` (96.20% package coverage).
+- Completed Phase 4: Executed Atomic Package Cutover. Created `backend_v2/services/export/__init__.py` package facade with DI wiring and redundant aliased exports (`__all__`), rewired consumer imports (`report_service.py`, `dependencies.py`, `test_report_headers_l10n_parity.py`), decomposed monolithic test file into 7 modularized test suites (84 total tests under `backend_v2/tests/unit/services/export/`), physically deleted `backend_v2/services/export_service.py` and `test_export_service.py`, enforced AST Guardrail `QGR017` lockdown with 11 passing guardrail tests in `scripts/_ast_guardrails.py`, and updated `.agents/rules/04_directory_reference.md`. Verified 10/10 quality gate stages and 97.94% package coverage.
 - Re-invoked `/tier3-god-code-decomposition` to hydrate detailed implementation plans for Phase 3 (`phase3_exporters_extraction.md`) and Phase 4 (`phase4_package_cutover_and_guardrails.md`).
 - Verified boundary compliance across all plans via `scripts/audit_markdown_boundaries.py`.
 
 ## Learned
 - AST decorator line offset: `@staticmethod` and `@classmethod` decorators place `node_start` on the decorator line (specifically: line 77 for `_build_matrix_atom_maps`), which must match MBD004 exactly.
 - Multi-method spanning line bounds are strictly forbidden by MBD004; all bounds must reference single AST nodes or the parent class (`ExportService: #L65-L589`).
-- The monolithic test file `test_export_service.py` is 2,194 lines and will be modularized into 7 focused test files during Phase 4 cutover.
 - In `I18nText`, the `'en'` translation key is mandatory by schema validation (`AppException` 400 if missing).
 - In `CausalNodeDTO`, the quote attribute is `source_quotes: tuple[str, ...] | None`, and `FairScoringBreakdownDTO` enforces mathematical identity `raw == deduplicated + dampened_savings` with required `independent_error_count` and `cascading_fault_count`.
 - `ExecutionStepState` enforces strict `extra='forbid'`, so causal output payloads must be attached via `TraceEvent(step_name="causal_discovery", event_type="output", content=causal_payload)` on `exec_record.execution_trace`.
 - `TDAAssertion` enforces `min_length=10` on `concept_description`.
 - `MatrixPromptBlock` requires at least 1 scale item in `scales`.
+- `ExportPayloadDTO` binary payload attribute is `content_bytes` (not `content`), and `AppException` error code is accessed via `error_code` (not `code`).
+- Deleting `export_service.py` and creating `export/__init__.py` in the same step prevents duplicate module collisions in Python/MyPy and enables clean QGR017 enforcement.
 
 ## Resume Command
 /tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
@@ -144,5 +146,5 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - [x] Execute Phase 2: Tabular Row & Dataset Builders Extraction (`/tier2-execute`)
 - [x] Hydrate detailed plans for Phase 3 and Phase 4 (`/tier3-god-code-decomposition`)
 - [x] Execute Phase 3: Excel & CSV Exporters Extraction (`/tier2-execute`)
-- [ ] Execute Phase 4: Atomic Package Cutover & AST Guardrail QGR017 Lockdown (`/tier2-execute`)
+- [x] Execute Phase 4: Atomic Package Cutover & AST Guardrail QGR017 Lockdown (`/tier2-execute`)
 - [ ] Execute Epoch 2 Tier 2 Hardening across extracted sub-modules

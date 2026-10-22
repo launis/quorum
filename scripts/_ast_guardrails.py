@@ -638,6 +638,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Domain models and DTOs must reside in canonical modules under backend_v2/models/.",
                 severity=GuardrailSeverity.FATAL,
             )
+        elif norm_path == "backend_v2/services/export_service.py" or norm_path.endswith("/backend_v2/services/export_service.py"):
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/services/export_service.py` detected.",
+                "Export functionality must reside exclusively in the modular package `backend_v2.services.export` (`backend_v2/services/export/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -1865,6 +1873,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif (
+                alias.name == "backend_v2.services.export_service"
+                or alias.name.endswith(".export_service")
+                or alias.name == "export_service"
+            ):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy module `{alias.name}`.",
+                    "Import export services from canonical package `backend_v2.services.export`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR021: Banned import of eradicated llm_debug_logger
             if "llm_debug_logger" in alias.name:
                 self._add_violation(
@@ -1911,6 +1931,28 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR017",
                             f"Banned import of eradicated facade symbol `{alias.name}` from `{node.module}`.",
                             "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            elif (
+                node.module == "backend_v2.services.export_service"
+                or node.module.endswith(".export_service")
+                or node.module == "export_service"
+            ):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy module `{node.module}`.",
+                    "Import export services from canonical package `backend_v2.services.export`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module == "backend_v2.services":
+                for alias in node.names:
+                    if alias.name == "export_service":
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
+                            "Import export services from canonical package `backend_v2.services.export`.",
                             severity=GuardrailSeverity.FATAL,
                         )
 
@@ -2341,7 +2383,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR014: AsyncMock / MagicMock on repository interfaces in tests (FATAL)
   QGR015: Direct Persistence Access from Routers Ban (FATAL)
   QGR016: Negative String Exclusion Filtering Ban (FATAL)
-  QGR017: Eradicated Facades & God Files Ban (v2_core, auth.py) (FATAL)
+  QGR017: Eradicated Facades & God Files Ban (v2_core, auth.py, export_service.py) (FATAL)
   QGR018: Primitive Obsession Nested Dict Ban (WARNING)
   QGR019: In-Place dict.pop Mutation Ban (WARNING)
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (FATAL)
