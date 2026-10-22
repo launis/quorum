@@ -16,7 +16,6 @@ from backend_v2.models.dtos.sdui_rules import (
     PrintableSourcesRulesDTO,
     SourceDisplayNameDTO,
     SynthesisTextAestheticsDTO,
-    TheoryEvidenceItemDTO,
     VarianceRuleItemDTO,
     VarianceRulesDTO,
     WarningCardAestheticsDTO,
@@ -35,22 +34,24 @@ def test_source_display_name_dto_locale_resolution() -> None:
     assert dto.get_display_name("de") == "Documents"
 
 
-def test_theory_evidence_item_dto_locale_resolution() -> None:
-    """Verify theory explanation resolution by locale."""
-    dto = TheoryEvidenceItemDTO(fi="Teoria Suomeksi", en="Theory in English")
-    assert dto.get_text("fi") == "Teoria Suomeksi"
-    assert dto.get_text("en") == "Theory in English"
-    assert dto.get_text("fr") == "Theory in English"
-
-
 def test_printable_sources_rules_dto() -> None:
-    """Verify PrintableSourcesRulesDTO default mappings."""
+    """Verify PrintableSourcesRulesDTO default mappings and extra forbid."""
     dto = PrintableSourcesRulesDTO(
         literature_source=SourceDisplayNameDTO(display_name_fi="fi", display_name_en="en"),
-        theory_evidence_map={"t1": TheoryEvidenceItemDTO(fi="t_fi", en="t_en")},
         default_tool=SourceDisplayNameDTO(display_name_fi="tool_fi", display_name_en="tool_en"),
     )
     assert dto.literature_source.get_display_name("fi") == "fi"
+    assert dto.default_tool.get_display_name("en") == "tool_en"
+
+    # Invariant: extra fields (such as eradicated theory_evidence_map) must be rejected
+    with pytest.raises(ValidationError):
+        PrintableSourcesRulesDTO.model_validate(
+            {
+                "literature_source": {"display_name_fi": "fi", "display_name_en": "en"},
+                "default_tool": {"display_name_fi": "tool_fi", "display_name_en": "tool_en"},
+                "theory_evidence_map": {},
+            }
+        )
 
 
 def test_xai_aesthetics_rules_dto_lookup() -> None:

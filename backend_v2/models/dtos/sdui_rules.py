@@ -14,6 +14,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import VisualIntent
 
 __all__ = [
+    "EvaluationFrameworkItemDTO",
     "GlobalScoreAestheticsDTO",
     "MatrixGraphMinAxesDTO",
     "MatrixGraphsAestheticsDTO",
@@ -28,7 +29,6 @@ __all__ = [
     "SourceDisplayNameDTO",
     "SynthesisTextAestheticsDTO",
     "SynthesisTextModeDTO",
-    "TheoryEvidenceItemDTO",
     "VarianceRuleItemDTO",
     "VarianceRulesDTO",
     "WarningCardAestheticsDTO",
@@ -65,31 +65,25 @@ class SourceDisplayNameDTO(V2CoreBase):
         return self.display_name_en
 
 
-class TheoryEvidenceItemDTO(V2CoreBase):
-    """Localized explanation for theoretical framework grounding.
+class EvaluationFrameworkItemDTO(V2CoreBase):
+    """Evaluation framework theoretical source representation.
 
     Attributes:
-        fi: Finnish explanation.
-        en: English explanation.
+        matrix_name: Pre-localized name of the evaluated matrix.
+        cited_source_title: Authoritative title or reference of the theoretical framework.
+        cited_source_url: Authoritative external URL for the framework, if available.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    fi: Annotated[str, Field(description="Finnish explanation")]
-    en: Annotated[str, Field(description="English explanation")]
-
-    def get_text(self, locale: str) -> str:
-        """Resolve theoretical explanation text by locale with English fallback.
-
-        Args:
-            locale: Two-letter ISO language code (e.g. 'fi', 'en').
-
-        Returns:
-            Localized framework description text.
-        """
-        if locale == "fi":
-            return self.fi
-        return self.en
+    matrix_name: Annotated[str, Field(description="Pre-localized name of the evaluated matrix")]
+    cited_source_title: Annotated[
+        str, Field(description="Authoritative title or reference of the theoretical framework")
+    ]
+    cited_source_url: Annotated[
+        str | None,
+        Field(default=None, description="Authoritative external URL for the framework, if available"),
+    ] = None
 
 
 class PrintableSourcesRulesDTO(V2CoreBase):
@@ -97,16 +91,12 @@ class PrintableSourcesRulesDTO(V2CoreBase):
 
     Attributes:
         literature_source: Scientific literature source display name.
-        theory_evidence_map: Mapping of framework tokens to localized explanations.
         default_tool: Default gateway tool display name.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     literature_source: Annotated[SourceDisplayNameDTO, Field(description="Scientific literature source display name")]
-    theory_evidence_map: Annotated[
-        dict[str, TheoryEvidenceItemDTO], Field(description="Mapping of framework tokens to localized explanations")
-    ]
     default_tool: Annotated[SourceDisplayNameDTO, Field(description="Default gateway tool display name")]
 
 

@@ -18,13 +18,15 @@ def test_style_directives_exports() -> None:
 
 
 def test_harvard_citation_directive_structure() -> None:
-    """Positive: verify Harvard citation directive contains required XML tags and instructions."""
+    """Positive: verify Harvard citation directive contains required XML tags, instructions, and negative boundaries."""
     assert "<citation_rules>" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "</citation_rules>" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "HARVARD CITATION STANDARD MANDATE" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "(Author, Year)" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "cited_sources" in SYNTHESIS_CITATION_RULES_HARVARD
     assert "STRICT PROHIBITIONS" in SYNTHESIS_CITATION_RULES_HARVARD
+    assert "NEVER output Quorum internal scientific evaluation frameworks" in SYNTHESIS_CITATION_RULES_HARVARD
+    assert "reserved EXCLUSIVELY for empirical studies" in SYNTHESIS_CITATION_RULES_HARVARD
 
 
 def test_no_citation_directive_structure() -> None:

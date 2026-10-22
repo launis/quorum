@@ -92,6 +92,17 @@ class WikipediaSearchTool(BaseSearchTool):
             lang = resolve_wikipedia_language(input_dto.target_language)
             result = await wikipedia_search(query=input_dto.query, target_language=lang)
 
+            if len(result.results) == 0 and lang != "en":
+                logger.info(
+                    "[WikipediaSearchTool] 0 results in '%s' for '%s'. Expanding search to 'en'.",
+                    lang,
+                    input_dto.query,
+                )
+                en_result = await wikipedia_search(query=input_dto.query, target_language="en")
+                if len(en_result.results) > 0:
+                    result = en_result
+                    lang = "en"
+
             if len(result.results) == 0:
                 response_summary = f"No Wikipedia articles found for query: '{input_dto.query}'."
             else:
@@ -101,8 +112,8 @@ class WikipediaSearchTool(BaseSearchTool):
             if (
                 input_dto.target_language
                 and input_dto.target_language.lower() != "en"
-                and lang != input_dto.target_language
-                and response_summary
+                and lang == "en"
+                and len(result.results) > 0
                 and input_dto.llm_client
             ):
                 response_summary = await translation_service.translate_text(

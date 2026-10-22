@@ -223,7 +223,7 @@ def test_build_disabled_summary_box_omits_note(valid_output_profile_fixture: Out
 
 
 def test_build_verified_evidence_with_in_text_citation_match(valid_output_profile_fixture: OutputProfile) -> None:
-    """Positive: matches in-text narrative sentences with cited literature authors."""
+    """Positive: verifies segregated citation section for input material citations."""
     from backend_v2.models.view.sdui import ParagraphBlock
 
     cache = RenderedSynthesisCache(
@@ -257,13 +257,11 @@ def test_build_verified_evidence_with_in_text_citation_match(valid_output_profil
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
     text = blocks[0].text
-    assert (
-        '**Synthesis finding:** "As Popper (1959) states in his falsification principle, '
-        'hypotheses must define failure criteria."' in text
-    )
-    assert '**Synthesis finding:** "According to Toulmin (1958), claims require backing."' in text
-    assert "**Theoretical framework:** Scientific evaluation framework: Empirical falsifiability" in text
-    assert "**Source observation:** No criteria-matching specification found in source material" in text
+    assert "#### Citations in Evaluated Material" in text
+    assert "- **Popper, K. (1959). The Logic of Scientific Discovery.**" in text
+    assert "- **Toulmin, S. (1958). The Uses of Argument.**" in text
+    assert "**Status:** Verified with research evidence" in text
+    assert "**Verification Method:** Peer-reviewed scientific literature & framework" in text
 
 
 def test_build_verified_evidence_mode_with_mcp_traces(valid_output_profile_fixture: OutputProfile) -> None:
@@ -491,13 +489,16 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
     blocks = PrintableSourcesAdapter.build(context)
     assert len(blocks) == 1
     text = blocks[0].text
+    assert "#### External Fact-Checking Gateways" in text
     assert "Custom Retrieval Tool Gateway" in text
     assert "- **custom query text without url**" in text
     assert "**Status:** Unverified (no matching records found)" in text
     assert '**Synthesis finding:** "Custom tool verified statement."' in text
     assert "**External finding / MCP retrieval result:** Summary from custom gateway." in text
-    assert "**Theoretical framework:** Scientific evaluation framework: Empirical falsifiability" in text
-    assert '**Source observation:** "Verbatim input document extract quote."' in text
+    assert "#### Citations in Evaluated Material" in text
+    assert "- **Popper, K. (1959). The Logic of Scientific Discovery.**" in text
+    # Invariant: Atom quotes from evaluated matrix must NEVER be falsely bound to cited authors
+    assert "Verbatim input document extract quote." not in text
 
 
 def test_build_mcp_tools_map_localization(valid_output_profile_fixture: OutputProfile) -> None:
@@ -598,60 +599,25 @@ def test_printable_sources_rules_export() -> None:
     assert (
         PRINTABLE_SOURCES_RULES.literature_source.display_name_en == "Peer-reviewed scientific literature & framework"
     )
-    assert "popper" in PRINTABLE_SOURCES_RULES.theory_evidence_map
     assert PRINTABLE_SOURCES_RULES.default_tool.display_name_en == "External Information Retrieval Gateway"
 
 
-def test_sdui_printable_sources_multi_segment_provenance(
+def test_sdui_printable_sources_deterministic_framework_provenance(
     valid_output_profile_fixture: OutputProfile,
 ) -> None:
-    """Contract: PrintableSourcesAdapter renders multi-segment citations with ' [...] ' delimiter."""
-    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
-    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
-    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-    from backend_v2.models.enums import VisualIntent
+    """Positive: PrintableSourcesAdapter deterministically renders evaluation frameworks from parsed matrices."""
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 
-    atom = ScorecardAtomDTO(
-        atom_id="atm_0123456789abcdef",
-        level=1,
-        level_name="Level 1",
-        claim_label="Claim",
-        extracted_facts={},
-        exact_quotes=[
-            QuoteEvidenceDTO(
-                source_quotes=("Clause A", "Clause B"),
-                verified_source_ids=["src_0"],
-            )
-        ],
-        internal_logic_en=ReasoningStepDTO(
-            step_1_identify_premise="p1",
-            step_2_scan_source="s1",
-            step_3_evaluate_anti_patterns="a1",
-            step_4_final_conclusion="c1",
-        ),
-        status="PASSED",
-        semantic_reasoning="Reasoning",
-        contextual_override=False,
-        structural_location=None,
-        chart_display_label="A1",
-        visual_intent=VisualIntent.SUCCESS,
-    )
     matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
-        name="Test Matrix",
-        label_i18n=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
+        block_id="blk_cognitive_depth_001",
+        name="Cognitive Depth",
+        label_i18n=I18nText(translations={"en": "Cognitive Depth", "fi": "Kognitiivinen syvyys"}),
+        score=85.0,
+        scale_max=100.0,
         is_evaluative=True,
-        allow_contextual_override=False,
-        level_names={"1": "Level 1"},
-        level_breakdown={"1": "1/1"},
-        evaluated_atoms=[atom],
         row_explanation="Explanation",
-        ui_plot_ratio=1.0,
-        score_display_label="100%",
-    )
-    profile_cache = RenderedSynthesisCache(
-        cited_sources=["Popper, K. (1959). The Logic of Scientific Discovery."],
-        section_syntheses={},
+        cited_source_title="Bloom, B. S. (Ed.). (1956). Taxonomy of Educational Objectives.",
+        cited_source_url="https://en.wikipedia.org/wiki/Bloom%27s_taxonomy",
     )
     ctx = AdapterContext(
         execution=None,
@@ -661,11 +627,143 @@ def test_sdui_printable_sources_multi_segment_provenance(
         mcp_tools_map={},
         global_score=None,
         profile=valid_output_profile_fixture,
-        profile_cache=profile_cache,
-        parsed_matrices={"blk_0123456789abcdef": matrix},
+        profile_cache=None,
+        parsed_matrices={"blk_cognitive_depth_001": matrix},
         user_name=None,
         org_name=None,
     )
     blocks = PrintableSourcesAdapter.build(ctx)
     assert len(blocks) == 1
-    assert "Clause A [...] Clause B" in blocks[0].text
+    assert isinstance(blocks[0], MarkdownBlock)
+    text = blocks[0].text
+    assert "#### Scientific Evaluation Frameworks" in text
+    assert (
+        "- **Cognitive Depth**: Bloom, B. S. (Ed.). (1956). Taxonomy of Educational Objectives. - "
+        "[https://en.wikipedia.org/wiki/Bloom%27s_taxonomy](https://en.wikipedia.org/wiki/Bloom%27s_taxonomy)" in text
+    )
+
+
+def test_sdui_printable_sources_same_surname_collision_partition(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """ISTQB Boundary: Prevents ontological conflation of same-surname authors (Benjamin vs Nicholas Bloom).
+
+    Verifies that Quorum internal evaluation framework (Benjamin Bloom 1956 on cognitive depth)
+    renders exclusively under Subsection A, while evaluated input document citation (Nicholas Bloom 2024
+    on hybrid work) renders exclusively under Subsection C, with zero cross-contamination.
+    """
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+
+    # Internal scientific evaluation framework
+    benjamin_bloom_framework = MatrixScorecardRowDTO(
+        block_id="blk_bloom_cognitive_depth",
+        name="Cognitive Depth",
+        label_i18n=I18nText(translations={"en": "Cognitive Depth"}),
+        is_evaluative=True,
+        row_explanation="Taxonomy of educational and cognitive depth.",
+        cited_source_title="Bloom, B. S. (Ed.). (1956). Taxonomy of Educational Objectives: Cognitive Domain.",
+        cited_source_url="https://en.wikipedia.org/wiki/Bloom%27s_taxonomy",
+    )
+
+    # External citation extracted from evaluated user material
+    nicholas_bloom_input_citation = "Bloom, N., Han, R., & Liang, J. (2024). Hybrid working from home improves retention without damaging performance. Nature."
+
+    profile_cache = RenderedSynthesisCache(
+        cited_sources=[nicholas_bloom_input_citation],
+        section_syntheses={},
+    )
+
+    ctx = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        mcp_tools_map={},
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=profile_cache,
+        parsed_matrices={"blk_bloom_cognitive_depth": benjamin_bloom_framework},
+        user_name=None,
+        org_name=None,
+    )
+
+    blocks = PrintableSourcesAdapter.build(ctx)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], MarkdownBlock)
+    text = blocks[0].text
+
+    # Both subsections must be present and segregated
+    assert "#### Scientific Evaluation Frameworks" in text
+    assert "#### Citations in Evaluated Material" in text
+
+    # Split text by section to verify partition isolation
+    parts = text.split("#### ")
+    frameworks_section = next(p for p in parts if p.startswith("Scientific Evaluation Frameworks"))
+    citations_section = next(p for p in parts if p.startswith("Citations in Evaluated Material"))
+
+    # Benjamin Bloom (1956) must exist EXCLUSIVELY in Frameworks
+    assert "Bloom, B. S. (Ed.). (1956)" in frameworks_section
+    assert "Bloom, B. S. (Ed.). (1956)" not in citations_section
+
+    # Nicholas Bloom (2024) must exist EXCLUSIVELY in Input Citations
+    assert "Bloom, N., Han, R., & Liang, J. (2024)" in citations_section
+    assert "Bloom, N., Han, R., & Liang, J. (2024)" not in frameworks_section
+
+
+def test_sdui_printable_sources_empty_framework_negative_partition(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """ISTQB Negative: Custom matrix lacking theory grounding does not render empty headers or error."""
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+
+    matrix_no_grounding = MatrixScorecardRowDTO(
+        block_id="blk_custom_lightweight",
+        name="Custom Lightweight Step",
+        label_i18n=I18nText(translations={"en": "Custom Lightweight Step"}),
+        score=0.0,
+        scale_max=100.0,
+        is_evaluative=False,
+        row_explanation="Custom prompt without academic citations",
+        cited_source_title=None,
+        cited_source_url=None,
+    )
+
+    # Subcase 1: Summary box disabled and no citations -> empty blocks
+    profile_no_box = valid_output_profile_fixture.model_copy(update={"show_sources_summary_box": False})
+    ctx_empty = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        mcp_tools_map={},
+        global_score=None,
+        profile=profile_no_box,
+        profile_cache=None,
+        parsed_matrices={"blk_custom": matrix_no_grounding},
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PrintableSourcesAdapter.build(ctx_empty)
+    assert blocks == []
+
+    # Subcase 2: Summary box enabled -> renders graceful notice, zero broken headers
+    ctx_box = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        mcp_tools_map={},
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        parsed_matrices={"blk_custom": matrix_no_grounding},
+        user_name=None,
+        org_name=None,
+    )
+    blocks_box = PrintableSourcesAdapter.build(ctx_box)
+    assert len(blocks_box) == 1
+    assert isinstance(blocks_box[0], MarkdownBlock)
+    text_box = blocks_box[0].text
+    assert "> **Sources & Fact-Checking Audit**" in text_box
+    assert "No external bibliographic citations or fact-checking traces recorded in this execution." in text_box
+    assert "#### " not in text_box
