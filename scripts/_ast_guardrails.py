@@ -55,11 +55,10 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         pass
 
 
-class GuardrailSeverity(StrEnum):
-    """Severity classification for guardrail violations."""
-
-    WARNING = "WARNING"
-    FATAL = "FATAL"
+try:
+    from _script_base import GuardrailSeverity as GuardrailSeverity
+except ImportError:
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 
 class GuardrailViolation(BaseModel):

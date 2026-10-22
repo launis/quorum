@@ -34,18 +34,16 @@ if isinstance(sys.stdout, io.TextIOWrapper):
     except AttributeError, io.UnsupportedOperation:
         pass
 
+try:
+    from _script_base import ANSIColors, GuardrailSeverity as GuardrailSeverity
+except ImportError:
+    from scripts._script_base import ANSIColors, GuardrailSeverity as GuardrailSeverity
+
 # ANSI colors for output
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-RESET = "\033[0m"
-
-
-class GuardrailSeverity(StrEnum):
-    """Severity classification for markdown audit findings."""
-
-    WARNING = "WARNING"
-    FATAL = "FATAL"
+RED = ANSIColors.RED
+GREEN = ANSIColors.GREEN
+YELLOW = ANSIColors.YELLOW
+RESET = ANSIColors.RESET
 
 
 class MarkdownAuditFinding(BaseModel):

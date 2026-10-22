@@ -32,11 +32,10 @@ class TrackerMode(StrEnum):
     PLAN = "PLAN"
 
 
-class GuardrailSeverity(StrEnum):
-    """Severity classification for tracker audit findings."""
-
-    WARNING = "WARNING"
-    FATAL = "FATAL"
+try:
+    from _script_base import GuardrailSeverity as GuardrailSeverity
+except ImportError:
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 
 class TrackerAuditFinding(BaseModel):

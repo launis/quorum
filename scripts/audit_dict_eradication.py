@@ -34,6 +34,7 @@ if _workspace_root not in sys.path:
 
 from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
+    QuorumGuardrailVisitor,
     _find_jsonvalue_dict_subscript,
     _find_nested_dict_subscript,
     is_boundary_exempt,
@@ -211,29 +212,64 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.current_class_name: str | None = None
         self.function_depth: int = 0
         self.violations: list[AuditViolation] = []
+        self._guardrail_visitor = QuorumGuardrailVisitor(filepath)
+        self._guardrail_run_complete: bool = False
 
-    def _is_field_call(self, node: ast.AST | None) -> bool:
-        """Checks whether an AST node is a Call to Field()."""
-        if isinstance(node, ast.Call):
-            match node.func:
-                case ast.Name(id="Field") | ast.Attribute(attr="Field"):
-                    return True
-        return False
+    def _sync_delegated_violations(self) -> None:
+        """Synchronizes delegated violations from QuorumGuardrailVisitor into AuditViolation records."""
+        check_reflection = (not self.is_test and self.is_domain_or_service) or (self.is_test and self.strict)
+        for v in self._guardrail_visitor.violations:
+            if v.rule_code == "QGR001":
+                if check_reflection and not self.is_exempt:
+                    self.violations.append(
+                        AuditViolation(
+                            filepath=self.filepath,
+                            line=v.lineno,
+                            metric="reflection_calls",
+                            message=v.message,
+                        )
+                    )
+            elif v.rule_code == "QGR002":
+                if not self.is_test and self.is_domain_or_service and not self.is_exempt:
+                    self.violations.append(
+                        AuditViolation(
+                            filepath=self.filepath,
+                            line=v.lineno,
+                            metric="banned_get_calls",
+                            message=v.message,
+                        )
+                    )
+            elif v.rule_code == "QGR020":
+                if not self.is_exempt and not self.is_test:
+                    if "Duplicate" in v.message and "Field()" in v.message:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=v.lineno,
+                                metric="pydantic_annotated_violations",
+                                message=v.message,
+                            )
+                        )
+                    elif "mutable class-level default" in v.message:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=v.lineno,
+                                metric="mutable_class_defaults",
+                                message=v.message,
+                            )
+                        )
 
-    def _has_annotated_field(self, node: ast.AST | None) -> bool:
-        """Checks whether an annotation is an Annotated subscript containing Field()."""
-        if isinstance(node, ast.Subscript):
-            is_annotated = False
-            match node.value:
-                case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
-                    is_annotated = True
-                case _:
-                    pass
-            if is_annotated:
-                for child in ast.walk(node.slice):
-                    if self._is_field_call(child):
-                        return True
-        return False
+    def visit(self, node: ast.AST) -> None:
+        """Visits an AST node, executing guardrail delegation and dict eradication rules."""
+        is_root = not self._guardrail_run_complete
+        if is_root:
+            self._guardrail_run_complete = True
+            self._guardrail_visitor.visit(node)
+            self._sync_delegated_violations()
+        super().visit(node)
+        if is_root:
+            self.violations.sort(key=lambda v: v.line)
 
     def _is_naked_dict_subscript(self, node: ast.AST) -> bool:
         """Checks whether an AST node contains a subscript of dict[..., Any/object].
@@ -282,24 +318,6 @@ class DictEradicationVisitor(ast.NodeVisitor):
         """
         return _find_nested_dict_subscript(node)
 
-    def visit_Attribute(self, node: ast.Attribute) -> None:
-        """Inspects dynamic reflection attribute access like .__dict__.
-
-        Args:
-            node: Attribute node to inspect.
-        """
-        if not self.is_exempt and self.is_domain_or_service:
-            if node.attr == "__dict__":
-                self.violations.append(
-                    AuditViolation(
-                        filepath=self.filepath,
-                        line=node.lineno,
-                        metric="reflection_calls",
-                        message=f"Banned dynamic `.__dict__` access: `{ast.unparse(node)}`",
-                    )
-                )
-        self.generic_visit(node)
-
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Inspects class definitions and tracks class context for class-level attributes.
 
@@ -310,30 +328,6 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.current_class_name = node.name
         self.generic_visit(node)
         self.current_class_name = prev_class
-
-    def visit_Assign(self, node: ast.Assign) -> None:
-        """Inspects variable assignments for class-level mutable defaults.
-
-        Args:
-            node: Assign node to inspect.
-        """
-        if not self.is_exempt and not self.is_test and self.current_class_name is not None and self.function_depth == 0:
-            for t in node.targets:
-                target_name = ast.unparse(t)
-                if not target_name.startswith("_") and isinstance(node.value, (ast.List, ast.Dict, ast.Set)):
-                    self.violations.append(
-                        AuditViolation(
-                            filepath=self.filepath,
-                            line=node.lineno,
-                            metric="mutable_class_defaults",
-                            message=(
-                                f"Banned mutable class-level default in `{self.current_class_name}` on "
-                                f"field `{target_name}`: `{ast.unparse(node.value)}`. "
-                                "Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
-                            ),
-                        )
-                    )
-        self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Inspects variable type annotations for naked dicts, primitive obsession nested dicts,
@@ -381,36 +375,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                         ),
                     )
                 )
-            # Pydantic Annotated fields mandate: Duplicate Field() assignment
-            if self._has_annotated_field(node.annotation) and self._is_field_call(node.value):
-                self.violations.append(
-                    AuditViolation(
-                        filepath=self.filepath,
-                        line=node.lineno,
-                        metric="pydantic_annotated_violations",
-                        message=(
-                            f"Duplicate Field() assignment on Annotated field `{ast.unparse(node.target)}`: "
-                            f"`{ast.unparse(node)}`. Field metadata is already in Annotated[..., Field(...)]; "
-                            "remove redundant `= Field(...)` assignment or replace with literal/factory default."
-                        ),
-                    )
-                )
-            # Class-level mutable defaults: = [] or = {} or = set() (only directly in class body)
-            if self.current_class_name is not None and self.function_depth == 0:
-                target_name = ast.unparse(node.target)
-                if not target_name.startswith("_") and isinstance(node.value, (ast.List, ast.Dict, ast.Set)):
-                    self.violations.append(
-                        AuditViolation(
-                            filepath=self.filepath,
-                            line=node.lineno,
-                            metric="mutable_class_defaults",
-                            message=(
-                                f"Banned mutable class-level default in `{self.current_class_name}` on "
-                                f"field `{target_name}`: `{ast.unparse(node.value)}`. "
-                                "Use `Field(default_factory=list/dict)` inside Annotated or `= None`."
-                            ),
-                        )
-                    )
+
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -611,40 +576,6 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             )
                         )
 
-            # 2. Banned dynamic reflection
-            check_reflection = (not self.is_test and self.is_domain_or_service) or (self.is_test and self.strict)
-            if check_reflection:
-                match node.func:
-                    case ast.Name(id="getattr" | "hasattr" | "setattr" | "vars"):
-                        self.violations.append(
-                            AuditViolation(
-                                filepath=self.filepath,
-                                line=node.lineno,
-                                metric="reflection_calls",
-                                message=f"Banned dynamic reflection call `{node.func.id}`: `{ast.unparse(node)}`",
-                            )
-                        )
-                    case ast.Name(id="attrgetter") | ast.Attribute(value=ast.Name(id="operator"), attr="attrgetter"):
-                        self.violations.append(
-                            AuditViolation(
-                                filepath=self.filepath,
-                                line=node.lineno,
-                                metric="reflection_calls",
-                                message=f"Banned dynamic `operator.attrgetter` reflection call: `{ast.unparse(node)}`",
-                            )
-                        )
-                    case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
-                        self.violations.append(
-                            AuditViolation(
-                                filepath=self.filepath,
-                                line=node.lineno,
-                                metric="reflection_calls",
-                                message=f"Banned dynamic `object.__setattr__` reflection call: `{ast.unparse(node)}`",
-                            )
-                        )
-                    case _:
-                        pass
-
             # 3. Banned permissive cast(typing.Any, ...) call (Metric 12)
             is_cast = False
             match node.func:
@@ -674,80 +605,6 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             message=f"Banned permissive cast(typing.Any, ...) call: {ast.unparse(node)}",
                         )
                     )
-
-            # 4. Banned .get() lookups on internal state / variables
-            if not self.is_test and self.is_domain_or_service:
-                if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
-                    if len(node.args) == 0 and not any(
-                        kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
-                    ):
-                        pass
-                    else:
-                        exempt = False
-                        receiver = node.func.value
-                        match receiver:
-                            case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
-                                exempt = True
-                            case ast.Attribute(attr="headers") | ast.Name(id="headers"):
-                                exempt = True
-                            case ast.Name(id=name) if name in {
-                                "client",
-                                "http",
-                                "requests",
-                                "session",
-                                "httpx",
-                                "driver",
-                                "router",
-                                "app",
-                                "redis",
-                                "redis_client",
-                                "_LABEL_MAP",
-                                "LABEL_MAP",
-                                "_VALUE_MAP",
-                                "_NAME_MAP",
-                                "_L10N_MAP",
-                                "L10N_MAP",
-                            } or name.endswith(("_router", "_subrouter", "_client")):
-                                exempt = True
-                            case ast.Attribute(attr=attr_name) if attr_name in {
-                                "client",
-                                "http",
-                                "requests",
-                                "session",
-                                "httpx",
-                                "driver",
-                                "router",
-                                "app",
-                                "redis",
-                                "redis_client",
-                                "_LABEL_MAP",
-                                "LABEL_MAP",
-                                "_VALUE_MAP",
-                                "_NAME_MAP",
-                                "_L10N_MAP",
-                                "L10N_MAP",
-                            } or attr_name.endswith(("_router", "_subrouter", "_client")):
-                                exempt = True
-                            case ast.Call(func=ast.Name(id="_get_table")):
-                                exempt = True
-                            case _:
-                                exempt = False
-
-                        if not exempt:
-                            for kw in node.keywords:
-                                if kw.arg in {"params", "headers", "timeout", "auth", "cookies", "model"}:
-                                    exempt = True
-                                    break
-
-                        if not exempt:
-                            self.violations.append(
-                                AuditViolation(
-                                    filepath=self.filepath,
-                                    line=node.lineno,
-                                    metric="banned_get_calls",
-                                    message=f"Banned .get() lookup on internal state/variable: `{ast.unparse(node)}`",
-                                )
-                            )
 
         self.generic_visit(node)
 

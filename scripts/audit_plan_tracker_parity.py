@@ -34,11 +34,10 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
-class GuardrailSeverity(StrEnum):
-    """Severity classification for parity audit findings."""
-
-    WARNING = "WARNING"
-    FATAL = "FATAL"
+try:
+    from _script_base import GuardrailSeverity as GuardrailSeverity
+except ImportError:
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 
 class ParityRuleCode(StrEnum):
