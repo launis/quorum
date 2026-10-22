@@ -44,7 +44,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </rule_block>
 
     <rule_block id="touched_scope_tech_debt_mandate">
-      <mandate>ALWAYS inspect TARGET files and 1-hop callers for 7 technical debt items: (1) Backend: `getattr/hasattr`, `.get(`, silent `except:`, `model_copy(update=)`, magic numbers/timeouts, missing `@model_validator`/strict DTOs; (2) Frontend: hardcoded strings (missing `.arb`), hex colors (`Color(0x...)`), manual `substring()`, missing `AppErrorBoundary`/`AsyncValue`; (3) ISTQB: missing negative partitions or legacy dict fixtures. ALWAYS inject discovered debt into `Phase 1: Pre-Implementation Cleanups`.</mandate>
+      <mandate>ALWAYS execute the deterministic technical debt auditor via `uv run python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop` (or `--plan &lt;plan_path&gt;`). Inspect TARGET files and 1-hop callers for 7 technical debt items: (1) Backend: `getattr/hasattr`, `.get(`, silent `except:`, `model_copy(update=)`, magic numbers/timeouts, missing `@model_validator`/strict DTOs; (2) Frontend: hardcoded strings (missing `.arb`), hex colors (`Color(0x...)`), manual `substring()`, missing `AppErrorBoundary`/`AsyncValue`; (3) ISTQB: missing negative partitions or legacy dict fixtures. ALWAYS inject discovered debt into `Phase 1: Pre-Implementation Cleanups`.</mandate>
     </rule_block>
   </context_rules>
 

@@ -7,7 +7,6 @@ between Implementation Plans and Execution Trackers across Quorum.
 from __future__ import annotations
 
 import argparse
-import io
 import re
 import sys
 from enum import StrEnum
@@ -16,14 +15,22 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from scripts._ast_boundary_utils import extract_target_files
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+try:
+    from _ast_boundary_utils import extract_target_files
+    from _script_base import GuardrailSeverity as GuardrailSeverity
+    from _script_base import setup_script_environment
+except ImportError:
+    from scripts._ast_boundary_utils import extract_target_files
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
+    from scripts._script_base import setup_script_environment
 
 # Force UTF-8 encoding for stdout on Windows without reflection
-if isinstance(sys.stdout, io.TextIOWrapper):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
-        pass
+setup_script_environment()
 
 # ANSI colors for console output
 RED = "\033[91m"
@@ -32,12 +39,6 @@ YELLOW = "\033[93m"
 CYAN = "\033[96m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
-
-
-try:
-    from _script_base import GuardrailSeverity as GuardrailSeverity
-except ImportError:
-    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 
 class ParityRuleCode(StrEnum):

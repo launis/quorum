@@ -19,6 +19,7 @@ from scripts._script_base import (
     BaseAuditFindingDTO,
     GuardrailSeverity,
     get_repo_root,
+    main,
     setup_script_environment,
 )
 
@@ -148,3 +149,23 @@ def test_base_audit_finding_dto_negative_partitions() -> None:
     )
     with pytest.raises(ValidationError):
         finding.__setattr__("rule_code", "QGR002")
+
+
+def test_main_cli_verify_flag(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test main() with --verify flag executes cleanly and reports verification."""
+    exit_code = main(["--verify"])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Repository Root:" in captured.out
+    assert "Stdout Encoding:" in captured.out
+    assert "Environment Verification: PASSED" in captured.out
+
+
+def test_main_cli_default(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test main() with default args executes cleanly."""
+    exit_code = main([])
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Repository Root:" in captured.out
+    assert "Environment Verification: PASSED" in captured.out
+

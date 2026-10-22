@@ -22,16 +22,15 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-try:
-    from _ast_boundary_utils import extract_target_files
-    from _ast_guardrails import is_boundary_exempt
-    from _dart_guardrails import scan_dart_source
-    from _script_base import ANSIColors, GuardrailSeverity, get_repo_root, setup_script_environment
-except ImportError:
-    from scripts._ast_boundary_utils import extract_target_files
-    from scripts._ast_guardrails import is_boundary_exempt
-    from scripts._dart_guardrails import scan_dart_source
-    from scripts._script_base import ANSIColors, GuardrailSeverity, get_repo_root, setup_script_environment
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
+from scripts._ast_boundary_utils import extract_target_files
+from scripts._ast_guardrails import is_boundary_exempt
+from scripts._dart_guardrails import scan_dart_source
+from scripts._script_base import ANSIColors, GuardrailSeverity, get_repo_root, setup_script_environment
 
 __all__ = [
     "TechnicalDebtFindingDTO",
@@ -535,7 +534,7 @@ def scan_dart_technical_debt(filepath: str | Path, source_bytes: bytes | None = 
             col_offset=v.col_offset,
             message=v.message,
             remediation=v.remediation,
-            severity=v.severity,
+            severity=GuardrailSeverity(v.severity.value),
             debt_category="flutter_dart_anti_patterns",
         )
         for v in dart_violations

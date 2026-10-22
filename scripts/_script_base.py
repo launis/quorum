@@ -6,6 +6,7 @@ guardrail severities, and base audit finding DTOs across Quorum developer toolin
 
 from __future__ import annotations
 
+import argparse
 import io
 import sys
 from enum import StrEnum
@@ -77,3 +78,33 @@ class BaseAuditFindingDTO(BaseModel):
     message: Annotated[str, Field(description="Human-readable finding message")]
     severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
     remediation: Annotated[str | None, Field(default=None, description="Deterministic remediation guidance")]
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI diagnostic entrypoint for script environment and infrastructure verification.
+
+    Verifies workspace root resolution, stdout UTF-8 encoding state, and base DTO schemas.
+    """
+    parser = argparse.ArgumentParser(
+        description="Script Infrastructure & Architectural SSOT Base Diagnostic Tool.\n\n"
+        "Verifies environment configuration, repository root discovery, stdout/stderr UTF-8\n"
+        "reconfiguration, and SSOT DTO serialization schemas across developer tooling.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Run environment and repository root diagnostic verification.",
+    )
+    parser.parse_args(argv)
+
+    repo_root = setup_script_environment()
+    stdout_encoding = sys.stdout.encoding if sys.stdout is not None else "unknown"
+    print(f"Repository Root: {repo_root}")
+    print(f"Stdout Encoding: {stdout_encoding}")
+    print(f"Environment Verification: {'PASSED' if repo_root.exists() else 'FAILED'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

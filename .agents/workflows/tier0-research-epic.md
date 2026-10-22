@@ -65,7 +65,7 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     </rule_block>
 
     <rule_block id="touched_scope_tech_debt_mandate">
-      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST explicitly inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
+      <mandatory_pattern>Whenever you research, audit, plan, or modify codebase targets, your pre-flight analysis MUST execute the deterministic technical debt auditor via `uv run python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop` (or `--plan &lt;plan_path&gt;`). Inspect the TARGET files and their immediate 1-hop callers for existing technical debt:
         1. Python Backend: Search for `getattr/hasattr`, `.get(`, silent `except Exception:`, `model_copy(update=)`, hardcoded magic numbers or timeouts (should reside in `settings.py`), and missing `@model_validator` or strict Pydantic DTOs.
         2. Flutter Frontend: Search for hardcoded strings (missing `.arb` localization), hardcoded hex colors (`Color(0x...)`), manual string clippings (`substring(...)`), and missing `AppErrorBoundary` or `AsyncValue` guards.
         3. ISTQB Testing: Verify whether test files lack negative ISTQB partition coverage or rely on legacy dictionary fixtures.
