@@ -24,6 +24,7 @@ __all__ = [
     "extract_target_files",
     "find_symbol_definitions",
     "find_symbols_in_python_code",
+    "get_ast_definition_bounds",
     "main",
     "normalize_target_path",
     "parse_line_bound",
@@ -98,37 +99,62 @@ def normalize_target_path(raw_path: str) -> str:
 def extract_target_files(content: str) -> list[TargetFileReferenceDTO]:
     """Extract target file references tagged with MODIFY, NEW, or DELETE from Markdown content.
 
+    Supports both action-first (`[ACTION] @[path#bounds]`) and path-first (`@[path#bounds] [ACTION]`)
+    syntaxes, with flexible bound capture (`#L10-L20`, `#L10-20`, `#10-20`). Records are deduplicated
+    by normalized POSIX path, with the earliest occurrence taking precedence.
+
     Args:
         content: Markdown content string to scan for target file annotations.
 
     Returns:
         List of TargetFileReferenceDTO objects.
     """
-    pattern = re.compile(
-        r"\[(MODIFY|NEW|DELETE)\][`\s*:]*@?\[?`?([^\]`\s#]+)(?:#(L\d+-L?\d+))?",
+    # Pattern 1: Action first: [MODIFY] @[path#L10-L25]
+    pattern_act_first = re.compile(
+        r"`?\[(MODIFY|NEW|DELETE)\]`?[:\s]*`?@?\[?`?([a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9]+)(?:#([^\]`\s]+))?`?\]?`?",
         re.IGNORECASE,
     )
-    matches: list[TargetFileReferenceDTO] = []
-    for match in pattern.finditer(content):
+    # Pattern 2: Path first: @[path#L10-L25] [MODIFY]
+    pattern_path_first = re.compile(
+        r"`?@?\[?`?([a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9]+)(?:#([^\]`\s]+))?`?\]?`?\s*`?\[(MODIFY|NEW|DELETE)\]`?",
+        re.IGNORECASE,
+    )
+
+    targets_map: dict[str, TargetFileReferenceDTO] = {}
+
+    for match in pattern_act_first.finditer(content):
         action = match.group(1).upper()
         raw_path = match.group(2)
         bound = match.group(3)
         if raw_path and not raw_path.startswith("http"):
             normalized_path = normalize_target_path(raw_path)
-            if "/" in normalized_path or "\\" in normalized_path or Path(normalized_path).suffix != "":
+            if normalized_path not in targets_map:
                 bound_str = f"#{bound}" if bound else None
-                matches.append(
-                    TargetFileReferenceDTO(
-                        action=action,
-                        file_path=normalized_path,
-                        line_bound=bound_str,
-                    )
+                targets_map[normalized_path] = TargetFileReferenceDTO(
+                    action=action,
+                    file_path=normalized_path,
+                    line_bound=bound_str,
                 )
-    return matches
+
+    for match in pattern_path_first.finditer(content):
+        raw_path = match.group(1)
+        bound = match.group(2)
+        action = match.group(3).upper()
+        if raw_path and not raw_path.startswith("http"):
+            normalized_path = normalize_target_path(raw_path)
+            if normalized_path not in targets_map:
+                bound_str = f"#{bound}" if bound else None
+                targets_map[normalized_path] = TargetFileReferenceDTO(
+                    action=action,
+                    file_path=normalized_path,
+                    line_bound=bound_str,
+                )
+
+    return list(targets_map.values())
 
 
 def parse_line_bound(bound_str: str) -> AstLineBoundDTO | None:
-    """Parse a line bound string like '#L10-L25' or '#L10-25' into AstLineBoundDTO.
+    """Parse a line bound string like '#L10-L25', '#L10-25', or '#10-20' into AstLineBoundDTO.
 
     Args:
         bound_str: Raw line bound string to parse.
@@ -136,7 +162,8 @@ def parse_line_bound(bound_str: str) -> AstLineBoundDTO | None:
     Returns:
         AstLineBoundDTO if valid, None otherwise.
     """
-    match = re.match(r"^#?L?(\d+)-L?(\d+)$", bound_str.strip())
+    cleaned = bound_str.strip().lstrip("#")
+    match = re.match(r"^L?(\d+)-L?(\d+)$", cleaned)
     if not match:
         return None
     start = int(match.group(1))
@@ -145,10 +172,56 @@ def parse_line_bound(bound_str: str) -> AstLineBoundDTO | None:
     return AstLineBoundDTO(start_line=start_line, end_line=end_line)
 
 
+def get_ast_definition_bounds(file_path: Path) -> list[AstLineBoundDTO]:
+    """Extract all AST definition spans (ClassDef, FunctionDef, AsyncFunctionDef) from a Python file.
+
+    Returns dual-span representations when decorators are present: both the full span including
+    decorators (from decorator start to node end) and the definition span (from def/class keyword
+    to node end), allowing callers to match either convention.
+
+    Args:
+        file_path: Path to Python source file.
+
+    Returns:
+        List of AstLineBoundDTO instances.
+
+    Raises:
+        SyntaxError: If the source code cannot be parsed as valid Python syntax.
+        OSError: If the file cannot be read from disk.
+        UnicodeDecodeError: If the file cannot be decoded as UTF-8.
+    """
+    source = file_path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=file_path.as_posix())
+
+    bounds: list[AstLineBoundDTO] = []
+    seen: set[tuple[int, int]] = set()
+
+    for node in ast.walk(tree):
+        match node:
+            case ast.ClassDef() | ast.FunctionDef() | ast.AsyncFunctionDef():
+                def_start = node.lineno
+                node_end = node.end_lineno if node.end_lineno is not None else node.lineno
+
+                if node.decorator_list:
+                    dec_start = min((d.lineno for d in node.decorator_list), default=node.lineno)
+                    if (dec_start, node_end) not in seen:
+                        seen.add((dec_start, node_end))
+                        bounds.append(AstLineBoundDTO(start_line=dec_start, end_line=node_end))
+
+                if (def_start, node_end) not in seen:
+                    seen.add((def_start, node_end))
+                    bounds.append(AstLineBoundDTO(start_line=def_start, end_line=node_end))
+            case _:
+                pass
+
+    return bounds
+
+
 def validate_ast_line_bound(file_path: Path, start_line: int, end_line: int) -> bool:
     """Validate that a .py file contains at least one AST definition node within given line range.
 
-    Checks ClassDef, FunctionDef, and AsyncFunctionDef nodes without reflection.
+    Checks ClassDef, FunctionDef, and AsyncFunctionDef nodes without reflection, accurately
+    accounting for decorators by evaluating both decorator start lines and definition lines.
 
     Args:
         file_path: Absolute or workspace-relative path to Python file.
@@ -162,23 +235,18 @@ def validate_ast_line_bound(file_path: Path, start_line: int, end_line: int) -> 
         return False
 
     try:
-        source = file_path.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=file_path.as_posix())
+        bounds = get_ast_definition_bounds(file_path)
     except SyntaxError, UnicodeDecodeError, OSError:
         return False
 
-    for node in ast.walk(tree):
-        match node:
-            case ast.ClassDef() | ast.FunctionDef() | ast.AsyncFunctionDef():
-                node_start = node.lineno
-                node_end = node.end_lineno if node.end_lineno is not None else node.lineno
-                if node_start >= start_line and node_end <= end_line:
-                    return True
-                # Also accept if the definition spans across the bounds
-                if node_start <= start_line and node_end >= end_line:
-                    return True
-            case _:
-                pass
+    for b in bounds:
+        # Range matches or sits inside bounds
+        if b.start_line >= start_line and b.end_line <= end_line:
+            return True
+        # Definition spans across the query range
+        if b.start_line <= start_line and b.end_line >= end_line:
+            return True
+
     return False
 
 
@@ -215,15 +283,18 @@ class SymbolDefinitionVisitor(ast.NodeVisitor):
             self.found_spans[name].append(f"{lineno}-{end}")
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._record(node.name, node.lineno, node.end_lineno)
+        start_line = min((d.lineno for d in node.decorator_list), default=node.lineno)
+        self._record(node.name, start_line, node.end_lineno)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._record(node.name, node.lineno, node.end_lineno)
+        start_line = min((d.lineno for d in node.decorator_list), default=node.lineno)
+        self._record(node.name, start_line, node.end_lineno)
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._record(node.name, node.lineno, node.end_lineno)
+        start_line = min((d.lineno for d in node.decorator_list), default=node.lineno)
+        self._record(node.name, start_line, node.end_lineno)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
@@ -285,7 +356,7 @@ def find_symbol_definitions(code: str, symbols: set[str]) -> list[SymbolDefiniti
         SymbolDefinitionDTO(
             symbol_name=sym,
             line_numbers=lines,
-            line_spans=visitor.found_spans.get(sym, []),
+            line_spans=visitor.found_spans[sym],
         )
         for sym, lines in visitor.found_symbols.items()
         if lines
@@ -340,6 +411,7 @@ neuro-symbolic audit gates in Quorum.
         epilog="""Examples (PowerShell):
   uv run python scripts/_ast_boundary_utils.py --file docs/epic/EPIC_XXX.md --extract-targets
   uv run python scripts/_ast_boundary_utils.py --file backend_v2/services/execution.py --extract-symbols
+  uv run python scripts/_ast_boundary_utils.py --file backend_v2/services/execution.py --extract-bounds
   uv run python scripts/_ast_boundary_utils.py --file backend_v2/services/execution.py --validate-bound 10 50
 """,
     )
@@ -360,6 +432,11 @@ neuro-symbolic audit gates in Quorum.
         help="Extract defined symbols and line numbers from target Python file.",
     )
     parser.add_argument(
+        "--extract-bounds",
+        action="store_true",
+        help="Extract all ClassDef, FunctionDef, and AsyncFunctionDef AST bounds from target Python file.",
+    )
+    parser.add_argument(
         "--validate-bound",
         nargs=2,
         type=int,
@@ -369,7 +446,7 @@ neuro-symbolic audit gates in Quorum.
 
     args = parser.parse_args(argv)
 
-    if not args.file or not any([args.extract_targets, args.extract_symbols, args.validate_bound]):
+    if not args.file or not any([args.extract_targets, args.extract_symbols, args.extract_bounds, args.validate_bound]):
         parser.print_usage()
         return 1
 
@@ -400,6 +477,16 @@ neuro-symbolic audit gates in Quorum.
         for s in symbols:
             spans_str = ", ".join(s.line_spans) if s.line_spans else ", ".join(str(n) for n in s.line_numbers)
             print(f"  {s.symbol_name}: lines [{spans_str}]")
+
+    if args.extract_bounds:
+        try:
+            bounds = get_ast_definition_bounds(args.file)
+            print(f"Extracted {len(bounds)} AST definition bound(s) from {args.file}:")
+            for b in bounds:
+                print(f"  #L{b.start_line}-L{b.end_line}")
+        except (SyntaxError, UnicodeDecodeError, OSError) as e:
+            print(f"Error extracting AST definition bounds from {args.file}: {e}")
+            return 1
 
     if args.validate_bound:
         start_line, end_line = args.validate_bound

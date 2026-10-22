@@ -7,15 +7,9 @@ symbol extractions, path sanitizations, and fault domain resilience.
 from __future__ import annotations
 
 import ast
-import sys
 from pathlib import Path
 
 import pytest
-
-# Add scripts directory to sys.path
-scripts_dir = Path("scripts").resolve()
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
 
 from scripts._ast_boundary_utils import (
     AstLineBoundDTO,
@@ -26,6 +20,7 @@ from scripts._ast_boundary_utils import (
     extract_target_files,
     find_symbol_definitions,
     find_symbols_in_python_code,
+    get_ast_definition_bounds,
     main,
     normalize_target_path,
     parse_line_bound,
@@ -65,9 +60,11 @@ def test_extract_target_files_partitions() -> None:
 - [modify] backend_v2/settings.py#L1-L10
 - Ignore http://example.com/api
 - Arbitrary text without action tags
+- Path first: @[backend_v2/services/path_first.py#L10-L20] [MODIFY]
+- Path first with bare bound: `@[backend_v2/services/bare_bound.py#10-20]` `[NEW]`
 """
     targets = extract_target_files(markdown_content)
-    assert len(targets) == 4
+    assert len(targets) == 6
 
     assert isinstance(targets[0], TargetFileReferenceDTO)
     assert targets[0].action == "MODIFY"
@@ -85,6 +82,14 @@ def test_extract_target_files_partitions() -> None:
     assert targets[3].action == "MODIFY"
     assert targets[3].file_path == "backend_v2/settings.py"
     assert targets[3].line_bound == "#L1-L10"
+
+    assert targets[4].action == "MODIFY"
+    assert targets[4].file_path == "backend_v2/services/path_first.py"
+    assert targets[4].line_bound == "#L10-L20"
+
+    assert targets[5].action == "NEW"
+    assert targets[5].file_path == "backend_v2/services/bare_bound.py"
+    assert targets[5].line_bound == "#10-20"
 
 
 def test_parse_line_bound_partitions() -> None:
@@ -104,6 +109,10 @@ def test_parse_line_bound_partitions() -> None:
     # Positive Partition 4: Inverted bounds #L100-L50
     b4 = parse_line_bound("#L100-L50")
     assert b4 == AstLineBoundDTO(start_line=50, end_line=100)
+
+    # Positive Partition 5: Bare numbers #10-20
+    b5 = parse_line_bound("#10-20")
+    assert b5 == AstLineBoundDTO(start_line=10, end_line=20)
 
     # Negative Partition 1: Missing hyphen
     assert parse_line_bound("#L10") is None
@@ -160,6 +169,74 @@ def test_validate_ast_line_bound_positive_and_negative(tmp_path: Path) -> None:
     bad_bytes = tmp_path / "bad_bytes.py"
     bad_bytes.write_bytes(b"\xff\xfe\x00\x00class X: pass")
     assert validate_ast_line_bound(bad_bytes, 1, 5) is False
+
+
+def test_validate_ast_line_bound_decorated_nodes(tmp_path: Path) -> None:
+    """ISTQB Boundary Value Analysis on decorated classes, functions, and async functions."""
+    test_py = tmp_path / "decorated_service.py"
+    test_py.write_text(
+        "@pytest.mark.asyncio\n"  # Line 1
+        "@another_decorator\n"  # Line 2
+        "async def decorated_async_fn():\n"  # Line 3
+        "    return 42\n"  # Line 4
+        "\n"  # Line 5
+        "@dataclass(frozen=True)\n"  # Line 6
+        "class DecoratedClass:\n"  # Line 7
+        "    x: int = 1\n"  # Line 8
+        "\n"  # Line 9
+        "@property\n"  # Line 10
+        "def decorated_sync_fn():\n"  # Line 11
+        "    pass\n",  # Line 12
+        encoding="utf-8",
+    )
+
+    # 1. Full decorated async span (Lines 1-4) -> True
+    assert validate_ast_line_bound(test_py, 1, 4) is True
+
+    # 2. Def-only async span (Lines 3-4) -> True
+    assert validate_ast_line_bound(test_py, 3, 4) is True
+
+    # 3. Full decorated class span (Lines 6-8) -> True
+    assert validate_ast_line_bound(test_py, 6, 8) is True
+
+    # 4. Class-only span (Lines 7-8) -> True
+    assert validate_ast_line_bound(test_py, 7, 8) is True
+
+    # 5. Full decorated sync fn span (Lines 10-12) -> True
+    assert validate_ast_line_bound(test_py, 10, 12) is True
+
+    # 6. Negative: Bound slicing partially into decorator without encompassing def or start
+    # e.g., Line 5 is whitespace between definitions
+    assert validate_ast_line_bound(test_py, 5, 5) is False
+
+    # 7. Negative: Range 20-30 completely past file end
+    assert validate_ast_line_bound(test_py, 20, 30) is False
+
+
+def test_get_ast_definition_bounds_dual_spans(tmp_path: Path) -> None:
+    """Test get_ast_definition_bounds returns dual-span representations for decorated nodes."""
+    test_py = tmp_path / "dual_spans.py"
+    test_py.write_text(
+        "@pytest.mark.asyncio\n"  # Line 1
+        "async def run_test():\n"  # Line 2
+        "    pass\n"  # Line 3
+        "\n"  # Line 4
+        "def plain_fn():\n"  # Line 5
+        "    pass\n",  # Line 6
+        encoding="utf-8",
+    )
+    bounds = get_ast_definition_bounds(test_py)
+    # Expected: (1, 3) full decorated span, (2, 3) def span, (5, 6) plain fn span
+    span_tuples = [(b.start_line, b.end_line) for b in bounds]
+    assert (1, 3) in span_tuples
+    assert (2, 3) in span_tuples
+    assert (5, 6) in span_tuples
+
+    # Test error handling
+    bad_py = tmp_path / "syntax_error.py"
+    bad_py.write_text("def broken(:", encoding="utf-8")
+    with pytest.raises(SyntaxError):
+        get_ast_definition_bounds(bad_py)
 
 
 def test_find_symbols_and_definitions() -> None:
@@ -262,6 +339,22 @@ var_b = 2
     assert len(visitor.found_symbols["var_b"]) == 1
 
 
+def test_symbol_definition_visitor_decorated_start_lines() -> None:
+    """Test that SymbolDefinitionVisitor records the true definition start line across decorators."""
+    code = """
+@decorator_one
+@decorator_two
+def decorated_function():
+    pass
+"""
+    visitor = SymbolDefinitionVisitor({"decorated_function"})
+    tree = ast.parse(code)
+    visitor.visit(tree)
+    # The decorator starts at line 2
+    assert visitor.found_symbols["decorated_function"] == [2]
+    assert visitor.found_spans["decorated_function"][0].startswith("2-")
+
+
 def test_zero_reflection_in_ast_boundary_utils() -> None:
     """Zero-Reflection Compliance Test: Verify 0 getattr or hasattr calls in _ast_boundary_utils.py."""
     source_file = Path("scripts/_ast_boundary_utils.py").resolve()
@@ -298,7 +391,6 @@ target_var: int = 10
     assert len(found["target_var"]) == 1
 
 
-
 def test_ast_boundary_utils_main_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """ISTQB CLI Partition Testing: Validate main() with diverse flag combinations."""
     # 1. No arguments -> usage printed and exit code 1
@@ -322,15 +414,25 @@ def test_ast_boundary_utils_main_cli(tmp_path: Path, capsys: pytest.CaptureFixtu
     # 4. Valid Markdown file -> extract targets returns 0
     test_md = tmp_path / "plan.md"
     test_md.write_text(
-        """## Target Files\n- [NEW] @[backend_v2/services/new_svc.py#L10-L20]\n""",
+        "## Target Files\n"
+        "- [NEW] @[backend_v2/services/new_svc.py#L10-L20]\n"
+        "- @[backend_v2/services/other.py#L5-L15] [MODIFY]\n",
         encoding="utf-8",
     )
     assert main(["--file", str(test_md), "--extract-targets"]) == 0
     captured = capsys.readouterr()
     assert "backend_v2/services/new_svc.py" in captured.out
+    assert "backend_v2/services/other.py" in captured.out
 
-    # 5. Validate bound - valid range -> 0
+    # 5. Extract bounds option returns 0 and prints bounds
+    assert main(["--file", str(test_py), "--extract-bounds"]) == 0
+    captured_bounds = capsys.readouterr()
+    assert "Extracted 2 AST definition bound(s)" in captured_bounds.out
+    assert "#L1-L2" in captured_bounds.out
+    assert "#L4-L5" in captured_bounds.out
+
+    # 6. Validate bound - valid range -> 0
     assert main(["--file", str(test_py), "--validate-bound", "1", "10"]) == 0
 
-    # 6. Validate bound - invalid range -> 1
+    # 7. Validate bound - invalid range -> 1
     assert main(["--file", str(test_py), "--validate-bound", "50", "60"]) == 1
