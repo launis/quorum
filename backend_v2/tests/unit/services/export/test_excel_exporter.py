@@ -357,3 +357,99 @@ async def test_export_excel_writer_error_raises_500() -> None:
             )
         assert exc_info.value.status_code == 500
         assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_export_excel_none_report_dto_fails() -> None:
+    """Verify export_excel raises 400 AppException when report_dto is None."""
+    exporter = ExcelExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    matrices = _build_sample_matrix_rows(1)
+
+    with pytest.raises(AppException) as exc_info:
+        await exporter.export_excel(
+            execution=exec_record,
+            report_dto=None,
+            matrices=matrices,
+        )
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_execution_id_override() -> None:
+    """Verify export_excel uses explicit execution_id override for filename and summary rows."""
+    exporter = ExcelExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    payload = await exporter.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        execution_id="exe_custom_override_999",
+    )
+    assert payload.filename == "execution_export_exe_custom_override_999.xlsx"
+
+    wb = openpyxl.load_workbook(io.BytesIO(payload.content_bytes))
+    sheet_summary = ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "fi")
+    ws = wb[sheet_summary]
+    rows = list(ws.iter_rows(values_only=True))
+    assert len(rows) >= 2
+    # Execution ID is column 0
+    assert rows[1][0] == "exe_custom_override_999"
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_all_matrices_override() -> None:
+    """Verify export_excel uses all_matrices when provided for summary and lookup."""
+    exporter = ExcelExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+    all_matrices = _build_sample_matrix_rows(3)
+
+    payload = await exporter.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        all_matrices=all_matrices,
+        locale="fi",
+    )
+    wb = openpyxl.load_workbook(io.BytesIO(payload.content_bytes))
+    sheet_summary = ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, "fi")
+    ws = wb[sheet_summary]
+    rows = list(ws.iter_rows(values_only=True))
+    # Header + 3 matrices
+    assert len(rows) == 4
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_components_list() -> None:
+    """Verify export_excel uses components list directly without repo lookup."""
+    blk_id = "blk_0123456789abcdef"
+    lbl = I18nText(translations={"fi": "Matriisi C", "en": "Matrix C"})
+    desc = I18nText(translations={"fi": "Kuvaus C", "en": "Description C"})
+    matrix_block = MatrixPromptBlock(
+        id=blk_id,
+        slug="m_slug_c",
+        label=lbl,
+        description=desc,
+        scales=[MatrixScale(score=1, ai_label="L1", claims=[])],
+        ai_description="Operational rule description C",
+    )
+    exporter = ExcelExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    payload = await exporter.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        components=[matrix_block],
+        locale="en",
+    )
+    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+

@@ -78,8 +78,10 @@ class ExcelExporter:
             ExportPayloadDTO containing the Excel file bytes and canonical filename.
 
         Raises:
-            AppException: If execution is not in PASSED state (400), has no scoreable atoms (400),
-                matrices is empty (400), or Excel generation fails (500).
+            AppException: If execution is not in PASSED state (VALIDATION_FAILED, 400),
+                has no scoreable atoms (VALIDATION_FAILED, 400), matrices is empty
+                (VALIDATION_FAILED, 400), or Excel generation fails
+                (INTERNAL_SERVER_ERROR, 500).
         """
         # Phase 3, Step 1: Enforce PASSED state validation
         if execution.status != ExecutionStatus.PASSED:
@@ -125,8 +127,6 @@ class ExcelExporter:
         matrix_title_lookup: dict[str, str] = {}
         for m in effective_matrices:
             lbl = m.label_i18n.resolve(target_locale=locale)
-            if not lbl:
-                lbl = m.name
             matrix_title_lookup[m.block_id] = lbl
 
         summary_dtos = build_summary_dtos(effective_matrices, locale, target_id)
