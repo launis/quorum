@@ -555,7 +555,7 @@ def test_scan_for_lingering_symbols_direct(tmp_path: Path) -> None:
 
     findings = scan_for_lingering_symbols(tmp_path, {"legacy_fn"})
     assert len(findings) == 2
-    symbols_found = {f[0] for f in findings}
+    symbols_found = {f.symbol for f in findings}
     assert symbols_found == {"legacy_fn"}
 
 

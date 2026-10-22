@@ -10,6 +10,9 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
 
 try:
     from _ast_boundary_utils import (
@@ -23,6 +26,27 @@ except ImportError:
         extract_target_files,
         find_symbols_in_python_code,
     )
+
+
+class DiscoveredSymbolDTO(BaseModel):
+    """Pydantic V2 DTO representing a discovered lingering symbol reference."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    symbol: Annotated[str, Field(description="Name of deprecated symbol")]
+    file_path: Annotated[str, Field(description="Relative path of file containing reference")]
+    line: Annotated[int, Field(ge=1, description="Line number of match")]
+
+
+class EpicCoverageReportRowDTO(BaseModel):
+    """Pydantic V2 DTO representing an audit report table row."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    requirement: Annotated[str, Field(description="Markdown requirement description")]
+    category: Annotated[str, Field(description="Category e.g. File or Symbol")]
+    status: Annotated[str, Field(description="Audit status PASS or FAIL")]
+    evidence: Annotated[str, Field(description="Audit evidence details")]
 
 
 def extract_phase_content(epic_text: str, phase_num: int | None) -> str:
@@ -40,9 +64,9 @@ def extract_phase_content(epic_text: str, phase_num: int | None) -> str:
     return epic_text
 
 
-def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[tuple[str, str, int]]:
+def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[DiscoveredSymbolDTO]:
     """Scan backend Python files (AST) and frontend Dart files for lingering deprecated symbols."""
-    findings: list[tuple[str, str, int]] = []
+    findings: list[DiscoveredSymbolDTO] = []
     if not symbols:
         return findings
 
@@ -56,7 +80,13 @@ def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[
                 for sym, lines in matches.items():
                     for match_lineno in lines:
                         rel_path = py_file.relative_to(workspace_root).as_posix()
-                        findings.append((sym, rel_path, match_lineno))
+                        findings.append(
+                            DiscoveredSymbolDTO(
+                                symbol=sym,
+                                file_path=rel_path,
+                                line=match_lineno,
+                            )
+                        )
             except SyntaxError, UnicodeDecodeError, OSError:
                 continue
 
@@ -70,7 +100,13 @@ def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[
                     for sym in symbols:
                         if re.search(rf"\b{re.escape(sym)}\b", line_text):
                             rel_path = dart_file.relative_to(workspace_root).as_posix()
-                            findings.append((sym, rel_path, lineno))
+                            findings.append(
+                                DiscoveredSymbolDTO(
+                                    symbol=sym,
+                                    file_path=rel_path,
+                                    line=lineno,
+                                )
+                            )
             except UnicodeDecodeError, OSError:
                 continue
 
@@ -137,7 +173,7 @@ Performs reverse verification of physical codebase state against Epic Markdown s
     target_files = extract_target_files(scoped_text)
     deprecated_symbols = extract_deprecated_symbols(scoped_text)
 
-    report_rows: list[tuple[str, str, str, str]] = []
+    report_rows: list[EpicCoverageReportRowDTO] = []
     has_failure = False
 
     # 1. PHYSICAL FILE EXISTENCE VERIFICATION
@@ -157,27 +193,46 @@ Performs reverse verification of physical codebase state against Epic Markdown s
 
         if status == "FAIL":
             has_failure = True
-        report_rows.append((f"[{target.action}] `{target.file_path}`", "File", status, evidence))
+        report_rows.append(
+            EpicCoverageReportRowDTO(
+                requirement=f"[{target.action}] `{target.file_path}`",
+                category="File",
+                status=status,
+                evidence=evidence,
+            )
+        )
 
     # 2. DEPRECATED SYMBOLS SCANNING
     lingering = scan_for_lingering_symbols(workspace_root, deprecated_symbols)
     if lingering:
         has_failure = True
-        for sym, file_path, line in lingering:
+        for finding in lingering:
             report_rows.append(
-                (f"Eradicate `{sym}`", "Symbol", "FAIL", f"NOT ERADICATED: found in `{file_path}:{line}`")
+                EpicCoverageReportRowDTO(
+                    requirement=f"Eradicate `{finding.symbol}`",
+                    category="Symbol",
+                    status="FAIL",
+                    evidence=f"NOT ERADICATED: found in `{finding.file_path}:{finding.line}`",
+                )
             )
     elif deprecated_symbols:
         for sym in sorted(deprecated_symbols):
-            report_rows.append((f"Eradicate `{sym}`", "Symbol", "PASS", "No lingering references found in codebase"))
+            report_rows.append(
+                EpicCoverageReportRowDTO(
+                    requirement=f"Eradicate `{sym}`",
+                    category="Symbol",
+                    status="PASS",
+                    evidence="No lingering references found in codebase",
+                )
+            )
 
     # Print markdown table
     phase_label = f"Phase {args.phase}" if args.phase else "All Phases"
     print(f"\n# Epic Coverage Audit Report: {epic_path.name} ({phase_label})\n")
     print("| Requirement | Category | Status | Evidence |")
     print("| :--- | :--- | :--- | :--- |")
-    for req, cat, stat, evid in report_rows:
-        print(f"| {req} | {cat} | **{stat}** | {evid} |")
+    for row in report_rows:
+        print(f"| {row.requirement} | {row.category} | **{row.status}** | {row.evidence} |")
 
     if args.output_report:
         out_p = Path(args.output_report)
@@ -187,8 +242,8 @@ Performs reverse verification of physical codebase state against Epic Markdown s
             "| Requirement | Category | Status | Evidence |",
             "| :--- | :--- | :--- | :--- |",
         ]
-        for req, cat, stat, evid in report_rows:
-            report_lines.append(f"| {req} | {cat} | **{stat}** | {evid} |")
+        for row in report_rows:
+            report_lines.append(f"| {row.requirement} | {row.category} | **{row.status}** | {row.evidence} |")
         out_p.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
         print(f"\nAudit report saved to: {out_p.as_posix()}")
 
