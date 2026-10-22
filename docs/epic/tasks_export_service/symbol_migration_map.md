@@ -10,7 +10,7 @@
 </required_context_rules>
 
 ## Overview
-This document tracks the physical symbol mappings for decomposing monolithic `@[backend_v2/services/export_service.py#L62-L1123]` (1,124 lines) into the cohesive domain package `backend_v2/services/export/` following the Two-Epoch Strangler Fig Protocol.
+This document tracks the physical symbol mappings for decomposing monolithic `@[backend_v2/services/export_service.py#L65-L589]` (590 lines, originally 1,124 lines) into the cohesive domain package `backend_v2/services/export/` following the Two-Epoch Strangler Fig Protocol.
 
 ---
 

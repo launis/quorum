@@ -7,15 +7,9 @@ Adheres strictly to Tripartite Pipeline Architecture and Dual-Axis Localization:
 
 from __future__ import annotations
 
-import csv
-import io
-import logging
-
 import openpyxl
-import pandas as pd
 
 from backend_v2.database.interfaces import IPromptBlockRepository
-from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
@@ -35,16 +29,12 @@ from backend_v2.models.dtos.export import (
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import (
-    ExecutionStatus,
-    ReportAtomColumn,
-    ReportMatrixColumn,
-    ReportSheetKey,
-)
 from backend_v2.services.export.atom_row_builder import (
     build_atom_rows,
     build_denormalized_rows,
 )
+from backend_v2.services.export.csv_exporter import CsvExporter
+from backend_v2.services.export.excel_exporter import ExcelExporter
 from backend_v2.services.export.excel_styler import apply_corporate_excel_styling
 from backend_v2.services.export.metadata_resolver import (
     build_matrix_atom_maps,
@@ -55,9 +45,6 @@ from backend_v2.services.export.metadata_resolver import (
     resolve_matrix_label,
 )
 from backend_v2.services.export.summary_builder import build_summary_dtos
-from backend_v2.services.localization import ReportHeaderResolver
-
-logger = logging.getLogger(__name__)
 
 __all__ = ["ExportService"]
 
@@ -327,141 +314,14 @@ class ExportService:
             AppException: If execution is not in PASSED state, has no scoreable atoms,
                 matrices is empty, matrix block is not found, or Excel generation fails.
         """
-        if execution.status != ExecutionStatus.PASSED:
-            msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
-            logger.error(
-                "[ExportService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        if report_dto is None or not report_dto.results:
-            msg = "Strict Fail-Fast: Execution has no scoreable atoms."
-            logger.error(
-                "[ExportService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        if not matrices:
-            msg = "Strict Fail-Fast: Execution has no evaluative matrices for Excel export."
-            logger.error(
-                "[ExportService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        effective_matrices = matrices
-        if all_matrices is not None:
-            effective_matrices = all_matrices
-
-        target_id = execution.id
-        if execution_id is not None:
-            target_id = execution_id
-
-        matrix_title_lookup: dict[str, str] = {}
-        for m in effective_matrices:
-            lbl = m.label_i18n.resolve(target_locale=locale)
-            if not lbl:
-                lbl = m.name
-            matrix_title_lookup[m.block_id] = lbl
-
-        summary_dtos = self._build_summary_dtos(effective_matrices, locale, target_id)
-
-        tab1_headers = ReportHeaderResolver.get_all_matrix_headers(locale)
-        tab1_rows = [
-            {
-                tab1_headers[ReportMatrixColumn.EXECUTION_ID]: s.execution_id,
-                tab1_headers[ReportMatrixColumn.LABEL]: s.label,
-                tab1_headers[ReportMatrixColumn.CONTEXT_TARGET]: s.context_target,
-                tab1_headers[ReportMatrixColumn.DISTRIBUTION]: s.distribution,
-                tab1_headers[ReportMatrixColumn.HITS]: s.hits,
-                tab1_headers[ReportMatrixColumn.TOTAL_ATOMS]: s.total_atoms,
-                tab1_headers[ReportMatrixColumn.HIT_RATIO]: s.hit_ratio,
-                tab1_headers[ReportMatrixColumn.RAW_SCORE]: s.raw_score,
-                tab1_headers[ReportMatrixColumn.SCALE_MAX]: s.scale_max,
-                tab1_headers[ReportMatrixColumn.NORMALIZED_SCORE]: s.normalized_score,
-                tab1_headers[ReportMatrixColumn.ROW_EXPLANATION]: s.row_explanation,
-                tab1_headers[ReportMatrixColumn.CRITERIA]: s.criteria,
-                tab1_headers[ReportMatrixColumn.SOURCE]: s.source,
-            }
-            for s in summary_dtos
-        ]
-
-        blocks_by_id: dict[str, AnyPromptBlock] = {}
-        if components is not None:
-            blocks_by_id = {b.id: b for b in components}
-        elif self.prompt_block_repo is not None:
-            comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
-            blocks_by_id = {b.id: b for b in comp_list}
-
-        causal_result = self._extract_causal_result(execution)
-
-        atom_dtos = self._build_atom_rows(
+        return await ExcelExporter(self.prompt_block_repo).export_excel(
+            execution=execution,
             report_dto=report_dto,
             matrices=matrices,
             locale=locale,
-            blocks_by_id=blocks_by_id,
-            matrix_title_lookup=matrix_title_lookup,
+            components=components,
+            execution_id=execution_id,
             all_matrices=all_matrices,
-            causal_result=causal_result,
-        )
-
-        atom_headers = {col: ReportHeaderResolver.get_atom_column_header(col, locale) for col in ReportAtomColumn}
-        tab2_rows = [
-            {
-                atom_headers[ReportAtomColumn.MATRIX]: a.matrix_label,
-                atom_headers[ReportAtomColumn.CONTEXT_TARGET]: a.context_target,
-                atom_headers[ReportAtomColumn.LEVEL]: a.level,
-                atom_headers[ReportAtomColumn.LEVEL_NAME]: a.level_name,
-                atom_headers[ReportAtomColumn.CRITERION]: a.criterion,
-                atom_headers[ReportAtomColumn.CLAIM_TYPE]: a.claim_type,
-                atom_headers[ReportAtomColumn.IS_INVERSE]: a.is_inverse,
-                atom_headers[ReportAtomColumn.POINTS_AWARDED]: a.points_awarded,
-                atom_headers[ReportAtomColumn.RESULT_STATUS]: a.result_status,
-                atom_headers[ReportAtomColumn.QUOTES]: a.quotes,
-                atom_headers[ReportAtomColumn.AI_REASONING]: a.ai_reasoning,
-                atom_headers[ReportAtomColumn.CAUSAL_STATUS]: a.causal_status,
-                atom_headers[ReportAtomColumn.BLAME_PARENT_ID]: a.blame_parent_id,
-                atom_headers[ReportAtomColumn.DEPENDENT_COUNT]: a.dependent_count,
-            }
-            for a in atom_dtos
-        ]
-
-        sheet_summary = ReportHeaderResolver.get_sheet_name(ReportSheetKey.SUMMARY, locale)
-        sheet_raw_data = ReportHeaderResolver.get_sheet_name(ReportSheetKey.RAW_DATA, locale)
-
-        output = io.BytesIO()
-        try:
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                pd.DataFrame(tab1_rows).to_excel(writer, sheet_name=sheet_summary, index=False)
-                pd.DataFrame(tab2_rows).to_excel(writer, sheet_name=sheet_raw_data, index=False)
-                self._apply_corporate_excel_styling(writer.book, [sheet_summary, sheet_raw_data])
-        except Exception as e:
-            logger.error(
-                "[ExportService] %s: Excel writing failed - %s",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                e,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-            )
-            raise AppException(
-                message="Failed to generate Excel export",
-                status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-            ) from e
-
-        output.seek(0)
-        return ExportPayloadDTO(
-            content_bytes=output.getvalue(),
-            filename=f"execution_export_{target_id}.xlsx",
-            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
     async def export_flat_csv(
@@ -491,99 +351,12 @@ class ExportService:
         Raises:
             AppException: If execution is not PASSED or has no scoreable atoms.
         """
-        if execution.status != ExecutionStatus.PASSED:
-            msg = "Strict Fail-Fast: Execution must be in PASSED state to export CSV."
-            logger.error(
-                "[ExportService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        if report_dto is None or not report_dto.results:
-            msg = "Strict Fail-Fast: Execution has no scoreable atoms."
-            logger.error(
-                "[ExportService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-
-        eval_matrices: list[MatrixScorecardRowDTO] = []
-        if matrices is not None:
-            eval_matrices = matrices
-        effective_matrices = eval_matrices
-        if all_matrices is not None:
-            effective_matrices = all_matrices
-
-        target_id = execution.id
-        if execution_id is not None:
-            target_id = execution_id
-
-        matrix_title_lookup: dict[str, str] = {}
-        for m in effective_matrices:
-            title = m.label_i18n.resolve(target_locale=locale)
-            if not title:
-                title = m.name
-            matrix_title_lookup[m.block_id] = title
-
-        blocks_by_id: dict[str, AnyPromptBlock] = {}
-        if components is not None:
-            blocks_by_id = {b.id: b for b in components}
-        elif self.prompt_block_repo is not None:
-            comp_list = await self.prompt_block_repo.get_all_prompt_blocks()
-            blocks_by_id = {b.id: b for b in comp_list}
-
-        causal_result = self._extract_causal_result(execution)
-
-        flat_dtos = self._build_denormalized_rows(
+        return await CsvExporter(self.prompt_block_repo).export_flat_csv(
+            execution=execution,
             report_dto=report_dto,
-            matrices=effective_matrices,
+            matrices=matrices,
             locale=locale,
-            blocks_by_id=blocks_by_id,
-            matrix_title_lookup=matrix_title_lookup,
-            execution_id=target_id,
+            components=components,
+            execution_id=execution_id,
             all_matrices=all_matrices,
-            causal_result=causal_result,
-        )
-
-        headers = ReportHeaderResolver.get_all_denormalized_csv_headers(locale)
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(headers)
-        for row in flat_dtos:
-            writer.writerow(
-                [
-                    row.execution_id,
-                    row.matrix_label,
-                    row.context_target,
-                    row.distribution,
-                    row.hits,
-                    row.total_atoms,
-                    row.hit_ratio,
-                    row.raw_score,
-                    row.scale_max,
-                    row.normalized_score,
-                    row.level,
-                    row.level_name,
-                    row.criterion,
-                    row.claim_type,
-                    row.is_inverse,
-                    row.points_awarded,
-                    row.result_status,
-                    row.quotes,
-                    row.ai_reasoning,
-                    row.causal_status,
-                    row.blame_parent_id,
-                    row.dependent_count,
-                ]
-            )
-
-        return ExportPayloadDTO(
-            content_bytes=output.getvalue().encode("utf-8-sig"),
-            filename=f"execution_export_{target_id}.csv",
-            mime_type="text/csv",
         )
