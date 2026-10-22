@@ -67,3 +67,42 @@ def test_apply_corporate_excel_styling_existing_parity() -> None:
     col2_letter = "B"
     assert ws_direct.column_dimensions[col2_letter].width == ws_proxy.column_dimensions[col2_letter].width
     assert ws_direct.column_dimensions[col2_letter].width > 12
+
+
+def test_apply_corporate_excel_styling_empty_sheet_list() -> None:
+    """Verify applying styling with an empty sheet list is a no-op."""
+    wb = _create_sample_workbook()
+    apply_corporate_excel_styling(wb, [])
+    ws = wb["Summary"]
+    # Header should not be modified
+    assert ws.cell(row=1, column=1).fill.fill_type is None
+
+
+def test_apply_corporate_excel_styling_only_nonexistent_sheets() -> None:
+    """Verify passing only nonexistent sheet names leaves workbook untouched."""
+    wb = _create_sample_workbook()
+    apply_corporate_excel_styling(wb, ["NoSuchSheet1", "NoSuchSheet2"])
+    ws = wb["Summary"]
+    assert ws.cell(row=1, column=1).fill.fill_type is None
+
+
+def test_apply_corporate_excel_styling_max_width_cap() -> None:
+    """Verify column width auto-calculation caps at 50 for very wide cells."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Wide"
+    ws.append(["ShortHeader"])
+    ws.append(["A" * 120])  # Very long cell
+    apply_corporate_excel_styling(wb, ["Wide"])
+    assert ws.column_dimensions["A"].width == 50
+
+
+def test_apply_corporate_excel_styling_empty_worksheet() -> None:
+    """Verify styling an empty worksheet with None values computes minimum width 12."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Empty"
+    ws.cell(row=1, column=1).value = None
+    apply_corporate_excel_styling(wb, ["Empty"])
+    assert ws.column_dimensions["A"].width == 12
+
