@@ -477,6 +477,10 @@
     <rule_block id="trace_serialization_hygiene_mandate">
         <mandate>NEVER serialize DTOs or state dictionaries into `execution_trace` or persistent event logs using bare `model_dump(mode="json")` without `exclude_none=True`. ALL trace event and step output serialization MUST enforce `exclude_none=True` (`matrix_dto.model_dump(mode="json", exclude_none=True)`). Emitting superfluous `"field": null` entries into execution traces pollutes event logs, inflates storage, and triggers catastrophic `extra="forbid"` validation failures in downstream consumer DTOs.</mandate>
     </rule_block>
+
+    <rule_block id="package_facade_and_inter_context_protocol_mandate">
+        <mandate>Package facades (`__init__.py`) MUST be strictly under 300 lines and act purely as immutable dependency injection routers and re-export entry points. Mutable `@property` setters mutating sub-service state are strictly prohibited. Sub-services collaborating across bounded contexts MUST communicate via typed `typing.Protocol` contracts rather than loose `Callable[..., Any]` functions.</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>

@@ -77,6 +77,13 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
     invokes pytest with coverage instrumentation, and verifies line coverage meets or exceeds
     the required 90% threshold.
 
+    When targeting a package facade (__init__.py), candidate test discovery checks:
+    1. test_{pkg_name}.py
+    2. test_{pkg_name}_facade.py
+    3. test_facade.py
+    When auditing a package directory (specifically: backend_v2/services/auth/ --test),
+    the aggregate package test suite is automatically discovered and executed.
+
     Args:
         target: File path or directory path to test with coverage.
         logfire: When True, enables Logfire distributed tracing plugin in Pytest.
@@ -140,6 +147,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                 cov_target = target_clean.removesuffix("/__init__.py").replace("/", ".")
                 pkg_name = parts[-2] if len(parts) >= 2 else "init"
                 clean_base = filename.removesuffix(".py").lstrip("_")
+                # Package facade test candidate discovery: checks test_{pkg}.py, test_{pkg}_facade.py, and test_facade.py
                 candidates = [
                     f"test_{pkg_name}.py",
                     f"test_{pkg_name}_facade.py",
@@ -379,6 +387,7 @@ Optional steps:
         epilog="""Examples (PowerShell):
   uv run python scripts/backend_audit_loop.py backend_v2/services/execution.py
   uv run python scripts/backend_audit_loop.py backend_v2/services/execution.py --test
+  uv run python scripts/backend_audit_loop.py backend_v2/services/auth/ --test
   uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/ --strict
   uv run python scripts/backend_audit_loop.py backend_v2/ --openapi
 """,
@@ -387,7 +396,11 @@ Optional steps:
         "targets",
         nargs="*",
         default=[],
-        help="Target files or directories to validate sequentially through the pipeline.",
+        help=(
+            "Target files or directories to validate sequentially through the pipeline. "
+            "Passing a package directory (specifically: backend_v2/services/auth/ --test) "
+            "runs the aggregate package test suite."
+        ),
     )
     parser.add_argument(
         "--test",

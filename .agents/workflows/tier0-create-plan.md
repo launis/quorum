@@ -18,7 +18,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
     <rule_block id="core_rules_routing">
       <mandatory_pattern>Your VERY FIRST tool call in a new task MUST be `view_file` to load `.agents/rules/00-antigravity-core.md`. You MUST NOT output any `<thinking_process>` or generate code until you have physically read the rules. ADDITIONALLY, load relevant domain rules based on plan scope:
         - ALWAYS read: `04_directory_reference.md`
-        - ALWAYS read: `@[c:\Users\risto\.gemini\antigravity-ide\knowledge\god_code_prevention\artifacts\ki_god_code_prevention.md]`
+        - ALWAYS read: `@[ki_god_code_prevention.md]`
         - IF touching Python/Backend: read `01-python-backend.md`
         - IF touching Flutter/Frontend: read `02_flutter_desktop.md`
         - IF touching Database/Seed Data: read `03_seed_vault.md`
@@ -44,8 +44,12 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <mandatory_pattern>You MUST embrace Neuro-Symbolic Agentic Architecture. Recognize that Large Language Models inherently act as lossy compression algorithms over long contexts. You MUST explicitly double-check your generated Plan document against the user's original prompt to ensure 100% mathematical fidelity of code symbols, variable names, and line bounds before concluding.</mandatory_pattern>
       <catastrophic_reason>Assuming LLMs can perfectly preserve 100% of character-level boundaries from prompts without rigid double-checking leads to silent context drift and catastrophic hallucination downstream.</catastrophic_reason>
     </rule_block>
+    <rule_block id="universal_new_tagging_mandate">
+      <mandatory_pattern>All proposed files that do not currently exist in the filesystem MUST be prefixed with `[NEW]` in all markdown tables, bullet points, file headers, and XML payloads (specifically: `[NEW] @[backend_v2/services/new_service.py]`). Omitting `[NEW]` triggers fatal `MBD003` in `audit_markdown_boundaries.py`.</mandatory_pattern>
+      <catastrophic_reason>Referencing uncreated files without `[NEW]` breaks automated boundary verification, causing CI quality gate failures and plan rejection.</catastrophic_reason>
+    </rule_block>
     <rule_block id="context_amnesia_prevention">
-      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (e.g., `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (e.g., `@[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plan.</mandatory_pattern>
+      <mandatory_pattern>Whenever you generate a handover command, tracker file, implementation plan, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (specifically: `[NEW] @[backend_v2/target.py]`). CRITICAL LARGE FILE BOUNDING: If the target is a massive file (specifically: `seed_data.json`), you MUST append specific line bounds using `#Lnn-mm` syntax. PROMPT BOUNDARY PRESERVATION: If the user provides specific line bounds for a target (specifically: `[NEW] @[file.py#L830-L841]`), you MUST preserve these EXACT same bounds verbatim in your generated implementation plan.</mandatory_pattern>
       <catastrophic_reason>Failing to use bounded `@-references` or dropping user-defined bounds forces the next AI session to blindly search for context or dump 10,000 lines into its window, causing severe Context Amnesia and immediate truncation failure.</catastrophic_reason>
     </rule_block>
 
@@ -75,7 +79,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION">
       <action>Gather all requirements from the user. Do NOT guess the current state of the codebase.</action>
       <action>Actively use your search tools (`grep_search`, `view_file`) to precisely target the affected directories before writing.</action>
-      <constraint name="EPIC ESCALATION PROTOCOL">If you determine that the scope of the requested change is too massive for a single implementation plan (e.g., modifies more than 4-5 complex files, requires multi-phase legacy migration, or spans both frontend and backend heavily), you MUST STOP. Do not generate an `implementation_plan.md`. Instead, explicitly advise the user that the scope is too large for a single plan and instruct them to run `/tier0-create-epic` to draft a multi-phase Epic document first.</constraint>
+      <constraint name="EPIC ESCALATION PROTOCOL">If you determine that the scope of the requested change is too massive for a single implementation plan (specifically: modifies more than 4-5 complex files, requires multi-phase legacy migration, or spans both frontend and backend heavily), you MUST STOP. Do not generate an `implementation_plan.md`. Instead, explicitly advise the user that the scope is too large for a single plan and instruct them to run `/tier0-create-epic` to draft a multi-phase Epic document first.</constraint>
     </step>
 
     <step id="2" name="SYSTEM 2 DESIGN &amp; CHAIN-OF-THOUGHT">
@@ -87,14 +91,14 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         4. Cross-Domain DTO Parity: Backend Pydantic changes MUST synchronously update Flutter Freezed models (`flutter_audit_loop.py --build`).
         5. Static-First Caching Topology: Prompt instructions static in `PromptBlock`; dynamic variables appended at absolute end inside `<execution_parameters>`.
         6. Python 3.14 Concurrency: `asyncio.TaskGroup` with `asyncio.Semaphore` (no `asyncio.gather`).
-        7. Python-Injected Metadata: Programmatic injection of sequence indices (e.g. `source_sequence_index: int`) in Python, never by LLM.
+        7. Python-Injected Metadata: Programmatic injection of sequence indices (specifically: `source_sequence_index: int`) in Python, never by LLM.
         8. FinOps &amp; Cache Lifecycle Management: Explicit `try...finally` cache teardowns (`LLMCachingService.teardown_workflow_caches()`).
         9. RFC-7807 Dual-Reporting: Structured `logger.error` preceding `AppException` crashes.
         10. Strategy + Registry Pattern: Dynamic routing via static registries with Eager Loading (no `if/else` cascades or duck typing).
         11. Exact String Matching: `str.find()` for forensic quote evidence (no regex or fuzzy matching).
         12. AST Guardrail Mandate: Structural testing of new architectural constraints must precede execution.
         13. Scoped Boy Scout Rule &amp; Technical Debt Sweep: Actively inspect touched target files for existing anti-patterns (getattr, .get, unvalidated model_copy, magic numbers, hardcoded UI strings/colors) and enforce their resolution in Phase 1 before new business logic is added.
-        14. Zero Backward Compatibility Planning Ban: Prohibits phrases and planning concepts like "backwards compatibility", "legacy fallback", "defensive fallback", "safe defaults", or "all-inclusive default". If a contract requires X, missing X deterministically yields an empty set or Fail-Fast AppException.
+        14. Zero Backward Compatibility Planning Ban: Prohibits phrases and planning concepts specifically: "backwards compatibility", "legacy fallback", "defensive fallback", "safe defaults", or "all-inclusive default". If a contract requires X, missing X deterministically yields an empty set or Fail-Fast AppException.
         15. Single Invariant Pipeline Law: Strictly bans bifurcated pipelines where "new strict logic" coexists with "legacy permissive logic". All steps flow through one single sovereign pipeline.
       </constraint>
     </step>
@@ -103,20 +107,20 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <action>Create an `implementation_plan.md` system **Artifact** (do NOT write directly to codebase files).</action>
       <action>Set `request_feedback = true` in ArtifactMetadata.</action>
       <constraint name="HYBRID_XML_SANDWICH_MANDATE">
-        1. The top of the generated plan MUST be human-readable Markdown containing: Title, Objective, Scope (TARGET/CONTEXT files with bounded `@-references`), and explicit file modification categories (`[MODIFY]`, `[NEW]`, `[DELETE]`).
-        2. The execution instructions MUST be wrapped in the canonical `<execution_protocol>` XML schema inside a fenced ` ```xml ``` ` codeblock.
-        3. Architectural invariants MUST be injected as `<constraint invariant="rule_id">` tags within the relevant `<step>`.
+        1. The top of the generated plan MUST be human-readable Markdown containing: Title, Objective, Scope (TARGET/CONTEXT files with bounded `@-references`), and explicit file modification categories (`[MODIFY]`, `[NEW]`, `[DELETE]`). Every target boundary entry and table row referencing a file not yet present on disk MUST be prefixed with `[NEW]`.
+        2. The execution instructions MUST be wrapped in the canonical &lt;execution_protocol&gt; XML schema inside a fenced ` ```xml ``` ` codeblock.
+        3. Architectural invariants MUST be injected as &lt;constraint invariant="rule_id"&gt; tags within the relevant &lt;step&gt;.
         4. If touched target files contain existing legacy anti-patterns, the generated plan MUST include `### Pre-Implementation Technical Debt Cleanups` in Phase 1 before functional features are introduced. Enforce the Scoped Boy Scout boundary (Big Bang Ban): clean technical debt exclusively in files touched by the active task.
       </constraint>
-      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (e.g., in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
-      <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (e.g. `@[docs\epic\EPIC_XXX_tracker.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step, inject every single `<step id>` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase, and update the `# Session Handover Context`.</action>
+      <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (specifically in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
+      <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (specifically: `[NEW] @[docs/epic/EPIC_XXX_tracker.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step, inject every single `&lt;step id&gt;` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase, and update the `# Session Handover Context`.</action>
       <constraint name="DEFERRED_PHASE_HARDENING_INJECTION">
         When updating an existing tracker for a deferred phase, you MUST append newly planned target files into the tracker's `### Post-Implementation Gates` sub-checklists:
         1. For each new `[MODIFY]` or `[NEW]` `.py` target in the plan, append `  - [ ] @[relative_path.py]` under the `Tier 2 Hardening (Backend)` parent checkbox.
         2. For each new `[MODIFY]` or `[NEW]` `.dart` target in the plan, append `  - [ ] @[relative_path.dart]` under the `Tier 2 Hardening (Frontend)` parent checkbox.
         3. You MUST strictly preserve all existing `[x]` checkmarks on previously completed files.
       </constraint>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run. If it fails 3 times sequentially, you MUST STOP, output `<circuit_breaker_tripped>`, and ask the user for guidance to avoid an infinite loop.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating the plan and task artifacts, you MUST physically run the boundaries audit script on your generated implementation plan: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>`. If it fails, you MUST correct the plan and re-run. If it fails 3 times sequentially, you MUST STOP, output `&lt;circuit_breaker_tripped&gt;`, and ask the user for guidance to avoid an infinite loop.</action>
       <action name="CONDITIONAL PLANNER FIDELITY AUDIT">If an Epic file was provided as context, you MUST ADDITIONALLY run `uv run python scripts/audit_planner_output.py --epic <path_to_epic> --plan-dir <artifact_directory_containing_the_plan>` to verify target file coverage, line boundary preservation, KI inheritance, and demolish tag propagation. If no Epic context exists (standalone plan creation), this step is SKIPPED. If it fails, you MUST correct the plan and re-run. The same 3-retry circuit breaker applies.</action>
     </step>
 
@@ -125,12 +129,12 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
       <action>Include the MANDATORY Final E2E REST API Verification Gate. To ensure cross-platform compatibility, provide environment-agnostic instructions or explicitly include both OS variants: (Windows/PowerShell: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, Unix/Bash: `RUN_LIVE_E2E="true" uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`).</action>
       <action>Mandate Creation of Knowledge Items (KIs) if introducing a new Single Source of Truth (SSOT).</action>
       <action name="AST GUARDRAIL INJECTION">If the plan introduces new architectural constraints or deprecates legacy patterns, you MUST explicitly include a step to build AST Guardrails to enforce them structurally.</action>
-      <constraint name="ANTI-HAPPY-PATH COMPLIANCE">Every implementation plan MUST include explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths. Mandate a minimum of 2 negative scenarios per feature (e.g., missing required input, invalid type, AppException path). You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</constraint>
+      <constraint name="ANTI-HAPPY-PATH COMPLIANCE">Every implementation plan MUST include explicit test scenarios with concrete inputs and expected outputs for BOTH success AND failure paths. Mandate a minimum of 2 negative scenarios per feature (specifically: missing required input, invalid type, AppException path). You MUST enforce ALL rule blocks in the `&lt;universal_quality_gate&gt;` section of `00-antigravity-core.md` — no rule block may be skipped.</constraint>
     </step>
 
     <step id="5" name="USER GUIDANCE &amp; NEXT STEPS">
       <action>Ask the user to review the plan in the Artifact window.</action>
-      <action>Tell the user: "You can either approve the plan directly for execution (e.g. via `/tier2-execute`), or run `/tier0-research-plan` to Red-Team and stress-test the plan before approval."</action>
+      <action>Tell the user: "You can either approve the plan directly for execution (specifically via `/tier2-execute`), or run `/tier0-research-plan` to Red-Team and stress-test the plan before approval."</action>
     </step>
   </execution_protocol>
 </system_prompt>
