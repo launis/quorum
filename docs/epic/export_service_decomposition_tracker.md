@@ -57,7 +57,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 ### Post-Implementation Gates
 
 #### Tier 2 Hardening (Backend)
-- [ ] **[NOK] Tier 2 Hardening (Backend):** Post-cutover type and schema hardening on isolated sub-modules
+- [x] **[OK] Tier 2 Hardening (Backend):** Post-cutover type and schema hardening on isolated sub-modules
   - [x] [NEW] @[backend_v2/services/export/metadata_resolver.py]
   - [x] [NEW] @[backend_v2/services/export/excel_styler.py]
   - [x] [NEW] @[backend_v2/services/export/summary_builder.py]
@@ -65,8 +65,8 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] [NEW] @[backend_v2/services/export/excel_exporter.py]
   - [x] [NEW] @[backend_v2/services/export/csv_exporter.py]
   - [x] [NEW] @[backend_v2/services/export/__init__.py]
-  - [ ] @[backend_v2/services/report_service.py]
-  - [ ] @[backend_v2/api/dependencies.py]
+  - [x] @[backend_v2/services/report_service.py]
+  - [x] @[backend_v2/api/dependencies.py]
 
 #### Tier 2 Hardening (Frontend)
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend):** No Flutter files modified in this backend decomposition.
@@ -149,9 +149,12 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - In pandas 3.0.3 under Python 3.14, Logfire's eager pandas dataframe instrumentation triggers `ArrowStringArray` assertion mismatch during index construction; running unit tests with `--no-logfire` in `backend_audit_loop.py` cleanly bypasses this external telemetry clash.
 - In `InMemoryPromptBlockRepository`, call counts are checked via `get_call_count("method_name")` rather than direct dictionary subscripting to avoid `KeyError` on uncalled methods.
 - In `backend_audit_loop.py`, mapping `__init__.py` target files requires checking `f"test_{pkg_name}_facade.py"` and `"test_facade.py"` to prevent falling back to generic root `test___init__.py`.
+- Completed Epoch 2 Tier 2 Hardening on Target 8 (`backend_v2/services/report_service.py`): Verified 181-rule audit matrix, verified 10/10 quality gate stages with 95.28% line coverage (242/254 statements, 34 passing tests across `test_report_service.py` and `test_report_service_synthesis_args.py`).
+- Completed Epoch 2 Tier 2 Hardening on Target 9 (`backend_v2/api/dependencies.py`): Verified 181-rule audit matrix, verified 10/10 quality gate stages with 98.65% line coverage (146/148 statements, 10 passing tests in `test_dependencies.py`). Verified clean re-export and DI factory wiring for `ExportServiceDep` and `ReportServiceDep`.
+- Verified Global Export Package Quality Gate: Executed `backend_audit_loop.py backend_v2/services/export/ --test` with 10/10 passing stages and 99.65% package line coverage across 98 passing tests.
 
 ## Resume Command
-/tier5-resume --target="@[docs/epic/export_service_decomposition_tracker.md]" --workflow="/tier2-hardening-backend" --rules="01-python-backend.md"
+/tier7-describe-architecture docs/epic/export_service_decomposition_tracker.md docs/epic/EPIC_EXPORT_DECOMPOSITION.md @[ki_god_code_prevention.md]
 
 ## Remaining
 - [x] Execute Phase 1: Leaf Metadata Resolver & Excel Styler Extraction (`/tier2-execute`)
@@ -159,7 +162,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - [x] Hydrate detailed plans for Phase 3 and Phase 4 (`/tier3-god-code-decomposition`)
 - [x] Execute Phase 3: Excel & CSV Exporters Extraction (`/tier2-execute`)
 - [x] Execute Phase 4: Atomic Package Cutover & AST Guardrail QGR017 Lockdown (`/tier2-execute`)
-- [ ] Execute Epoch 2 Tier 2 Hardening across extracted sub-modules (`/tier2-hardening-backend`)
+- [x] Execute Epoch 2 Tier 2 Hardening across extracted sub-modules (`/tier2-hardening-backend`)
   - [x] @[backend_v2/services/export/metadata_resolver.py]
   - [x] @[backend_v2/services/export/excel_styler.py]
   - [x] @[backend_v2/services/export/summary_builder.py]
@@ -167,8 +170,10 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] @[backend_v2/services/export/excel_exporter.py]
   - [x] @[backend_v2/services/export/csv_exporter.py]
   - [x] @[backend_v2/services/export/__init__.py]
-  - [ ] @[backend_v2/services/report_service.py]
-  - [ ] @[backend_v2/api/dependencies.py]
+  - [x] @[backend_v2/services/report_service.py]
+  - [x] @[backend_v2/api/dependencies.py]
+- [ ] Synchronize architecture docs via parameterized `/tier7-describe-architecture docs/epic/export_service_decomposition_tracker.md docs/epic/EPIC_EXPORT_DECOMPOSITION.md @[ki_god_code_prevention.md]`
+- [ ] Execute Final Epic Audit via `/tier8-audit-epic docs/epic/export_service_decomposition_tracker.md`
 
 ### Hardening State Snapshot
 - **TARGETS** (9):
@@ -181,7 +186,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   7. `backend_v2/services/export/__init__.py`
   8. `backend_v2/services/report_service.py`
   9. `backend_v2/api/dependencies.py`
-- **DONE** (7):
+- **DONE** (9):
   1. `backend_v2/services/export/metadata_resolver.py`
   2. `backend_v2/services/export/excel_styler.py`
   3. `backend_v2/services/export/summary_builder.py`
@@ -189,7 +194,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   5. `backend_v2/services/export/excel_exporter.py`
   6. `backend_v2/services/export/csv_exporter.py`
   7. `backend_v2/services/export/__init__.py`
-- **REMAINING** (2):
-  1. `backend_v2/services/report_service.py`
-  2. `backend_v2/api/dependencies.py`
+  8. `backend_v2/services/report_service.py`
+  9. `backend_v2/api/dependencies.py`
+- **REMAINING** (0): None (100% Complete)
 
