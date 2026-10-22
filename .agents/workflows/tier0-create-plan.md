@@ -79,6 +79,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION &amp; STATE VERIFICATION">
       <action>Gather all requirements from the user. Do NOT guess the current state of the codebase.</action>
       <action>Actively use your search tools (`grep_search`, `view_file`) to precisely target the affected directories before writing.</action>
+      <action name="AST SYMBOL EXTRACTION">For every existing Python target file to be modified (`[MODIFY]`), execute `uv run python scripts/_ast_boundary_utils.py --file <target_file> --extract-symbols` via `run_command` to retrieve exact line spans and AST node definitions before drafting `#L` bounds.</action>
       <constraint name="EPIC ESCALATION PROTOCOL">If you determine that the scope of the requested change is too massive for a single implementation plan (specifically: modifies more than 4-5 complex files, requires multi-phase legacy migration, or spans both frontend and backend heavily), you MUST STOP. Do not generate an `implementation_plan.md`. Instead, explicitly advise the user that the scope is too large for a single plan and instruct them to run `/tier0-create-epic` to draft a multi-phase Epic document first.</constraint>
     </step>
 
@@ -100,6 +101,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         13. Scoped Boy Scout Rule &amp; Technical Debt Sweep: Actively inspect touched target files for existing anti-patterns (getattr, .get, unvalidated model_copy, magic numbers, hardcoded UI strings/colors) and enforce their resolution in Phase 1 before new business logic is added.
         14. Zero Backward Compatibility Planning Ban: Prohibits phrases and planning concepts specifically: "backwards compatibility", "legacy fallback", "defensive fallback", "safe defaults", or "all-inclusive default". If a contract requires X, missing X deterministically yields an empty set or Fail-Fast AppException.
         15. Single Invariant Pipeline Law: Strictly bans bifurcated pipelines where "new strict logic" coexists with "legacy permissive logic". All steps flow through one single sovereign pipeline.
+        16. Deterministic AST Boundary Mandate: Never hallucinate or approximate `#L` line bounds for Python target files. All `#Lnn-mm` bounds MUST match physical AST definition spans extracted via `scripts/_ast_boundary_utils.py`.
       </constraint>
     </step>
 

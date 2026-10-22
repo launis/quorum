@@ -75,10 +75,11 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <action>Exclusive XML Parsing: Parse the `<execution_protocol>` XML codeblock inside the plan as the SOLE source of execution instructions. Treat `<action>` and `<constraint>` tags as the exhaustive checklist. Markdown sections are for human context only.</action>
       <constraint name="READ-ONLY XML">Do NOT attempt to rewrite or modify the XML plan document during execution. Use the separate `task.md` for state tracking.</constraint>
       <action name="BOUNDED LOADING">Use `grep_search` with query `execution_protocol` to find the XML block's line range, then `view_file` with `StartLine`/`EndLine` to load only the execution instructions, saving context tokens.</action>
+      <action name="DYNAMIC_AST_BOUNDARY_RE_ANCHORING">Before performing surgical edits (specifically `multi_replace_file_content` or `replace_file_content`) on any target Python file whose lines may have shifted due to prior edits or decorator presence, run `uv run python scripts/_ast_boundary_utils.py --file <target_file> --extract-symbols` via `run_command` to dynamically re-anchor exact `StartLine` and `EndLine` definition bounds, eliminating TargetContent line bound drift errors.</action>
       <constraint>You are NOT allowed to skip minor details, write "MVP" simplified logic, or abstract away complex requirements.</constraint>
       <constraint name="ALREADY_IMPLEMENTED CARVE-OUT">The COMPLETENESS MANDATE applies ONLY to tasks that the Pre-Flight Codebase Scan in Step 1 confirmed as NOT yet implemented. Tasks marked `[x] (VERIFIED_EXISTING)` are exempt from this mandate.</constraint>
       <gate name="PRE-FLIGHT CHECKLIST">Before writing ANY code, you MUST output a literal checklist of all `<constraint>` tags extracted from the XML block.</gate>
-      <action>When writing the code, add comments that trace back to the plan (e.g. `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
+      <action>When writing the code, add comments that trace back to the plan (specifically: `# Phase 3, Step 4: Enforce Exponential Backoff`).</action>
       <gate name="DOUBLE CHECK MANDATE">Before proceeding to tests, you MUST cross-verify your written code against the `<action>` and `<constraint>` tags to guarantee 100% of the listed requirements have been mapped into the code. Do not proceed until confirmed.</gate>
     </step>
 
