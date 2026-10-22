@@ -61,7 +61,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] [NEW] @[backend_v2/services/export/metadata_resolver.py]
   - [x] [NEW] @[backend_v2/services/export/excel_styler.py]
   - [x] [NEW] @[backend_v2/services/export/summary_builder.py]
-  - [ ] [NEW] @[backend_v2/services/export/atom_row_builder.py]
+  - [x] [NEW] @[backend_v2/services/export/atom_row_builder.py]
   - [ ] [NEW] @[backend_v2/services/export/excel_exporter.py]
   - [ ] [NEW] @[backend_v2/services/export/csv_exporter.py]
   - [ ] [NEW] @[backend_v2/services/export/__init__.py]
@@ -127,6 +127,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - Completed Epoch 2 Tier 2 Hardening on Target 1 (`backend_v2/services/export/metadata_resolver.py`): Eradicated `type(content) is dict` tech debt using typed pattern matching on `CausalTdaFusionResultDTO | CausalGraphPayloadDTO`, added RFC 7807 `exc_info=True` on `resolve_matrix_label`, fixed `backend_audit_loop.py` single-file target parsing, verified 181-rule audit matrix and 10/10 quality gate stages with 95.19% coverage (11 passing tests), committed in `b82620507`.
 - Completed Epoch 2 Tier 2 Hardening on Target 2 (`backend_v2/services/export/excel_styler.py`): Verified 181-rule audit matrix, expanded `test_excel_styler.py` with ISTQB boundary tests (empty list, nonexistent sheets, max width 50 cap, empty sheet width 12 padding), verified 10/10 quality gate stages with 100% coverage (6 passing tests), committed in `5b4af39af`.
 - Completed Epoch 2 Tier 2 Hardening on Target 3 (`backend_v2/services/export/summary_builder.py`): Verified 181-rule audit matrix, eradicated dead `lbl = m.name` fallback in favor of `I18nText.resolve()` schema invariant, expanded `test_summary_builder.py` with locale resolution tests, verified 10/10 quality gate stages with 100% coverage (5 passing tests), committed in `21f638fbd`.
+- Completed Epoch 2 Tier 2 Hardening on Target 4 (`backend_v2/services/export/atom_row_builder.py`): Verified 181-rule audit matrix, expanded `test_atom_row_builder.py` with ISTQB negative and fallback boundary tests (scorecard claim_label fallback in denormalized rows, metadata level/criterion fallback in denormalized rows, metadata inverse evidence fallback across both builders), verified 10/10 quality gate stages with 100% coverage (8 passing tests).
 
 ## Learned
 - AST decorator line offset: `@staticmethod` and `@classmethod` decorators place `node_start` on the decorator line (specifically: line 77 for `_build_matrix_atom_maps`), which must match MBD004 exactly.
@@ -140,6 +141,8 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - `ExportPayloadDTO` binary payload attribute is `content_bytes` (not `content`), and `AppException` error code is accessed via `error_code` (not `code`).
 - Deleting `export_service.py` and creating `export/__init__.py` in the same step prevents duplicate module collisions in Python/MyPy and enables clean QGR017 enforcement.
 - Logfire plugin eagerly imports telemetry on pytest startup in single-file audits, which can artificially depress initial file coverage unless executed cleanly or without premature imports.
+- In `AtomResultDTO`, `source_quotes` is strictly mandatory unless `contextual_override` or `is_inverse_evidence` is True.
+- In `ReportDataDTO`, referential integrity validation strictly requires that all atom `tda_id`s in `results` have corresponding keys in `hydrated_references`.
 
 ## Resume Command
 /tier5-resume --target="@[docs/epic/export_service_decomposition_tracker.md]" --workflow="/tier2-hardening-backend" --rules="01-python-backend.md"
@@ -154,7 +157,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] @[backend_v2/services/export/metadata_resolver.py]
   - [x] @[backend_v2/services/export/excel_styler.py]
   - [x] @[backend_v2/services/export/summary_builder.py]
-  - [ ] @[backend_v2/services/export/atom_row_builder.py]
+  - [x] @[backend_v2/services/export/atom_row_builder.py]
   - [ ] @[backend_v2/services/export/excel_exporter.py]
   - [ ] @[backend_v2/services/export/csv_exporter.py]
   - [ ] @[backend_v2/services/export/__init__.py]
@@ -172,15 +175,15 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   7. `backend_v2/services/export/__init__.py`
   8. `backend_v2/services/report_service.py`
   9. `backend_v2/api/dependencies.py`
-- **DONE** (3):
+- **DONE** (4):
   1. `backend_v2/services/export/metadata_resolver.py`
   2. `backend_v2/services/export/excel_styler.py`
   3. `backend_v2/services/export/summary_builder.py`
-- **REMAINING** (6):
-  1. `backend_v2/services/export/atom_row_builder.py`
-  2. `backend_v2/services/export/excel_exporter.py`
-  3. `backend_v2/services/export/csv_exporter.py`
-  4. `backend_v2/services/export/__init__.py`
-  5. `backend_v2/services/report_service.py`
-  6. `backend_v2/api/dependencies.py`
+  4. `backend_v2/services/export/atom_row_builder.py`
+- **REMAINING** (5):
+  1. `backend_v2/services/export/excel_exporter.py`
+  2. `backend_v2/services/export/csv_exporter.py`
+  3. `backend_v2/services/export/__init__.py`
+  4. `backend_v2/services/report_service.py`
+  5. `backend_v2/api/dependencies.py`
 

@@ -517,6 +517,16 @@ def test_build_atom_rows_and_denorm_fallback_to_scorecard_and_meta_criterion() -
     )
     assert atom_rows[0].criterion == "Väite 1"
 
+    denorm_rows_scorecard = build_denormalized_rows(
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+        blocks_by_id=blocks_by_id,
+        matrix_title_lookup=matrix_title_lookup,
+        execution_id="exe_0123456789abcdef",
+    )
+    assert denorm_rows_scorecard[0].criterion == "Väite 1"
+
     # 2. Fallback to meta criterion when scorecard_atom is None
     matrix_without_atoms = [
         MatrixScorecardRowDTO(
@@ -543,3 +553,84 @@ def test_build_atom_rows_and_denorm_fallback_to_scorecard_and_meta_criterion() -
     )
     assert atom_rows_meta[0].level == 5
     assert atom_rows_meta[0].criterion == "Kriteeri 1"
+
+    # 3. Fallback in build_denormalized_rows for meta level, criterion, and meta.is_inverse
+    denorm_rows_meta = build_denormalized_rows(
+        report_dto=report_dto,
+        matrices=matrix_without_atoms,
+        locale="fi",
+        blocks_by_id=blocks_by_id,
+        matrix_title_lookup=matrix_title_lookup,
+        execution_id="exe_0123456789abcdef",
+    )
+    assert denorm_rows_meta[0].level == 5
+    assert denorm_rows_meta[0].criterion == "Kriteeri 1"
+
+    # 4. Meta is_inverse fallback test for both builders
+    assertion_inv = TDAAssertion(
+        tda_id="tda_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        concept_description="Inverse concept definition for test",
+        aggregation_mode="EXISTS",
+        inverse_evidence=True,
+    )
+    claim_inv = MatrixClaim(
+        label=I18nText(translations={"fi": "Käänteinen väite", "en": "Inverse claim"}),
+        tda_assertions=[assertion_inv],
+    )
+    scale_inv = MatrixScale(
+        score=2,
+        ai_label="Level 2",
+        name=I18nText(translations={"fi": "Taso 2", "en": "Level 2"}),
+        claims=[claim_inv],
+    )
+    block_inv = MatrixPromptBlock(
+        id="blk_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        slug="matrix_inv",
+        label=I18nText(translations={"fi": "Matriisi Inv", "en": "Matrix Inv"}),
+        description=I18nText(translations={"fi": "Kuvaus", "en": "Desc"}),
+        scales=[scale_inv],
+    )
+    blocks_inv = {block_inv.id: block_inv}
+    title_lookup_inv = {block_inv.id: "Matriisi Inv"}
+
+    atom_meta_inv = AtomResultDTO(
+        tda_id=assertion_inv.tda_id,
+        matrix_id=block_inv.id,
+        status=ExecutionStatus.PASSED,
+        is_inverse_evidence=False,  # relies on meta.is_inverse == True
+        evaluation_reasoning="Evaluation",
+        source_quotes=["Lainattu teksti."],
+    )
+    report_dto_inv = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prf_0123456789abcdef",
+        results=[atom_meta_inv],
+        hydrated_references={
+            assertion_inv.tda_id: HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="",
+                source_quotes=["Lainattu teksti."],
+            )
+        },
+    )
+    atom_rows_inv = build_atom_rows(
+        report_dto=report_dto_inv,
+        matrices=[],
+        locale="fi",
+        blocks_by_id=blocks_inv,
+        matrix_title_lookup=title_lookup_inv,
+    )
+    assert atom_rows_inv[0].is_inverse == 1
+    assert atom_rows_inv[0].points_awarded == 0.0
+
+    denorm_rows_inv = build_denormalized_rows(
+        report_dto=report_dto_inv,
+        matrices=[],
+        locale="fi",
+        blocks_by_id=blocks_inv,
+        matrix_title_lookup=title_lookup_inv,
+        execution_id="exe_0123456789abcdef",
+    )
+    assert denorm_rows_inv[0].is_inverse == 1
+    assert denorm_rows_inv[0].points_awarded == 0.0
