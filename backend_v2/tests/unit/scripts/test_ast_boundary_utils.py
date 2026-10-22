@@ -289,11 +289,14 @@ def test_find_symbols_syntax_error_and_complex_targets() -> None:
     complex_targets_code = """
 obj.attr = 1
 arr[0] = 2
+obj.annotated_attr: int = 5
+arr[0]: str = "hello"
 target_var: int = 10
 """
     found = find_symbols_in_python_code(complex_targets_code, {"target_var"})
     assert "target_var" in found
     assert len(found["target_var"]) == 1
+
 
 
 def test_ast_boundary_utils_main_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

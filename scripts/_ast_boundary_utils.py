@@ -11,43 +11,84 @@ import ast
 import re
 import sys
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+__all__ = [
+    "AstLineBoundDTO",
+    "SymbolDefinitionDTO",
+    "SymbolDefinitionVisitor",
+    "TargetFileReferenceDTO",
+    "extract_deprecated_symbols",
+    "extract_target_files",
+    "find_symbol_definitions",
+    "find_symbols_in_python_code",
+    "main",
+    "normalize_target_path",
+    "parse_line_bound",
+    "validate_ast_line_bound",
+]
+
 
 class TargetFileReferenceDTO(BaseModel):
-    """Pydantic V2 DTO representing an extracted target file from Markdown documentation."""
+    """Pydantic V2 DTO representing an extracted target file from Markdown documentation.
+
+    Attributes:
+        action: Planned file action (MODIFY, NEW, or DELETE).
+        file_path: Normalized target file path relative to repository root.
+        line_bound: Optional line bound specification string (e.g. #L10-L25).
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    action: str  # MODIFY | NEW | DELETE
-    file_path: str
-    line_bound: str | None = None
+    action: Annotated[str, Field(description="Action tag: MODIFY, NEW, or DELETE")]
+    file_path: Annotated[str, Field(description="Normalized POSIX file path")]
+    line_bound: Annotated[str | None, Field(default=None, description="Line bound format (e.g. #L10-L25)")] = None
 
 
 class AstLineBoundDTO(BaseModel):
-    """Pydantic V2 DTO representing start and end line bounds."""
+    """Pydantic V2 DTO representing start and end line bounds.
+
+    Attributes:
+        start_line: 1-indexed start line number.
+        end_line: 1-indexed end line number.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    start_line: int
-    end_line: int
+    start_line: Annotated[int, Field(ge=1, description="1-indexed start line number")]
+    end_line: Annotated[int, Field(ge=1, description="1-indexed end line number")]
 
 
 class SymbolDefinitionDTO(BaseModel):
-    """Pydantic V2 DTO representing a discovered symbol definition location."""
+    """Pydantic V2 DTO representing a discovered symbol definition location.
+
+    Attributes:
+        symbol_name: Name of the discovered symbol.
+        line_numbers: List of definition start line numbers.
+        line_spans: List of definition line spans in format start-end.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    symbol_name: str
-    line_numbers: list[int]
-    line_spans: list[str] = Field(default_factory=list)
+    symbol_name: Annotated[str, Field(description="Identifier name of the symbol")]
+    line_numbers: Annotated[list[int], Field(description="List of definition line numbers")]
+    line_spans: Annotated[
+        list[str], Field(default_factory=list, description="List of definition line spans (start-end)")
+    ]
 
 
 def normalize_target_path(raw_path: str) -> str:
     """Sanitize raw markdown path string into a normalized POSIX relative path.
 
     Strips @, [, ], backticks, embedded #L line bounds, and whitespace.
+
+    Args:
+        raw_path: Raw path string extracted from markdown documentation.
+
+    Returns:
+        Normalized POSIX file path string.
     """
     cleaned = raw_path.strip().strip("`").strip("@").strip("[").strip("]")
     cleaned = cleaned.split("#")[0].strip()
@@ -56,6 +97,9 @@ def normalize_target_path(raw_path: str) -> str:
 
 def extract_target_files(content: str) -> list[TargetFileReferenceDTO]:
     """Extract target file references tagged with MODIFY, NEW, or DELETE from Markdown content.
+
+    Args:
+        content: Markdown content string to scan for target file annotations.
 
     Returns:
         List of TargetFileReferenceDTO objects.
@@ -86,6 +130,9 @@ def extract_target_files(content: str) -> list[TargetFileReferenceDTO]:
 def parse_line_bound(bound_str: str) -> AstLineBoundDTO | None:
     """Parse a line bound string like '#L10-L25' or '#L10-25' into AstLineBoundDTO.
 
+    Args:
+        bound_str: Raw line bound string to parse.
+
     Returns:
         AstLineBoundDTO if valid, None otherwise.
     """
@@ -102,7 +149,14 @@ def validate_ast_line_bound(file_path: Path, start_line: int, end_line: int) -> 
     """Validate that a .py file contains at least one AST definition node within given line range.
 
     Checks ClassDef, FunctionDef, and AsyncFunctionDef nodes without reflection.
-    Returns True if at least one definition node falls within [start_line, end_line], False otherwise.
+
+    Args:
+        file_path: Absolute or workspace-relative path to Python file.
+        start_line: 1-indexed starting line number of range.
+        end_line: 1-indexed ending line number of range.
+
+    Returns:
+        True if at least one definition node falls within or spans [start_line, end_line], False otherwise.
     """
     if not file_path.exists() or file_path.suffix != ".py":
         return False
@@ -129,14 +183,32 @@ def validate_ast_line_bound(file_path: Path, start_line: int, end_line: int) -> 
 
 
 class SymbolDefinitionVisitor(ast.NodeVisitor):
-    """AST visitor to detect definition locations of specific symbol names with zero reflection."""
+    """AST visitor to detect definition locations of specific symbol names with zero reflection.
+
+    Attributes:
+        target_symbols: Set of symbol names to search for.
+        found_symbols: Mapping of symbol name to list of starting line numbers.
+        found_spans: Mapping of symbol name to list of start-end line span strings.
+    """
 
     def __init__(self, target_symbols: set[str]) -> None:
+        """Initialize the AST symbol definition visitor.
+
+        Args:
+            target_symbols: Set of target symbol identifier names.
+        """
         self.target_symbols = target_symbols
         self.found_symbols: dict[str, list[int]] = {sym: [] for sym in target_symbols}
         self.found_spans: dict[str, list[str]] = {sym: [] for sym in target_symbols}
 
     def _record(self, name: str, lineno: int, end_lineno: int | None = None) -> None:
+        """Record symbol occurrence line number and span if name is in target symbols.
+
+        Args:
+            name: Symbol identifier name.
+            lineno: 1-indexed starting line number.
+            end_lineno: Optional 1-indexed ending line number.
+        """
         if name in self.target_symbols:
             self.found_symbols[name].append(lineno)
             end = end_lineno if end_lineno is not None else lineno
@@ -173,7 +245,15 @@ class SymbolDefinitionVisitor(ast.NodeVisitor):
 
 
 def find_symbols_in_python_code(code: str, symbols: set[str]) -> dict[str, list[int]]:
-    """Scan Python source code string for definitions of target symbols using AST parsing with zero reflection."""
+    """Scan Python source code string for definitions of target symbols using AST parsing with zero reflection.
+
+    Args:
+        code: Python source code string to parse.
+        symbols: Set of target symbol identifier names to locate.
+
+    Returns:
+        Mapping of symbol name to list of definition line numbers.
+    """
     try:
         tree = ast.parse(code)
     except SyntaxError, UnicodeDecodeError:
@@ -185,7 +265,15 @@ def find_symbols_in_python_code(code: str, symbols: set[str]) -> dict[str, list[
 
 
 def find_symbol_definitions(code: str, symbols: set[str]) -> list[SymbolDefinitionDTO]:
-    """Scan Python source code string and return a list of SymbolDefinitionDTO objects."""
+    """Scan Python source code string and return a list of SymbolDefinitionDTO objects.
+
+    Args:
+        code: Python source code string to parse.
+        symbols: Set of target symbol identifier names to locate.
+
+    Returns:
+        List of SymbolDefinitionDTO objects representing discovered symbol locations.
+    """
     try:
         tree = ast.parse(code)
     except SyntaxError, UnicodeDecodeError:
@@ -205,7 +293,14 @@ def find_symbol_definitions(code: str, symbols: set[str]) -> list[SymbolDefiniti
 
 
 def extract_deprecated_symbols(content: str) -> set[str]:
-    """Extract deprecated symbol names from <demolish> XML blocks and inline markdown phrases."""
+    """Extract deprecated symbol names from <demolish> XML blocks and inline markdown phrases.
+
+    Args:
+        content: Markdown content string containing plan documentation or <demolish> blocks.
+
+    Returns:
+        Set of symbol identifier names targeted for deprecation or removal.
+    """
     symbols: set[str] = set()
     demolish_blocks = re.findall(r"<demolish>([\s\S]*?)</demolish>", content, re.IGNORECASE)
     for block in demolish_blocks:
@@ -319,4 +414,4 @@ neuro-symbolic audit gates in Quorum.
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())  # pragma: no cover
