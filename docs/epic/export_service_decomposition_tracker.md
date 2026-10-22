@@ -45,7 +45,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 
 ### Phase 4: Atomic Package Cutover & Guardrails Lockdown
 **Plan:** @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md]
-- [x] **[OK] Execution:** /tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
+- [x] (2a2a586c3) **[OK] Execution:** /tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
   - [x] Step 1: Consumer Import Rewiring
   - [x] Step 2: Modularize Test Suite
   - [x] Step 3: Atomic Package Cutover
@@ -139,7 +139,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - Deleting `export_service.py` and creating `export/__init__.py` in the same step prevents duplicate module collisions in Python/MyPy and enables clean QGR017 enforcement.
 
 ## Resume Command
-/tier2-execute @[docs/epic/tasks_export_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/export_service_decomposition_tracker.md]
+/tier2-hardening-backend @[docs/epic/export_service_decomposition_tracker.md]
 
 ## Remaining
 - [x] Execute Phase 1: Leaf Metadata Resolver & Excel Styler Extraction (`/tier2-execute`)
@@ -147,4 +147,4 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - [x] Hydrate detailed plans for Phase 3 and Phase 4 (`/tier3-god-code-decomposition`)
 - [x] Execute Phase 3: Excel & CSV Exporters Extraction (`/tier2-execute`)
 - [x] Execute Phase 4: Atomic Package Cutover & AST Guardrail QGR017 Lockdown (`/tier2-execute`)
-- [ ] Execute Epoch 2 Tier 2 Hardening across extracted sub-modules
+- [ ] Execute Epoch 2 Tier 2 Hardening across extracted sub-modules (`/tier2-hardening-backend`)
