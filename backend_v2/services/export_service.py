@@ -13,17 +13,12 @@ import logging
 
 import openpyxl
 import pandas as pd
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
-from openpyxl.utils import get_column_letter
-from pydantic import TypeAdapter
 
 from backend_v2.database.interfaces import IPromptBlockRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
-    MatrixPromptBlock,
 )
 from backend_v2.models.dtos.causal_discovery import (
     CausalGraphPayloadDTO,
@@ -40,19 +35,27 @@ from backend_v2.models.dtos.export import (
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     ReportAtomColumn,
     ReportMatrixColumn,
     ReportSheetKey,
 )
-from backend_v2.services.export_evidence_formatter import (
-    clean_citation_brackets,
-    format_ai_reasoning,
-    format_text_observations,
+from backend_v2.services.export.atom_row_builder import (
+    build_atom_rows,
+    build_denormalized_rows,
 )
-from backend_v2.services.localization import LocalizationService, ReportHeaderResolver
+from backend_v2.services.export.excel_styler import apply_corporate_excel_styling
+from backend_v2.services.export.metadata_resolver import (
+    build_matrix_atom_maps,
+    build_scale_metadata,
+    extract_causal_result,
+    resolve_causal_meta,
+    resolve_context_target,
+    resolve_matrix_label,
+)
+from backend_v2.services.export.summary_builder import build_summary_dtos
+from backend_v2.services.localization import ReportHeaderResolver
 
 logger = logging.getLogger(__name__)
 
@@ -82,13 +85,7 @@ class ExportService:
         Returns:
             Tuple of atom-to-matrix and atom-to-scorecard-atom lookup dictionaries.
         """
-        atom_to_matrix: dict[str, MatrixScorecardRowDTO] = {}
-        atom_to_scorecard: dict[str, ScorecardAtomDTO] = {}
-        for m in effective_matrices:
-            for s_atom in m.evaluated_atoms:
-                atom_to_matrix[s_atom.atom_id] = m
-                atom_to_scorecard[s_atom.atom_id] = s_atom
-        return atom_to_matrix, atom_to_scorecard
+        return build_matrix_atom_maps(effective_matrices)
 
     @staticmethod
     def _build_scale_metadata(
@@ -104,25 +101,7 @@ class ExportService:
         Returns:
             Dictionary mapping TDA assertion IDs to scale metadata DTOs.
         """
-        atom_scale_meta: dict[str, AtomScaleMetadataDTO] = {}
-        for b in blocks_by_id.values():
-            if isinstance(b, MatrixPromptBlock) and b.scales:
-                for scale in b.scales:
-                    scale_lvl = scale.score
-                    scale_name = scale.ai_label
-                    if scale.name is not None:
-                        scale_name = scale.name.resolve(target_locale=locale)
-                    for claim in scale.claims:
-                        claim_desc = claim.label.resolve(target_locale=locale)
-                        for tda in claim.tda_assertions:
-                            atom_scale_meta[tda.tda_id] = AtomScaleMetadataDTO(
-                                matrix_id=b.id,
-                                level=scale_lvl,
-                                level_name=scale_name,
-                                criterion=claim_desc,
-                                is_inverse=bool(tda.inverse_evidence),
-                            )
-        return atom_scale_meta
+        return build_scale_metadata(blocks_by_id, locale)
 
     @staticmethod
     def _resolve_matrix_label(
@@ -151,55 +130,14 @@ class ExportService:
         Raises:
             AppException: If matrix definition cannot be found in available lookups.
         """
-        if atom_matrix_id:
-            if atom_matrix_id in matrix_title_lookup:
-                return matrix_title_lookup[atom_matrix_id]
-            if atom_matrix_id in blocks_by_id:
-                return blocks_by_id[atom_matrix_id].label.resolve(target_locale=locale)
-            if parent_m is not None:
-                lbl = parent_m.label_i18n.resolve(target_locale=locale)
-                if lbl:
-                    return lbl
-                return parent_m.name
-        elif parent_m is not None:
-            lbl = parent_m.label_i18n.resolve(target_locale=locale)
-            if lbl:
-                return lbl
-            return parent_m.name
-        elif tda_id in atom_scale_meta:
-            meta = atom_scale_meta[tda_id]
-            if meta.matrix_id in matrix_title_lookup:
-                return matrix_title_lookup[meta.matrix_id]
-            if meta.matrix_id in blocks_by_id:
-                return blocks_by_id[meta.matrix_id].label.resolve(target_locale=locale)
-
-        if atom_matrix_id is not None:
-            msg = (
-                f"Strict Fail-Fast: Matrix block '{atom_matrix_id}' for atom '{tda_id}' "
-                "not found in matrices or prompt block repository."
-            )
-        else:
-            msg = (
-                f"Strict Fail-Fast: Matrix block for atom '{tda_id}' not found in matrices or prompt block repository."
-            )
-        logger.error(
-            "[ExportService] %s: %s",
-            ErrorCodes.RESOURCE_NOT_FOUND.name,
-            msg,
-            extra={
-                "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
-                "matrix_id": atom_matrix_id,
-                "tda_id": tda_id,
-            },
-        )
-        raise AppException(
-            message=msg,
-            status_code=404,
-            details={
-                "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
-                "matrix_id": atom_matrix_id,
-                "tda_id": tda_id,
-            },
+        return resolve_matrix_label(
+            atom_matrix_id=atom_matrix_id,
+            tda_id=tda_id,
+            parent_m=parent_m,
+            matrix_title_lookup=matrix_title_lookup,
+            blocks_by_id=blocks_by_id,
+            atom_scale_meta=atom_scale_meta,
+            locale=locale,
         )
 
     @staticmethod
@@ -213,13 +151,7 @@ class ExportService:
         Returns:
             Resolved context target string or empty string.
         """
-        if parent_m is None:
-            return ""
-        if parent_m.context_target_label is not None:
-            return parent_m.context_target_label.resolve(target_locale=locale)
-        if parent_m.context_target:
-            return parent_m.context_target
-        return ""
+        return resolve_context_target(parent_m, locale)
 
     @classmethod
     def _extract_causal_result(
@@ -233,37 +165,7 @@ class ExportService:
         Returns:
             CausalTdaFusionResultDTO or CausalGraphPayloadDTO instance if present, else None.
         """
-        if execution is None:
-            return None
-
-        causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
-            CausalTdaFusionResultDTO | CausalGraphPayloadDTO
-        )
-        for evt in reversed(execution.execution_trace):
-            content = evt.content
-            if isinstance(content, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
-                return content
-            if type(content) is dict:
-                candidate = content
-                if "fusion" in candidate and type(candidate["fusion"]) is dict:
-                    candidate = candidate["fusion"]
-                elif "graph" in candidate and type(candidate["graph"]) is dict:
-                    candidate = candidate["graph"]
-                if "anti_fluff_audit" in candidate or "nodes" in candidate:
-                    return causal_adapter.validate_python(candidate)
-
-        if execution.step_states:
-            for state_val in execution.step_states.values():
-                if isinstance(state_val, StepOutputDTO):
-                    match state_val.payload:
-                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                            return state_val.payload
-                        case _:
-                            continue
-                elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
-                    return state_val
-
-        return None
+        return extract_causal_result(execution)
 
     @classmethod
     def _resolve_causal_meta(
@@ -282,27 +184,10 @@ class ExportService:
         Returns:
             AtomCausalMetadataDTO containing causal_status, blame_parent_id, and dependent_count.
         """
-        if c_node is None:
-            return AtomCausalMetadataDTO()
-
-        if c_node.node_id in isolated_set:
-            status = "orphan"
-        elif c_node.status == ExecutionStatus.PASSED:
-            status = "validated"
-        elif c_node.blame_parent_ids:
-            status = "cascading_fault"
-        else:
-            status = "root_cause"
-
-        blame_parent: str | None = None
-        if c_node.blame_parent_ids:
-            blame_parent = c_node.blame_parent_ids[0]
-        dep_count = len(c_node.dependent_child_ids)
-
-        return AtomCausalMetadataDTO(
-            causal_status=status,
-            blame_parent_id=blame_parent,
-            dependent_count=dep_count,
+        return resolve_causal_meta(
+            c_node=c_node,
+            root_cause_set=root_cause_set,
+            isolated_set=isolated_set,
         )
 
     @staticmethod
@@ -313,57 +198,7 @@ class ExportService:
             workbook: Active openpyxl Workbook instance.
             sheet_names: List of sheet names to style.
         """
-        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        zebra_fill = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
-        white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-        thin_border_side = Side(border_style="thin", color="D9D9D9")
-        grid_border = Border(
-            left=thin_border_side,
-            right=thin_border_side,
-            top=thin_border_side,
-            bottom=thin_border_side,
-        )
-        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        data_alignment = Alignment(vertical="top", wrap_text=True)
-
-        for name in sheet_names:
-            if name not in workbook.sheetnames:
-                continue
-            ws = workbook[name]
-            if ws.views.sheetView:
-                ws.views.sheetView[0].showGridLines = True
-            ws.freeze_panes = "A2"
-
-            ws.row_dimensions[1].height = 28
-            for col_idx in range(1, ws.max_column + 1):
-                cell = ws.cell(row=1, column=col_idx)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = header_alignment
-                cell.border = grid_border
-
-            for row_idx in range(2, ws.max_row + 1):
-                fill = white_fill
-                if row_idx % 2 == 0:
-                    fill = zebra_fill
-                for col_idx in range(1, ws.max_column + 1):
-                    cell = ws.cell(row=row_idx, column=col_idx)
-                    cell.fill = fill
-                    cell.border = grid_border
-                    cell.alignment = data_alignment
-
-            for col_idx in range(1, ws.max_column + 1):
-                col_letter = get_column_letter(col_idx)
-                max_len = 0
-                for row_idx in range(1, ws.max_row + 1):
-                    val = ws.cell(row=row_idx, column=col_idx).value
-                    if val is not None:
-                        val_str = str(val)
-                        line_len = max((len(line) for line in val_str.split("\n")), default=0)
-                        max_len = max(max_len, line_len)
-                calculated_width = max(max_len + 4, 12)
-                ws.column_dimensions[col_letter].width = min(calculated_width, 50)
+        apply_corporate_excel_styling(workbook, sheet_names)
 
     def _build_summary_dtos(
         self,
@@ -381,69 +216,11 @@ class ExportService:
         Returns:
             List of strictly validated ExportMatrixSummaryRowDTO instances.
         """
-        summary_dtos: list[ExportMatrixSummaryRowDTO] = []
-        for m in effective_matrices:
-            lbl = m.label_i18n.resolve(target_locale=locale)
-            if not lbl:
-                lbl = m.name
-            ctx_target = self._resolve_context_target(m, locale)
-            dist = ""
-            if m.level_breakdown:
-                dist = ", ".join(f"{lvl}: {val}" for lvl, val in m.level_breakdown.items())
-
-            true_atoms_val = 0
-            if m.true_atoms is not None:
-                true_atoms_val = m.true_atoms
-
-            total_atoms_val = 0
-            if m.total_atoms is not None:
-                total_atoms_val = m.total_atoms
-
-            hit_ratio_val = 0.0
-            if total_atoms_val > 0:
-                hit_ratio_val = float(true_atoms_val / total_atoms_val)
-
-            raw_score_val = 0.0
-            if m.raw_score is not None:
-                raw_score_val = m.raw_score
-            elif m.score is not None:
-                raw_score_val = m.score
-
-            scale_max_val = 0.0
-            if m.scale_max is not None:
-                scale_max_val = m.scale_max
-
-            norm_score_val = 0.0
-            if m.normalized_score is not None:
-                norm_score_val = m.normalized_score
-
-            row_expl = format_ai_reasoning(m.row_explanation)
-            criteria_val = f"{true_atoms_val}/{total_atoms_val}"
-
-            source_val = ""
-            if m.cited_source_title:
-                source_val = clean_citation_brackets(m.cited_source_title)
-            elif m.cited_source_id:
-                source_val = clean_citation_brackets(m.cited_source_id)
-
-            summary_dtos.append(
-                ExportMatrixSummaryRowDTO(
-                    execution_id=target_id,
-                    label=lbl,
-                    context_target=ctx_target,
-                    distribution=dist,
-                    hits=true_atoms_val,
-                    total_atoms=total_atoms_val,
-                    hit_ratio=hit_ratio_val,
-                    raw_score=raw_score_val,
-                    scale_max=scale_max_val,
-                    normalized_score=norm_score_val,
-                    row_explanation=row_expl,
-                    criteria=criteria_val,
-                    source=source_val,
-                )
-            )
-        return summary_dtos
+        return build_summary_dtos(
+            effective_matrices=effective_matrices,
+            locale=locale,
+            target_id=target_id,
+        )
 
     def _build_atom_rows(
         self,
@@ -472,150 +249,15 @@ class ExportService:
         Raises:
             AppException: If matrix block for an atom is not found in matrices or blocks_by_id.
         """
-        effective_matrices = matrices
-        if all_matrices is not None:
-            effective_matrices = all_matrices
-
-        atom_to_matrix, atom_to_scorecard = self._build_matrix_atom_maps(effective_matrices)
-        atom_scale_meta = self._build_scale_metadata(blocks_by_id, locale)
-
-        causal_nodes_by_id: dict[str, CausalNodeDTO] = {}
-        root_cause_set: set[str] = set()
-        isolated_set: set[str] = set()
-        if causal_result is not None:
-            graph = causal_result.graph if isinstance(causal_result, CausalTdaFusionResultDTO) else causal_result
-            causal_nodes_by_id = {n.node_id: n for n in graph.nodes}
-            root_cause_set = set(graph.root_cause_node_ids)
-            isolated_set = set(graph.isolated_node_ids)
-
-        atom_rows: list[ExportForensicAtomDTO] = []
-        hydrated_refs = report_dto.hydrated_references
-
-        for atom in report_dto.results:
-            parent_m: MatrixScorecardRowDTO | None = None
-            if atom.tda_id in atom_to_matrix:
-                parent_m = atom_to_matrix[atom.tda_id]
-
-            matrix_label = self._resolve_matrix_label(
-                atom_matrix_id=atom.matrix_id,
-                tda_id=atom.tda_id,
-                parent_m=parent_m,
-                matrix_title_lookup=matrix_title_lookup,
-                blocks_by_id=blocks_by_id,
-                atom_scale_meta=atom_scale_meta,
-                locale=locale,
-            )
-            context_target = self._resolve_context_target(parent_m, locale)
-
-            scorecard_atom: ScorecardAtomDTO | None = None
-            if atom.tda_id in atom_to_scorecard:
-                scorecard_atom = atom_to_scorecard[atom.tda_id]
-
-            meta: AtomScaleMetadataDTO | None = None
-            if atom.tda_id in atom_scale_meta:
-                meta = atom_scale_meta[atom.tda_id]
-
-            level = 0
-            level_name = ""
-            if scorecard_atom is not None:
-                level = scorecard_atom.level
-                level_name = scorecard_atom.level_name
-            elif meta is not None:
-                level = meta.level
-                level_name = meta.level_name
-
-            ref = None
-            if hydrated_refs and atom.tda_id in hydrated_refs:
-                ref = hydrated_refs[atom.tda_id]
-
-            criterion = ""
-            if ref is not None and ref.resolved_claim:
-                criterion = ref.resolved_claim
-            elif scorecard_atom is not None and scorecard_atom.claim_label:
-                criterion = scorecard_atom.claim_label
-            elif meta is not None:
-                criterion = meta.criterion
-
-            is_inverse_claim = False
-            if atom.is_inverse_evidence:
-                is_inverse_claim = True
-            elif meta is not None and meta.is_inverse:
-                is_inverse_claim = True
-
-            is_inverse_val = 1 if is_inverse_claim else 0
-            points_awarded_val = 1.0 if (atom.status == ExecutionStatus.PASSED and not is_inverse_claim) else 0.0
-
-            claim_type = LocalizationService.translate("export_claim_positive", locale)
-            if is_inverse_claim:
-                claim_type = LocalizationService.translate("export_claim_inverse", locale)
-
-            result_status: int = 0
-            if atom.status == ExecutionStatus.PASSED:
-                result_status = 1
-
-            quote_raw: tuple[str, ...] | list[str] | str | None = atom.source_quotes
-            if quote_raw is None and ref is not None:
-                quote_raw = ref.source_quotes
-            formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
-            formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
-
-            c_node: CausalNodeDTO | None = None
-            if atom.tda_id in causal_nodes_by_id:
-                c_node = causal_nodes_by_id[atom.tda_id]
-
-            causal_meta = self._resolve_causal_meta(
-                c_node,
-                root_cause_set,
-                isolated_set,
-            )
-
-            atom_rows.append(
-                ExportForensicAtomDTO(
-                    matrix_label=matrix_label,
-                    context_target=context_target,
-                    level=level,
-                    level_name=level_name,
-                    criterion=criterion,
-                    claim_type=claim_type,
-                    is_inverse=is_inverse_val,
-                    points_awarded=points_awarded_val,
-                    result_status=result_status,
-                    quotes=formatted_quotes,
-                    ai_reasoning=formatted_reasoning,
-                    causal_status=causal_meta.causal_status,
-                    blame_parent_id=causal_meta.blame_parent_id,
-                    dependent_count=causal_meta.dependent_count,
-                )
-            )
-
-        mapped_tda_ids: set[str] = {atom.tda_id for atom in report_dto.results}
-        for node in causal_nodes_by_id.values():
-            if node.node_id in mapped_tda_ids:
-                continue
-            causal_meta = self._resolve_causal_meta(
-                node,
-                root_cause_set,
-                isolated_set,
-            )
-            atom_rows.append(
-                ExportForensicAtomDTO(
-                    matrix_label=LocalizationService.translate("export_causal_matrix_label", locale),
-                    context_target="",
-                    level=1,
-                    level_name=LocalizationService.translate("export_causal_level_name", locale),
-                    criterion=node.claim,
-                    claim_type=LocalizationService.translate("export_claim_positive", locale),
-                    is_inverse=0,
-                    points_awarded=0.0,
-                    result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quotes)),
-                    ai_reasoning="",
-                    causal_status=causal_meta.causal_status,
-                    blame_parent_id=causal_meta.blame_parent_id,
-                    dependent_count=causal_meta.dependent_count,
-                )
-            )
-        return atom_rows
+        return build_atom_rows(
+            report_dto=report_dto,
+            matrices=matrices,
+            locale=locale,
+            blocks_by_id=blocks_by_id,
+            matrix_title_lookup=matrix_title_lookup,
+            all_matrices=all_matrices,
+            causal_result=causal_result,
+        )
 
     def _build_denormalized_rows(
         self,
@@ -646,192 +288,16 @@ class ExportService:
         Raises:
             AppException: If matrix block for an atom is not found in matrices or blocks_by_id.
         """
-        effective_matrices = matrices
-        if all_matrices is not None:
-            effective_matrices = all_matrices
-
-        atom_to_matrix, atom_to_scorecard = self._build_matrix_atom_maps(effective_matrices)
-        atom_scale_meta = self._build_scale_metadata(blocks_by_id, locale)
-
-        causal_nodes_by_id: dict[str, CausalNodeDTO] = {}
-        root_cause_set: set[str] = set()
-        isolated_set: set[str] = set()
-        if causal_result is not None:
-            graph = causal_result.graph if isinstance(causal_result, CausalTdaFusionResultDTO) else causal_result
-            causal_nodes_by_id = {n.node_id: n for n in graph.nodes}
-            root_cause_set = set(graph.root_cause_node_ids)
-            isolated_set = set(graph.isolated_node_ids)
-
-        denormalized_rows: list[ExportDenormalizedFlatRowDTO] = []
-        hydrated_refs = report_dto.hydrated_references
-
-        for atom in report_dto.results:
-            parent_m: MatrixScorecardRowDTO | None = None
-            if atom.tda_id in atom_to_matrix:
-                parent_m = atom_to_matrix[atom.tda_id]
-
-            matrix_label = self._resolve_matrix_label(
-                atom_matrix_id=atom.matrix_id,
-                tda_id=atom.tda_id,
-                parent_m=parent_m,
-                matrix_title_lookup=matrix_title_lookup,
-                blocks_by_id=blocks_by_id,
-                atom_scale_meta=atom_scale_meta,
-                locale=locale,
-            )
-            context_target = self._resolve_context_target(parent_m, locale)
-
-            dist = ""
-            hits_val = 0
-            total_atoms_val = 0
-            hit_ratio_val = 0.0
-            raw_score_val = 0.0
-            scale_max_val = 0.0
-            normalized_score_val = 0.0
-
-            if parent_m is not None:
-                if parent_m.level_breakdown:
-                    dist = ", ".join(f"{lvl}: {val}" for lvl, val in parent_m.level_breakdown.items())
-                if parent_m.true_atoms is not None:
-                    hits_val = parent_m.true_atoms
-                if parent_m.total_atoms is not None:
-                    total_atoms_val = parent_m.total_atoms
-                if total_atoms_val > 0:
-                    hit_ratio_val = float(hits_val / total_atoms_val)
-                if parent_m.raw_score is not None:
-                    raw_score_val = parent_m.raw_score
-                elif parent_m.score is not None:
-                    raw_score_val = parent_m.score
-                if parent_m.scale_max is not None:
-                    scale_max_val = parent_m.scale_max
-                if parent_m.normalized_score is not None:
-                    normalized_score_val = parent_m.normalized_score
-
-            scorecard_atom: ScorecardAtomDTO | None = None
-            if atom.tda_id in atom_to_scorecard:
-                scorecard_atom = atom_to_scorecard[atom.tda_id]
-
-            meta: AtomScaleMetadataDTO | None = None
-            if atom.tda_id in atom_scale_meta:
-                meta = atom_scale_meta[atom.tda_id]
-
-            level = 0
-            level_name = ""
-            if scorecard_atom is not None:
-                level = scorecard_atom.level
-                level_name = scorecard_atom.level_name
-            elif meta is not None:
-                level = meta.level
-                level_name = meta.level_name
-
-            ref = None
-            if hydrated_refs and atom.tda_id in hydrated_refs:
-                ref = hydrated_refs[atom.tda_id]
-
-            criterion = ""
-            if ref is not None and ref.resolved_claim:
-                criterion = ref.resolved_claim
-            elif scorecard_atom is not None and scorecard_atom.claim_label:
-                criterion = scorecard_atom.claim_label
-            elif meta is not None:
-                criterion = meta.criterion
-
-            is_inverse_claim = False
-            if atom.is_inverse_evidence:
-                is_inverse_claim = True
-            elif meta is not None and meta.is_inverse:
-                is_inverse_claim = True
-
-            is_inverse_val = 1 if is_inverse_claim else 0
-            points_awarded_val = 1.0 if (atom.status == ExecutionStatus.PASSED and not is_inverse_claim) else 0.0
-
-            claim_type = LocalizationService.translate("export_claim_positive", locale)
-            if is_inverse_claim:
-                claim_type = LocalizationService.translate("export_claim_inverse", locale)
-
-            result_status: int = 0
-            if atom.status == ExecutionStatus.PASSED:
-                result_status = 1
-
-            quote_raw: tuple[str, ...] | list[str] | str | None = atom.source_quotes
-            if quote_raw is None and ref is not None:
-                quote_raw = ref.source_quotes
-            formatted_quotes = format_text_observations(coerce_source_quotes_tuple(quote_raw))
-            formatted_reasoning = format_ai_reasoning(atom.evaluation_reasoning)
-
-            c_node: CausalNodeDTO | None = None
-            if atom.tda_id in causal_nodes_by_id:
-                c_node = causal_nodes_by_id[atom.tda_id]
-
-            causal_meta = self._resolve_causal_meta(
-                c_node,
-                root_cause_set,
-                isolated_set,
-            )
-
-            denormalized_rows.append(
-                ExportDenormalizedFlatRowDTO(
-                    execution_id=execution_id,
-                    matrix_label=matrix_label,
-                    context_target=context_target,
-                    distribution=dist,
-                    hits=hits_val,
-                    total_atoms=total_atoms_val,
-                    hit_ratio=hit_ratio_val,
-                    raw_score=raw_score_val,
-                    scale_max=scale_max_val,
-                    normalized_score=normalized_score_val,
-                    level=level,
-                    level_name=level_name,
-                    criterion=criterion,
-                    claim_type=claim_type,
-                    is_inverse=is_inverse_val,
-                    points_awarded=points_awarded_val,
-                    result_status=result_status,
-                    quotes=formatted_quotes,
-                    ai_reasoning=formatted_reasoning,
-                    causal_status=causal_meta.causal_status,
-                    blame_parent_id=causal_meta.blame_parent_id,
-                    dependent_count=causal_meta.dependent_count,
-                )
-            )
-
-        mapped_tda_ids: set[str] = {atom.tda_id for atom in report_dto.results}
-        for node in causal_nodes_by_id.values():
-            if node.node_id in mapped_tda_ids:
-                continue
-            causal_meta = self._resolve_causal_meta(
-                node,
-                root_cause_set,
-                isolated_set,
-            )
-            denormalized_rows.append(
-                ExportDenormalizedFlatRowDTO(
-                    execution_id=execution_id,
-                    matrix_label=LocalizationService.translate("export_causal_matrix_label", locale),
-                    context_target="",
-                    distribution="",
-                    hits=1 if node.status == ExecutionStatus.PASSED else 0,
-                    total_atoms=1,
-                    hit_ratio=1.0 if node.status == ExecutionStatus.PASSED else 0.0,
-                    raw_score=1.0 if node.status == ExecutionStatus.PASSED else 0.0,
-                    scale_max=1.0,
-                    normalized_score=100.0 if node.status == ExecutionStatus.PASSED else 0.0,
-                    level=1,
-                    level_name=LocalizationService.translate("export_causal_level_name", locale),
-                    criterion=node.claim,
-                    claim_type=LocalizationService.translate("export_claim_positive", locale),
-                    is_inverse=0,
-                    points_awarded=0.0,
-                    result_status=1 if node.status == ExecutionStatus.PASSED else 0,
-                    quotes=format_text_observations(coerce_source_quotes_tuple(node.source_quotes)),
-                    ai_reasoning="",
-                    causal_status=causal_meta.causal_status,
-                    blame_parent_id=causal_meta.blame_parent_id,
-                    dependent_count=causal_meta.dependent_count,
-                )
-            )
-        return denormalized_rows
+        return build_denormalized_rows(
+            report_dto=report_dto,
+            matrices=matrices,
+            locale=locale,
+            blocks_by_id=blocks_by_id,
+            matrix_title_lookup=matrix_title_lookup,
+            execution_id=execution_id,
+            all_matrices=all_matrices,
+            causal_result=causal_result,
+        )
 
     async def export_excel(
         self,
