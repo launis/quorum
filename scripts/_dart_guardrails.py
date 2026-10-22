@@ -1,7 +1,7 @@
-"""Automated Dart Codebase Guardrails Engine (DGR001-DGR006).
+"""Automated Dart Codebase Guardrails Engine (DGR001-DGR010).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
-Scans handwritten client code for loose Map types, anonymous HTTP payloads, UI error concealment, unlocalized strings, and lint suppressions.
+Scans handwritten client code for loose Map types, anonymous HTTP payloads, UI error concealment, unlocalized strings, lint suppressions, hardcoded hex colors, manual string clippings, missing error boundaries, and unguarded async values.
 Guarantees 100% false-positive immunity for generated files (*.freezed.dart, *.g.dart, .dart_tool/, build/).
 """
 
@@ -12,11 +12,15 @@ import io
 import re
 import sys
 from collections.abc import Sequence
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+try:
+    from _script_base import GuardrailSeverity as GuardrailSeverity
+except ImportError:
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 __all__ = [
     "DartViolation",
@@ -35,13 +39,6 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError, io.UnsupportedOperation:
         pass
-
-
-class GuardrailSeverity(StrEnum):
-    """Severity classification for Dart guardrail violations."""
-
-    WARNING = "WARNING"
-    FATAL = "FATAL"
 
 
 class DartViolation(BaseModel):
@@ -90,6 +87,15 @@ DGR005_CODEC_EXEMPT_PATTERN = re.compile(
 
 # DGR006: Anonymous Map literals in HTTP request payloads
 DGR006_PATTERN = re.compile(r"\b(?:data|queryParameters):\s*\{")
+
+# DGR007: Banned hardcoded hex colors or direct Colors.* calls in feature widgets
+DGR007_PATTERN = re.compile(r"\bColor\s*\(\s*0x[0-9a-fA-F]+\s*\)|\bColors\.[a-zA-Z]+")
+
+# DGR008: Banned manual string clippings via .substring()
+DGR008_PATTERN = re.compile(r"\.substring\s*\(")
+
+# DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers
+DGR010_PATTERN = re.compile(r"\.requireValue\b")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9]*$")
@@ -276,6 +282,81 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                     )
                 )
 
+        # DGR007: Banned hardcoded hex colors or direct Colors.* calls in feature widgets
+        if is_feature_widget_scope:
+            dgr007_match = DGR007_PATTERN.search(line)
+            if dgr007_match:
+                matched_color = dgr007_match.group(0)
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=dgr007_match.start(),
+                        rule_code="DGR007",
+                        message=f"Banned hardcoded hex color or direct Colors.* call `{matched_color}` in feature widget.",
+                        remediation="Use Theme.of(context).colorScheme tokens or DesignTokens instead of hardcoded Color(0x...) or Colors.*.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
+                )
+
+        # DGR008: Banned manual string clippings via .substring()
+        if "test" not in path_parts:
+            dgr008_match = DGR008_PATTERN.search(line)
+            if dgr008_match:
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=dgr008_match.start(),
+                        rule_code="DGR008",
+                        message="Banned manual string clipping via `.substring()` detected.",
+                        remediation="Use LinguisticShield, safeTruncate(), or character boundary utilities instead of manual `.substring()`.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
+                )
+
+        # DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers
+        if "test" not in path_parts:
+            dgr010_match = DGR010_PATTERN.search(line)
+            if dgr010_match:
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=dgr010_match.start(),
+                        rule_code="DGR010",
+                        message="Missing AsyncValue guard: direct `.requireValue` access detected on dynamic AsyncValue consumer.",
+                        remediation="Use `.when()`, `.maybeWhen()`, or `.valueOrNull` to safely handle loading and error states instead of `.requireValue`.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
+                )
+
+    # DGR009: Missing AppErrorBoundary wrapping on feature master views
+    is_master_view_file = (
+        "features" in path_parts
+        and "test" not in path_parts
+        and ("master_view" in normalized_path.lower() or bool(re.search(r"\bclass\s+\w*MasterView\b", source_text)))
+    )
+    if is_master_view_file and "AppErrorBoundary" not in source_text:
+        match = re.search(r"\bclass\s+\w*MasterView\b", source_text)
+        class_lineno = source_text[: match.start()].count("\n") + 1 if match else 1
+        col_offset = (match.start() - source_text[: match.start()].rfind("\n") - 1) if match else 0
+        violations.append(
+            DartViolation(
+                filepath=filepath,
+                lineno=class_lineno,
+                col_offset=max(0, col_offset),
+                rule_code="DGR009",
+                message="Feature master view is missing mandatory AppErrorBoundary wrapping.",
+                remediation="Wrap the root body or view content in an AppErrorBoundary widget to isolate unexpected UI crashes.",
+                severity=default_severity,
+                is_suppressed=False,
+            )
+        )
+
     return violations
 
 
@@ -350,13 +431,19 @@ def format_dart_violations_table(violations: Sequence[DartViolation]) -> str:
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point for Dart guardrail engine."""
     parser = argparse.ArgumentParser(
-        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR004).
+        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR010).
 
 Enforces Flutter client architecture and static type safety invariants:
-  DGR001: Banned dynamic / Object? Loose Typing in Model Signatures (FATAL)
-  DGR002: Hardcoded Finnish Strings Ban - Strict ARB Localization Mandate (WARNING)
-  DGR003: Raw Map Indexing & Untyped Deserialization Ban (WARNING)
-  DGR004: Production print() / debugPrint() Logging Ban (WARNING)
+  DGR001: Loose Map return types in API clients, models, controllers, or providers (FATAL)
+  DGR002: SizedBox.shrink() concealment (WARNING)
+  DGR003: Raw hardcoded string literals in Text widgets (WARNING)
+  DGR004: Dart lint suppressions (FATAL)
+  DGR005: Non-codec Map<String, dynamic> in handwritten Dart code (FATAL)
+  DGR006: Anonymous Map literals in HTTP request payloads (FATAL)
+  DGR007: Banned hardcoded hex colors or direct Colors.* calls in feature widgets (WARNING)
+  DGR008: Banned manual string clippings via .substring() (WARNING)
+  DGR009: Missing AppErrorBoundary wrapping on feature master views (WARNING)
+  DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers (WARNING)
 
 Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
 """,

@@ -427,3 +427,235 @@ def test_main_cli_execution_fatal_fails_default(tmp_path: Path) -> None:
     fatal_file.write_text("// ignore: lint_error\n", encoding="utf-8")
     exit_code = main([str(fatal_file)])
     assert exit_code == 1
+
+
+# ==============================================================================
+# Partition 7: DGR007 Banned Hardcoded Hex Colors & Direct Colors.* Calls
+# ==============================================================================
+
+
+def test_dgr007_theme_tokens_allowed() -> None:
+    code = """
+class MyWidget extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Container(color: Theme.of(context).colorScheme.primary);
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_widget.dart")
+    dgr007 = [v for v in violations if v.rule_code == "DGR007"]
+    assert len(dgr007) == 0
+
+
+def test_dgr007_hex_color_detected() -> None:
+    code = """
+class MyWidget extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Container(color: const Color(0xFF123456));
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_widget.dart")
+    dgr007 = [v for v in violations if v.rule_code == "DGR007"]
+    assert len(dgr007) == 1
+    assert dgr007[0].lineno == 4
+    assert dgr007[0].col_offset > 0
+    assert "Color(0xFF123456)" in dgr007[0].message
+
+
+def test_dgr007_direct_colors_detected() -> None:
+    code = """
+class MyWidget extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Container(color: Colors.blue);
+  }
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_widget.dart")
+    dgr007 = [v for v in violations if v.rule_code == "DGR007"]
+    assert len(dgr007) == 1
+    assert dgr007[0].lineno == 4
+    assert dgr007[0].col_offset > 0
+    assert "Colors.blue" in dgr007[0].message
+
+
+def test_dgr007_test_scope_immune() -> None:
+    code = "final c = const Color(0xFF123456);\n"
+    violations = _scan_snippet(code, filepath="client_app_v2/test/widget_test.dart")
+    dgr007 = [v for v in violations if v.rule_code == "DGR007"]
+    assert len(dgr007) == 0
+
+
+# ==============================================================================
+# Partition 8: DGR008 Banned Manual String Clipping via .substring()
+# ==============================================================================
+
+
+def test_dgr008_safe_truncate_allowed() -> None:
+    code = """
+String truncate(String input) {
+  return safeTruncate(input, 10);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/shared/utils.dart")
+    dgr008 = [v for v in violations if v.rule_code == "DGR008"]
+    assert len(dgr008) == 0
+
+
+def test_dgr008_substring_two_args_detected() -> None:
+    code = """
+String slice(String text) {
+  return text.substring(0, 5);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/slice.dart")
+    dgr008 = [v for v in violations if v.rule_code == "DGR008"]
+    assert len(dgr008) == 1
+    assert dgr008[0].lineno == 3
+    assert dgr008[0].col_offset > 0
+    assert ".substring" in dgr008[0].message
+
+
+def test_dgr008_substring_single_arg_detected() -> None:
+    code = """
+String tail(String text) => text.substring(1);
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/execution/tail.dart")
+    dgr008 = [v for v in violations if v.rule_code == "DGR008"]
+    assert len(dgr008) == 1
+    assert dgr008[0].lineno == 2
+    assert dgr008[0].col_offset > 0
+
+
+def test_dgr008_test_scope_immune() -> None:
+    code = "final s = 'abc'.substring(1);\n"
+    violations = _scan_snippet(code, filepath="client_app_v2/test/unit/utils_test.dart")
+    dgr008 = [v for v in violations if v.rule_code == "DGR008"]
+    assert len(dgr008) == 0
+
+
+# ==============================================================================
+# Partition 9: DGR009 Missing AppErrorBoundary on Feature Master Views
+# ==============================================================================
+
+
+def test_dgr009_master_view_with_error_boundary_allowed() -> None:
+    code = """
+class WorkflowsMasterView extends ConsumerWidget {
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppErrorBoundary(
+      child: Scaffold(body: Container()),
+    );
+  }
+}
+"""
+    violations = _scan_snippet(
+        code, filepath="client_app_v2/lib/features/studio/views/workflows_master_view.dart"
+    )
+    dgr009 = [v for v in violations if v.rule_code == "DGR009"]
+    assert len(dgr009) == 0
+
+
+def test_dgr009_non_master_view_without_boundary_allowed() -> None:
+    code = """
+class SimpleChip extends StatelessWidget {
+  Widget build(BuildContext context) => const Text("chip");
+}
+"""
+    violations = _scan_snippet(
+        code, filepath="client_app_v2/lib/features/studio/widgets/simple_chip.dart"
+    )
+    dgr009 = [v for v in violations if v.rule_code == "DGR009"]
+    assert len(dgr009) == 0
+
+
+def test_dgr009_master_view_filename_missing_boundary_detected() -> None:
+    code = """
+class CustomView extends ConsumerWidget {
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(body: Container());
+  }
+}
+"""
+    violations = _scan_snippet(
+        code, filepath="client_app_v2/lib/features/studio/views/matrices_master_view.dart"
+    )
+    dgr009 = [v for v in violations if v.rule_code == "DGR009"]
+    assert len(dgr009) == 1
+    assert dgr009[0].lineno >= 1
+    assert "AppErrorBoundary" in dgr009[0].message
+
+
+def test_dgr009_master_view_classname_missing_boundary_detected() -> None:
+    code = """
+class StudioMasterView extends ConsumerWidget {
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(body: Container());
+  }
+}
+"""
+    violations = _scan_snippet(
+        code, filepath="client_app_v2/lib/features/studio/views/custom_page.dart"
+    )
+    dgr009 = [v for v in violations if v.rule_code == "DGR009"]
+    assert len(dgr009) == 1
+    assert dgr009[0].lineno == 2
+    assert "AppErrorBoundary" in dgr009[0].message
+
+
+# ==============================================================================
+# Partition 10: DGR010 Missing AsyncValue Guards on Dynamic AsyncNotifierProvider Consumers
+# ==============================================================================
+
+
+def test_dgr010_guarded_async_value_allowed() -> None:
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final state = ref.watch(workflowProvider);
+  return state.when(
+    data: (w) => Text(w.id),
+    loading: () => const CircularProgressIndicator(),
+    error: (e, st) => Text(e.toString()),
+  );
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/my_consumer.dart")
+    dgr010 = [v for v in violations if v.rule_code == "DGR010"]
+    assert len(dgr010) == 0
+
+
+def test_dgr010_require_value_on_state_detected() -> None:
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final record = executionState.requireValue;
+  return Container();
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/execution/consumer.dart")
+    dgr010 = [v for v in violations if v.rule_code == "DGR010"]
+    assert len(dgr010) == 1
+    assert dgr010[0].lineno == 3
+    assert dgr010[0].col_offset > 0
+    assert ".requireValue" in dgr010[0].message
+
+
+def test_dgr010_direct_watch_require_value_detected() -> None:
+    code = """
+Widget build(BuildContext context, WidgetRef ref) {
+  final workflow = ref.watch(workflowProvider).requireValue;
+  return Container();
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/direct_consumer.dart")
+    dgr010 = [v for v in violations if v.rule_code == "DGR010"]
+    assert len(dgr010) == 1
+    assert dgr010[0].lineno == 3
+    assert dgr010[0].col_offset > 0
+
+
+def test_dgr010_test_scope_immune() -> None:
+    code = "final val = asyncState.requireValue;\n"
+    violations = _scan_snippet(code, filepath="client_app_v2/test/unit/controller_test.dart")
+    dgr010 = [v for v in violations if v.rule_code == "DGR010"]
+    assert len(dgr010) == 0
+
