@@ -58,7 +58,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 
 #### Tier 2 Hardening (Backend)
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Post-cutover type and schema hardening on isolated sub-modules
-  - [ ] [NEW] @[backend_v2/services/export/metadata_resolver.py]
+  - [x] [NEW] @[backend_v2/services/export/metadata_resolver.py]
   - [ ] [NEW] @[backend_v2/services/export/excel_styler.py]
   - [ ] [NEW] @[backend_v2/services/export/summary_builder.py]
   - [ ] [NEW] @[backend_v2/services/export/atom_row_builder.py]

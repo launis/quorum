@@ -9,8 +9,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from pydantic import TypeAdapter
-
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import (
     AnyPromptBlock,
@@ -125,7 +123,7 @@ def resolve_matrix_label(
         Resolved localized matrix title string.
 
     Raises:
-        AppException: If matrix definition cannot be found in available lookups.
+        AppException: If matrix definition cannot be found in available lookups (RESOURCE_NOT_FOUND).
     """
     if atom_matrix_id:
         if atom_matrix_id in matrix_title_lookup:
@@ -160,6 +158,7 @@ def resolve_matrix_label(
         "[ExportService] %s: %s",
         ErrorCodes.RESOURCE_NOT_FOUND.name,
         msg,
+        exc_info=True,
         extra={
             "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
             "matrix_id": atom_matrix_id,
@@ -210,21 +209,12 @@ def extract_causal_result(
     if execution is None:
         return None
 
-    causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
-        CausalTdaFusionResultDTO | CausalGraphPayloadDTO
-    )
     for evt in reversed(execution.execution_trace):
-        content = evt.content
-        if isinstance(content, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
-            return content
-        if type(content) is dict:
-            candidate = content
-            if "fusion" in candidate and type(candidate["fusion"]) is dict:
-                candidate = candidate["fusion"]
-            elif "graph" in candidate and type(candidate["graph"]) is dict:
-                candidate = candidate["graph"]
-            if "anti_fluff_audit" in candidate or "nodes" in candidate:
-                return causal_adapter.validate_python(candidate)
+        match evt.content:
+            case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                return evt.content
+            case _:
+                continue
 
     if execution.step_states:
         for state_val in execution.step_states.values():

@@ -489,8 +489,8 @@ def test_extract_causal_result_dict_and_step_states() -> None:
         total_deliverable_nodes=1,
     )
 
-    # 1. Trace event with dict fusion
-    exec_dict_fusion = ExecutionRecord(
+    # 1. Trace event with typed fusion DTO
+    exec_trace_fusion = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",
         organization_id="org_0123456789abcdef",
@@ -500,14 +500,14 @@ def test_extract_causal_result_dict_and_step_states() -> None:
             TraceEvent(
                 step_name="causal_step",
                 event_type="output",
-                content={"fusion": fusion.model_dump(mode="json")},
+                content=fusion,
             )
         ],
     )
-    assert extract_causal_result(exec_dict_fusion) == fusion
+    assert extract_causal_result(exec_trace_fusion) == fusion
 
-    # 2. Trace event with dict graph
-    exec_dict_graph = ExecutionRecord(
+    # 2. Trace event with typed graph DTO
+    exec_trace_graph = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",
         organization_id="org_0123456789abcdef",
@@ -517,13 +517,16 @@ def test_extract_causal_result_dict_and_step_states() -> None:
             TraceEvent(
                 step_name="causal_step",
                 event_type="output",
-                content={"graph": graph.model_dump(mode="json")},
+                content=graph,
             )
         ],
     )
-    assert extract_causal_result(exec_dict_graph) == graph
+    assert extract_causal_result(exec_trace_graph) == graph
 
-    # 3. Step states with StepOutputDTO
+    # 3. None execution record returns None
+    assert extract_causal_result(None) is None
+
+    # 4. Step states with StepOutputDTO
     exec_step_output = ExecutionRecord.model_construct(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",

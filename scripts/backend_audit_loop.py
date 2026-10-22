@@ -229,7 +229,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
             "run",
             "python",
             "-c",
-            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy, pandas, pydantic.root_model\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({pytest_args}))",
+            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy, pydantic.root_model\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({pytest_args}))",
         ]
         print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
@@ -251,14 +251,15 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
             result = subprocess.run(coverage_cmd)
     else:
         parts = target_clean.strip("/").split("/")
-        cov_target = target_clean.replace("/", ".").strip(".")
+        target_stem = Path(target_clean).stem
+        cov_target = target_clean.removesuffix(".py").replace("/", ".").strip(".")
         if "tests" in parts:
             test_path = target_clean
         else:
             if parts[0] == "backend_v2":
                 target_dir = Path(target_clean.strip("/"))
                 test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
-                test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{parts[-1]}.py"
+                test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
                 if test_dir.exists():
                     test_path = str(test_dir).replace("\\", "/")
                 elif test_file.exists():
@@ -267,13 +268,13 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                     discovered_tests: list[str] = []
                     parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
                     if parent_test_dir.exists():
-                        for m in sorted(parent_test_dir.glob(f"test_{parts[-1]}*.py")):
+                        for m in sorted(parent_test_dir.glob(f"test_{target_stem}*.py")):
                             s = str(m).replace("\\", "/")
                             if s not in discovered_tests:
                                 discovered_tests.append(s)
 
                     flat_unit = Path("backend_v2/tests/unit")
-                    flat_pkg_test = flat_unit / f"test_{parts[-1]}.py"
+                    flat_pkg_test = flat_unit / f"test_{target_stem}.py"
                     if flat_pkg_test.exists():
                         s = str(flat_pkg_test).replace("\\", "/")
                         if s not in discovered_tests:
