@@ -8,7 +8,7 @@ This workflow governs the systematic planning and decomposition of heavy "God Co
 
 ```xml
 <system_prompt>
-  <objective>[DEFINE TARGET HERE. Specifically: "Decompose God file @[backend_v2/services/orchestrator/dag_executor.py]"]</objective>
+  <objective>[DEFINE TARGET HERE. Specifically for a single file: "Decompose God file @[backend_v2/services/orchestrator/dag_executor.py]", OR for a multi-file cluster / subsystem: "Decompose God file cluster @[backend_v2/services/export_service.py] and @[backend_v2/services/report_service.py]"]</objective>
   <role>Senior Staff Engineer &amp; Principal Systems Architect</role>
 
   <context_rules>
@@ -23,9 +23,33 @@ This workflow governs the systematic planning and decomposition of heavy "God Co
       <catastrophic_reason>Refactoring massive files without loading core architectural invariants causes hallucinated module boundaries and broken system integration.</catastrophic_reason>
     </rule_block>
 
+    <rule_block id="multi_file_cluster_and_topological_batching">
+      <mandatory_pattern>When decomposing a cluster of multiple coupled God Files or an entire subsystem:
+      1. **Inter-File Topological Dependency Ordering**: Construct the inter-file dependency DAG of all target files in the cluster using `grep_search`. Decompose leaf target files (those imported by other targets but not importing them) first. Caller targets MUST NOT begin Epoch 1 until their callee targets have fully completed Epoch 1 and Epoch 2, OR shared abstractions between them must be pre-extracted into a shared SSOT module in Phase 1A before either target file undergoes internal decomposition.
+      2. **Per-File Sequential Epoch Firewall**: Never interleave Epoch 1 of Target File B into Epoch 1 of Target File A. Each file in the cluster MUST execute its own Two-Epoch Strangler Fig lifecycle sequentially (File A: Epoch 1 -> Epoch 2, followed by File B: Epoch 1 -> Epoch 2) to prevent multi-proxy deadlocks and circular proxy collisions.
+      3. **Unified Subsystem Master Tracker vs. Per-File Task Directories**: Create a single unified master tracker at `docs/epic/[subsystem]_decomposition_tracker.md` orchestrating the sequential multi-file migration, with distinct `### Target: [filename]` execution sections. Isolate task implementation plans into per-file subdirectories (`docs/epic/tasks_[filename_a]/`, `docs/epic/tasks_[filename_b]/`).</mandatory_pattern>
+      <catastrophic_reason>Decomposing multiple coupled God Files simultaneously or in arbitrary order creates circular proxy dependencies and untraceable regressions across overlapping Epochs.</catastrophic_reason>
+    </rule_block>
+
     <rule_block id="orchestrator_god_object_fragility">
       <mandatory_pattern>If the target file resides ANYWHERE within `backend_v2/services/orchestrator/` (specifically including: `atomizer.py`, `dag_executor.py`, `topological_evaluator.py`, `matrix_reducer.py`, `causal_cohesion_evaluator.py`), the planner MUST STOP immediately at Step 1 and explicitly request "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem" before generating any decomposition plans. Any code blocks or methods marked with ARCHITECTURE LOCK comments inside the target file MUST be relocated verbatim (100% untouched AST body and preserving the ARCHITECTURE LOCK comment header) into their target domain sub-module during Epoch 1, without altering their internal logic.</mandatory_pattern>
       <catastrophic_reason>Modifying the core DAG Orchestrator engine without explicit clearance and blast-radius evaluation causes cascading execution failures across all workflows.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="monolith_archetype_invariant_profiles">
+      <mandatory_pattern>Every target God File MUST be classified into one of the 5 canonical Monolith Archetypes, applying its specific architectural invariant profile:
+      1. **Archetype A: Algorithmic / Pure Compute Engine** (specifically: `anchor_validation_service.py`, `topological_evaluator.py`, `sliding_window_linker.py`):
+         - Invariants: Pure compute engine law (zero semaphores, zero network I/O, immutable DTO inputs and outputs).
+         - Proof Anchor: Mutation testing via `scripts/audit_mutation_coverage.py` MUST achieve 100% mutant kill rate on mathematical cores.
+      2. **Archetype B: Presentation / Streaming / Formatter** (specifically: `export_service.py`, `report_service.py`):
+         - Invariants: Single-pipeline streaming (shared rectangular builders for tabular datasets, specifically Excel Tab 2 and CSV), immutable DTO streaming (`ExportForensicAtomDTO`, `ExportDenormalizedFlatRowDTO`), zero naked dictionaries, RFC 7807 dual-logging.
+      3. **Archetype C: Ingress / Parser / Anti-Corruption Layer (ACL)** (specifically: `pdf_chat_extractor.py`, `matrix_domain_parser.py`):
+         - Invariants: External ACL standard (positive key checks, immediate typed DTO hydration), DLQ error recording (`_dlq_log_extraction_error`), strict model location enforcement (relocating inline DTOs/Enums to `models/dtos/` in Phase 1A).
+      4. **Archetype D: Macro Orchestrator &amp; Concurrency Core** (specifically: `dag_executor.py`, `execution_worker.py`):
+         - Invariants: DAG Orchestrator Permission Gate, Two-Tier Concurrency SSOT, stateless sub-services (banning `self.<attr> = ...` across coroutines), validated domain transitions, verbatim relocation of ARCHITECTURE LOCK blocks into sub-modules.
+      5. **Archetype E: Frontend Desktop View / Widget Monolith** (specifically: `step_builder_view.dart`, `specialist_section.dart`):
+         - Invariants: Feature-First isolation (`lib/features/[domain]/`), Dart Guardrail compliance (`_dart_guardrails.py`: DGR001-DGR005), separating Riverpod state notifiers from layout rendering widgets.</mandatory_pattern>
+      <catastrophic_reason>Applying generic rules to specialized archetypes ignores archetype-specific failure modes (specifically: mutation escape in compute engines or stateful coroutine corruption in orchestrators).</catastrophic_reason>
     </rule_block>
 
     <rule_block id="two_epoch_separation_mandate">
@@ -61,7 +85,7 @@ This workflow governs the systematic planning and decomposition of heavy "God Co
 
     <rule_block id="topological_leaf_first_extraction_mandate">
       <mandatory_pattern>Construct an internal call-graph and type-graph DAG of the God File using `@[scripts/_ast_boundary_utils.py]`. Decompositions MUST follow **Bottom-Up Topological Leaf-First Order**:
-      1. **Phase 1A (Leaf Pre-Extraction)**: Extract depth-0 leaf types, centralized Enums (converting any inline `Literal[...]` definitions into `backend_v2/models/enums.py`), shared constants, DTOs, and leaf helper functions first. Relocate any bottom-of-file Pydantic `model_rebuild()` calls deterministically.
+      1. **Phase 1A (Leaf Pre-Extraction)**: Extract depth-0 leaf types, centralized Enums (converting any inline `Literal[...]` definitions into `backend_v2/models/enums.py`), shared constants, DTOs, and leaf helper functions first. INLINE DTO &amp; ENUM RELOCATION LAW: If the target God File contains domain models or Pydantic DTOs declared inline at module level (specifically: `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, `PdfBlockSignatureDTO` in ingress parsers), they MUST be relocated to the canonical `backend_v2/models/dtos/` or `backend_v2/models/domain/` directory (or Flutter `models/`), NOT trapped inside the newly created service subpackage, strictly obeying `strict_model_location` and QGR029. Relocate any bottom-of-file Pydantic `model_rebuild()` calls deterministically.
       2. **Zero God File Imports**: Extracted sub-modules MUST NEVER import from the parent God File.
       3. **Circular Domain Decoupling**: If Sub-Module A and Sub-Module B exhibit mutual execution dependencies, inline function imports (`from ... import` inside methods) are STRICTLY BANNED. Use a typed `typing.Protocol` or `Callable` injected by the parent facade (`X/__init__.py`).
       4. **Zero Garbage Drawers**: Generic filenames (`utils.py`, `helpers.py`, `types.py`, `models.py`) are strictly prohibited.
@@ -106,23 +130,32 @@ This workflow governs the systematic planning and decomposition of heavy "God Co
     </step>
 
     <step id="2" name="PRE-FLIGHT AST EXTRACTION, TEST BASELINE &amp; TECH DEBT INVENTORY">
-      <action name="AST_BOUNDARY_EXTRACTION">Run `uv run python scripts/_ast_boundary_utils.py --file <path_to_domain_file> --extract-symbols` to extract defined symbols, classes, functions, and exact line boundaries. Manually inspect the target file to inventory all security hooks, decorators, and concurrency locks as invariant set $\mathcal{I}_{orig}$.</action>
-      <gate name="TEST_BASELINE">Use `grep_search` to discover ALL unit and integration test files importing the target God File (specifically `test_[filename]*.py` in `backend_v2/tests/unit/` and `backend_v2/tests/integration/`) and run coverage across the entire matching test suite (`uv run pytest <all_matching_test_files> --cov=<path_to_domain_file>` or `uv run python scripts/flutter_audit_loop.py <target_path> --test`). Record passing test count and aggregate coverage % as `[BASELINE]`. If aggregate coverage &lt; 75%, generate `phase0_coverage_bootstrap.md` as a strict blocker.</gate>
+      <action name="AST_BOUNDARY_EXTRACTION">
+        - For Python (`.py`): Run `uv run python scripts/_ast_boundary_utils.py --file <path_to_domain_file> --extract-symbols` to extract defined symbols, classes, functions, and exact line boundaries.
+        - For Flutter (`.dart`): Run `scripts/_dart_guardrails.py` and use `grep_search` to extract widget class (`class MyWidget extends ...`) and state controller boundaries (never pass `.dart` files to `_ast_boundary_utils.py` to prevent `ast.parse` SyntaxError).
+        Manually inspect the target file to inventory all security hooks, decorators, and concurrency locks as invariant set $\mathcal{I}_{orig}$.
+      </action>
+      <gate name="TEST_BASELINE">
+        - For Python (`.py`): Use `grep_search` to discover ALL unit and integration test files importing the target God File (specifically `test_[filename]*.py` in `backend_v2/tests/unit/` and `backend_v2/tests/integration/`). Run coverage across the entire matching test suite using Python module dot notation (`uv run pytest <all_matching_test_files> --cov=backend_v2.<subpackage>.<domain>.<filename>`) or execute the universal audit script `uv run python scripts/backend_audit_loop.py <path_to_domain_file> --test` (which automatically handles root_model pre-import, test discovery, and coverage calculation), preventing `CoverageWarning: Module was never imported` on Windows 11. Record passing test count and aggregate coverage % as `[BASELINE]`. If aggregate coverage &lt; 75%, generate `phase0_coverage_bootstrap.md` as a strict blocker.
+        - For Flutter (`.dart`): Run `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> --test`.
+      </gate>
       <action name="SYMBOL_MAP_AND_BLAST_RADIUS">Use `grep_search` to identify all 1-hop callers. Save the complete symbol-to-target mapping to `docs/epic/tasks_[filename]/symbol_migration_map.md`.</action>
       <action name="TECH_DEBT_INVENTORY_FOR_EPOCH_2">Audit the God File and its 1-hop callers against the 12-Item Tech Debt Checklist (1. `getattr`/`hasattr`/`isinstance(dict)`/`type(x) is dict`/`Any` annotations, 2. `.get()`/raw dicts/missing `strict=True`/explicit `strict=False` overrides, 3. anonymous 3+ tuples, 4. silent `except Exception:`/DLP, 5. unvalidated `model_copy`, 6. Python 3.14 PEP 695/673/742/`TaskGroup`, 7. magic numbers outside `settings.py`, 8. missing docstrings/`# type: ignore`, 9. Flutter hardcoded strings/colors, 10. missing negative ISTQB partitions, 11. stateful service mutations via `self.<attr> =`, 12. non-deterministic execution state via unordered set iterations or `uuid.uuid4()`). Record all findings in the tracker under **Epoch 2: Post-Cutover Tier 2 Hardening** (DO NOT mix into Epoch 1 extraction).</action>
       <action name="KI_PREFLIGHT_CHECK">If decomposition produces 3+ structurally identical sub-modules, reference or create a canonical KI template before generating plans.</action>
     </step>
 
     <step id="3" name="ADAPTIVE PLAN GENERATION (FAST-TRACK VS. FULL STRANGLER)">
-      <action>Select the planning mode based on the Step 2 AST metrics:
-        - **FAST-TRACK MODE (500–800 lines, &lt;= 3 target sub-modules, non-orchestrator)**: Generate ALL `phaseX_[domain]_extraction.md` plans in `docs/epic/tasks_[filename]/` in a single pass. No placeholder files or mid-flight Tier 3 re-invocations required.
-        - **FULL STRANGLER MODE (&gt; 800 lines, &gt;= 4 target sub-modules, or orchestrator core)**: Generate detailed XML plans ONLY for Phase 1 and Phase 2 to prevent context saturation. Create header placeholders for Phase 3+ and insert a tracker gate to re-invoke `/tier3-god-code-decomposition` after Phase 2 completes.</action>
+      <action>Select the planning mode based on the Step 2 AST metrics and target scope:
+        - **SINGLE-FILE FAST-TRACK MODE (500–800 lines, &lt;= 3 target sub-modules, non-orchestrator)**: Generate ALL `phaseX_[domain]_extraction.md` plans in `docs/epic/tasks_[filename]/` in a single pass. No placeholder files or mid-flight Tier 3 re-invocations required.
+        - **SINGLE-FILE FULL STRANGLER MODE (&gt; 800 lines, &gt;= 4 target sub-modules, or orchestrator core)**: Generate detailed XML plans ONLY for Phase 1 and Phase 2 to prevent context saturation. Create header placeholders for Phase 3+ and insert a tracker gate to re-invoke `/tier3-god-code-decomposition` after Phase 2 completes.
+        - **MULTI-FILE SUBSYSTEM CLUSTER MODE (2+ coupled God Files)**: Generate the coordinated master tracker `docs/epic/[subsystem]_decomposition_tracker.md` ordering files by topological call-graph leaves. Generate detailed XML plans for Target File 1, with header placeholders for subsequent target files to enforce sequential Epoch boundaries.
+      </action>
       <constraint name="HYBRID_XML_SANDWICH_MANDATE">Every generated plan MUST wrap its execution instructions in fenced XML `&lt;execution_protocol&gt;` blocks with `<required_context_rules>` and `<test_contracts>`.</constraint>
       <action name="SELF_HEALING_BOUNDARY_AUDIT">Run `uv run python scripts/audit_markdown_boundaries.py --file <path_to_plan>` on every generated plan. Fix any boundary errors (Circuit Breaker: stop after 3 consecutive failures).</action>
     </step>
 
     <step id="4" name="TWO-EPOCH TRACKER GENERATION (TRK001-TRK006 COMPLIANT)">
-      <action>Create the master tracker at `docs/epic/[filename]_decomposition_tracker.md` with `<required_context_rules>` at the top. The tracker MUST strictly conform to `scripts/audit_tracker_output.py` formatting standards (TRK001-TRK006) containing `## Phase Execution Status`, `### Post-Implementation Gates`, `### Final Epic Audit`, `## Instructions for the Execution Agent`, `## Requirements Traceability Matrix`, and `# Session Handover Context`.</action>
+      <action>Create the master tracker at `docs/epic/[filename_or_subsystem]_decomposition_tracker.md` with `<required_context_rules>` at the top. The tracker MUST strictly conform to `scripts/audit_tracker_output.py` formatting standards (TRK001-TRK006) containing `## Phase Execution Status`, `### Post-Implementation Gates`, `### Final Epic Audit`, `## Instructions for the Execution Agent`, `## Requirements Traceability Matrix`, and `# Session Handover Context`.</action>
       <action name="EPOCH_1_STRUCTURAL_PIPELINE">
         Under `## Phase Execution Status`, generate sequential `### Phase N: <Title>` sections for **Epoch 1 (Pure Structural Lift-and-Shift &amp; Atomic Cutover)**:
         1. `Phase 0: Coverage Bootstrap` (if baseline &lt; 75%).
