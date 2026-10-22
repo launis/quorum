@@ -10,6 +10,8 @@ import ast
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add scripts directory to sys.path
 scripts_dir = Path("scripts").resolve()
 if str(scripts_dir) not in sys.path:
@@ -24,6 +26,7 @@ from scripts._ast_boundary_utils import (
     extract_target_files,
     find_symbol_definitions,
     find_symbols_in_python_code,
+    main,
     normalize_target_path,
     parse_line_bound,
     validate_ast_line_bound,
@@ -205,6 +208,8 @@ ignored_var = 1
     for d in dtos:
         assert isinstance(d, SymbolDefinitionDTO)
         assert len(d.line_numbers) > 0
+        assert len(d.line_spans) > 0
+        assert "-" in d.line_spans[0]
 
 
 def test_extract_deprecated_symbols_partitions() -> None:
@@ -273,3 +278,56 @@ def test_zero_reflection_in_ast_boundary_utils() -> None:
                 pass
 
     assert reflection_calls == [], f"Forbidden reflection calls found in _ast_boundary_utils.py: {reflection_calls}"
+
+
+def test_find_symbols_syntax_error_and_complex_targets() -> None:
+    """Test resilience against syntax errors and complex assignment targets."""
+    broken_code = "def broken( :\n    pass"
+    assert find_symbols_in_python_code(broken_code, {"broken"}) == {}
+    assert find_symbol_definitions(broken_code, {"broken"}) == []
+
+    complex_targets_code = """
+obj.attr = 1
+arr[0] = 2
+target_var: int = 10
+"""
+    found = find_symbols_in_python_code(complex_targets_code, {"target_var"})
+    assert "target_var" in found
+    assert len(found["target_var"]) == 1
+
+
+def test_ast_boundary_utils_main_cli(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """ISTQB CLI Partition Testing: Validate main() with diverse flag combinations."""
+    # 1. No arguments -> usage printed and exit code 1
+    assert main([]) == 1
+
+    # 2. Non-existent file -> exit code 1
+    assert main(["--file", str(tmp_path / "non_existent.py"), "--extract-symbols"]) == 1
+
+    # 3. Valid Python file -> extract symbols returns 0
+    test_py = tmp_path / "test_module.py"
+    test_py.write_text(
+        """class SampleClass:\n    pass\n\ndef sample_function():\n    return 42\n""",
+        encoding="utf-8",
+    )
+    assert main(["--file", str(test_py), "--extract-symbols"]) == 0
+    captured = capsys.readouterr()
+    assert "SampleClass" in captured.out
+    assert "sample_function" in captured.out
+    assert "lines [" in captured.out
+
+    # 4. Valid Markdown file -> extract targets returns 0
+    test_md = tmp_path / "plan.md"
+    test_md.write_text(
+        """## Target Files\n- [NEW] @[backend_v2/services/new_svc.py#L10-L20]\n""",
+        encoding="utf-8",
+    )
+    assert main(["--file", str(test_md), "--extract-targets"]) == 0
+    captured = capsys.readouterr()
+    assert "backend_v2/services/new_svc.py" in captured.out
+
+    # 5. Validate bound - valid range -> 0
+    assert main(["--file", str(test_py), "--validate-bound", "1", "10"]) == 0
+
+    # 6. Validate bound - invalid range -> 1
+    assert main(["--file", str(test_py), "--validate-bound", "50", "60"]) == 1

@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TargetFileReferenceDTO(BaseModel):
@@ -41,6 +41,7 @@ class SymbolDefinitionDTO(BaseModel):
 
     symbol_name: str
     line_numbers: list[int]
+    line_spans: list[str] = Field(default_factory=list)
 
 
 def normalize_target_path(raw_path: str) -> str:
@@ -133,27 +134,30 @@ class SymbolDefinitionVisitor(ast.NodeVisitor):
     def __init__(self, target_symbols: set[str]) -> None:
         self.target_symbols = target_symbols
         self.found_symbols: dict[str, list[int]] = {sym: [] for sym in target_symbols}
+        self.found_spans: dict[str, list[str]] = {sym: [] for sym in target_symbols}
 
-    def _record(self, name: str, lineno: int) -> None:
+    def _record(self, name: str, lineno: int, end_lineno: int | None = None) -> None:
         if name in self.target_symbols:
             self.found_symbols[name].append(lineno)
+            end = end_lineno if end_lineno is not None else lineno
+            self.found_spans[name].append(f"{lineno}-{end}")
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        self._record(node.name, node.lineno)
+        self._record(node.name, node.lineno, node.end_lineno)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        self._record(node.name, node.lineno)
+        self._record(node.name, node.lineno, node.end_lineno)
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        self._record(node.name, node.lineno)
+        self._record(node.name, node.lineno, node.end_lineno)
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         match node.target:
             case ast.Name(id=target_id):
-                self._record(target_id, node.lineno)
+                self._record(target_id, node.lineno, node.end_lineno)
             case _:
                 pass
         self.generic_visit(node)
@@ -162,7 +166,7 @@ class SymbolDefinitionVisitor(ast.NodeVisitor):
         for target in node.targets:
             match target:
                 case ast.Name(id=target_id):
-                    self._record(target_id, node.lineno)
+                    self._record(target_id, node.lineno, node.end_lineno)
                 case _:
                     pass
         self.generic_visit(node)
@@ -182,8 +186,22 @@ def find_symbols_in_python_code(code: str, symbols: set[str]) -> dict[str, list[
 
 def find_symbol_definitions(code: str, symbols: set[str]) -> list[SymbolDefinitionDTO]:
     """Scan Python source code string and return a list of SymbolDefinitionDTO objects."""
-    found_map = find_symbols_in_python_code(code, symbols)
-    return [SymbolDefinitionDTO(symbol_name=sym, line_numbers=lines) for sym, lines in found_map.items()]
+    try:
+        tree = ast.parse(code)
+    except SyntaxError, UnicodeDecodeError:
+        return []
+
+    visitor = SymbolDefinitionVisitor(symbols)
+    visitor.visit(tree)
+    return [
+        SymbolDefinitionDTO(
+            symbol_name=sym,
+            line_numbers=lines,
+            line_spans=visitor.found_spans.get(sym, []),
+        )
+        for sym, lines in visitor.found_symbols.items()
+        if lines
+    ]
 
 
 def extract_deprecated_symbols(content: str) -> set[str]:
@@ -285,7 +303,8 @@ neuro-symbolic audit gates in Quorum.
         symbols = find_symbol_definitions(content, defined_symbols)
         print(f"Extracted {len(symbols)} symbol definition(s) from {args.file}:")
         for s in symbols:
-            print(f"  {s.symbol_name}: lines {s.line_numbers}")
+            spans_str = ", ".join(s.line_spans) if s.line_spans else ", ".join(str(n) for n in s.line_numbers)
+            print(f"  {s.symbol_name}: lines [{spans_str}]")
 
     if args.validate_bound:
         start_line, end_line = args.validate_bound
