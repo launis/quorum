@@ -64,7 +64,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] [NEW] @[backend_v2/services/export/atom_row_builder.py]
   - [x] [NEW] @[backend_v2/services/export/excel_exporter.py]
   - [x] [NEW] @[backend_v2/services/export/csv_exporter.py]
-  - [ ] [NEW] @[backend_v2/services/export/__init__.py]
+  - [x] [NEW] @[backend_v2/services/export/__init__.py]
   - [ ] @[backend_v2/services/report_service.py]
   - [ ] @[backend_v2/api/dependencies.py]
 
@@ -130,6 +130,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - Completed Epoch 2 Tier 2 Hardening on Target 4 (`backend_v2/services/export/atom_row_builder.py`): Verified 181-rule audit matrix, expanded `test_atom_row_builder.py` with ISTQB negative and fallback boundary tests (scorecard claim_label fallback in denormalized rows, metadata level/criterion fallback in denormalized rows, metadata inverse evidence fallback across both builders), verified 10/10 quality gate stages with 100% coverage (8 passing tests), committed in `b58d3676a`.
 - Completed Epoch 2 Tier 2 Hardening on Target 5 (`backend_v2/services/export/excel_exporter.py`): Verified 181-rule audit matrix, eradicated dead fallback on `label_i18n.resolve`, updated docstrings with explicit ErrorCodes, expanded `test_excel_exporter.py` with 4 ISTQB negative and parameter override boundary tests (12 passing tests), verified 10/10 quality gate stages with 100% line coverage (71/71 statements), committed in `61a0bdded`.
 - Completed Epoch 2 Tier 2 Hardening on Target 6 (`backend_v2/services/export/csv_exporter.py`): Verified 181-rule audit matrix, eradicated dead fallback on `label_i18n.resolve`, updated docstrings with explicit ErrorCodes, expanded `test_csv_exporter.py` with 4 ISTQB boundary tests covering `all_matrices` override, explicit `execution_id`, `locale="en"` resolution, and explicit `components` (11 passing tests), verified 10/10 quality gate stages with 100% line coverage (56/56 statements).
+- Completed Epoch 2 Tier 2 Hardening on Target 7 (`backend_v2/services/export/__init__.py`): Verified 181-rule audit matrix, aligned `test_export_facade.py` causal extraction assertions with typed `CausalTdaFusionResultDTO | CausalGraphPayloadDTO` contracts (eradicating legacy raw dictionary test expectations), expanded proxy delegation coverage across all 5 helper methods, added `f"test_{pkg_name}_facade.py"` to `backend_audit_loop.py` test discovery candidates, verified 10/10 quality gate stages with 100% line coverage (56/56 statements, 45 passing tests).
 
 ## Learned
 - AST decorator line offset: `@staticmethod` and `@classmethod` decorators place `node_start` on the decorator line (specifically: line 77 for `_build_matrix_atom_maps`), which must match MBD004 exactly.
@@ -147,6 +148,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
 - In `ReportDataDTO`, referential integrity validation strictly requires that all atom `tda_id`s in `results` have corresponding keys in `hydrated_references`.
 - In pandas 3.0.3 under Python 3.14, Logfire's eager pandas dataframe instrumentation triggers `ArrowStringArray` assertion mismatch during index construction; running unit tests with `--no-logfire` in `backend_audit_loop.py` cleanly bypasses this external telemetry clash.
 - In `InMemoryPromptBlockRepository`, call counts are checked via `get_call_count("method_name")` rather than direct dictionary subscripting to avoid `KeyError` on uncalled methods.
+- In `backend_audit_loop.py`, mapping `__init__.py` target files requires checking `f"test_{pkg_name}_facade.py"` and `"test_facade.py"` to prevent falling back to generic root `test___init__.py`.
 
 ## Resume Command
 /tier5-resume --target="@[docs/epic/export_service_decomposition_tracker.md]" --workflow="/tier2-hardening-backend" --rules="01-python-backend.md"
@@ -164,7 +166,7 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   - [x] @[backend_v2/services/export/atom_row_builder.py]
   - [x] @[backend_v2/services/export/excel_exporter.py]
   - [x] @[backend_v2/services/export/csv_exporter.py]
-  - [ ] @[backend_v2/services/export/__init__.py]
+  - [x] @[backend_v2/services/export/__init__.py]
   - [ ] @[backend_v2/services/report_service.py]
   - [ ] @[backend_v2/api/dependencies.py]
 
@@ -179,15 +181,15 @@ Decomposition of monolithic `@[backend_v2/services/export_service.py#L65-L589]` 
   7. `backend_v2/services/export/__init__.py`
   8. `backend_v2/services/report_service.py`
   9. `backend_v2/api/dependencies.py`
-- **DONE** (6):
+- **DONE** (7):
   1. `backend_v2/services/export/metadata_resolver.py`
   2. `backend_v2/services/export/excel_styler.py`
   3. `backend_v2/services/export/summary_builder.py`
   4. `backend_v2/services/export/atom_row_builder.py`
   5. `backend_v2/services/export/excel_exporter.py`
   6. `backend_v2/services/export/csv_exporter.py`
-- **REMAINING** (3):
-  1. `backend_v2/services/export/__init__.py`
-  2. `backend_v2/services/report_service.py`
-  3. `backend_v2/api/dependencies.py`
+  7. `backend_v2/services/export/__init__.py`
+- **REMAINING** (2):
+  1. `backend_v2/services/report_service.py`
+  2. `backend_v2/api/dependencies.py`
 

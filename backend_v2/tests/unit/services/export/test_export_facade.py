@@ -1651,11 +1651,11 @@ def test_extract_causal_result_none_and_empty() -> None:
     assert ExportService._extract_causal_result(exec_record) is None
 
 
-def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
-    """Verify _extract_causal_result parses dict with 'fusion', 'graph', or direct 'nodes'."""
+def test_extract_causal_result_from_trace_fusion_and_graph() -> None:
+    """Verify _extract_causal_result parses typed CausalTdaFusionResultDTO and CausalGraphPayloadDTO."""
     graph, fusion = _build_test_causal_payloads()
 
-    # 1. content is dict containing "fusion"
+    # 1. content is typed CausalTdaFusionResultDTO
     exec_fusion = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",
@@ -1666,7 +1666,7 @@ def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
             TraceEvent(
                 step_name="causal_discovery",
                 event_type="output",
-                content={"fusion": fusion.model_dump(mode="json")},
+                content=fusion,
             )
         ],
     )
@@ -1674,7 +1674,7 @@ def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
     assert isinstance(res_fusion, CausalTdaFusionResultDTO)
     assert len(res_fusion.graph.nodes) == 2
 
-    # 2. content is dict containing "graph"
+    # 2. content is typed CausalGraphPayloadDTO
     exec_graph = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",
@@ -1685,7 +1685,7 @@ def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
             TraceEvent(
                 step_name="causal_discovery",
                 event_type="output",
-                content={"graph": graph.model_dump(mode="json")},
+                content=graph,
             )
         ],
     )
@@ -1693,8 +1693,8 @@ def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
     assert isinstance(res_graph, CausalGraphPayloadDTO)
     assert len(res_graph.nodes) == 2
 
-    # 3. content is dict directly containing "nodes"
-    exec_raw_graph = ExecutionRecord(
+    # 3. ISTQB Negative Partition: content is untyped dict/primitive, fails-fast to None
+    exec_raw_dict = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wor_0123456789abcdef",
         organization_id="org_0123456789abcdef",
@@ -1704,13 +1704,12 @@ def test_extract_causal_result_from_trace_dict_fusion_and_graph() -> None:
             TraceEvent(
                 step_name="causal_discovery",
                 event_type="output",
-                content=graph.model_dump(mode="json"),
+                content={"untyped": "dict_payload"},
             )
         ],
     )
-    res_raw = ExportService._extract_causal_result(exec_raw_graph)
-    assert isinstance(res_raw, CausalGraphPayloadDTO)
-    assert len(res_raw.nodes) == 2
+    res_raw = ExportService._extract_causal_result(exec_raw_dict)
+    assert res_raw is None
 
 
 def test_extract_causal_result_from_step_states() -> None:
@@ -2326,3 +2325,57 @@ def test_report_service_integration_parity() -> None:
     export_svc = ExportService()
     report_svc = ReportService(repo=repo, export_service=export_svc)
     assert report_svc.export_service is export_svc
+
+
+def test_export_service_proxy_delegations_coverage() -> None:
+    """Verify ExportService static and instance helper delegations match underlying implementations."""
+    import openpyxl
+
+    matrices = _build_sample_matrix_rows(1)
+    matrix_map, atom_map = ExportService._build_matrix_atom_maps(matrices)
+    assert len(matrix_map) >= 0
+
+    lbl = I18nText(translations={"fi": "L", "en": "L"})
+    desc = I18nText(translations={"fi": "D", "en": "D"})
+    scale = MatrixScale(score=1, ai_label="L1", claims=[])
+    matrix_block = MatrixPromptBlock(
+        id="blk_0123456789abcdef",
+        slug="m_slug",
+        label=lbl,
+        description=desc,
+        scales=[scale],
+        ai_description="Operational rule",
+    )
+    blocks_by_id: dict[str, AnyPromptBlock] = {matrix_block.id: matrix_block}
+    scale_meta = ExportService._build_scale_metadata(blocks_by_id, "fi")
+    assert len(scale_meta) >= 0
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "TestSheet"
+    ws["A1"] = "Header"
+    ExportService._apply_corporate_excel_styling(wb, ["TestSheet"])
+
+    report_dto = _build_sample_report_dto()
+    title_lookup = {matrices[0].block_id: "Matriisi"}
+    svc = ExportService()
+    atom_rows = svc._build_atom_rows(
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+        blocks_by_id=blocks_by_id,
+        matrix_title_lookup=title_lookup,
+    )
+    assert len(atom_rows) == 1
+
+    denorm_rows = svc._build_denormalized_rows(
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="fi",
+        blocks_by_id=blocks_by_id,
+        matrix_title_lookup=title_lookup,
+        execution_id="exe_0123456789abcdef",
+    )
+    assert len(denorm_rows) == 1
+

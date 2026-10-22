@@ -142,6 +142,8 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                 clean_base = filename.removesuffix(".py").lstrip("_")
                 candidates = [
                     f"test_{pkg_name}.py",
+                    f"test_{pkg_name}_facade.py",
+                    "test_facade.py",
                     f"test__{pkg_name}.py",
                     f"test_{clean_base}.py",
                     f"test_{filename}",
