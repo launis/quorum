@@ -347,3 +347,113 @@ async def test_export_flat_csv_empty_results_fails() -> None:
         )
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_all_matrices_override() -> None:
+    """Verify all_matrices parameter overrides matrices parameter in CSV export."""
+    exporter = CsvExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    single_matrix = _build_sample_matrix_rows(1)
+    two_matrices = _build_sample_matrix_rows(2)
+
+    payload = await exporter.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=single_matrix,
+        all_matrices=two_matrices,
+        locale="fi",
+    )
+
+    decoded = payload.content_bytes.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(decoded))
+    next(reader)
+    rows = list(reader)
+    assert len(rows) >= 1
+    # Check matrix_label column resolves from effective_matrices
+    assert rows[0][1] == "Matriisi 0"
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_custom_execution_id() -> None:
+    """Verify explicit execution_id parameter overrides execution.id in filename and CSV rows."""
+    exporter = CsvExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    payload = await exporter.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        execution_id="custom_override_id",
+        locale="fi",
+    )
+
+    assert payload.filename == "execution_export_custom_override_id.csv"
+    decoded = payload.content_bytes.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(decoded))
+    next(reader)
+    row = next(reader)
+    assert row[0] == "custom_override_id"
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_locale_en_resolution() -> None:
+    """Verify locale='en' produces English CSV headers and English matrix labels."""
+    exporter = CsvExporter()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    payload = await exporter.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        locale="en",
+    )
+
+    decoded = payload.content_bytes.decode("utf-8-sig")
+    reader = csv.reader(io.StringIO(decoded))
+    header = next(reader)
+    expected_en_headers = ReportHeaderResolver.get_all_denormalized_csv_headers("en")
+    assert header == expected_en_headers
+    row = next(reader)
+    assert row[1] == "Matrix 0"
+
+
+@pytest.mark.asyncio
+async def test_export_flat_csv_with_explicit_components() -> None:
+    """Verify explicit components list is used directly without repository queries."""
+    blk_id = "blk_0123456789abcdef"
+    lbl = I18nText(translations={"fi": "Matriisi Eksplisiittinen", "en": "Matrix Explicit"})
+    desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
+    scale = MatrixScale(score=1, ai_label="L1", claims=[])
+    matrix_block = MatrixPromptBlock(
+        id=blk_id,
+        slug="m_explicit_slug",
+        label=lbl,
+        description=desc,
+        scales=[scale],
+        ai_description="Explicit rule description",
+    )
+
+    repo = InMemoryPromptBlockRepository()
+    exporter = CsvExporter(prompt_block_repo=repo)
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+    matrices = _build_sample_matrix_rows(1)
+
+    payload = await exporter.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+        matrices=matrices,
+        components=[matrix_block],
+        locale="fi",
+    )
+
+    assert payload.filename == "execution_export_exe_0123456789abcdef.csv"
+    # Repo should NOT have been queried because components was provided
+    assert repo.get_call_count("get_all_prompt_blocks") == 0
+

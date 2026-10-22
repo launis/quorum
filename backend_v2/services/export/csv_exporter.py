@@ -70,7 +70,7 @@ class CsvExporter:
             ExportPayloadDTO containing CSV bytes and filename.
 
         Raises:
-            AppException: If execution is not in PASSED state (400) or has no scoreable atoms (400).
+            AppException: If execution is not in PASSED state or has no scoreable atoms (VALIDATION_FAILED).
         """
         # Phase 3, Step 2: Enforce PASSED state validation
         if execution.status != ExecutionStatus.PASSED:
@@ -94,10 +94,9 @@ class CsvExporter:
             )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        eval_matrices: list[MatrixScorecardRowDTO] = []
+        effective_matrices: list[MatrixScorecardRowDTO] = []
         if matrices is not None:
-            eval_matrices = matrices
-        effective_matrices = eval_matrices
+            effective_matrices = matrices
         if all_matrices is not None:
             effective_matrices = all_matrices
 
@@ -108,8 +107,6 @@ class CsvExporter:
         matrix_title_lookup: dict[str, str] = {}
         for m in effective_matrices:
             title = m.label_i18n.resolve(target_locale=locale)
-            if not title:
-                title = m.name
             matrix_title_lookup[m.block_id] = title
 
         blocks_by_id: dict[str, AnyPromptBlock] = {}
