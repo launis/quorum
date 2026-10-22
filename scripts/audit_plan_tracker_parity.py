@@ -16,6 +16,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from scripts._ast_boundary_utils import extract_target_files
+
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
@@ -220,47 +222,25 @@ def parse_plan_document(content: str, plan_path: Path) -> PlanDocumentAST:
             for m in re.findall(r"<knowledge_item>@?\[?([^\]>]+)\]?</knowledge_item>", rules_block.group(1))
         ]
 
-    # 3. Target Files (Tolerates backticks, headers, bullets, and either @[path] [ACTION] or [ACTION] @[path])
-    target_files_dict: dict[str, tuple[str, str | None]] = {}
-
-    pattern_act_first = re.compile(
-        r"`?\[(MODIFY|NEW|DELETE)\]`?[:\s]*`?@?\[?`?([a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9]+)(?:#([^\]`]+))?`?\]?`?",
-        re.IGNORECASE,
-    )
-    for m in pattern_act_first.finditer(content):
-        raw_f = m.group(2)
-        if raw_f and not raw_f.startswith("http"):
-            norm = _normalize_posix(raw_f)
-            bound = f"#{m.group(3)}" if m.group(3) else None
-            target_files_dict[norm] = (m.group(1).upper(), bound)
-
-    pattern_at_first = re.compile(
-        r"`?@?\[?`?([a-zA-Z0-9_./\\-]+\.[a-zA-Z0-9]+)(?:#([^\]`]+))?`?\]?`?\s*`?\[(MODIFY|NEW|DELETE)\]`?",
-        re.IGNORECASE,
-    )
-    for m in pattern_at_first.finditer(content):
-        raw_f = m.group(1)
-        if raw_f and not raw_f.startswith("http"):
-            norm = _normalize_posix(raw_f)
-            bound = f"#{m.group(2)}" if m.group(2) else None
-            target_files_dict[norm] = (m.group(3).upper(), bound)
-
+    # 3. Target Files (using SSOT extract_target_files from _ast_boundary_utils)
+    extracted_targets = extract_target_files(content)
     targets: list[PlanTargetFileDTO] = []
-    for fpath, (action, bound) in sorted(target_files_dict.items()):
-        is_test = _is_test_path(fpath)
+    for t in extracted_targets:
+        is_test = _is_test_path(t.file_path)
         is_prod = not is_test
-        is_backend = _is_backend_path(fpath)
-        is_frontend = _is_frontend_path(fpath)
+        is_backend = _is_backend_path(t.file_path)
+        is_frontend = _is_frontend_path(t.file_path)
         targets.append(
             PlanTargetFileDTO(
-                file_path=fpath,
-                action=action,
+                file_path=t.file_path,
+                action=t.action,
                 is_production=is_prod,
                 is_backend=is_backend,
                 is_frontend=is_frontend,
-                line_bound=bound,
+                line_bound=t.line_bound,
             )
         )
+    targets.sort(key=lambda x: x.file_path)
 
     # 4. Steps & Actions
     steps: list[PlanStepDTO] = []

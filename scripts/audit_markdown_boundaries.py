@@ -15,15 +15,17 @@ import sys
 from enum import StrEnum
 from pathlib import Path
 
-# Add scripts directory to sys.path if not present
-scripts_dir = Path(__file__).resolve().parent
-if str(scripts_dir) not in sys.path:
-    sys.path.insert(0, str(scripts_dir))
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
 
 from typing import Annotated
 
-from _ast_guardrails import scan_source_code_for_guardrails
 from pydantic import BaseModel, ConfigDict, Field
+
+from scripts._ast_boundary_utils import get_ast_definition_bounds
+from scripts._ast_guardrails import scan_source_code_for_guardrails
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 if isinstance(sys.stdout, io.TextIOWrapper):
@@ -248,8 +250,7 @@ class MarkdownAuditor:
     ) -> None:
         """Verify that line ranges match a class or function definition exactly without reflection."""
         try:
-            source = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=file_path.as_posix())
+            bounds = get_ast_definition_bounds(file_path)
         except SyntaxError:
             self._add_finding(
                 line_number=md_line_num,
@@ -271,19 +272,7 @@ class MarkdownAuditor:
             )
             return
 
-        valid_bounds: list[tuple[int, int]] = []
-        for node in ast.walk(tree):
-            match node:
-                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef():
-                    node_start = (
-                        min((d.lineno for d in node.decorator_list), default=node.lineno)
-                        if node.decorator_list
-                        else node.lineno
-                    )
-                    node_end = node.end_lineno if node.end_lineno is not None else node.lineno
-                    valid_bounds.append((node_start, node_end))
-                case _:
-                    pass
+        valid_bounds = [(b.start_line, b.end_line) for b in bounds]
 
         if (start_line, end_line) not in valid_bounds:
             self._add_finding(
@@ -486,7 +475,7 @@ class MarkdownAuditor:
 
     def check_table_protocol_parity(self) -> None:
         """Verify that all target files in 5-Column Directives Table have corresponding <action> tags in <execution_protocol>."""
-        exec_match = re.search(r"<execution_protocol>([\s\S]*?)</execution_protocol>", self.content)
+        exec_match = re.search(r"<execution_protocol(?:\s+[^>]*)?>([\s\S]*?)</execution_protocol>", self.content)
         if not exec_match:
             return
 
