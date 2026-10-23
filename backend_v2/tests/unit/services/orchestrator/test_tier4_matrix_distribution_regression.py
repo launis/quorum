@@ -36,6 +36,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, ReportMatrixColumn
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.matrix_parser import MatrixDomainParser
@@ -135,13 +136,12 @@ def test_matrix_domain_parser_formats_float_level_stats_as_clean_integers() -> N
         },
     }
 
-    class MockStepResult:
-        def __init__(self, step_id: str, block_id: str, payload: dict) -> None:
-            self.step_id = step_id
-            self.block_id = block_id
-            self.payload = payload
-
-    step_res = MockStepResult(step_id="step_eval", block_id=pb_id, payload=payload)
+    step_res = StepOutputDTO.model_construct(
+        step_id="step_eval",
+        block_id=pb_id,
+        data_type="matrix",
+        payload=payload,
+    )
 
     parsed = MatrixDomainParser.parse_matrices(
         results=[step_res],
@@ -446,15 +446,10 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
         }
     )
 
-    class MockStepResult:
-        def __init__(self, step_id: str, block_id: str, payload: dict) -> None:
-            self.step_id = step_id
-            self.block_id = block_id
-            self.payload = payload
-
-    step_res = MockStepResult(
+    step_res = StepOutputDTO.model_construct(
         step_id="step_eval",
         block_id=pb_id,
+        data_type="matrix",
         payload={
             "raw_score": 1.0,
             "level_breakdown": {"invalid_level_str": {"hits": 1, "total": 1, "dlqs": 0}},

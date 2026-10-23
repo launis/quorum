@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+from backend_v2.services.localization import LocalizationService
 
 __all__ = [
     "clean_hallucinated_numbers",
@@ -38,11 +39,10 @@ def format_level_distribution(lvl_data: LevelStatsDTO, locale: str) -> str:
     k_clean = lvl_data.inv_clean
     n_inv = lvl_data.inv_total
 
-    is_en = locale.startswith("en")
-    skills_word = "skills" if is_en else "taitoa"
-    purity_word = "purity" if is_en else "puhtaus"
-    defect_singular = "defect" if is_en else "virhe"
-    defect_plural = "defects" if is_en else "virhettä"
+    skills_word = LocalizationService.translate("matrix_dist_skills", lang=locale)
+    purity_word = LocalizationService.translate("matrix_dist_purity", lang=locale)
+    defect_singular = LocalizationService.translate("matrix_dist_defect", lang=locale)
+    defect_plural = LocalizationService.translate("matrix_dist_defects", lang=locale)
 
     # Rule 1: Pure Capability Level (N_pos > 0 and N_inv == 0)
     if n_pos > 0 and n_inv == 0:
@@ -153,7 +153,7 @@ def resolve_row_explanation(
     profile: OutputProfile,
     row_explanations_cache: dict[str, str],
     has_synthesis_cache: bool,
-    execution: Any = None,
+    execution: ExecutionRecord | None = None,
 ) -> str:
     """Resolves and sanitizes the synthesized row explanation for a matrix block.
 
@@ -162,7 +162,7 @@ def resolve_row_explanation(
         profile: Active OutputProfile governing row explanation requirements.
         row_explanations_cache: Mapping of block ID to synthesized row explanation text.
         has_synthesis_cache: Whether synthesis cache is expected to be present.
-        execution: Optional execution record for checking data starvation state.
+        execution: Optional ExecutionRecord instance for checking data starvation state.
 
     Returns:
         Sanitized row explanation string with hallucinated numbers removed.
@@ -180,6 +180,7 @@ def resolve_row_explanation(
         if current_cache and current_cache.data_starvation is not None:
             is_data_starved = True
 
+    final_explanation = ""
     if synthesis_expected and not is_data_starved:
         if block_id not in row_explanations_cache:
             msg = (
@@ -192,8 +193,7 @@ def resolve_row_explanation(
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         final_explanation = row_explanations_cache[block_id]
-    final_explanation = ""
-    if block_id in row_explanations_cache:
+    elif block_id in row_explanations_cache:
         final_explanation = row_explanations_cache[block_id]
 
     return clean_hallucinated_numbers(final_explanation)

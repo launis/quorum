@@ -151,5 +151,10 @@
   "export_causal_level_name": "Proposition",
   "metadata_date": "Date",
   "metadata_cost": "Cost",
-  "metadata_tokens": "Tokens"
+  "metadata_tokens": "Tokens",
+  "matrix_dist_skills": "skills",
+  "matrix_dist_purity": "purity",
+  "matrix_dist_defect": "defect",
+  "matrix_dist_defects": "defects",
+  "matrix_fallback_criteria": "Criteria"
 }

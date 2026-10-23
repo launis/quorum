@@ -29,6 +29,7 @@ __all__ = [
     "EvaluationCategory",
     "EvaluationMandate",
     "EvaluationRunCount",
+    "EvidenceType",
     "ExecutionProfile",
     "ExecutionStatus",
     "FidelityLevel",
@@ -223,6 +224,14 @@ class SystemConfigID(StrEnum):
     """Hardcoded Opaque Stripe IDs for global System Configurations."""
 
     MCP_GATEWAYS = "sys_8172bda70c8641c5"
+
+
+class EvidenceType(StrEnum):
+    """Categorizes the type of evidence discovered during TDA extraction."""
+
+    EXPLICIT_QUOTE = "EXPLICIT_QUOTE"
+    IMPLIED_INTENT = "IMPLIED_INTENT"
+    NO_EVIDENCE = "NO_EVIDENCE"
 
 
 class AlignmentVerdict(StrEnum):

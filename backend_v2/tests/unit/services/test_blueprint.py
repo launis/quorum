@@ -3305,6 +3305,8 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     from backend_v2.models.domain.matrix import MatrixScale
     from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.dtos.step_output import StepOutputDTO
+    from backend_v2.models.dtos.trace import AtomQuoteItemDTO, TraceMatrixPayloadDTO
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
     from backend_v2.services.matrix_parser import MatrixDomainParser
 
@@ -3331,21 +3333,17 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
         target_block_order=[],
     )
 
-    class FoldedStepOutput(BaseModel):
-        step_id: str
-        block_id: str
-        payload: Any
-
     # 1. Payload with atom_quotes=None
-    step_output_none = FoldedStepOutput(
+    step_output_none = StepOutputDTO(
         step_id="stp_0000000000000001",
         block_id=pb_id,
-        payload={
-            "raw_score": 4.5,
-            "normalized_score": 90.0,
-            "justification": "Score justification",
-            "atom_quotes": None,
-        },
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(
+            raw_score=4.5,
+            normalized_score=90.0,
+            justification="Score justification",
+            atom_quotes=None,
+        ),
     )
 
     res = MatrixDomainParser.parse_matrices(
@@ -3367,15 +3365,16 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     assert all_parsed[row_key].score == 4.5
 
     # 2. Payload with atom_quotes as a populated list
-    step_output_list = FoldedStepOutput(
+    step_output_list = StepOutputDTO(
         step_id="stp_0000000000000001",
         block_id=pb_id,
-        payload={
-            "raw_score": 4.5,
-            "normalized_score": 90.0,
-            "justification": "Score justification",
-            "atom_quotes": [{"level": 1.0, "quote": "Evidence quote"}],
-        },
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(
+            raw_score=4.5,
+            normalized_score=90.0,
+            justification="Score justification",
+            atom_quotes=[AtomQuoteItemDTO(level=1.0, quote="Evidence quote")],
+        ),
     )
 
     res2 = MatrixDomainParser.parse_matrices(

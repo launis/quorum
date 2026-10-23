@@ -84,18 +84,25 @@
   - **Pillar Documentation Sync**: Synchronize Pillar 4 & Pillar 6 architectural documentation to reflect the modular `backend_v2/services/matrix_parser/` stage pipeline.
 
 #### Epoch 2: 12-Item Technical Debt Inventory (To Resolve During Tier 2 Hardening ONLY After Epoch 1 Cutover Completes)
-1. **Item 1 (`Any` Annotations & Permissive Signatures)**:
-    - Replace `results: list[Any]` and `execution: Any = None` in `@[backend_v2/services/matrix_parser/__init__.py#L72-L148]`, `@[backend_v2/services/matrix_parser/distribution_formatter.py#L151-L199]`, and `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L194-L311]` with strictly typed `Sequence[StepOutputDTO]` (or a structural `typing.Protocol` for folded step output envelopes) and `ExecutionRecord | None = None`.
+1. - [x] **Item 1 (`Any` Annotations & Permissive Signatures) [COMPLETED]**:
+    - Replace `results: list[Any]` and `execution: Any = None` in `@[backend_v2/services/matrix_parser/__init__.py#L72-L148]`, `@[backend_v2/services/matrix_parser/distribution_formatter.py#L151-L199]`, and `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L194-L311]` with strictly typed `Sequence[StepOutputDTO]` and `ExecutionRecord | None = None`.
     - Replace `clustered_row_sources: list[Any] = []` with `list[MCPAuditTrace]`.
-    - Synchronize 1-hop caller `BlueprintTransformer.build_report_dto` (`@[backend_v2/services/blueprint.py#L126-L669]`) in the same atomic commit if parameter types or unused legacy parameters (`workflow_ext_values`, `row_curated_quotes_cache`, `rejected_evq_ids`, `mcp_audit_map`, `source_identity_manifest`) are tightened.
-2. **Item 4 (Structured Exception Logging Parity)**:
-    - Add `exc_info=True` to `logger.error` in `unpack_matrix_payload` and `hydrate_step_scorecard_atoms` inside `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L32-L55]` and `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L194-L311]` (originally in `[DELETE] @[backend_v2/services/matrix_domain_parser.py]`), and audit all OpenTelemetry / Logfire `set_attribute` calls to ensure zero raw user prompt or PII serialization.
-3. **Item 6 (Modern Python 3.14 Pattern Matching & Enum Typing)**:
-    - Convert inline `Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"]` and its `if/elif` chain in `@[backend_v2/services/matrix_parser/row_builder_stage.py#L156-L248]` (originally in `[DELETE] @[backend_v2/services/matrix_domain_parser.py]`) to a centralized `StrEnum` in `backend_v2/models/enums.py` or structural `match/case` validation.
-4. **Item 8 (Dead Assignment Cleanup & Docstring Completeness)**:
-    - Remove the redundant dead assignment `final_explanation = row_explanations_cache[block_id]` before `final_explanation = ""` in `resolve_row_explanation` inside `@[backend_v2/services/matrix_parser/distribution_formatter.py#L151-L199]`.
-5. **Item 9 (Backend Localization SSOT)**:
-    - Route hardcoded bilingual vocabulary in `format_level_distribution` (`"skills"` / `"taitoa"`, `"purity"` / `"puhtaus"`, `"defect"` / `"virhe"`, `"defects"` / `"virhettä"`) and the `"Kriteeri"` fallback in `hydrate_step_scorecard_atoms` through `LocalizationService.translate` while keeping all existing regression assertions green.
+    - Synchronize 1-hop caller `BlueprintTransformer.build_report_dto` (`@[backend_v2/services/blueprint.py#L126-L669]`) with strictly typed parameter validation. Verified 100% clean AST & Dict Eradication gates.
+2. - [x] **Item 4 (Structured Exception Logging Parity) [COMPLETED]**:
+    - Added `exc_info=True` to `logger.error` in `unpack_matrix_payload` and `hydrate_step_scorecard_atoms` inside `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py]`. Audited OpenTelemetry / Logfire telemetry attributes to guarantee zero raw user prompt or PII serialization.
+    - Added `test_scale_and_atom_stage_logging_exc_info` in `@[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`. Verified 100% clean AST & Dict Eradication gates.
+3. - [x] **Item 6 (Modern Python 3.14 Pattern Matching & Enum Typing) [COMPLETED]**:
+    - Centralized `EvidenceType(StrEnum)` in `@[backend_v2/models/enums.py]` and re-exported in `@[backend_v2/core/registry.py]`.
+    - Modernized `MatrixScorecardRowDTO.evidence_type` in `@[backend_v2/models/dtos/matrix_scorecard.py]` to `EvidenceType | None`.
+    - Converted inline `Literal` and `if/elif` chain in `build_matrix_scorecard_row` inside `@[backend_v2/services/matrix_parser/row_builder_stage.py]` to modern Python 3.14 structural `match/case` against `EvidenceType`.
+    - Added unit and boundary tests in `@[backend_v2/tests/unit/services/matrix_parser/test_row_builder_stage.py]`.
+4. - [x] **Item 8 (Dead Assignment Cleanup & Docstring Completeness) [COMPLETED]**:
+    - Removed redundant dead assignment in `resolve_row_explanation` inside `@[backend_v2/services/matrix_parser/distribution_formatter.py]`.
+    - Verified complete docstrings and added ISTQB boundary test `test_resolve_row_explanation_not_required_with_cached_entry_returns_cleaned` in `@[backend_v2/tests/unit/services/matrix_parser/test_distribution_formatter.py]`.
+5. - [x] **Item 9 (Backend Localization SSOT) [COMPLETED]**:
+    - Centralized bilingual vocabulary in `format_level_distribution` (`"skills"` / `"taitoa"`, `"purity"` / `"puhtaus"`, `"defect"` / `"virhe"`, `"defects"` / `"virhettä"`) inside `@[backend_v2/services/matrix_parser/distribution_formatter.py]` and `"Kriteeri"` / `"Criteria"` fallback in `hydrate_step_scorecard_atoms` inside `@[backend_v2/services/matrix_parser/scale_and_atom_stage.py]` through `LocalizationService.translate`.
+    - Added translation keys `matrix_dist_skills`, `matrix_dist_purity`, `matrix_dist_defect`, `matrix_dist_defects`, `matrix_fallback_criteria` in parity across `@[backend_v2/l10n/en.json]` and `@[backend_v2/l10n/fi.json]`.
+    - Added `test_parse_matrices_eval_atom_fallback_criteria_localization_fi_and_en` in `@[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`. Verified 100% green regression and localization audits.
 6. **Item 10 (ISTQB Negative Partition Expansion & Polyfactory Migration)**:
     - Replace manual `MockDTO` test helpers in `@[backend_v2/tests/unit/services/matrix_parser/test_distribution_formatter.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_row_builder_stage.py]`, and `@[backend_v2/tests/unit/services/matrix_parser/test_matrix_parser_facade.py]` with typed `StepOutputDTO` / `Polyfactory` factories, and add negative/boundary tests covering the remaining missed lines (achieving `>= 95%` coverage across `backend_v2/services/matrix_parser/`).
 

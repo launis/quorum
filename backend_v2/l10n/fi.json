@@ -151,5 +151,10 @@
   "export_causal_level_name": "Propositio",
   "metadata_date": "Päivämäärä",
   "metadata_cost": "Kustannukset",
-  "metadata_tokens": "Tokenit"
+  "metadata_tokens": "Tokenit",
+  "matrix_dist_skills": "taitoa",
+  "matrix_dist_purity": "puhtaus",
+  "matrix_dist_defect": "virhe",
+  "matrix_dist_defects": "virhettä",
+  "matrix_fallback_criteria": "Kriteeri"
 }

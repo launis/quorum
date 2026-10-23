@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Sequence
 
 from fastapi import status
 from pydantic import ValidationError
@@ -19,8 +19,10 @@ from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.matrix_parser import MatrixAtomHydrationResultDTO, MatrixScaleProjectionDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, LaxExecutionStatus, VisualIntent
+from backend_v2.services.localization import LocalizationService
 from backend_v2.utils.math_utils import scale_to_custom_range
 
 __all__ = ["compute_scale_and_score_projection", "hydrate_step_scorecard_atoms", "unpack_matrix_payload"]
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 # Phase 2, Step 1: Relocate matrix payload unpacking, scale projection, and atom hydration stages
-def unpack_matrix_payload(block_data: Any, block_id: str) -> TraceMatrixPayloadDTO:
+def unpack_matrix_payload(block_data: StepPayloadValue, block_id: str) -> TraceMatrixPayloadDTO:
     """Hydrates a TraceMatrixPayloadDTO from raw or lightweight matrix step output.
 
     Args:
@@ -50,7 +52,7 @@ def unpack_matrix_payload(block_data: Any, block_id: str) -> TraceMatrixPayloadD
         return TraceMatrixPayloadDTO.model_validate(block_data)
     except (ValidationError, TypeError, ValueError) as e:
         msg = f"Strict Fail-Fast: Invalid matrix payload format for '{block_id}': {e}"
-        logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         http_500 = status.HTTP_500_INTERNAL_SERVER_ERROR
         raise AppException(msg, http_500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}) from e
 
@@ -192,7 +194,7 @@ def compute_scale_and_score_projection(
 
 
 def hydrate_step_scorecard_atoms(
-    results: list[Any],
+    results: Sequence[StepOutputDTO],
     step_id: str,
     pb_meta: MatrixPromptBlock,
     level_names: dict[str, str],
@@ -203,7 +205,7 @@ def hydrate_step_scorecard_atoms(
     """Hydrates TDA assertion evaluations into ScorecardAtomDTOs for a matrix row.
 
     Args:
-        results: Folded state trace output items.
+        results: Folded state trace output items (Sequence of StepOutputDTO).
         step_id: Execution step identifier.
         pb_meta: MatrixPromptBlock definition containing scales, claims, and TDA assertions.
         level_names: Mapping of normalized scale score keys to localized scale labels.
@@ -233,7 +235,9 @@ def hydrate_step_scorecard_atoms(
                             step_evals_map[atom_dto.tda_id] = atom_dto
                         except (ValidationError, TypeError, ValueError) as val_err:
                             msg = f"Invalid atom result payload in step {step_id}: {val_err}"
-                            logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            logger.error(
+                                "[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True
+                            )
                             raise AppException(
                                 msg, http_500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                             ) from val_err
@@ -259,7 +263,7 @@ def hydrate_step_scorecard_atoms(
                         val_data = None
                         if atom_id in step_evals_map:
                             val_data = step_evals_map[atom_id]
-                        display_label = "Kriteeri"
+                        display_label = LocalizationService.translate("matrix_fallback_criteria", lang=locale)
                         if claim_label.strip():
                             display_label = claim_label.strip()
                         elif tda.concept_description and tda.concept_description.strip():

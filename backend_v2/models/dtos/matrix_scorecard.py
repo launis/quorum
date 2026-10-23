@@ -13,7 +13,7 @@ from pydantic import ConfigDict, Field, model_validator
 from backend_v2.models.core_base import I18nText, V2CoreBase
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, VisualIntent
+from backend_v2.models.enums import EvidenceType, ExecutionStatus, LaxExecutionStatus, VisualIntent
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -256,7 +256,7 @@ class MatrixScorecardRowDTO(V2CoreBase):
     total_atoms: Annotated[int | None, Field(default=None, description="Total atoms available to evaluate.")]
     row_explanation: Annotated[str, Field(description="The one-sentence justification.")]
     evidence_type: Annotated[
-        Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None,
+        EvidenceType | None,
         Field(default=None, description="The EvidenceType extracted from AtomResponse."),
     ]
 

@@ -10,7 +10,7 @@ import logging
 import types
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping, Sequence
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import Annotated, Any, cast
 
 from fastapi import status
@@ -23,7 +23,7 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, SystemLocale
+from backend_v2.models.enums import BlockDataType, EvidenceType, ExecutionStatus, PromptBlockCategory, SystemLocale
 from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
@@ -310,14 +310,6 @@ def _coerce_bool(v: Any) -> Any:
 
 
 CoercedBool = Annotated[bool, BeforeValidator(_coerce_bool)]
-
-
-class EvidenceType(StrEnum):
-    """Categorizes the type of evidence discovered during TDA extraction."""
-
-    EXPLICIT_QUOTE = "EXPLICIT_QUOTE"
-    IMPLIED_INTENT = "IMPLIED_INTENT"
-    NO_EVIDENCE = "NO_EVIDENCE"
 
 
 class StrippedBaseTDAExtraction(BaseModel):

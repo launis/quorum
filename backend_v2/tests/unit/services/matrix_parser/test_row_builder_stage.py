@@ -14,6 +14,7 @@ from backend_v2.models.dtos.matrix_parser import (
     MatrixScaleProjectionDTO,
 )
 from backend_v2.models.dtos.trace import TraceMatrixExtensionsDTO, TraceMatrixPayloadDTO
+from backend_v2.models.enums import EvidenceType
 from backend_v2.services.matrix_parser import MatrixDomainParser
 from backend_v2.services.matrix_parser.row_builder_stage import (
     build_matrix_scorecard_row,
@@ -397,13 +398,13 @@ def test_build_matrix_scorecard_row_google_citation_and_evidence_types() -> None
     atom_hydration = MatrixAtomHydrationResultDTO()
     ctx_res = MatrixContextTargetResultDTO(context_target="doc1", context_target_label=None)
 
-    for ev_type in ("EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"):
+    for ev_type in (EvidenceType.EXPLICIT_QUOTE, EvidenceType.IMPLIED_INTENT, EvidenceType.NO_EVIDENCE):
         payload = TraceMatrixPayloadDTO(
             raw_score=4.5,
             normalized_score=90.0,
             extensions=TraceMatrixExtensionsDTO(
                 google_citation="https://scholar.google.com/test",
-                evidence_type=ev_type,
+                evidence_type=ev_type.value,
             ),
         )
         row = build_matrix_scorecard_row(
@@ -420,4 +421,66 @@ def test_build_matrix_scorecard_row_google_citation_and_evidence_types() -> None
         )
         assert row.cited_source_url == "https://scholar.google.com/test"
         assert row.evidence_type == ev_type
+        assert isinstance(row.evidence_type, EvidenceType)
+
+
+def test_build_matrix_scorecard_row_evidence_type_unrecognized_or_none() -> None:
+    """ISTQB Negative & Boundary: Unrecognized string or None evidence_type resolves to None."""
+    pb = get_dummy_pb().model_copy(update={"theory_grounding": None})
+    scale_proj = MatrixScaleProjectionDTO(
+        score_float=4.5,
+        raw_score=4.5,
+        math_min=1.0,
+        math_max=5.0,
+        display_scale_min=1.0,
+        display_scale_max=5.0,
+        norm_score=90.0,
+        score_display_label="4.5 / 5.0",
+        true_atoms=9,
+        total_atoms=10,
+    )
+    atom_hydration = MatrixAtomHydrationResultDTO()
+    ctx_res = MatrixContextTargetResultDTO(context_target="doc1", context_target_label=None)
+
+    for invalid_ev in ("UNRECOGNIZED_EVIDENCE", "", None):
+        payload = TraceMatrixPayloadDTO(
+            raw_score=4.5,
+            normalized_score=90.0,
+            extensions=TraceMatrixExtensionsDTO(
+                evidence_type=invalid_ev,
+            ),
+        )
+        row = build_matrix_scorecard_row(
+            block_id="blk_1",
+            axis_name="Axis 1",
+            axis_description="Desc 1",
+            pb_meta=pb,
+            matrix_payload=payload,
+            scale_proj=scale_proj,
+            axis_level_breakdown=None,
+            cleaned_explanation="Explanation.",
+            atom_hydration=atom_hydration,
+            context_target_res=ctx_res,
+        )
+        assert row.evidence_type is None
+
+    # Test extensions is None
+    payload_no_ext = TraceMatrixPayloadDTO(
+        raw_score=4.5,
+        normalized_score=90.0,
+        extensions=None,
+    )
+    row_no_ext = build_matrix_scorecard_row(
+        block_id="blk_1",
+        axis_name="Axis 1",
+        axis_description="Desc 1",
+        pb_meta=pb,
+        matrix_payload=payload_no_ext,
+        scale_proj=scale_proj,
+        axis_level_breakdown=None,
+        cleaned_explanation="Explanation.",
+        atom_hydration=atom_hydration,
+        context_target_res=ctx_res,
+    )
+    assert row_no_ext.evidence_type is None
 

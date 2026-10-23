@@ -417,8 +417,8 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planne
         - **`### Post-Implementation Gates`**:
           - `[ ] **[NOK] Golden Master & Test Restoration Audit**`: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
           - `[ ] **[NOK] Proxy Sunset & Consumer Migration**`: Codebase-wide search/replace of old import paths & delete deprecated proxies.
-          - `[ ] **[NOK] Tier 2 Hardening (Backend)**`: Run `/tier2-hardening-backend` in chat OR unattended via `uv run python scripts/auto_hardening_runner.py --tracker @[docs\epic\EPIC_XXX_tracker.md] --gate backend`. Indent each created/modified production backend file. NEVER specify whole directories.
-          - `[ ] **[NOK] Tier 2 Hardening (Frontend)**`: Run `/tier2-hardening-frontend` in chat OR unattended via `uv run python scripts/auto_hardening_runner.py --tracker @[docs\epic\EPIC_XXX_tracker.md] --gate frontend`. Indent each created/modified production Flutter file. NEVER specify whole directories.
+          - `[ ] **[NOK] Tier 2 Hardening (Backend)**`: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_XXX_tracker.md] --gate backend`. Indent each created/modified production backend file. NEVER specify whole directories.
+          - `[ ] **[NOK] Tier 2 Hardening (Frontend)**`: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_XXX_tracker.md] --gate frontend`. Indent each created/modified production Flutter file. NEVER specify whole directories.
           - `[ ] **[NOK] Pre-Delete Audit**`: Verify no orphaned dependencies remain.
           - `[ ] **[NOK] Semantic Coverage & Zero-Loss Audit**`: Mathematically verify line coverage >90% for surviving business logic.
         - **`### Documentation & Knowledge Item Update`**:

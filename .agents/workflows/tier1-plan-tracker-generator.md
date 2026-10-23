@@ -66,8 +66,8 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
           4. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
         - **`### Post-Implementation Gates`**:
           - `- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`/tier2-hardening-backend\` in chat OR unattended via \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate backend\`. Indent each production backend file (strictly excluding /tests/, test_, and non-code assets) as child checkboxes.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`/tier2-hardening-frontend\` in chat OR unattended via \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate frontend\`. Indent each production frontend file (strictly excluding /test/, _test.dart, generated models, and non-code assets) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate backend\`. Indent each production backend file (strictly excluding /tests/, test_, and non-code assets) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate frontend\`. Indent each production frontend file (strictly excluding /test/, _test.dart, generated models, and non-code assets) as child checkboxes.`
           - `- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.`
           - `- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.`
         - **`### Documentation & Knowledge Item Update`**:

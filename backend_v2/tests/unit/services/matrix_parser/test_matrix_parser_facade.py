@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, overload
+from typing import Literal, overload
 
 import pytest
-from pydantic import BaseModel
+from pydantic import JsonValue
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
@@ -17,6 +17,8 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -27,12 +29,14 @@ from backend_v2.services.matrix_parser import MatrixDomainParser
 from scripts._ast_guardrails import GuardrailSeverity, scan_source_code_for_guardrails
 
 
-class MockDTO(BaseModel):
-    """Test helper DTO representing a folded step output item."""
-
-    step_id: str
-    block_id: str
-    payload: Any
+def MockDTO(step_id: str, block_id: str, payload: JsonValue | StepPayloadValue = None) -> StepOutputDTO:
+    """Test helper constructing a StepOutputDTO for matrix tests."""
+    return StepOutputDTO.model_construct(
+        step_id=step_id,
+        block_id=block_id,
+        data_type="matrix",
+        payload=payload,
+    )
 
 
 def get_dummy_profile(
@@ -159,7 +163,12 @@ def test_parse_matrices_empty_results() -> None:
 def test_parse_matrices_skip_non_matrix() -> None:
     """Verify non-matrix PromptBlocks are skipped."""
     profile = get_dummy_profile()
-    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload={"key": "val"})
+    dto = StepOutputDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        data_type="matrix",
+        payload={"key": "val"},
+    )
     pb = get_dummy_pb(category=PromptBlockCategory.AGENT_ROLE)
 
     res = MatrixDomainParser.parse_matrices(
@@ -183,8 +192,13 @@ def test_parse_matrices_success() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
 
-    payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
-    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+    payload = TraceMatrixPayloadDTO(raw_score=1.0, normalized_score=100.0, evaluated_atoms={})
+    dto = StepOutputDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        data_type="matrix",
+        payload=payload,
+    )
 
     res = MatrixDomainParser.parse_matrices(
         results=[dto],
@@ -222,8 +236,13 @@ def test_parse_matrices_indicator_partitions(
     pb = get_dummy_pb()
     pb = pb.model_copy(update={"is_evaluative": is_evaluative, "allow_contextual_override": allow_override})
 
-    payload = {"raw_score": 0.8, "normalized_score": 80.0, "evaluated_atoms": {}}
-    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+    payload = TraceMatrixPayloadDTO(raw_score=0.8, normalized_score=80.0, evaluated_atoms={})
+    dto = StepOutputDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        data_type="matrix",
+        payload=payload,
+    )
 
     res = MatrixDomainParser.parse_matrices(
         results=[dto],
@@ -267,15 +286,17 @@ def test_matrix_parser_facade_full_parse_matrices_parity() -> None:
         }
     )
 
-    dto_eval = MockDTO(
+    dto_eval = StepOutputDTO(
         step_id="step1",
         block_id=eval_pb.id,
-        payload={"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}},
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=1.0, normalized_score=100.0, evaluated_atoms={}),
     )
-    dto_info = MockDTO(
+    dto_info = StepOutputDTO(
         step_id="step1",
         block_id=info_pb.id,
-        payload={"raw_score": 0.5, "normalized_score": 50.0, "evaluated_atoms": {}},
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=0.5, normalized_score=50.0, evaluated_atoms={}),
     )
 
     res = MatrixDomainParser.parse_matrices(

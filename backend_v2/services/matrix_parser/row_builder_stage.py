@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Literal
 
 from fastapi import status
 
@@ -18,6 +17,7 @@ from backend_v2.models.dtos.matrix_parser import (
 )
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.trace import TraceMatrixExtensionsDTO, TraceMatrixPayloadDTO
+from backend_v2.models.enums import EvidenceType
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.localization import LocalizationService
 
@@ -197,13 +197,16 @@ def build_matrix_scorecard_row(
     row_semantic_reasoning: str | None = matrix_payload.justification
     if ext.semantic_reasoning:
         row_semantic_reasoning = ext.semantic_reasoning
-    validated_evidence_type: Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None = None
-    if ext.evidence_type == "EXPLICIT_QUOTE":
-        validated_evidence_type = "EXPLICIT_QUOTE"
-    elif ext.evidence_type == "IMPLIED_INTENT":
-        validated_evidence_type = "IMPLIED_INTENT"
-    elif ext.evidence_type == "NO_EVIDENCE":
-        validated_evidence_type = "NO_EVIDENCE"
+    validated_evidence_type: EvidenceType | None = None
+    match ext.evidence_type:
+        case EvidenceType.EXPLICIT_QUOTE:
+            validated_evidence_type = EvidenceType.EXPLICIT_QUOTE
+        case EvidenceType.IMPLIED_INTENT:
+            validated_evidence_type = EvidenceType.IMPLIED_INTENT
+        case EvidenceType.NO_EVIDENCE:
+            validated_evidence_type = EvidenceType.NO_EVIDENCE
+        case _:
+            validated_evidence_type = None
     return MatrixScorecardRowDTO(
         block_id=block_id,
         name=axis_name,

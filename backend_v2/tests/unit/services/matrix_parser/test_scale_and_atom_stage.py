@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+import logging
+from collections.abc import Sequence
 
 import pytest
 from pydantic import JsonValue
@@ -13,6 +14,7 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -20,6 +22,7 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
 )
 from backend_v2.services.matrix_parser import MatrixDomainParser
+from backend_v2.services.matrix_parser.scale_and_atom_stage import unpack_matrix_payload
 from backend_v2.tests.unit.services.matrix_parser.test_matrix_parser_facade import (
     MockDTO,
     get_dummy_pb,
@@ -30,15 +33,16 @@ _BLK_ID = "blk_1234567890abcdef1234567890abcdef"
 
 
 def _parse_single_block(
-    results: list[Any],
+    results: Sequence[StepOutputDTO],
     pb: AnyPromptBlock,
     profile: OutputProfile | None = None,
     row_explanations_cache: dict[str, str] | None = None,
+    locale: str = "en",
 ) -> ParsedMatricesResultDTO:
     """Invoke MatrixDomainParser.parse_matrices for a single matrix block under test."""
     return MatrixDomainParser.parse_matrices(
         results=results,
-        locale="en",
+        locale=locale,
         blocks_by_id={_BLK_ID: pb},
         workflow_steps={},
         profile=profile if profile is not None else get_dummy_profile(),
@@ -336,3 +340,40 @@ def test_parse_matrices_eval_atom_concept_description_fallback() -> None:
     atom = res.all_parsed_matrices[f"step1_{_BLK_ID}"].evaluated_atoms[0]
     assert atom.chart_display_label == "test concept description"
     assert atom.status == ExecutionStatus.FAILED
+
+
+def test_parse_matrices_eval_atom_fallback_criteria_localization_fi_and_en() -> None:
+    """ISTQB Boundary: When both claim label and concept_description are empty, fallback criteria is localized."""
+    pb = get_dummy_pb()
+    tda_empty = pb.scales[0].claims[0].tda_assertions[0].model_copy(update={"concept_description": None})
+    claim_empty = pb.scales[0].claims[0].model_copy(update={"label": None, "tda_assertions": [tda_empty]})
+    scale_empty = pb.scales[0].model_copy(update={"claims": [claim_empty]})
+    pb_empty = pb.model_copy(update={"scales": [scale_empty, pb.scales[1]]})
+    payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
+    dto = MockDTO(step_id="step1", block_id=_BLK_ID, payload=payload)
+
+    res_fi = _parse_single_block([dto], pb_empty, locale="fi")
+    atom_fi = res_fi.all_parsed_matrices[f"step1_{_BLK_ID}"].evaluated_atoms[0]
+    assert atom_fi.chart_display_label == "Kriteeri"
+
+    res_en = _parse_single_block([dto], pb_empty, locale="en")
+    atom_en = res_en.all_parsed_matrices[f"step1_{_BLK_ID}"].evaluated_atoms[0]
+    assert atom_en.chart_display_label == "Criteria"
+
+
+def test_scale_and_atom_stage_logging_exc_info(caplog: pytest.LogCaptureFixture) -> None:
+    """ISTQB Error Path: Verifies that unpack_matrix_payload and hydrate_step_scorecard_atoms log with exc_info."""
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(AppException):
+            unpack_matrix_payload(12345, "blk_invalid")
+        assert any(record.exc_info is not None for record in caplog.records)
+
+    caplog.clear()
+    pb = get_dummy_pb()
+    dto_matrix = MockDTO(step_id="step1", block_id=_BLK_ID, payload={"raw_score": 1.0})
+    dto_evals = MockDTO(step_id="step1", block_id="results", payload=[{"invalid_atom": "missing_required_fields"}])
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(AppException):
+            _parse_single_block([dto_matrix, dto_evals], pb)
+        assert any(record.exc_info is not None for record in caplog.records)
+

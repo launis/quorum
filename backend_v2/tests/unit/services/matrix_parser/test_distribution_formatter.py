@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, overload
+from typing import Literal, overload
 
 import pytest
-from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -28,15 +27,12 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.services.matrix_parser import MatrixDomainParser, format_level_breakdown
-
-
-class MockDTO(BaseModel):
-    """Test helper DTO representing a folded step output item."""
-
-    step_id: str
-    block_id: str
-    payload: Any
+from backend_v2.services.matrix_parser import (
+    MatrixDomainParser,
+    format_level_breakdown,
+    resolve_row_explanation,
+)
+from backend_v2.tests.unit.services.matrix_parser.test_matrix_parser_facade import MockDTO
 
 
 def get_dummy_profile(
@@ -321,3 +317,88 @@ def test_parse_matrices_invalid_level_breakdown_key_fail_fast() -> None:
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "Invalid level key" in str(exc_info.value)
+
+
+def test_resolve_row_explanation_success_cleans_numbers() -> None:
+    """ISTQB Positive: resolve_row_explanation cleans hallucinated numbers from valid cache."""
+    profile = get_dummy_profile(matrix_visible_columns=["label", "row_explanation"])
+    result = resolve_row_explanation(
+        block_id="blk_test",
+        profile=profile,
+        row_explanations_cache={"blk_test": "Performance is exceptional. Score: 4.5."},
+        has_synthesis_cache=True,
+        execution=None,
+    )
+    assert result == "Performance is exceptional."
+
+
+def test_resolve_row_explanation_not_required_returns_empty() -> None:
+    """ISTQB Negative: When row_explanation cache is empty and not required, returns empty string."""
+    profile = get_dummy_profile(matrix_visible_columns=["label", "distribution"])
+    result = resolve_row_explanation(
+        block_id="blk_test",
+        profile=profile,
+        row_explanations_cache={},
+        has_synthesis_cache=False,
+        execution=None,
+    )
+    assert result == ""
+
+
+def test_resolve_row_explanation_missing_cache_fails_fast() -> None:
+    """ISTQB Negative: Missing cache entry when synthesis is expected raises CONFIGURATION_ERROR."""
+    profile = get_dummy_profile(matrix_visible_columns=["label", "row_explanation"])
+    with pytest.raises(AppException) as exc_info:
+        resolve_row_explanation(
+            block_id="blk_test",
+            profile=profile,
+            row_explanations_cache={},
+            has_synthesis_cache=True,
+            execution=None,
+        )
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "missing entry for matrix 'blk_test'" in str(exc_info.value)
+
+
+def test_resolve_row_explanation_data_starvation_bypasses_cache() -> None:
+    """ISTQB Boundary: When data starvation is detected, missing cache does not fail and returns empty string."""
+    profile = get_dummy_profile(matrix_visible_columns=["label", "row_explanation"])
+    starvation_cache = RenderedSynthesisCache(
+        section_syntheses={},
+        row_explanations={},
+        cited_sources=[],
+        xai_highlights=[],
+        user_role=None,
+        user_role_justification=None,
+        extension_metrics=None,
+        data_starvation=DataStarvationEvent(total_atoms=0, reason="No data"),
+    )
+    exec_record = ExecutionRecord(
+        id="exe_1234567890abcdef1234567890abcdef",
+        workflow_id="wf_1234567890abcdef1234567890abcdef",
+        output_profile_id=profile.id,
+        profile_syntheses={profile.id: starvation_cache},
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+    )
+    result = resolve_row_explanation(
+        block_id="blk_test",
+        profile=profile,
+        row_explanations_cache={},
+        has_synthesis_cache=True,
+        execution=exec_record,
+    )
+    assert result == ""
+
+
+def test_resolve_row_explanation_not_required_with_cached_entry_returns_cleaned() -> None:
+    """ISTQB Boundary: When synthesis is not expected but block_id exists in cache, returns cleaned explanation."""
+    profile = get_dummy_profile(matrix_visible_columns=["label", "distribution"])
+    result = resolve_row_explanation(
+        block_id="blk_test",
+        profile=profile,
+        row_explanations_cache={"blk_test": "Precomputed summary. Level: 3."},
+        has_synthesis_cache=False,
+        execution=None,
+    )
+    assert result == "Precomputed summary."

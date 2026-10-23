@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Sequence
 
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.domain.step import ExpectedInput, StepRule
@@ -11,6 +12,7 @@ from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO, ScorecardAtomCollectionDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 from .distribution_formatter import clean_hallucinated_numbers as clean_hallucinated_numbers
 from .distribution_formatter import format_level_breakdown as format_level_breakdown
@@ -71,7 +73,7 @@ class MatrixDomainParser:
 
     @staticmethod
     def parse_matrices(
-        results: list[Any],
+        results: Sequence[StepOutputDTO],
         locale: str,
         blocks_by_id: dict[str, AnyPromptBlock],
         workflow_steps: dict[str, StepRule],
@@ -83,13 +85,13 @@ class MatrixDomainParser:
         rejected_evq_ids: set[str] | None = None,
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
-        execution: Any = None,
+        execution: ExecutionRecord | None = None,
         expected_inputs_map: dict[str, ExpectedInput] | None = None,
     ) -> ParsedMatricesResultDTO:
         """Parses folded results into MatrixScorecardRowDTOs.
 
         Args:
-            results: Folded state trace output.
+            results: Folded state trace output items (Sequence of StepOutputDTO).
             locale: Desired output locale.
             blocks_by_id: Map of PromptBlock IDs to their definitions.
             workflow_steps: Map of step IDs to their StepRule definitions.
@@ -101,7 +103,7 @@ class MatrixDomainParser:
             rejected_evq_ids: Set of IDs for rejected evidence quotes.
             mcp_audit_map: Map of audit trace ID to trace model.
             source_identity_manifest: Optional map of source ID to display names.
-            execution: Execution record instance.
+            execution: Optional ExecutionRecord instance.
             expected_inputs_map: Optional map of step expected input definitions.
 
         Returns:
