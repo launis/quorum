@@ -20,7 +20,7 @@
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md]`
   - [x] Step 1: TECHNICAL DEBT ERADICATION & ARB LOCALIZATION
-  - [ ] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
+  - [x] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
   - [ ] Step 3: SEED VAULT CAUSAL BLUEPRINT CONSOLIDATION
   - [ ] Step 4: BACKEND SERVICE & ROUTER SERVER-SIDE FILTERING
   - [ ] Step 5: FLUTTER CLIENT, CONTROLLER & DUMB PAINTER VIEW
@@ -85,8 +85,8 @@
 | :--- | :--- | :--- | :--- |
 | `REQ-STP-001` | Eradicate pre-flight technical debt `DGR003` in `studio_dashboard_view.dart` by adding localized ARB string `studioViewsMintDraftError` | Step 1 | [x] Complete |
 | `REQ-STP-002` | Eradicate pre-flight technical debt `TD_ISTQB_NEGATIVE` in `test_steps.py` by adding negative test partitions for 404, 403, and 422 HTTP responses | Step 1 | [x] Complete |
-| `REQ-STP-003` | Define SSOT enum `StepFilterScope` (`specialists`, `system_core`, `all`) with full cross-language parity in Python and Dart | Step 2 | [ ] Pending |
-| `REQ-STP-004` | Add bidirectional unit parity test and missing member negative test in `test_enum_parity.py` | Step 2 | [ ] Pending |
+| `REQ-STP-003` | Define SSOT enum `StepFilterScope` (`specialists`, `system_core`, `all`) with full cross-language parity in Python and Dart | Step 2 | [x] Complete |
+| `REQ-STP-004` | Add bidirectional unit parity test and missing member negative test in `test_enum_parity.py` | Step 2 | [x] Complete |
 | `REQ-STP-005` | Harmonize canonical universal Causal Discovery blueprint `sp_c4a5a1d15c00438a` with dynamic input agnosticism in `seed_data.json` | Step 3 | [ ] Pending |
 | `REQ-STP-006` | Prune redundant duplicate blueprints `sp_01b1d7100000ca01` through `sp_06b1d7100000ca06` from Seed Vault and sync local database | Step 3 | [ ] Pending |
 | `REQ-STP-007` | Implement server-side scope filtering in `StudioWorkflowService.list_steps` via exhaustive Python 3.12+ `match scope:` | Step 4 | [ ] Pending |

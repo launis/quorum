@@ -474,3 +474,17 @@ enum CausalRootCauseType {
   @JsonValue('precondition_mismatch')
   preconditionMismatch,
 }
+
+/// Scope filtering for workflow step blueprints in Admin Studio.
+@JsonEnum()
+enum StepFilterScope {
+  @JsonValue('specialists')
+  specialists('specialists'),
+  @JsonValue('system_core')
+  systemCore('system_core'),
+  @JsonValue('all')
+  all('all');
+
+  const StepFilterScope(this.backendValue);
+  final String backendValue;
+}

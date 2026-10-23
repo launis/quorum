@@ -171,3 +171,16 @@ def test_enum_l10n_keys() -> None:
 def test_engine_type_parity() -> None:
     """Verify EngineType members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "EngineType")
+
+
+def test_step_filter_scope_parity() -> None:
+    """Verify StepFilterScope members match between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "StepFilterScope")
+
+
+def test_enum_parity_missing_member_failure() -> None:
+    """Negative test: assert_enum_parity raises AssertionError when enum members diverge."""
+    fake_dart = "enum StepFilterScope { @JsonValue('specialists') specialists, }"
+    fake_py = "class StepFilterScope(StrEnum):\n    SPECIALISTS = 'specialists'\n    ALL = 'all'\n"
+    with pytest.raises(AssertionError, match="Missing in Dart"):
+        assert_enum_parity(fake_dart, fake_py, "StepFilterScope")

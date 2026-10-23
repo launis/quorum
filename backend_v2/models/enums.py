@@ -68,9 +68,10 @@ __all__ = [
     "LaxRoleClassification",
     "LaxSDUIComponentType",
     "LaxSearchStatus",
-    "LaxStepType",
     "LaxSimulationType",
     "LaxSourcesDisplayMode",
+    "LaxStepFilterScope",
+    "LaxStepType",
     "LaxStrategicDepth",
     "LaxSystemLocale",
     "LaxTargetBlockType",
@@ -99,6 +100,7 @@ __all__ = [
     "SourceSufficiencyThreshold",
     "SourcesDisplayMode",
     "SpecialAliasChoices",
+    "StepFilterScope",
     "StepType",
     "StrategicDepth",
     "StrictnessAnchor",
@@ -1040,3 +1042,14 @@ class ToolCapability(StrEnum):
 
 
 LaxToolCapability = Annotated[ToolCapability, Field(strict=False)]
+
+
+class StepFilterScope(StrEnum):
+    """Scope filtering for workflow step blueprints in Admin Studio."""
+
+    SPECIALISTS = "specialists"
+    SYSTEM_CORE = "system_core"
+    ALL = "all"
+
+
+LaxStepFilterScope = Annotated[StepFilterScope, Field(strict=False)]
