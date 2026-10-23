@@ -60,7 +60,7 @@
 ### Post-Implementation Gates
 
 #### Tier 2 Hardening (Backend)
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`
   - [x] @[backend_v2/models/dtos/matrix_parser.py#L106-L145]
   - [x] @[backend_v2/services/matrix_parser/distribution_formatter.py#L26-L75]
   - [x] @[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L58-L191]
@@ -68,7 +68,7 @@
   - [x] @[backend_v2/services/matrix_parser/__init__.py#L44-L148]
   - [x] [DELETE] @[backend_v2/services/matrix_domain_parser.py]
   - [x] @[backend_v2/services/blueprint.py#L65-L669]
-  - [ ] @[scripts/_ast_guardrails.py#L1865-L1910]
+  - [x] @[scripts/_ast_guardrails.py#L1865-L1910]
 
 #### Tier 2 Hardening (Frontend)
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: N/A — Pure Python Backend Service Decomposition (zero `.dart` files in target scope).
