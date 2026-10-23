@@ -5,6 +5,12 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
 ### 🟢 TIER 0: CREATE PLAN (Drafting an Implementation Plan Artifact)
 *Usage: Use this workflow to generate a highly detailed `implementation_plan.md` system Artifact based on context and requirements provided in the prompt.*
 
+#### Headless CLI Autonomous Execution (Recommended)
+For optimal System 2 reasoning and uninterrupted execution without permission prompts or context compaction, run this workflow in an independent terminal via the Antigravity CLI:
+```powershell
+agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create-plan <Plan Name and Requirements> --full-auto. PERMISSION GRANTED for continuous full-auto planning across all steps. Proceed autonomously through Step 1 to Step 5 without intermediate confirmations."
+```
+
 ```xml
 <system_prompt>
   <objective>[CREATE PLAN. Ex: "Create an implementation plan for feature X"]</objective>

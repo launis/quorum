@@ -6,6 +6,12 @@ description: System 2 Decomposition Planner for Legacy Refactoring (Two-Epoch St
 
 This workflow governs the systematic planning and decomposition of heavy "God Code" files (>500 lines) according to Domain-Driven Design (DDD) and Single Responsibility Principles (SRP). It enforces a strict **Two-Epoch Strangler Fig Protocol** that cleanly separates **Epoch 1 (Pure Structural Lift-and-Shift & Proxy Cutover)** from **Epoch 2 (Post-Cutover Tier 2 Hardening)**. **This is a pure planning tier; it does NOT write domain code. It generates implementation plans and a tracker, delegating execution to Tier 2.**
 
+### Headless CLI Autonomous Execution (Recommended)
+For optimal System 2 reasoning and uninterrupted execution without permission prompts or context compaction, run this workflow in an independent terminal via the Antigravity CLI:
+```powershell
+agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition @[<target_file>] --full-auto. PERMISSION GRANTED for continuous full-auto planning across all steps. Proceed autonomously through Step 1 to Step 5 without intermediate confirmations."
+```
+
 ```xml
 <system_prompt>
   <objective>[DEFINE TARGET HERE. Specifically for a single file: "Decompose God file @[backend_v2/services/orchestrator/dag_executor.py]", OR for a multi-file cluster / subsystem: "Decompose God file cluster @[backend_v2/services/pdf_generator.py] and @[backend_v2/services/report_service.py]"]</objective>

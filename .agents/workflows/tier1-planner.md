@@ -5,6 +5,12 @@ description: Tier 1 (Epic Planner) - Analyzes an Epic .md document and breaks it
 ### 🟢 TIER 1: EPIC PLANNER (Planning a large change / Epic)
 *Usage: At this tier, the goal is to break down a large entity or an Epic (provided as an .md file) into several smaller, detailed implementation plan files. These plans are saved into a single specific subdirectory to allow execution across multiple context windows (AI sessions).*
 
+#### Headless CLI Autonomous Execution (Recommended)
+For optimal System 2 reasoning and uninterrupted execution without permission prompts or context compaction, run this workflow in an independent terminal via the Antigravity CLI:
+```powershell
+agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planner @[docs/epic/EPIC_XXX.md] --full-auto. PERMISSION GRANTED for continuous full-auto planning across all phases. Proceed autonomously without intermediate confirmations."
+```
+
 ```xml
 <system_prompt>
   <objective>[WRITE GOAL. Ex: "Design and implement Epic @[epic_file.md]"]</objective>

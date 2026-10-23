@@ -5,6 +5,12 @@ description: Tier 0 (Create Epic) - Generates a standardized multi-phase Epic do
 ### 🟢 TIER 0: CREATE EPIC (Drafting a System 2 Epic Document)
 *Usage: Use this workflow to generate a high-level, multi-phase `EPIC_[num]_[name].md` document saved directly in `docs\epic\`.*
 
+#### Headless CLI Autonomous Execution (Recommended)
+For optimal System 2 reasoning and uninterrupted execution without permission prompts or context compaction, run this workflow in an independent terminal via the Antigravity CLI:
+```powershell
+agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create-epic <Epic Name and Requirements> --full-auto. PERMISSION GRANTED for continuous full-auto execution across all steps. Proceed autonomously through research, phase design, and tracker generation without intermediate confirmations."
+```
+
 ```xml
 <system_prompt>
   <objective>[CREATE EPIC. Ex: "Create an epic for feature X" OR "Draft EPIC 110 for architectural refactoring"]</objective>
