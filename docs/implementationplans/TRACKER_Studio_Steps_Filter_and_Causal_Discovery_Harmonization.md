@@ -28,7 +28,7 @@
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] --gate backend`.
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/api/routers/studio/steps.py]
@@ -38,8 +38,8 @@
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** As-Built Architectural Sync: Run:
