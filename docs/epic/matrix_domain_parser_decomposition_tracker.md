@@ -67,7 +67,7 @@
   - [x] @[backend_v2/services/matrix_parser/row_builder_stage.py#L35-L75]
   - [x] @[backend_v2/services/matrix_parser/__init__.py#L44-L148]
   - [x] [DELETE] @[backend_v2/services/matrix_domain_parser.py]
-  - [ ] @[backend_v2/services/blueprint.py#L65-L669]
+  - [x] @[backend_v2/services/blueprint.py#L65-L669]
   - [ ] @[scripts/_ast_guardrails.py#L1865-L1910]
 
 #### Tier 2 Hardening (Frontend)
