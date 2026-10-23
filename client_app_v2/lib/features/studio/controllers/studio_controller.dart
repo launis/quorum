@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
@@ -285,22 +286,41 @@ class WorkflowsController extends _$WorkflowsController {
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class StepsController extends _$StepsController {
+  StepFilterScope _scope = StepFilterScope.specialists;
+
   @override
   FutureOr<List<NodeStrategy>> build() async {
     ref.cacheFor(AppDurations.cacheTimeout);
-    return _fetchSteps();
+    return _fetchSteps(_scope);
   }
 
-  Future<List<NodeStrategy>> _fetchSteps() async {
+  StepFilterScope get currentScope => _scope;
+
+  Future<List<NodeStrategy>> _fetchSteps(StepFilterScope scope) async {
     final client = ref.read(studioClientProvider);
-    return await client.getSteps();
+    return await client.getSteps(scope: scope);
+  }
+
+  /// Sets the active step scope filter and re-fetches from backend.
+  Future<void> setScope(StepFilterScope scope) async {
+    _scope = scope;
+    state = const AsyncValue.loading();
+    try {
+      final newSteps = await _fetchSteps(_scope);
+      state = AsyncValue.data(newSteps);
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('StepsController', 'SetScope failed', e, st);
+      state = AsyncValue.error(e, st);
+    }
   }
 
   /// Refreshes the steps list from the backend.
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
-      final newSteps = await _fetchSteps();
+      final newSteps = await _fetchSteps(_scope);
       state = AsyncValue.data(newSteps);
     } catch (e, st) {
       ref

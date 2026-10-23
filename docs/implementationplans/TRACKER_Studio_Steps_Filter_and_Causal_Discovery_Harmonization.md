@@ -23,7 +23,7 @@
   - [x] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
   - [x] Step 3: SEED VAULT CAUSAL BLUEPRINT CONSOLIDATION
   - [x] Step 4: BACKEND SERVICE & ROUTER SERVER-SIDE FILTERING
-  - [ ] Step 5: FLUTTER CLIENT, CONTROLLER & DUMB PAINTER VIEW
+  - [x] Step 5: FLUTTER CLIENT, CONTROLLER & DUMB PAINTER VIEW
   - [ ] Step 6: TWO-STAGE QUALITY GATE AUDIT & PERSISTENCE VERIFICATION
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md]`
 
@@ -91,10 +91,10 @@
 | `REQ-STP-006` | Prune redundant duplicate blueprints `sp_01b1d7100000ca01` through `sp_06b1d7100000ca06` from Seed Vault and sync local database | Step 3 | [x] Complete |
 | `REQ-STP-007` | Implement server-side scope filtering in `StudioWorkflowService.list_steps` via exhaustive Python 3.12+ `match scope:` | Step 4 | [x] Complete |
 | `REQ-STP-008` | Expose `scope` query parameter on `GET /studio/steps/` router delegating to `StudioWorkflowService` with negative test coverage | Step 4 | [x] Complete |
-| `REQ-STP-009` | Wire `StudioClient.getSteps({StepFilterScope scope})` to pass `scope` query parameter to backend | Step 5 | [ ] Pending |
-| `REQ-STP-010` | Update `StepsController` with `_scope` state, `currentScope` getter, and `setScope` method triggering backend re-fetch | Step 5 | [ ] Pending |
-| `REQ-STP-011` | Render interactive `SegmentedButton<StepFilterScope>` in `_buildStepsTab` and render blueprints as pure Dumb Painter | Step 5 | [ ] Pending |
-| `REQ-STP-012` | Implement comprehensive widget test `studio_dashboard_steps_tab_test.dart` verifying filter transitions and empty states | Step 5 | [ ] Pending |
+| `REQ-STP-009` | Wire `StudioClient.getSteps({StepFilterScope scope})` to pass `scope` query parameter to backend | Step 5 | [x] Complete |
+| `REQ-STP-010` | Update `StepsController` with `_scope` state, `currentScope` getter, and `setScope` method triggering backend re-fetch | Step 5 | [x] Complete |
+| `REQ-STP-011` | Render interactive `SegmentedButton<StepFilterScope>` in `_buildStepsTab` and render blueprints as pure Dumb Painter | Step 5 | [x] Complete |
+| `REQ-STP-012` | Implement comprehensive widget test `studio_dashboard_steps_tab_test.dart` verifying filter transitions and empty states | Step 5 | [x] Complete |
 | `REQ-STP-013` | Execute Two-Stage Quality Gate audits (`backend_audit_loop.py` with `--ast-strict`, `flutter_audit_loop.py` with `--build`, technical debt audit) | Step 6 | [ ] Pending |
 
 # Session Handover Context

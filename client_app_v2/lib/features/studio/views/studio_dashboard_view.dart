@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
@@ -426,6 +427,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   ) {
     // ... Existing implementation of Steps Tab ...
     final blueprintsState = ref.watch(stepsControllerProvider);
+    final currentScope = ref
+        .watch(stepsControllerProvider.notifier)
+        .currentScope;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -451,10 +455,37 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
             }
           }),
           const SizedBox(height: 16),
+          SegmentedButton<StepFilterScope>(
+            segments: [
+              ButtonSegment<StepFilterScope>(
+                value: StepFilterScope.specialists,
+                label: Text(l10n.studioStepFilterSpecialists),
+                icon: const Icon(Icons.psychology_outlined),
+              ),
+              ButtonSegment<StepFilterScope>(
+                value: StepFilterScope.systemCore,
+                label: Text(l10n.studioStepFilterSystemCore),
+                icon: const Icon(Icons.settings_suggest_outlined),
+              ),
+              ButtonSegment<StepFilterScope>(
+                value: StepFilterScope.all,
+                label: Text(l10n.studioStepFilterAll),
+                icon: const Icon(Icons.view_list_outlined),
+              ),
+            ],
+            selected: {currentScope},
+            onSelectionChanged: (newSelection) {
+              ref
+                  .read(stepsControllerProvider.notifier)
+                  .setScope(newSelection.first);
+            },
+          ),
+          const SizedBox(height: 16),
           blueprintsState.when(
             data: (blueprints) {
-              if (blueprints.isEmpty)
+              if (blueprints.isEmpty) {
                 return Text(l10n.studioViewsNoStepsDefined);
+              }
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),

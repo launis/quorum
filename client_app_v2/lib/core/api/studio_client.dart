@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/studio/models/gcp_location.dart';
@@ -150,8 +151,14 @@ class StudioClient {
   // --- Steps ---
 
   /// Retrieves all steps.
-  Future<List<NodeStrategy>> getSteps() async {
-    final response = await _dio.get('studio/steps');
+  Future<List<NodeStrategy>> getSteps({
+    StepFilterScope scope = StepFilterScope.specialists,
+  }) async {
+    final queryParameters = <String, Object?>{'scope': scope.backendValue};
+    final response = await _dio.get(
+      'studio/steps',
+      queryParameters: queryParameters,
+    );
     final rawList = response.data as List;
     return rawList
         .map((item) => NodeStrategy.fromJson(item))
