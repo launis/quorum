@@ -6,7 +6,6 @@ import logging
 from typing import Any, Literal
 
 from fastapi import status
-from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
@@ -14,16 +13,9 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
-from backend_v2.models.dtos.atom_evaluation import (
-    ReasoningStepDTO,
-)
-from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO, ScorecardAtomCollectionDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import DisplayScale, ExecutionStatus, VisualIntent
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.matrix_parser.distribution_formatter import (
@@ -32,7 +24,11 @@ from backend_v2.services.matrix_parser.distribution_formatter import (
     format_level_distribution,
     resolve_row_explanation,
 )
-from backend_v2.utils.math_utils import scale_to_custom_range
+from backend_v2.services.matrix_parser.scale_and_atom_stage import (
+    compute_scale_and_score_projection,
+    hydrate_step_scorecard_atoms,
+    unpack_matrix_payload,
+)
 
 __all__ = ["MatrixDomainParser"]
 
@@ -116,8 +112,6 @@ class MatrixDomainParser:
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
         step_scorecard_atoms_accum: dict[str, list[ScorecardAtomDTO]] = {}
 
-        # Safe attribute access using V2 Models
-        display_scale = profile.display_scale
         matrix_visible_cols = ["label", "score", "distribution", "row_explanation", "quotes"]
 
         for dto in results:
@@ -131,40 +125,8 @@ class MatrixDomainParser:
             if not pb_meta or not isinstance(pb_meta, MatrixPromptBlock):
                 continue
 
-            try:
-                if isinstance(block_data, TraceMatrixPayloadDTO):
-                    matrix_payload = block_data
-                elif isinstance(block_data, LightweightMatrixOutput):
-                    matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data.model_dump(mode="python"))
-                else:
-                    matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
-            except (ValidationError, TypeError, ValueError) as e:
-                msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
-                logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
-            true_atoms = None
-            total_atoms = None
-            raw_score = matrix_payload.raw_score
-            norm_score = matrix_payload.normalized_score
-
-            if matrix_payload.evaluated_atoms:
-                true_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v == ExecutionStatus.PASSED)
-                total_atoms = sum(1 for v in matrix_payload.evaluated_atoms.values() if v != ExecutionStatus.N_A)
-
-                if total_atoms > 0 and raw_score is None:
-                    raw_score = true_atoms / total_atoms
-                    norm_score = raw_score * 100.0
-                elif total_atoms == 0:
-                    logger.info(
-                        "[MatrixDomainParser] Matrix '%s' evaluated to N_A (total_atoms=0). Bypassing scoring.", b_id
-                    )
-                    raw_score = None
-                    norm_score = None
+            # Phase 2, Step 2: Delegate payload unpacking, scale projection, and atom hydration
+            matrix_payload = unpack_matrix_payload(block_data, b_id)
 
             if not pb_meta.label:
                 logger.error(
@@ -185,127 +147,13 @@ class MatrixDomainParser:
             if pb_meta.description:
                 axis_description = pb_meta.description.resolve(locale)
 
-            if pb_meta.computed_min is None or pb_meta.computed_max is None:
-                logger.error(
-                    "[MatrixDomainParser] %s: PromptBlock '%s' missing Pydantic computed_min/max.",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    b_id,
-                )
-                raise AppException(
-                    message=f"PromptBlock '{b_id}' missing Pydantic computed_min/max.",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            math_min = float(pb_meta.computed_min)
-            math_max = float(pb_meta.computed_max)
-
-            scales_def = pb_meta.scales
-            if not scales_def:
-                logger.error(
-                    "[MatrixDomainParser] %s: PromptBlock '%s' initialized as matrix but has no scales.",
-                    ErrorCodes.CONFIGURATION_ERROR.name,
-                    b_id,
-                )
-                raise AppException(
-                    message=f"PromptBlock '{b_id}' initialized as matrix but has no scales.",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            level_names: dict[str, str] = {}
-            ui_boundary_labels: dict[str, str] = {}
-            for s in scales_def:
-                s_score = float(s.score)
-                if not s.name:
-                    logger.error(
-                        "[MatrixDomainParser] %s: Fail-Fast: MatrixScale in block '%s' missing 'name'.",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                        b_id,
-                    )
-                    raise AppException(
-                        message=f"Fail-Fast: MatrixScale in block '{b_id}' missing 'name'.",
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                s_label = s.name.resolve(locale)
-
-                if s_score.is_integer():
-                    int_str = str(int(s_score))
-                else:
-                    int_str = str(s_score)
-                float_str = str(s_score)
-                level_names[int_str] = s_label
-                if float_str != int_str:
-                    level_names[float_str] = s_label
-
-                if s_score == math_min:
-                    ui_boundary_labels["0.0"] = s_label
-                if s_score == math_max:
-                    ui_boundary_labels["1.0"] = s_label
-
-            display_scale_min = math_min
-            display_scale_max = math_max
-
-            active_score_key = "raw_score"
-            if display_scale == DisplayScale.NORMALIZED_100:
-                active_score_key = "normalized_score"
-                display_scale_min = 0.0
-                display_scale_max = 100.0
-            elif display_scale == DisplayScale.CUSTOM:
-                if profile.custom_scale_min is None or profile.custom_scale_max is None:
-                    logger.error(
-                        "[MatrixDomainParser] %s: OutputProfile '%s' is missing custom_scale_min/max "
-                        "under custom scale.",
-                        ErrorCodes.CONFIGURATION_ERROR.name,
-                        profile.id,
-                    )
-                    raise AppException(
-                        message=f"OutputProfile '{profile.id}' is missing custom_scale_min/max under custom scale.",
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-                display_scale_min = float(profile.custom_scale_min)
-                display_scale_max = float(profile.custom_scale_max)
-
-            if display_scale == DisplayScale.CUSTOM:
-                if raw_score is not None:
-                    score_float = float(
-                        round(
-                            scale_to_custom_range(
-                                score=float(raw_score),
-                                raw_min=math_min,
-                                raw_max=math_max,
-                                target_min=display_scale_min,
-                                target_max=display_scale_max,
-                            ),
-                            1,
-                        )
-                    )
-                else:
-                    score_float = None
-            else:
-                if active_score_key == "normalized_score":
-                    target_val = matrix_payload.normalized_score
-                else:
-                    target_val = matrix_payload.raw_score
-
-                if target_val is None:
-                    target_val = raw_score
-
-                score_float = None
-                if target_val is not None:
-                    score_float = float(round(float(target_val), 1))
-                if display_scale == DisplayScale.NORMALIZED_100 and score_float is not None:
-                    score_float = float(round(score_float))
-
-            ui_plot_ratio = None
-            if raw_score is not None:
-                if math_max == math_min:
-                    ratio = 0.0
-                else:
-                    ratio = (float(raw_score) - math_min) / (math_max - math_min)
-                ui_plot_ratio = float(max(0.0, min(1.0, ratio)))
+            scale_proj = compute_scale_and_score_projection(
+                matrix_payload=matrix_payload,
+                pb_meta=pb_meta,
+                profile=profile,
+                locale=locale,
+                block_id=b_id,
+            )
 
             original_axis_name = axis_name
             collision_counter = 1
@@ -330,144 +178,15 @@ class MatrixDomainParser:
                 execution=execution,
             )
 
-            evaluated_atoms_list = []
-            clustered_row_sources: list[Any] = []
-
-            if "quotes" in matrix_visible_cols or "criteria" in matrix_visible_cols:
-                step_evals_map: dict[str, AtomResultDTO] = {}
-                for r_dto in results:
-                    if r_dto.step_id == step_id and r_dto.block_id == "results" and isinstance(r_dto.payload, list):
-                        for ev in r_dto.payload:
-                            if isinstance(ev, AtomResultDTO):
-                                step_evals_map[ev.tda_id] = ev
-                            else:
-                                try:
-                                    atom_dto = AtomResultDTO.model_validate(ev)
-                                    step_evals_map[atom_dto.tda_id] = atom_dto
-                                except (ValidationError, TypeError, ValueError) as val_err:
-                                    msg = f"Invalid atom result payload in step {step_id}: {val_err}"
-                                    logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                                    raise AppException(
-                                        message=msg,
-                                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                    ) from val_err
-                        break
-
-                if pb_meta.scales:
-                    for scale in pb_meta.scales:
-                        l_val = int(scale.score)
-                        l_name = level_names[str(l_val)]
-                        for claim in scale.claims:
-                            claim_label = ""
-                            if isinstance(claim.label, I18nText):
-                                claim_label = claim.label.resolve(locale)
-                            elif claim.label is not None:
-                                claim_label = str(claim.label)
-
-                            for tda in claim.tda_assertions:
-                                atom_id = tda.tda_id
-                                val_data = None
-                                if atom_id in step_evals_map:
-                                    val_data = step_evals_map[atom_id]
-
-                                display_label = "Kriteeri"
-                                if claim_label.strip():
-                                    display_label = claim_label.strip()
-                                elif tda.concept_description and tda.concept_description.strip():
-                                    display_label = tda.concept_description.strip()
-
-                                if val_data:
-                                    try:
-                                        r_step = ReasoningStepDTO(
-                                            step_1_identify_premise="",
-                                            step_2_scan_source="",
-                                            step_3_evaluate_anti_patterns="",
-                                            step_4_final_conclusion="",
-                                        )
-
-                                        exact_quotes: list[QuoteEvidenceDTO] = []
-                                        if val_data.source_quotes:
-                                            exact_quotes = [
-                                                QuoteEvidenceDTO.model_validate(
-                                                    {"source_quotes": val_data.source_quotes, "source_alias": []},
-                                                    context={"alias_registry": {}},
-                                                )
-                                            ]
-
-                                        atom_semantic_reasoning = ""
-                                        if val_data.evaluation_reasoning is not None:
-                                            atom_semantic_reasoning = val_data.evaluation_reasoning
-
-                                        s_atom = ScorecardAtomDTO(
-                                            atom_id=atom_id,
-                                            level=l_val,
-                                            level_name=l_name,
-                                            claim_label=claim_label,
-                                            extracted_facts={},
-                                            exact_quotes=exact_quotes,
-                                            internal_logic_en=r_step,
-                                            status=val_data.status,
-                                            semantic_reasoning=atom_semantic_reasoning,
-                                            contextual_override=val_data.contextual_override,
-                                            structural_location=None,
-                                            chart_display_label=display_label,
-                                            visual_intent=VisualIntent.NEUTRAL,
-                                            human_override=None,
-                                        )
-
-                                    except ValidationError as e:
-                                        logger.error(
-                                            "[MatrixDomainParser] %s: LLM output violated strictly typed schema "
-                                            "during Display parsing for atom %s",
-                                            ErrorCodes.VALIDATION_FAILED.name,
-                                            atom_id,
-                                            exc_info=True,
-                                        )
-                                        raise AppException(
-                                            message=f"Strict type validation failed for atom {atom_id}",
-                                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                        ) from e
-
-                                    evaluated_atoms_list.append(s_atom)
-                                    if step_id not in step_scorecard_atoms_accum:
-                                        step_scorecard_atoms_accum[step_id] = []
-                                    step_scorecard_atoms_accum[step_id].append(s_atom)
-                                else:
-                                    dummy_reasoning = ReasoningStepDTO(
-                                        step_1_identify_premise="",
-                                        step_2_scan_source="",
-                                        step_3_evaluate_anti_patterns="",
-                                        step_4_final_conclusion="",
-                                    )
-                                    s_atom = ScorecardAtomDTO(
-                                        atom_id=atom_id,
-                                        level=l_val,
-                                        level_name=l_name,
-                                        claim_label=claim_label,
-                                        extracted_facts={},
-                                        exact_quotes=[],
-                                        internal_logic_en=dummy_reasoning,
-                                        status=ExecutionStatus.FAILED,
-                                        semantic_reasoning="",
-                                        contextual_override=False,
-                                        structural_location=None,
-                                        chart_display_label=display_label,
-                                        visual_intent=VisualIntent.NEUTRAL,
-                                        human_override=None,
-                                    )
-                                    evaluated_atoms_list.append(s_atom)
-                                    if step_id not in step_scorecard_atoms_accum:
-                                        step_scorecard_atoms_accum[step_id] = []
-                                    step_scorecard_atoms_accum[step_id].append(s_atom)
-
-            score_display_label = "-"
-            if score_float is not None:
-                max_val = 100.0
-                if display_scale_max is not None:
-                    max_val = display_scale_max
-                score_display_label = f"{score_float:.1f} / {max_val:.1f}"
+            atom_hydration = hydrate_step_scorecard_atoms(
+                results=results,
+                step_id=step_id,
+                pb_meta=pb_meta,
+                level_names=scale_proj.level_names,
+                locale=locale,
+                matrix_visible_cols=matrix_visible_cols,
+                step_scorecard_atoms_accum=step_scorecard_atoms_accum,
+            )
 
             # Inner SDUI blocks reserved for presentation layer rendering
             inner_sdui_blocks: list[AnySduiBlock] = []
@@ -561,10 +280,6 @@ class MatrixDomainParser:
             if ext and ext.semantic_reasoning:
                 row_semantic_reasoning = ext.semantic_reasoning
 
-            norm_score_float = None
-            if norm_score is not None:
-                norm_score_float = float(norm_score)
-
             validated_evidence_type: Literal["EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"] | None = None
             if evidence_type == "EXPLICIT_QUOTE":
                 validated_evidence_type = "EXPLICIT_QUOTE"
@@ -573,25 +288,21 @@ class MatrixDomainParser:
             elif evidence_type == "NO_EVIDENCE":
                 validated_evidence_type = "NO_EVIDENCE"
 
-            raw_score_float: float | None = None
-            if raw_score is not None:
-                raw_score_float = float(raw_score)
-
             row_dto = MatrixScorecardRowDTO(
                 block_id=b_id,
                 name=axis_name,
                 label_i18n=pb_meta.label,
                 description=axis_description,
-                score=score_float,
-                raw_score=raw_score_float,
-                raw_scale_min=math_min,
-                raw_scale_max=math_max,
-                score_display_label=score_display_label,
-                scale_min=display_scale_min,
-                scale_max=display_scale_max,
-                normalized_score=norm_score_float,
-                true_atoms=true_atoms,
-                total_atoms=total_atoms,
+                score=scale_proj.score_float,
+                raw_score=scale_proj.raw_score,
+                raw_scale_min=scale_proj.math_min,
+                raw_scale_max=scale_proj.math_max,
+                score_display_label=scale_proj.score_display_label,
+                scale_min=scale_proj.display_scale_min,
+                scale_max=scale_proj.display_scale_max,
+                normalized_score=scale_proj.norm_score,
+                true_atoms=scale_proj.true_atoms,
+                total_atoms=scale_proj.total_atoms,
                 row_explanation=cleaned_explanation,
                 evidence_type=validated_evidence_type,
                 cited_source_id=cited_source_id,
@@ -608,13 +319,13 @@ class MatrixDomainParser:
                 contextual_override=contextual_override,
                 semantic_reasoning=row_semantic_reasoning,
                 level_breakdown=axis_level_breakdown,
-                level_names=level_names,
-                ui_boundary_labels=ui_boundary_labels,
-                ui_plot_ratio=ui_plot_ratio,
+                level_names=scale_proj.level_names,
+                ui_boundary_labels=scale_proj.ui_boundary_labels,
+                ui_plot_ratio=scale_proj.ui_plot_ratio,
                 is_evaluative=pb_meta.is_evaluative,
                 allow_contextual_override=pb_meta.allow_contextual_override,
-                evaluated_atoms=evaluated_atoms_list,
-                clustered_row_sources=clustered_row_sources,
+                evaluated_atoms=atom_hydration.evaluated_atoms,
+                clustered_row_sources=atom_hydration.clustered_row_sources,
                 used_evidence_ids=[],
                 inner_sdui_blocks=inner_sdui_blocks,
                 tda_state=None,
