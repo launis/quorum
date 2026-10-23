@@ -33,11 +33,11 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/api/routers/studio/steps.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] --gate frontend`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] --gate frontend`.
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
