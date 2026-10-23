@@ -4,8 +4,9 @@ Provides endpoints to manage step configurations.
 """
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
 from backend_v2.models.domain.step import Step
@@ -16,6 +17,7 @@ from backend_v2.models.dtos.studio import (
     StepSimulationRequest,
     StepSimulationResponse,
 )
+from backend_v2.models.enums import StepFilterScope
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +55,20 @@ async def simulate_step(
 
 
 @router.get("/", response_model=list[StepResponseDTO])
-async def get_steps(current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep) -> list[Step]:
+async def get_steps(
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
+    scope: Annotated[
+        StepFilterScope,
+        Query(description="Filter steps by scope: specialists, system_core, or all."),
+    ] = StepFilterScope.SPECIALISTS,
+) -> list[Step]:
     """Retrieve all V2 dynamic step execution block schemas securely via SSOT.
 
     Args:
         current_user: The authenticated user making the request.
         studio_workflow_service: The studio workflow service dependency.
+        scope: Filter scope for step blueprints.
 
     Returns:
         A list of all steps.
@@ -66,7 +76,7 @@ async def get_steps(current_user: CurrentUserDep, studio_workflow_service: Studi
     Raises:
         AppException: If fetching steps fails.
     """
-    return await studio_workflow_service.list_steps(current_user)
+    return await studio_workflow_service.list_steps(current_user, scope=scope)
 
 
 @router.post("/", response_model=StepResponseDTO)

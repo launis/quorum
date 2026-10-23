@@ -21,8 +21,8 @@
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md]`
   - [x] Step 1: TECHNICAL DEBT ERADICATION & ARB LOCALIZATION
   - [x] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
-  - [ ] Step 3: SEED VAULT CAUSAL BLUEPRINT CONSOLIDATION
-  - [ ] Step 4: BACKEND SERVICE & ROUTER SERVER-SIDE FILTERING
+  - [x] Step 3: SEED VAULT CAUSAL BLUEPRINT CONSOLIDATION
+  - [x] Step 4: BACKEND SERVICE & ROUTER SERVER-SIDE FILTERING
   - [ ] Step 5: FLUTTER CLIENT, CONTROLLER & DUMB PAINTER VIEW
   - [ ] Step 6: TWO-STAGE QUALITY GATE AUDIT & PERSISTENCE VERIFICATION
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md] @[docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md]`
@@ -87,10 +87,10 @@
 | `REQ-STP-002` | Eradicate pre-flight technical debt `TD_ISTQB_NEGATIVE` in `test_steps.py` by adding negative test partitions for 404, 403, and 422 HTTP responses | Step 1 | [x] Complete |
 | `REQ-STP-003` | Define SSOT enum `StepFilterScope` (`specialists`, `system_core`, `all`) with full cross-language parity in Python and Dart | Step 2 | [x] Complete |
 | `REQ-STP-004` | Add bidirectional unit parity test and missing member negative test in `test_enum_parity.py` | Step 2 | [x] Complete |
-| `REQ-STP-005` | Harmonize canonical universal Causal Discovery blueprint `sp_c4a5a1d15c00438a` with dynamic input agnosticism in `seed_data.json` | Step 3 | [ ] Pending |
-| `REQ-STP-006` | Prune redundant duplicate blueprints `sp_01b1d7100000ca01` through `sp_06b1d7100000ca06` from Seed Vault and sync local database | Step 3 | [ ] Pending |
-| `REQ-STP-007` | Implement server-side scope filtering in `StudioWorkflowService.list_steps` via exhaustive Python 3.12+ `match scope:` | Step 4 | [ ] Pending |
-| `REQ-STP-008` | Expose `scope` query parameter on `GET /studio/steps/` router delegating to `StudioWorkflowService` with negative test coverage | Step 4 | [ ] Pending |
+| `REQ-STP-005` | Harmonize canonical universal Causal Discovery blueprint `sp_c4a5a1d15c00438a` with dynamic input agnosticism in `seed_data.json` | Step 3 | [x] Complete |
+| `REQ-STP-006` | Prune redundant duplicate blueprints `sp_01b1d7100000ca01` through `sp_06b1d7100000ca06` from Seed Vault and sync local database | Step 3 | [x] Complete |
+| `REQ-STP-007` | Implement server-side scope filtering in `StudioWorkflowService.list_steps` via exhaustive Python 3.12+ `match scope:` | Step 4 | [x] Complete |
+| `REQ-STP-008` | Expose `scope` query parameter on `GET /studio/steps/` router delegating to `StudioWorkflowService` with negative test coverage | Step 4 | [x] Complete |
 | `REQ-STP-009` | Wire `StudioClient.getSteps({StepFilterScope scope})` to pass `scope` query parameter to backend | Step 5 | [ ] Pending |
 | `REQ-STP-010` | Update `StepsController` with `_scope` state, `currentScope` getter, and `setScope` method triggering backend re-fetch | Step 5 | [ ] Pending |
 | `REQ-STP-011` | Render interactive `SegmentedButton<StepFilterScope>` in `_buildStepsTab` and render blueprints as pure Dumb Painter | Step 5 | [ ] Pending |

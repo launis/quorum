@@ -24,7 +24,7 @@ from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
-from backend_v2.models.enums import CognitiveTier, EntityPrefix, HistoricalContextMode, StepType
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, HistoricalContextMode, StepFilterScope, StepType
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -449,21 +449,30 @@ class StudioWorkflowService:
         )
         return await self.save_workflow(initiator, new_id, cloned_workflow)
 
-    async def list_steps(self, initiator: TokenData) -> list[Step]:
+    async def list_steps(
+        self, initiator: TokenData, scope: StepFilterScope = StepFilterScope.SPECIALISTS
+    ) -> list[Step]:
         """List steps.
 
         Args:
             initiator: The user token data.
+            scope: The filter scope for steps.
 
         Returns:
             A list of steps.
         """
         steps = await self.workflow_repo.get_all_steps()
 
-        if initiator.role == UserRole.ROOT:
-            return steps
+        if initiator.role != UserRole.ROOT:
+            steps = [x for x in steps if is_resource_accessible(initiator, x.organization_id)]
 
-        return [x for x in steps if is_resource_accessible(initiator, x.organization_id)]
+        match scope:
+            case StepFilterScope.SPECIALISTS:
+                return [s for s in steps if not s.is_system_core]
+            case StepFilterScope.SYSTEM_CORE:
+                return [s for s in steps if s.is_system_core]
+            case StepFilterScope.ALL:
+                return steps
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
         """Get step.

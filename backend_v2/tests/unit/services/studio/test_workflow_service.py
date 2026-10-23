@@ -24,6 +24,7 @@ from backend_v2.models.enums import (
     EntityPrefix,
     HistoricalContextMode,
     PromptBlockCategory,
+    StepFilterScope,
     StepType,
     TargetBlockType,
 )
@@ -430,6 +431,30 @@ async def test_list_steps_tenant_filtering(
     res = await workflow_service.list_steps(admin_token)
     assert len(res) == 1
     assert res[0].id == "sp_0123456789abcdef"
+
+
+async def test_list_steps_scope_filtering(
+    workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
+) -> None:
+    s_spec = _valid_step("sp_0123456789abcdef", is_system_core=False)
+    s_core = _valid_step("sp_c4a5a1d15c00438a", is_system_core=True)
+    await mock_workflow_repo.save_step(s_spec)
+    await mock_workflow_repo.save_step(s_core)
+
+    res_default = await workflow_service.list_steps(root_token)
+    assert len(res_default) == 1
+    assert res_default[0].id == "sp_0123456789abcdef"
+
+    res_specialists = await workflow_service.list_steps(root_token, scope=StepFilterScope.SPECIALISTS)
+    assert len(res_specialists) == 1
+    assert res_specialists[0].id == "sp_0123456789abcdef"
+
+    res_core = await workflow_service.list_steps(root_token, scope=StepFilterScope.SYSTEM_CORE)
+    assert len(res_core) == 1
+    assert res_core[0].id == "sp_c4a5a1d15c00438a"
+
+    res_all = await workflow_service.list_steps(root_token, scope=StepFilterScope.ALL)
+    assert len(res_all) == 2
 
 
 async def test_get_step_not_found(

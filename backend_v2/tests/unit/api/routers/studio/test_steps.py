@@ -21,7 +21,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.studio import StepSimulationResponse, StepSimulationTraceDTO
-from backend_v2.models.enums import StepType
+from backend_v2.models.enums import StepFilterScope, StepType
 
 app = FastAPI()
 app.include_router(router)
@@ -76,7 +76,7 @@ def test_router_initialization() -> None:
 
 @pytest.mark.asyncio
 async def test_get_steps(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
-    """Test GET /steps/ retrieves step list."""
+    """Test GET /steps/ retrieves step list with default specialists scope."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.list_steps.return_value = [sample_step]
 
@@ -84,6 +84,62 @@ async def test_get_steps(mock_studio_services: tuple[AsyncMock, AsyncMock], samp
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["id"] == "sp_1234567890abcdef"
+    mock_workflow.list_steps.assert_called_once()
+    assert mock_workflow.list_steps.call_args.kwargs.get("scope") == StepFilterScope.SPECIALISTS
+
+
+@pytest.mark.asyncio
+async def test_get_steps_scope_specialists(
+    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step
+) -> None:
+    """Test GET /steps/?scope=specialists passes specialists scope to service."""
+    mock_workflow, _ = mock_studio_services
+    mock_workflow.list_steps.return_value = [sample_step]
+
+    response = client.get("/steps/?scope=specialists")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    mock_workflow.list_steps.assert_called_once()
+    assert mock_workflow.list_steps.call_args.kwargs.get("scope") == StepFilterScope.SPECIALISTS
+
+
+@pytest.mark.asyncio
+async def test_get_steps_scope_system_core(
+    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step
+) -> None:
+    """Test GET /steps/?scope=system_core passes system_core scope to service."""
+    mock_workflow, _ = mock_studio_services
+    mock_workflow.list_steps.return_value = [sample_step]
+
+    response = client.get("/steps/?scope=system_core")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    mock_workflow.list_steps.assert_called_once()
+    assert mock_workflow.list_steps.call_args.kwargs.get("scope") == StepFilterScope.SYSTEM_CORE
+
+
+@pytest.mark.asyncio
+async def test_get_steps_scope_all(
+    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step
+) -> None:
+    """Test GET /steps/?scope=all passes all scope to service."""
+    mock_workflow, _ = mock_studio_services
+    mock_workflow.list_steps.return_value = [sample_step]
+
+    response = client.get("/steps/?scope=all")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    mock_workflow.list_steps.assert_called_once()
+    assert mock_workflow.list_steps.call_args.kwargs.get("scope") == StepFilterScope.ALL
+
+
+@pytest.mark.asyncio
+async def test_get_steps_invalid_scope_error(
+    mock_studio_services: tuple[AsyncMock, AsyncMock],
+) -> None:
+    """Test GET /steps/?scope=invalid returns 422 Unprocessable Entity."""
+    response = client.get("/steps/?scope=invalid_scope")
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
