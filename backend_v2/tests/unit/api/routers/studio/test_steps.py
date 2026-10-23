@@ -4,7 +4,8 @@ from collections.abc import Generator
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import (
@@ -13,6 +14,8 @@ from backend_v2.api.dependencies import (
     get_studio_workflow_service,
 )
 from backend_v2.api.routers.studio.steps import router
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.main import app_exception_handler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step
@@ -22,6 +25,13 @@ from backend_v2.models.enums import StepType
 
 app = FastAPI()
 app.include_router(router)
+
+
+@app.exception_handler(AppException)
+async def _test_app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+    return await app_exception_handler(request, exc)
+
+
 client = TestClient(app)
 
 
@@ -188,3 +198,36 @@ async def test_simulate_step_with_null_context_text_and_locale(
     response = client.post("/steps/simulate", json=payload)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
     assert response.json()["valid"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_step_not_found_error(mock_studio_services: tuple[AsyncMock, AsyncMock]) -> None:
+    """Test GET /steps/{id} returns 404 when step is not found."""
+    mock_workflow, _ = mock_studio_services
+    mock_workflow.get_step.side_effect = ResourceNotFoundError(resource_type="step", resource_id="sp_missing00000000")
+
+    response = client.get("/steps/sp_missing00000000")
+    assert response.status_code == 404
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_delete_system_core_step_failure(mock_studio_services: tuple[AsyncMock, AsyncMock]) -> None:
+    """Test DELETE /steps/{id} returns 403 when attempting to delete system core step."""
+    mock_workflow, _ = mock_studio_services
+    mock_workflow.delete_step.side_effect = AppException(
+        message="Cannot delete protected system core step sp_c4a5a1d15c00438a",
+        status_code=403,
+        details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
+    )
+
+    response = client.delete("/steps/sp_c4a5a1d15c00438a")
+    assert response.status_code == 403
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
+
+
+@pytest.mark.asyncio
+async def test_simulate_step_invalid_input_error(mock_studio_services: tuple[AsyncMock, AsyncMock]) -> None:
+    """Test POST /steps/simulate returns 422 for malformed simulation payload."""
+    response = client.post("/steps/simulate", json={})
+    assert response.status_code == 422

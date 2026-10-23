@@ -187,9 +187,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        l10n.studioViewsMintDraftError(e.toString()),
+                      ),
+                    ),
+                  );
                 }
               }
             },
@@ -311,9 +315,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        l10n.studioViewsMintDraftError(e.toString()),
+                      ),
+                    ),
+                  );
                 }
               }
             },
@@ -434,9 +442,11 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               }
             } catch (e) {
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                  ),
+                );
               }
             }
           }),
@@ -550,9 +560,11 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               }
             } catch (e) {
               if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Failed to mint: $e')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                  ),
+                );
               }
             }
           }),

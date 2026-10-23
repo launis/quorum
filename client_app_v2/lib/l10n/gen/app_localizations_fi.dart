@@ -3394,6 +3394,20 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioViewsNoStepsDefined => 'Ei askelia määritetty.';
 
   @override
+  String studioViewsMintDraftError(String error) {
+    return 'Luonnoksen luonti epäonnistui: $error';
+  }
+
+  @override
+  String get studioStepFilterSpecialists => 'Spesialistit';
+
+  @override
+  String get studioStepFilterSystemCore => 'Ydinaskeleet';
+
+  @override
+  String get studioStepFilterAll => 'Kaikki';
+
+  @override
   String studioViewsStepsSubtitle(int blocks, int hooks) {
     return 'Lohkot: $blocks | Koukut: $hooks';
   }

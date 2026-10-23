@@ -3369,6 +3369,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioViewsNoStepsDefined => 'No Steps defined.';
 
   @override
+  String studioViewsMintDraftError(String error) {
+    return 'Failed to mint: $error';
+  }
+
+  @override
+  String get studioStepFilterSpecialists => 'Specialists';
+
+  @override
+  String get studioStepFilterSystemCore => 'System Core';
+
+  @override
+  String get studioStepFilterAll => 'All';
+
+  @override
   String studioViewsStepsSubtitle(int blocks, int hooks) {
     return 'Blocks: $blocks | Hooks: $hooks';
   }

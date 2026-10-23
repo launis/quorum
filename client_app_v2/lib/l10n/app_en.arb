@@ -1727,6 +1727,17 @@
   },
   "studioViewsNoMatricesDefined": "No matrices defined.",
   "studioViewsNoStepsDefined": "No Steps defined.",
+  "studioViewsMintDraftError": "Failed to mint: {error}",
+  "@studioViewsMintDraftError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "studioStepFilterSpecialists": "Specialists",
+  "studioStepFilterSystemCore": "System Core",
+  "studioStepFilterAll": "All",
   "studioViewsStepsSubtitle": "Blocks: {blocks} | Hooks: {hooks}",
   "@studioViewsStepsSubtitle": {
     "placeholders": {

@@ -6174,6 +6174,30 @@ abstract class AppLocalizations {
   /// **'No Steps defined.'**
   String get studioViewsNoStepsDefined;
 
+  /// No description provided for @studioViewsMintDraftError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to mint: {error}'**
+  String studioViewsMintDraftError(String error);
+
+  /// No description provided for @studioStepFilterSpecialists.
+  ///
+  /// In en, this message translates to:
+  /// **'Specialists'**
+  String get studioStepFilterSpecialists;
+
+  /// No description provided for @studioStepFilterSystemCore.
+  ///
+  /// In en, this message translates to:
+  /// **'System Core'**
+  String get studioStepFilterSystemCore;
+
+  /// No description provided for @studioStepFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get studioStepFilterAll;
+
   /// No description provided for @studioViewsStepsSubtitle.
   ///
   /// In en, this message translates to:
