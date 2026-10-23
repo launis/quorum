@@ -53,7 +53,7 @@
   - [x] Step 1: Modularize Unit Test Suite (`@[backend_v2/tests/unit/services/matrix_parser/test_distribution_formatter.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_row_builder_stage.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_matrix_parser_facade.py]`) and delete `[DELETE] @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`
   - [x] Step 2: Execute Atomic Package Cutover (`[DELETE] @[backend_v2/services/matrix_domain_parser.py]` -> `@[backend_v2/services/matrix_parser/__init__.py#L44-L148]`) and Rewire 1-Hop Callers (`@[backend_v2/services/blueprint.py#L65-L669]`, `@[backend_v2/tests/unit/services/test_blueprint.py#L3302-L3397]`, `@[backend_v2/tests/unit/services/orchestrator/test_tier4_matrix_distribution_regression.py#L81-L160]`)
   - [x] Step 3: Lock Retired Path in `QGR017` AST Guardrails (`@[scripts/_ast_guardrails.py#L1865-L1910]` and `@[scripts/_ast_guardrails.py#L1912-L2011]`) and Synchronize `@[.agents/rules/04_directory_reference.md]`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]` (`red_team_audit_phase4_package_cutover_and_guardrails.md`)
 
 ---
 
@@ -61,7 +61,7 @@
 
 #### Tier 2 Hardening (Backend)
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`
-  - [ ] @[backend_v2/models/dtos/matrix_parser.py#L106-L145]
+  - [x] @[backend_v2/models/dtos/matrix_parser.py#L106-L145]
   - [ ] @[backend_v2/services/matrix_parser/distribution_formatter.py#L26-L75]
   - [ ] @[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L58-L191]
   - [ ] @[backend_v2/services/matrix_parser/row_builder_stage.py#L35-L75]
@@ -138,19 +138,20 @@
 - Completed Phase 1 (`@[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md]`, commit `73a147c3d`) and Tier 8 audit (`red_team_audit_phase1_leaf_and_formatter_extraction.md`).
 - Completed Phase 2 (`@[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md]`, commit `45510b6c1`) and Tier 8 audit (`red_team_audit_phase2_scale_and_atom_stage_extraction.md`).
 - Completed Phase 3 (`@[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md]`, commit `2fc262550`) and Tier 8 audit (`red_team_audit_phase3_row_builder_stage_extraction.md`).
-- Completed Phase 4 (`@[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]`):
+- Completed Phase 4 (`@[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]`, commit `ab5e48973`):
   - Step 1: Modularized all 34 baseline unit tests (plus 3 contract/Model B tests = 37 total tests) into 4 test modules under `backend_v2/tests/unit/services/matrix_parser/`: `@[backend_v2/tests/unit/services/matrix_parser/test_distribution_formatter.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`, `@[backend_v2/tests/unit/services/matrix_parser/test_row_builder_stage.py]`, and `@[backend_v2/tests/unit/services/matrix_parser/test_matrix_parser_facade.py]`, and deleted `[DELETE] @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`.
-  - Step 2: Atomically replaced `[DELETE] @[backend_v2/services/matrix_domain_parser.py]` with `@[backend_v2/services/matrix_parser/__init__.py#L44-L148]` (148 lines, `< 150` lines) with explicit `__all__` and redundant import aliases (`from ... import Symbol as Symbol`), and rewired all 1-hop consumer imports (`@[backend_v2/services/blueprint.py#L65-L669]`, `@[backend_v2/tests/unit/services/test_blueprint.py#L3302-L3397]`, `@[backend_v2/tests/unit/services/orchestrator/test_tier4_matrix_distribution_regression.py#L81-L160]`).
+  - Step 2: Atomically replaced `[DELETE] @[backend_v2/services/matrix_domain_parser.py]` with `@[backend_v2/services/matrix_parser/__init__.py#L44-L148]` (149 lines, `< 150` lines) with explicit `__all__` and redundant import aliases (`from ... import Symbol as Symbol`), and rewired all 1-hop consumer imports (`@[backend_v2/services/blueprint.py#L65-L669]`, `@[backend_v2/tests/unit/services/test_blueprint.py#L3302-L3397]`, `@[backend_v2/tests/unit/services/orchestrator/test_tier4_matrix_distribution_regression.py#L81-L160]`).
   - Step 3: Registered `backend_v2.services.matrix_domain_parser` in `@[scripts/_ast_guardrails.py#L1865-L1910]` (`visit_Import`) and `@[scripts/_ast_guardrails.py#L1912-L2011]` (`visit_ImportFrom`) under `QGR017`, and synchronized `@[.agents/rules/04_directory_reference.md]`.
-  - Verified 10/10 Universal Quality Gate stages, 37/37 unit tests in `backend_v2/tests/unit/services/matrix_parser/` (95.37% package coverage, 100% on `__init__.py`), 39/39 unit tests on `blueprint.py` (91% coverage), 7/7 Tier 4 regression tests, 1/1 SDUI semantic parity test, and 162/162 `_ast_guardrails.py` unit tests.
+  - Completed Tier 8 Audit for Phase 4 (`red_team_audit_phase4_package_cutover_and_guardrails.md`): Verified 10/10 Universal Quality Gate stages, 37/37 unit tests in `backend_v2/tests/unit/services/matrix_parser/` (95.60% package coverage, 100% on `__init__.py`), 39/39 unit tests on `blueprint.py` (91% coverage), 7/7 Tier 4 regression tests, 1/1 SDUI semantic parity test, and 162/162 `_ast_guardrails.py` unit tests.
 
 ## Learned
-- `backend_v2/services/matrix_parser/__init__.py` is 148 lines (`< 150` lines) with 100% line coverage and explicit redundant import aliases satisfying PEP 484 and `mypy --strict`.
+- `backend_v2/services/matrix_parser/__init__.py` is 149 lines (`< 150` lines) with 100% line coverage and explicit redundant import aliases satisfying PEP 484 and `mypy --strict`.
 - Once `[DELETE] @[backend_v2/services/matrix_domain_parser.py]` is physically deleted from disk, all historical `@[backend_v2/services/matrix_domain_parser.py]` references in the tracker must be tagged with `[DELETE]` so `audit_tracker_output.py` (`TRK003`) and `audit_markdown_boundaries.py` (`MBD003`) pass cleanly.
+- Epoch 1 of the `MatrixDomainParser` decomposition is 100% complete!
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+`uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`
 
 ## Remaining
-- Execute Tier 8 Audit for Phase 4 (`@[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]`).
-- Execute Epoch 2 Post-Cutover Tier 2 Hardening (`uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`) and synchronize KIs via `/tier7-describe-architecture`.
+- Execute Epoch 2 Post-Cutover Tier 2 Hardening (`uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/matrix_domain_parser_decomposition_tracker.md] --gate backend`).
+- Synchronize KIs via `/tier7-describe-architecture @[docs/epic/matrix_domain_parser_decomposition_tracker.md] @[ki_sdui_matrix_synthesis.md] @[ki_god_code_prevention.md]`.
