@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-# Canonical list of all 35 operational scripts in scripts/
+# Canonical list of all 36 operational scripts in scripts/
 ALL_SCRIPTS: list[str] = sorted(
     [
         "ablation_live_executor.py",
@@ -35,6 +35,7 @@ ALL_SCRIPTS: list[str] = sorted(
         "audit_tracker_output.py",
         "audit_warning_baseline.py",
         "auto_hardening_runner.py",
+        "auto_phase_runner.py",
         "backend_audit_loop.py",
         "convert_epic_to_hybrid.py",
         "diff_executions.py",
@@ -63,7 +64,7 @@ def test_script_count_is_exhaustive() -> None:
     assert ALL_SCRIPTS == physical_scripts, (
         f"Mismatch in script inventory. Expected {len(physical_scripts)}, got {len(ALL_SCRIPTS)}"
     )
-    assert len(ALL_SCRIPTS) == 35
+    assert len(ALL_SCRIPTS) == 36
 
 
 @pytest.mark.parametrize("script_name", ALL_SCRIPTS)
