@@ -23,33 +23,33 @@
 
 ### Phase 1: Stage DTOs & Distribution Formatter Extraction (Epoch 1 — Phase 1A)
 - **Plan:** @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md]
-- [ ] **[NOK] Research:** `/tier0-research-plan @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
+- [x] (73a147c3d) **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
   - [x] Step 1: Define Immutable Stage DTOs in `backend_v2/models/dtos/matrix_parser.py` (`@[backend_v2/models/dtos/matrix_parser.py#L106-L145]` `MatrixScaleProjectionDTO`, `@[backend_v2/models/dtos/matrix_parser.py#L148-L165]` `MatrixAtomHydrationResultDTO`, `@[backend_v2/models/dtos/matrix_parser.py#L168-L183]` `MatrixContextTargetResultDTO`)
   - [x] Step 2: Create Leaf Formatter Module `@[backend_v2/services/matrix_parser/distribution_formatter.py#L26-L75]`
   - [x] Step 3: Wire Proxy Delegations in `@[backend_v2/services/matrix_domain_parser.py#L45-L57]`, `@[backend_v2/services/matrix_domain_parser.py#L59-L70]`, and `@[backend_v2/services/matrix_domain_parser.py#L72-L641]`
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]` (`@[red_team_audit_phase1_leaf_and_formatter_extraction.md]`)
 
 ### Phase 2: Scale Projection & Atom Hydration Stage Extraction (Epoch 1 — Phase 1B)
 - **Plan:** @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md]
-- [ ] **[NOK] Research:** `/tier0-research-plan @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]. PERMISSION GRANTED for continuous full-auto execution across all steps without intermediate confirmations.`
   - [ ] Step 1: Create Scale and Atom Stage Module `[NEW] @[backend_v2/services/matrix_parser/scale_and_atom_stage.py]`
   - [ ] Step 2: Delegate Scale and Atom Stages in `@[backend_v2/services/matrix_domain_parser.py#L72-L641]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
 
 ### Phase 3: Context Target Resolution & Row Builder Stage Extraction (Epoch 1 — Phase 1C)
 - **Plan:** @[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md]
-- [ ] **[NOK] Research:** `/tier0-research-plan @[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]. PERMISSION GRANTED for continuous full-auto execution across all steps without intermediate confirmations.`
   - [ ] Step 1: Create Row Builder Stage Module `[NEW] @[backend_v2/services/matrix_parser/row_builder_stage.py]`
   - [ ] Step 2: Delegate Context Target and Row Builder Stages in `@[backend_v2/services/matrix_domain_parser.py#L72-L641]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
 
 ### Phase 4: Consumer Import Rewiring, Test Modularization, Atomic Package Cutover & QGR017 Lockdown (Epoch 1 — Cutover)
 - **Plan:** @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]
-- [ ] **[NOK] Research:** `/tier0-research-plan @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+- [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]. PERMISSION GRANTED for continuous full-auto execution across all steps without intermediate confirmations.`
   - [ ] Step 1: Modularize Unit Test Suite (`[NEW] @[backend_v2/tests/unit/services/matrix_parser/test_distribution_formatter.py]`, `[NEW] @[backend_v2/tests/unit/services/matrix_parser/test_scale_and_atom_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/matrix_parser/test_row_builder_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/matrix_parser/test_matrix_parser_facade.py]`) and delete `[DELETE] @[backend_v2/tests/unit/services/test_matrix_domain_parser.py]`
   - [ ] Step 2: Execute Atomic Package Cutover (`[DELETE] @[backend_v2/services/matrix_domain_parser.py]` -> `[NEW] @[backend_v2/services/matrix_parser/__init__.py]`) and Rewire 1-Hop Callers (`@[backend_v2/services/blueprint.py#L65-L669]`, `@[backend_v2/tests/unit/services/test_blueprint.py#L3302-L3397]`, `@[backend_v2/tests/unit/services/orchestrator/test_tier4_matrix_distribution_regression.py#L81-L160]`)
   - [ ] Step 3: Lock Retired Path in `QGR017` AST Guardrails (`@[scripts/_ast_guardrails.py#L1865-L1897]` and `@[scripts/_ast_guardrails.py#L1899-L1977]`) and Synchronize `@[.agents/rules/04_directory_reference.md]`
@@ -140,15 +140,17 @@
   - Step 2: Extracted leaf formatter functions (`format_level_distribution` `@[backend_v2/services/matrix_parser/distribution_formatter.py#L26-L75]`, `clean_hallucinated_numbers` `@[backend_v2/services/matrix_parser/distribution_formatter.py#L78-L101]`, `format_level_breakdown` `@[backend_v2/services/matrix_parser/distribution_formatter.py#L104-L148]`, `resolve_row_explanation` `@[backend_v2/services/matrix_parser/distribution_formatter.py#L151-L199]`) without creating `backend_v2/services/matrix_parser/__init__.py`.
   - Step 3: Delegated `MatrixDomainParser._format_level_distribution` (`@[backend_v2/services/matrix_domain_parser.py#L45-L57]`), `MatrixDomainParser._clean_hallucinated_numbers` (`@[backend_v2/services/matrix_domain_parser.py#L59-L70]`), and level breakdown / row explanation resolution in `MatrixDomainParser.parse_matrices` (`@[backend_v2/services/matrix_domain_parser.py#L72-L641]`) to `backend_v2.services.matrix_parser.distribution_formatter`.
   - Passed 10/10 Universal Quality Gate stages, 34/34 unit tests (`test_matrix_domain_parser.py`), 6/6 distribution regression tests (`test_tier4_matrix_distribution_regression.py`), and 8/8 SDUI semantic parity & Blueprint matrix tests.
+  - Completed and passed Tier 8 post-implementation audit (100% compliance, `@[red_team_audit_phase1_leaf_and_formatter_extraction.md]`).
 
 ## Learned
 - Extracting `distribution_formatter.py` reduced `@[backend_v2/services/matrix_domain_parser.py#L42-L641]` from 732 lines to 641 lines (`parse_matrices` spans `#L72-L641`).
 - Runtime imports of `I18nText` and `MCPAuditTrace` in `@[backend_v2/models/dtos/matrix_parser.py#L106-L145]` are required so Pydantic V2 resolves field annotations on `MatrixAtomHydrationResultDTO` and `MatrixContextTargetResultDTO` without `PydanticUndefinedAnnotation` errors.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]`
+`/tier2-execute --full-auto @[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]. PERMISSION GRANTED for continuous full-auto execution across all steps without intermediate confirmations.`
 
 ## Remaining
-- Run `/tier8-audit-plan @[docs/epic/tasks_matrix_domain_parser/phase1_leaf_and_formatter_extraction.md] @[docs/epic/matrix_domain_parser_decomposition_tracker.md]` to audit Phase 1.
-- Execute Phase 2 (`@[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md]`) through Phase 4 (`@[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]`) in Epoch 1.
+- Execute Phase 2 (`@[docs/epic/tasks_matrix_domain_parser/phase2_scale_and_atom_stage_extraction.md]`): Scale Projection & Atom Hydration Stage Extraction.
+- Execute Phase 3 (`@[docs/epic/tasks_matrix_domain_parser/phase3_row_builder_stage_extraction.md]`): Context Target Resolution & Row Builder Stage Extraction.
+- Execute Phase 4 (`@[docs/epic/tasks_matrix_domain_parser/phase4_package_cutover_and_guardrails.md]`): Consumer Import Rewiring, Test Modularization, Atomic Package Cutover & QGR017 Lockdown.
 - Execute Epoch 2 Post-Cutover Tier 2 Hardening on the extracted `backend_v2/services/matrix_parser/` package and synchronize 1-hop caller `@[backend_v2/services/blueprint.py#L65-L669]`.
