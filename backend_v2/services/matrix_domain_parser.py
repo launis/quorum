@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any, Literal
 
 from fastapi import status
@@ -27,6 +26,12 @@ from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, VisualIntent
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.localization import LocalizationService
+from backend_v2.services.matrix_parser.distribution_formatter import (
+    clean_hallucinated_numbers,
+    format_level_breakdown,
+    format_level_distribution,
+    resolve_row_explanation,
+)
 from backend_v2.utils.math_utils import scale_to_custom_range
 
 __all__ = ["MatrixDomainParser"]
@@ -48,46 +53,8 @@ class MatrixDomainParser:
         Returns:
             Formatted distribution string adhering to Dumb Painter SDUI contract.
         """
-        k_pos = lvl_data.pos_hits
-        n_pos = lvl_data.pos_total
-        k_clean = lvl_data.inv_clean
-        n_inv = lvl_data.inv_total
-
-        is_en = locale.startswith("en")
-        skills_word = "skills" if is_en else "taitoa"
-        purity_word = "purity" if is_en else "puhtaus"
-        defect_singular = "defect" if is_en else "virhe"
-        defect_plural = "defects" if is_en else "virhettä"
-
-        # Rule 1: Pure Capability Level (N_pos > 0 and N_inv == 0)
-        if n_pos > 0 and n_inv == 0:
-            if n_pos == 1:
-                return f"{k_pos}/{n_pos}"
-            return f"{k_pos}/{n_pos} {skills_word}"
-
-        # Rule 2: Pure Error Radar Level (N_pos == 0 and N_inv > 0)
-        if n_pos == 0 and n_inv > 0:
-            d_inv = n_inv - k_clean
-            if d_inv == 0:
-                return f"{purity_word} {k_clean}/{n_inv}"
-            defect_label = defect_singular if d_inv == 1 else defect_plural
-            return f"{purity_word} {k_clean}/{n_inv} (⚠️ {d_inv} {defect_label})"
-
-        # Rule 3: Hybrid Level (N_pos > 0 and N_inv > 0)
-        if n_pos > 0 and n_inv > 0:
-            skills_part = f"{k_pos}/{n_pos}" if n_pos == 1 else f"{k_pos}/{n_pos} {skills_word}"
-            d_inv = n_inv - k_clean
-            if d_inv == 0:
-                purity_part = f"{purity_word} {k_clean}/{n_inv}"
-            else:
-                defect_label = defect_singular if d_inv == 1 else defect_plural
-                purity_part = f"{purity_word} {k_clean}/{n_inv} (⚠️ {d_inv} {defect_label})"
-            return f"{skills_part}, {purity_part}"
-
-        # Rule 5: Unpartitioned Count Normalization (N_pos == 0 and N_inv == 0)
-        hits = int(lvl_data.hits)
-        total = int(lvl_data.total)
-        return f"{hits}/{total}"
+        # Phase 1, Step 3: Delegate _format_level_distribution to leaf formatter module
+        return format_level_distribution(lvl_data, locale)
 
     @staticmethod
     def _clean_hallucinated_numbers(text: str) -> str:
@@ -99,21 +66,8 @@ class MatrixDomainParser:
         Returns:
             Cleaned text string.
         """
-        if not text:
-            return ""
-
-        sentences = re.split(r"(?<=[.!?]) +", text)
-        cleaned = []
-
-        # Regex checks for words like taso, tason, tasolle, arvosana,
-        # piste etc. followed by an optional colon and a number
-        pattern = re.compile(r"(?i)(taso|arvosana|level|piste|score|grade)[a-zäö]*\s*:?\s*\d")
-
-        for s in sentences:
-            if not pattern.search(s):
-                cleaned.append(s)
-
-        return " ".join(cleaned).strip()
+        # Phase 1, Step 3: Delegate _clean_hallucinated_numbers to leaf formatter module
+        return clean_hallucinated_numbers(text)
 
     @staticmethod
     def parse_matrices(
@@ -363,61 +317,18 @@ class MatrixDomainParser:
                     axis_name = f"{original_axis_name} ({step_title} {collision_counter})"
                     collision_counter += 1
 
-            axis_level_breakdown = None
-            raw_breakdown = matrix_payload.level_breakdown
-            if raw_breakdown:
-                clean_level_dict = {}
-                for lvl_key, lvl_data in raw_breakdown.items():
-                    try:
-                        f_lvl = float(lvl_key)
-                        is_int = f_lvl.is_integer()
-                        if is_int:
-                            c_key = str(int(f_lvl))
-                        else:
-                            c_key = str(lvl_key)
-                        clean_level_dict[c_key] = MatrixDomainParser._format_level_distribution(lvl_data, locale)
-                    except ValueError as v_err:
-                        logger.error(
-                            "[MatrixDomainParser] %s: Fail-Fast: Invalid level key '%s' in matrix breakdown for '%s'.",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                            lvl_key,
-                            b_id,
-                            exc_info=True,
-                        )
-                        raise AppException(
-                            message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
-                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from v_err
-                axis_level_breakdown = clean_level_dict
+            # Phase 1, Step 3: Delegate level breakdown and row explanation formatting
+            axis_level_breakdown = format_level_breakdown(matrix_payload.level_breakdown, locale, b_id)
 
             ext = matrix_payload.extensions
 
-            synthesis_expected = profile.requires_row_explanations and has_synthesis_cache
-            is_data_starved = False
-            if execution and execution.profile_syntheses:
-                current_cache = None
-                if profile.id in execution.profile_syntheses:
-                    current_cache = execution.profile_syntheses[profile.id]
-                if current_cache and current_cache.data_starvation is not None:
-                    is_data_starved = True
-
-            if synthesis_expected and not is_data_starved:
-                if b_id not in row_explanations_cache:
-                    msg = (
-                        f"Fail-Fast: row_explanations_cache missing entry for matrix '{b_id}'. "
-                        "Worker synthesis incomplete."
-                    )
-                    logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-                final_explanation = row_explanations_cache[b_id]
-            final_explanation = ""
-            if b_id in row_explanations_cache:
-                final_explanation = row_explanations_cache[b_id]
+            cleaned_explanation = resolve_row_explanation(
+                block_id=b_id,
+                profile=profile,
+                row_explanations_cache=row_explanations_cache,
+                has_synthesis_cache=has_synthesis_cache,
+                execution=execution,
+            )
 
             evaluated_atoms_list = []
             clustered_row_sources: list[Any] = []
@@ -557,8 +468,6 @@ class MatrixDomainParser:
                 if display_scale_max is not None:
                     max_val = display_scale_max
                 score_display_label = f"{score_float:.1f} / {max_val:.1f}"
-
-            cleaned_explanation = MatrixDomainParser._clean_hallucinated_numbers(final_explanation)
 
             # Inner SDUI blocks reserved for presentation layer rendering
             inner_sdui_blocks: list[AnySduiBlock] = []
