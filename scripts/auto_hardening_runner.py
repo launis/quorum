@@ -3,6 +3,50 @@
 Orchestrates unattended overnight post-implementation hardening across isolated subagent
 processes with native markdown checklist discovery, audit verification loops, retry circuit
 breaking with workspace rollback, and atomic git checkpointing.
+
+Architectural Workflow & Lifecycle:
+-----------------------------------
+1. Target Discovery & Ingress:
+   - Discovers unhardened target files from markdown tracker checklists (`- [ ] @[path]`)
+     under `Tier 2 Hardening (Backend)` or `Tier 2 Hardening (Frontend)`.
+   - Alternatively ingests targets from a persistent JSON state file (`hardening_state.json`)
+     or explicit `--targets` CLI arguments.
+2. Deterministic State Tracking (`REMAINING = TARGETS - DONE`):
+   - Synchronizes state across sessions using a two-key JSON schema (`TARGETS` vs `DONE`).
+   - Ensures zero duplicate work upon resume, maintaining stateful progress tracking.
+3. Pre-Flight Snapshot & Circuit Breaker Rollback:
+   - Takes a workspace snapshot (`git status --porcelain`) prior to hardening each target.
+   - If quality gates fail after exhausting retries, rolls back newly modified and untracked
+     files, preventing dirty workspace corruption.
+4. Auto-Fix & Optional Subagent Pass:
+   - Executes automated formatting (`ruff format` / `dart format`).
+   - If `--agent-cmd` is provided, executes an AI subagent command template (e.g. `/tier2-hardening-backend`)
+     to autonomously remediate AST, typing, or linting errors.
+5. Universal Quality Gate Audit:
+   - Backend: Runs `scripts/backend_audit_loop.py <target> --test --ast-strict`.
+   - Frontend: Runs `scripts/flutter_audit_loop.py <target> --build`.
+   - Verifies Ruff formatting, MyPy strict typing, AST guardrails, and unit tests.
+6. Atomic Checkpointing & In-Place Tracker Marking:
+   - Marks target checklist item `- [x]` in the tracker markdown in-place.
+   - Automatically marks parent gate section `- [x]` once all child files are verified.
+   - Updates `hardening_state.json` and performs an atomic git commit (`chore(hardening): complete <target>`).
+
+CLI Usage Examples for Autonomous AI Agents:
+--------------------------------------------
+# 1. Standard unattended hardening from an implementation tracker:
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --gate backend
+
+# 2. Resume hardening from a saved sandbox state file:
+uv run python scripts/auto_hardening_runner.py --state-file scratch/hardening_state.json --gate backend
+
+# 3. Targeted hardening for specific explicit files:
+uv run python scripts/auto_hardening_runner.py --targets backend_v2/services/foo.py backend_v2/models/bar.py
+
+# 4. Dry-run inspection to preview discovered targets without executing audits or mutations:
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --dry-run
+
+# 5. AI-driven autonomous hardening with subagent execution per file:
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"
 """
 
 from __future__ import annotations
@@ -219,6 +263,11 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
     Returns:
         List of unhardened target relative paths.
     """
+    # Parses unchecked target items under the corresponding Tier 2 Hardening section.
+    # Expected markdown structure:
+    #   - [ ] Tier 2 Hardening (Backend)
+    #     - [ ] [NEW] @[backend_v2/services/foo.py]
+    #     - [ ] @[backend_v2/models/bar.py]
     gate_name = "Backend" if gate == HardeningGate.BACKEND else "Frontend"
     header_pattern = re.compile(
         rf"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\({gate_name}\)",
@@ -306,6 +355,8 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
         FileNotFoundError: If tracker or state_file does not exist.
         ValueError: If no target source is specified.
     """
+    # Target resolution hierarchy:
+    # 1. Explicit CLI arguments: --targets path1 path2
     if args.targets:
         cleaned_targets: list[str] = []
         for t in args.targets:
@@ -314,6 +365,7 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
                 cleaned_targets.append(str(p).replace("\\", "/"))
         return cleaned_targets
 
+    # 2. Markdown tracker checklist: --tracker path/to/tracker.md
     if args.tracker:
         cleaned_tracker = clean_path_arg(args.tracker)
         if cleaned_tracker is None or not cleaned_tracker.exists():
@@ -321,6 +373,8 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
         content = cleaned_tracker.read_text(encoding="utf-8")
         return parse_tracker_unhardened_targets(content, args.gate)
 
+    # 3. Persistent sandbox state JSON: --state-file scratch/hardening_state.json
+    #    Computes pending targets dynamically: REMAINING = TARGETS - DONE
     if args.state_file:
         cleaned_state = clean_path_arg(args.state_file)
         if cleaned_state is None or not cleaned_state.exists():
@@ -464,6 +518,9 @@ def run_quality_gate(
     """
     root = repo_root or get_repo_root()
 
+    # Dispatches the designated quality gate audit loop with strict AST guardrails:
+    # - Backend: uv run python scripts/backend_audit_loop.py <target_file> --test --ast-strict
+    # - Frontend: uv run python scripts/flutter_audit_loop.py <target_file> --build
     if gate == HardeningGate.BACKEND:
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
     else:
@@ -798,6 +855,31 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="auto_hardening_runner.py",
         description="Autonomous Multi-Process CLI Hardening Runner (Overnight Pipeline).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Autonomous AI Subagent Execution Examples:
+------------------------------------------
+1. Unattended hardening from an implementation tracker:
+   uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --gate backend
+
+2. Resume hardening from a saved sandbox state file:
+   uv run python scripts/auto_hardening_runner.py --state-file scratch/hardening_state.json --gate backend
+
+3. Direct targeted hardening on explicit file paths:
+   uv run python scripts/auto_hardening_runner.py --targets backend_v2/services/foo.py backend_v2/models/bar.py
+
+4. Dry-run inspection (preview target queue and planned audit commands without mutations):
+   uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --dry-run
+
+5. AI subagent-driven automated fixing per file:
+   uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"
+
+Key Behavioral Invariants for Autonomous AI Agents:
+- State Synchronization: Supports `hardening_state.json` (TARGETS vs DONE). Safe to interrupt and resume.
+- Circuit Breaker: Automatically snapshots git status before each file attempt and rolls back modifications
+  via git checkout/clean if the audit fails, protecting the repository against partial corruptions.
+- Checkpointing: Marks target items `- [x]` in tracker markdown and commits atomically after each success.
+""",
     )
     parser.add_argument("--tracker", type=Path, default=None, help="Path to tracker markdown file.")
     parser.add_argument("--state-file", type=Path, default=None, help="Path to hardening_state.json.")

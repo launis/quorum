@@ -4,6 +4,49 @@ Orchestrates unattended sequential execution of multi-phase implementation track
 across isolated Antigravity CLI (agy) subagent processes with live console streaming,
 Universal Quality Gate verification loops, atomic git checkpointing, and post-implementation
 hardening handoff.
+
+Architectural Workflow & Lifecycle:
+-----------------------------------
+1. Tracker Discovery & Parsing:
+   - Supports Multi-Phase Epic Trackers (`docs/epic/EPIC_XXX_tracker.md`, `*_decomposition_tracker.md`)
+     and Standalone Implementation Plan Trackers (`docs/implementationplans/TRACKER_*.md`).
+   - Identifies phase sections (`### Phase N`), plan references (`**Plan:** @[...]`),
+     and `/tier2-execute` execution commands.
+2. Subagent Isolation (Context Amnesia Prevention):
+   - Dispatches each phase to an isolated Antigravity CLI (`agy`) subprocess.
+   - Provides each phase with a pristine context window, eliminating token budget exhaustion,
+     cognitive drift, and context amnesia across long multi-hour implementations.
+3. Windows Process Tree Watchdog:
+   - Monitored by a watchdog timer (`--timeout`, default: 3600s).
+   - In case of timeout or abort, uses Windows `taskkill /F /T /PID` to terminate the entire
+     process tree, preventing orphaned node/python background processes.
+4. Universal Quality Gate Audit:
+   - Automatically executes `scripts/backend_audit_loop.py` and `scripts/flutter_audit_loop.py`
+     verifying Ruff, MyPy strict typing, AST guardrails, and unit tests on changed files.
+5. Atomic Checkpoint & In-Place Tracker Marking:
+   - Stages modified source files and commits them with Conventional Commits messages
+     (`feat(phaseN): complete <title>`).
+   - Updates tracker markdown in-place, marking checkboxes `- [x]` with the commit hash.
+6. Post-Implementation Hardening Handoff:
+   - On completion of all phases, hands off to `scripts/auto_hardening_runner.py` to harden
+     every modified file against Tier 2 hardening quality gates.
+
+CLI Usage Examples for Autonomous AI Agents:
+--------------------------------------------
+# 1. Standard unattended execution across all pending phases:
+uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md
+
+# 2. Resume execution starting from a specific phase (e.g., Phase 3):
+uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --from-phase 3
+
+# 3. Targeted execution of a single phase (e.g., Phase 2 only):
+uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --only-phase 2
+
+# 4. Dry-run inspection to preview discovered phases and commands without execution:
+uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --dry-run
+
+# 5. Full unattended run with AI-driven per-file hardening subagents:
+uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --hardening-agent
 """
 
 from __future__ import annotations
@@ -195,6 +238,11 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
     phases: list[PhaseItemDTO] = []
 
     # Topology 1: Multi-Phase Epic Topology
+    # Extracts sequential phases from Epic trackers formatted as:
+    #   ### Phase 1: Foundation Setup
+    #   - **Plan:** @[docs/implementationplans/phase_1.md]
+    #   - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[...] @[...]`
+    #     - [ ] Step 1.1: Models & DTOs
     # Bounded by ### Phase N up to next ### Phase, ### Integration Checkpoint, or ### Post-Implementation
     epic_phase_pattern = re.compile(
         r"### Phase\s+(\d+)[:\-]?\s*([^\n]*)\n([\s\S]*?)"
@@ -260,6 +308,12 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
             )
 
     # Topology 2: Single-Phase Standalone Plan Topology
+    # Extracts the single execution step from standalone plan trackers formatted as:
+    #   ## Step Execution Status
+    #   - **Plan:** @[docs/implementationplans/plan_xxx.md]
+    #   - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[...] @[...]`
+    #     - [ ] Step 1: Implementation Details
+    # Bounded up to next ### Post-Implementation or EOF
     if not phases:
         standalone_pattern = re.compile(
             r"## Step Execution Status\n([\s\S]*?)(?=(?:### Post-Implementation|\Z))",
@@ -405,7 +459,10 @@ def execute_phase_subagent(
     """
     agy_bin = resolve_agy_binary()
 
-    # Construct instruction prompt ensuring continuous full-auto authorization
+    # Construct instruction prompt ensuring continuous full-auto authorization.
+    # Example prompt dispatched to headless subagent:
+    #   "/tier2-execute --full-auto @[docs/implementationplans/phase_1.md] @[docs/epic/EPIC_042_tracker.md]. "
+    #   "PERMISSION GRANTED for continuous full-auto execution across all steps..."
     prompt = phase.command
     if "PERMISSION GRANTED" not in prompt:
         prompt = (
@@ -413,7 +470,10 @@ def execute_phase_subagent(
             f"Proceed autonomously through all steps without intermediate confirmations."
         )
 
-    # Wrap .cmd / .bat invocation on Windows via cmd.exe /c to prevent Win32 application execution errors
+    # Wrap .cmd / .bat invocation on Windows via cmd.exe /c to prevent Win32 application execution errors.
+    # Example command line executed on Windows:
+    #   cmd.exe /c agy.cmd --model gemini-4-argon-high --dangerously-skip-permissions -i "<prompt>"
+    # Spawns an isolated subagent process with an independent context window (zero token amnesia).
     if sys.platform == "win32" and str(agy_bin).lower().endswith((".cmd", ".bat")):
         cmd = ["cmd.exe", "/c", str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "-i", prompt]
     else:
@@ -898,7 +958,34 @@ def main(argv: list[str] | None = None) -> int:
     setup_script_environment()
 
     parser = argparse.ArgumentParser(
+        prog="auto_phase_runner.py",
         description="Autonomous Headless CLI Phase Orchestrator (Multi-Phase Pipeline Runner).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Autonomous AI Subagent Execution Examples:
+------------------------------------------
+1. Execute all pending phases in an Epic tracker unattended:
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md
+
+2. Resume pipeline starting from Phase 3:
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --from-phase 3
+
+3. Execute strictly Phase 2 (for targeted verification):
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --only-phase 2
+
+4. Dry-run simulation (inspect discovered phases and commands without spawning subprocesses):
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --dry-run
+
+5. Execute all phases and automatically run AI-driven Tier 2 hardening per file upon completion:
+   uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_042_tracker.md --hardening-agent
+
+Key Behavioral Invariants for Autonomous AI Agents:
+- Subagent Isolation: Each phase spawns an independent `agy` CLI subagent process with a fresh context.
+- Zero Context Drift: Eliminates token degradation across long multi-phase implementations.
+- Universal Quality Gate: Automatically runs backend and flutter audit loops after each phase.
+- Circuit Breaker: Halts immediately if any phase subagent or quality gate fails.
+- Atomic Checkpoint: Commits phase changes and checks tracker markdown boxes in-place with commit hashes.
+""",
     )
     parser.add_argument(
         "--tracker",
