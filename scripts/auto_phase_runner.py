@@ -197,12 +197,14 @@ def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> l
     # Topology 1: Multi-Phase Epic Topology
     # Bounded by ### Phase N up to next ### Phase, ### Integration Checkpoint, or ### Post-Implementation
     epic_phase_pattern = re.compile(
-        r"### Phase\s+(\d+)[:\-]?\s*([^\n]*)\n([\s\S]*?)(?=(?:### Phase\s+\d+|### Integration Checkpoint|### Post-Implementation|\Z))",
+        r"### Phase\s+(\d+)[:\-]?\s*([^\n]*)\n([\s\S]*?)"
+        r"(?=(?:### Phase\s+\d+|### Integration Checkpoint|### Post-Implementation|\Z))",
         re.IGNORECASE,
     )
     plan_pattern = re.compile(r"(?m)^(?:\s*-\s*)?\*\*Plan:\*\*\s*@?\[?([^\],\n`]+)\]?")
     exec_pattern = re.compile(
-        r"-\s*\[([ xX])\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*(?:`?(/tier2-execute[^\n`]+)`?|[^\n]*)",
+        r"-\s*\[([ xX])\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*"
+        r"(?:`?(/tier2-execute[^\n`]+)`?|[^\n]*)",
         re.IGNORECASE,
     )
     substep_pattern = re.compile(r"^\s+-\s*\[([ xX])\]\s*Step", re.MULTILINE)
@@ -657,7 +659,8 @@ def mark_phase_completed_in_tracker(
 
         # Regex supporting both - [ ] **[NOK] Execution:** `cmd` and unbackticked commands
         exec_line_re = re.compile(
-            r"-\s*\[[ xX]\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*`?([^`\n]+)`?(?:\s*\(`?[a-f0-9]+`?\))?",
+            r"-\s*\[[ xX]\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*"
+            r"`?([^`\n]+)`?(?:\s*\(`?[a-f0-9]+`?\))?",
             re.IGNORECASE,
         )
         updated_slice = exec_line_re.sub(_replace_exec, section_slice)
@@ -686,7 +689,8 @@ def mark_phase_completed_in_tracker(
             return f"- [x] **[OK] Execution:** `{cmd_clean}`"
 
         exec_line_re = re.compile(
-            r"-\s*\[[ xX]\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*`?([^`\n]+)`?(?:\s*\(`?[a-f0-9]+`?\))?",
+            r"-\s*\[[ xX]\]\s*(?:\([a-f0-9]+\)\s*)?\*\*\[(?:OK|NOK)\]\s*Execution(?:\s*\([^\)]+\))?:\*\*\s*"
+            r"`?([^`\n]+)`?(?:\s*\(`?[a-f0-9]+`?\))?",
             re.IGNORECASE,
         )
         updated_slice = exec_line_re.sub(_replace_standalone_exec, section_slice)
@@ -875,7 +879,8 @@ def run_phase_pipeline(
         hardening_code = run_post_hardening_gate(args.tracker, args, root)
         if hardening_code != 0:
             print(
-                f"{ANSIColors.YELLOW}[WARNING] Post-implementation hardening gate exited with code {hardening_code}.{ANSIColors.RESET}"
+                f"{ANSIColors.YELLOW}[WARNING] Post-implementation hardening gate "
+                f"exited with code {hardening_code}.{ANSIColors.RESET}"
             )
 
     return AutoPhaseRunSummaryDTO(

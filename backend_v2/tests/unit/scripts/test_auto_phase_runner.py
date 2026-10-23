@@ -580,7 +580,10 @@ def test_mark_phase_completed_standalone_plan_tracker(tmp_path: Path) -> None:
     """Verify mark_phase_completed_in_tracker updates standalone plan tracker correctly."""
     tracker = tmp_path / "tracker.md"
     tracker.write_text(
-        "## Step Execution Status\n- [ ] **[NOK] Execution:** `/tier2-execute`\n  - [ ] Step 1: DTO\n### Post-Implementation\n",
+        "## Step Execution Status\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "  - [ ] Step 1: DTO\n"
+        "### Post-Implementation\n",
         encoding="utf-8",
     )
     mark_phase_completed_in_tracker(tracker, phase_num=1, commit_hash="c1d2e3f")
