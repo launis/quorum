@@ -21,6 +21,7 @@ from scripts.auto_hardening_runner import (
     QualityGateResultDTO,
     WorkspaceSnapshotDTO,
     capture_workspace_snapshot,
+    clean_path_arg,
     execute_circuit_breaker_rollback,
     execute_subagent_pass,
     execute_subprocess_with_tree_kill,
@@ -608,3 +609,40 @@ def test_main_cli_nonexistent_state_file_and_validation_error(
     state.write_text('{"TARGETS": [], "DONE": []}', encoding="utf-8")
     assert main(["--state-file", str(state), "--max-retries", "-5"]) == 1
     assert "Argument Validation Error" in capsys.readouterr().err
+
+
+def test_clean_path_arg_formats() -> None:
+    """Verify clean_path_arg normalizes markdown links, quotes, and bare paths."""
+    assert clean_path_arg(None) is None
+    assert clean_path_arg("") is None
+    assert clean_path_arg("   ") is None
+    assert clean_path_arg("@[docs/epic/tracker.md]") == Path("docs/epic/tracker.md")
+    assert clean_path_arg("`@[docs/epic/tracker.md]`") == Path("docs/epic/tracker.md")
+    assert clean_path_arg('"@[docs/epic/tracker.md]"') == Path("docs/epic/tracker.md")
+    assert clean_path_arg("'docs/epic/tracker.md'") == Path("docs/epic/tracker.md")
+    assert clean_path_arg(Path("docs/epic/tracker.md")) == Path("docs/epic/tracker.md")
+
+
+def test_main_cli_markdown_wrapped_tracker_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify main accepts markdown @[...] formatted tracker paths."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**:\n  - [ ] @[file.py]\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_hardening_pipeline",
+        lambda args: HardeningRunSummaryDTO(
+            total_targets=1,
+            processed_count=1,
+            success_count=1,
+            failure_count=0,
+            skipped_count=0,
+            iterations=[],
+        ),
+    )
+
+    exit_code = main(["--tracker", f"@[{tracker_file}]"])
+    assert exit_code == 0
+

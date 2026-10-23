@@ -28,7 +28,7 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.services.matrix_parser import MatrixDomainParser, format_level_breakdown, format_level_distribution
+from backend_v2.services.matrix_parser import MatrixDomainParser, format_level_breakdown
 
 
 class MockDTO(BaseModel):

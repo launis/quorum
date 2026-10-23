@@ -17,6 +17,7 @@ import pytest
 from scripts._ast_guardrails import (
     GuardrailSeverity,
     GuardrailViolation,
+    _find_nested_dict_subscript,
     format_violations_table,
     main,
     scan_file_for_guardrails,
@@ -28,6 +29,14 @@ from scripts._ast_guardrails import (
 def _scan_snippet(code: str, filepath: str = "backend_v2/services/sample.py") -> list[GuardrailViolation]:
     """Helper to scan a Python code snippet as source bytes."""
     return scan_source_code_for_guardrails(filepath, code.encode("utf-8"))
+
+
+def _get_ann(code: str) -> ast.AST:
+    """Helper to extract an AnnAssign annotation AST node cleanly for strict typing."""
+    stmt = ast.parse(code).body[0]
+    assert isinstance(stmt, ast.AnnAssign)
+    assert stmt.annotation is not None
+    return stmt.annotation
 
 
 # ==============================================================================
@@ -295,6 +304,19 @@ except Exception as e:
     assert len(qgr003) == 0
 
 
+def test_qgr003_tuple_return_typed_dispatch_exempt() -> None:
+    code = """
+try:
+    do_something()
+except Exception as e:
+    return None, TaskFailureResult()
+"""
+    violations = _scan_snippet(code)
+    qgr003 = [v for v in violations if v.rule_code == "QGR003"]
+    assert len(qgr003) == 0
+
+
+
 # ==============================================================================
 # Partition 11-12: QGR004 BaseModel Pseudo-Class Overrides (__new__, model_construct)
 # ==============================================================================
@@ -540,6 +562,7 @@ raise AppException(error_code=ErrorCodes.RESOURCE_NOT_FOUND, message="Missing it
 raise AppException(error_code=ErrorCodes.RESOURCE_NOT_FOUND.value, message="Missing item")
 raise AppException("Failed", details={"error_code": ErrorCodes.VALIDATION_FAILED})
 raise AppException("Failed", details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+raise AppException("Failed", details={"error_code": CustomErrors.OPERATION_FAILED})
 """
     violations = _scan_snippet(code)
     assert len(violations) == 0
@@ -1356,6 +1379,57 @@ def test_qgr017_modular_export_package_allowed() -> None:
     assert len(qgr017) == 0
 
 
+def test_qgr017_banned_v2_core_facade_file_path_fatal() -> None:
+    """QGR017: scanning backend_v2/models/v2_core.py emits FATAL violation."""
+    code = "# Banned v2_core facade\nclass Step:\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/v2_core.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/models/v2_core.py" in qgr017[0].message
+
+
+def test_qgr017_import_from_matrix_domain_parser_fatal() -> None:
+    """QGR017: from backend_v2.services.matrix_domain_parser import ... emits FATAL violation."""
+    code = "from backend_v2.services.matrix_domain_parser import MatrixDomainParser\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.matrix_domain_parser" in qgr017[0].message
+
+
+def test_qgr017_import_matrix_domain_parser_module_fatal() -> None:
+    """QGR017: import backend_v2.services.matrix_domain_parser emits FATAL violation."""
+    code = "import backend_v2.services.matrix_domain_parser\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.matrix_domain_parser" in qgr017[0].message
+
+
+def test_qgr017_import_matrix_domain_parser_symbol_from_services_fatal() -> None:
+    """QGR017: from backend_v2.services import matrix_domain_parser emits FATAL violation."""
+    code = "from backend_v2.services import matrix_domain_parser\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "matrix_domain_parser" in qgr017[0].message
+
+
+def test_qgr017_import_export_service_symbol_from_services_fatal() -> None:
+    """QGR017: from backend_v2.services import export_service emits FATAL violation."""
+    code = "from backend_v2.services import export_service\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "export_service" in qgr017[0].message
+
+
+
 # ==============================================================================
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================
@@ -1590,6 +1664,17 @@ def test_qgr023_anonymous_state_tuple_detected() -> None:
     v3 = _scan_snippet(code3, filepath="backend_v2/services/runner.py")
     qgr023_3 = [v for v in v3 if v.rule_code == "QGR023"]
     assert len(qgr023_3) == 0
+
+    code4 = "coords_str: tuple['str', 'str'] = ('a', 'b')\n"
+    v4 = _scan_snippet(code4, filepath="backend_v2/services/runner.py")
+    qgr023_4 = [v for v in v4 if v.rule_code == "QGR023"]
+    assert len(qgr023_4) == 1
+
+    code5 = "coords_dyn: tuple[str, str | int] = ('a', 1)\n"
+    v5 = _scan_snippet(code5, filepath="backend_v2/services/runner.py")
+    qgr023_5 = [v for v in v5 if v.rule_code == "QGR023"]
+    assert len(qgr023_5) == 0
+
 
 
 def test_qgr024_string_quoted_annotation_raises_fatal() -> None:
@@ -2010,3 +2095,31 @@ async def test_endpoint(client, valid_workflow):
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     qgr029 = [v for v in violations if v.rule_code == "QGR029"]
     assert len(qgr029) == 0
+
+
+def test_find_nested_dict_subscript_coverage() -> None:
+    """Verifies _find_nested_dict_subscript across direct, nested, and outer collection annotations."""
+    assert _find_nested_dict_subscript(None) is None
+    assert _find_nested_dict_subscript(_get_ann("x: int")) is None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, int]")) is None
+    assert _find_nested_dict_subscript(_get_ann("x: list[int]")) is None
+
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, dict]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, typing.Dict]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, Mapping]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, MutableMapping]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, Dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, Mapping[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: dict[str, MutableMapping[str, int]]")) is not None
+
+    assert _find_nested_dict_subscript(_get_ann("x: list[dict]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: list[typing.Dict]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: list[Mapping]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: list[MutableMapping]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: list[dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: Sequence[dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: Iterable[dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: set[dict[str, int]]")) is not None
+    assert _find_nested_dict_subscript(_get_ann("x: Set[dict[str, int]]")) is not None
+

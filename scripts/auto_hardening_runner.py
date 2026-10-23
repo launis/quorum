@@ -46,6 +46,7 @@ __all__ = [
     "TASKKILL_TIMEOUT_SECONDS",
     "WorkspaceSnapshotDTO",
     "capture_workspace_snapshot",
+    "clean_path_arg",
     "execute_circuit_breaker_rollback",
     "execute_subagent_pass",
     "execute_subprocess_with_tree_kill",
@@ -188,6 +189,26 @@ class HardeningStateFileDTO(BaseModel):
     ]
 
 
+def clean_path_arg(val: str | Path | None) -> Path | None:
+    """Normalize and strip markdown link wrappers, quotes, and whitespace from a path argument.
+
+    Args:
+        val: Raw path string or Path instance, potentially wrapped in @[...] or quotes.
+
+    Returns:
+        Cleaned Path instance, or None if val is None.
+    """
+    if val is None:
+        return None
+    raw_str = str(val).strip().strip("`").strip("'").strip('"')
+    if raw_str.startswith("@"):
+        raw_str = raw_str[1:]
+    raw_str = raw_str.strip().strip("[").strip("]").strip()
+    if not raw_str:
+        return None
+    return Path(raw_str)
+
+
 def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) -> list[str]:
     """Parse unchecked checklist target items from tracker markdown under the specified gate section.
 
@@ -286,18 +307,25 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
         ValueError: If no target source is specified.
     """
     if args.targets:
-        return list(args.targets)
+        cleaned_targets: list[str] = []
+        for t in args.targets:
+            p = clean_path_arg(t)
+            if p is not None:
+                cleaned_targets.append(str(p).replace("\\", "/"))
+        return cleaned_targets
 
     if args.tracker:
-        if not args.tracker.exists():
+        cleaned_tracker = clean_path_arg(args.tracker)
+        if cleaned_tracker is None or not cleaned_tracker.exists():
             raise FileNotFoundError(f"Tracker file not found: {args.tracker}")
-        content = args.tracker.read_text(encoding="utf-8")
+        content = cleaned_tracker.read_text(encoding="utf-8")
         return parse_tracker_unhardened_targets(content, args.gate)
 
     if args.state_file:
-        if not args.state_file.exists():
+        cleaned_state = clean_path_arg(args.state_file)
+        if cleaned_state is None or not cleaned_state.exists():
             raise FileNotFoundError(f"State file not found: {args.state_file}")
-        content = args.state_file.read_text(encoding="utf-8")
+        content = cleaned_state.read_text(encoding="utf-8")
         state = HardeningStateFileDTO.model_validate_json(content)
         done_set = set(state.done)
         return [t for t in state.targets if t not in done_set]
@@ -576,22 +604,24 @@ def mark_tracker_and_checkpoint(
     """
     root = repo_root or get_repo_root()
     tracker_marked = False
-    if tracker_path and tracker_path.exists():
-        tracker_marked = mark_tracker_target_done(tracker_path, target_file)
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker and cleaned_tracker.exists():
+        tracker_marked = mark_tracker_target_done(cleaned_tracker, target_file)
 
     state_file_updated = False
-    if state_file and state_file.exists():
-        content = state_file.read_text(encoding="utf-8")
+    cleaned_state = clean_path_arg(state_file)
+    if cleaned_state and cleaned_state.exists():
+        content = cleaned_state.read_text(encoding="utf-8")
         state = HardeningStateFileDTO.model_validate_json(content)
         norm_target = target_file.replace("\\", "/")
         if norm_target not in state.done:
             updated_state = state.model_copy(update={"done": [*state.done, norm_target]})
-            state_file.write_text(updated_state.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
+            cleaned_state.write_text(updated_state.model_dump_json(by_alias=True, indent=2), encoding="utf-8")
             state_file_updated = True
 
     files_to_stage = [target_file]
-    if tracker_marked and tracker_path:
-        files_to_stage.append(str(tracker_path))
+    if tracker_marked and cleaned_tracker:
+        files_to_stage.append(str(cleaned_tracker))
 
     subprocess.run(
         ["git", "add", *files_to_stage],
@@ -801,27 +831,31 @@ def main(argv: list[str] | None = None) -> int:
 
     parsed = parser.parse_args(argv)
 
-    if not (parsed.tracker or parsed.targets or parsed.state_file):
+    tracker_arg = clean_path_arg(parsed.tracker)
+    state_file_arg = clean_path_arg(parsed.state_file)
+    clean_targets = [str(clean_path_arg(t)).replace("\\", "/") for t in parsed.targets if clean_path_arg(t) is not None]
+
+    if not (tracker_arg or clean_targets or state_file_arg):
         sys.stderr.write(
             f"{ANSIColors.RED}❌ Error: No target sources specified. "
             f"Provide at least one of --tracker, --targets, or --state-file.{ANSIColors.RESET}\n"
         )
         return 1
 
-    if parsed.tracker and not parsed.tracker.exists():
-        sys.stderr.write(f"{ANSIColors.RED}❌ Error: Tracker file not found: {parsed.tracker}{ANSIColors.RESET}\n")
+    if tracker_arg and not tracker_arg.exists():
+        sys.stderr.write(f"{ANSIColors.RED}❌ Error: Tracker file not found: {tracker_arg}{ANSIColors.RESET}\n")
         return 1
 
-    if parsed.state_file and not parsed.state_file.exists():
-        sys.stderr.write(f"{ANSIColors.RED}❌ Error: State file not found: {parsed.state_file}{ANSIColors.RESET}\n")
+    if state_file_arg and not state_file_arg.exists():
+        sys.stderr.write(f"{ANSIColors.RED}❌ Error: State file not found: {state_file_arg}{ANSIColors.RESET}\n")
         return 1
 
     try:
         dto = HardeningRunnerArgsDTO(
-            tracker=parsed.tracker,
-            state_file=parsed.state_file,
+            tracker=tracker_arg,
+            state_file=state_file_arg,
             gate=HardeningGate(parsed.gate),
-            targets=parsed.targets,
+            targets=clean_targets or None,
             max_files=parsed.max_files,
             max_retries=parsed.max_retries,
             timeout_seconds=parsed.timeout_seconds,

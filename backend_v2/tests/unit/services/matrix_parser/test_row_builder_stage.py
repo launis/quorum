@@ -2,10 +2,25 @@
 
 from __future__ import annotations
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import TheoryGrounding
 from backend_v2.models.domain.step import ExpectedInput, StepRule
+from backend_v2.models.dtos.matrix_parser import (
+    MatrixAtomHydrationResultDTO,
+    MatrixContextTargetResultDTO,
+    MatrixScaleProjectionDTO,
+)
+from backend_v2.models.dtos.trace import TraceMatrixExtensionsDTO, TraceMatrixPayloadDTO
 from backend_v2.services.matrix_parser import MatrixDomainParser
+from backend_v2.services.matrix_parser.row_builder_stage import (
+    build_matrix_scorecard_row,
+    resolve_axis_description,
+    resolve_context_target,
+    resolve_unique_axis_name,
+)
 from backend_v2.tests.unit.services.matrix_parser.test_matrix_parser_facade import (
     MockDTO,
     get_dummy_pb,
@@ -278,3 +293,131 @@ def test_parse_matrices_theory_grounding_and_extensions() -> None:
     assert row.cited_source_title == "Test Author 2026"
     assert row.cited_source_url == "https://example.com/source"
     assert row.semantic_reasoning == "Extended reasoning text."
+
+
+def test_resolve_unique_axis_name_missing_label_fail_fast() -> None:
+    """ISTQB Negative: Verify resolve_unique_axis_name raises AppException when pb_meta.label is missing."""
+    pb = get_dummy_pb().model_copy(update={"label": None})
+    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1")
+
+    with pytest.raises(AppException) as exc_info:
+        resolve_unique_axis_name(
+            pb_meta=pb,
+            block_id="blk_1234567890abcdef1234567890abcdef",
+            locale="en",
+            step_id="step1",
+            workflow_steps={"step1": step_rule},
+            all_parsed_matrices={},
+        )
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_resolve_unique_axis_name_empty_string_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify resolve_unique_axis_name falls back to block_id when label resolves to empty string."""
+    pb = get_dummy_pb()
+    monkeypatch.setattr(I18nText, "resolve", lambda self, target_locale=None, fallback_locale="en": "")
+    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1")
+
+    res = resolve_unique_axis_name(
+        pb_meta=pb,
+        block_id="blk_fallback_id",
+        locale="en",
+        step_id="step1",
+        workflow_steps={"step1": step_rule},
+        all_parsed_matrices={},
+    )
+    assert res == "blk_fallback_id"
+
+
+def test_resolve_unique_axis_name_secondary_collision() -> None:
+    """Verify collision counter increments when both base and step_title names collide."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    step_rule1 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_1")
+    step_rule2 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_2")
+    step_rule3 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_3")
+    payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
+    dto1 = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+    dto2 = MockDTO(step_id="step2", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+    dto3 = MockDTO(step_id="step3", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto1, dto2, dto3],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule1, "step2": step_rule2, "step3": step_rule3},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    assert len(res.all_parsed_matrices) == 3
+    row3 = res.all_parsed_matrices["step3_blk_1234567890abcdef1234567890abcdef"]
+    assert "sr_1234567890abcdef 1" in row3.name
+
+
+def test_resolve_axis_description_unset() -> None:
+    """Verify resolve_axis_description returns empty string when description is None."""
+    pb = get_dummy_pb().model_copy(update={"description": None})
+    assert resolve_axis_description(pb, "en") == ""
+
+
+def test_resolve_context_target_target_input_key_without_step_mappings() -> None:
+    """Verify resolve_context_target resolves target_input_key when step input mappings are empty."""
+    pb = get_dummy_pb().model_copy(update={"target_input_key": "custom_doc_key"})
+    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1", input_mappings={})
+
+    res = resolve_context_target(
+        step_id="step1",
+        pb_meta=pb,
+        workflow_steps={"step1": step_rule},
+        expected_inputs_map=None,
+    )
+    assert res.context_target == "custom_doc_key"
+    assert res.context_target_label is not None
+    assert res.context_target_label.resolve("en") == "custom_doc_key"
+
+
+def test_build_matrix_scorecard_row_google_citation_and_evidence_types() -> None:
+    """Verify Google citation fallback and validated_evidence_type branches."""
+    pb = get_dummy_pb().model_copy(update={"theory_grounding": None})
+    scale_proj = MatrixScaleProjectionDTO(
+        score_float=4.5,
+        raw_score=4.5,
+        math_min=1.0,
+        math_max=5.0,
+        display_scale_min=1.0,
+        display_scale_max=5.0,
+        norm_score=90.0,
+        score_display_label="4.5 / 5.0",
+        true_atoms=9,
+        total_atoms=10,
+    )
+    atom_hydration = MatrixAtomHydrationResultDTO()
+    ctx_res = MatrixContextTargetResultDTO(context_target="doc1", context_target_label=None)
+
+    for ev_type in ("EXPLICIT_QUOTE", "IMPLIED_INTENT", "NO_EVIDENCE"):
+        payload = TraceMatrixPayloadDTO(
+            raw_score=4.5,
+            normalized_score=90.0,
+            extensions=TraceMatrixExtensionsDTO(
+                google_citation="https://scholar.google.com/test",
+                evidence_type=ev_type,
+            ),
+        )
+        row = build_matrix_scorecard_row(
+            block_id="blk_1",
+            axis_name="Axis 1",
+            axis_description="Desc 1",
+            pb_meta=pb,
+            matrix_payload=payload,
+            scale_proj=scale_proj,
+            axis_level_breakdown=None,
+            cleaned_explanation="Explanation.",
+            atom_hydration=atom_hydration,
+            context_target_res=ctx_res,
+        )
+        assert row.cited_source_url == "https://scholar.google.com/test"
+        assert row.evidence_type == ev_type
+
