@@ -135,7 +135,7 @@ from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionT
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.blueprint import BlueprintTransformer
-from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+from backend_v2.services.matrix_parser import MatrixDomainParser
 
 _DEFAULT_TARGET_BLOCK_ORDER = [
     TargetBlockType.METADATA_BLOCK,
@@ -3306,7 +3306,7 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+    from backend_v2.services.matrix_parser import MatrixDomainParser
 
     pb_id = "blk_0000000000000001"
     pb = MatrixPromptBlock(

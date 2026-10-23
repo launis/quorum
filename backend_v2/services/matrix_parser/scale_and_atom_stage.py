@@ -75,7 +75,8 @@ def compute_scale_and_score_projection(
         Immutable MatrixScaleProjectionDTO containing scale bounds and projected scores.
 
     Raises:
-        AppException: On missing extrema, scales, names, or custom scale bounds (CONFIGURATION_ERROR, VALIDATION_FAILED).
+        AppException: On missing extrema, scales, names, or custom scale bounds
+            (CONFIGURATION_ERROR, VALIDATION_FAILED).
     """
     display_scale = profile.display_scale
     true_atoms = None

@@ -38,7 +38,7 @@ from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, ReportMatrixColumn
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+from backend_v2.services.matrix_parser import MatrixDomainParser
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
     CausalCohesionEvaluator,
 )

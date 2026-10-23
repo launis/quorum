@@ -34,7 +34,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.state import EvidenceOverrideDTO, StateProjector
 from backend_v2.models.view.sdui import AnySduiBlock, SduiRadarChartBlock
-from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+from backend_v2.services.matrix_parser import MatrixDomainParser
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
