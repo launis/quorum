@@ -64,7 +64,7 @@
   - [x] @[backend_v2/models/dtos/matrix_parser.py#L106-L145]
   - [x] @[backend_v2/services/matrix_parser/distribution_formatter.py#L26-L75]
   - [x] @[backend_v2/services/matrix_parser/scale_and_atom_stage.py#L58-L191]
-  - [ ] @[backend_v2/services/matrix_parser/row_builder_stage.py#L35-L75]
+  - [x] @[backend_v2/services/matrix_parser/row_builder_stage.py#L35-L75]
   - [ ] @[backend_v2/services/matrix_parser/__init__.py#L44-L148]
   - [x] [DELETE] @[backend_v2/services/matrix_domain_parser.py]
   - [ ] @[backend_v2/services/blueprint.py#L65-L669]
