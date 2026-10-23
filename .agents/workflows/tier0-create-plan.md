@@ -115,7 +115,7 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         4. If touched target files contain existing legacy anti-patterns, the generated plan MUST include `### Pre-Implementation Technical Debt Cleanups` in Phase 1 before functional features are introduced. Enforce the Scoped Boy Scout boundary (Big Bang Ban): clean technical debt exclusively in files touched by the active task.
       </constraint>
       <action name="TASK INITIALIZATION">Alongside the implementation plan, you MUST generate a simple `task.md` system **Artifact** (specifically in your system artifact directory, do NOT write it to the project root or codebase directories) containing a pure Markdown checkbox list (`- [ ]`) of the plan's milestones. This ensures the executing agent has a state-tracking file to consume, as they are forbidden from mutating the XML plan.</action>
-      <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (specifically: `[NEW] @[docs/epic/EPIC_XXX_tracker.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step, inject every single `&lt;step id&gt;` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase, and update the `# Session Handover Context`.</action>
+      <action name="TRACKER SYNCHRONIZATION">If a Tracker file was provided in the context (specifically: `[NEW] @[docs/epic/EPIC_XXX_tracker.md]` or `[NEW] @[docs/implementationplans/TRACKER_xxx.md]`), you MUST surgically update it: Check off the `[NOK] Create Plan` step (if present), inject every single `&lt;step id&gt;` from your generated XML plan as individual `- [ ] Step X: [Step Name]` checkboxes UNDER the `Execution:` command for this phase/plan, and update the `# Session Handover Context`.</action>
       <constraint name="DEFERRED_PHASE_HARDENING_INJECTION">
         When updating an existing tracker for a deferred phase, you MUST append newly planned target files into the tracker's `### Post-Implementation Gates` sub-checklists:
         1. For each new `[MODIFY]` or `[NEW]` `.py` target in the plan, append `  - [ ] @[relative_path.py]` under the `Tier 2 Hardening (Backend)` parent checkbox.
@@ -136,7 +136,15 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
 
     <step id="5" name="USER GUIDANCE &amp; NEXT STEPS">
       <action>Ask the user to review the plan in the Artifact window.</action>
-      <action>Tell the user: "You can either approve the plan directly for execution (specifically via `/tier2-execute`), or run `/tier0-research-plan` to Red-Team and stress-test the plan before approval."</action>
+      <action>
+        Output explicit next steps based on plan topology:
+        1. **Standalone Plan Topology (`docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md`)**:
+           - **Pre-Execution Analysis (Recommended)**: Instruct running `/tier0-research-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md]` to conduct Five-Axis System 2 Deconstruction and technical debt sweep.
+           - **Double-Entry Bookkeeping &amp; Hardening Checklists**: Instruct generating a dedicated Plan Tracker via `/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md]` to establish step tracking and file-level hardening checklists before execution.
+           - **Autonomous Execution**: Instruct running `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]`.
+        2. **Epic Phase Plan Topology (`docs/epic/tasks_EPIC_XXX/...`)**:
+           - Instruct running `/tier0-research-plan @[path_to_plan.md] @[docs/epic/EPIC_XXX_tracker.md]`.
+      </action>
     </step>
   </execution_protocol>
 </system_prompt>

@@ -20,6 +20,11 @@ from typing import Annotated, Final
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
 from scripts._script_base import ANSIColors, get_repo_root, setup_script_environment
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30

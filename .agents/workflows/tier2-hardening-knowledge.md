@@ -65,7 +65,7 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming, XML Refactor
       <action>Your first task is to use tools (e.g. `list_dir`) to discover the depth of the knowledge directory structure.</action>
       <constraint name="KI_DIRECTORY_DISCOVERY">
         Map all KI subdirectories within `<appDataDir>/knowledge/` (e.g., directories containing `artifacts/` and `metadata.json`).
-        If a Master Tracker was provided in the command or context (e.g. `@[docs/epic/EPIC_XXX_tracker.md]`), read the tracker's post-implementation gates and extract the targeted KI list, skipping items already marked `[x]`.
+        If an Epic Master Tracker or Plan Tracker was provided in the command or context (e.g. `@[docs/epic/EPIC_XXX_tracker.md]` or `@[docs/implementationplans/TRACKER_xxx.md]`), read the tracker's post-implementation gates and extract the targeted KI list, skipping items already marked `[x]`.
       </constraint>
       <constraint name="SPECIAL_RULE_FOR_SINGLE_KI">If the user specifies an exact KI name in their command (e.g. `god_code_prevention`), map ONLY this specific KI package. Do not expand the audit to the entire vault.</constraint>
       <action>Build a virtual Markdown checklist (`task_knowledge.md`) printed in the chat showing total, done, and pending KIs.</action>

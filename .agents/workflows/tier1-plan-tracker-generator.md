@@ -66,8 +66,8 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
           4. Add `- [ ] **[NOK] Audit:** \`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\``.
         - **`### Post-Implementation Gates`**:
           - `- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`/tier2-hardening-backend\` specifying the explicit list of created/modified @-referenced production backend `.py` files. Indent each production backend file (strictly excluding /tests/, test_, and non-code assets) as child checkboxes.`
-          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`/tier2-hardening-frontend\` specifying the explicit list of created/modified @-referenced production Flutter `.dart` files. Indent each production frontend file (strictly excluding /test/, _test.dart, generated models, and non-code assets) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run \`/tier2-hardening-backend\` in chat OR unattended via \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate backend\`. Indent each production backend file (strictly excluding /tests/, test_, and non-code assets) as child checkboxes.`
+          - `- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run \`/tier2-hardening-frontend\` in chat OR unattended via \`uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_xxx.md] --gate frontend\`. Indent each production frontend file (strictly excluding /test/, _test.dart, generated models, and non-code assets) as child checkboxes.`
           - `- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.`
           - `- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.`
         - **`### Documentation & Knowledge Item Update`**:
@@ -93,7 +93,7 @@ description: Tier 1 (Plan Tracker Generator) - Generates or surgically synchroni
         - **`### Final Plan Audit`**:
           - `- [ ] **[NOK]** System 2 Red-Team Audit: Run \`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_xxx.md] @[docs/implementationplans/TRACKER_xxx.md]\` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.`
         - **`## Instructions for the Execution Agent`**:
-          - Specify atomic commit mandates, quality gate loops (`backend_audit_loop.py`, `flutter_audit_loop.py`), `@-reference` syntax, session handover rules, and execution mode (Step-by-Step vs Continuous Full-Auto via `--full-auto`).
+          - Specify atomic commit mandates, quality gate loops (`backend_audit_loop.py`, `flutter_audit_loop.py`), `@-reference` syntax, session handover rules, execution mode (Step-by-Step vs Continuous Full-Auto via `--full-auto`), and post-implementation hardening execution options (interactive chat via `/tier2-hardening-backend` / `/tier2-hardening-frontend` or autonomous unattended run via `uv run python scripts/auto_hardening_runner.py --tracker @[tracker.md] --gate [backend|frontend]`).
         - **`## Requirements Traceability Matrix`**:
           - Table mapping granular requirements to plan steps: `| Requirement | Description | Plan Step | Status |`. Each row references `Step N`.
         - **`# Session Handover Context`**:

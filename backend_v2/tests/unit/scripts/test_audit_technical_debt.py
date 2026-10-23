@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from scripts._script_base import GuardrailSeverity
 from scripts.audit_technical_debt import (
@@ -361,7 +361,7 @@ def test_main_cli_plan_target_extraction(tmp_path: Path, capsys: pytest.CaptureF
 
     plan_file = tmp_path / "implementation_plan.md"
     plan_file.write_text(
-        f"# Plan\n- [MODIFY] @[backend_v2/services/target.py]\n- [NEW] @[backend_v2/services/new_target.py]\n",
+        "# Plan\n- [MODIFY] @[backend_v2/services/target.py]\n- [NEW] @[backend_v2/services/new_target.py]\n",
         encoding="utf-8",
     )
 

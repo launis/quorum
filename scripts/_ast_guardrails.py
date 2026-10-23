@@ -15,7 +15,6 @@ import re
 import sys
 import tokenize
 from collections.abc import Sequence
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -637,7 +636,9 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Domain models and DTOs must reside in canonical modules under backend_v2/models/.",
                 severity=GuardrailSeverity.FATAL,
             )
-        elif norm_path == "backend_v2/services/export_service.py" or norm_path.endswith("/backend_v2/services/export_service.py"):
+        elif norm_path == "backend_v2/services/export_service.py" or norm_path.endswith(
+            "/backend_v2/services/export_service.py"
+        ):
             self._add_violation(
                 node,
                 "QGR017",

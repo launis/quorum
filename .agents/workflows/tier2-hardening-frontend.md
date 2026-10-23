@@ -44,7 +44,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
     <phase id="1" name="Target Discovery &amp; Worklist Construction">
       <action>Your first task is to use tools (e.g. directory listing or file reading) to understand the depth of the directory structure.</action>
       <constraint name="MASTER TRACKER DISCOVERY">
-        At the start of Phase 1 (Mapping), if a Master Tracker was provided in the command or context (e.g. `@[docs/epic/EPIC_XXX_tracker.md]`), you MUST read the tracker's `### Post-Implementation Gates` section and extract the indented `- [ ] @[relative_path.dart]` sub-items under `Tier 2 Hardening (Frontend)`. Use this extracted file list as the DEFINITIVE target list for this hardening session, skipping any sub-items already marked `- [x]`.
+        At the start of Phase 1 (Mapping), if an Epic Master Tracker or Plan Tracker was provided in the command or context (e.g. `@[docs/epic/EPIC_XXX_tracker.md]` or `@[docs/implementationplans/TRACKER_xxx.md]`), you MUST read the tracker's `### Post-Implementation Gates` section and extract the indented `- [ ] @[relative_path.dart]` sub-items under `Tier 2 Hardening (Frontend)`. Use this extracted file list as the DEFINITIVE target list for this hardening session, skipping any sub-items already marked `- [x]`.
       </constraint>
       <constraint name="SUBPATH OVERRIDE">If the user provides a specific sub-path in their command (e.g. `client_app_v2/lib/features/studio`), map the STRUCTURE ONLY FROM THIS PATH downwards. If no sub-path is specified, map the entire `client_app_v2/lib`.</constraint>
       <constraint name="SPECIAL RULE FOR SINGLE FILES">If the user specifies an exact file or files in their command (e.g. `client_app_v2/lib/features/studio/views/workflow_step_editor_view.dart`), map a list **Only of these individual files**. Do not expand the audit to the entire directory.</constraint>
@@ -146,10 +146,10 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
         
         SANDBOX STATE PERSISTENCE: After committing, update the persistent hardening state in `<appDataDir>\brain\<conversation-id>\scratch\hardening_state.json` by appending the audited file to the `DONE` array.
         
-        TRACKER SYNCHRONIZATION: Check if an Epic Master Tracker or `task.md` was provided in your context:
+        TRACKER SYNCHRONIZATION: Check if an Epic Master Tracker, Plan Tracker (`docs/implementationplans/TRACKER_xxx.md`), or `task.md` was provided in your context:
         1) Check off the individual `  - [x] @[completed_file.dart]` sub-item in `### Post-Implementation Gates` under `Tier 2 Hardening (Frontend)`.
         2) The parent `Tier 2 Hardening (Frontend)` gate can only transition from `[NOK]` to `[OK]` when ALL indented sub-items under it are marked `[x]`.
-        IF NO tracker is provided (e.g., this is a standalone hardening run), simply conclude the session. Do NOT blindly search `docs/epic/` for random trackers.
+        IF NO tracker is provided (e.g., this is a standalone hardening run), simply conclude the session. Do NOT blindly search `docs/epic/` or `docs/implementationplans/` for random trackers.
       </action>
 
       <action name="SESSION LIMIT &amp; HANDOVER">

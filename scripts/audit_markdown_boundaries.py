@@ -12,7 +12,6 @@ import ast
 import io
 import re
 import sys
-from enum import StrEnum
 from pathlib import Path
 
 # Ensure workspace root is in sys.path for direct script execution
@@ -35,9 +34,11 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         pass
 
 try:
-    from _script_base import ANSIColors, GuardrailSeverity as GuardrailSeverity
+    from _script_base import ANSIColors
+    from _script_base import GuardrailSeverity as GuardrailSeverity
 except ImportError:
-    from scripts._script_base import ANSIColors, GuardrailSeverity as GuardrailSeverity
+    from scripts._script_base import ANSIColors
+    from scripts._script_base import GuardrailSeverity as GuardrailSeverity
 
 # ANSI colors for output
 RED = ANSIColors.RED
