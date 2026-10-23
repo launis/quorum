@@ -119,9 +119,7 @@ async def test_get_steps_scope_system_core(
 
 
 @pytest.mark.asyncio
-async def test_get_steps_scope_all(
-    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step
-) -> None:
+async def test_get_steps_scope_all(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test GET /steps/?scope=all passes all scope to service."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.list_steps.return_value = [sample_step]

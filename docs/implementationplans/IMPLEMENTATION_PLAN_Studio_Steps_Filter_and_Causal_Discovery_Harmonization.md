@@ -18,11 +18,11 @@ Establish a clean, fully backend-driven separation of concerns in Quorum Admin S
 ## Target & Context Scope
 
 ### TARGET Boundaries
-- `[MODIFY] @[backend_v2/models/enums.py#L1029-L1039]`
+- `[MODIFY] @[backend_v2/models/enums.py#L1031-L1041]`
 - `[MODIFY] @[client_app_v2/lib/core/models/enums.dart#L475-L495]`
 - `[MODIFY] @[backend_v2/tests/unit/test_enum_parity.py#L171-L173]`
-- `[MODIFY] @[backend_v2/api/routers/studio/steps.py#L56-L69]`
-- `[MODIFY] @[backend_v2/services/studio/workflow_service.py#L452-L466]`
+- `[MODIFY] @[backend_v2/api/routers/studio/steps.py#L57-L79]`
+- `[MODIFY] @[backend_v2/services/studio/workflow_service.py#L452-L475]`
 - `[MODIFY] @[client_app_v2/lib/core/api/studio_client.dart#L150-L165]`
 - `[MODIFY] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart#L285-L315]`
 - `[MODIFY] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L185-L205]`
@@ -32,7 +32,7 @@ Establish a clean, fully backend-driven separation of concerns in Quorum Admin S
 - `[MODIFY] @[client_app_v2/lib/l10n/app_en.arb#L1715-L1735]`
 - `[MODIFY] @[client_app_v2/lib/l10n/app_fi.arb#L1085-L1105]`
 - `[MODIFY] @[backend_v2/seed/seed_data.json#L22198-L22471]`
-- `[MODIFY] @[backend_v2/tests/unit/api/routers/studio/test_steps.py#L68-L76]`
+- `[MODIFY] @[backend_v2/tests/unit/api/routers/studio/test_steps.py#L77-L88]`
 - `[MODIFY] @[backend_v2/tests/integration/test_causal_discovery_seed_integration.py#L71-L88]`
 - `[MODIFY] @[client_app_v2/test/features/studio/models/workflow_test.dart#L360-L405]`
 - `[NEW] @[client_app_v2/test/features/studio/views/studio_dashboard_steps_tab_test.dart]`
