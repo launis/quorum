@@ -42,16 +42,16 @@ class BlueprintSpecDTO(BaseModel):
 DEDICATED_BLUEPRINTS: list[BlueprintSpecDTO] = [
     BlueprintSpecDTO(
         id="sp_c4a5a1d15c00438a",
-        slug="step_causal_discovery_kokonaisvaltainen",
-        expected_inputs=["product_text", "reflection_text"],
+        slug="step_causal_discovery",
+        expected_inputs=["product_text", "chat_log", "reflection_text"],
         workflow_id="wf_9d68c573802341db",
         step_rule_id="sr_c4a5a1d15c00438a",
         downstream_fusion_step_id="sr_4d2272d8b4864847",
     ),
     BlueprintSpecDTO(
         id="sp_c4a5a1d15c00438a",
-        slug="step_causal_discovery_kokonaisvaltainen",
-        expected_inputs=["product_text", "reflection_text"],
+        slug="step_causal_discovery",
+        expected_inputs=["product_text", "chat_log", "reflection_text"],
         workflow_id="wf_a8f1d71000000001",
         step_rule_id="sr_a8f1d71000000002",
         downstream_fusion_step_id="sr_a8f1d71000000003",

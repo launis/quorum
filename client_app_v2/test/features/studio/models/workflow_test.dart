@@ -362,20 +362,20 @@ void main() {
     test('NodeStrategy parses type causal_discovery from seed blueprint', () {
       final json = {
         'id': 'sp_c4a5a1d15c00438a',
-        'slug': 'step_causal_discovery_kokonaisvaltainen',
+        'slug': 'step_causal_discovery',
         'organization_id': 'SYSTEM',
         'name': {
           'translations': {
-            'fi': 'Kausaalipäättelyn Louhinta (Kokonaisvaltainen)',
-            'en': 'Dynamic Causal Discovery (Holistic)',
+            'fi': 'Kausaalipäättelyn ja Argumentaation Louhinta',
+            'en': 'Dynamic Causal Discovery & Argument Mining',
           },
         },
         'description': {
           'translations': {
             'fi':
-                'Louhii kausaaliväitteet, seuraukset ja todisteet lopputuotteesta ja reflektiosta.',
+                'Louhii kausaaliväitteet, ohjausinterventiot, riippuvuussuhteet ja evidenssin syötedokumenteista.',
             'en':
-                'Mines causal claims, consequences, and evidence from product deliverable and reflection.',
+                'Mines causal claims, steering interventions, dependencies, and evidence from input documents.',
           },
         },
         'type': 'causal_discovery',
@@ -385,7 +385,7 @@ void main() {
         'post_hooks': <String>[],
         'safety': 'safe',
         'allowed_mcp_tools': <String>[],
-        'expected_inputs': ['product_text', 'reflection_text'],
+        'expected_inputs': ['product_text', 'chat_log', 'reflection_text'],
         'is_system_core': true,
         'cognitive_tier': 'fast',
         'engine_type': 'causal_discovery',
@@ -396,7 +396,7 @@ void main() {
       switch (parsed) {
         case NodeStrategyCausalDiscovery c:
           expect(c.id, 'sp_c4a5a1d15c00438a');
-          expect(c.slug, 'step_causal_discovery_kokonaisvaltainen');
+          expect(c.slug, 'step_causal_discovery');
           expect(c.engineType, EngineType.causalDiscovery);
         case NodeStrategyLlm _:
         case NodeStrategyLogic _:

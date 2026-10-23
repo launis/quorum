@@ -22197,18 +22197,18 @@
     },
     {
       "id": "sp_c4a5a1d15c00438a",
-      "slug": "step_causal_discovery_kokonaisvaltainen",
+      "slug": "step_causal_discovery",
       "organization_id": "SYSTEM",
       "name": {
         "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Kokonaisvaltainen)",
-          "en": "Dynamic Causal Discovery (Holistic)"
+          "fi": "Kausaalipäättelyn ja Argumentaation Louhinta",
+          "en": "Dynamic Causal Discovery & Argument Mining"
         }
       },
       "description": {
         "translations": {
-          "fi": "Louhii kausaaliväitteet, seuraukset ja todisteet lopputuotteesta ja reflektiosta.",
-          "en": "Mines causal claims, consequences, and evidence from product deliverable and reflection."
+          "fi": "Louhii kausaaliväitteet, ohjausinterventiot, riippuvuussuhteet ja evidenssin syötedokumenteista.",
+          "en": "Mines causal claims, steering interventions, dependencies, and evidence from input documents."
         }
       },
       "type": "causal_discovery",
@@ -22223,176 +22223,13 @@
       "cognitive_tier": "fast",
       "expected_inputs": [
         "product_text",
+        "chat_log",
         "reflection_text"
       ],
       "is_system_core": true,
       "engine_type": "causal_discovery"
     },
-    {
-      "id": "sp_01b1d7100000ca01",
-      "slug": "step_causal_discovery_vuorovaikutus",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Vuorovaikutus)",
-          "en": "Dynamic Causal Discovery (Interaction)"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii kausaaliväitteet, ohjausinterventiot ja vuorovaikutussuhteet tuotoksesta ja chat-lokista.",
-          "en": "Mines causal claims, steering interventions, and interactions from product deliverable and chat log."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "chat_log"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
-    },
-    {
-      "id": "sp_02b1d7100000ca02",
-      "slug": "step_causal_discovery_strateginen",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Strateginen)",
-          "en": "Dynamic Causal Discovery (Strategic)"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii strategiset syy-seurausketjut ja tavoiteriippuvuudet lopputuotteesta ja reflektiosta.",
-          "en": "Mines strategic causal chains and goal dependencies from product deliverable and reflection."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "reflection_text"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
-    },
-    {
-      "id": "sp_03b1d7100000ca03",
-      "slug": "step_causal_discovery_ongelmanratkaisu",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Ongelmanratkaisu)",
-          "en": "Dynamic Causal Discovery (Problem Solving)"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii ongelmanratkaisun juurisyyt, väitteet ja hypoteesit tuotoksesta ja reflektiosta.",
-          "en": "Mines problem-solving root causes, claims, and hypotheses from product deliverable and reflection."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "reflection_text"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
-    },
-    {
-      "id": "sp_04b1d7100000ca04",
-      "slug": "step_causal_discovery_faktantarkistus",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Faktantarkistus)",
-          "en": "Dynamic Causal Discovery (Fact Checking)"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii faktaväitteet ja evidenssikausaalisuuden tarkistettavasta tuotoksesta ja lähdeaineistosta.",
-          "en": "Mines factual claims and evidence causality from deliverable and source evidence."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "source_evidence"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
-    },
-    {
-      "id": "sp_05b1d7100000ca05",
-      "slug": "step_causal_discovery_eettinen",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn Louhinta (Hallinnollinen)",
-          "en": "Dynamic Causal Discovery (Administrative)"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii hallinnolliset ja eettiset syy-seuraussuhteet tuotoksesta ja normatiivisesta aineistosta.",
-          "en": "Mines administrative and ethical cause-effect relationships from deliverable and normative sources."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "source_evidence"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
-    },
+
     {
       "id": "sp_06c1d71000000001",
       "slug": "hacm_evaluator_step",
@@ -22434,39 +22271,6 @@
       ],
       "is_system_core": false,
       "engine_type": "tda"
-    },
-    {
-      "id": "sp_06b1d7100000ca06",
-      "slug": "step_causal_discovery_hacm",
-      "organization_id": "SYSTEM",
-      "name": {
-        "translations": {
-          "fi": "Kausaalipäättelyn ja Argumentaation Louhinta",
-          "en": "Dynamic Causal Discovery & Argument Mining"
-        }
-      },
-      "description": {
-        "translations": {
-          "fi": "Louhii kausaaliväitteet, ohjausinterventiot ja riippuvuussuhteet tuotoksesta ja chat-lokista.",
-          "en": "Mines causal claims, steering interventions, and dependencies from product deliverable and chat log."
-        }
-      },
-      "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
-      "pre_hooks": [
-        "inject_step_metadata"
-      ],
-      "post_hooks": [],
-      "safety": "safe",
-      "allowed_mcp_tools": [],
-      "cognitive_tier": "fast",
-      "expected_inputs": [
-        "product_text",
-        "chat_log"
-      ],
-      "is_system_core": true,
-      "engine_type": "causal_discovery"
     }
   ],
   "organizations": [
