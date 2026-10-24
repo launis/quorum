@@ -16,7 +16,11 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </rule_block>
 
     <rule_block id="senior_architect_proactive_hardening_mandate">
-      <mandate>Act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or target plan, do NOT passively accommodate them. Instead, directly and proactively harden the target implementation plan with strict invariants, mathematical proof anchors, and type-safe contracts.</mandate>
+      <mandate>Act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or target plan, do NOT passively accommodate them. Instead, directly and proactively harden the target implementation plan with strict invariants, mathematical proof anchors, and type-safe contracts. Conversely, if the plan already satisfies all architectural invariants and deterministic audit scripts (`idempotent_convergence_gate`), declare convergence without inventing artificial edits.</mandate>
+    </rule_block>
+
+    <rule_block id="idempotent_convergence_gate">
+      <mandate>Enforce the **Zero-Defect Convergence Gate (Idempotent Pass)**: If the target `implementation_plan.md` already passes `uv run python scripts/audit_markdown_boundaries.py --file [plan_path]` (and `audit_planner_output.py` when an Epic exists) with `0` findings, already accounts for all touched-scope technical debt from `scripts/audit_technical_debt.py` in `Phase 1`, maintains 100% bidirectional parity between its 5-Column Directives Table and `&lt;execution_protocol&gt;` steps, and exhibits zero violations of Quorum 2026 architectural invariants, you MUST declare `CONVERGENCE ACHIEVED: 0 architectural defects found`, perform **ZERO mutations** (`0` edits) on the plan, and proceed directly to tracker handover synchronization and `/tier2-execute` guidance. NEVER manufacture artificial failure modes solely to force a file edit on an already-converged plan.</mandate>
     </rule_block>
 
     <rule_block id="circuit_breaker_and_context_guard">
@@ -83,7 +87,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </step>
 
     <step id="3" name="FALSIFICATION &amp; RED-TEAMING (CHECKLIST)">
-      <action>Attack plan with Red-Team mindset. Document at least TWO failure points. Mandatory verification: anti_happy_path_mandate (≥2 negative tests per feature), KI contract compatibility, DI/Protocol blast radius, AsyncMock return schema updates, legacy code preservation, backend-frontend SDUI parity, LLM rate/token/JSON failure resilience, context window load (&lt;4 files/session), and upstream Epic goal alignment.</action>
+      <action>Attack plan with Red-Team mindset. Document concrete architectural failure points if any exist (or trigger `idempotent_convergence_gate` with `CONVERGENCE ACHIEVED: 0 architectural defects found` if all checks pass). Mandatory verification: anti_happy_path_mandate (≥2 negative tests per feature), KI contract compatibility, DI/Protocol blast radius, AsyncMock return schema updates, legacy code preservation, backend-frontend SDUI parity, LLM rate/token/JSON failure resilience, context window load (&lt;4 files/session), and upstream Epic goal alignment.</action>
     </step>
 
     <step id="4" name="EXPERIMENTAL VALIDATION (DRY-RUNS)">
@@ -99,7 +103,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     </step>
 
     <step id="6" name="PLAN MUTATION &amp; ARTIFACT PERSISTENCE (WRITE SAFETY)">
-      <action>Update target `[implementation_plan]` using `multi_replace_file_content` (full `write_to_file` strictly forbidden). Inject 5-Column Directives Table, AST-exact line bounds (#Lnn-mm spanning complete Class/Function definitions), and `Phase 1: Pre-Implementation Cleanups` containing all discovered technical debt. If major architectural shift occurred, update parent `docs/epic/EPIC_XXX.md`.</action>
+      <action>If architectural defects, boundary errors, or unmapped Phase 1 technical debt were found in Steps 1–4, update target `[implementation_plan]` using `multi_replace_file_content` (full `write_to_file` strictly forbidden): inject 5-Column Directives Table, AST-exact line bounds (#Lnn-mm spanning complete Class/Function definitions), and `Phase 1: Pre-Implementation Cleanups` containing all discovered technical debt, and if a major architectural shift occurred, update parent `docs/epic/EPIC_XXX.md`. If `idempotent_convergence_gate` was triggered with `0` defects, leave `[implementation_plan]` untouched.</action>
       <constraint name="TABLE_PROTOCOL_RECONCILIATION_GATE">
         BIDIRECTIONAL PARITY ENFORCEMENT: Every target file, component, or anti-pattern codified in Column 1 and Column 2 of the 5-Column Directives Table MUST have an explicit, actionable &lt;action&gt; tag in the corresponding &lt;step id="..."&gt; of &lt;execution_protocol&gt;. It is STRICTLY FORBIDDEN to record an architectural cleanup in the table without a corresponding execution instruction.
         DETERMINISTIC VERIFICATION: Immediately after updating the plan, you MUST run:

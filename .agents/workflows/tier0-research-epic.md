@@ -33,9 +33,17 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     </rule_block>
 
     <rule_block id="senior_architect_proactive_hardening_mandate">
-      <banned_pattern>Passively accommodating flawed user assumptions, overlooking edge cases or architectural risks, tolerating loose typing, or rubber-stamping requests out of agreeableness instead of correcting the Epic directly.</banned_pattern>
-      <mandatory_pattern>You MUST act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or target Epic, you MUST NOT passively accommodate the user's wishes. Instead, you MUST directly and proactively harden the target Epic document with strict invariants, mathematical proof anchors, and type-safe contracts.</mandatory_pattern>
-      <catastrophic_reason>Passively agreeing with user assumptions or overlooking edge cases introduces brittle duct-tape logic, regression cascades, and catastrophic production failures.</catastrophic_reason>
+      <banned_pattern>Passively accommodating flawed user assumptions, overlooking genuine architectural risks, tolerating loose typing, or rubber-stamping an un-hardened Epic that violates V2 invariants instead of correcting it directly.</banned_pattern>
+      <mandatory_pattern>You MUST act as an experienced Senior/Principal Architect prioritizing code fault tolerance, fail-fast boundary defenses, and strict type safety above all else. If you detect flawed assumptions, brittle shortcuts, architectural risks, or weak typing in the user's prompt or target Epic, you MUST NOT passively accommodate the user's wishes. Instead, you MUST directly and proactively harden the target Epic document with strict invariants, mathematical proof anchors, and type-safe contracts. Conversely, if the Epic already satisfies all architectural invariants and deterministic audit scripts (`idempotent_convergence_and_tier_boundary_gate`), you MUST declare convergence without inventing artificial edits.</mandatory_pattern>
+      <catastrophic_reason>Passively agreeing with flawed assumptions introduces brittle duct-tape logic, while forcing artificial edits onto an already-converged Epic causes non-terminating documentation bloat.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="idempotent_convergence_and_tier_boundary_gate">
+      <banned_pattern>Manufacturing microscopic implementation nitpicks, inventing artificial failure modes on an already-hardened Epic, or pushing Tier 1/Tier 2 line-by-line coding micro-instructions into a Tier 0 Epic solely to satisfy a mandatory edit quota.</banned_pattern>
+      <mandatory_pattern>You MUST enforce the **Zero-Defect Convergence Gate (Idempotent Pass)** and **Tier 0 Granularity Boundary**:
+        1. **Idempotent Convergence Check**: If the target Epic already passes `uv run python scripts/audit_markdown_boundaries.py --file &lt;path_to_epic&gt;` with `0` findings, already catalogs all touched-scope technical debt from `scripts/audit_technical_debt.py` and `scripts/audit_flutter_theme_sovereignty.py` in `Phase 1`, already contains a complete `&lt;demolish&gt;` sunset inventory and 5-Column Architectural Directive Table, and exhibits zero violations of Quorum 2026 architectural invariants (`00-antigravity-core.md` through `05_llm_architecture.md`), you MUST declare `CONVERGENCE ACHIEVED: 0 architectural defects found` and perform **ZERO mutations** (`0` edits) on the Epic document.
+        2. **Tier 0 vs. Tier 1 Granularity Boundary**: Tier 0 Epics define **system boundaries, target files, DTO/enum contracts, security invariants, deprecation tables, and phase ordering**. Detailed function-internal implementation mechanics belong in Tier 1 (`implementation_plan.md`) and Tier 2 execution, NOT in the Tier 0 Epic.</mandatory_pattern>
+      <catastrophic_reason>Forcing mandatory mutations without an idempotent convergence gate creates an infinite documentation loop where successive `/tier0-research-epic` executions endlessly bloat the Epic with low-level implementation trivia.</catastrophic_reason>
     </rule_block>
 
     <rule_block id="english_language_mandate">
@@ -168,7 +176,8 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     </step>
 
     <step id="3" name="FALSIFICATION &amp; RED-TEAMING (ANTI-HAPPY-PATH)">
-      <action>Attack the Epic with a "Red-Team" mindset. Document at least TWO concrete, plausible failure modes.</action>
+      <action>Attack the Epic with a "Red-Team" mindset against the mandatory falsification criteria below. Document concrete, plausible architectural failure modes if any exist; if the Epic already satisfies all falsification criteria, boundary checks, and Phase 1 tech-debt mappings with zero architectural defects, trigger `ZERO_DEFECT_CONVERGENCE_GATE` (`CONVERGENCE ACHIEVED: 0 architectural defects found`) without inventing artificial nitpicks.</action>
+      <gate name="ZERO_DEFECT_CONVERGENCE_GATE">If `audit_markdown_boundaries.py` passes with 0 findings, all touched-scope technical debt is scheduled in Phase 1, and all Mandatory Falsification Questions pass with 0 architectural flaws, halt further Epic mutation and proceed in idempotent read-only pass mode.</gate>
       <constraint name="MANDATORY_FALSIFICATION_QUESTIONS">
         Answer these mandatory questions:
         - Does this Epic introduce any "Duct-Tape" solutions, hidden fallbacks, or silent error suppression instead of deterministic Fail-Fast logic?
@@ -203,9 +212,9 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
     </step>
 
     <step id="5" name="EPIC MUTATION &amp; AUDIT ARTIFACT PERSISTENCE (WRITE SAFETY)">
-      <action>Update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint.</action>
-      <action name="TECH_DEBT_PRE_REQUISITE_INJECTION">If technical debt was discovered in touched files or 1-hop callers, you MUST mutate the Epic to inject explicit `### Pre-Implementation Technical Debt Cleanups` pre-requisite steps into Phase 1 before new business logic is added.</action>
-      <action name="DIRECTIVES_TABLE_INJECTION">Inject or update the 5-Column Architectural Directive Table under `## 2. Architectural Impact &amp; Compliance Matrix` or `## 3. Phased Execution Plan`.</action>
+      <action>If architectural defects, boundary errors, or unmapped Phase 1 technical debt were identified in Steps 1–3, update the `[epic_document]` based on your findings so the document becomes a bulletproof, unambiguous blueprint. If `ZERO_DEFECT_CONVERGENCE_GATE` was triggered with `0` architectural defects, do NOT mutate the `[epic_document]`; preserve it untouched and record the convergence verification in the audit report.</action>
+      <action name="TECH_DEBT_PRE_REQUISITE_INJECTION">If unmapped technical debt was discovered in touched files or 1-hop callers, you MUST mutate the Epic to inject explicit `### Pre-Implementation Technical Debt Cleanups` pre-requisite steps into Phase 1 before new business logic is added.</action>
+      <action name="DIRECTIVES_TABLE_INJECTION">Inject or update the 5-Column Architectural Directive Table under `## 2. Architectural Impact &amp; Compliance Matrix` or `## 3. Phased Execution Plan` if missing or incomplete.</action>
       <constraint>You MUST use the `multi_replace_file_content` tool for surgical edits to prevent truncation. Full file overwrites (`write_to_file`) on the Epic document are strictly forbidden. If `multi_replace_file_content` fails due to line matching discrepancies, fallback to bounded `view_file` to verify the exact code structure before retrying.</constraint>
       <action name="AUDIT_REPORT_PERSISTENCE">Save the full System 2 audit report (including root cause analysis, panel findings, failure mode analysis, and the 5-column table) to `docs/epic/EPIC_[num]_audit_report.md` using `write_to_file`.</action>
       <action name="SELF_HEALING_BOUNDARY_AUDIT">After mutating the Epic document, you MUST physically run the boundaries audit script: `uv run python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. CIRCUIT BREAKER: If you fail 3 times sequentially, you MUST STOP, output `<circuit_breaker_tripped>`, and WAIT for human guidance to prevent infinite loops.</action>
