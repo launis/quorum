@@ -189,4 +189,3 @@ def test_detect_attachment_cards_negative_and_boundary_partitions() -> None:
     card_rect, card_label = cards[0]
     assert card_rect == fitz.Rect(0.0, 300.0, 82.0, 382.0)
     assert card_label == "[Liite: analyysi_v2.pdf]"
-

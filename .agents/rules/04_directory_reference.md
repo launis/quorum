@@ -24,7 +24,7 @@
 
     <rule_block id="test_directory_isolation">
         <mandate>NEVER place test files alongside production code or directly into `tests/` root without test pyramid categorization. Test files MUST strictly mirror production structure categorized into test pyramid roots:
-        - Python Backend: `backend_v2/tests/unit/...` (including `models/dtos/test_causal_discovery_dtos.py`, `services/orchestrator/test_dag_executor_causal_fusion.py`, `services/mcp/test_wikipedia_client.py`, `services/mcp/test_wikipedia.py`, `services/mcp/test_mcp_tool_loop.py`, `scripts/test_ablation_live_executor.py`, `scripts/test_auto_phase_runner.py`), `backend_v2/tests/integration/...` (including `test_multi_segment_causal_e2e.py`, `test_causal_discovery_seed_integration.py`), `backend_v2/tests/e2e/...`
+        - Python Backend: `backend_v2/tests/unit/...` (including `models/dtos/test_causal_discovery_dtos.py`, `services/orchestrator/test_dag_executor_causal_fusion.py`, `services/mcp/test_wikipedia_client.py`, `services/mcp/test_wikipedia.py`, `services/mcp/test_mcp_tool_loop.py`, `services/ingress/pdf_extractor/test_bubble_geometry.py`, `scripts/test_ablation_live_executor.py`, `scripts/test_auto_phase_runner.py`), `backend_v2/tests/integration/...` (including `test_multi_segment_causal_e2e.py`, `test_causal_discovery_seed_integration.py`), `backend_v2/tests/e2e/...`
         - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...` (including `test/features/studio/views/studio_dashboard_steps_tab_test.dart`, `test/features/studio/views/widgets/workflow/workflow_step_card_dumb_painter_test.dart`)</mandate>
     </rule_block>
 </catastrophic_system_bans>

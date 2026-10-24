@@ -130,13 +130,13 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
     hardening_agent: Annotated[
         bool,
         Field(
-            default=False,
+            default=True,
             description=(
                 "Dispatch AI-driven /tier2-hardening-backend or /tier2-hardening-frontend "
                 "subagents per target file during hardening."
             ),
         ),
-    ] = False
+    ] = True
     hardening_model: Annotated[
         str | None,
         Field(
@@ -1122,11 +1122,11 @@ Key Behavioral Invariants for Autonomous AI Agents:
     )
     parser.add_argument(
         "--hardening-agent",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
             "Dispatch AI-driven /tier2-hardening-backend or /tier2-hardening-frontend "
-            "subagents per target file during hardening."
+            "subagents per target file during hardening (enabled by default; use --no-hardening-agent to disable)."
         ),
     )
     parser.add_argument(

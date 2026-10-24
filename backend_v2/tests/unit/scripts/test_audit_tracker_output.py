@@ -17,6 +17,7 @@ from scripts.audit_tracker_output import (
     GuardrailSeverity,
     TrackerAuditFinding,
     TrackerMode,
+    check_hardening_targets,
     check_mandatory_sections,
     check_phase_format,
     check_required_context_rules,
@@ -137,6 +138,90 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     m_errs, m_warns = check_traceability_mapping("no matrix here", plan_dir)
     assert len(m_errs) == 1
     assert m_errs[0].rule_code == "TRK005"
+
+    # check_hardening_targets: valid
+    valid_hardening = (
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "  - [ ] @[backend_v2/services/foo.py]\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run hardening\n"
+        "  - [ ] @[client_app_v2/lib/bar.dart]\n"
+    )
+    assert check_hardening_targets(valid_hardening) == []
+
+    # check_hardening_targets: deleted file in backend
+    deleted_backend_hardening = (
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "  - [ ] @[backend_v2/services/foo.py]\n"
+        "  - [ ] [DELETE] @[backend_v2/services/legacy.py]\n"
+    )
+    del_findings = check_hardening_targets(deleted_backend_hardening)
+    assert len(del_findings) == 1
+    assert del_findings[0].rule_code == "TRK007"
+    assert del_findings[0].severity == GuardrailSeverity.FATAL
+    assert "Tier 2 Hardening (Backend)" in del_findings[0].section
+
+    # check_hardening_targets: deleted file in frontend
+    deleted_frontend_hardening = (
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run hardening\n"
+        "  - [ ] [DELETE] @[client_app_v2/lib/old_widget.dart]\n"
+    )
+    fe_del_findings = check_hardening_targets(deleted_frontend_hardening)
+    assert len(fe_del_findings) == 1
+    assert fe_del_findings[0].rule_code == "TRK007"
+    assert fe_del_findings[0].severity == GuardrailSeverity.FATAL
+    assert "Tier 2 Hardening (Frontend)" in fe_del_findings[0].section
+
+    # check_hardening_targets: [DELETE] outside hardening section is not flagged by TRK007
+    deleted_in_phase = (
+        "### Phase 4: Cutover\n"
+        "- [x] [DELETE] @[backend_v2/services/legacy.py]\n"
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "  - [ ] @[backend_v2/services/foo.py]\n"
+    )
+    assert check_hardening_targets(deleted_in_phase) == []
+
+
+def test_tracker_audit_rejects_deleted_file_in_hardening_checklist(tmp_path: Path) -> None:
+    """Negative test: Tracker with [DELETE] file in Tier 2 Hardening fails with TRK007."""
+    tracker = tmp_path / "EPIC_WITH_DELETED_HARDENING_tracker.md"
+    tracker.write_text(
+        "# EPIC TEST Tracker\n\n"
+        "<required_context_rules>\n"
+        "- @[.agents/rules/00-antigravity-core.md]\n"
+        "</required_context_rules>\n\n"
+        "## Phase Execution Status\n\n"
+        "### Phase 1: Core Foundation\n"
+        "**Plan:** @[docs/epic/tasks_EPIC_TEST/01_phase1_plan.md]\n"
+        "- [x] **[OK] Execution:** `/tier2-execute`\n"
+        "  - [x] Step 1: Implementation\n"
+        "- [x] **[OK] Audit:** `/tier8-audit-plan`\n\n"
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "  - [ ] @[backend_v2/services/new_service.py]\n"
+        "  - [ ] [DELETE] @[backend_v2/services/old_monolith.py]\n\n"
+        "### Final Epic Audit\n"
+        "- [ ] Audit 1\n\n"
+        "## Instructions for the Execution Agent\n"
+        "- Follow atomic commits.\n\n"
+        "## Requirements Traceability Matrix\n"
+        "| ID | Description | Mapped Step |\n"
+        "|---|---|---|\n"
+        "| REQ-01 | Test Req | Phase 1, Step 1 |\n\n"
+        "# Session Handover Context\n"
+        "## Achieved\n- Done\n\n"
+        "## Learned\n- Baseline\n\n"
+        "## Remaining\n- None\n\n"
+        "## Status\nComplete\n",
+        encoding="utf-8",
+    )
+    result = _run_tracker_audit(tracker)
+    assert result.returncode == 1
+    assert "TRK007" in result.stdout
+    assert "Deleted file or `[DELETE]` tag found in Tier 2 Hardening checklist" in result.stdout
 
 
 def test_tracker_audit_valid_full_tracker(tmp_path: Path) -> None:

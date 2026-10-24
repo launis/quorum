@@ -75,10 +75,18 @@ GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
 FORMATTER_TIMEOUT_SECONDS: Final[int] = 60
 DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 600
+DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
+    'agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-hardening-backend @[{target}]"'
+)
+DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
+    'agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-hardening-frontend @[{target}]"'
+)
 
 __all__ = [
     "CheckpointResultDTO",
     "DEFAULT_AUDIT_TIMEOUT_SECONDS",
+    "DEFAULT_BACKEND_AGENT_TEMPLATE",
+    "DEFAULT_FRONTEND_AGENT_TEMPLATE",
     "FORMATTER_TIMEOUT_SECONDS",
     "GIT_SUBPROCESS_TIMEOUT_SECONDS",
     "HardeningGate",
@@ -902,7 +910,18 @@ Key Behavioral Invariants for Autonomous AI Agents:
         default=DEFAULT_AUDIT_TIMEOUT_SECONDS,
         help="Per-file audit timeout in seconds.",
     )
-    parser.add_argument("--agent-cmd", type=str, default=None, help="Subagent command template e.g. 'echo {target}'.")
+    parser.add_argument(
+        "--agent-cmd",
+        type=str,
+        default=None,
+        help="Subagent command template e.g. 'agy ... /tier2-hardening-backend @[{target}]'.",
+    )
+    parser.add_argument(
+        "--no-agent",
+        action="store_true",
+        default=False,
+        help="Disable automatic AI subagent execution before audit (run quality gates only).",
+    )
     parser.add_argument("--no-auto-fix", action="store_true", help="Disable automatic ruff/dart format passes.")
     parser.add_argument(
         "--fail-fast", action="store_true", default=True, help="Halt execution on first failure (default: True)."
@@ -934,6 +953,12 @@ Key Behavioral Invariants for Autonomous AI Agents:
         sys.stderr.write(f"{ANSIColors.RED}❌ Error: State file not found: {state_file_arg}{ANSIColors.RESET}\n")
         return 1
 
+    resolved_agent_cmd: str | None = parsed.agent_cmd
+    if not resolved_agent_cmd and not parsed.no_agent:
+        resolved_agent_cmd = (
+            DEFAULT_BACKEND_AGENT_TEMPLATE if parsed.gate == "backend" else DEFAULT_FRONTEND_AGENT_TEMPLATE
+        )
+
     try:
         dto = HardeningRunnerArgsDTO(
             tracker=tracker_arg,
@@ -943,7 +968,7 @@ Key Behavioral Invariants for Autonomous AI Agents:
             max_files=parsed.max_files,
             max_retries=parsed.max_retries,
             timeout_seconds=parsed.timeout_seconds,
-            agent_cmd=parsed.agent_cmd,
+            agent_cmd=resolved_agent_cmd,
             no_auto_fix=parsed.no_auto_fix,
             fail_fast=parsed.fail_fast,
             continue_on_failure=parsed.continue_on_failure,

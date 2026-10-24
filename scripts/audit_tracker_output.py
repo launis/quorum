@@ -279,6 +279,39 @@ def check_required_context_rules(content: str) -> list[TrackerAuditFinding]:
     return []
 
 
+def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
+    """Verify that Tier 2 Hardening sections do not contain deleted files or [DELETE] tags.
+
+    Args:
+        content: Raw markdown text of the tracker file.
+
+    Returns:
+        List of audit findings identifying deleted files in hardening checklists.
+    """
+    findings: list[TrackerAuditFinding] = []
+    gate_pattern = re.compile(
+        r"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\((Backend|Frontend)\)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    for match in gate_pattern.finditer(content):
+        gate_name = match.group(1)
+        lines = content[match.end() :].splitlines()
+        for line in lines:
+            if line.startswith("- [") or line.startswith("## ") or line.startswith("### "):
+                break
+            if "[DELETE]" in line:
+                findings.append(
+                    TrackerAuditFinding(
+                        section=f"Tier 2 Hardening ({gate_name})",
+                        rule_code="TRK007",
+                        message=f"Deleted file or `[DELETE]` tag found in Tier 2 Hardening checklist: '{line.strip()}'.",
+                        severity=GuardrailSeverity.FATAL,
+                        remediation="Remove deleted files and `[DELETE]` tags from Tier 2 Hardening checklist. Hardening applies exclusively to surviving production files.",
+                    )
+                )
+    return findings
+
+
 def check_session_handover(content: str) -> list[TrackerAuditFinding]:
     """Verify Session Handover Context sub-headings (tolerating Status for completed trackers)."""
     match = re.search(r"#\s+Session Handover Context([\s\S]*?)(?=\Z)", content, re.IGNORECASE)
@@ -542,6 +575,7 @@ Statically validates Epic Trackers and Standalone Plan Trackers against system f
         [
             ("Context Rules", check_required_context_rules(content)),
             ("Session Handover", check_session_handover(content)),
+            ("Hardening Targets", check_hardening_targets(content)),
         ]
     )
 
