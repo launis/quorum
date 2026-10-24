@@ -38,7 +38,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
