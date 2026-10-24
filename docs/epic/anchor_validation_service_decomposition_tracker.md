@@ -61,7 +61,7 @@
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py#L25-L337]`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/atom_evaluation_processor.py#L18-L125]`
-  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]`
+  - [x] `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]`
   - [ ] `@[backend_v2/services/orchestrator/extractive_sensor_service.py#L176-L761]`
   - [ ] `@[backend_v2/services/mcp/mcp_tool_loop.py#L150-L476]`
   - [ ] `@[backend_v2/hooks/integrity.py#L118-L138]`
