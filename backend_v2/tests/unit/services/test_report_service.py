@@ -1090,4 +1090,3 @@ async def test_get_report_pdf_bytes_success() -> None:
     assert filename == f"report_{report.id}.pdf"
     service._dlq_log_absent_storage_artifact("artifacts/reports/rep_123/missing.pdf")
     await service._dispatch_report_compilation_dlq(report.id, RuntimeError("Test DLQ"))
-
