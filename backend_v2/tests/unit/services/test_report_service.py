@@ -4,6 +4,7 @@ Enforces Tripartite Phase Isolation, Four-Tier Pydantic V2 Invariants, and failu
 """
 
 import logging
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -26,7 +27,13 @@ from backend_v2.models.dtos.report_artifact import (
     ReportStoragePathsDTO,
 )
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType, ReportStatus, VisualIntent
+from backend_v2.models.enums import (
+    ExecutionStatus,
+    HistoricalContextMode,
+    LaxSDUIComponentType,
+    ReportStatus,
+    VisualIntent,
+)
 from backend_v2.services.report_service import ReportService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -52,6 +59,7 @@ def _create_dummy_execution(
         status=ExecutionStatus.PASSED,
         semantic_reasoning="Sound reasoning.",
         contextual_override=False,
+        structural_location="Section 1",
         chart_display_label="Strategic Claim",
         visual_intent=VisualIntent.NEUTRAL,
     )
@@ -88,6 +96,7 @@ def _create_dummy_report(
     report_id: str = "rep_1234567890abcdef",
     status: ReportStatus = ReportStatus.PENDING,
 ) -> ReportArtifact:
+    now = datetime.now(UTC)
     return ReportArtifact(
         id=report_id,
         execution_id="exe_1234567890abcdef",
@@ -103,6 +112,8 @@ def _create_dummy_report(
             csv_path=f"artifacts/reports/{report_id}/report.csv",
         ),
         metadata=ReportMetadataDTO(cost_usd=0.05, duration_ms=1200, tokens_used=500),
+        created_at=now,
+        updated_at=now,
     )
 
 
@@ -113,6 +124,9 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         status=ExecutionStatus.PASSED,
         source_quotes=("Forensic quote",),
         evaluation_reasoning="Sound reasoning.",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
     )
     hydrated_ref = HydratedAtomDTO(
         sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
@@ -358,6 +372,9 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         source_quotes=("Affirmative quote",),
         evaluation_reasoning="Affirmative reasoning.",
         is_inverse_evidence=False,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
     )
     atom_inverse = AtomResultDTO(
         tda_id="tda_0000000000000002",
@@ -366,6 +383,9 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         source_quotes=None,
         evaluation_reasoning="Inverse reasoning.",
         is_inverse_evidence=True,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
     )
     report_data = ReportDataDTO(
         workflow_id="wor_0123456789abcdef",
@@ -630,7 +650,7 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
         version=1,
         default_profile_id="prf_0000000000000001",
         model_registry_id="cfg_model_registry_01",
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
     )
     await repo.save_workflow(workflow)
     default_profile = _create_dummy_profile(profile_id="prf_0000000000000001")
@@ -914,3 +934,53 @@ async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_ide
     await service.process_artifact_compilation(report.id, force_resynthesis=True)
 
     assert storage.save.call_count == 4
+
+
+@pytest.mark.asyncio
+async def test_get_report_success() -> None:
+    """Verify get_report returns existing ReportArtifact matching repository state."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    expected_report = _create_dummy_report(report_id="rep_1234567890abcdef")
+    await repo.create_report_artifact(expected_report)
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    result = await service.get_report("rep_1234567890abcdef")
+
+    assert result.id == "rep_1234567890abcdef"
+    assert result.execution_id == expected_report.execution_id
+    assert result.profile_id == expected_report.profile_id
+
+
+@pytest.mark.asyncio
+async def test_get_report_not_found() -> None:
+    """Verify get_report raises ResourceNotFoundError with ErrorCodes.RESOURCE_NOT_FOUND when missing."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await service.get_report("rep_0000000000000000")
+
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_create_report_artifact_persists_model() -> None:
+    """Verify create_report_artifact creates, persists, and returns ReportArtifact with Opaque Stripe ID."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_execution(_create_dummy_execution())
+    await repo.save_output_profile(_create_dummy_profile())
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    payload = ReportArtifactCreateDTO(
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+        locale="fi",
+    )
+
+    created = await service.create_report_artifact(payload)
+    assert created.id.startswith("rep_")
+    persisted = await repo.get_report_artifact(created.id)
+    assert persisted is not None
+    assert persisted.id == created.id
+    assert persisted.status == ReportStatus.PENDING
