@@ -48,7 +48,7 @@
 ### Phase 4: Consumer Import Rewiring, Test Modularization, Atomic Package Cutover & QGR017 Lockdown (Epoch 1 Cutover)
 - **Plan:** @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md]
 - [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]` (`e7cfff52e`)
   - [x] Step 1: Split `[DELETE] @[backend_v2/tests/unit/services/orchestrator/test_anchor_validation_service.py]` and `[DELETE] @[backend_v2/tests/unit/services/orchestrator/test_anchor_validation_atom_result.py]` into 5 modular unit test suites under `backend_v2/tests/unit/services/orchestrator/anchor_validation/`.
   - [x] Step 2: Atomically create `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]` (`< 150` lines), delete `[DELETE] @[backend_v2/services/orchestrator/anchor_validation_service.py]`, and rewire all 1-hop consumer imports (`extractive_sensor_service.py`, `mcp_tool_loop.py`, `integrity.py`, `ablation_live_executor.py`, `audit_manifest_generator.py`, `run_ablation_benchmark.py`, `run_e2e_variance_test.py`, `test_multi_segment_quote_foundation.py`, `test_integrity.py`, `test_multi_segment_causal_e2e.py`).
   - [x] Step 3: Lock retired module `backend_v2.services.orchestrator.anchor_validation_service` in `@[scripts/_ast_guardrails.py#L1865-L1936]` and `@[scripts/_ast_guardrails.py#L1938-L2084]` (`QGR017`) and synchronize `@[.agents/rules/04_directory_reference.md]`.
@@ -57,8 +57,8 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/anchor_validation_service_decomposition_tracker.md --gate backend`
-  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
-  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
+  - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
+  - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
   - [ ] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py#L25-L337]`
   - [ ] `@[backend_v2/services/orchestrator/anchor_validation/atom_evaluation_processor.py#L18-L125]`
   - [ ] `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]`
