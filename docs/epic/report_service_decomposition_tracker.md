@@ -20,17 +20,17 @@
 
 ### Phase 2: Compilation Extraction
 **Plan:** @[docs/epic/tasks_report_service/phase2_compilation_extraction.md]
-- [x] **[OK] Execution:** /tier2-execute @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]` (`c19a5b55f`)
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
   - [x] Step 2.1: Create target domain file `compilation_service.py` and transplant compiler methods
   - [x] Step 2.2: Update `ReportService` proxy delegations and verify test baseline
 
 ### Phase 3: Format Reader Extraction
 **Plan:** @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md]
-- [ ] **[NOK] Execution:** /tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
-  - [ ] Step 3.1: Create target domain file `format_reader_service.py` and transplant reader methods
-  - [ ] Step 3.2: Update `ReportService` proxy delegations and verify test baseline
+  - [x] Step 3.1: Create target domain file `format_reader_service.py` and transplant reader methods
+  - [x] Step 3.2: Update `ReportService` proxy delegations and verify test baseline
 
 ### Phase 4: Atomic Cutover & Consumer Rewiring
 **Plan:** @[docs/epic/tasks_report_service/phase4_cutover.md]
@@ -83,6 +83,7 @@
 - Generated master tracker strictly partitioned into Epoch 1 (Phases 1-4) and Epoch 2 (Post-Implementation Gates).
 - Completed Phase 1 (Lifecycle Extraction): Created `backend_v2/services/report/lifecycle_service.py` (`ReportLifecycleService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 1 test contracts and unit test suite `backend_v2/tests/unit/services/report/test_lifecycle_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and >95% coverage.
 - Completed Phase 2 (Compilation Extraction): Created `backend_v2/services/report/compilation_service.py` (`ReportCompilationService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 2 test contracts (`test_compile_and_persist_artifact_success`, `test_compile_execution_not_ready`) and unit test suite `backend_v2/tests/unit/services/report/test_compilation_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `compilation_service.py`.
+- Completed Phase 3 (Format Reader Extraction): Created `backend_v2/services/report/format_reader_service.py` (`ReportFormatReaderService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 3 test contracts (`test_get_report_sdui_success`, `test_get_report_pdf_bytes_success`) and unit test suite `backend_v2/tests/unit/services/report/test_format_reader_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `format_reader_service.py`.
 
 ## Learned
 - `ReportService` exhibits high internal cohesion within its 3 domains; leaf models are already cleanly separated in `models/dtos/` and `models/domain/`.
@@ -90,10 +91,10 @@
 - Standard TRK001-TRK006 tracker structure seamlessly accommodates the Two-Epoch protocol when Epoch 1 is mapped to `## Phase Execution Status` and Epoch 2 is mapped to `### Post-Implementation Gates`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 
 ## Remaining
 - Audit Phase 1: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase1_lifecycle_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 2: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
-- Execute Phase 3: `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
+- Audit Phase 3: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Execute Phase 4: `/tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`

@@ -1051,3 +1051,43 @@ async def test_compile_execution_not_ready() -> None:
 
     with pytest.raises(ExecutionNotReadyError):
         await service.compile_and_persist_artifact(report.id, arq_pool)
+
+
+@pytest.mark.asyncio
+async def test_get_report_sdui_success() -> None:
+    """Verify get_report_sdui hydrates and returns ReportDataDTO fail-fast for an existing READY report."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+
+    expected_dto = _create_dummy_report_data_dto()
+    storage = AsyncMock()
+    storage.read.return_value = expected_dto.model_dump_json().encode("utf-8")
+
+    service = ReportService(repo=repo, storage_driver=storage)
+    result = await service.get_report_sdui(report.id)
+
+    assert isinstance(result, ReportDataDTO)
+    assert result.execution_id == expected_dto.execution_id
+    assert result.profile_id == expected_dto.profile_id
+    assert result.global_score == 4.0
+
+
+@pytest.mark.asyncio
+async def test_get_report_pdf_bytes_success() -> None:
+    """Verify get_report_pdf_bytes returns raw PDF bytes and deterministic filename for a READY report."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+
+    storage = AsyncMock()
+    storage.read.return_value = b"%PDF-1.7 sample pdf payload"
+
+    service = ReportService(repo=repo, storage_driver=storage)
+    pdf_bytes, filename = await service.get_report_pdf_bytes(report.id)
+
+    assert pdf_bytes == b"%PDF-1.7 sample pdf payload"
+    assert filename == f"report_{report.id}.pdf"
+    service._dlq_log_absent_storage_artifact("artifacts/reports/rep_123/missing.pdf")
+    await service._dispatch_report_compilation_dlq(report.id, RuntimeError("Test DLQ"))
+
