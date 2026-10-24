@@ -2,7 +2,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.models.auth import User, UserRole
 from backend_v2.models.core_base import I18nText

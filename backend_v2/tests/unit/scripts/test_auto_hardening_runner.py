@@ -645,4 +645,3 @@ def test_main_cli_markdown_wrapped_tracker_path(tmp_path: Path, monkeypatch: pyt
 
     exit_code = main(["--tracker", f"@[{tracker_file}]"])
     assert exit_code == 0
-

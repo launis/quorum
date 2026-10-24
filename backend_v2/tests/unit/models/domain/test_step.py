@@ -530,4 +530,3 @@ def test_step_zone_assignment_and_default() -> None:
                 "zone": "invalid_zone",
             }
         )
-

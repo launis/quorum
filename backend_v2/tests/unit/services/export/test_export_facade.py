@@ -15,6 +15,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
     MatrixPromptBlock,
     SystemRulePromptBlock,
 )
@@ -2378,4 +2379,3 @@ def test_export_service_proxy_delegations_coverage() -> None:
         execution_id="exe_0123456789abcdef",
     )
     assert len(denorm_rows) == 1
-

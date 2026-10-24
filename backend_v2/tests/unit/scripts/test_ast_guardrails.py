@@ -316,7 +316,6 @@ except Exception as e:
     assert len(qgr003) == 0
 
 
-
 # ==============================================================================
 # Partition 11-12: QGR004 BaseModel Pseudo-Class Overrides (__new__, model_construct)
 # ==============================================================================
@@ -1429,7 +1428,6 @@ def test_qgr017_import_export_service_symbol_from_services_fatal() -> None:
     assert "export_service" in qgr017[0].message
 
 
-
 # ==============================================================================
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================
@@ -1674,7 +1672,6 @@ def test_qgr023_anonymous_state_tuple_detected() -> None:
     v5 = _scan_snippet(code5, filepath="backend_v2/services/runner.py")
     qgr023_5 = [v for v in v5 if v.rule_code == "QGR023"]
     assert len(qgr023_5) == 0
-
 
 
 def test_qgr024_string_quoted_annotation_raises_fatal() -> None:
@@ -2122,4 +2119,3 @@ def test_find_nested_dict_subscript_coverage() -> None:
     assert _find_nested_dict_subscript(_get_ann("x: Iterable[dict[str, int]]")) is not None
     assert _find_nested_dict_subscript(_get_ann("x: set[dict[str, int]]")) is not None
     assert _find_nested_dict_subscript(_get_ann("x: Set[dict[str, int]]")) is not None
-

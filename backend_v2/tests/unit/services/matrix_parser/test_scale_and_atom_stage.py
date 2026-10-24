@@ -376,4 +376,3 @@ def test_scale_and_atom_stage_logging_exc_info(caplog: pytest.LogCaptureFixture)
         with pytest.raises(AppException):
             _parse_single_block([dto_matrix, dto_evals], pb)
         assert any(record.exc_info is not None for record in caplog.records)
-

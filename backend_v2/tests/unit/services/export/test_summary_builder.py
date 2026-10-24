@@ -170,5 +170,3 @@ def test_build_summary_dtos_locale_resolution_english_fallback() -> None:
     )
     assert len(dtos) == 1
     assert dtos[0].label == "English Authoritative Label"
-
-

@@ -25,7 +25,7 @@
   - [x] Step 4: SEED VAULT HARMONIZATION
   - [x] Step 5: DECOUPLED WORKFLOW BLUEPRINTS PROVIDER
   - [x] Step 6: FRONTEND DUMB PAINTER REFACTORING
-  - [ ] Step 7: TEST EXPANSION & QUALITY GATES
+  - [x] Step 7: TEST EXPANSION & QUALITY GATES
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
 
 ### Post-Implementation Gates
@@ -96,8 +96,8 @@
 | `REQ-ZON-009` | Decouple `WorkflowBuilderView` from dashboard filter scope by watching `allBlueprintsProvider` | Step 5 | [x] Completed |
 | `REQ-ZON-010` | Refactor `WorkflowStepCard` to derive `isSystemCoreStep`, `isZoneA`, and `isZoneC` strictly from `currentBlueprint` as a pure Dumb Painter | Step 6 | [x] Completed |
 | `REQ-ZON-011` | Refactor `_findFirstZoneCIndex` in `WorkflowStepsTab` to use positive `StepZone.zoneC` matching without engine-type exclusions | Step 6 | [x] Completed |
-| `REQ-ZON-012` | Implement comprehensive widget test `workflow_step_card_dumb_painter_test.dart` covering Zone B Causal Discovery system core protections and fallback behavior | Step 7 | [ ] Pending |
-| `REQ-ZON-013` | Pass all unit tests, widget tests, two-stage quality gates (`backend_audit_loop.py`, `flutter_audit_loop.py`), and live E2E causal discovery integration gate | Step 7 | [ ] Pending |
+| `REQ-ZON-012` | Implement comprehensive widget test `workflow_step_card_dumb_painter_test.dart` covering Zone B Causal Discovery system core protections and fallback behavior | Step 7 | [x] Completed |
+| `REQ-ZON-013` | Pass all unit tests, widget tests, two-stage quality gates (`backend_audit_loop.py`, `flutter_audit_loop.py`), and live E2E causal discovery integration gate | Step 7 | [x] Completed |
 
 # Session Handover Context
 

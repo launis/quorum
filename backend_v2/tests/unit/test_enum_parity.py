@@ -183,7 +183,6 @@ def test_step_zone_parity() -> None:
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "StepZone")
 
 
-
 def test_enum_parity_missing_member_failure() -> None:
     """Negative test: assert_enum_parity raises AssertionError when enum members diverge."""
     fake_dart = "enum StepFilterScope { @JsonValue('specialists') specialists, }"

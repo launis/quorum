@@ -24,6 +24,7 @@ void main() {
           ),
           hook: 'process_inputs',
           isSystemCore: true,
+          zone: StepZone.zoneA,
         ),
         const NodeStrategy.llm(
           id: 'sp_agent_specialist_1',
@@ -36,6 +37,7 @@ void main() {
           ),
           cognitiveTier: CognitiveTier.fast,
           isSystemCore: false,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.llm(
           id: 'sp_agent_specialist_2',
@@ -48,6 +50,7 @@ void main() {
           ),
           cognitiveTier: CognitiveTier.fast,
           isSystemCore: false,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.logic(
           id: 'sp_192910b5f5a34c79',
@@ -60,6 +63,7 @@ void main() {
           ),
           hook: 'aggregate_xai',
           isSystemCore: true,
+          zone: StepZone.zoneC,
         ),
         const NodeStrategy.causalDiscovery(
           id: 'sp_causal_discovery_1',
@@ -71,6 +75,7 @@ void main() {
             },
           ),
           engineType: EngineType.causalDiscovery,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
           id: 'sp_causal_discovery_2',
@@ -82,6 +87,7 @@ void main() {
             },
           ),
           engineType: EngineType.causalDiscovery,
+          zone: StepZone.zoneB,
         ),
       ];
 
@@ -526,7 +532,7 @@ void main() {
         expect(find.byIcon(Icons.delete), findsNothing);
         expect(deleteAttempted, isFalse);
 
-        // Test Zone C (isSystemCore == true && index > 0)
+        // Test Zone C (currentBlueprint.zone == StepZone.zoneC renders automated anchor box and suppresses deletion)
         final step3 = const StepRule(
           id: 'sr_step3',
           taskBlueprint: 'sp_192910b5f5a34c79',
@@ -545,6 +551,9 @@ void main() {
 
         expect(find.byIcon(Icons.delete), findsNothing);
         expect(deleteAttempted, isFalse);
+
+        final l10n = await AppLocalizations.delegate.load(const Locale('fi'));
+        expect(find.text(l10n.studioWorkflowZoneCAutoTitle), findsOneWidget);
       },
     );
 

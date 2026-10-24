@@ -483,4 +483,3 @@ def test_build_matrix_scorecard_row_evidence_type_unrecognized_or_none() -> None
         context_target_res=ctx_res,
     )
     assert row_no_ext.evidence_type is None
-

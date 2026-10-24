@@ -168,4 +168,3 @@ def test_main_cli_default(capsys: pytest.CaptureFixture[str]) -> None:
     captured = capsys.readouterr()
     assert "Repository Root:" in captured.out
     assert "Environment Verification: PASSED" in captured.out
-

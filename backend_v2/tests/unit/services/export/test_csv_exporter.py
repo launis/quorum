@@ -456,4 +456,3 @@ async def test_export_flat_csv_with_explicit_components() -> None:
     assert payload.filename == "execution_export_exe_0123456789abcdef.csv"
     # Repo should NOT have been queried because components was provided
     assert repo.get_call_count("get_all_prompt_blocks") == 0
-

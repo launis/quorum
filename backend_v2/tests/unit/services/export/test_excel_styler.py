@@ -105,4 +105,3 @@ def test_apply_corporate_excel_styling_empty_worksheet() -> None:
     ws.cell(row=1, column=1).value = None
     apply_corporate_excel_styling(wb, ["Empty"])
     assert ws.column_dimensions["A"].width == 12
-

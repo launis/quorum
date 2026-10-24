@@ -26,6 +26,7 @@ void main() {
           hook: 'process_inputs',
           isSystemCore: true,
           engineType: EngineType.prompt,
+          zone: StepZone.zoneA,
         ),
         const NodeStrategy.llm(
           id: 'sp_specialist_coach',
@@ -38,6 +39,7 @@ void main() {
           ),
           isSystemCore: false,
           engineType: EngineType.prompt,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
           id: 'sp_causal_discovery',
@@ -50,6 +52,7 @@ void main() {
           ),
           isSystemCore: true,
           engineType: EngineType.causalDiscovery,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.causalDiscovery(
           id: 'sp_causal_discovery_deletable',
@@ -62,6 +65,7 @@ void main() {
           ),
           isSystemCore: false,
           engineType: EngineType.causalDiscovery,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.llm(
           id: 'sp_ai_steering',
@@ -74,6 +78,7 @@ void main() {
           ),
           isSystemCore: false,
           engineType: EngineType.prompt,
+          zone: StepZone.zoneB,
         ),
         const NodeStrategy.logic(
           id: 'sp_xai_reporter',
@@ -87,6 +92,7 @@ void main() {
           hook: 'aggregate_xai',
           isSystemCore: true,
           engineType: EngineType.prompt,
+          zone: StepZone.zoneC,
         ),
       ];
 

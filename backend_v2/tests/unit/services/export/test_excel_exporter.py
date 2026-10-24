@@ -452,4 +452,3 @@ async def test_export_excel_with_components_list() -> None:
         locale="en",
     )
     assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
-

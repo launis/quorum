@@ -549,9 +549,7 @@ class WorkflowsMasterView extends ConsumerWidget {
   }
 }
 """
-    violations = _scan_snippet(
-        code, filepath="client_app_v2/lib/features/studio/views/workflows_master_view.dart"
-    )
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/workflows_master_view.dart")
     dgr009 = [v for v in violations if v.rule_code == "DGR009"]
     assert len(dgr009) == 0
 
@@ -562,9 +560,7 @@ class SimpleChip extends StatelessWidget {
   Widget build(BuildContext context) => const Text("chip");
 }
 """
-    violations = _scan_snippet(
-        code, filepath="client_app_v2/lib/features/studio/widgets/simple_chip.dart"
-    )
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/widgets/simple_chip.dart")
     dgr009 = [v for v in violations if v.rule_code == "DGR009"]
     assert len(dgr009) == 0
 
@@ -577,9 +573,7 @@ class CustomView extends ConsumerWidget {
   }
 }
 """
-    violations = _scan_snippet(
-        code, filepath="client_app_v2/lib/features/studio/views/matrices_master_view.dart"
-    )
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/matrices_master_view.dart")
     dgr009 = [v for v in violations if v.rule_code == "DGR009"]
     assert len(dgr009) == 1
     assert dgr009[0].lineno >= 1
@@ -594,9 +588,7 @@ class StudioMasterView extends ConsumerWidget {
   }
 }
 """
-    violations = _scan_snippet(
-        code, filepath="client_app_v2/lib/features/studio/views/custom_page.dart"
-    )
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/views/custom_page.dart")
     dgr009 = [v for v in violations if v.rule_code == "DGR009"]
     assert len(dgr009) == 1
     assert dgr009[0].lineno == 2
@@ -658,4 +650,3 @@ def test_dgr010_test_scope_immune() -> None:
     violations = _scan_snippet(code, filepath="client_app_v2/test/unit/controller_test.dart")
     dgr010 = [v for v in violations if v.rule_code == "DGR010"]
     assert len(dgr010) == 0
-

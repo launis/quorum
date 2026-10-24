@@ -348,7 +348,9 @@ def test_main_cli_missing_plan_file_error(capsys: pytest.CaptureFixture[str], tm
     assert "Error: Plan file not found" in captured.err
 
 
-def test_main_cli_plan_target_extraction(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_cli_plan_target_extraction(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verifies CLI extracts targets from implementation plan and scans them."""
     monkeypatch.chdir(tmp_path)
     # Create fake pyproject.toml so get_repo_root finds tmp_path
@@ -372,7 +374,9 @@ def test_main_cli_plan_target_extraction(tmp_path: Path, capsys: pytest.CaptureF
     assert "PASSED (Clean)" in captured.out
 
 
-def test_main_cli_json_output(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_cli_json_output(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verifies CLI emits valid JSON matching TechnicalDebtScanResultDTO when --json is passed."""
     monkeypatch.chdir(tmp_path)
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n", encoding="utf-8")
@@ -440,7 +444,9 @@ def test_scan_file_missing_returns_empty(tmp_path: Path) -> None:
     assert findings_dart == []
 
 
-def test_main_cli_relative_plan_path(tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_cli_relative_plan_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verifies CLI handles relative plan paths correctly."""
     monkeypatch.chdir(tmp_path)
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'test'\n", encoding="utf-8")
@@ -452,4 +458,3 @@ def test_main_cli_relative_plan_path(tmp_path: Path, capsys: pytest.CaptureFixtu
 
     exit_code = main(["--plan", "plan.md"], repo_root=tmp_path)
     assert exit_code == 0
-

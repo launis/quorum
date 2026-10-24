@@ -502,4 +502,3 @@ enum StepZone {
   const StepZone(this.backendValue);
   final String backendValue;
 }
-
