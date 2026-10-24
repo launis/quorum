@@ -405,8 +405,18 @@ def test_filter_phases_from_phase() -> None:
 
 
 def test_run_post_hardening_gate_with_hardening_agent(tmp_path: Path) -> None:
-    """TC-APR-016: Verify --hardening-agent appends --agent-cmd template to auto_hardening_runner.py."""
+    """TC-APR-016: Verify --hardening-agent appends respective backend and frontend agent commands."""
     tracker = tmp_path / "tracker.md"
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] Tier 2 Hardening (Backend)
+  - [ ] @[backend_v2/services/execution.py]
+- [ ] Tier 2 Hardening (Frontend)
+  - [ ] @[client_app_v2/lib/features/studio/views/editor.dart]
+""",
+        encoding="utf-8",
+    )
     args = AutoPhaseRunnerArgsDTO(
         tracker=tracker,
         hardening_agent=True,
@@ -416,11 +426,92 @@ def test_run_post_hardening_gate_with_hardening_agent(tmp_path: Path) -> None:
         mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0)
         code = run_post_hardening_gate(tracker, args, tmp_path)
         assert code == 0
-        cmd_called = mock_run.call_args[0][0]
-        assert "--agent-cmd" in cmd_called
-        agent_idx = cmd_called.index("--agent-cmd")
-        assert "gemini-4-argon-high" in cmd_called[agent_idx + 1]
-        assert "/tier2-hardening-backend {target}" in cmd_called[agent_idx + 1]
+        assert mock_run.call_count == 2
+
+        # 1. Backend call verification
+        cmd_backend = mock_run.call_args_list[0][0][0]
+        assert "--gate" in cmd_backend
+        assert cmd_backend[cmd_backend.index("--gate") + 1] == "backend"
+        assert "--agent-cmd" in cmd_backend
+        backend_agent_idx = cmd_backend.index("--agent-cmd")
+        assert "gemini-4-argon-high" in cmd_backend[backend_agent_idx + 1]
+        assert "/tier2-hardening-backend {target}" in cmd_backend[backend_agent_idx + 1]
+
+        # 2. Frontend call verification
+        cmd_frontend = mock_run.call_args_list[1][0][0]
+        assert "--gate" in cmd_frontend
+        assert cmd_frontend[cmd_frontend.index("--gate") + 1] == "frontend"
+        assert "--agent-cmd" in cmd_frontend
+        frontend_agent_idx = cmd_frontend.index("--agent-cmd")
+        assert "gemini-4-argon-high" in cmd_frontend[frontend_agent_idx + 1]
+        assert "/tier2-hardening-frontend {target}" in cmd_frontend[frontend_agent_idx + 1]
+
+
+def test_run_post_hardening_gate_no_unhardened_targets(tmp_path: Path) -> None:
+    """Verify run_post_hardening_gate cleanly skips when no targets are unhardened."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [x] Tier 2 Hardening (Backend)
+  - [x] @[backend_v2/services/execution.py]
+- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: No frontend files modified.
+""",
+        encoding="utf-8",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker)
+    with patch("subprocess.run") as mock_run:
+        code = run_post_hardening_gate(tracker, args, tmp_path)
+        assert code == 0
+        assert mock_run.call_count == 0
+
+
+def test_run_post_hardening_gate_backend_failure_halts_before_frontend(tmp_path: Path) -> None:
+    """Verify backend hardening failure immediately halts and returns error without running frontend."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] Tier 2 Hardening (Backend)
+  - [ ] @[backend_v2/services/execution.py]
+- [ ] Tier 2 Hardening (Frontend)
+  - [ ] @[client_app_v2/lib/features/studio/views/editor.dart]
+""",
+        encoding="utf-8",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker)
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=3)
+        code = run_post_hardening_gate(tracker, args, tmp_path)
+        assert code == 3
+        # Frontend must not be called after backend failure
+        assert mock_run.call_count == 1
+        cmd = mock_run.call_args_list[0][0][0]
+        assert cmd[cmd.index("--gate") + 1] == "backend"
+
+
+def test_run_post_hardening_gate_only_frontend(tmp_path: Path) -> None:
+    """Verify run_post_hardening_gate executes strictly frontend when only frontend targets exist."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [x] Tier 2 Hardening (Backend)
+  - [x] @[backend_v2/services/execution.py]
+- [ ] Tier 2 Hardening (Frontend)
+  - [ ] @[client_app_v2/lib/features/studio/views/editor.dart]
+""",
+        encoding="utf-8",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker, hardening_agent=True)
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0)
+        code = run_post_hardening_gate(tracker, args, tmp_path)
+        assert code == 0
+        assert mock_run.call_count == 1
+        cmd = mock_run.call_args_list[0][0][0]
+        assert cmd[cmd.index("--gate") + 1] == "frontend"
+        assert "/tier2-hardening-frontend {target}" in cmd[cmd.index("--agent-cmd") + 1]
 
 
 def test_execute_subagent_cmd_wrapper_on_windows(tmp_path: Path) -> None:
@@ -596,12 +687,24 @@ def test_mark_phase_completed_standalone_plan_tracker(tmp_path: Path) -> None:
 
 
 def test_run_post_hardening_gate_skip_and_warning(tmp_path: Path) -> None:
-    """Verify run_post_hardening_gate handles skip_hardening and returns non-zero code."""
+    """Verify run_post_hardening_gate handles skip_hardening, missing tracker, and returns non-zero code."""
     tracker = tmp_path / "tracker.md"
     args_skip = AutoPhaseRunnerArgsDTO(tracker=tracker, skip_hardening=True)
     assert run_post_hardening_gate(tracker, args_skip, tmp_path) == 0
 
+    # 1. Missing tracker returns 1
     args_run = AutoPhaseRunnerArgsDTO(tracker=tracker, skip_hardening=False)
+    assert run_post_hardening_gate(tracker, args_run, tmp_path) == 1
+
+    # 2. Existing tracker with target where subprocess fails returns returncode 1
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] Tier 2 Hardening (Backend)
+  - [ ] @[backend_v2/services/execution.py]
+""",
+        encoding="utf-8",
+    )
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=1)
         assert run_post_hardening_gate(tracker, args_run, tmp_path) == 1

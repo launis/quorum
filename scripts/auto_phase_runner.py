@@ -70,6 +70,7 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from scripts._script_base import ANSIColors, get_repo_root, setup_script_environment
+from scripts.auto_hardening_runner import HardeningGate, parse_tracker_unhardened_targets
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
@@ -130,7 +131,10 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
         bool,
         Field(
             default=False,
-            description="Dispatch AI-driven /tier2-hardening-backend subagents per target file during hardening.",
+            description=(
+                "Dispatch AI-driven /tier2-hardening-backend or /tier2-hardening-frontend "
+                "subagents per target file during hardening."
+            ),
         ),
     ] = False
     hardening_model: Annotated[
@@ -767,37 +771,110 @@ def run_post_hardening_gate(
 ) -> int:
     """Execute post-implementation hardening handoff via auto_hardening_runner.py.
 
+    Discovers unhardened target files across both backend and frontend hardening
+    gates in the tracker and executes the respective hardening pipelines.
+
     Args:
         tracker_path: Path to tracker markdown file.
         args: Pipeline runner arguments.
         repo_root: Repository root directory.
 
     Returns:
-        Exit code of the hardening runner subprocess.
+        Exit code of the hardening runner subprocess (0 on success, non-zero on failure).
     """
     if args.skip_hardening:
         return 0
 
-    cmd = [
-        "uv",
-        "run",
-        "python",
-        "scripts/auto_hardening_runner.py",
-        "--tracker",
-        str(tracker_path),
-        "--gate",
-        "backend",
-    ]
-    if args.hardening_agent:
-        h_model = args.hardening_model or args.model
-        agent_cmd_template = (
-            f'agy --model {h_model} --dangerously-skip-permissions -i "/tier2-hardening-backend {{target}}"'
-        )
-        cmd.extend(["--agent-cmd", agent_cmd_template])
+    cleaned_tracker = clean_path_arg(tracker_path)
+    if cleaned_tracker is None:
+        return 0
 
-    print(f"\n{ANSIColors.CYAN}--- Handing off to Post-Implementation Hardening Runner ---{ANSIColors.RESET}")
-    proc = subprocess.run(cmd, cwd=repo_root, check=False)
-    return proc.returncode
+    resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
+    if not resolved_tracker.exists():
+        print(f"{ANSIColors.RED}[ERROR] Tracker file not found for hardening: {tracker_path}{ANSIColors.RESET}")
+        return 1
+
+    tracker_content = resolved_tracker.read_text(encoding="utf-8")
+    backend_targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.BACKEND)
+    frontend_targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.FRONTEND)
+
+    if not backend_targets and not frontend_targets:
+        print(
+            f"\n{ANSIColors.GREEN}--- No unhardened targets discovered in tracker for backend or frontend gates. ---{ANSIColors.RESET}"
+        )
+        return 0
+
+    h_model = args.hardening_model or args.model
+
+    # 1. Backend Hardening Gate
+    if backend_targets:
+        print(
+            f"\n{ANSIColors.CYAN}--- Handing off to Post-Implementation Hardening Runner "
+            f"(Backend: {len(backend_targets)} targets) ---{ANSIColors.RESET}"
+        )
+        backend_cmd = [
+            "uv",
+            "run",
+            "python",
+            "scripts/auto_hardening_runner.py",
+            "--tracker",
+            str(cleaned_tracker),
+            "--gate",
+            "backend",
+        ]
+        if args.hardening_agent:
+            agent_cmd_template = (
+                f'agy --model {h_model} --dangerously-skip-permissions -i "/tier2-hardening-backend {{target}}"'
+            )
+            backend_cmd.extend(["--agent-cmd", agent_cmd_template])
+        if args.dry_run:
+            backend_cmd.append("--dry-run")
+        if args.verbose:
+            backend_cmd.append("--verbose")
+
+        proc_backend = subprocess.run(backend_cmd, cwd=repo_root, check=False)
+        if proc_backend.returncode != 0:
+            print(
+                f"{ANSIColors.RED}[FAILED] Backend post-implementation hardening failed "
+                f"with code {proc_backend.returncode}. Halting pipeline.{ANSIColors.RESET}"
+            )
+            return proc_backend.returncode
+
+    # 2. Frontend Hardening Gate
+    if frontend_targets:
+        print(
+            f"\n{ANSIColors.CYAN}--- Handing off to Post-Implementation Hardening Runner "
+            f"(Frontend: {len(frontend_targets)} targets) ---{ANSIColors.RESET}"
+        )
+        frontend_cmd = [
+            "uv",
+            "run",
+            "python",
+            "scripts/auto_hardening_runner.py",
+            "--tracker",
+            str(cleaned_tracker),
+            "--gate",
+            "frontend",
+        ]
+        if args.hardening_agent:
+            agent_cmd_template = (
+                f'agy --model {h_model} --dangerously-skip-permissions -i "/tier2-hardening-frontend {{target}}"'
+            )
+            frontend_cmd.extend(["--agent-cmd", agent_cmd_template])
+        if args.dry_run:
+            frontend_cmd.append("--dry-run")
+        if args.verbose:
+            frontend_cmd.append("--verbose")
+
+        proc_frontend = subprocess.run(frontend_cmd, cwd=repo_root, check=False)
+        if proc_frontend.returncode != 0:
+            print(
+                f"{ANSIColors.RED}[FAILED] Frontend post-implementation hardening failed "
+                f"with code {proc_frontend.returncode}. Halting pipeline.{ANSIColors.RESET}"
+            )
+            return proc_frontend.returncode
+
+    return 0
 
 
 def run_phase_pipeline(
@@ -1027,7 +1104,10 @@ Key Behavioral Invariants for Autonomous AI Agents:
         "--hardening-agent",
         action="store_true",
         default=False,
-        help="Dispatch AI-driven /tier2-hardening-backend subagents per target file during hardening.",
+        help=(
+            "Dispatch AI-driven /tier2-hardening-backend or /tier2-hardening-frontend "
+            "subagents per target file during hardening."
+        ),
     )
     parser.add_argument(
         "--hardening-model",
