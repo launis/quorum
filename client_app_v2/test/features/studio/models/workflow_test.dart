@@ -268,6 +268,69 @@ void main() {
         );
       },
     );
+
+    test(
+      'test_node_strategy_unions_deserialize_and_serialize_zone',
+      () {
+        // 1. LLM union with default zone (zoneB)
+        final llmJson = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test_llm',
+          'name': {'translations': {'en': 'Test LLM'}},
+          'type': 'llm',
+          'cognitive_tier': 'fast',
+        };
+        final llmNode = NodeStrategy.fromJson(llmJson);
+        expect(llmNode, isA<NodeStrategyLlm>());
+        switch (llmNode) {
+          case NodeStrategyLlm l:
+            expect(l.zone, equals(StepZone.zoneB));
+            final serialized = l.toJson();
+            expect(serialized['zone'], equals('zone_b'));
+          default:
+            fail('Should be LLM');
+        }
+
+        // 2. Logic union with explicit zoneA
+        final logicJson = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test_logic',
+          'name': {'translations': {'en': 'Test Logic'}},
+          'type': 'logic',
+          'hook': 'my_hook',
+          'zone': 'zone_a',
+        };
+        final logicNode = NodeStrategy.fromJson(logicJson);
+        expect(logicNode, isA<NodeStrategyLogic>());
+        switch (logicNode) {
+          case NodeStrategyLogic l:
+            expect(l.zone, equals(StepZone.zoneA));
+            final serialized = l.toJson();
+            expect(serialized['zone'], equals('zone_a'));
+          default:
+            fail('Should be Logic');
+        }
+
+        // 3. Causal Discovery union with explicit zoneB
+        final cdJson = {
+          'id': 'st_1234567890abcdef',
+          'slug': 'test_cd',
+          'name': {'translations': {'en': 'Test CD'}},
+          'type': 'causal_discovery',
+          'zone': 'zone_b',
+        };
+        final cdNode = NodeStrategy.fromJson(cdJson);
+        expect(cdNode, isA<NodeStrategyCausalDiscovery>());
+        switch (cdNode) {
+          case NodeStrategyCausalDiscovery c:
+            expect(c.zone, equals(StepZone.zoneB));
+            final serialized = c.toJson();
+            expect(serialized['zone'], equals('zone_b'));
+          default:
+            fail('Should be Causal Discovery');
+        }
+      },
+    );
   });
 
   group('Workflow Schema Parity & Purged Fields Verification', () {

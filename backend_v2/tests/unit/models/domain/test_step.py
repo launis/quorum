@@ -19,7 +19,7 @@ from backend_v2.models.domain.step import (
     Step,
     StepRule,
 )
-from backend_v2.models.enums import CognitiveTier, StepType
+from backend_v2.models.enums import CognitiveTier, StepType, StepZone
 
 
 def test_step_valid_llm() -> None:
@@ -38,6 +38,7 @@ def test_step_valid_llm() -> None:
     assert step.type == StepType.LLM
     assert step.cognitive_tier == CognitiveTier.FAST
     assert step.is_system_core is False
+    assert step.zone == StepZone.ZONE_B
 
 
 def test_step_valid_logic() -> None:
@@ -481,3 +482,52 @@ def test_step_rule_invalid_opaque_id_raises_validation_error() -> None:
             depends_on=["invalid_id!"],
             causal_source_step_id="invalid_id!",
         )
+
+
+def test_step_zone_assignment_and_default() -> None:
+    """Test Step zone default value, explicit assignment, and validation."""
+    # 1. Default zone should be ZONE_B
+    step_default = Step(
+        id="stp_0123456789abcdef",
+        slug="step_default_zone",
+        name=I18nText(translations={"en": "Default Zone"}),
+        type=StepType.LOGIC,
+        hook="backend_v2.hooks.transform_hook",
+    )
+    assert step_default.zone == StepZone.ZONE_B
+
+    # 2. Explicit ZONE_A
+    step_zone_a = Step(
+        id="stp_0123456789abcdef",
+        slug="step_zone_a",
+        name=I18nText(translations={"en": "Zone A Step"}),
+        type=StepType.LOGIC,
+        hook="backend_v2.hooks.transform_hook",
+        zone=StepZone.ZONE_A,
+    )
+    assert step_zone_a.zone == StepZone.ZONE_A
+
+    # 3. Explicit ZONE_C via string
+    step_zone_c = Step(
+        id="stp_0123456789abcdef",
+        slug="step_zone_c",
+        name=I18nText(translations={"en": "Zone C Step"}),
+        type=StepType.LOGIC,
+        hook="backend_v2.hooks.transform_hook",
+        zone="zone_c",
+    )
+    assert step_zone_c.zone == StepZone.ZONE_C
+
+    # 4. Invalid zone raises ValidationError
+    with pytest.raises(ValidationError):
+        Step.model_validate(
+            {
+                "id": "stp_0123456789abcdef",
+                "slug": "step_invalid_zone",
+                "name": {"translations": {"en": "Invalid Zone"}},
+                "type": "logic",
+                "hook": "backend_v2.hooks.transform_hook",
+                "zone": "invalid_zone",
+            }
+        )
+

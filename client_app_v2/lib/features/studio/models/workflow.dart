@@ -101,6 +101,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
     EngineType engineType,
+    @JsonKey(name: 'zone') @Default(StepZone.zoneB) StepZone zone,
   }) = NodeStrategyLlm;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -129,6 +130,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
     EngineType engineType,
+    @JsonKey(name: 'zone') @Default(StepZone.zoneB) StepZone zone,
   }) = NodeStrategyLogic;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -157,6 +159,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @JsonKey(name: 'engine_type')
     @Default(EngineType.causalDiscovery)
     EngineType engineType,
+    @JsonKey(name: 'zone') @Default(StepZone.zoneB) StepZone zone,
   }) = NodeStrategyCausalDiscovery;
 
   factory NodeStrategy.fromJson(Map<String, dynamic> json) =>

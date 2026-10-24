@@ -255,6 +255,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'organization_id',
         'is_system_core',
         'engine_type',
+        'zone',
         'type',
       ],
     );
@@ -335,6 +336,10 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'engine_type',
         (v) => $enumDecodeNullable(_$EngineTypeEnumMap, v) ?? EngineType.prompt,
       ),
+      zone: $checkedConvert(
+        'zone',
+        (v) => $enumDecodeNullable(_$StepZoneEnumMap, v) ?? StepZone.zoneB,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -385,6 +390,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
       'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
+      'zone': _$StepZoneEnumMap[instance.zone]!,
       'type': instance.$type,
     };
 
@@ -405,6 +411,12 @@ const _$EngineTypeEnumMap = {
   EngineType.synthesis: 'synthesis',
   EngineType.prompt: 'prompt',
   EngineType.causalDiscovery: 'causal_discovery',
+};
+
+const _$StepZoneEnumMap = {
+  StepZone.zoneA: 'zone_a',
+  StepZone.zoneB: 'zone_b',
+  StepZone.zoneC: 'zone_c',
 };
 
 Json? _$JsonConverterToJson<Json, Value>(
@@ -439,6 +451,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'organization_id',
         'is_system_core',
         'engine_type',
+        'zone',
         'type',
       ],
     );
@@ -519,6 +532,10 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'engine_type',
         (v) => $enumDecodeNullable(_$EngineTypeEnumMap, v) ?? EngineType.prompt,
       ),
+      zone: $checkedConvert(
+        'zone',
+        (v) => $enumDecodeNullable(_$StepZoneEnumMap, v) ?? StepZone.zoneB,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -569,6 +586,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
       'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
+      'zone': _$StepZoneEnumMap[instance.zone]!,
       'type': instance.$type,
     };
 
@@ -599,6 +617,7 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
         'organization_id',
         'is_system_core',
         'engine_type',
+        'zone',
         'type',
       ],
     );
@@ -681,6 +700,10 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
             $enumDecodeNullable(_$EngineTypeEnumMap, v) ??
             EngineType.causalDiscovery,
       ),
+      zone: $checkedConvert(
+        'zone',
+        (v) => $enumDecodeNullable(_$StepZoneEnumMap, v) ?? StepZone.zoneB,
+      ),
       $type: $checkedConvert('type', (v) => v as String?),
     );
     return val;
@@ -732,6 +755,7 @@ Map<String, dynamic> _$NodeStrategyCausalDiscoveryToJson(
   'organization_id': instance.organizationId,
   'is_system_core': instance.isSystemCore,
   'engine_type': _$EngineTypeEnumMap[instance.engineType]!,
+  'zone': _$StepZoneEnumMap[instance.zone]!,
   'type': instance.$type,
 };
 

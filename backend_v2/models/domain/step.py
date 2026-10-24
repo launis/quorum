@@ -14,7 +14,15 @@ from starlette import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
-from backend_v2.models.enums import CognitiveTier, EngineType, LaxCognitiveTier, LaxStepType, StepType
+from backend_v2.models.enums import (
+    CognitiveTier,
+    EngineType,
+    LaxCognitiveTier,
+    LaxStepType,
+    LaxStepZone,
+    StepType,
+    StepZone,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +105,13 @@ class Step(V2CoreBase):
             description="Explicit ExecutionEngine responsible for computing this step.",
         ),
     ] = EngineType.PROMPT
+    zone: Annotated[
+        LaxStepZone,
+        Field(
+            default=StepZone.ZONE_B,
+            description="Functional workflow zone classification (Zone A Ingestion, Zone B Specialists, Zone C Funnel Anchors).",
+        ),
+    ] = StepZone.ZONE_B
 
     @model_validator(mode="after")
     def validate_step_consistency(self) -> Step:
