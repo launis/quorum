@@ -24,8 +24,8 @@ def test_process_ingress_payload_strict_hydration_failure() -> None:
 
     # Payload missing 'filename', but has 'content_base64'
     with pytest.raises(ValidationError):
-        WorkflowInputsIngress(
-            dynamic_inputs={"file_1": {"content_base64": base64.b64encode(b"dummy data").decode("utf-8")}}
+        WorkflowInputsIngress.model_validate(
+            {"dynamic_inputs": {"file_1": {"content_base64": base64.b64encode(b"dummy data").decode("utf-8")}}}
         )
 
 
@@ -166,7 +166,7 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
     )
 
     with patch(
-        "backend_v2.services.ingress.pdf_chat_extractor.PdfChatExtractorService.extract_conversation",
+        "backend_v2.services.document_extraction.PdfChatExtractorService.extract_conversation",
         return_value=mock_chat,
     ):
         extracted_text, _ = service._extract_pdf_sync(pdf_bytes)

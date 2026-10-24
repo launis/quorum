@@ -10,13 +10,13 @@ import fitz
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.dtos.ingress import (
+from backend_v2.services.ingress.pdf_extractor import (
     PdfBlockSignatureDTO,
     PdfCellCoordinatesDTO,
+    PdfChatExtractorService,
     PdfTextBlockDTO,
     RawTurnDTO,
 )
-from backend_v2.services.ingress import PdfChatExtractorService
 
 
 # Phase 4, Step 1: Add facade delegation and contract parity tests

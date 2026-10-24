@@ -13,6 +13,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
+from backend_v2.services.ingress.pdf_extractor import PdfChatExtractorService
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +113,7 @@ class DocumentExtractionService:
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
-            from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
-
+            # Phase 4, Step 2: Use top-level PdfChatExtractorService from canonical pdf_extractor package
             if PdfChatExtractorService.is_conversation_pdf(doc):
                 chat_dto = PdfChatExtractorService.extract_conversation(doc)
                 md_text = chat_dto.model_dump_json()

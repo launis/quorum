@@ -92,6 +92,7 @@ class TestRunMarkerInjection:
         variant_0 = list(UNICODE_SPACE_REGISTRY.keys())[0]
         payload = inject_unique_run_marker({"chat_log": massive_chat}, 0, stride=50)
         marked = payload.marked_inputs["chat_log"]
+        assert isinstance(marked, str)
         assert variant_0 in marked
 
         chat_dto = ChatNormalizerService.try_parse_fast_path(marked)
@@ -110,6 +111,7 @@ class TestRunMarkerInjection:
 
         payload = inject_unique_run_marker({"product_text": plain_text}, 0, stride=50)
         marked = payload.marked_inputs["product_text"]
+        assert isinstance(marked, str)
         assert marker in marked
         assert marked.count(marker) >= 3
 
@@ -123,6 +125,8 @@ class TestRunMarkerInjection:
         payload_1 = inject_unique_run_marker({"product_text": plain_text}, 1, stride=1)
         marked_0 = payload_0.marked_inputs["product_text"]
         marked_1 = payload_1.marked_inputs["product_text"]
+        assert isinstance(marked_0, str)
+        assert isinstance(marked_1, str)
 
         assert marker_0 in marked_0
         assert marker_1 in marked_1
@@ -973,7 +977,7 @@ class TestValidateExecutionKelvollisuus:
 
     def test_profile_data_starvation(self) -> None:
         """Verify data starvation event in profile_syntheses returns False."""
-        record = {
+        record: dict[str, JsonValue] = {
             "status": "PASSED",
             "profile_syntheses": {"prf_1": {"data_starvation": {"reason": "Insufficient observations in matrix"}}},
         }
@@ -990,7 +994,7 @@ class TestValidateExecutionKelvollisuus:
             ),
             encoding="utf-8",
         )
-        record = {"status": "PASSED"}
+        record: dict[str, JsonValue] = {"status": "PASSED"}
         valid, reason = validate_execution_kelvollisuus(record, trace_path=trace_file)
         assert valid is False
         assert "Trace event starvation in step 'stp_1'" in reason
@@ -999,7 +1003,7 @@ class TestValidateExecutionKelvollisuus:
         """Verify corrupt trace file does not crash validation and logs a warning."""
         trace_file = tmp_path / "execution_trace.json"
         trace_file.write_text("NOT_JSON", encoding="utf-8")
-        record = {"status": "PASSED"}
+        record: dict[str, JsonValue] = {"status": "PASSED"}
         valid, reason = validate_execution_kelvollisuus(record, trace_path=trace_file)
         assert valid is True
 
@@ -1007,7 +1011,7 @@ class TestValidateExecutionKelvollisuus:
         """Verify valid execution with clean trace returns True."""
         trace_file = tmp_path / "execution_trace.json"
         trace_file.write_text(json.dumps([{"step_id": "stp_1", "content": "valid"}]), encoding="utf-8")
-        record = {
+        record: dict[str, JsonValue] = {
             "status": "PASSED",
             "profile_syntheses": {"prf_1": {"data_starvation": None}},
         }
@@ -1085,11 +1089,11 @@ class TestPdfLoadingAndSpecialCases:
         with (
             patch.dict("sys.modules", {"fitz": mock_fitz, "pymupdf4llm": mock_pymupdf}),
             patch(
-                "backend_v2.services.ingress.pdf_chat_extractor.PdfChatExtractorService.is_conversation_pdf",
+                "backend_v2.services.ingress.pdf_extractor.PdfChatExtractorService.is_conversation_pdf",
                 return_value=True,
             ),
             patch(
-                "backend_v2.services.ingress.pdf_chat_extractor.PdfChatExtractorService.extract_conversation",
+                "backend_v2.services.ingress.pdf_extractor.PdfChatExtractorService.extract_conversation",
                 return_value=mock_chat_dto,
             ),
             patch(
@@ -1118,7 +1122,7 @@ class TestPdfLoadingAndSpecialCases:
         with (
             patch.dict("sys.modules", {"fitz": mock_fitz, "pymupdf4llm": mock_pymupdf}),
             patch(
-                "backend_v2.services.ingress.pdf_chat_extractor.PdfChatExtractorService.is_conversation_pdf",
+                "backend_v2.services.ingress.pdf_extractor.PdfChatExtractorService.is_conversation_pdf",
                 return_value=False,
             ),
         ):
@@ -1282,7 +1286,9 @@ class TestNoiseInjectorAndFallback:
         """Verify inject_unique_run_marker handles strings shorter than stride via fallback."""
         payload = inject_unique_run_marker({"short_field": "a b"}, run_index=0)
         assert len(payload.marker_metadata.injected_keys) == 1
-        assert any(c in payload.marked_inputs["short_field"] for c in UNICODE_SPACE_REGISTRY)
+        marked_short = payload.marked_inputs["short_field"]
+        assert isinstance(marked_short, str)
+        assert any(c in marked_short for c in UNICODE_SPACE_REGISTRY)
 
     def test_ensure_user_turn_marker_raw_list_format(self) -> None:
         """Verify _ensure_user_turn_marker modifies user turn when chat is a raw JSON list."""
@@ -1515,7 +1521,7 @@ class TestCoverageExpansion:
     def test_validate_kelvollisuus_with_valid_corpus_and_quotes(self) -> None:
         from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
 
-        exec_record = {
+        exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "This is authoritative ground truth text."},
             "step_states": {
@@ -1529,7 +1535,7 @@ class TestCoverageExpansion:
     def test_validate_kelvollisuus_chimera_leakage_detected(self) -> None:
         from scripts.run_e2e_variance_test import validate_execution_kelvollisuus
 
-        exec_record = {
+        exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "This is authoritative ground truth text."},
             "step_states": {
@@ -1559,7 +1565,7 @@ class TestCoverageExpansion:
             encoding="utf-8",
         )
 
-        exec_record = {
+        exec_record: dict[str, JsonValue] = {
             "status": "PASSED",
             "inputs": {"doc": "Here is a valid slice of text in corpus."},
             "step_states": {},
@@ -1576,7 +1582,7 @@ class TestCoverageExpansion:
             encoding="utf-8",
         )
 
-        exec_record = {"status": "PASSED", "inputs": {}, "step_states": {}}
+        exec_record: dict[str, JsonValue] = {"status": "PASSED", "inputs": {}, "step_states": {}}
         ok, msg = validate_execution_kelvollisuus(exec_record, trace_path=trace_file)
         assert ok is False
         assert "Trace event starvation" in msg

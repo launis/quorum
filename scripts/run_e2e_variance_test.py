@@ -334,7 +334,7 @@ def load_inputs_from_path(
                 import fitz
                 import pymupdf4llm
 
-                from backend_v2.services.ingress.pdf_chat_extractor import (
+                from backend_v2.services.ingress.pdf_extractor import (
                     PdfChatExtractorService,
                 )
 

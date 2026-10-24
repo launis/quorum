@@ -19,7 +19,7 @@ from backend_v2.models.domain.system_config import ChatHistoryDTO
 from backend_v2.models.enums import LLMProvider
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.chat_parser import ChatParserService
-from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
+from backend_v2.services.ingress.pdf_extractor import PdfChatExtractorService
 
 logger = logging.getLogger(__name__)
 
