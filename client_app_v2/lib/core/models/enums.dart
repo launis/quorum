@@ -488,3 +488,18 @@ enum StepFilterScope {
   const StepFilterScope(this.backendValue);
   final String backendValue;
 }
+
+/// Functional workflow zone classification (Zone A Ingestion, Zone B Specialists, Zone C Funnel Anchors).
+@JsonEnum()
+enum StepZone {
+  @JsonValue('zone_a')
+  zoneA('zone_a'),
+  @JsonValue('zone_b')
+  zoneB('zone_b'),
+  @JsonValue('zone_c')
+  zoneC('zone_c');
+
+  const StepZone(this.backendValue);
+  final String backendValue;
+}
+

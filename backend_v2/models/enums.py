@@ -1063,3 +1063,15 @@ class StepFilterScope(StrEnum):
 
 
 LaxStepFilterScope = Annotated[StepFilterScope, Field(strict=False)]
+
+
+class StepZone(StrEnum):
+    """Functional workflow zone classification (Zone A Ingestion, Zone B Specialists, Zone C Funnel Anchors)."""
+
+    ZONE_A = "zone_a"
+    ZONE_B = "zone_b"
+    ZONE_C = "zone_c"
+
+
+LaxStepZone = Annotated[StepZone, Field(strict=False)]
+

@@ -20,7 +20,7 @@
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
   - [x] Step 1: PRE-IMPLEMENTATION TECHNICAL DEBT CLEANUP
-  - [ ] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
+  - [x] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
   - [ ] Step 3: DOMAIN MODEL & DTO INTEGRATION
   - [ ] Step 4: SEED VAULT HARMONIZATION
   - [ ] Step 5: DECOUPLED WORKFLOW BLUEPRINTS PROVIDER
@@ -86,8 +86,8 @@
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
 | `REQ-ZON-001` | Remediate pre-flight technical debt in `workflow_steps_tab.dart` (DGR008), `workflow_builder_view.dart` (DGR007), and `backend_v2/models/enums.py` (TD_DICT_GET) | Step 1 | [x] Completed |
-| `REQ-ZON-002` | Define SSOT enum `StepZone` (`zone_a`, `zone_b`, `zone_c`) with `@JsonEnum()` in Dart and `StrEnum` in Python | Step 2 | [ ] Pending |
-| `REQ-ZON-003` | Validate 100% cross-language member parity for `StepZone` via `test_enum_parity.py` | Step 2 | [ ] Pending |
+| `REQ-ZON-002` | Define SSOT enum `StepZone` (`zone_a`, `zone_b`, `zone_c`) with `@JsonEnum()` in Dart and `StrEnum` in Python | Step 2 | [x] Completed |
+| `REQ-ZON-003` | Validate 100% cross-language member parity for `StepZone` via `test_enum_parity.py` | Step 2 | [x] Completed |
 | `REQ-ZON-004` | Embed `zone` on backend domain model `Step` with default `StepZone.ZONE_B` | Step 3 | [ ] Pending |
 | `REQ-ZON-005` | Embed `zone` on Flutter `NodeStrategy` across all 3 unions (`llm`, `logic`, `causalDiscovery`) with default `StepZone.zoneB` | Step 3 | [ ] Pending |
 | `REQ-ZON-006` | Assign explicit `"zone"` properties to all foundational system core steps in `seed_data.json` and verify via dry-run and atom audits | Step 4 | [ ] Pending |
