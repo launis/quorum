@@ -44,7 +44,7 @@
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[ki_god_code_prevention.md] @[ki_workflow_context_governance.md] @[ki_desktop_pro_tool_studio_ux.md] @[ki_zero_permissive_typing.md]
   ```
@@ -58,7 +58,7 @@
   2. **Directory Reference Sync:**
      - Update `@[.agents/rules/04_directory_reference.md]` to register new test files (`client_app_v2/test/features/studio/views/widgets/workflow/workflow_step_card_dumb_painter_test.dart`).
   3. **Pillar Documentation Sync:**
-     - Update timeless narratives in `docs/architecture/` (specifically `02_domain_ontology_and_data_contracts.md` and `04_presentation_and_sdui_adapters.md`) describing newly established invariants in present tense without historical language or plan IDs.
+     - Update timeless narratives in `docs/architecture/` (specifically `02_data_seeding_and_ontology.md` and `04_server_driven_ui_and_presentation.md`) describing newly established invariants in present tense without historical language or plan IDs.
 
 ### Final Plan Audit
 - [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
@@ -103,27 +103,21 @@
 
 ## Achieved
 - Completed Tier 0 System 2 Research & Analysis of `IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md`.
-- Executed pre-flight technical debt audit: identified and cataloged 8 items (3 in `enums.py`, 2 in `workflow_steps_tab.dart`, 3 in `workflow_builder_view.dart`) into `Phase 1: Pre-Implementation Cleanups`.
-- Hardened 5-Column Directives Table and execution protocol with AST-exact line bounds and strict invariants.
-- Generated Standalone Plan Tracker `TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md` with granular step execution status, file-level hardening checklists, and Requirements Traceability Matrix.
+- Executed all 7 steps of the implementation plan in Continuous Full-Auto Mode with 100% quality gate compliance.
+- Passed full post-implementation hardening audits across backend and frontend targets via `auto_hardening_runner.py`.
+- Synchronized target Knowledge Items: `ki_god_code_prevention.md`, `ki_workflow_context_governance.md`, `ki_desktop_pro_tool_studio_ux.md`, and `ki_zero_permissive_typing.md` along with their `metadata.json` descriptors.
+- Synchronized architectural pillar documentation in `docs/architecture/02_data_seeding_and_ontology.md` and `docs/architecture/04_server_driven_ui_and_presentation.md` under strict timeless as-built mandates.
+- Verified test registration in `.agents/rules/04_directory_reference.md`.
 
 ## Learned
 - In `seed_data.json`, 5 foundational steps carry `is_system_core: true`: Input Processing (`sp_db849f9790984585` -> Zone A), XAI Reporter (`sp_192910b5f5a34c79` -> Zone C), Scoring Engine (`sp_d245365e4a274b9e` -> Zone C), Synthesis Generation (`sp_7a8b9c0d1e2f3a4b` -> Zone C), and Causal Discovery (`sp_c4a5a1d15c00438a` -> Zone B).
 - In `workflow_step_card.dart`, `isSystemCoreStep` was previously conflated with `index > 0`, causing Causal Discovery to render as a Zone C automatic anchor box. Pure Dumb Painter derivation from `currentBlueprint.zone` cleanly decouples functional layout from system core mutability locks.
+- `allBlueprintsProvider` scope isolation (`StepFilterScope.all`) cleanly prevents dashboard filter chip states (`coreOnly` vs `nonCoreOnly`) from polluting the available blueprint options when configuring workflow step rules in Studio Workflow Builder.
 
 ## Remaining
-- Step 1: Pre-Implementation Technical Debt Cleanup
-- Step 2: SSOT Enum Definition & Cross-Language Parity
-- Step 3: Domain Model & DTO Integration
-- Step 4: Seed Vault Harmonization
-- Step 5: Decoupled Workflow Blueprints Provider
-- Step 6: Frontend Dumb Painter Refactoring
-- Step 7: Test Expansion & Quality Gates
-- Post-Implementation Hardening (Backend & Frontend)
-- Tier 7 As-Built Architectural Documentation Sync
-- Tier 8 System 2 Red-Team Plan Audit
+- Tier 8 System 2 Red-Team Plan Audit: `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]
 ```
