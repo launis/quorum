@@ -58,14 +58,13 @@
 ---
 
 ### Post-Implementation Gates
-- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
   - [x] @[backend_v2/models/dtos/ingress.py#L76-L91]
-  - [x] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
-  - [x] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
-  - [x] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]
-  - [x] @[backend_v2/services/ingress/pdf_extractor/__init__.py#L45-L58]
-  - [x] [DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]
-  - [x] @[backend_v2/services/ingress/__init__.py]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/__init__.py#L45-L58]
+  - [ ] @[backend_v2/services/ingress/__init__.py]
   - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
   - [x] @[backend_v2/services/document_extraction.py#L94-L156]
   - [x] @[scripts/run_e2e_variance_test.py#L277-L411]
@@ -74,20 +73,20 @@
 - [x] **[OK] Pre-Delete Audit**: Verify 0 remaining imports from `backend_v2.services.ingress.pdf_chat_extractor` and 100% green `uv run python scripts/backend_audit_loop.py backend_v2/services/ingress/ --test --ast-strict` and `uv run python scripts/backend_audit_loop.py backend_v2/services/document_extraction.py --test --ast-strict`.
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verify all 25 baseline unit tests pass across the modularized test suites (`@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_bubble_geometry.py#L27-L37]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_table_and_card_stage.py#L23-L49]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_turn_assembly_stage.py#L68-L82]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_pdf_extractor_facade.py#L23-L55]`) with `>= 96%` line coverage.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Verify 100% symbol parity ($\mathcal{I}_{orig} \subseteq \bigcup \mathcal{I}_{sub}$) and execute `uv run python scripts/audit_dict_eradication.py` and `uv run python scripts/audit_clean_imports.py`.
-- [ ] **[NOK] As-Built Architectural Sync**:
+- [x] **[OK] As-Built Architectural Sync**:
   `/tier7-describe-architecture @[docs/epic/pdf_chat_extractor_decomposition_tracker.md] @[ki_chat_ingress_and_provenance_architecture.md] @[ki_god_code_prevention.md]`
   - **Target KIs to Synchronize**: `@[ki_chat_ingress_and_provenance_architecture.md]`, `@[ki_god_code_prevention.md]`
   - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/services/ingress/pdf_extractor/` (`bubble_geometry.py`, `table_and_card_stage.py`, `turn_assembly_stage.py`, `__init__.py` facade).
   - **Pillar Documentation Sync**: Synchronize Pillar 2 architectural documentation to reflect the modular `backend_v2/services/ingress/pdf_extractor/` stage pipeline.
 
 #### Epoch 2: 12-Item Technical Debt Inventory (To Resolve During Tier 2 Hardening ONLY After Epoch 1 Cutover Completes)
-1. - [ ] **Item 5 (PEP 593 `Annotated` Field Typing on Relocated DTOs)**:
+1. - [x] **Item 5 (PEP 593 `Annotated` Field Typing on Relocated DTOs)**:
     - Enforce `Annotated[T, Field(description=...)]` across `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` inside `@[backend_v2/models/dtos/ingress.py#L76-L91]`.
-2. - [ ] **Item 8 (PEP 257 Google-Style Docstrings & `Raises:` Completeness)**:
+2. - [x] **Item 8 (PEP 257 Google-Style Docstrings & `Raises:` Completeness)**:
     - Enforce complete PEP 257 docstrings with explicit `Args:`, `Returns:`, and `Raises:` (`AppException` with `ErrorCodes.VALIDATION_FAILED`) across `@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]`, `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]`, `@[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]`, and `@[backend_v2/services/ingress/pdf_extractor/__init__.py#L45-L58]`.
-3. - [ ] **Item 9 (Zero Inline Imports)**:
+3. - [x] **Item 9 (Zero Inline Imports)**:
     - Promote the inline import of `PdfChatExtractorService` inside `DocumentExtractionService._extract_pdf_sync` (`@[backend_v2/services/document_extraction.py#L94-L156]`) to a module top-level import in `@[backend_v2/services/document_extraction.py]`.
-4. - [ ] **Item 10 (ISTQB Negative Partition Expansion to >= 98% Line Coverage)**:
+4. - [x] **Item 10 (ISTQB Negative Partition Expansion to >= 98% Line Coverage)**:
     - Add negative and boundary tests in `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_bubble_geometry.py#L27-L37]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_table_and_card_stage.py#L23-L49]`, and `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_turn_assembly_stage.py#L68-L82]` covering the 12 baseline missed lines (`171, 209, 222-223, 242-244, 456-457, 479, 602, 618`).
 
 ---
