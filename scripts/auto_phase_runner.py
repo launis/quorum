@@ -74,7 +74,7 @@ from scripts.auto_hardening_runner import HardeningGate, parse_tracker_unhardene
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
-DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 600
+DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 900
 DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 3600
 
 __all__ = [
@@ -571,6 +571,8 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
         ["git", "status", "--porcelain"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=repo_root,
         check=False,
     )
@@ -588,6 +590,8 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
         audit_cmd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=repo_root,
         check=False,
         timeout=DEFAULT_AUDIT_TIMEOUT_SECONDS,
@@ -620,6 +624,8 @@ def commit_phase_checkpoint(
         ["git", "status", "--porcelain"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=repo_root,
         check=False,
     )
@@ -672,6 +678,8 @@ def commit_phase_checkpoint(
         ["git", "commit", "-m", commit_msg],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=repo_root,
         check=False,
     )
@@ -682,6 +690,8 @@ def commit_phase_checkpoint(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=repo_root,
         check=False,
     )
