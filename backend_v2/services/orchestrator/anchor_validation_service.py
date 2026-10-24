@@ -1,6 +1,5 @@
 """Service for validating evidence using strict lexical anchoring and fuzzy fallbacks."""
 
-import difflib
 import logging
 import re
 import unicodedata
@@ -9,7 +8,10 @@ from collections.abc import Sequence
 from backend_v2.exceptions import SemanticEvidenceError
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO, SourceDocumentContext
-from backend_v2.models.enums import TargetSpeaker, ValidationThresholdRatio
+from backend_v2.models.enums import TargetSpeaker
+from backend_v2.services.orchestrator.anchor_validation.lexical_matcher import (
+    is_lexically_valid as is_lexically_valid,
+)
 from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer import (
     MAX_CITATION_SPAN_CHARS as MAX_CITATION_SPAN_CHARS,
 )
@@ -28,18 +30,17 @@ from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer impor
 from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer import (
     strict_match as strict_match,
 )
-from backend_v2.settings import get_lexical_fuzz_threshold
-from backend_v2.utils.linguistics.stemmer import StemmerService
 
 logger = logging.getLogger(__name__)
 
-# Phase 1, Step 2: Re-export leaf constants and functions using explicit redundant aliases and __all__
+# Phase 1, Step 2 & Phase 2, Step 2: Re-export extracted symbols using explicit redundant aliases and __all__
 __all__ = [
     "MAX_CITATION_SPAN_CHARS",
     "MIN_ENTROPY_GATE_CHARS",
     "MIN_MULTI_SEGMENT_FLOOR_CHARS",
     "AnchorValidationService",
     "calculate_fuzzy_score",
+    "is_lexically_valid",
     "normalize_text_with_mapping",
     "strict_match",
 ]
@@ -132,220 +133,16 @@ class AnchorValidationService:
         Returns:
             GateMatchResultDTO indicating match validity and normalized coordinate bounds.
         """
-        if isinstance(quote, (list, tuple, Sequence)) and not isinstance(quote, str):
-            quotes = tuple(q for q in quote if q is not None)
-            if len(quotes) == 0:
-                return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-            if len(quotes) == 1:
-                single_q = quotes[0]
-                single_nq = (
-                    norm_quote[0]
-                    if isinstance(norm_quote, (list, tuple, Sequence)) and not isinstance(norm_quote, str)
-                    else norm_quote
-                )
-                return AnchorValidationService._is_lexically_valid(
-                    quote=single_q,
-                    norm_quote=single_nq,
-                    norm_text=norm_text,
-                    strictness_level=strictness_level,
-                    locale=locale,
-                    source_text=source_text,
-                    lexical_strictness_level=lexical_strictness_level,
-                )
-
-            # Multi-segment citation (m > 1):
-            m = len(quotes)
-            for q in quotes:
-                if len(q) < MIN_MULTI_SEGMENT_FLOOR_CHARS:
-                    return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-
-            norm_quotes_list: list[str] = []
-            if isinstance(norm_quote, (list, tuple, Sequence)) and not isinstance(norm_quote, str):
-                for nq in norm_quote:
-                    if not nq:
-                        return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-                    norm_quotes_list.append(nq)
-            else:
-                for q in quotes:
-                    clean_q = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", q))
-                    nq, _ = AnchorValidationService.normalize_text_with_mapping(clean_q)
-                    if not nq:
-                        return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-                    norm_quotes_list.append(nq)
-
-            # Candidate s_1 anchor iteration with forward-scan search:
-            q0 = norm_quotes_list[0]
-            search_offset = 0
-            while True:
-                pos_0 = norm_text.find(q0, search_offset)
-                if pos_0 == -1:
-                    return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-
-                s1 = pos_0
-                prev_end = pos_0 + len(q0) - 1
-                chain_valid = True
-
-                for k in range(1, m):
-                    qk = norm_quotes_list[k]
-                    next_pos = norm_text.find(qk, prev_end + 1)
-                    if next_pos == -1:
-                        chain_valid = False
-                        break
-                    end_k = next_pos + len(qk) - 1
-                    if end_k - s1 > MAX_CITATION_SPAN_CHARS:
-                        chain_valid = False
-                        break
-                    prev_end = end_k
-
-                if chain_valid:
-                    return GateMatchResultDTO(is_valid=True, start_idx=s1, end_idx=prev_end)
-
-                search_offset = pos_0 + 1
-
-        # Single segment quote validation
-        single_quote_str = quote if isinstance(quote, str) else str(quote)
-        single_norm_quote_str = norm_quote if isinstance(norm_quote, str) else str(norm_quote)
-
-        if not single_norm_quote_str:
-            logger.warning("Lexical Verifier rejected quote: normalized quote is empty.")
-            return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-
-        start_norm_idx = norm_text.find(single_norm_quote_str)
-        if start_norm_idx != -1:
-            return GateMatchResultDTO(
-                is_valid=True,
-                start_idx=start_norm_idx,
-                end_idx=start_norm_idx + len(single_norm_quote_str) - 1,
-            )
-
-        # Tier 2 Unicode NFKC & Zero-Width normalization check
-        clean_quote = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", single_quote_str))
-        clean_norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(clean_quote)
-        if clean_norm_quote:
-            clean_norm_idx = norm_text.find(clean_norm_quote)
-            if clean_norm_idx != -1:
-                return GateMatchResultDTO(
-                    is_valid=True,
-                    start_idx=clean_norm_idx,
-                    end_idx=clean_norm_idx + len(clean_norm_quote) - 1,
-                )
-
-        if len(single_quote_str) < MIN_ENTROPY_GATE_CHARS:
-            logger.warning(
-                f"Entropy Gate Failure: Quote '{single_quote_str}' is under {MIN_ENTROPY_GATE_CHARS} chars. Fuzzy match is forbidden. 100% exact match required."
-            )
-            return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-
-        tier_threshold = get_lexical_fuzz_threshold(locale, lexical_strictness_level=lexical_strictness_level)
-
-        if tier_threshold >= 100.0:
-            logger.warning(
-                f"Lexical validation failed: strictness is ABSOLUTE. 100% exact match required for '{single_quote_str[:50]}...'."
-            )
-            return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
-
-        score = AnchorValidationService.calculate_fuzzy_score(single_norm_quote_str, norm_text)
-        if score >= tier_threshold:
-            logger.warning(
-                f"Lexical Verifier used Fuzzy Fallback for '{single_quote_str[:50]}...'. Score {score:.1f}% >= threshold {tier_threshold}%",
-                extra={
-                    "exact_quote_snippet": single_quote_str[:50],
-                    "rapidfuzz_score": score,
-                    "strictness_level": strictness_level,
-                    "lexical_strictness_level": lexical_strictness_level,
-                },
-            )
-            matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
-            blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-            if blocks:
-                start_coord = blocks[0].b
-                end_coord = blocks[-1].b + blocks[-1].size - 1
-            else:
-                start_coord = 0
-                end_coord = 0
-            return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
-
-        # Stage 3: Morphological Stemmed Sequence Verification (executed strictly when lexical_strictness_level < 100)
-        if lexical_strictness_level < 100:
-            stem_min_coverage = min(0.80, tier_threshold / 100.0)
-            stem_result = StemmerService.match_stemmed_subsequence(
-                quote=single_quote_str,
-                source_text=source_text if source_text else norm_text,
-                locale=locale,
-                min_coverage=stem_min_coverage,
-            )
-            if stem_result.is_match:
-                logger.warning(
-                    f"Lexical Verifier used Morphological Stemming for '{single_quote_str[:50]}...'. "
-                    f"Similarity {stem_result.similarity_score:.1f}% >= threshold {stem_min_coverage * 100.0:.1f}%",
-                    extra={
-                        "exact_quote_snippet": single_quote_str[:50],
-                        "rapidfuzz_score": score,
-                        "stem_similarity_score": stem_result.similarity_score,
-                        "matched_content_stems": stem_result.matched_content_stems,
-                        "strictness_level": strictness_level,
-                        "lexical_strictness_level": lexical_strictness_level,
-                    },
-                )
-                start_coord = -1
-                end_coord = -1
-                if stem_result.matched_source_span:
-                    norm_span, _ = AnchorValidationService.normalize_text_with_mapping(stem_result.matched_source_span)
-                    if norm_span:
-                        span_idx = norm_text.find(norm_span)
-                        if span_idx != -1:
-                            start_coord = span_idx
-                            end_coord = span_idx + len(norm_span) - 1
-                if start_coord == -1:
-                    matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
-                    blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-                    if blocks:
-                        start_coord = blocks[0].b
-                        end_coord = blocks[-1].b + blocks[-1].size - 1
-                    else:
-                        start_coord = 0
-                        end_coord = 0
-                return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
-
-        safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
-        matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
-        match = matcher.find_longest_match(0, len(single_norm_quote_str), 0, len(norm_text))
-        coverage_pct = match.size / len(single_norm_quote_str)
-
-        if coverage_pct >= safety_net:
-            logger.warning(
-                f"[AnchorValidation] Coverage-based match: {coverage_pct:.0%} of quote anchored",
-                extra={
-                    "exact_quote_snippet": single_quote_str[:50],
-                    "coverage_pct": coverage_pct,
-                    "matched_fragment": single_norm_quote_str[match.a : match.a + match.size],
-                },
-            )
-            blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-            if blocks:
-                start_coord = blocks[0].b
-                end_coord = blocks[-1].b + blocks[-1].size - 1
-            else:
-                if match.size > 0:
-                    start_coord = match.b
-                    end_coord = match.b + match.size - 1
-                else:
-                    start_coord = 0
-                    end_coord = 0
-            return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
-
-        logger.warning(
-            f"Backend Lexical Verifier failed: exact_quote '{single_quote_str[:50]}...' not found in source text. "
-            f"RapidFuzz best match: {score:.1f}% < threshold {tier_threshold}%. "
-            f"Coverage match: {coverage_pct:.0%} < safety net {safety_net * 100:.0%}%",
-            extra={
-                "exact_quote_snippet": single_quote_str[:50],
-                "rapidfuzz_score": score,
-                "tier_threshold": tier_threshold,
-                "coverage_pct": coverage_pct,
-            },
+        # Phase 2, Step 2: Delegate to extracted multi-tier lexical matcher
+        return is_lexically_valid(
+            quote=quote,
+            norm_quote=norm_quote,
+            norm_text=norm_text,
+            strictness_level=strictness_level,
+            locale=locale,
+            source_text=source_text,
+            lexical_strictness_level=lexical_strictness_level,
         )
-        return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
 
     @staticmethod
     def validate_evidence(
@@ -429,7 +226,7 @@ class AnchorValidationService:
                     all_segs_valid = True
                     for q in quotes:
                         norm_q, _ = AnchorValidationService.normalize_text_with_mapping(q)
-                        if not AnchorValidationService._is_lexically_valid(
+                        if not is_lexically_valid(
                             q,
                             norm_q,
                             norm_d,
@@ -481,7 +278,7 @@ class AnchorValidationService:
             norm_allowed_source, _ = AnchorValidationService.normalize_text_with_mapping(allowed_source_text)
             for quote in quotes:
                 norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
-                if not AnchorValidationService._is_lexically_valid(
+                if not is_lexically_valid(
                     quote,
                     norm_quote,
                     norm_allowed_source,
@@ -635,7 +432,7 @@ class AnchorValidationService:
         else:
             for idx, quote in enumerate(quotes):
                 norm_quote = norm_quotes[idx]
-                match_result = AnchorValidationService._is_lexically_valid(
+                match_result = is_lexically_valid(
                     quote=quote,
                     norm_quote=norm_quote,
                     norm_text=norm_pdf,
@@ -714,7 +511,7 @@ class AnchorValidationService:
                             break
                         if lexical_strictness_level < 100:
                             norm_doc, _ = AnchorValidationService.normalize_text_with_mapping(doc.text_content)
-                            if AnchorValidationService._is_lexically_valid(
+                            if is_lexically_valid(
                                 quote=atom.source_quotes,
                                 norm_quote=tuple(
                                     AnchorValidationService.normalize_text_with_mapping(q)[0]
@@ -732,7 +529,7 @@ class AnchorValidationService:
                             all_segs = True
                             for q in atom.source_quotes:
                                 nq, _ = AnchorValidationService.normalize_text_with_mapping(q)
-                                if not AnchorValidationService._is_lexically_valid(
+                                if not is_lexically_valid(
                                     quote=q,
                                     norm_quote=nq,
                                     norm_text=norm_doc,
@@ -759,7 +556,7 @@ class AnchorValidationService:
                             all_segs = True
                             for q in atom.source_quotes:
                                 nq, _ = AnchorValidationService.normalize_text_with_mapping(q)
-                                if not AnchorValidationService._is_lexically_valid(
+                                if not is_lexically_valid(
                                     quote=q,
                                     norm_quote=nq,
                                     norm_text=norm_mcp,
