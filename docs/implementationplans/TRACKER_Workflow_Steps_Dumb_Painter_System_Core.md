@@ -23,7 +23,7 @@
   - [x] Step 2: SSOT ENUM DEFINITION & CROSS-LANGUAGE PARITY
   - [x] Step 3: DOMAIN MODEL & DTO INTEGRATION
   - [x] Step 4: SEED VAULT HARMONIZATION
-  - [ ] Step 5: DECOUPLED WORKFLOW BLUEPRINTS PROVIDER
+  - [x] Step 5: DECOUPLED WORKFLOW BLUEPRINTS PROVIDER
   - [ ] Step 6: FRONTEND DUMB PAINTER REFACTORING
   - [ ] Step 7: TEST EXPANSION & QUALITY GATES
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
@@ -92,8 +92,8 @@
 | `REQ-ZON-005` | Embed `zone` on Flutter `NodeStrategy` across all 3 unions (`llm`, `logic`, `causalDiscovery`) with default `StepZone.zoneB` | Step 3 | [x] Completed |
 | `REQ-ZON-006` | Assign explicit `"zone"` properties to all foundational system core steps in `seed_data.json` and verify via dry-run and atom audits | Step 4 | [x] Completed |
 | `REQ-ZON-007` | Re-seed local development database `db_v2.json` with updated blueprint zone classifications | Step 4 | [x] Completed |
-| `REQ-ZON-008` | Implement `allBlueprintsProvider` in `studio_controller.dart` fetching `StepFilterScope.all` with cache invalidation on save/delete | Step 5 | [ ] Pending |
-| `REQ-ZON-009` | Decouple `WorkflowBuilderView` from dashboard filter scope by watching `allBlueprintsProvider` | Step 5 | [ ] Pending |
+| `REQ-ZON-008` | Implement `allBlueprintsProvider` in `studio_controller.dart` fetching `StepFilterScope.all` with cache invalidation on save/delete | Step 5 | [x] Completed |
+| `REQ-ZON-009` | Decouple `WorkflowBuilderView` from dashboard filter scope by watching `allBlueprintsProvider` | Step 5 | [x] Completed |
 | `REQ-ZON-010` | Refactor `WorkflowStepCard` to derive `isSystemCoreStep`, `isZoneA`, and `isZoneC` strictly from `currentBlueprint` as a pure Dumb Painter | Step 6 | [ ] Pending |
 | `REQ-ZON-011` | Refactor `_findFirstZoneCIndex` in `WorkflowStepsTab` to use positive `StepZone.zoneC` matching without engine-type exclusions | Step 6 | [ ] Pending |
 | `REQ-ZON-012` | Implement comprehensive widget test `workflow_step_card_dumb_painter_test.dart` covering Zone B Causal Discovery system core protections and fallback behavior | Step 7 | [ ] Pending |

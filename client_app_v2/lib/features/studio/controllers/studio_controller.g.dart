@@ -258,6 +258,52 @@ final class StepByIdFamily extends $Family
   String toString() => r'stepByIdProvider';
 }
 
+/// Fetches all step blueprints (specialists and system core) unconditionally for workflow authoring.
+
+@ProviderFor(allBlueprints)
+final allBlueprintsProvider = AllBlueprintsProvider._();
+
+/// Fetches all step blueprints (specialists and system core) unconditionally for workflow authoring.
+
+final class AllBlueprintsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<NodeStrategy>>,
+          List<NodeStrategy>,
+          FutureOr<List<NodeStrategy>>
+        >
+    with
+        $FutureModifier<List<NodeStrategy>>,
+        $FutureProvider<List<NodeStrategy>> {
+  /// Fetches all step blueprints (specialists and system core) unconditionally for workflow authoring.
+  AllBlueprintsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'allBlueprintsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$allBlueprintsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<NodeStrategy>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<NodeStrategy>> create(Ref ref) {
+    return allBlueprints(ref);
+  }
+}
+
+String _$allBlueprintsHash() => r'69c417baec8791edde3276fceb49e20ea136882b';
+
 @ProviderFor(WorkflowForm)
 final workflowFormProvider = WorkflowFormFamily._();
 
@@ -522,7 +568,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'4b7ca0613d61d64a2fb0ed6983f200bda173d8c4';
+String _$stepsControllerHash() => r'12ba0e88f4551f0836a2bd98fe5e9adb72153293';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.

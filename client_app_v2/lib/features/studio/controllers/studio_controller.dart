@@ -39,6 +39,14 @@ Future<NodeStrategy> stepById(Ref ref, String id) async {
   return await client.getStep(id);
 }
 
+/// Fetches all step blueprints (specialists and system core) unconditionally for workflow authoring.
+@riverpod
+Future<List<NodeStrategy>> allBlueprints(Ref ref) async {
+  ref.cacheFor(AppDurations.cacheTimeout);
+  final client = ref.watch(studioClientProvider);
+  return await client.getSteps(scope: StepFilterScope.all);
+}
+
 // --- Form State (Flat MVC) ---
 
 @riverpod
@@ -387,6 +395,7 @@ class StepsController extends _$StepsController {
         }
         returnData = verifiedStep;
       }
+      ref.invalidate(allBlueprintsProvider);
       return returnData;
     } catch (e, st) {
       // 4. Rollback on Failure
@@ -409,13 +418,10 @@ class StepsController extends _$StepsController {
 
       if (state.hasValue && state.value != null) {
         final currentList = List<NodeStrategy>.from(state.value!);
-        currentList.removeWhere((m) {
-          if (m is NodeStrategyLlm) return m.id == id;
-          if (m is NodeStrategyLogic) return m.id == id;
-          return false;
-        });
+        currentList.removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
+      ref.invalidate(allBlueprintsProvider);
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
@@ -441,6 +447,7 @@ class StepsController extends _$StepsController {
         currentList.add(clonedStep);
         state = AsyncValue.data(currentList);
       }
+      ref.invalidate(allBlueprintsProvider);
       return clonedStep;
     } catch (e, st) {
       state = previousState;

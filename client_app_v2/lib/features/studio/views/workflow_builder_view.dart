@@ -50,7 +50,7 @@ class WorkflowBuilderView extends HookConsumerWidget {
     final wfId = (id ?? '').isEmpty ? 'new' : id!;
 
     final formState = ref.watch(workflowFormProvider(wfId));
-    final stepsAsync = ref.watch(stepsControllerProvider);
+    final stepsAsync = ref.watch(allBlueprintsProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
     return switch (formState) {
@@ -63,7 +63,7 @@ class WorkflowBuilderView extends HookConsumerWidget {
               error: stepsAsync.error!,
               stackTrace: stepsAsync.stackTrace,
               compact: false,
-              onRetry: () => ref.invalidate(stepsControllerProvider),
+              onRetry: () => ref.invalidate(allBlueprintsProvider),
             ),
           );
         }
