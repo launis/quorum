@@ -5,6 +5,7 @@ import logging
 import re
 import unicodedata
 from collections.abc import Sequence
+from typing import TypeIs
 
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO
 from backend_v2.models.enums import ValidationThresholdRatio
@@ -23,7 +24,50 @@ logger = logging.getLogger(__name__)
 __all__ = ["is_lexically_valid"]
 
 
-# Phase 2, Step 1: Relocate multi-tier lexical matcher is_lexically_valid
+def _is_quote_sequence(
+    val: str | Sequence[str] | tuple[str, ...] | list[str],
+) -> TypeIs[Sequence[str]]:
+    """Narrow a quote or normalized quote union to a non-string Sequence of strings.
+
+    Args:
+        val: Candidate quote string or sequence of quote segments.
+
+    Returns:
+        True if val is a non-string Sequence, False if val is a string.
+    """
+    match val:
+        case str():
+            return False
+        case Sequence():
+            return True
+
+
+def _build_sequence_matcher_gate_result(
+    norm_quote: str,
+    norm_text: str,
+    matcher: difflib.SequenceMatcher[str] | None = None,
+) -> GateMatchResultDTO:
+    """Build a positive GateMatchResultDTO from SequenceMatcher matching blocks.
+
+    Args:
+        norm_quote: Normalized quote string.
+        norm_text: Normalized source text context.
+        matcher: Optional pre-initialized SequenceMatcher instance.
+
+    Returns:
+        GateMatchResultDTO with is_valid=True and resolved coordinate bounds.
+    """
+    seq_matcher = difflib.SequenceMatcher(None, norm_quote, norm_text) if matcher is None else matcher
+    blocks = [b for b in seq_matcher.get_matching_blocks() if b.size > 0]
+    if blocks:
+        start_coord = blocks[0].b
+        end_coord = blocks[-1].b + blocks[-1].size - 1
+    else:
+        start_coord = 0
+        end_coord = 0
+    return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
+
+
 def is_lexically_valid(
     quote: str | Sequence[str] | tuple[str, ...] | list[str],
     norm_quote: str | Sequence[str] | tuple[str, ...] | list[str],
@@ -51,17 +95,13 @@ def is_lexically_valid(
     Returns:
         GateMatchResultDTO indicating match validity and normalized coordinate bounds.
     """
-    if isinstance(quote, (list, tuple, Sequence)) and not isinstance(quote, str):
+    if _is_quote_sequence(quote):
         quotes = tuple(q for q in quote if q is not None)
         if len(quotes) == 0:
             return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
         if len(quotes) == 1:
             single_q = quotes[0]
-            single_nq = (
-                norm_quote[0]
-                if isinstance(norm_quote, (list, tuple, Sequence)) and not isinstance(norm_quote, str)
-                else norm_quote
-            )
+            single_nq = norm_quote[0] if _is_quote_sequence(norm_quote) else norm_quote
             return is_lexically_valid(
                 quote=single_q,
                 norm_quote=single_nq,
@@ -79,7 +119,7 @@ def is_lexically_valid(
                 return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
 
         norm_quotes_list: list[str] = []
-        if isinstance(norm_quote, (list, tuple, Sequence)) and not isinstance(norm_quote, str):
+        if _is_quote_sequence(norm_quote):
             for nq in norm_quote:
                 if not nq:
                     return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
@@ -122,8 +162,8 @@ def is_lexically_valid(
             search_offset = pos_0 + 1
 
     # Single segment quote validation
-    single_quote_str = quote if isinstance(quote, str) else str(quote)
-    single_norm_quote_str = norm_quote if isinstance(norm_quote, str) else str(norm_quote)
+    single_quote_str = quote
+    single_norm_quote_str = str(norm_quote) if _is_quote_sequence(norm_quote) else norm_quote
 
     if not single_norm_quote_str:
         logger.warning("Lexical Verifier rejected quote: normalized quote is empty.")
@@ -177,15 +217,7 @@ def is_lexically_valid(
                 "lexical_strictness_level": lexical_strictness_level,
             },
         )
-        matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
-        blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-        if blocks:
-            start_coord = blocks[0].b
-            end_coord = blocks[-1].b + blocks[-1].size - 1
-        else:
-            start_coord = 0
-            end_coord = 0
-        return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
+        return _build_sequence_matcher_gate_result(single_norm_quote_str, norm_text)
 
     # Stage 3: Morphological Stemmed Sequence Verification (executed strictly when lexical_strictness_level < 100)
     if lexical_strictness_level < 100:
@@ -209,25 +241,17 @@ def is_lexically_valid(
                     "lexical_strictness_level": lexical_strictness_level,
                 },
             )
-            start_coord = -1
-            end_coord = -1
             if stem_result.matched_source_span:
                 norm_span, _ = normalize_text_with_mapping(stem_result.matched_source_span)
                 if norm_span:
                     span_idx = norm_text.find(norm_span)
                     if span_idx != -1:
-                        start_coord = span_idx
-                        end_coord = span_idx + len(norm_span) - 1
-            if start_coord == -1:
-                matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
-                blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-                if blocks:
-                    start_coord = blocks[0].b
-                    end_coord = blocks[-1].b + blocks[-1].size - 1
-                else:
-                    start_coord = 0
-                    end_coord = 0
-            return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
+                        return GateMatchResultDTO(
+                            is_valid=True,
+                            start_idx=span_idx,
+                            end_idx=span_idx + len(norm_span) - 1,
+                        )
+            return _build_sequence_matcher_gate_result(single_norm_quote_str, norm_text)
 
     safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
     matcher = difflib.SequenceMatcher(None, single_norm_quote_str, norm_text)
@@ -243,18 +267,7 @@ def is_lexically_valid(
                 "matched_fragment": single_norm_quote_str[match.a : match.a + match.size],
             },
         )
-        blocks = [b for b in matcher.get_matching_blocks() if b.size > 0]
-        if blocks:
-            start_coord = blocks[0].b
-            end_coord = blocks[-1].b + blocks[-1].size - 1
-        else:
-            if match.size > 0:
-                start_coord = match.b
-                end_coord = match.b + match.size - 1
-            else:
-                start_coord = 0
-                end_coord = 0
-        return GateMatchResultDTO(is_valid=True, start_idx=start_coord, end_idx=end_coord)
+        return _build_sequence_matcher_gate_result(single_norm_quote_str, norm_text, matcher=matcher)
 
     logger.warning(
         f"Backend Lexical Verifier failed: exact_quote '{single_quote_str[:50]}...' not found in source text. "

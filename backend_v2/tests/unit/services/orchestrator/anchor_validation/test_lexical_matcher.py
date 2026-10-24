@@ -205,7 +205,7 @@ def test_anchor_validation_is_lexically_valid_multi_segment_direct() -> None:
 
 def test_anchor_validation_coverage_safety_net_branch() -> None:
     """Tests coverage safety net branch, stemmer SequenceMatcher fallback, and Tier 2 clean_norm_quote."""
-    # 1. Coverage safety net branch (lines 238-250): score (75%) < threshold (93.84%), stem (0%) < 80%, coverage (75%) >= 70%
+    # 1. Coverage safety net branch: score (75%) < threshold (93.84%), stem (0%) < 80%, coverage (75%) >= 70%
     short_source = "abcdefghijklyyyyyyyy"
     norm_short_source, _ = normalize_text_with_mapping(short_source)
     quote_safety = "abcdefghijklxxxx"
@@ -221,7 +221,7 @@ def test_anchor_validation_coverage_safety_net_branch() -> None:
     )
     assert res_safety.is_valid is True
 
-    # 2. Stemmer fallback when matched_source_span is not in norm_text (lines 221-226)
+    # 2. Stemmer fallback when matched_source_span is not in norm_text
     morph_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin."
     morph_q = "johtajuus ja selkeät tavoitteet"
     norm_morph_q, _ = normalize_text_with_mapping(morph_q)
@@ -236,7 +236,21 @@ def test_anchor_validation_coverage_safety_net_branch() -> None:
     )
     assert res_stem_fallback.is_valid is True
 
-    # 2. Tier 2 clean_norm_quote fallback (line 146) when caller passes un-normalized norm_quote
+    # 2b. Stemmer fallback when norm_text shares zero characters with norm_quote (empty matching blocks -> 0, 0)
+    res_stem_zero_blocks = is_lexically_valid(
+        quote=morph_q,
+        norm_quote=norm_morph_q,
+        norm_text="1234567890",
+        strictness_level=50,
+        locale="fi",
+        source_text=morph_text,
+        lexical_strictness_level=50,
+    )
+    assert res_stem_zero_blocks.is_valid is True
+    assert res_stem_zero_blocks.start_idx == 0
+    assert res_stem_zero_blocks.end_idx == 0
+
+    # 3. Tier 2 clean_norm_quote fallback when caller passes un-normalized norm_quote
     text = "Dokumentti sisältää tämän täsmällisen lauseen täällä."
     norm_text, _ = normalize_text_with_mapping(text)
     quote_zw = "Dokumentti\u200b sisältää\u200c tämän\ufeff täsmällisen"
@@ -251,7 +265,7 @@ def test_anchor_validation_coverage_safety_net_branch() -> None:
     )
     assert res_tier2.is_valid is True
 
-    # 3. Multi-segment with raw norm_quote and punctuation-only second segment (line 92)
+    # 4. Multi-segment with raw norm_quote and punctuation-only second segment
     seg1 = "Dokumentti sisältää tämän täsmällisen lauseen täällä."
     seg_punct = "?" * 35
     res_raw_empty = is_lexically_valid(
@@ -263,7 +277,7 @@ def test_anchor_validation_coverage_safety_net_branch() -> None:
     )
     assert res_raw_empty.is_valid is False
 
-    # 4. Complete lexical failure reaching final return False (line 270)
+    # 5. Complete lexical failure reaching final return False
     res_fail = is_lexically_valid(
         quote="completely unrelated long quote that never matches",
         norm_quote="completelyunrelatedlongquotethatnevermatches",
