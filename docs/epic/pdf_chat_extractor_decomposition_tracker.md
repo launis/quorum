@@ -61,7 +61,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
   - [x] @[backend_v2/models/dtos/ingress.py#L76-L91]
   - [x] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
-  - [ ] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
+  - [x] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/__init__.py#L45-L58]
   - [ ] @[backend_v2/services/ingress/__init__.py]
