@@ -56,7 +56,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/anchor_validation_service_decomposition_tracker.md --gate backend`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/anchor_validation_service_decomposition_tracker.md --gate backend`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py#L25-L337]`
@@ -64,7 +64,7 @@
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]`
   - [x] `@[backend_v2/services/orchestrator/extractive_sensor_service.py#L176-L761]`
   - [x] `@[backend_v2/services/mcp/mcp_tool_loop.py#L150-L476]`
-  - [ ] `@[backend_v2/hooks/integrity.py#L118-L138]`
+  - [x] `@[backend_v2/hooks/integrity.py#L118-L138]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm 0 remaining references to `backend_v2.services.orchestrator.anchor_validation_service` and physical removal of `[DELETE] @[backend_v2/services/orchestrator/anchor_validation_service.py]`.
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 59 baseline unit tests pass across the modularized test suites (`@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_normalizer.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_matcher.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_evidence_validator.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_atom_evaluation_processor.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_anchor_validation_facade.py]`) with `>= 93%` line coverage.
