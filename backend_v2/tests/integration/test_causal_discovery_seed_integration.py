@@ -91,7 +91,10 @@ def test_dedicated_causal_blueprints_pydantic_schema(
 def test_workflows_contain_dedicated_causal_step_rules(
     seed_buffer: ValidatedSeedBufferDTO,
 ) -> None:
-    """Positive Test 2: Validate workflows declaring causal discovery contain dedicated step rule and downstream fusion wiring."""
+    """Positive Test 2: Validate workflows declaring causal discovery.
+
+    Validate workflows contain dedicated step rule and downstream fusion wiring.
+    """
     wf_dict = {w.id: w for w in seed_buffer.workflows}
 
     for spec in DEDICATED_BLUEPRINTS:

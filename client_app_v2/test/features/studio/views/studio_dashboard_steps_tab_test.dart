@@ -83,11 +83,9 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        when(
-          () => mockClient.getSteps(
-            scope: any(named: 'scope'),
-          ),
-        ).thenAnswer((invocation) async {
+        when(() => mockClient.getSteps(scope: any(named: 'scope'))).thenAnswer((
+          invocation,
+        ) async {
           final scope = invocation.namedArguments[#scope] as StepFilterScope;
           switch (scope) {
             case StepFilterScope.specialists:
@@ -126,11 +124,9 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        when(
-          () => mockClient.getSteps(
-            scope: any(named: 'scope'),
-          ),
-        ).thenAnswer((invocation) async {
+        when(() => mockClient.getSteps(scope: any(named: 'scope'))).thenAnswer((
+          invocation,
+        ) async {
           final scope = invocation.namedArguments[#scope] as StepFilterScope;
           switch (scope) {
             case StepFilterScope.specialists:
@@ -170,11 +166,9 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        when(
-          () => mockClient.getSteps(
-            scope: any(named: 'scope'),
-          ),
-        ).thenAnswer((invocation) async {
+        when(() => mockClient.getSteps(scope: any(named: 'scope'))).thenAnswer((
+          invocation,
+        ) async {
           final scope = invocation.namedArguments[#scope] as StepFilterScope;
           switch (scope) {
             case StepFilterScope.specialists:
@@ -198,36 +192,31 @@ void main() {
 
         expect(find.text('Specialist Step'), findsOneWidget);
         expect(find.text('Causal Discovery'), findsOneWidget);
-        verify(
-          () => mockClient.getSteps(scope: StepFilterScope.all),
-        ).called(1);
+        verify(() => mockClient.getSteps(scope: StepFilterScope.all)).called(1);
       },
     );
 
-    testWidgets(
-      'Empty state rendered when backend returns an empty list',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1400, 900);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('Empty state rendered when backend returns an empty list', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        when(
-          () => mockClient.getSteps(
-            scope: any(named: 'scope'),
-          ),
-        ).thenAnswer((_) async => []);
+      when(
+        () => mockClient.getSteps(scope: any(named: 'scope')),
+      ).thenAnswer((_) async => []);
 
-        await tester.pumpWidget(createWidgetUnderTest());
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.extension));
-        await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.extension));
+      await tester.pumpAndSettle();
 
-        expect(find.text('No Steps defined.'), findsOneWidget);
-      },
-    );
+      expect(find.text('No Steps defined.'), findsOneWidget);
+    });
   });
 }
