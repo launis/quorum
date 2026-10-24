@@ -29,7 +29,7 @@ __all__ = [
     "is_user_bubble_drawing",
 ]
 
-# Phase 1, Step 2: Relative geometry ratio constants for vector speech bubbles
+# Enforce relative geometry ratio constants for vector speech bubbles
 _USER_BUBBLE_MIN_WIDTH_RATIO: float = 0.20
 _USER_BUBBLE_MIN_X0_RATIO: float = 0.20
 _USER_BUBBLE_MIN_X1_RATIO: float = 0.85
