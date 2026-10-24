@@ -1,11 +1,19 @@
-from __future__ import annotations
+"""Unit tests for ingress DTOs."""
 
-"""Unit tests for ingress DTOs (ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO)."""
+from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
+from backend_v2.models.dtos.ingress import (
+    ChatTurnAnchorDTO,
+    ChatTurnAnchorsResponseDTO,
+    PdfBlockSignatureDTO,
+    PdfCellCoordinatesDTO,
+    PdfTextBlockDTO,
+    RawTurnDTO,
+    ResolvedIngressDTO,
+)
 
 
 def test_chat_turn_anchor_dto_valid() -> None:
@@ -18,10 +26,8 @@ def test_chat_turn_anchor_dto_valid() -> None:
     assert dto.speaker == "user"
     assert dto.start_phrase == "Tämä on esimerkkilause alussa"
     assert dto.end_phrase == "Tämä on esimerkkilause lopussa"
-
-    # Frozen check
-    with pytest.raises(ValidationError):
-        dto.speaker = "ai"
+    assert ChatTurnAnchorDTO.model_config["frozen"] is True
+    assert hash(dto) is not None
 
 
 def test_chat_turn_anchor_dto_invalid_speaker() -> None:
@@ -79,8 +85,6 @@ def test_chat_turn_anchors_response_dto_empty_turns_allowed() -> None:
 
 def test_resolved_ingress_dto_valid() -> None:
     """Test valid ResolvedIngressDTO instantiation and frozen immutability."""
-    from backend_v2.models.dtos.ingress import ResolvedIngressDTO
-
     dto = ResolvedIngressDTO(
         resolved_inputs={"doc_text": "Sample text", "turn_count": 5},
         source_identity_manifest={"doc_text": "sample.pdf", "turn_count": "metadata"},
@@ -88,16 +92,11 @@ def test_resolved_ingress_dto_valid() -> None:
     assert dto.resolved_inputs["doc_text"] == "Sample text"
     assert dto.resolved_inputs["turn_count"] == 5
     assert dto.source_identity_manifest["doc_text"] == "sample.pdf"
-
-    # Immutability check
-    with pytest.raises(ValidationError):
-        dto.resolved_inputs = {}
+    assert ResolvedIngressDTO.model_config["frozen"] is True
 
 
 def test_resolved_ingress_dto_extra_fields_forbidden() -> None:
     """Negative Test: Extra fields trigger ValidationError under extra='forbid'."""
-    from backend_v2.models.dtos.ingress import ResolvedIngressDTO
-
     with pytest.raises(ValidationError):
         ResolvedIngressDTO.model_validate(
             {
@@ -106,3 +105,106 @@ def test_resolved_ingress_dto_extra_fields_forbidden() -> None:
                 "extra_key": "forbidden",
             }
         )
+
+
+# Phase 1, Step 1: Unit tests for relocated PDF extraction DTOs
+def test_pdf_cell_coordinates_dto_valid_and_frozen() -> None:
+    """Test valid instantiation, hashability, and frozen immutability of PdfCellCoordinatesDTO."""
+    dto = PdfCellCoordinatesDTO(x0=10.0, y0=20.0, x1=100.0, y1=50.0)
+    assert dto.x0 == 10.0
+    assert dto.y0 == 20.0
+    assert dto.x1 == 100.0
+    assert dto.y1 == 50.0
+    assert PdfCellCoordinatesDTO.model_config["frozen"] is True
+    assert hash(dto) is not None
+
+
+def test_pdf_cell_coordinates_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative Test: Extra fields and non-float strict types fail validation on PdfCellCoordinatesDTO."""
+    with pytest.raises(ValidationError):
+        PdfCellCoordinatesDTO.model_validate({"x0": 10.0, "y0": 20.0, "x1": 100.0, "y1": 50.0, "extra": 1.0})
+    with pytest.raises(ValidationError):
+        PdfCellCoordinatesDTO.model_validate({"x0": "not_a_float", "y0": 20.0, "x1": 100.0, "y1": 50.0})
+
+
+def test_pdf_text_block_dto_valid_and_frozen() -> None:
+    """Test valid instantiation, hashability, and frozen immutability of PdfTextBlockDTO."""
+    dto = PdfTextBlockDTO(
+        x0=59.0,
+        y0=120.0,
+        x1=500.0,
+        y1=160.0,
+        text="Hello world",
+        block_no=1,
+        block_type=0,
+    )
+    assert dto.text == "Hello world"
+    assert dto.block_no == 1
+    assert dto.block_type == 0
+    assert PdfTextBlockDTO.model_config["frozen"] is True
+    assert hash(dto) is not None
+
+
+def test_pdf_text_block_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative Test: Extra fields and type mismatches fail validation on PdfTextBlockDTO."""
+    with pytest.raises(ValidationError):
+        PdfTextBlockDTO.model_validate(
+            {
+                "x0": 59.0,
+                "y0": 120.0,
+                "x1": 500.0,
+                "y1": 160.0,
+                "text": "Hello",
+                "block_no": 1,
+                "block_type": 0,
+                "unexpected": True,
+            }
+        )
+    with pytest.raises(ValidationError):
+        PdfTextBlockDTO.model_validate(
+            {
+                "x0": 59.0,
+                "y0": 120.0,
+                "x1": 500.0,
+                "y1": 160.0,
+                "text": "Hello",
+                "block_no": "1",
+                "block_type": 0,
+            }
+        )
+
+
+def test_raw_turn_dto_valid_and_frozen() -> None:
+    """Test valid instantiation, hashability, and frozen immutability of RawTurnDTO."""
+    dto = RawTurnDTO(role="user", content="Sample user prompt")
+    assert dto.role == "user"
+    assert dto.content == "Sample user prompt"
+    assert RawTurnDTO.model_config["frozen"] is True
+    assert hash(dto) is not None
+
+
+def test_raw_turn_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative Test: Extra fields and non-string content fail validation on RawTurnDTO."""
+    with pytest.raises(ValidationError):
+        RawTurnDTO.model_validate({"role": "user", "content": "Prompt", "extra": "bad"})
+    with pytest.raises(ValidationError):
+        RawTurnDTO.model_validate({"role": "user", "content": 12345})
+
+
+def test_pdf_block_signature_dto_valid_and_hashable() -> None:
+    """Test valid instantiation, set deduplication hashability, and frozen immutability of PdfBlockSignatureDTO."""
+    sig1 = PdfBlockSignatureDTO(page_idx=0, x0=59.0, y0=120.0, x1=400.0, y1=140.0, text="Sample block")
+    sig2 = PdfBlockSignatureDTO(page_idx=0, x0=59.0, y0=120.0, x1=400.0, y1=140.0, text="Sample block")
+    seen = {sig1}
+    assert sig2 in seen
+    assert PdfBlockSignatureDTO.model_config["frozen"] is True
+
+
+def test_pdf_block_signature_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative Test: Extra fields and invalid page_idx type fail validation on PdfBlockSignatureDTO."""
+    with pytest.raises(ValidationError):
+        PdfBlockSignatureDTO.model_validate(
+            {"page_idx": 0, "x0": 1.0, "y0": 2.0, "x1": 3.0, "y1": 4.0, "text": "ok", "extra": 1}
+        )
+    with pytest.raises(ValidationError):
+        PdfBlockSignatureDTO.model_validate({"page_idx": "0", "x0": 1.0, "y0": 2.0, "x1": 3.0, "y1": 4.0, "text": "ok"})

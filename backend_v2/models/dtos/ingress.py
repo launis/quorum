@@ -10,12 +10,17 @@ from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import IngressInputValue
 from backend_v2.models.dtos.base import BaseDTO
 
 __all__ = [
     "ChatTurnAnchorDTO",
     "ChatTurnAnchorsResponseDTO",
+    "PdfBlockSignatureDTO",
+    "PdfCellCoordinatesDTO",
+    "PdfTextBlockDTO",
+    "RawTurnDTO",
     "ResolvedIngressDTO",
 ]
 
@@ -66,3 +71,82 @@ class ResolvedIngressDTO(BaseDTO):
         dict[str, str],
         Field(description="Human-readable source identity manifest mapping slot keys to original source names."),
     ]
+
+
+# Phase 1, Step 1: Relocate PDF extraction DTOs to canonical ingress DTO module
+class PdfCellCoordinatesDTO(V2CoreBase):
+    """Coordinates for a table cell in a PDF.
+
+    Attributes:
+        x0: Left horizontal coordinate.
+        y0: Top vertical coordinate.
+        x1: Right horizontal coordinate.
+        y1: Bottom vertical coordinate.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    x0: Annotated[float, Field(description="Left horizontal coordinate")]
+    y0: Annotated[float, Field(description="Top vertical coordinate")]
+    x1: Annotated[float, Field(description="Right horizontal coordinate")]
+    y1: Annotated[float, Field(description="Bottom vertical coordinate")]
+
+
+class PdfTextBlockDTO(V2CoreBase):
+    """Text block extracted from PDF page.
+
+    Attributes:
+        x0: Left horizontal coordinate.
+        y0: Top vertical coordinate.
+        x1: Right horizontal coordinate.
+        y1: Bottom vertical coordinate.
+        text: Extracted block text content.
+        block_no: Sequential block number on page.
+        block_type: Block type flag from PyMuPDF.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    x0: Annotated[float, Field(description="Left horizontal coordinate")]
+    y0: Annotated[float, Field(description="Top vertical coordinate")]
+    x1: Annotated[float, Field(description="Right horizontal coordinate")]
+    y1: Annotated[float, Field(description="Bottom vertical coordinate")]
+    text: Annotated[str, Field(description="Extracted block text content")]
+    block_no: Annotated[int, Field(description="Sequential block number on page")]
+    block_type: Annotated[int, Field(description="Block type flag from PyMuPDF")]
+
+
+class RawTurnDTO(V2CoreBase):
+    """Intermediate extracted conversational turn.
+
+    Attributes:
+        role: Speaker role: user or ai.
+        content: Turn message content.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    role: Annotated[str, Field(description="Speaker role: user or ai")]
+    content: Annotated[str, Field(description="Turn message content")]
+
+
+class PdfBlockSignatureDTO(V2CoreBase):
+    """Coordinate-level signature for text block deduplication.
+
+    Attributes:
+        page_idx: Zero-indexed page number.
+        x0: Rounded left horizontal coordinate.
+        y0: Rounded top vertical coordinate.
+        x1: Rounded right horizontal coordinate.
+        y1: Rounded bottom vertical coordinate.
+        text: Sanitized text content.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    page_idx: Annotated[int, Field(description="Zero-indexed page number")]
+    x0: Annotated[float, Field(description="Rounded left horizontal coordinate")]
+    y0: Annotated[float, Field(description="Rounded top vertical coordinate")]
+    x1: Annotated[float, Field(description="Rounded right horizontal coordinate")]
+    y1: Annotated[float, Field(description="Rounded bottom vertical coordinate")]
+    text: Annotated[str, Field(description="Sanitized text content")]
