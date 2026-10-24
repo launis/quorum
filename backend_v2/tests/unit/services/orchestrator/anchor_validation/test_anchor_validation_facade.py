@@ -1,5 +1,8 @@
 """Unit tests for the AnchorValidationService package facade and QGR017 guardrail lockdown."""
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
@@ -136,3 +139,60 @@ def test_qgr017_bans_legacy_anchor_validation_service_import() -> None:
         assert len(qgr017_violations) == 1
         assert qgr017_violations[0].severity == GuardrailSeverity.FATAL
         assert "backend_v2.services.orchestrator.anchor_validation" in qgr017_violations[0].remediation
+
+
+def test_anchor_validation_facade_validate_evidence_negative_missing_quotes_raises() -> None:
+    """Negative test: Verify validate_evidence raises SemanticEvidenceError when exact_quotes is missing or empty."""
+    sample_text = "Strateginen johtaminen edellyttää selkeitä tavoitteita ja seurantaa."
+
+    with pytest.raises(SemanticEvidenceError) as exc_none:
+        AnchorValidationService.validate_evidence(
+            pdf_text=sample_text,
+            exact_quotes=None,
+            contextual_override=False,
+        )
+    assert isinstance(exc_none.value, AppException)
+    assert exc_none.value.details["error_code"] == ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED
+    assert "exact_quotes is required" in exc_none.value.message
+
+    with pytest.raises(SemanticEvidenceError) as exc_blank:
+        AnchorValidationService.validate_evidence(
+            pdf_text=sample_text,
+            exact_quotes=["   "],
+            contextual_override=False,
+        )
+    assert "normalized to empty string" in exc_blank.value.message
+
+
+def test_anchor_validation_facade_validate_evidence_negative_boundary_violations_raise() -> None:
+    """Negative boundary test (ISTQB BVA): Verify max+1 span ceiling, min-1 segment floor, and trace contradiction."""
+    sample_text = "A" * 1200
+
+    # Boundary max+1: single quote segment of MAX_CITATION_SPAN_CHARS + 1 (1001 chars)
+    over_max_quote = "A" * (AnchorValidationService.MAX_CITATION_SPAN_CHARS + 1)
+    with pytest.raises(SemanticEvidenceError) as exc_max:
+        AnchorValidationService.validate_evidence(
+            pdf_text=sample_text,
+            exact_quotes=[over_max_quote],
+        )
+    assert f"({len(over_max_quote)} > {MAX_CITATION_SPAN_CHARS} chars)" in exc_max.value.message
+
+    # Boundary min-1: multi-segment quote with segment of MIN_MULTI_SEGMENT_FLOOR_CHARS - 1 (29 chars)
+    under_floor_seg = "A" * (AnchorValidationService.MIN_MULTI_SEGMENT_FLOOR_CHARS - 1)
+    valid_seg = "A" * AnchorValidationService.MIN_MULTI_SEGMENT_FLOOR_CHARS
+    with pytest.raises(SemanticEvidenceError) as exc_min:
+        AnchorValidationService.validate_evidence(
+            pdf_text=sample_text,
+            exact_quotes=[under_floor_seg, valid_seg],
+        )
+    assert f"< {MIN_MULTI_SEGMENT_FLOOR_CHARS} chars" in exc_min.value.message
+
+    # Logical reasoning trace contradiction
+    with pytest.raises(SemanticEvidenceError) as exc_trace:
+        AnchorValidationService.validate_evidence(
+            pdf_text="Strateginen johtaminen edellyttää selkeitä tavoitteita.",
+            exact_quotes=["selkeitä tavoitteita"],
+            reasoning_trace="[5. VALIDATION DECISION: FAIL]",
+        )
+    assert "Logical contradiction" in exc_trace.value.message
+

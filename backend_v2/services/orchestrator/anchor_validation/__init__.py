@@ -33,7 +33,6 @@ from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer impor
     strict_match as strict_match,
 )
 
-# Phase 4, Step 2: Explicit redundant re-exports and __all__ for AnchorValidationService package facade
 __all__ = [
     "MAX_CITATION_SPAN_CHARS",
     "MIN_ENTROPY_GATE_CHARS",
@@ -49,7 +48,13 @@ __all__ = [
 
 
 class AnchorValidationService:
-    """Stateless package facade for deterministic evidence anchoring and quote verification."""
+    """Stateless package facade for deterministic evidence anchoring and quote verification.
+
+    Attributes:
+        MAX_CITATION_SPAN_CHARS: Maximum character span permitted across a citation chain.
+        MIN_MULTI_SEGMENT_FLOOR_CHARS: Minimum character length required per segment in multi-segment citations.
+        MIN_ENTROPY_GATE_CHARS: Minimum character length required before fuzzy matching is permitted.
+    """
 
     MAX_CITATION_SPAN_CHARS: int = MAX_CITATION_SPAN_CHARS
     MIN_MULTI_SEGMENT_FLOOR_CHARS: int = MIN_MULTI_SEGMENT_FLOOR_CHARS
@@ -57,8 +62,15 @@ class AnchorValidationService:
 
     @staticmethod
     def normalize_text_with_mapping(text: str) -> tuple[str, list[int]]:
-        """Normalize text and return a mapping from normalized index to original index."""
-        # Phase 4, Step 2: Delegate to lexical_normalizer.normalize_text_with_mapping
+        """Normalize text and return a mapping from normalized index to original index.
+
+        Args:
+            text: Source text string to normalize.
+
+        Returns:
+            Tuple containing the normalized string and a list mapping each normalized
+            character index to its original character index in text.
+        """
         return normalize_text_with_mapping(text)
 
     @staticmethod
@@ -66,14 +78,28 @@ class AnchorValidationService:
         pdf_text: str,
         exact_quotes: Sequence[str] | tuple[str, ...] | list[str],
     ) -> GateMatchResultDTO:
-        """Execute O(N) anchoring using strict substring matching."""
-        # Phase 4, Step 2: Delegate to lexical_normalizer.strict_match
+        """Execute O(N) anchoring using strict substring matching.
+
+        Args:
+            pdf_text: Source text context.
+            exact_quotes: Ordered sequence of extracted quote segments.
+
+        Returns:
+            GateMatchResultDTO indicating match validity and normalized coordinate bounds.
+        """
         return strict_match(pdf_text, exact_quotes)
 
     @staticmethod
     def calculate_fuzzy_score(norm_quote: str, norm_text: str) -> float:
-        """Choose fuzzy algorithm based on length of the normalized quote."""
-        # Phase 4, Step 2: Delegate to lexical_normalizer.calculate_fuzzy_score
+        """Choose fuzzy algorithm based on length of the normalized quote.
+
+        Args:
+            norm_quote: Normalized quote string.
+            norm_text: Normalized source text context.
+
+        Returns:
+            Fuzzy similarity score from 0.0 to 100.0.
+        """
         return calculate_fuzzy_score(norm_quote, norm_text)
 
     @staticmethod
@@ -86,8 +112,20 @@ class AnchorValidationService:
         source_text: str | None = None,
         lexical_strictness_level: int = 50,
     ) -> GateMatchResultDTO:
-        """Determine if a quote or multi-segment quote is lexically valid against normalized text."""
-        # Phase 4, Step 2: Delegate to lexical_matcher.is_lexically_valid
+        """Determine if a quote or multi-segment quote is lexically valid against normalized text.
+
+        Args:
+            quote: Exact quote string or ordered sequence of quote segments.
+            norm_quote: Normalized quote string or sequence of normalized quote segments.
+            norm_text: Normalized source text context.
+            strictness_level: Validation strictness level constraint.
+            locale: Optional locale identifier.
+            source_text: Optional original source text prior to normalization for word-boundary stemming.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
+
+        Returns:
+            GateMatchResultDTO indicating match validity and normalized coordinate bounds.
+        """
         return is_lexically_valid(
             quote=quote,
             norm_quote=norm_quote,
@@ -110,8 +148,27 @@ class AnchorValidationService:
         target_speaker: TargetSpeaker = TargetSpeaker.USER,
         lexical_strictness_level: int = 50,
     ) -> tuple[str, ...] | None:
-        """Validate evidence strictly and extract the exact physical string segments."""
-        # Phase 4, Step 2: Delegate to evidence_validator.validate_evidence
+        """Validate evidence strictly and extract the exact physical string segments.
+
+        Args:
+            pdf_text: Source text context.
+            exact_quotes: Ordered quote segments extracted by the LLM.
+            reasoning_trace: Optional trace containing the LLM logical breakdown.
+            syntactic_anchors: Optional list of syntactic anchors to locate.
+            contextual_override: Whether cognitive override is active to skip lexical validation.
+            locale: Optional locale identifier to resolve the fuzzy fallback threshold.
+            strictness_level: Strictness tolerance boundary percentage.
+            target_speaker: Target speaker stream for conversational dialogue provenance.
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
+
+        Returns:
+            Tuple of extracted physical quote substrings if valid, or None if overridden.
+
+        Raises:
+            SemanticEvidenceError: If lexical validation, provenance boundary isolation,
+                monotonic ordering, span ceiling, or reasoning trace consistency fails
+                (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
+        """
         return validate_evidence(
             pdf_text=pdf_text,
             exact_quotes=exact_quotes,
@@ -134,8 +191,20 @@ class AnchorValidationService:
         strictness_level: int = 50,
         lexical_strictness_level: int = 50,
     ) -> AtomResultDTO:
-        """Process an atom evaluation item, resolving aliases and matching quotes cohesively."""
-        # Phase 4, Step 2: Delegate to atom_evaluation_processor.process_atom_evaluation
+        """Process an atom evaluation item, resolving aliases and matching quotes cohesively.
+
+        Args:
+            atom: AtomResultDTO instance to process.
+            alias_map: Mapping of short aliases to canonical document IDs.
+            source_documents: Optional list of static source document contexts.
+            mcp_source_texts: Optional dictionary of MCP-provided source texts.
+            locale: Optional locale identifier.
+            strictness_level: Strictness tier (0-100).
+            lexical_strictness_level: Sovereign workflow lexical strictness level (0-100 continuous).
+
+        Returns:
+            New AtomResultDTO instance with hydrated evaluation_reasoning and validated source_quotes.
+        """
         return process_atom_evaluation(
             atom=atom,
             alias_map=alias_map,
