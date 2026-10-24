@@ -58,7 +58,7 @@
 ---
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
   - [x] @[backend_v2/models/dtos/ingress.py#L77-L92]
   - [x] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
   - [x] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
@@ -69,7 +69,7 @@
   - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
   - [x] @[backend_v2/services/document_extraction.py#L94-L156]
   - [x] @[scripts/run_e2e_variance_test.py#L277-L411]
-  - [ ] @[scripts/_ast_guardrails.py#L1865-L1923]
+  - [x] @[scripts/_ast_guardrails.py#L1865-L1923]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: N/A — Pure Python Backend Service Decomposition (zero `.dart` files in target scope).
 - [ ] **[NOK] Pre-Delete Audit**: Verify 0 remaining imports from `backend_v2.services.ingress.pdf_chat_extractor` and 100% green `uv run python scripts/backend_audit_loop.py backend_v2/services/ingress/ --test --ast-strict` and `uv run python scripts/backend_audit_loop.py backend_v2/services/document_extraction.py --test --ast-strict`.
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 25 baseline unit tests pass across the modularized test suites (`@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_bubble_geometry.py#L27-L37]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_table_and_card_stage.py#L24-L50]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_turn_assembly_stage.py#L68-L82]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_pdf_extractor_facade.py#L23-L55]`) with `>= 96%` line coverage.
