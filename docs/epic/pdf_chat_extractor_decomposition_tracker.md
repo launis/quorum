@@ -66,7 +66,7 @@
   - [x] @[backend_v2/services/ingress/pdf_extractor/__init__.py#L46-L59]
   - [x] [DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]
   - [x] @[backend_v2/services/ingress/__init__.py]
-  - [ ] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
+  - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
   - [ ] @[backend_v2/services/document_extraction.py#L94-L156]
   - [ ] @[scripts/run_e2e_variance_test.py#L277-L411]
   - [ ] @[scripts/_ast_guardrails.py#L1865-L1923]
