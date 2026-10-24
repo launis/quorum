@@ -27,7 +27,7 @@
 
 ### Phase 3: Format Reader Extraction
 **Plan:** @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md]
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]` (`8c260a2f2`)
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
   - [x] Step 3.1: Create target domain file `format_reader_service.py` and transplant reader methods
   - [x] Step 3.2: Update `ReportService` proxy delegations and verify test baseline
