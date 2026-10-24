@@ -273,7 +273,7 @@
   - [ ] @[backend_v2/api/routers/system/telemetry.py]
   - [ ] @[backend_v2/services/execution/lifecycle_service.py]
   - [ ] @[backend_v2/services/execution/ingress_service.py]
-  - [ ] @[backend_v2/services/ingress/pdf_chat_extractor.py]
+  - [x] @[backend_v2/services/ingress/pdf_chat_extractor.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/context_router.py]
   - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
