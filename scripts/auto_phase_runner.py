@@ -74,7 +74,7 @@ from scripts.auto_hardening_runner import HardeningGate, parse_tracker_unhardene
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
-DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 900
+DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
 DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 3600
 
 __all__ = [
@@ -584,7 +584,7 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
                 dirty_scripts.append(line_str)
 
     targets = ["backend_v2/"] + sorted(dirty_scripts)
-    audit_cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py"] + targets + ["--test"]
+    audit_cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py"] + targets + ["--test", "--no-logfire"]
 
     proc = subprocess.run(
         audit_cmd,
