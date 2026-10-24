@@ -11,12 +11,14 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 import asyncio
 import json
 import logging
+from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
 
 from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
+from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionFailure,
@@ -251,8 +253,6 @@ async def execute_mcp_retrieval(
             content_val = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
             extraction_messages.append({"role": "user", "content": content_val})
 
-    from backend_v2.llm.client import LLMClient
-
     fast_client = llm_client
     if repository is not None:
         try:
@@ -312,8 +312,6 @@ async def execute_mcp_retrieval(
         logger.error("[MCPToolLoop] %s: %s", ErrorCodes.FETCH_FAILED.name, err_msg, exc_info=True)
         raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
 
-    from collections import defaultdict
-
     run_appearances: defaultdict[str, int] = defaultdict(int)
     normalized_to_original = {}
 
@@ -328,13 +326,15 @@ async def execute_mcp_retrieval(
                     normalized_to_original[norm_claim] = citation
 
     required_count = 2 if N >= 2 else 1
-    consensus_citations = []
-    for res, _ in successful_runs:
-        for citation in res.citations:
-            norm_claim, _ = AnchorValidationService.normalize_text_with_mapping(citation.claim_text)
-            if run_appearances[norm_claim] >= required_count:
-                if citation not in consensus_citations:
-                    consensus_citations.append(citation)
+    consensus_citations = list(
+        dict.fromkeys(
+            citation
+            for res, _ in successful_runs
+            for citation in res.citations
+            if run_appearances[AnchorValidationService.normalize_text_with_mapping(citation.claim_text)[0]]
+            >= required_count
+        )
+    )
 
     extraction_result = CitationExtractionResult(citations=consensus_citations)
 
@@ -505,7 +505,7 @@ async def execute_tool_loop[T: BaseModel](
         step_name: Current DAG step name (for audit logging).
         mock_identity: Mock identity for testing.
         target_language: Optional user requested language.
-        synthesis_instructions: Epic 13 OutputProfile limits and preamble constraints.
+        synthesis_instructions: OutputProfile synthesis formatting limits and preamble constraints.
         validation_context: Optional validation context.
         source_context: The text of the document being evaluated.
         alias_engine: Optional alias engine.
