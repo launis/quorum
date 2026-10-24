@@ -49,7 +49,7 @@
 ### Phase 4: Modular Test Suite Split, Atomic Package Cutover & AST Guardrail Lock (Epoch 1 — Cutover)
 - **Plan:** @[docs/epic/tasks_pdf_chat_extractor/phase4_package_cutover_and_guardrails.md]
 - [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase4_package_cutover_and_guardrails.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase4_package_cutover_and_guardrails.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]` (`5af373477`)
   - [x] Step 1: Split `[DELETE] @[backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py]` into `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_bubble_geometry.py#L27-L37]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_table_and_card_stage.py#L24-L50]`, `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_turn_assembly_stage.py#L68-L82]`, and `@[backend_v2/tests/unit/services/ingress/pdf_extractor/test_pdf_extractor_facade.py#L23-L55]`
   - [x] Step 2: Execute Atomic Package Cutover (`@[backend_v2/services/ingress/pdf_extractor/__init__.py#L46-L59]` and delete `[DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]`) and Rewire 1-Hop Consumers (`@[backend_v2/services/ingress/__init__.py]`, `@[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]`, `@[backend_v2/services/document_extraction.py#L94-L156]`, `@[scripts/run_e2e_variance_test.py#L277-L411]`, `@[backend_v2/tests/unit/test_document_extraction.py#L145-L175]`, `@[backend_v2/tests/unit/scripts/test_run_e2e_variance_test.py#L1069-L1131]`)
   - [x] Step 3: Lock Retired Monolith Path in `@[scripts/_ast_guardrails.py#L1865-L1923]` and `@[scripts/_ast_guardrails.py#L1925-L2047]` under `QGR017` and Synchronize `@[.agents/rules/04_directory_reference.md]`
@@ -59,7 +59,7 @@
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
-  - [ ] @[backend_v2/models/dtos/ingress.py#L77-L92]
+  - [x] @[backend_v2/models/dtos/ingress.py#L77-L92]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L55-L91]
