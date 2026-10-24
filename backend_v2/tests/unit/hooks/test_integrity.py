@@ -379,7 +379,7 @@ def test_enforce_hypothesis_linking_hook_missing_id() -> None:
 def test_is_hallucinated_empty_normalized() -> None:
     """Negative: quote whose normalization produces empty text is treated as hallucinated."""
     with patch(
-        "backend_v2.services.orchestrator.anchor_validation_service.AnchorValidationService.normalize_text_with_mapping",
+        "backend_v2.services.orchestrator.anchor_validation.AnchorValidationService.normalize_text_with_mapping",
         return_value=("", {}),
     ):
         assert _is_hallucinated("Valid quote text", "norm_corpus", threshold=80.0) is True

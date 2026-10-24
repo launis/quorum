@@ -108,7 +108,7 @@ from backend_v2.models.domain.system_config import (
     ChatHistoryDTO,
     ChatMessageDTO,
 )
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
 from scripts.ablation_live_executor import (
     AblationMode,

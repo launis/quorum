@@ -33,7 +33,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)

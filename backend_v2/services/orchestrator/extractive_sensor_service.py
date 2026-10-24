@@ -45,7 +45,7 @@ from backend_v2.models.prompts.common import (
     DESC_SOURCE_QUOTE,
 )
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.alias_engine import AliasEngine

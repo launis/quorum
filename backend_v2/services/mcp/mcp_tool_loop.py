@@ -37,7 +37,7 @@ from backend_v2.models.prompts import (
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.tools.tavily import TavilyTool
 from backend_v2.services.mcp.tools.wikipedia import WikipediaReadTool, WikipediaSearchTool
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 

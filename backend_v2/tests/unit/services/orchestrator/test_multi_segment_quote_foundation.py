@@ -14,7 +14,7 @@ from pydantic import ValidationError
 
 from backend_v2.models.core_base import coerce_source_quotes_tuple
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO, QuoteEvidenceDTO
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 
 # ============================================================================
 # Contract 1: coerce_source_quotes_tuple

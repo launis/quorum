@@ -246,7 +246,7 @@ def load_physical_execution_items(
     Raises:
         FileNotFoundError: If any explicitly provided trace file does not exist.
     """
-    from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+    from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
     from scripts.diff_executions import get_all_evals
 
     traces_map = trace_paths_by_case or DEFAULT_PRODUCTION_TRACES

@@ -36,7 +36,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.view.sdui import SduiMatrixTableBlock
 from backend_v2.services.export_evidence_formatter import format_text_observations
-from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
+from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCohesionEvaluator
 from backend_v2.services.orchestrator.sliding_window_linker import (
     SlidingWindowLinker,
