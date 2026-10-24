@@ -59,7 +59,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/anchor_validation_service_decomposition_tracker.md --gate backend`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
   - [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
-  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py#L25-L337]`
+  - [x] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py#L25-L337]`
   - [ ] `@[backend_v2/services/orchestrator/anchor_validation/atom_evaluation_processor.py#L18-L125]`
   - [ ] `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]`
   - [ ] `@[backend_v2/services/orchestrator/extractive_sensor_service.py#L176-L761]`
