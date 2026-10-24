@@ -70,7 +70,11 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from scripts._script_base import ANSIColors, get_repo_root, setup_script_environment
-from scripts.auto_hardening_runner import HardeningGate, parse_tracker_unhardened_targets
+from scripts.auto_hardening_runner import (
+    HardeningGate,
+    check_tracker_has_unparsed_hardening_items,
+    parse_tracker_unhardened_targets,
+)
 
 GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
@@ -217,13 +221,16 @@ class QualityGateResultDTO(BaseModel):
 
 
 def clean_path_arg(val: str | Path | None) -> Path | None:
-    """Normalize raw path arguments, stripping quotes and markdown `@-reference` brackets."""
+    """Normalize and strip markdown link wrappers, quotes, line bounds, and whitespace from a path argument."""
     if val is None:
         return None
     raw_str = str(val).strip().strip("`").strip("'").strip('"')
     if raw_str.startswith("@"):
         raw_str = raw_str[1:]
     raw_str = raw_str.strip().strip("[").strip("]").strip()
+    if "#" in raw_str:
+        raw_str = raw_str.split("#")[0].strip()
+    raw_str = raw_str.strip().strip("`").strip("'").strip('"')
     if not raw_str:
         return None
     return Path(raw_str)
@@ -906,6 +913,21 @@ def run_post_hardening_gate(
     frontend_targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.FRONTEND)
 
     if not backend_targets and not frontend_targets:
+        has_unparsed_backend = check_tracker_has_unparsed_hardening_items(tracker_content, HardeningGate.BACKEND)
+        has_unparsed_frontend = check_tracker_has_unparsed_hardening_items(tracker_content, HardeningGate.FRONTEND)
+        if has_unparsed_backend or has_unparsed_frontend:
+            unparsed_gates: list[str] = []
+            if has_unparsed_backend:
+                unparsed_gates.append("Backend")
+            if has_unparsed_frontend:
+                unparsed_gates.append("Frontend")
+            print(
+                f"{ANSIColors.RED}[ERROR] Tracker {tracker_path} has pending Tier 2 Hardening "
+                f"({', '.join(unparsed_gates)}) checklist items, but zero targets could be parsed "
+                f"into valid file paths. Check markdown formatting!{ANSIColors.RESET}"
+            )
+            return 1
+
         print(
             f"\n{ANSIColors.GREEN}--- No unhardened targets discovered in tracker for backend or frontend gates. ---{ANSIColors.RESET}"
         )

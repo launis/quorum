@@ -34,12 +34,14 @@ from scripts.auto_phase_runner import (
 
 
 def test_clean_path_arg() -> None:
-    """Verify clean_path_arg normalizes markdown @-reference brackets and quotes."""
+    """Verify clean_path_arg normalizes markdown @-reference brackets, line bounds, and quotes."""
     assert clean_path_arg(None) is None
     assert clean_path_arg("") is None
     assert clean_path_arg("@[docs/tracker.md]") == Path("docs/tracker.md")
     assert clean_path_arg("`@[docs/tracker.md]`") == Path("docs/tracker.md")
     assert clean_path_arg("'docs/tracker.md'") == Path("docs/tracker.md")
+    assert clean_path_arg("`@[backend_v2/services/foo.py#L27-L76]`") == Path("backend_v2/services/foo.py")
+    assert clean_path_arg("@[backend_v2/services/foo.py#L10]") == Path("backend_v2/services/foo.py")
 
 
 def test_parse_tracker_phases_epic_topology(tmp_path: Path) -> None:
@@ -464,6 +466,22 @@ def test_run_post_hardening_gate_no_unhardened_targets(tmp_path: Path) -> None:
         code = run_post_hardening_gate(tracker, args, tmp_path)
         assert code == 0
         assert mock_run.call_count == 0
+
+
+def test_run_post_hardening_gate_unparsed_items_fail_fast(tmp_path: Path) -> None:
+    """Verify run_post_hardening_gate returns exit code 1 when unchecked items exist but zero targets parse."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] Tier 2 Hardening (Backend)
+  - [ ] Malformed line without any path
+""",
+        encoding="utf-8",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker)
+    code = run_post_hardening_gate(tracker, args, tmp_path)
+    assert code == 1
 
 
 def test_run_post_hardening_gate_backend_failure_halts_before_frontend(tmp_path: Path) -> None:

@@ -102,6 +102,7 @@ __all__ = [
     "TASKKILL_TIMEOUT_SECONDS",
     "WorkspaceSnapshotDTO",
     "capture_workspace_snapshot",
+    "check_tracker_has_unparsed_hardening_items",
     "clean_path_arg",
     "execute_circuit_breaker_rollback",
     "execute_subagent_pass",
@@ -260,6 +261,9 @@ def clean_path_arg(val: str | Path | None) -> Path | None:
     if raw_str.startswith("@"):
         raw_str = raw_str[1:]
     raw_str = raw_str.strip().strip("[").strip("]").strip()
+    if "#" in raw_str:
+        raw_str = raw_str.split("#")[0].strip()
+    raw_str = raw_str.strip().strip("`").strip("'").strip('"')
     if not raw_str:
         return None
     return Path(raw_str)
@@ -292,7 +296,9 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
     lines = tracker_content[match.end() :].splitlines()
     unhardened: list[str] = []
     item_pattern = re.compile(
-        r"^\s+-\s*\[ \]\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?@?\[?([a-zA-Z0-9_/\\.-]+)\]?",
+        r"^\s+-\s*\[ \]\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?"
+        r"`?(?:@\[?([a-zA-Z0-9_/\\.-]+?)(?:#[^`\]\n]+)?\]|"
+        r"([a-zA-Z0-9_.-]+(?:[/\\][a-zA-Z0-9_.-]+)*\.[a-zA-Z0-9]+(?:#[^`\]\n]+)?))`?",
     )
 
     for line in lines:
@@ -302,11 +308,40 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
             continue
         m = item_pattern.match(line)
         if m:
-            raw_path = m.group(1).replace("\\", "/").strip()
-            if raw_path and not raw_path.startswith("["):
-                unhardened.append(raw_path)
+            raw_path = (m.group(1) or m.group(2) or "").replace("\\", "/").strip()
+            clean_path = raw_path.split("#")[0].strip()
+            if clean_path and not clean_path.startswith("["):
+                unhardened.append(clean_path)
 
     return unhardened
+
+
+def check_tracker_has_unparsed_hardening_items(tracker_content: str, gate: HardeningGate) -> bool:
+    """Check whether a hardening gate section is unchecked and contains child items that failed to parse.
+
+    Args:
+        tracker_content: Raw tracker markdown content.
+        gate: Hardening gate (backend or frontend) to inspect.
+
+    Returns:
+        True if the gate is unchecked and has pending child checklist lines, False otherwise.
+    """
+    gate_name = "Backend" if gate == HardeningGate.BACKEND else "Frontend"
+    header_pattern = re.compile(
+        rf"^-\s*\[ \]\s*.*\bTier\s+2\s+Hardening\s*\({gate_name}\)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    match = header_pattern.search(tracker_content)
+    if not match:
+        return False
+
+    lines = tracker_content[match.end() :].splitlines()
+    for line in lines:
+        if line.startswith("- [") or line.startswith("## ") or line.startswith("### "):
+            break
+        if re.match(r"^\s+-\s*\[ \]", line) and "[DELETE]" not in line:
+            return True
+    return False
 
 
 def mark_tracker_target_done(tracker_path: Path, target_file: str) -> bool:
@@ -329,7 +364,7 @@ def mark_tracker_target_done(tracker_path: Path, target_file: str) -> bool:
     escaped_target = re.escape(norm_target)
 
     pattern = re.compile(
-        rf"^(\s+-\s*)\[ \](\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?@?\[?{escaped_target}\]?.*)$",
+        rf"^(\s+-\s*)\[ \](\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?`?@?\[?{escaped_target}(?:#[^`\]\n]+)?\]?`?.*)$",
         re.MULTILINE,
     )
 
@@ -374,9 +409,10 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
     if args.targets:
         cleaned_targets: list[str] = []
         for t in args.targets:
-            p = clean_path_arg(t)
-            if p is not None:
-                cleaned_targets.append(str(p).replace("\\", "/"))
+            for sub_t in str(t).split(","):
+                p = clean_path_arg(sub_t.strip())
+                if p is not None:
+                    cleaned_targets.append(str(p).replace("\\", "/"))
         return cleaned_targets
 
     # 2. Markdown tracker checklist: --tracker path/to/tracker.md
@@ -385,7 +421,14 @@ def fetch_unhardened_targets(args: HardeningRunnerArgsDTO) -> list[str]:
         if cleaned_tracker is None or not cleaned_tracker.exists():
             raise FileNotFoundError(f"Tracker file not found: {args.tracker}")
         content = cleaned_tracker.read_text(encoding="utf-8")
-        return parse_tracker_unhardened_targets(content, args.gate)
+        targets = parse_tracker_unhardened_targets(content, args.gate)
+        if not targets and check_tracker_has_unparsed_hardening_items(content, args.gate):
+            gate_str = "Backend" if args.gate == HardeningGate.BACKEND else "Frontend"
+            raise ValueError(
+                f"Tracker {args.tracker} has pending Tier 2 Hardening ({gate_str}) checklist items, "
+                f"but zero targets could be parsed into valid file paths."
+            )
+        return targets
 
     # 3. Persistent sandbox state JSON: --state-file scratch/hardening_state.json
     #    Computes pending targets dynamically: REMAINING = TARGETS - DONE
@@ -1005,7 +1048,12 @@ Key Behavioral Invariants for Autonomous AI Agents:
 
     tracker_arg = clean_path_arg(parsed.tracker)
     state_file_arg = clean_path_arg(parsed.state_file)
-    clean_targets = [str(clean_path_arg(t)).replace("\\", "/") for t in parsed.targets if clean_path_arg(t) is not None]
+    clean_targets: list[str] = []
+    for t in parsed.targets:
+        for sub_t in str(t).split(","):
+            p = clean_path_arg(sub_t.strip())
+            if p is not None:
+                clean_targets.append(str(p).replace("\\", "/"))
 
     if not (tracker_arg or clean_targets or state_file_arg):
         sys.stderr.write(

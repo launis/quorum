@@ -21,6 +21,7 @@ from scripts.auto_hardening_runner import (
     QualityGateResultDTO,
     WorkspaceSnapshotDTO,
     capture_workspace_snapshot,
+    check_tracker_has_unparsed_hardening_items,
     clean_path_arg,
     execute_circuit_breaker_rollback,
     execute_subagent_pass,
@@ -77,6 +78,15 @@ def test_fetch_explicit_targets_override(tmp_path: Path) -> None:
     )
     resolved = fetch_unhardened_targets(args)
     assert resolved == ["explicit/file1.py", "explicit/file2.py"]
+
+    # Verify comma-separated target strings are cleanly split
+    args_comma = HardeningRunnerArgsDTO(
+        tracker=tracker_file,
+        targets=["explicit/file1.py,explicit/file2.py, explicit/file3.py"],
+        gate=HardeningGate.BACKEND,
+    )
+    resolved_comma = fetch_unhardened_targets(args_comma)
+    assert resolved_comma == ["explicit/file1.py", "explicit/file2.py", "explicit/file3.py"]
 
 
 def test_successful_backend_audit_marks_tracker_and_commits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -698,3 +708,103 @@ def test_execute_subagent_pass_retry_exhaustion_on_persistent_transient_error(
     )
     assert execute_subagent_pass("f.py", args, repo_root=tmp_path) is False
     assert call_count == 3
+
+
+def test_parse_tracker_unhardened_targets_with_backticks_and_anchors() -> None:
+    """TC-AHR-032: Verify tracker target parsing handles backtick-wrapped links and line-bound anchors."""
+    tracker_content = """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
+  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
+  - [ ] [NEW] `@[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py]`
+  - [ ] [DELETE] `@[backend_v2/services/orchestrator/anchor_validation_service.py]`
+  - [x] `@[backend_v2/services/orchestrator/already_done.py#L1-L10]`
+- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend.
+"""
+    targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.BACKEND)
+    assert targets == [
+        "backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py",
+        "backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py",
+        "backend_v2/services/orchestrator/anchor_validation/evidence_validator.py",
+    ]
+
+
+def test_mark_tracker_target_done_with_backticks_and_anchors(tmp_path: Path) -> None:
+    """TC-AHR-033: Verify mark_tracker_target_done updates backtick-wrapped items with line anchors in-place."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`
+  - [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`
+""",
+        encoding="utf-8",
+    )
+
+    success = mark_tracker_target_done(
+        tracker_file,
+        "backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py",
+    )
+    assert success is True
+
+    updated_content = tracker_file.read_text(encoding="utf-8")
+    assert "- [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`" in updated_content
+    assert "- [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`" in updated_content
+    # Parent gate remains [NOK] because lexical_matcher is still pending
+    assert "- [ ] **[NOK] Tier 2 Hardening (Backend)**" in updated_content
+
+    # Mark second target
+    success_2 = mark_tracker_target_done(
+        tracker_file,
+        "backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py",
+    )
+    assert success_2 is True
+
+    final_content = tracker_file.read_text(encoding="utf-8")
+    assert "- [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`" in final_content
+    # All children checked: parent gate automatically advances to [OK]
+    assert "- [x] **[OK] Tier 2 Hardening (Backend)**" in final_content
+
+
+def test_check_tracker_has_unparsed_hardening_items() -> None:
+    """TC-AHR-034: Verify check_tracker_has_unparsed_hardening_items identifies pending checklist children."""
+    unchecked_content = """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] Some pending item
+"""
+    assert check_tracker_has_unparsed_hardening_items(unchecked_content, HardeningGate.BACKEND) is True
+    assert check_tracker_has_unparsed_hardening_items(unchecked_content, HardeningGate.FRONTEND) is False
+
+    checked_content = """# Master Tracker
+### Post-Implementation Gates
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [x] Completed item
+"""
+    assert check_tracker_has_unparsed_hardening_items(checked_content, HardeningGate.BACKEND) is False
+
+    skipped_gate_content = """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[SKIPPED] Tier 2 Hardening (Backend)**: N/A
+"""
+    assert check_tracker_has_unparsed_hardening_items(skipped_gate_content, HardeningGate.BACKEND) is False
+
+
+def test_fetch_unhardened_targets_unparsed_items_fail_fast(tmp_path: Path) -> None:
+    """TC-AHR-035: Verify fetch_unhardened_targets raises ValueError when unchecked items fail to parse."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] Unparseable non-path markdown line here
+""",
+        encoding="utf-8",
+    )
+
+    args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.BACKEND)
+    with pytest.raises(ValueError, match="has pending Tier 2 Hardening \\(Backend\\) checklist items"):
+        fetch_unhardened_targets(args)
+
