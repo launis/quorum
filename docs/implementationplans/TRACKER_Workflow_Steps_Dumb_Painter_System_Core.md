@@ -36,7 +36,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate frontend`.
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
