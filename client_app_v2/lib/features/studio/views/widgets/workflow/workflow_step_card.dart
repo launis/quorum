@@ -50,10 +50,9 @@ class WorkflowStepCard extends StatelessWidget {
         .where((b) => b.id == stepDef.taskBlueprint)
         .firstOrNull;
 
-    final bool isSystemCoreStep =
-        index == 0 || (currentBlueprint?.isSystemCore ?? false);
-    final bool isZoneA = index == 0;
-    final bool isZoneC = index > 0 && isSystemCoreStep;
+    final bool isSystemCoreStep = currentBlueprint?.isSystemCore ?? false;
+    final bool isZoneA = currentBlueprint?.zone == StepZone.zoneA;
+    final bool isZoneC = currentBlueprint?.zone == StepZone.zoneC;
 
     final previousSteps = allSteps
         .map((s) => s.id)

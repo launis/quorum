@@ -26,14 +26,12 @@ class WorkflowStepsTab extends StatelessWidget {
   });
 
   int _findFirstZoneCIndex(List<StepRule> steps) {
-    for (int i = 1; i < steps.length; i++) {
+    for (int i = 0; i < steps.length; i++) {
       final step = steps[i];
       final bp = blueprints
           .where((b) => b.id == step.taskBlueprint)
           .firstOrNull;
-      if (bp != null &&
-          bp.isSystemCore &&
-          bp.engineType != EngineType.causalDiscovery) {
+      if (bp?.zone == StepZone.zoneC) {
         return i;
       }
     }
