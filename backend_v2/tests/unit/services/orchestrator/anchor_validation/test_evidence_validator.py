@@ -386,3 +386,39 @@ def test_strictness_decoupling_absolute_lexical_rejects_morphology() -> None:
         )
 
     assert "not found" in str(exc_info.value)
+
+
+def test_anchor_validation_directive_morphological_fallback_and_s1_retries() -> None:
+    """Tests directive morphological match (non-strict_match) and candidate s_1 retry paths."""
+    # 1. Directive where strict_match is False (inflection) and is_lexically_valid succeeds
+    directive_morph = (
+        "<ai_context_directive id='doc1'>\n"
+        "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin ja strategiaan.\n"
+        "</ai_context_directive>"
+    )
+    res_morph = validate_evidence(
+        pdf_text=directive_morph,
+        exact_quotes=("johtajuus ja selkeät tavoitteet",),
+        locale="fi",
+        strictness_level=50,
+        lexical_strictness_level=50,
+    )
+    assert res_morph is not None
+    assert len(res_morph) == 1
+
+    # 2. Candidate s_1 where first s_1 exceeds MAX_CITATION_SPAN_CHARS (1000) and second s_1 succeeds
+    seg1 = "Ensimmäinen lause esiintyy sekä kaukana alussa että lopussa."
+    seg2 = "Toinen lause seuraa vasta toista esiintymää lähellä lopussa."
+    long_gap = "x" * 1050
+    pdf_s1_span = f"{seg1} {long_gap} {seg1} {seg2}"
+    res_span_retry = validate_evidence(pdf_s1_span, (seg1, seg2))
+    assert res_span_retry is not None
+    assert len(res_span_retry) == 2
+
+    # 3. Candidate s_1 with 3 segments where pairwise forward order holds (seg2->seg3 at start, seg1->seg2 at end)
+    #    so _match_candidate_s1_chain hits next_pos == -1 for seg3 after the trailing seg2
+    seg3 = "Kolmas lause esiintyy vain dokumentin alkupuolella heti toisen perässä."
+    pdf_broken_3 = f"{seg2} {seg3} Väliosa tekstiä. {seg1} {seg2}"
+    res_broken_3 = validate_evidence(pdf_broken_3, (seg1, seg2, seg3))
+    assert res_broken_3 is not None
+    assert len(res_broken_3) == 3

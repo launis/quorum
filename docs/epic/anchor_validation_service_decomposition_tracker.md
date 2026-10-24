@@ -82,10 +82,10 @@
 6. **Item 10 (`anti_happy_path_mandate` — ISTQB Negative & Boundary Partitions)**: Add negative and boundary tests covering the 30 missed statements from baseline (`lines 250, 304, 341-342, 377-384, 393-412, 521-522, 686-687, 711, 738, 848-849` of `anchor_validation_service.py`) across the 5 modular test files to achieve `>= 98%` line coverage.
 
 #### Architectural Documentation Synchronization
-- [ ] **[NOK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/anchor_validation_service_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_structured_forensic_quotes.md]`
+- [x] **[OK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/anchor_validation_service_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_structured_forensic_quotes.md]`
   - **Target KIs to Synchronize**: `@[ki_god_code_prevention.md]`, `@[ki_structured_forensic_quotes.md]`
   - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/services/orchestrator/anchor_validation/`
-  - **Pillar Documentation Sync**: Update Pillar 6 (`docs/architecture/06_ATOM_GRAPH_ENGINE.md`) to reflect the modular `backend_v2/services/orchestrator/anchor_validation/` package
+  - **Pillar Documentation Sync**: Update Pillar 6 (`docs/architecture/06_enriched_atom_graph_engine.md`) to reflect the modular `backend_v2/services/orchestrator/anchor_validation/` package
 
 ### Final Epic Audit
 - [ ] **[NOK] Final Decomposition Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]` and verify 100% completion across all phases and gates.

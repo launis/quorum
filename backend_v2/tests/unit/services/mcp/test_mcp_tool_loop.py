@@ -918,3 +918,193 @@ async def test_execute_mcp_retrieval_hallucinated_claim_rejected() -> None:
         )
 
     assert exc_info.value.status_code == 400
+
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_fast_client_init_failure_raises_app_exception() -> None:
+    """Verify execute_mcp_retrieval raises AppException(500) when fast client initialization fails."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor(extracted_claims=["valid claim"])
+    empty_db = InMemoryUnifiedWorkflowRepository()
+
+    with pytest.raises(AppException) as exc_info:
+        await execute_mcp_retrieval(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "valid claim"}],
+            allowed_tools=["mcp_tavily_search"],
+            step_name="retrieval_step",
+            source_context="valid claim",
+            repository=empty_db,
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+
+
+@pytest.mark.asyncio
+async def test_self_correction_task_exception_raises_semantic_evidence_error() -> None:
+    """Verify execute_mcp_retrieval wraps unexpected self-correction task exceptions in SemanticEvidenceError."""
+    from backend_v2.models.domain.mcp import CitationCorrectionResult
+
+    client = _make_mock_llm_client()
+
+    async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
+        if response_model == CitationExtractionResult:
+            citations = [
+                CitationExtractionItemDTO(
+                    claim_text="missing claim", search_query="missing claim", reasoning="Mock reasoning."
+                )
+            ]
+            return (
+                CitationExtractionResult(citations=citations),
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        if response_model == CitationCorrectionResult:
+            raise RuntimeError("Self-correction LLM transport timeout")
+        return (
+            MockResponseModel(score=4.0, reasoning="Default"),
+            TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+
+    with pytest.raises(SemanticEvidenceError) as exc_info:
+        await execute_mcp_retrieval(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "source text"}],
+            allowed_tools=["mcp_tavily_search"],
+            step_name="retrieval_step",
+            source_context="source text without that claim",
+        )
+
+    assert "Self-correction failed due to task error" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_source_sufficiency_suppression_when_no_primary_search_tool() -> None:
+    """Verify source sufficiency gate and non-search tool suppression in retrieval and tool loop."""
+    from backend_v2.models.enums import SourceSufficiencyThreshold
+
+    client = _make_mock_llm_client()
+    executor = _make_mock_executor()
+    long_source = "a" * (SourceSufficiencyThreshold.MIN_CHARS.value + 50)
+
+    retrieval_sufficient = await execute_mcp_retrieval(
+        llm_client=client,
+        executor=executor,
+        messages=[{"role": "user", "content": "test"}],
+        allowed_tools=["mcp_wikipedia_read"],
+        step_name="sufficiency_step",
+        source_context=long_source,
+    )
+    assert retrieval_sufficient.audit_traces == []
+    assert retrieval_sufficient.evidence_payload == ""
+
+    retrieval_short = await execute_mcp_retrieval(
+        llm_client=client,
+        executor=executor,
+        messages=[{"role": "user", "content": "test"}],
+        allowed_tools=["mcp_wikipedia_read"],
+        step_name="short_non_search_step",
+        source_context="short context",
+    )
+    assert retrieval_short.audit_traces == []
+
+    loop_sufficient = await execute_tool_loop(
+        llm_client=client,
+        executor=executor,
+        messages=[{"role": "user", "content": "test"}],
+        response_model=MockResponseModel,
+        allowed_tools=["mcp_wikipedia_read"],
+        step_name="loop_sufficiency_step",
+        source_context=long_source,
+    )
+    assert loop_sufficient.result_data["score"] == 4.5
+    assert loop_sufficient.audit_traces == []
+
+
+@pytest.mark.asyncio
+async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert() -> None:
+    """Verify dict hydration for CitationCorrectionResult, empty query skip, and user-first synthesis insert."""
+    import datetime
+
+    from pydantic import JsonValue
+
+    from backend_v2.models.domain.mcp import CitationCorrectionResult, MCPSynthesisInstructionsDTO
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+
+    client = _make_mock_llm_client()
+
+    async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
+        if response_model == CitationExtractionResult:
+            citations = [
+                CitationExtractionItemDTO(
+                    claim_text="slightly off claim",
+                    search_query="verified claim",
+                    reasoning="Verify claim.",
+                ),
+                CitationExtractionItemDTO(
+                    claim_text="verified claim",
+                    search_query="   ",
+                    reasoning="Blank query should be skipped.",
+                ),
+            ]
+            return (
+                CitationExtractionResult(citations=citations),
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        if response_model == CitationCorrectionResult:
+            return (
+                {"corrected_claim": "verified claim"},
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        return (
+            MockResponseModel(score=5.0, reasoning="Complete"),
+            TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30),
+        )
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
+    validation_ctx: dict[str, JsonValue] = {"mcp_source_texts": {"existing_alias": "existing text"}}
+
+    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+        mock_search.return_value = MCPAuditTrace(
+            id="trc_99",
+            tool_id="mcp_tavily_search",
+            step_name="step_edge",
+            query="verified claim",
+            response_summary="Summary text",
+            source_urls=["https://example.com"],
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            duration_ms=25,
+        )
+
+        result = await execute_tool_loop(
+            llm_client=client,
+            executor=executor,
+            messages=[{"role": "user", "content": "Document with verified claim inside."}],
+            response_model=MockResponseModel,
+            allowed_tools=["mcp_tavily_search"],
+            step_name="step_edge",
+            source_context="Document with verified claim inside.",
+            synthesis_instructions=MCPSynthesisInstructionsDTO(
+                synthesis_preamble="Preamble constraint.",
+                synthesis_length_limit=150,
+            ),
+            validation_context=validation_ctx,
+        )
+
+    assert len(result.audit_traces) == 1
+    assert mock_search.call_count == 1
+    final_call_messages = executor.execute_structured_task.call_args.kwargs["messages"]
+    assert final_call_messages[0]["role"] == "system"
+    assert "<synthesis_preamble>Preamble constraint.</synthesis_preamble>" in final_call_messages[0]["content"]
