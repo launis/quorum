@@ -137,7 +137,8 @@ def test_ast_enqueue_job_guardrail() -> None:
     """Verify that enqueue_job usage is present in required modules."""
     base = Path(__file__).resolve().parents[2]
     files = [
-        base / "services" / "report_service.py",
+        base / "services" / "report" / "compilation_service.py",
+        base / "services" / "report" / "lifecycle_service.py",
         base / "services" / "execution" / "ingress_service.py",
     ]
     for path in files:

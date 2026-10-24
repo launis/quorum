@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ExecutionNotReadyError, ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
@@ -984,3 +984,70 @@ async def test_create_report_artifact_persists_model() -> None:
     assert persisted is not None
     assert persisted.id == created.id
     assert persisted.status == ReportStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_compile_and_persist_artifact_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify full compilation pipeline compiles SDUI, PDF, XLSX, and CSV payloads and updates status."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
+    )
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    from backend_v2.services import blueprint
+
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    arq_pool = AsyncMock()
+    service = ReportService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+    )
+
+    await service.compile_and_persist_artifact(report.id, arq_pool)
+    await service.process_artifact_compilation(report.id)
+
+    assert storage.save.call_count == 4
+    completed_rep = await repo.get_report_artifact(report.id)
+    assert completed_rep is not None
+    assert completed_rep.status == ReportStatus.READY
+
+
+@pytest.mark.asyncio
+async def test_compile_execution_not_ready() -> None:
+    """Verify compile_and_persist_artifact raises ExecutionNotReadyError when ExecutionRecord is in RUNNING status."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution(status=ExecutionStatus.RUNNING))
+
+    arq_pool = AsyncMock()
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+
+    with pytest.raises(ExecutionNotReadyError):
+        await service.compile_and_persist_artifact(report.id, arq_pool)
