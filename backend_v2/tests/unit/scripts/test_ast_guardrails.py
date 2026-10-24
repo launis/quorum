@@ -1429,6 +1429,36 @@ def test_qgr017_import_export_service_symbol_from_services_fatal() -> None:
 
 
 # ==============================================================================
+def test_qgr017_import_from_pdf_chat_extractor_fatal() -> None:
+    """QGR017: from backend_v2.services.ingress.pdf_chat_extractor import ... emits FATAL violation."""
+    code = "from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.ingress.pdf_chat_extractor" in qgr017[0].message
+
+
+def test_qgr017_import_pdf_chat_extractor_module_fatal() -> None:
+    """QGR017: import backend_v2.services.ingress.pdf_chat_extractor emits FATAL violation."""
+    code = "import backend_v2.services.ingress.pdf_chat_extractor\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.services.ingress.pdf_chat_extractor" in qgr017[0].message
+
+
+def test_qgr017_import_pdf_chat_extractor_symbol_from_ingress_fatal() -> None:
+    """QGR017: from backend_v2.services.ingress import pdf_chat_extractor emits FATAL violation."""
+    code = "from backend_v2.services.ingress import pdf_chat_extractor\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "pdf_chat_extractor" in qgr017[0].message
+
+
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================
 

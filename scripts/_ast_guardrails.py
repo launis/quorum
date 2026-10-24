@@ -1898,6 +1898,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import matrix parser symbols from canonical package `backend_v2.services.matrix_parser`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif (
+                alias.name == "backend_v2.services.ingress.pdf_chat_extractor"
+                or alias.name.endswith(".pdf_chat_extractor")
+                or alias.name == "pdf_chat_extractor"
+            ):
+                # Phase 4, Step 3: Lock retired pdf_chat_extractor path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy module `{alias.name}`.",
+                    "Import PDF chat extractor symbols from canonical package `backend_v2.services.ingress.pdf_extractor`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR021: Banned import of eradicated llm_debug_logger
             if "llm_debug_logger" in alias.name:
                 self._add_violation(
@@ -1971,6 +1984,29 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import matrix parser symbols from canonical package `backend_v2.services.matrix_parser`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif (
+                node.module == "backend_v2.services.ingress.pdf_chat_extractor"
+                or node.module.endswith(".pdf_chat_extractor")
+                or node.module == "pdf_chat_extractor"
+            ):
+                # Phase 4, Step 3: Lock retired pdf_chat_extractor path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy module `{node.module}`.",
+                    "Import PDF chat extractor symbols from canonical package `backend_v2.services.ingress.pdf_extractor`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module == "backend_v2.services.ingress":
+                for alias in node.names:
+                    if alias.name == "pdf_chat_extractor":
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
+                            "Import PDF chat extractor symbols from canonical package `backend_v2.services.ingress.pdf_extractor`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
             elif node.module == "backend_v2.services":
                 for alias in node.names:
                     if alias.name == "export_service":
