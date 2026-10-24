@@ -7,29 +7,16 @@ using vector drawings and layout-aware text aggregation without LLM calls.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
 
 import fitz
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
-from backend_v2.models.dtos.ingress import (
-    PdfBlockSignatureDTO as PdfBlockSignatureDTO,
-)
-from backend_v2.models.dtos.ingress import (
-    PdfCellCoordinatesDTO as PdfCellCoordinatesDTO,
-)
-from backend_v2.models.dtos.ingress import (
-    PdfTextBlockDTO as PdfTextBlockDTO,
-)
-from backend_v2.models.dtos.ingress import (
-    RawTurnDTO as RawTurnDTO,
-)
-from backend_v2.services.ingress.pdf_extractor.bubble_geometry import (
-    DrawingItemValue as DrawingItemValue,
-)
+from backend_v2.models.domain.system_config import ChatHistoryDTO
+from backend_v2.models.dtos.ingress import PdfBlockSignatureDTO as PdfBlockSignatureDTO
+from backend_v2.models.dtos.ingress import PdfCellCoordinatesDTO as PdfCellCoordinatesDTO
+from backend_v2.models.dtos.ingress import PdfTextBlockDTO as PdfTextBlockDTO
+from backend_v2.models.dtos.ingress import RawTurnDTO as RawTurnDTO
+from backend_v2.services.ingress.pdf_extractor.bubble_geometry import DrawingItemValue as DrawingItemValue
 from backend_v2.services.ingress.pdf_extractor.bubble_geometry import (
     dlq_log_extraction_error,
     extract_page_user_bubbles,
@@ -44,11 +31,11 @@ from backend_v2.services.ingress.pdf_extractor.table_and_card_stage import (
     filter_table_text_blocks,
     reconstruct_tables_as_markdown,
 )
-
-if TYPE_CHECKING:
-    pass
-
-logger = logging.getLogger(__name__)
+from backend_v2.services.ingress.pdf_extractor.turn_assembly_stage import (
+    check_truncation,
+    extract_conversation_from_doc,
+    sort_blocks_visual_order,
+)
 
 __all__ = [
     "DrawingItemValue",
@@ -58,25 +45,6 @@ __all__ = [
     "PdfTextBlockDTO",
     "RawTurnDTO",
 ]
-
-_ORPHAN_TOKEN_MAX_WIDTH: float = 60.0
-_ORPHAN_TOKEN_MAX_CHARS: int = 20
-
-_PRINT_MARGIN_VERTICAL_PT: float = 36.0
-_PAGE_ZERO_TITLE_MAX_Y0: float = 80.0
-
-# Truncation indicators indicating truncated user prompt
-_TRUNCATION_INDICATORS: tuple[str, ...] = (
-    "näytä lisää",
-    "näytä lisää ⌵",
-    "näytä lisää v",
-    "show more",
-    "show more ⌵",
-    "show more v",
-    "read more",
-    "katso lisää",
-    "lue lisää",
-)
 
 
 class PdfChatExtractorService:
@@ -94,38 +62,17 @@ class PdfChatExtractorService:
 
         Note:
             d is an External PyMuPDF API boundary dict from page.get_drawings().
-
-        Args:
-            d: Raw drawing dictionary from PyMuPDF get_drawings.
-            page_width: Page width in points.
-            page_height: Page height in points.
-            table_rects: Optional list of identified table rectangles for shielding.
-
-        Returns:
-            True if the drawing meets all user bubble geometric criteria, False otherwise.
         """
         return is_user_bubble_drawing(d, page_width, page_height, table_rects)
 
     @staticmethod
     def _dlq_log_extraction_error(context: str, exc: Exception) -> None:
-        """Route non-fatal PDF table extraction exceptions to dead-letter diagnostic logs.
-
-        Args:
-            context: Contextual label identifying where extraction encountered a fault.
-            exc: Underlying exception caught during parsing.
-        """
+        """Routes non-fatal PDF table extraction exceptions to dead-letter diagnostic logs."""
         dlq_log_extraction_error(context, exc)
 
     @staticmethod
     def _get_page_table_rects(page: fitz.Page) -> list[fitz.Rect]:
-        """Extracts valid table bounding boxes, guarding against empty cell collections and outer page containers.
-
-        Args:
-            page: PyMuPDF Page instance to scan for tabular structures.
-
-        Returns:
-            List of valid fitz.Rect bounding boxes representing identified tables.
-        """
+        """Extracts valid table bounding boxes, guarding against outer page containers."""
         return get_page_table_rects(page)
 
     @staticmethod
@@ -142,75 +89,19 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _extract_page_user_bubbles(page: fitz.Page) -> list[fitz.Rect]:
-        """Extracts sanitized user speech bubble rectangles on a page.
-
-        Args:
-            page: PyMuPDF Page instance to inspect for user bubble drawings.
-
-        Returns:
-            List of fitz.Rect rectangles identified as user speech bubbles.
-        """
+        """Extracts sanitized user speech bubble rectangles on a page."""
         return extract_page_user_bubbles(page)
 
+    # Phase 3, Step 2: Delegate turn assembly and truncation methods to turn_assembly_stage module
     @staticmethod
     def _check_truncation(text: str) -> None:
-        """Checks for ChatGPT overflow buttons outside code fences and raises actionable warning.
-
-        Args:
-            text: Extracted text content to scan for truncation buttons.
-
-        Raises:
-            AppException: If truncation artifacts are detected (ErrorCodes.VALIDATION_FAILED).
-        """
-        lines = text.split("\n")
-        in_code_fence = False
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith("```"):
-                in_code_fence = not in_code_fence
-                continue
-            if in_code_fence:
-                continue
-
-            line_lower = stripped.lower()
-            for indicator in _TRUNCATION_INDICATORS:
-                if indicator in line_lower:
-                    logger.error(
-                        "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' "
-                        "in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
-                        indicator,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "token": indicator},
-                    )
-                    raise AppException(
-                        message=(
-                            "Keskusteluhistoria on puutteellinen: Selaimen PDF-tulostus on leikannut käyttäjän "
-                            "kehotteen poikki ('Näytä lisää' -painike havaittu). Tuo keskustelu leikepöydältä: "
-                            "Valitse 'Liitä teksti', kopioi ChatGPT:stä koko keskustelu (Ctrl+A -> Ctrl+C) "
-                            "ja liitä ruutuun (Ctrl+V)."
-                        ),
-                        status_code=422,
-                        details={
-                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                            "truncation_detected": True,
-                        },
-                    )
+        """Checks for ChatGPT overflow buttons outside code fences and raises actionable warning."""
+        check_truncation(text)
 
     @staticmethod
-    def _sort_blocks_visual_order(
-        page_blocks: list[PdfTextBlockDTO],
-    ) -> list[PdfTextBlockDTO]:
-        """Sorts blocks topologically in visual reading order.
-
-        Quantizes vertical coordinate into 10pt bands to group inline elements,
-        then orders left-to-right by x0.
-
-        Args:
-            page_blocks: List of text blocks to sort.
-
-        Returns:
-            Sorted list of text blocks in reading order.
-        """
-        return sorted(page_blocks, key=lambda b: (round(b.y0 / 10.0), b.x0))
+    def _sort_blocks_visual_order(page_blocks: list[PdfTextBlockDTO]) -> list[PdfTextBlockDTO]:
+        """Sorts blocks topologically in visual reading order."""
+        return sort_blocks_visual_order(page_blocks)
 
     # Phase 2, Step 2: Delegate table and attachment card stage methods to table_and_card_stage module
     @staticmethod
@@ -218,53 +109,22 @@ class PdfChatExtractorService:
         page_blocks: list[PdfTextBlockDTO],
         table_rects: list[fitz.Rect],
     ) -> list[PdfTextBlockDTO]:
-        """Suppresses raw text blocks that intersect identified table bounding boxes.
-
-        Args:
-            page_blocks: List of candidate text blocks on the page.
-            table_rects: List of bounding boxes for recognized tables.
-
-        Returns:
-            Filtered list of text blocks not intersecting any table rectangle.
-        """
+        """Suppresses raw text blocks that intersect identified table bounding boxes."""
         return filter_table_text_blocks(page_blocks, table_rects)
 
     @staticmethod
-    def _reconstruct_tables_as_markdown(
-        page: fitz.Page,
-        table_rects: list[fitz.Rect],
-    ) -> list[tuple[fitz.Rect, str]]:
-        """Extracts tables from a page and formats them as Markdown pipe tables.
-
-        Args:
-            page: PyMuPDF Page instance containing tables.
-            table_rects: Pre-extracted bounding boxes for identified tables.
-
-        Returns:
-            List of tuples pairing each table rectangle with its Markdown representation.
-        """
+    def _reconstruct_tables_as_markdown(page: fitz.Page, table_rects: list[fitz.Rect]) -> list[tuple[fitz.Rect, str]]:
+        """Extracts tables from a page and formats them as Markdown pipe tables."""
         return reconstruct_tables_as_markdown(page, table_rects)
 
     @staticmethod
     def _detect_attachment_cards(page: fitz.Page) -> list[tuple[fitz.Rect, str]]:
-        """Detects 76x76 pt file attachment cards and normalizes them to [Liite: <filename>].
-
-        Args:
-            page: PyMuPDF Page instance to scan for attachment cards.
-
-        Returns:
-            List of tuples pairing the attachment card rectangle with formatted label text.
-        """
+        """Detects 76x76 pt file attachment cards and normalizes them to [Liite: <filename>]."""
         return detect_attachment_cards(page)
 
     @staticmethod
     def extract_conversation(doc: fitz.Document) -> ChatHistoryDTO:
         """Extracts and segregates conversational turns from a PDF document.
-
-        Processes vector geometry, applies print margin filtering (y0 >= 36pt,
-        y1 <= page_height - 36pt), deduplicates identical coordinate text blocks,
-        detects overflow truncation, and merges contiguous blocks of identical role
-        across page breaks into strongly typed ChatMessageDTOs.
 
         Args:
             doc: Open PyMuPDF Document instance.
@@ -275,167 +135,4 @@ class PdfChatExtractorService:
         Raises:
             AppException: If doc is empty/corrupt or truncation artifacts are detected (ErrorCodes.VALIDATION_FAILED).
         """
-        if len(doc) == 0:
-            logger.error(
-                "[PdfChatExtractorService] Document has 0 pages.",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message="PDF document contains no pages.",
-                status_code=422,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        raw_turns: list[RawTurnDTO] = []
-        current_role: str | None = None
-        current_content: list[str] = []
-
-        seen_blocks: set[PdfBlockSignatureDTO] = set()
-
-        for page_idx, page in enumerate(doc):
-            page_h = page.rect.height
-            table_rects = PdfChatExtractorService._get_page_table_rects(page)
-            user_bubbles = PdfChatExtractorService._extract_page_user_bubbles(page)
-
-            # 1. Detect tables and attachment cards
-            reconstructed_tables = PdfChatExtractorService._reconstruct_tables_as_markdown(page, table_rects)
-            attachment_cards = PdfChatExtractorService._detect_attachment_cards(page)
-            card_rects = [c[0] for c in attachment_cards]
-
-            # 2. Extract and filter text blocks
-            raw_page_blocks = page.get_text("blocks")
-            wrapped_blocks = [
-                PdfTextBlockDTO(
-                    x0=float(b[0]),
-                    y0=float(b[1]),
-                    x1=float(b[2]),
-                    y1=float(b[3]),
-                    text=str(b[4]),
-                    block_no=int(b[5]),
-                    block_type=int(b[6]),
-                )
-                for b in raw_page_blocks
-            ]
-            filtered_blocks = PdfChatExtractorService._filter_table_text_blocks(wrapped_blocks, table_rects)
-
-            # 3. Integrate synthetic blocks for tables and attachment cards
-            combined_blocks: list[PdfTextBlockDTO] = []
-            for b in filtered_blocks:
-                brect = fitz.Rect(b.x0, b.y0, b.x1, b.y1)
-                if any(brect.intersects(cr) for cr in card_rects):
-                    continue
-                combined_blocks.append(b)
-
-            for trect, md_table in reconstructed_tables:
-                combined_blocks.append(
-                    PdfTextBlockDTO(
-                        x0=trect.x0,
-                        y0=trect.y0,
-                        x1=trect.x1,
-                        y1=trect.y1,
-                        text=md_table,
-                        block_no=-1,
-                        block_type=0,
-                    )
-                )
-
-            for crect, card_text in attachment_cards:
-                combined_blocks.append(
-                    PdfTextBlockDTO(
-                        x0=crect.x0,
-                        y0=crect.y0,
-                        x1=crect.x1,
-                        y1=crect.y1,
-                        text=card_text,
-                        block_no=-1,
-                        block_type=0,
-                    )
-                )
-
-            # 4. Visual topological sort
-            sorted_blocks = PdfChatExtractorService._sort_blocks_visual_order(combined_blocks)
-
-            for b in sorted_blocks:
-                x0, y0, x1, y1, text = b.x0, b.y0, b.x1, b.y1, b.text.strip()
-                if not text:
-                    continue
-
-                # Margin filtering (eliminate browser headers/footers)
-                if y0 < _PRINT_MARGIN_VERTICAL_PT or y1 > page_h - _PRINT_MARGIN_VERTICAL_PT:
-                    continue
-
-                # Coordinate-level span deduplication
-                sig = PdfBlockSignatureDTO(
-                    page_idx=page_idx,
-                    x0=round(x0, 1),
-                    y0=round(y0, 1),
-                    x1=round(x1, 1),
-                    y1=round(y1, 1),
-                    text=text,
-                )
-                if sig in seen_blocks:
-                    continue
-                seen_blocks.add(sig)
-
-                # Page 0 top title filtering
-                if (
-                    page_idx == 0
-                    and y0 < _PAGE_ZERO_TITLE_MAX_Y0
-                    and (
-                        text.lower() in ("keskusteluhistoria", "conversation history")
-                        or (len(text.split()) <= 3 and text.lower().startswith("keskustelu"))
-                    )
-                ):
-                    continue
-
-                # UI button filtering
-                text_clean = text.strip()
-                if text_clean in ("expand_more", "expand_less", "expand_more ⌵", "expand_less ⌵", "PDF", "report"):
-                    continue
-
-                brect = fitz.Rect(x0, y0, x1, y1)
-
-                # Bubble intersection classifier
-                is_user = any(brect.intersects(bub) for bub in user_bubbles)
-
-                # Truncation check for user blocks
-                if is_user:
-                    PdfChatExtractorService._check_truncation(text)
-
-                # Orphan token filtering outside user speech bubbles
-                if not is_user:
-                    if (
-                        (x1 - x0) < _ORPHAN_TOKEN_MAX_WIDTH
-                        and len(text) < _ORPHAN_TOKEN_MAX_CHARS
-                        and not any(ch.isalpha() and len(text.split()) > 2 for ch in text)
-                    ):
-                        continue
-
-                role = "user" if is_user else "ai"
-
-                if role == current_role:
-                    current_content.append(text)
-                else:
-                    if current_role is not None and current_content:
-                        raw_turns.append(RawTurnDTO(role=current_role, content="\n\n".join(current_content)))
-                    current_role = role
-                    current_content = [text]
-
-        if current_role is not None and current_content:
-            raw_turns.append(RawTurnDTO(role=current_role, content="\n\n".join(current_content)))
-
-        # Build ChatMessageDTO list
-        messages = [ChatMessageDTO(role=turn.role, content=turn.content) for turn in raw_turns if turn.content.strip()]
-
-        if not messages:
-            logger.error(
-                "[PdfChatExtractorService] No conversational messages extracted from PDF.",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message="No conversational messages could be extracted from the PDF document.",
-                status_code=422,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-
-        return ChatHistoryDTO(conversation=messages)
+        return extract_conversation_from_doc(doc)
