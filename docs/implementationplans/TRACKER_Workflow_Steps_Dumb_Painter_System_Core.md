@@ -33,13 +33,13 @@
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate backend`.
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/models/domain/step.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate frontend`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate frontend`.
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
