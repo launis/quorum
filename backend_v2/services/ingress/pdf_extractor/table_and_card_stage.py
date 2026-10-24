@@ -25,7 +25,7 @@ __all__ = [
     "reconstruct_tables_as_markdown",
 ]
 
-# Phase 2, Step 1: Relocate attachment card geometry constants
+# Geometry constants for 76x76 pt Gemini attachment card boxes
 _ATTACHMENT_BOX_DIM_PT: float = 76.0
 _ATTACHMENT_BOX_TOLERANCE_PT: float = 6.0
 

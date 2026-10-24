@@ -20,7 +20,6 @@ from backend_v2.services.ingress.pdf_extractor.table_and_card_stage import (
 from backend_v2.services.ingress.pdf_extractor.turn_assembly_stage import extract_conversation_from_doc
 
 
-# Phase 4, Step 1: Migrate table filtering, Markdown reconstruction, and attachment card unit tests
 def test_pdf_chat_extractor_table_markdown_reconstruction() -> None:
     """Verify that multi-column evaluation matrices in a page are reconstructed into GitHub-Flavored Markdown tables."""
     doc = fitz.open()
@@ -165,3 +164,29 @@ def test_reconstruct_tables_as_markdown_whitespace_and_camelcase_normalization()
     assert "sopeudutaan Rajoihin Ja Parannetaan" in md_text
     assert "moni välilyönti solussa" in md_text
     assert "   " not in md_text
+
+
+def test_detect_attachment_cards_negative_and_boundary_partitions() -> None:
+    """Verify ISTQB boundary partitions (76.0 +/- 6.0 pt) and invalid drawing/label rejections."""
+    mock_page = MagicMock()
+    mock_page.get_drawings.return_value = [
+        {},  # Missing rect key -> skipped
+        {"rect": "not_a_rect"},  # Non-Rect value -> skipped
+        {"rect": fitz.Rect(0.0, 0.0, 69.9, 76.0)},  # Below min width boundary (70.0 pt) -> rejected
+        {"rect": fitz.Rect(0.0, 100.0, 76.0, 182.1)},  # Above max height boundary (82.0 pt) -> rejected
+        {"rect": fitz.Rect(0.0, 200.0, 70.0, 270.0)},  # Exact lower boundary (70.0x70.0 pt), only ignored labels
+        {"rect": fitz.Rect(0.0, 300.0, 82.0, 382.0)},  # Exact upper boundary (82.0x82.0 pt), valid attachment name
+    ]
+    mock_page.get_text.return_value = [
+        (5.0, 210.0, 60.0, 230.0, "PDF\n", 0, 0),
+        (5.0, 235.0, 60.0, 255.0, "Liite\r\n", 1, 0),
+        (5.0, 310.0, 75.0, 340.0, "report\n", 2, 0),
+        (5.0, 345.0, 75.0, 375.0, "analyysi_v2.pdf\r\n", 3, 0),
+    ]
+
+    cards = detect_attachment_cards(mock_page)
+    assert len(cards) == 1
+    card_rect, card_label = cards[0]
+    assert card_rect == fitz.Rect(0.0, 300.0, 82.0, 382.0)
+    assert card_label == "[Liite: analyysi_v2.pdf]"
+
