@@ -6,6 +6,7 @@ import asyncio
 import functools
 import logging
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -73,16 +74,14 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
 
     if not exec_record or not exec_record.raw_inputs:
         msg = f"Data Integrity Violation: Missing execution record for {execution_id}"
-        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     inputs_dict = exec_record.raw_inputs.model_dump()
-    dynamic_inputs = {}
+    keys_to_check: set[str] = set(inputs_dict.keys())
     if exec_record.raw_inputs.dynamic_inputs:
-        dynamic_inputs = exec_record.raw_inputs.dynamic_inputs
+        keys_to_check |= set(exec_record.raw_inputs.dynamic_inputs.keys())
     storage = get_storage_driver()
-
-    keys_to_check = set(list(inputs_dict.keys()) + list(dynamic_inputs.keys()))
 
     for key in keys_to_check:
         forensic_path = get_forensic_input_path(execution_id, key)
@@ -150,10 +149,16 @@ class PayloadCitationVerificationDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    payload: AnalystOutput | EvaluationResult
-    total_count: int = Field(ge=0)
-    valid_count: int = Field(ge=0)
-    invalid_citations: list[str] = Field(default_factory=list)
+    payload: Annotated[
+        AnalystOutput | EvaluationResult,
+        Field(description="Domain model with verified citations."),
+    ]
+    total_count: Annotated[int, Field(ge=0, description="Total number of citations processed.")]
+    valid_count: Annotated[int, Field(ge=0, description="Number of verified valid citations.")]
+    invalid_citations: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of hallucinated citation strings removed."),
+    ]
 
 
 def _verify_payload_citations(
@@ -173,34 +178,35 @@ def _verify_payload_citations(
     valid_count = 0
     total_count = 0
 
-    if isinstance(parsed_payload, AnalystOutput):
-        if parsed_payload.hypotheses:
-            new_hypotheses = []
-            for hyp in parsed_payload.hypotheses:
+    match parsed_payload:
+        case AnalystOutput():
+            if parsed_payload.hypotheses:
+                new_hypotheses = []
+                for hyp in parsed_payload.hypotheses:
+                    valid_quotes = []
+                    for quote in hyp.quotes:
+                        total_count += 1
+                        if _is_hallucinated(quote, norm_corpus, threshold):
+                            invalid_citations.append(quote)
+                            logger.warning("[IntegrityHook] Analyst hallucination detected.")
+                        else:
+                            valid_quotes.append(quote)
+                            valid_count += 1
+                    new_hypotheses.append(hyp.model_copy(update={"quotes": valid_quotes}))
+                parsed_payload = parsed_payload.model_copy(update={"hypotheses": new_hypotheses})
+
+        case EvaluationResult():
+            if parsed_payload.citation_snippets:
                 valid_quotes = []
-                for quote in hyp.quotes:
+                for quote in parsed_payload.citation_snippets:
                     total_count += 1
                     if _is_hallucinated(quote, norm_corpus, threshold):
                         invalid_citations.append(quote)
-                        logger.warning("[IntegrityHook] Analyst hallucination detected.")
+                        logger.warning("[IntegrityHook] Evaluator hallucination detected.")
                     else:
                         valid_quotes.append(quote)
                         valid_count += 1
-                new_hypotheses.append(hyp.model_copy(update={"quotes": valid_quotes}))
-            parsed_payload = parsed_payload.model_copy(update={"hypotheses": new_hypotheses})
-
-    elif isinstance(parsed_payload, EvaluationResult):
-        if parsed_payload.citation_snippets:
-            valid_quotes = []
-            for quote in parsed_payload.citation_snippets:
-                total_count += 1
-                if _is_hallucinated(quote, norm_corpus, threshold):
-                    invalid_citations.append(quote)
-                    logger.warning("[IntegrityHook] Evaluator hallucination detected.")
-                else:
-                    valid_quotes.append(quote)
-                    valid_count += 1
-            parsed_payload = parsed_payload.model_copy(update={"citation_snippets": valid_quotes})
+                parsed_payload = parsed_payload.model_copy(update={"citation_snippets": valid_quotes})
 
     return PayloadCitationVerificationDTO(
         payload=parsed_payload,
@@ -233,7 +239,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     if not source_texts:
         msg = "Data Integrity Violation: Missing input text in disk."
-        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     # 1b. Gather Context (RAG)
@@ -243,7 +249,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         rag_text += await asyncio.to_thread(_read_docs)
     except OSError as e:
         msg = f"Data Integrity Violation: Failed to load local context documents. Error: {e}"
-        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=500,
@@ -282,7 +288,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     if not norm_corpus:
         msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
-        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+        logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value})
 
     integrity_score = valid_count / total_count
@@ -342,12 +348,12 @@ def enforce_hypothesis_linking_hook(state: HookState, deps: HookDependencies) ->
 
         if not h_id:
             msg = f"Hypothesis missing ID: {hyp}"
-            logger.error("[IntegrityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[IntegrityHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if h_id in seen_ids:
             msg = f"Duplicate Hypothesis ID found: {h_id}."
-            logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg)
+            logger.error("[IntegrityHook] %s: %s", ErrorCodes.STATE_INTEGRITY_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,

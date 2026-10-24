@@ -4,6 +4,7 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -14,6 +15,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.integrity import (
+    PayloadCitationVerificationDTO,
     _gather_rag_context,
     _is_hallucinated,
     _verify_payload_citations,
@@ -248,6 +250,80 @@ async def test_verify_citation_integrity_hook_full_success_with_citations() -> N
 
 
 @pytest.mark.asyncio
+async def test_verify_citation_integrity_hook_zero_citations_returns_payload() -> None:
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [
+                    {
+                        "id": "hyp_1",
+                        "claim_text": "Claim",
+                        "evidence_found": False,
+                        "search_query": "Query",
+                        "quotes": [],
+                    }
+                ],
+            }
+        ),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+
+    with patch("backend_v2.hooks.integrity._gather_source_texts", new_callable=AsyncMock) as mock_gather:
+        mock_gather.return_value = ["Source document text."]
+        with patch("backend_v2.hooks.integrity._read_docs", return_value=""):
+            result = await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, AnalystOutput)
+
+
+@pytest.mark.asyncio
+async def test_verify_citation_integrity_hook_empty_normalized_corpus_raises() -> None:
+    """Negative: citations present with empty normalized source corpus raises AppException."""
+    state = HookState(
+        execution_id="exe1",
+        workflow_id="wf1",
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "thought_process": "Thinking...",
+                "conclusion": "Concluded.",
+                "confidence_score": 0.9,
+                "hypotheses": [
+                    {
+                        "id": "hyp_1",
+                        "claim_text": "Claim",
+                        "evidence_found": True,
+                        "search_query": "Query",
+                        "quotes": ["A quote requiring non-empty corpus"],
+                    }
+                ],
+            }
+        ),
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = AsyncMock()
+
+    with patch("backend_v2.hooks.integrity._gather_source_texts", new_callable=AsyncMock) as mock_gather:
+        mock_gather.return_value = ["   "]
+        with patch("backend_v2.hooks.integrity._read_docs", return_value=""):
+            with pytest.raises(AppException) as exc:
+                await cast(Awaitable[HookResult], verify_citation_integrity_hook(state, deps))
+            assert exc.value.status_code == 500
+            assert "Source Corpus is empty" in exc.value.message
+
+
+@pytest.mark.asyncio
 async def test_gather_source_texts_with_storage() -> None:
     from backend_v2.hooks.integrity import _gather_source_texts
     from backend_v2.models.domain.execution import ExecutionRecord
@@ -294,17 +370,16 @@ async def test_gather_source_texts_missing_record_raises() -> None:
 
 
 def test_enforce_hypothesis_linking_empty_hypotheses() -> None:
+    analyst_output = AnalystOutput.model_construct(
+        thought_process="Thinking...",
+        conclusion="Concluded.",
+        confidence_score=0.9,
+        hypotheses=[],
+    )
     state = HookState(
         execution_id="exe1",
         workflow_id="wf1",
-        inputs=ExecutionInputsDTO(
-            raw_inputs={
-                "thought_process": "Thinking...",
-                "conclusion": "Concluded.",
-                "confidence_score": 0.9,
-                "hypotheses": [],
-            }
-        ),
+        inputs=ExecutionInputsDTO.model_construct(raw_inputs=analyst_output),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -383,3 +458,25 @@ def test_is_hallucinated_empty_normalized() -> None:
         return_value=("", {}),
     ):
         assert _is_hallucinated("Valid quote text", "norm_corpus", threshold=80.0) is True
+
+
+def test_payload_citation_verification_dto_negative_bounds_rejected() -> None:
+    """Negative boundary (min-1): negative total_count or valid_count raises ValidationError."""
+    payload = AnalystOutput(
+        thought_process="Thinking...",
+        conclusion="Concluded.",
+        confidence_score=0.9,
+        hypotheses=[
+            Hypothesis(
+                id="hyp_1",
+                claim_text="Claim",
+                evidence_found=False,
+                search_query="Query",
+                quotes=[],
+            )
+        ],
+    )
+    with pytest.raises(ValidationError):
+        PayloadCitationVerificationDTO(payload=payload, total_count=-1, valid_count=0)
+    with pytest.raises(ValidationError):
+        PayloadCitationVerificationDTO(payload=payload, total_count=0, valid_count=-1)
