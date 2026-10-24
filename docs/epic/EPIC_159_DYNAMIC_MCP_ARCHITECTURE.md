@@ -6,6 +6,11 @@
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
   <knowledge_item>@[ki_sdui_matrix_synthesis.md]</knowledge_item>
+  <knowledge_item>@[ki_mcp_tool_protocol.md]</knowledge_item>
+  <knowledge_item>@[ki_system_audit_trail_xai.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+  <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
+  <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
 </required_context_rules>
 
 # EPIC 159: Dynamic Model Context Protocol (MCP) Architecture & Runtime Schema Introspection
@@ -68,6 +73,26 @@ flowchart TD
    - **SSRF Prevention (`[NEW] @[backend_v2/services/mcp/url_validator.py]` & `@[backend_v2/services/studio/auth_validator.py]`)**: Strict URL and DNS/IP validator blocking internal cloud metadata endpoints (`169.254.169.254`, `fd00:ec2::254`), loopback addresses, link-local ranges, and private subnets in production environments.
    - **Automatic Telemetry & SDUI Audit Trail (`@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]`)**: Generic tool calls emit structured `MCPAuditTrace` records (gateway slug, tool name, execution latency in milliseconds, HTTP/JSON-RPC status, and sanitized snippet), appearing automatically in the final report's SDUI audit trail rendered via `@[backend_v2/services/sdui/sdui_mapper_service.py]`.
 
+### 1.4 Quantitative Scope Validation Table
+
+| Target File Path | Action | Physical Layer | Coupled 1-Hop Callers & Blast Radius |
+| :--- | :--- | :--- | :--- |
+| `@[backend_v2/models/enums.py]` | `[MODIFY]` | Domain / Taxonomies | `@[backend_v2/models/dtos/mcp.py]`, `@[backend_v2/models/domain/system_config.py]`, `@[backend_v2/tests/unit/test_enum_parity.py]` |
+| `@[backend_v2/models/dtos/mcp.py]` | `[MODIFY]` | DTO Boundary | `@[backend_v2/models/domain/system_config.py]`, `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`, `@[backend_v2/services/orchestrator/schema_factory.py]`, `@[backend_v2/llm/adapters/vertex_adapter.py]`, `@[backend_v2/llm/adapters/openai_adapter.py]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py]`, `@[backend_v2/llm/adapters/anthropic_adapter.py]` |
+| `@[backend_v2/models/domain/system_config.py]` | `[MODIFY]` | Domain Persistence Root | `@[backend_v2/seed/seed_data.json]`, `@[backend_v2/services/studio/system_config_service.py]`, `@[backend_v2/services/blueprint.py]`, `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` |
+| `@[backend_v2/models/domain/mcp.py]` | `[MODIFY]` | Domain Telemetry | `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]` |
+| `@[backend_v2/settings.py]` & `@[backend_v2/core/test_settings.py]` | `[MODIFY]` | Core Settings | `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`, `[NEW] @[backend_v2/services/mcp/url_validator.py]`, `@[backend_v2/tests/unit/test_settings.py]` |
+| `[NEW] @[backend_v2/services/mcp/url_validator.py]` | `[NEW]` | Security / SSRF Firewall | `@[backend_v2/services/studio/system_config_service.py]`, `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]` |
+| `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]` | `[NEW]` | MCP Protocol Transport | `@[backend_v2/services/studio/system_config_service.py]`, `@[backend_v2/services/mcp/dispatcher.py]` |
+| `@[backend_v2/services/mcp/alias_registry.py]` | `[MODIFY]` | Namespace Resolution | `@[backend_v2/services/mcp/dispatcher.py]`, `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/services/blueprint.py]` |
+| `@[backend_v2/services/mcp/dispatcher.py]` | `[MODIFY]` | Dynamic Tool Routing | `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/services/source_verification_service.py]` |
+| `@[backend_v2/services/mcp/mcp_tool_loop.py]` & `@[backend_v2/services/mcp/__init__.py]` | `[MODIFY]` | Agentic Tool Loop | `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/source_verification_service.py]` |
+| `@[backend_v2/services/orchestrator/schema_factory.py]` & `@[backend_v2/llm/schema_builder.py]` | `[MODIFY]` | Runtime Schema Compilation | `@[backend_v2/services/mcp/dispatcher.py]`, `@[backend_v2/services/mcp/mcp_tool_loop.py]` |
+| `@[backend_v2/services/studio/system_config_service.py]` & `@[backend_v2/api/routers/studio/mcp_gateways.py]` | `[MODIFY]` | Studio API & Service | `@[backend_v2/services/cache/typed_cache.py]`, `@[client_app_v2/lib/core/api/studio_client.dart]` |
+| `@[backend_v2/services/mcp/tools/tavily.py]`, `@[backend_v2/services/mcp/tools/wikipedia.py]`, `@[backend_v2/services/mcp/tavily_search_client.py]`, `@[backend_v2/services/mcp/wikipedia_client.py]`, `@[backend_v2/models/domain/wikipedia.py]`, `@[backend_v2/models/domain/tools.py]` | `[DELETE]` | Legacy Static Wrappers | Replaced by `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]` and dynamic `ToolDispatcher` |
+| `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]` & `@[client_app_v2/lib/core/models/enums.dart]` | `[MODIFY]` | Flutter Domain / Freezed | `@[client_app_v2/lib/core/api/studio_client.dart]`, `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]` |
+| `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`, `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]` | `[MODIFY]` | Flutter Studio Views | `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]` |
+
 ---
 
 ## 2. Architectural Impact & Compliance Matrix
@@ -76,16 +101,17 @@ flowchart TD
 
 | Deprecated File / Symbol | Location | Sunset Action & Replacement Mapping |
 | :--- | :--- | :--- |
-| `TavilyTool` | `[DELETE] @[backend_v2/services/mcp/tools/tavily.py]` | **DELETED** — Replaced by protocol-agnostic `GenericMCPClient` in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
-| `WikipediaSearchTool`, `WikipediaReadTool` | `[DELETE] @[backend_v2/services/mcp/tools/wikipedia.py]` | **DELETED** — Replaced by protocol-agnostic `GenericMCPClient` in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
+| `TavilyTool`, `TAVILY_TOOL_ID`, `TAVILY_TOOL_SCHEMA` | `[DELETE] @[backend_v2/services/mcp/tools/tavily.py]` | **DELETED** — Replaced by protocol-agnostic `GenericMCPClient` in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
+| `WikipediaSearchTool`, `WikipediaReadTool`, `WIKIPEDIA_SEARCH_TOOL_ID`, `WIKIPEDIA_READ_TOOL_ID` | `[DELETE] @[backend_v2/services/mcp/tools/wikipedia.py]` | **DELETED** — Replaced by protocol-agnostic `GenericMCPClient` in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
 | `TavilySearchClient` | `[DELETE] @[backend_v2/services/mcp/tavily_search_client.py]` | **DELETED** — Replaced by `GenericMCPClient` JSON-RPC 2.0 transport in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
 | `WikipediaClient` | `[DELETE] @[backend_v2/services/mcp/wikipedia_client.py]` | **DELETED** — Replaced by `GenericMCPClient` JSON-RPC 2.0 transport in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`. |
-| `WikipediaSearchResult`, `WikipediaArticleExtract`, `MWSearchItemDTO`, `MWQuerySearchDTO`, `MWSearchResponseDTO`, `MWPageExtractDTO`, `MWQueryPagesDTO`, `MWExtractResponseDTO` | `[DELETE] @[backend_v2/models/domain/wikipedia.py]` | **DELETED** — Vendor-specific MediaWiki REST models are intentionally dropped in favor of generic MCP JSON-RPC 2.0 `MCPToolCallResultDTO` created in `@[backend_v2/models/dtos/mcp.py]`. |
+| `SUPPORTED_WIKIPEDIA_LANGUAGES`, `WikimediaActionSearchItemDTO`, `WikimediaActionQueryDTO`, `WikimediaActionApiResponseDTO`, `WikimediaRestSummaryResponseDTO`, `WikipediaReadInputDTO`, `WikipediaSearchResultItem`, `WikipediaSearchResponseDTO`, `WikipediaPageSummaryResult` | `[DELETE] @[backend_v2/models/domain/wikipedia.py]` | **DELETED** — Vendor-specific MediaWiki REST models are intentionally dropped in favor of generic MCP JSON-RPC 2.0 `MCPToolCallResultDTO` created in `@[backend_v2/models/dtos/mcp.py]`. |
+| `StandardSearchInputDTO`, `BaseTool`, `BaseSearchTool` | `[DELETE] @[backend_v2/models/domain/tools.py]` | **DELETED** — Static Python tool base classes are replaced by dynamic `MCPToolDescriptorDTO` schema compilation in `@[backend_v2/services/orchestrator/schema_factory.py]` and dynamic routing returning `MCPAuditTrace` in `@[backend_v2/services/mcp/dispatcher.py]`. |
+| `DISPATCHER` | `@[backend_v2/services/mcp/mcp_tool_loop.py]` & `@[backend_v2/services/mcp/__init__.py]` | **REMOVED** — Module-level static `DISPATCHER` singleton is replaced by dynamically instantiated `ToolDispatcher` bound to active `SystemConfigMCPGateways` records. |
 | `TavilySearchRequestDTO` | `@[backend_v2/models/dtos/mcp.py]` | **REMOVED** — Replaced by `MCPToolInvocationDTO` and `MCPJsonRpcRequestDTO` defined in `@[backend_v2/models/dtos/mcp.py]`. |
 | `TavilyToolArgsDTO`, `TavilyApiResultItemDTO`, `TavilyApiResponseDTO`, `TavilySearchResult` | `@[backend_v2/models/domain/mcp.py]` | **REMOVED** — Replaced by generic `MCPToolInvocationDTO` and `MCPToolCallResultDTO` defined in `@[backend_v2/models/dtos/mcp.py]`. |
-| `BaseTool` | `@[backend_v2/models/domain/tools.py]` | **REMOVED** — Static Python tool base class is replaced by dynamic `MCPToolDescriptorDTO` schema compilation defined in `@[backend_v2/services/orchestrator/schema_factory.py]` and dynamic routing in `@[backend_v2/services/mcp/dispatcher.py]`. (`ToolParameter` and `ToolExecutionResult` in `@[backend_v2/models/domain/tools.py]` are retained/updated for execution result wrapping). |
-| Legacy unit & integration tests for static wrappers | `[DELETE] @[backend_v2/tests/unit/test_tavily_client.py]`, `[DELETE] @[backend_v2/tests/unit/test_tavily_search_client.py]`, `[DELETE] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]`, `[DELETE] @[backend_v2/tests/unit/models/domain/test_wikipedia.py]`, `[DELETE] @[backend_v2/tests/integration/test_tavily_live.py]`, `[DELETE] @[backend_v2/tests/integration/test_tavily_e2e_full_pipeline.py]` | **DELETED** — Replaced by `[NEW] @[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]`, `[NEW] @[backend_v2/tests/unit/services/mcp/test_url_validator.py]`, `[NEW] @[backend_v2/tests/unit/services/mcp/test_alias_registry.py]`, and `[NEW] @[backend_v2/tests/integration/test_dynamic_mcp_pipeline_e2e.py]`. |
-| `mcp_wikipedia_max_search_results`, `mcp_wikipedia_max_chars`, `mcp_wikipedia_timeout_seconds`, `mcp_wikipedia_user_agent` | `@[backend_v2/settings.py]` | **REMOVED** — Vendor-specific Wikipedia settings are replaced by generic MCP transport and discovery limits (`mcp_default_timeout_seconds`, `mcp_discovery_timeout_seconds`, `mcp_max_response_chars`, `mcp_allow_private_networks`) in `@[backend_v2/settings.py]`. |
+| Legacy unit tests, integration tests & scripts for static wrappers | `[DELETE] @[backend_v2/tests/unit/test_tavily_client.py]`, `[DELETE] @[backend_v2/tests/unit/test_tavily_search_client.py]`, `[DELETE] @[backend_v2/tests/unit/services/mcp/tools/test_tavily.py]`, `[DELETE] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia.py]`, `[DELETE] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]`, `[DELETE] @[backend_v2/tests/unit/models/domain/test_wikipedia.py]`, `[DELETE] @[backend_v2/tests/unit/models/domain/test_tools.py]`, `[DELETE] @[backend_v2/tests/integration/test_tavily_live.py]`, `[DELETE] @[backend_v2/scripts/test_tavily_live.py]` | **DELETED** — Replaced by `[NEW] @[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]`, `[NEW] @[backend_v2/tests/unit/services/mcp/test_url_validator.py]`, `[NEW] @[backend_v2/tests/unit/services/mcp/test_alias_registry.py]`, and `[NEW] @[backend_v2/tests/integration/test_dynamic_mcp_pipeline_e2e.py]`. |
+| `mcp_wikipedia_max_search_results`, `mcp_wikipedia_max_chars`, `mcp_wikipedia_timeout_seconds`, `mcp_wikipedia_user_agent` | `@[backend_v2/settings.py]` & `@[backend_v2/core/test_settings.py]` | **REMOVED** — Vendor-specific Wikipedia settings are replaced by generic MCP transport and discovery limits (`mcp_default_timeout_seconds`, `mcp_discovery_timeout_seconds`, `mcp_max_response_chars`, `mcp_allow_private_networks`) in `@[backend_v2/settings.py]`. |
 
 ### 2.2 Retained SSOT Invariants (`What We Will RETAIN`)
 - **`SystemConfigMCPGateways` Persistence Root (`@[backend_v2/models/domain/system_config.py]`)**: Retained as the canonical `system_config` discriminated union member (`type: Literal["mcp_gateways"] = "mcp_gateways"`) stored in `seed_data.json` (`@[backend_v2/seed/seed_data.json#L209-L284]`) and managed by `@[backend_v2/services/studio/system_config_service.py]`.
@@ -110,7 +136,16 @@ flowchart TD
 | **Discovered Tool Manifests (`list[AllowedMCPTool]` with `MCPToolSchemaPropertyDTO` defined in `mcp.py`)** | External MCP Server (`tools/list`) parsed by `GenericMCPClient.list_tools()` in `[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]` | Persisted in `SystemConfigMCPGateways.tools` via `@[backend_v2/services/studio/system_config_service.py]` & cached in `@[backend_v2/services/cache/typed_cache.py]` | 1) Studio UI (`@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]` & `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]`)<br>2) `SchemaFactory` (`@[backend_v2/services/orchestrator/schema_factory.py]`) |
 | **Namespaced Function Declarations (`MCPToolDeclarationDTO` & Runtime Pydantic Model)** | `AliasRegistry` (`@[backend_v2/services/mcp/alias_registry.py]`) + `SchemaFactory` (`@[backend_v2/services/orchestrator/schema_factory.py]`) using `pydantic.create_model` | Passed in-memory via `LLMClient` / `LiteLLMProvider` to Provider Adapters (`@[backend_v2/llm/adapters/vertex_adapter.py]`, `@[backend_v2/llm/adapters/openai_adapter.py]`, `@[backend_v2/llm/adapters/anthropic_adapter.py]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py]`) | Foundation Model native tool calling interface (`tools` / `function_declarations`) |
 | **Validated Tool Call Envelope (`MCPToolInvocationDTO` created in `mcp.py`)** | LLM tool call response parsed & validated against dynamic Pydantic model in `@[backend_v2/services/mcp/mcp_tool_loop.py]` | Dispatched via `ToolDispatcher.dispatch()` (`@[backend_v2/services/mcp/dispatcher.py]`) | `GenericMCPClient.call_tool()` (`[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`) |
-| **Sanitized Tool Output & Telemetry (`ToolExecutionResult` & `MCPAuditTrace`)** | `GenericMCPClient.call_tool()` -> `LengthBudgetEnforcer` (`@[backend_v2/services/length_budget_enforcer.py]`) -> `wrap_in_cdata()` (`@[backend_v2/models/prompts/execution/mcp_prompts.py]`) | Stored in `MCPToolLoopResult.mcp_Handshake_trace` (`@[backend_v2/models/domain/mcp.py]`) & `ExecutionRecord` | 1) LLM Synthesis Prompt (`build_xml_sandwich_prompt`)<br>2) `MCPAuditAdapter` (`@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]`) -> Flutter SDUI Report View |
+| **Sanitized Tool Output & Telemetry (`MCPAuditTrace`)** | `GenericMCPClient.call_tool()` -> `LengthBudgetEnforcer` (`@[backend_v2/services/length_budget_enforcer.py]`) -> `wrap_in_cdata()` (`@[backend_v2/models/prompts/execution/mcp_prompts.py]`) | Stored in `MCPToolLoopResult.mcp_Handshake_trace` (`@[backend_v2/models/domain/mcp.py]`) & `ExecutionRecord` | 1) LLM Synthesis Prompt (`build_xml_sandwich_prompt`)<br>2) `MCPAuditAdapter` (`@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]`) & `PrintableSourcesAdapter` (`@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`) -> Flutter SDUI Report View |
+
+### 2.5 5-Column Architectural Directive Table
+
+| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape | 3. Approved Best Practice | 4. Pruned Over-Engineering | 5. Verification & Fail-Fast |
+| :--- | :--- | :--- | :--- | :--- |
+| **MCP Schema & Wire DTOs**<br>`@[backend_v2/models/dtos/mcp.py]`<br>`@[backend_v2/models/domain/system_config.py]` | Raw `dict[str, JsonValue]` in `AllowedMCPTool.input_schema` and `MCPFunctionDefinitionDTO.parameters`; hardcoded `TavilySearchRequestDTO` and `TavilyToolArgsDTO`. | Recursive self-referential `MCPToolSchemaPropertyDTO` (`model_rebuild()`) and `MCPToolInputSchemaDTO` with `ConfigDict(strict=True, extra="forbid", frozen=True)`; serialization at provider adapter boundary via `.model_dump(mode="json", by_alias=True, exclude_none=True)`. | Eliminated vendor-specific tool argument DTOs across domain models; single canonical `MCPToolInvocationDTO` envelope for all MCP gateways. | `uv run python scripts/backend_audit_loop.py backend_v2/models/ --test --ast-strict`; `ValidationError` -> `AppException(ErrorCodes.VALIDATION_FAILED)` on unknown schema keys. |
+| **Protocol Transport & SSRF Firewall**<br>`[NEW] @[backend_v2/services/mcp/generic_mcp_client.py]`<br>`[NEW] @[backend_v2/services/mcp/url_validator.py]` | Bespoke per-vendor HTTP wrappers (`TavilySearchClient`, `WikipediaClient`) and unvalidated external endpoint URLs. | Protocol-agnostic JSON-RPC 2.0 `GenericMCPClient` supporting `STREAMABLE_HTTP` and `SSE` via `httpx.AsyncClient`; pre-flight DNS/IP validation via `MCPUrlValidator` blocking loopback, private subnets, and `169.254.169.254`. | Zero external MCP SDK dependencies (`dependency_hallucination_firewall`); implemented directly with native `httpx` and Pydantic V2 wire DTOs. | `[NEW] @[backend_v2/tests/unit/services/mcp/test_url_validator.py]` and `[NEW] @[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]`; Fail-Fast `AppException(ErrorCodes.SECURITY_VIOLATION)` on blocked CIDR. |
+| **Dynamic Schema Compilation & Routing**<br>`@[backend_v2/services/orchestrator/schema_factory.py]`<br>`@[backend_v2/services/mcp/alias_registry.py]`<br>`@[backend_v2/services/mcp/dispatcher.py]`<br>`@[backend_v2/services/mcp/mcp_tool_loop.py]` | Module-level `DISPATCHER` singleton in `@[backend_v2/services/mcp/mcp_tool_loop.py]` and `@[backend_v2/services/mcp/__init__.py]`; duck-typing `isinstance(..., dict)` in `mcp_tool_loop.py`; static `BaseTool` and `BaseSearchTool` classes in `@[backend_v2/models/domain/tools.py]`. | Runtime Pydantic V2 model compilation via `pydantic.create_model` in `SchemaFactory`; deterministic `{gateway_slug}__{tool_id}` prefixing in `AliasRegistry`; dynamic `ToolDispatcher` returning `MCPAuditTrace` directly. | **30% Deletion Test Applied**: Deleted `@[backend_v2/models/domain/tools.py]` (`BaseTool`, `BaseSearchTool`, `StandardSearchInputDTO`) and pruned the redundant `ToolExecutionResult` intermediate wrapper in favor of returning `MCPAuditTrace` directly. | `[NEW] @[backend_v2/tests/unit/services/mcp/test_alias_registry.py]` and `@[backend_v2/tests/unit/services/mcp/test_dispatcher.py]`; positive ID-set check `namespaced_alias in allowed_step_tools`. |
+| **Flutter Studio & Step Integration**<br>`@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`<br>`@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`<br>`@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`<br>`@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]` | Missing `AppErrorBoundary` (`DGR009`) in `mcp_gateways_master_view.dart`; untyped `Map<String, Object?> inputSchema` in `AllowedMcpTool`; manual JSON schema text editing in Studio UI. | Strict Freezed `McpToolInputSchema` and `McpToolSchemaProperty` models; `AppErrorBoundary` wrapping; live "Connect and Discover Tools" introspection action and per-gateway `FilterChip` selectors in `WorkflowStepCard`. | Pruned manual raw JSON schema authoring from `McpGatewayView` in favor of read-only inspected schema tables and per-tool `enabled` allowlist switches. | `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build` and `[NEW] @[client_app_v2/test/unit/features/studio/mcp_gateway_view_test.dart]`. |
 
 ---
 
@@ -156,8 +191,12 @@ flowchart TD
     - `auth_header_name: Annotated[str | None, Field(default=None, description="Custom HTTP header name when auth_type is api_key_header.")]`
     - `auth_env_var: Annotated[str | None, Field(default=None, description="Name of the environment variable holding the secret token or API key.")]`
     - `timeout_seconds: Annotated[int, Field(default=30, ge=1, le=300, description="Request timeout in seconds for this MCP gateway.")]`
+- **`[MODIFY] @[backend_v2/settings.py]`, `@[backend_v2/core/test_settings.py]`, & `@[backend_v2/tests/unit/test_settings.py]`**:
+  - Remove `mcp_wikipedia_max_search_results`, `mcp_wikipedia_max_chars`, `mcp_wikipedia_timeout_seconds`, and `mcp_wikipedia_user_agent`, and add `mcp_default_timeout_seconds`, `mcp_discovery_timeout_seconds`, `mcp_max_response_chars`, and `mcp_allow_private_networks`.
 - **`[MODIFY] @[backend_v2/seed/seed_data.json#L209-L284]`**:
   - Update `sys_8172bda70c8641c5` (`type: "mcp_gateways"`) to include `slug: "default_mcp_gateway"`, `endpoint_url`, `transport_type: "streamable_http"`, `auth_type: "bearer"`, `auth_env_var: "TAVILY_API_KEY"`, `timeout_seconds: 30`, and `enabled: true` on each tool entry, and update step `allowed_mcp_tools` references at `@[backend_v2/seed/seed_data.json#L21696-L21700]` and `@[backend_v2/seed/seed_data.json#L22022-L22026]` to use the canonical namespaced format `default_mcp_gateway__mcp_tavily_search`.
+- **`[MODIFY]` Coupled Unit Test Fixtures for Atomic Schema Strictness**:
+  - Synchronously update test fixtures constructing `AllowedMCPTool`, `MCPFunctionDefinitionDTO`, or `SystemConfigMCPGateways` in `@[backend_v2/tests/unit/models/domain/test_mcp.py]`, `@[backend_v2/tests/unit/models/domain/test_system_config.py]`, `@[backend_v2/tests/unit/models/dtos/test_mcp.py]`, `@[backend_v2/tests/unit/models/test_v2_core.py]`, `@[backend_v2/tests/unit/seed/test_seed_registry.py]`, and `@[backend_v2/tests/unit/services/studio/test_system_config_service.py]` to use `MCPToolInputSchemaDTO` and `MCPToolSchemaPropertyDTO`.
 
 ---
 
@@ -203,24 +242,28 @@ flowchart TD
 - **`[MODIFY] @[backend_v2/services/orchestrator/schema_factory.py]` & `@[backend_v2/llm/schema_builder.py]`**:
   - Implement `SchemaFactory.create_mcp_tool_argument_model(namespaced_alias: str, input_schema: MCPToolInputSchemaDTO) -> type[BaseModel]` (consuming `MCPToolInputSchemaDTO` defined in `@[backend_v2/models/dtos/mcp.py]`):
     - Recursively translate `MCPToolSchemaPropertyDTO` (defined in `@[backend_v2/models/dtos/mcp.py]`) nodes (`STRING` -> `str`, `INTEGER` -> `int`, `NUMBER` -> `float`, `BOOLEAN` -> `bool`, `ARRAY` -> `list[T]`, `OBJECT` -> nested `create_model`, `enum_values` -> `Literal[...]`) into a strict runtime Pydantic V2 model (`__config__=ConfigDict(strict=True, extra="forbid", frozen=True)`) using `pydantic.create_model`.
-  - Implement `SchemaFactory.build_mcp_tool_declaration(namespaced_alias: str, tool: AllowedMCPTool) -> MCPToolDeclarationDTO` producing the exact `MCPToolDeclarationDTO` contract consumed by `@[backend_v2/llm/adapters/vertex_adapter.py]`, `@[backend_v2/llm/adapters/openai_adapter.py]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py]`, and `@[backend_v2/llm/adapters/anthropic_adapter.py]`.
+  - Implement `SchemaFactory.build_mcp_tool_declaration(namespaced_alias: str, tool: AllowedMCPTool) -> MCPToolDeclarationDTO` producing the exact `MCPToolDeclarationDTO` contract consumed by `@[backend_v2/llm/adapters/vertex_adapter.py]`, `@[backend_v2/llm/adapters/openai_adapter.py]`, `@[backend_v2/llm/adapters/ai_studio_adapter.py]`, and `@[backend_v2/llm/adapters/anthropic_adapter.py]`, ensuring provider adapters serialize `MCPToolInputSchemaDTO` via `.model_dump(mode="json", by_alias=True, exclude_none=True)`.
 
 #### 3.2 Deterministic Namespace Prefixing (`{gateway_slug}__{tool_name}`) & Dynamic `ToolDispatcher`
 - **`[MODIFY] @[backend_v2/services/mcp/alias_registry.py]`**:
   - Implement `AliasRegistry.build_namespaced_tool_alias(gateway_slug: str, tool_id: str) -> str` returning `{normalized_gateway_slug}__{tool_id}` (using `"__"` double-underscore separator) and `AliasRegistry.parse_namespaced_tool_alias(namespaced_alias: str) -> tuple[str, str]` returning `(gateway_slug, tool_id)` (raising `AppException` with `ErrorCodes.VALIDATION_FAILED` if `"__"` is missing or malformed).
   - Retain chunking and source alias resolution helpers for Sandwich Prompting.
-- **`[MODIFY] @[backend_v2/services/mcp/dispatcher.py]`**:
+- **`[MODIFY] @[backend_v2/services/mcp/dispatcher.py]` & `@[backend_v2/tests/unit/services/mcp/test_dispatcher.py]`**:
   - Refactor `ToolDispatcher` to accept active `list[SystemConfigMCPGateways]` and `GenericMCPClient`:
     - Build an O(1) lookup table mapping `{gateway_slug}__{tool_id}` -> `(SystemConfigMCPGateways, AllowedMCPTool)` and a corresponding table of compiled runtime Pydantic argument models via `SchemaFactory.create_mcp_tool_argument_model`.
-    - In `ToolDispatcher.dispatch(namespaced_alias: str, raw_arguments: dict[str, MCPArgumentValue], allowed_step_tools: set[str]) -> ToolExecutionResult`:
-      1. Verify `namespaced_alias in allowed_step_tools` (positive ID-set membership per `positive_id_set_filtering_mandate`) and verify `tool.enabled is True`.
+    - In `ToolDispatcher.execute_tool(tool_id: str, raw_arguments: dict[str, MCPArgumentValue], allowed_step_tools: set[str]) -> MCPAuditTrace`:
+      1. Verify `tool_id in allowed_step_tools` (positive ID-set membership per `positive_id_set_filtering_mandate`) and verify `tool.enabled is True`.
       2. Validate `raw_arguments` against the compiled runtime Pydantic V2 model (`arg_model.model_validate(raw_arguments)`), raising `AppException` (`ErrorCodes.VALIDATION_FAILED`) on schema mismatch.
       3. Construct `MCPToolInvocationDTO` (defined in `@[backend_v2/models/dtos/mcp.py]`) and delegate to `await self._mcp_client.call_tool(gateway, invocation_dto)`.
-      4. Measure wall-clock latency, log OpenTelemetry span attributes, and return `ToolExecutionResult`.
-- **`[MODIFY] @[backend_v2/services/mcp/mcp_tool_loop.py]`**:
-  - Remove module-level `DISPATCHER = ToolDispatcher(tools=[TavilyTool(), WikipediaSearchTool(), WikipediaReadTool()])` and all imports of `tavily` and `wikipedia`.
+      4. Measure wall-clock latency, log OpenTelemetry span attributes, and return `MCPAuditTrace`.
+- **`[MODIFY] @[backend_v2/services/mcp/mcp_tool_loop.py]` & `@[backend_v2/services/mcp/__init__.py]`**:
+  - Remove module-level `DISPATCHER` from `@[backend_v2/services/mcp/mcp_tool_loop.py]` and `@[backend_v2/services/mcp/__init__.py]`, and remove all imports of `tavily` and `wikipedia`.
   - Inject `ToolDispatcher` dynamically constructed from the active `SystemConfigMCPGateways` records loaded via repository/cache for the current execution context.
   - Record `gateway_slug` and `namespaced_alias` in `MCPAuditTrace` so `@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]` surfaces full provenance in the SDUI audit trail.
+- **`[MODIFY] @[backend_v2/services/source_verification_service.py]` & `@[backend_v2/tests/unit/services/test_source_verification_service.py]`**:
+  - Remove static imports of `DISPATCHER` and `TAVILY_TOOL_ID`; resolve the configured verification tool via dynamic `ToolDispatcher` bound to active `SystemConfigMCPGateways`.
+- **`[MODIFY] @[backend_v2/services/blueprint.py]` & `@[backend_v2/tests/unit/services/sdui/adapters/test_printable_sources_adapter.py]`**:
+  - Register both `{gateway.slug}__{tool.tool_id}` and `tool.tool_id` in `mcp_tools_map` when indexing `SystemConfigMCPGateways.tools` so `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]` and `@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]` resolve localized tool names for `MCPAuditTrace` entries.
 
 #### 3.3 Legacy Static Wrapper Demolition
 - Physically delete:
@@ -229,13 +272,17 @@ flowchart TD
   - `[DELETE] @[backend_v2/services/mcp/tavily_search_client.py]`
   - `[DELETE] @[backend_v2/services/mcp/wikipedia_client.py]`
   - `[DELETE] @[backend_v2/models/domain/wikipedia.py]`
+  - `[DELETE] @[backend_v2/models/domain/tools.py]`
   - `[DELETE] @[backend_v2/tests/unit/test_tavily_client.py]`
   - `[DELETE] @[backend_v2/tests/unit/test_tavily_search_client.py]`
+  - `[DELETE] @[backend_v2/tests/unit/services/mcp/tools/test_tavily.py]`
+  - `[DELETE] @[backend_v2/tests/unit/services/mcp/tools/test_wikipedia.py]`
   - `[DELETE] @[backend_v2/tests/unit/services/mcp/test_wikipedia_client.py]`
   - `[DELETE] @[backend_v2/tests/unit/models/domain/test_wikipedia.py]`
+  - `[DELETE] @[backend_v2/tests/unit/models/domain/test_tools.py]`
   - `[DELETE] @[backend_v2/tests/integration/test_tavily_live.py]`
-  - `[DELETE] @[backend_v2/tests/integration/test_tavily_e2e_full_pipeline.py]`
-- Update `@[.agents/rules/04_directory_reference.md]` to reflect the removal of `wikipedia_client.py`, `tavily_search_client.py`, `tools/tavily.py`, `tools/wikipedia.py`, and `models/domain/wikipedia.py`, and the addition of `generic_mcp_client.py` and `url_validator.py`.
+  - `[DELETE] @[backend_v2/scripts/test_tavily_live.py]`
+- Update `@[.agents/rules/04_directory_reference.md]` to reflect the removal of `wikipedia_client.py`, `tavily_search_client.py`, `tools/tavily.py`, `tools/wikipedia.py`, `models/domain/wikipedia.py`, and `models/domain/tools.py`, and the addition of `generic_mcp_client.py` and `url_validator.py`.
 
 ---
 
