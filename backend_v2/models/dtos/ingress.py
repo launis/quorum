@@ -73,7 +73,6 @@ class ResolvedIngressDTO(BaseDTO):
     ]
 
 
-# Phase 1, Step 1: Relocate PDF extraction DTOs to canonical ingress DTO module
 class PdfCellCoordinatesDTO(V2CoreBase):
     """Coordinates for a table cell in a PDF.
 

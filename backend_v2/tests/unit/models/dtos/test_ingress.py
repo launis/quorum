@@ -83,6 +83,14 @@ def test_chat_turn_anchors_response_dto_empty_turns_allowed() -> None:
     assert resp.turns == []
 
 
+def test_chat_turn_anchors_response_dto_rejects_extra_and_invalid_turns() -> None:
+    """Negative Test: Extra fields and invalid turn elements fail validation on ChatTurnAnchorsResponseDTO."""
+    with pytest.raises(ValidationError):
+        ChatTurnAnchorsResponseDTO.model_validate({"turns": [], "extra_field": "forbidden"})
+    with pytest.raises(ValidationError):
+        ChatTurnAnchorsResponseDTO.model_validate({"turns": ["invalid_turn_string"]})
+
+
 def test_resolved_ingress_dto_valid() -> None:
     """Test valid ResolvedIngressDTO instantiation and frozen immutability."""
     dto = ResolvedIngressDTO(
@@ -107,7 +115,19 @@ def test_resolved_ingress_dto_extra_fields_forbidden() -> None:
         )
 
 
-# Phase 1, Step 1: Unit tests for relocated PDF extraction DTOs
+def test_resolved_ingress_dto_missing_or_invalid_types_rejected() -> None:
+    """Negative Test: Missing required fields or non-string manifest values fail validation."""
+    with pytest.raises(ValidationError):
+        ResolvedIngressDTO.model_validate({"resolved_inputs": {"key": "val"}})
+    with pytest.raises(ValidationError):
+        ResolvedIngressDTO.model_validate(
+            {
+                "resolved_inputs": {"key": "val"},
+                "source_identity_manifest": {"key": 12345},
+            }
+        )
+
+
 def test_pdf_cell_coordinates_dto_valid_and_frozen() -> None:
     """Test valid instantiation, hashability, and frozen immutability of PdfCellCoordinatesDTO."""
     dto = PdfCellCoordinatesDTO(x0=10.0, y0=20.0, x1=100.0, y1=50.0)
