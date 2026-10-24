@@ -30,9 +30,9 @@
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate backend`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate backend`.
   - [x] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/models/domain/step.py]
+  - [x] @[backend_v2/models/domain/step.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate frontend`.
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
