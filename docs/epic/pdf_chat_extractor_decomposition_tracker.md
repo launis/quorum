@@ -11,7 +11,7 @@
 # God Code Decomposition Tracker: `backend_v2/services/ingress/pdf_chat_extractor.py`
 
 ## 1. Executive Summary & Baseline Telemetry
-- **Target Monolith**: `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` -> `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` (682 lines; decomposing into a `< 150`-line package facade + 3 stage sub-modules under `backend_v2/services/ingress/pdf_extractor/` and relocating 4 inline DTOs to `@[backend_v2/models/dtos/ingress.py#L77-L92]`)
+- **Target Monolith**: `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` -> `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` (682 lines; decomposing into a `< 150`-line package facade + 3 stage sub-modules under `backend_v2/services/ingress/pdf_extractor/` and relocating 4 inline DTOs to `@[backend_v2/models/dtos/ingress.py#L77-L92]`)
 - **Monolith Archetype**: Archetype C — Ingress / Parser / Anti-Corruption Layer (ACL) with Sequential Pipeline Staging (`PdfChatExtractorService.extract_conversation`)
 - **Planning Mode**: Single-File Fast-Track Mode (682 lines, 3 domain sub-modules + 1 package facade `< 150` lines, non-orchestrator)
 - **Baseline Test Suite (`[BASELINE]`)**: `uv run python scripts/backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test` -> **25 passed** in `@[backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py]`, 10/10 audit stages passed, **96% line coverage** (311 statements, 12 missed: lines `171, 209, 222-223, 242-244, 456-457, 479, 602, 618`)
@@ -27,15 +27,15 @@
 - [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
   - [x] Step 1: Relocate `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` to `@[backend_v2/models/dtos/ingress.py#L77-L92]` and add unit tests in `@[backend_v2/tests/unit/models/dtos/test_ingress.py#L111-L119]`
   - [x] Step 2: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`
-  - [x] Step 3: Wire DTO Re-Exports and Bubble Geometry Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]`
+  - [x] Step 3: Wire DTO Re-Exports and Bubble Geometry Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ### Phase 2: Table Markdown & Attachment Card Stage Extraction (Epoch 1 — Phase 1B)
 - **Plan:** @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md]
 - [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
-  - [ ] Step 1: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]`
-  - [ ] Step 2: Wire Table and Attachment Card Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
+  - [x] Step 1: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]`
+  - [x] Step 2: Wire Table and Attachment Card Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ### Phase 3: Turn Segmentation, Visual Ordering & Truncation Stage Extraction (Epoch 1 — Phase 1C)
@@ -43,7 +43,7 @@
 - [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase3_turn_assembly_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
   - [ ] Step 1: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]`
-  - [ ] Step 2: Wire Turn Assembly Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]`
+  - [ ] Step 2: Wire Turn Assembly Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase3_turn_assembly_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ### Phase 4: Modular Test Suite Split, Atomic Package Cutover & AST Guardrail Lock (Epoch 1 — Cutover)
@@ -60,8 +60,8 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/pdf_chat_extractor_decomposition_tracker.md --gate backend`
   - [ ] @[backend_v2/models/dtos/ingress.py#L77-L92]
-  - [ ] [NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]
-  - [ ] [NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
+  - [ ] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
   - [ ] [NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]
   - [ ] [NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]
   - [ ] [DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]
@@ -84,7 +84,7 @@
 1. - [ ] **Item 5 (PEP 593 `Annotated` Field Typing on Relocated DTOs)**:
     - Enforce `Annotated[T, Field(description=...)]` across `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` inside `@[backend_v2/models/dtos/ingress.py#L77-L92]`.
 2. - [ ] **Item 8 (PEP 257 Google-Style Docstrings & `Raises:` Completeness)**:
-    - Enforce complete PEP 257 docstrings with explicit `Args:`, `Returns:`, and `Raises:` (`AppException` with `ErrorCodes.VALIDATION_FAILED`) across `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]`, and `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]`.
+    - Enforce complete PEP 257 docstrings with explicit `Args:`, `Returns:`, and `Raises:` (`AppException` with `ErrorCodes.VALIDATION_FAILED`) across `@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]`, `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]`, and `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]`.
 3. - [ ] **Item 9 (Zero Inline Imports)**:
     - Promote the inline import of `PdfChatExtractorService` inside `DocumentExtractionService._extract_pdf_sync` (`@[backend_v2/services/document_extraction.py#L93-L156]`) to a module top-level import in `@[backend_v2/services/document_extraction.py]`.
 4. - [ ] **Item 10 (ISTQB Negative Partition Expansion to >= 98% Line Coverage)**:
@@ -100,8 +100,8 @@
 
 ## Instructions for the Execution Agent
 1. **Two-Epoch Firewall (`two_epoch_separation_mandate`)**: Execute Phases 1 through 4 (Epoch 1) as a **100% pure structural lift-and-shift** with zero behavioral mutations. Do NOT resolve the Epoch 2 12-Item Tech Debt Inventory until Phase 4 (Atomic Package Cutover and `QGR017` lockdown) is 100% complete and committed.
-2. **Two-Phase Package Strangler Protocol (`strangler_fig_mandate`)**: Do NOT create `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` during Phases 1, 2, or 3 while `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` exists on disk. Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` and delete `[DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]` atomically in Phase 4 Step 2.
-3. **500-Line Partitioning Gate**: Every extracted sub-module (`[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]`) and the package facade (`[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]`) MUST remain strictly below 250 lines (and `< 150` lines for `__init__.py`).
+2. **Two-Phase Package Strangler Protocol (`strangler_fig_mandate`)**: Do NOT create `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` during Phases 1, 2, or 3 while `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` exists on disk. Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` and delete `[DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]` atomically in Phase 4 Step 2.
+3. **500-Line Partitioning Gate**: Every extracted sub-module (`@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]`, `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]`, `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]`) and the package facade (`[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]`) MUST remain strictly below 250 lines (and `< 150` lines for `__init__.py`).
 4. **Atomic Checkpoints**: Run `uv run python scripts/backend_audit_loop.py <target> --test --ast-strict` after every step and perform an atomic `git commit` before advancing to the next step.
 
 ---
@@ -111,12 +111,12 @@
 | Requirement ID | Architectural Requirement Description | Phase & Step Mapping | Verification Gate |
 | :--- | :--- | :--- | :--- |
 | `REQ-PCE-01` | Relocate `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` to `@[backend_v2/models/dtos/ingress.py#L77-L92]` with PEP 593 `Annotated` typing | Phase 1, Step 1 | `backend_audit_loop.py backend_v2/models/dtos/ingress.py --test --ast-strict` |
-| `REQ-PCE-02` | Extract vector bubble geometry, table bounding-box extraction, and conversation PDF detection into `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]` | Phase 1, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/bubble_geometry.py --test --ast-strict` |
-| `REQ-PCE-03` | Re-export DTOs and delegate bubble geometry methods in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` | Phase 1, Step 3 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
-| `REQ-PCE-04` | Extract table text block filtering, Markdown table reconstruction, and attachment card detection into `[NEW] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py]` | Phase 2, Step 1 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py --test --ast-strict` |
-| `REQ-PCE-05` | Delegate table and attachment card stage methods in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` | Phase 2, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
+| `REQ-PCE-02` | Extract vector bubble geometry, table bounding-box extraction, and conversation PDF detection into `@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]` | Phase 1, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/bubble_geometry.py --test --ast-strict` |
+| `REQ-PCE-03` | Re-export DTOs and delegate bubble geometry methods in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` | Phase 1, Step 3 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
+| `REQ-PCE-04` | Extract table text block filtering, Markdown table reconstruction, and attachment card detection into `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]` | Phase 2, Step 1 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py --test --ast-strict` |
+| `REQ-PCE-05` | Delegate table and attachment card stage methods in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` | Phase 2, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
 | `REQ-PCE-06` | Extract truncation detection, visual block ordering, and multi-turn conversation assembly into `[NEW] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py]` | Phase 3, Step 1 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py --test --ast-strict` |
-| `REQ-PCE-07` | Delegate `_check_truncation`, `_sort_blocks_visual_order`, and `extract_conversation` in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` | Phase 3, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
+| `REQ-PCE-07` | Delegate `_check_truncation`, `_sort_blocks_visual_order`, and `extract_conversation` in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` | Phase 3, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_chat_extractor.py --test --ast-strict` |
 | `REQ-PCE-08` | Split `@[backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py]` into 4 modular test suites under `backend_v2/tests/unit/services/ingress/pdf_extractor/` | Phase 4, Step 1 | `pytest backend_v2/tests/unit/services/ingress/pdf_extractor/` |
 | `REQ-PCE-09` | Atomically cut over `[DELETE] @[backend_v2/services/ingress/pdf_chat_extractor.py]` to `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]` and rewire all 1-hop consumer imports | Phase 4, Step 2 | `backend_audit_loop.py backend_v2/services/ingress/pdf_extractor/__init__.py --test --ast-strict` |
 | `REQ-PCE-10` | Ban `backend_v2.services.ingress.pdf_chat_extractor` in `@[scripts/_ast_guardrails.py#L1865-L1910]` and `@[scripts/_ast_guardrails.py#L1912-L2011]` under `QGR017` and update `@[.agents/rules/04_directory_reference.md]` | Phase 4, Step 3 | `backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict` |
@@ -129,18 +129,21 @@
 - Completed Tier 3 Pre-Flight Baseline (`[BASELINE]`): 25/25 unit tests passing in `@[backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py]` with **96% line coverage** (311 statements, 12 missed) and 10/10 Universal Quality Gate stages passing.
 - Completed Phase 1 (`@[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md]`):
   - Relocated `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` to `@[backend_v2/models/dtos/ingress.py#L77-L92]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` and PEP 593 `Annotated` fields, and added 8 unit tests in `@[backend_v2/tests/unit/models/dtos/test_ingress.py#L111-L119]` (16/16 passing, 100% coverage).
-  - Extracted `dlq_log_extraction_error`, `is_user_bubble_drawing`, `get_page_table_rects`, `is_conversation_pdf`, and `extract_page_user_bubbles` into `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`.
-  - Wired explicit DTO re-exports (`Symbol as Symbol`) and bubble geometry proxy delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L81-L537]` (25/25 unit tests passing, 10/10 Universal Quality Gate stages passing).
+  - Extracted `dlq_log_extraction_error`, `is_user_bubble_drawing`, `get_page_table_rects`, `is_conversation_pdf`, and `extract_page_user_bubbles` into `@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]`.
+  - Wired explicit DTO re-exports (`Symbol as Symbol`) and bubble geometry proxy delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]`.
+- Completed Phase 2 (`@[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md]`):
+  - Extracted `_ATTACHMENT_BOX_DIM_PT`, `_ATTACHMENT_BOX_TOLERANCE_PT`, `filter_table_text_blocks`, `reconstruct_tables_as_markdown`, and `detect_attachment_cards` into `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]` (167 lines, 96% line coverage).
+  - Delegated `_filter_table_text_blocks`, `_reconstruct_tables_as_markdown`, and `_detect_attachment_cards` in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L82-L441]` (25/25 unit tests passing, 98% line coverage, 10/10 Universal Quality Gate stages passing).
 
 ## Learned
 - All 4 inline DTOs (`PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, `PdfBlockSignatureDTO`) relocate cleanly to `@[backend_v2/models/dtos/ingress.py#L77-L92]` in Phase 1 while preserving re-export parity via `from ... import Symbol as Symbol` in `pdf_chat_extractor.py`.
-- `_CANVAS_MAX_SIZE_RATIO` is exported from `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]` and imported by `_reconstruct_tables_as_markdown` for full-page container table filtering.
+- `_CANVAS_MAX_SIZE_RATIO` and `dlq_log_extraction_error` are exported from `@[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]` and consumed directly by `reconstruct_tables_as_markdown` in `@[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L58-L129]`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ## Remaining
-- Audit Phase 1 via `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`.
-- Execute Phase 2 through Phase 4 (`Epoch 1: Strangler Fig Structural Decomposition & Atomic Package Cutover`).
+- Audit Phase 2 via `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`.
+- Execute Phase 3 and Phase 4 (`Epoch 1: Strangler Fig Structural Decomposition & Atomic Package Cutover`).
 - Execute Epoch 2 (`Tier 2 Per-File Deterministic Hardening & Test Expansion`).
 - Synchronize KIs and architecture documentation via `/tier7-describe-architecture`.
