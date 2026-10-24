@@ -68,7 +68,7 @@
   - [x] @[backend_v2/services/ingress/__init__.py]
   - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
   - [x] @[backend_v2/services/document_extraction.py#L94-L156]
-  - [ ] @[scripts/run_e2e_variance_test.py#L277-L411]
+  - [x] @[scripts/run_e2e_variance_test.py#L277-L411]
   - [ ] @[scripts/_ast_guardrails.py#L1865-L1923]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: N/A — Pure Python Backend Service Decomposition (zero `.dart` files in target scope).
 - [ ] **[NOK] Pre-Delete Audit**: Verify 0 remaining imports from `backend_v2.services.ingress.pdf_chat_extractor` and 100% green `uv run python scripts/backend_audit_loop.py backend_v2/services/ingress/ --test --ast-strict` and `uv run python scripts/backend_audit_loop.py backend_v2/services/document_extraction.py --test --ast-strict`.
