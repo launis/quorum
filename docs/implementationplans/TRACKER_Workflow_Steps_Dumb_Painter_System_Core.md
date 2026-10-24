@@ -29,7 +29,7 @@
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md] --gate backend`.
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/models/domain/step.py]
@@ -40,8 +40,8 @@
   - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** As-Built Architectural Sync: Run:

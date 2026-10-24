@@ -496,7 +496,7 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
                 capture_output=True,
                 timeout=FORMATTER_TIMEOUT_SECONDS,
                 check=False,
-                shell=False,
+                shell=sys.platform == "win32",
             )
 
     return True
