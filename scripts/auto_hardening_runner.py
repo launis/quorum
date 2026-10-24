@@ -75,6 +75,8 @@ GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
 FORMATTER_TIMEOUT_SECONDS: Final[int] = 60
 DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 600
+DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
+DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
 DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
     'agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-hardening-backend @[{target}]"'
 )
@@ -87,6 +89,8 @@ __all__ = [
     "DEFAULT_AUDIT_TIMEOUT_SECONDS",
     "DEFAULT_BACKEND_AGENT_TEMPLATE",
     "DEFAULT_FRONTEND_AGENT_TEMPLATE",
+    "DEFAULT_SUBAGENT_MAX_RETRIES",
+    "DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS",
     "FORMATTER_TIMEOUT_SECONDS",
     "GIT_SUBPROCESS_TIMEOUT_SECONDS",
     "HardeningGate",
@@ -458,8 +462,52 @@ def execute_subprocess_with_tree_kill(
         ) from exc
 
 
+def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
+    """Detect whether a subagent command failure was caused by a transient startup or network glitch.
+
+    Args:
+        returncode: Subprocess return code.
+        output: Combined stdout and stderr output.
+
+    Returns:
+        True if the failure appears to be a transient startup or network error eligible for retry.
+    """
+    if returncode <= 0:
+        return False
+
+    transient_indicators: tuple[str, ...] = (
+        "is not recognized as a known model or custom model in settings",
+        "invalid model selection",
+        "no model configuration is available for this account",
+        "error: authentication required",
+        "connection refused",
+        "tls: peer",
+        "transport: set send compressor",
+        "handshake failure",
+        "i/o timeout",
+        "failed to fetch account identity",
+        "context deadline exceeded",
+        "service unavailable",
+        "bad gateway",
+        "temporary failure in name resolution",
+    )
+    output_lower = output.lower()
+    for indicator in transient_indicators:
+        if indicator.lower() in output_lower:
+            return True
+
+    # If the subagent process exited immediately with zero output, treat as startup crash
+    if not output.strip():
+        return True
+
+    return False
+
+
 def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> bool:
     """Execute optional subagent command or automated pre-audit code formatting passes.
+
+    Retries transient subagent startup errors (such as remote model catalog fetch failures
+    or network drops) up to DEFAULT_SUBAGENT_MAX_RETRIES attempts before failing.
 
     Args:
         target_file: Path of target file being hardened.
@@ -474,11 +522,32 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
     if args.agent_cmd:
         formatted_cmd = args.agent_cmd.format(target=target_file, target_file=target_file)
         cmd_args = shlex.split(formatted_cmd, posix=False if sys.platform == "win32" else True)
-        try:
-            res = execute_subprocess_with_tree_kill(cmd_args, timeout_seconds=args.timeout_seconds, cwd=root)
-            if res.returncode != 0:
-                return False
-        except subprocess.TimeoutExpired:
+        subagent_success = False
+
+        for attempt in range(1, DEFAULT_SUBAGENT_MAX_RETRIES + 1):
+            try:
+                res = execute_subprocess_with_tree_kill(cmd_args, timeout_seconds=args.timeout_seconds, cwd=root)
+                if res.returncode == 0:
+                    subagent_success = True
+                    break
+
+                output = f"{res.stdout}\n{res.stderr}".strip()
+                if _is_transient_subagent_startup_error(res.returncode, output):
+                    if attempt < DEFAULT_SUBAGENT_MAX_RETRIES:
+                        backoff = DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS * attempt
+                        print(
+                            f"\n{ANSIColors.YELLOW}[RETRY] Transient subagent startup error on {target_file} "
+                            f"(exit code {res.returncode}). Retrying attempt {attempt + 1}/{DEFAULT_SUBAGENT_MAX_RETRIES} in {backoff:.1f}s...{ANSIColors.RESET}\n",
+                            flush=True,
+                        )
+                        time.sleep(backoff)
+                        continue
+
+                break
+            except subprocess.TimeoutExpired:
+                break
+
+        if not subagent_success:
             return False
 
     if not args.no_auto_fix:

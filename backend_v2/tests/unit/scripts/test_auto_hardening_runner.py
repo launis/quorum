@@ -646,3 +646,55 @@ def test_main_cli_markdown_wrapped_tracker_path(tmp_path: Path, monkeypatch: pyt
 
     exit_code = main(["--tracker", f"@[{tracker_file}]"])
     assert exit_code == 0
+
+
+def test_execute_subagent_pass_retry_on_transient_model_glitch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-030: Verify execute_subagent_pass retries on transient model unrecognized error and succeeds."""
+    call_count = 0
+
+    def mock_tree_kill(cmd: list[str], timeout_seconds: int, cwd: Path) -> subprocess.CompletedProcess[str]:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return subprocess.CompletedProcess(
+                args=cmd,
+                returncode=1,
+                stdout="",
+                stderr='error: invalid model selection (--model "gemini-4-argon-high" --effort ""): model gemini-4-argon-high is not recognized as a known model or custom model in settings',
+            )
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Hardened successfully.", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    args = HardeningRunnerArgsDTO(
+        agent_cmd="agy {target}", targets=["f.py"], gate=HardeningGate.BACKEND, no_auto_fix=True
+    )
+    assert execute_subagent_pass("f.py", args, repo_root=tmp_path) is True
+    assert call_count == 2
+
+
+def test_execute_subagent_pass_retry_exhaustion_on_persistent_transient_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TC-AHR-031: Verify execute_subagent_pass exhausts retries on persistent connection refused errors."""
+    call_count = 0
+
+    def mock_tree_kill(cmd: list[str], timeout_seconds: int, cwd: Path) -> subprocess.CompletedProcess[str]:
+        nonlocal call_count
+        call_count += 1
+        return subprocess.CompletedProcess(
+            args=cmd,
+            returncode=1,
+            stdout="",
+            stderr="error: connection refused",
+        )
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    args = HardeningRunnerArgsDTO(
+        agent_cmd="agy {target}", targets=["f.py"], gate=HardeningGate.BACKEND, no_auto_fix=True
+    )
+    assert execute_subagent_pass("f.py", args, repo_root=tmp_path) is False
+    assert call_count == 3

@@ -845,3 +845,101 @@ def test_main_cli_full_success_and_failure(tmp_path: Path) -> None:
         ),
     ):
         assert main(["--tracker", str(tracker)]) == 1
+
+
+def test_execute_subagent_retry_on_transient_model_glitch(tmp_path: Path) -> None:
+    """TC-APR-034: Verify subagent automatically retries on transient model/catalog startup failure."""
+    phase = PhaseItemDTO(
+        phase_num=3,
+        title="Phase 3: Domain Service",
+        plan_path=Path("plan.md"),
+        is_completed=False,
+        command="/tier2-execute",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", max_retries=3)
+
+    # Attempt 1 fails with transient model unrecognized error
+    proc1 = MagicMock()
+    proc1.pid = 1001
+    proc1.returncode = 1
+    proc1.stdout.readline.side_effect = [
+        'error: invalid model selection (--model "gemini-4-argon-high" --effort ""): model gemini-4-argon-high is not recognized as a known model or custom model in settings\n',
+        "",
+    ]
+
+    # Attempt 2 succeeds
+    proc2 = MagicMock()
+    proc2.pid = 1002
+    proc2.returncode = 0
+    proc2.stdout.readline.side_effect = ["Phase 3 completed successfully.\n", ""]
+
+    with (
+        patch("scripts.auto_phase_runner.resolve_agy_binary", return_value=Path("agy.exe")),
+        patch("subprocess.Popen", side_effect=[proc1, proc2]) as mock_popen,
+        patch("time.sleep") as mock_sleep,
+    ):
+        res = execute_phase_subagent(phase, args, tmp_path)
+        assert res.exit_code == 0
+        assert "Phase 3 completed successfully." in res.output
+        assert mock_popen.call_count == 2
+        mock_sleep.assert_called_once_with(3.0)
+
+
+def test_execute_subagent_retry_exhaustion_on_persistent_failure(tmp_path: Path) -> None:
+    """TC-APR-035: Verify all retry attempts are exhausted when transient failure persists."""
+    phase = PhaseItemDTO(
+        phase_num=3,
+        title="Phase 3: Domain Service",
+        plan_path=Path("plan.md"),
+        is_completed=False,
+        command="/tier2-execute",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", max_retries=3)
+
+    def _make_failing_proc(pid: int) -> MagicMock:
+        p = MagicMock()
+        p.pid = pid
+        p.returncode = 1
+        p.stdout.readline.side_effect = ["error: connection refused to backend\n", ""]
+        return p
+
+    procs = [_make_failing_proc(2000 + i) for i in range(3)]
+
+    with (
+        patch("scripts.auto_phase_runner.resolve_agy_binary", return_value=Path("agy.exe")),
+        patch("subprocess.Popen", side_effect=procs) as mock_popen,
+        patch("time.sleep") as mock_sleep,
+    ):
+        res = execute_phase_subagent(phase, args, tmp_path)
+        assert res.exit_code == 1
+        assert "connection refused" in res.output
+        assert mock_popen.call_count == 3
+        assert mock_sleep.call_count == 2
+
+
+def test_execute_subagent_no_retry_on_domain_failure(tmp_path: Path) -> None:
+    """TC-APR-036: Verify non-transient domain failures (e.g. test failure) are not retried."""
+    phase = PhaseItemDTO(
+        phase_num=3,
+        title="Phase 3: Domain Service",
+        plan_path=Path("plan.md"),
+        is_completed=False,
+        command="/tier2-execute",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md", max_retries=3)
+
+    proc = MagicMock()
+    proc.pid = 3001
+    proc.returncode = 1
+    proc.stdout.readline.side_effect = ["FAILED test_domain.py::test_case - AssertionError\n", ""]
+
+    with (
+        patch("scripts.auto_phase_runner.resolve_agy_binary", return_value=Path("agy.exe")),
+        patch("subprocess.Popen", return_value=proc) as mock_popen,
+        patch("time.sleep") as mock_sleep,
+    ):
+        res = execute_phase_subagent(phase, args, tmp_path)
+        assert res.exit_code == 1
+        assert "AssertionError" in res.output
+        assert mock_popen.call_count == 1
+        mock_sleep.assert_not_called()

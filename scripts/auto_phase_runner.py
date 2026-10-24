@@ -76,11 +76,17 @@ GIT_SUBPROCESS_TIMEOUT_SECONDS: Final[int] = 30
 TASKKILL_TIMEOUT_SECONDS: Final[int] = 15
 DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
 DEFAULT_SUBAGENT_TIMEOUT_SECONDS: Final[int] = 3600
+DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
+DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
+SUBAGENT_STARTUP_GRACE_SECONDS: Final[float] = 45.0
 
 __all__ = [
     "DEFAULT_AUDIT_TIMEOUT_SECONDS",
+    "DEFAULT_SUBAGENT_MAX_RETRIES",
+    "DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS",
     "DEFAULT_SUBAGENT_TIMEOUT_SECONDS",
     "GIT_SUBPROCESS_TIMEOUT_SECONDS",
+    "SUBAGENT_STARTUP_GRACE_SECONDS",
     "TASKKILL_TIMEOUT_SECONDS",
     "AutoPhaseRunSummaryDTO",
     "AutoPhaseRunnerArgsDTO",
@@ -144,6 +150,14 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
             description="LLM model override for hardening subagent; defaults to main model if None.",
         ),
     ] = None
+    max_retries: Annotated[
+        int,
+        Field(
+            default=DEFAULT_SUBAGENT_MAX_RETRIES,
+            ge=1,
+            description="Max automatic retry attempts for transient subagent startup failures.",
+        ),
+    ] = DEFAULT_SUBAGENT_MAX_RETRIES
     timeout: Annotated[
         int, Field(default=DEFAULT_SUBAGENT_TIMEOUT_SECONDS, description="Per-phase timeout in seconds.")
     ] = DEFAULT_SUBAGENT_TIMEOUT_SECONDS
@@ -446,52 +460,52 @@ def _tree_kill(pid: int) -> None:
             pass
 
 
-def execute_phase_subagent(
-    phase: PhaseItemDTO,
-    args: AutoPhaseRunnerArgsDTO,
-    repo_root: Path,
-) -> SubagentExecutionResultDTO:
-    """Spawn an agy CLI subagent process for the designated phase with streaming output and tree killing.
+def _is_transient_subagent_startup_failure(result: SubagentExecutionResultDTO) -> bool:
+    """Detect whether a subagent execution failure was caused by a transient startup or network glitch.
 
     Args:
-        phase: Phase to execute.
-        args: Pipeline runner arguments.
-        repo_root: Repository root path for working directory.
+        result: Subagent execution outcome.
 
     Returns:
-        SubagentExecutionResultDTO capturing returncode, output, duration, and timeout status.
+        True if the failure appears to be a transient startup or network error eligible for retry.
     """
-    agy_bin = resolve_agy_binary()
+    if result.is_timeout or result.exit_code <= 0:
+        return False
 
-    # Construct instruction prompt ensuring continuous full-auto authorization.
-    # Example prompt dispatched to headless subagent:
-    #   "/tier2-execute --full-auto @[docs/implementationplans/phase_1.md] @[docs/epic/EPIC_042_tracker.md]. "
-    #   "PERMISSION GRANTED for continuous full-auto execution across all steps..."
-    prompt = phase.command
-    if "PERMISSION GRANTED" not in prompt:
-        prompt = (
-            f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps. "
-            f"Proceed autonomously through all steps without intermediate confirmations."
-        )
+    transient_indicators: tuple[str, ...] = (
+        "is not recognized as a known model or custom model in settings",
+        "invalid model selection",
+        "no model configuration is available for this account",
+        "error: authentication required",
+        "connection refused",
+        "tls: peer",
+        "transport: set send compressor",
+        "handshake failure",
+        "i/o timeout",
+        "failed to fetch account identity",
+        "context deadline exceeded",
+        "service unavailable",
+        "bad gateway",
+        "temporary failure in name resolution",
+    )
+    output_lower = result.output.lower()
+    for indicator in transient_indicators:
+        if indicator.lower() in output_lower:
+            return True
 
-    # Wrap .cmd / .bat invocation on Windows via cmd.exe /c to prevent Win32 application execution errors.
-    # Example command line executed on Windows:
-    #   cmd.exe /c agy.cmd --model gemini-4-argon-high --dangerously-skip-permissions -i "<prompt>"
-    # Spawns an isolated subagent process with an independent context window (zero token amnesia).
-    if sys.platform == "win32" and str(agy_bin).lower().endswith((".cmd", ".bat")):
-        cmd = [
-            "cmd.exe",
-            "/c",
-            str(agy_bin),
-            "--model",
-            args.model,
-            "--dangerously-skip-permissions",
-            "--print",
-            prompt,
-        ]
-    else:
-        cmd = [str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "--print", prompt]
+    # If the subagent exited immediately with zero output, it crashed during CLI startup
+    if result.duration_seconds < 15.0 and not result.output.strip():
+        return True
 
+    return False
+
+
+def _execute_single_subagent_attempt(
+    cmd: list[str],
+    repo_root: Path,
+    timeout: int,
+) -> SubagentExecutionResultDTO:
+    """Execute a single attempt of an agy subagent subprocess with streaming and watchdog."""
     start_time = time.monotonic()
     collected_output: list[str] = []
     is_timeout_triggered = False
@@ -513,7 +527,7 @@ def execute_phase_subagent(
         is_timeout_triggered = True
         _tree_kill(proc.pid)
 
-    timer = threading.Timer(args.timeout, _on_timeout)
+    timer = threading.Timer(timeout, _on_timeout)
     timer.daemon = True
     timer.start()
 
@@ -554,6 +568,79 @@ def execute_phase_subagent(
         duration_seconds=duration,
         is_timeout=False,
     )
+
+
+def execute_phase_subagent(
+    phase: PhaseItemDTO,
+    args: AutoPhaseRunnerArgsDTO,
+    repo_root: Path,
+) -> SubagentExecutionResultDTO:
+    """Spawn an agy CLI subagent process for the designated phase with streaming output and retry loop.
+
+    Retries transient startup glitches (such as remote model catalog fetch failures or network timeouts)
+    up to args.max_retries attempts with linear backoff before reporting failure.
+
+    Args:
+        phase: Phase to execute.
+        args: Pipeline runner arguments.
+        repo_root: Repository root path for working directory.
+
+    Returns:
+        SubagentExecutionResultDTO capturing returncode, output, duration, and timeout status.
+    """
+    agy_bin = resolve_agy_binary()
+
+    # Construct instruction prompt ensuring continuous full-auto authorization.
+    prompt = phase.command
+    if "PERMISSION GRANTED" not in prompt:
+        prompt = (
+            f"{phase.command}. PERMISSION GRANTED for continuous full-auto execution across all steps. "
+            f"Proceed autonomously through all steps without intermediate confirmations."
+        )
+
+    # Wrap .cmd / .bat invocation on Windows via cmd.exe /c to prevent Win32 application execution errors.
+    if sys.platform == "win32" and str(agy_bin).lower().endswith((".cmd", ".bat")):
+        cmd = [
+            "cmd.exe",
+            "/c",
+            str(agy_bin),
+            "--model",
+            args.model,
+            "--dangerously-skip-permissions",
+            "--print",
+            prompt,
+        ]
+    else:
+        cmd = [str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "--print", prompt]
+
+    max_attempts = args.max_retries
+    last_res: SubagentExecutionResultDTO | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        res = _execute_single_subagent_attempt(cmd, repo_root, args.timeout)
+        last_res = res
+
+        if res.exit_code == 0 or res.is_timeout:
+            return res
+
+        # Check if the failure was transient startup/network issue
+        if _is_transient_subagent_startup_failure(res):
+            if attempt < max_attempts:
+                backoff = DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS * attempt
+                print(
+                    f"\n{ANSIColors.YELLOW}[RETRY] Transient subagent startup error detected "
+                    f"(exit code {res.exit_code}, duration {res.duration_seconds:.1f}s). "
+                    f"Retrying attempt {attempt + 1}/{max_attempts} in {backoff:.1f}s...{ANSIColors.RESET}\n",
+                    flush=True,
+                )
+                time.sleep(backoff)
+                continue
+
+        # If non-transient failure, do not retry
+        break
+
+    assert last_res is not None
+    return last_res
 
 
 def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateResultDTO:
@@ -1142,6 +1229,12 @@ Key Behavioral Invariants for Autonomous AI Agents:
         help=f"Per-phase subagent timeout in seconds (default: {DEFAULT_SUBAGENT_TIMEOUT_SECONDS}).",
     )
     parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=DEFAULT_SUBAGENT_MAX_RETRIES,
+        help=f"Max automatic retries for transient subagent startup failures (default: {DEFAULT_SUBAGENT_MAX_RETRIES}).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         default=False,
@@ -1169,6 +1262,7 @@ Key Behavioral Invariants for Autonomous AI Agents:
             skip_hardening=parsed.skip_hardening,
             hardening_agent=parsed.hardening_agent,
             hardening_model=parsed.hardening_model,
+            max_retries=parsed.max_retries,
             timeout=parsed.timeout,
             dry_run=parsed.dry_run,
             verbose=parsed.verbose,
