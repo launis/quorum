@@ -47,9 +47,7 @@ def test_anchor_validation_html_tags_ignored() -> None:
 
 def test_anchor_validation_trace_contradiction() -> None:
     with pytest.raises(SemanticEvidenceError, match="Logical contradiction"):
-        validate_evidence(
-            pdf_text="Some text", exact_quotes=["text"], reasoning_trace="[5. validation decision: fail]"
-        )
+        validate_evidence(pdf_text="Some text", exact_quotes=["text"], reasoning_trace="[5. validation decision: fail]")
 
 
 def test_anchor_validation_hallucinated_anchor() -> None:
@@ -196,15 +194,11 @@ def test_anchor_validation_entropy_gate_failure() -> None:
 
 def test_anchor_validation_absolute_strictness() -> None:
     with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
-        validate_evidence(
-            "almost perfect text", ["almost perfect texxxt"], lexical_strictness_level=100
-        )
+        validate_evidence("almost perfect text", ["almost perfect texxxt"], lexical_strictness_level=100)
 
 
 def test_anchor_validation_coverage_fallback() -> None:
-    extracted = validate_evidence(
-        "the quick brown fox", ["the quick brown fox jumps"], lexical_strictness_level=0
-    )
+    extracted = validate_evidence("the quick brown fox", ["the quick brown fox jumps"], lexical_strictness_level=0)
     assert extracted is not None
     assert len(extracted) == 1
     assert extracted[0] == "the quick brown fox"
@@ -214,32 +208,22 @@ def test_anchor_validation_strictness_multiplier() -> None:
     source_text = "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin."
     inflected_quote = ["johtajuus ja selkeät tavoitteet"]
 
-    extracted = validate_evidence(
-        source_text, inflected_quote, lexical_strictness_level=50, locale="fi"
-    )
+    extracted = validate_evidence(source_text, inflected_quote, lexical_strictness_level=50, locale="fi")
     assert extracted is not None
     assert len(extracted) == 1
     assert extracted[0] == "johtajuudessaan selkeisiin tavoitteisiin"
 
     with pytest.raises(SemanticEvidenceError):
-        validate_evidence(
-            source_text, ["talousarvio ja budjetti"], lexical_strictness_level=50, locale="fi"
-        )
+        validate_evidence(source_text, ["talousarvio ja budjetti"], lexical_strictness_level=50, locale="fi")
 
     with pytest.raises(SemanticEvidenceError, match="Lexical validation failed: exact_quote"):
-        validate_evidence(
-            source_text, inflected_quote, lexical_strictness_level=100, locale="fi"
-        )
+        validate_evidence(source_text, inflected_quote, lexical_strictness_level=100, locale="fi")
 
     with pytest.raises(SemanticEvidenceError):
-        validate_evidence(
-            "some text", ["completely different text"], lexical_strictness_level=85
-        )
+        validate_evidence("some text", ["completely different text"], lexical_strictness_level=85)
 
     with pytest.raises(SemanticEvidenceError):
-        validate_evidence(
-            "some text", ["completely different text"], lexical_strictness_level=30
-        )
+        validate_evidence("some text", ["completely different text"], lexical_strictness_level=30)
 
 
 def test_anchor_validation_no_tags_fallback() -> None:
@@ -353,11 +337,7 @@ def test_anchor_validation_validate_evidence_edge_cases() -> None:
     res_fuzzy = validate_evidence(fuzzy_directive, (seg_fuzzy,), strictness_level=50)
     assert res_fuzzy is not None
 
-    pdf_occ = (
-        f"{seg2} "
-        f"{seg1} Lyhyt väli. "
-        f"{seg1} Sen jälkeen {seg2}"
-    )
+    pdf_occ = f"{seg2} {seg1} Lyhyt väli. {seg1} Sen jälkeen {seg2}"
     res_occ = validate_evidence(pdf_occ, (seg1, seg2))
     assert res_occ is not None
     assert len(res_occ) == 2

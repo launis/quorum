@@ -141,9 +141,7 @@ def test_process_atom_evaluation_mcp_source_match() -> None:
 def test_process_atom_evaluation_none_source_quote_skips_matching() -> None:
     atom = _make_atom(source_quotes=None, contextual_override=True, evaluation_reasoning="a1 reason")
 
-    result = process_atom_evaluation(
-        atom=atom, alias_map={"a1": "doc_1"}, source_documents=[], mcp_source_texts=None
-    )
+    result = process_atom_evaluation(atom=atom, alias_map={"a1": "doc_1"}, source_documents=[], mcp_source_texts=None)
 
     assert result.source_quotes is None
     assert result.evaluation_reasoning is not None
