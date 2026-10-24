@@ -21418,7 +21418,8 @@
         "reflection_text"
       ],
       "is_system_core": true,
-      "engine_type": "prompt"
+      "engine_type": "prompt",
+      "zone": "zone_a"
     },
     {
       "id": "sp_b5c751d1cbe24735",
@@ -21984,7 +21985,8 @@
         "prior_analysis"
       ],
       "is_system_core": true,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_c"
     },
     {
       "id": "sp_76eedbc020274f66",
@@ -22060,7 +22062,8 @@
         "prior_analysis"
       ],
       "is_system_core": true,
-      "engine_type": "prompt"
+      "engine_type": "prompt",
+      "zone": "zone_c"
     },
     {
       "id": "sp_8ffee13639e64e34",
@@ -22193,7 +22196,8 @@
         "reduced_matrix"
       ],
       "is_system_core": true,
-      "engine_type": "synthesis"
+      "engine_type": "synthesis",
+      "zone": "zone_c"
     },
     {
       "id": "sp_c4a5a1d15c00438a",
@@ -22227,7 +22231,8 @@
         "reflection_text"
       ],
       "is_system_core": true,
-      "engine_type": "causal_discovery"
+      "engine_type": "causal_discovery",
+      "zone": "zone_b"
     },
 
     {
