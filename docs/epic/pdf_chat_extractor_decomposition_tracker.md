@@ -24,10 +24,10 @@
 ### Phase 1: Inline DTO Relocation & Bubble Geometry Stage Extraction (Epoch 1 — Phase 1A)
 - **Plan:** @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md]
 - [x] **[SKIPPED] Research:** Single-File Fast-Track Mode (bypassed per Archetype C fast-track)
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
   - [x] Step 1: Relocate `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` to `@[backend_v2/models/dtos/ingress.py#L51-L68]` and add unit tests in `@[backend_v2/tests/unit/models/dtos/test_ingress.py#L97-L108]`
-  - [ ] Step 2: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`
-  - [ ] Step 3: Wire DTO Re-Exports and Bubble Geometry Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L113-L682]`
+  - [x] Step 2: Create `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`
+  - [x] Step 3: Wire DTO Re-Exports and Bubble Geometry Proxy Delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L113-L682]`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ### Phase 2: Table Markdown & Attachment Card Stage Extraction (Epoch 1 — Phase 1B)
@@ -127,21 +127,20 @@
 
 ## Achieved
 - Completed Tier 3 Pre-Flight Baseline (`[BASELINE]`): 25/25 unit tests passing in `@[backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py]` with **96% line coverage** (311 statements, 12 missed) and 10/10 Universal Quality Gate stages passing.
-- Generated `@[docs/epic/tasks_pdf_chat_extractor/symbol_migration_map.md]` mapping all 16 AST symbols and 1-hop consumers.
-- Generated all 4 Single-File Fast-Track phase implementation plans in `docs/epic/tasks_pdf_chat_extractor/`:
-  - `@[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md]`
-  - `@[docs/epic/tasks_pdf_chat_extractor/phase2_table_and_card_stage_extraction.md]`
-  - `@[docs/epic/tasks_pdf_chat_extractor/phase3_turn_assembly_stage_extraction.md]`
-  - `@[docs/epic/tasks_pdf_chat_extractor/phase4_package_cutover_and_guardrails.md]`
+- Completed Phase 1 (`@[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md]`):
+  - Relocated `PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, and `PdfBlockSignatureDTO` to `@[backend_v2/models/dtos/ingress.py#L77-L152]` with `ConfigDict(strict=True, extra="forbid", frozen=True)` and PEP 593 `Annotated` fields, and added 8 unit tests in `@[backend_v2/tests/unit/models/dtos/test_ingress.py#L110-L210]` (16/16 passing, 100% coverage).
+  - Extracted `dlq_log_extraction_error`, `is_user_bubble_drawing`, `get_page_table_rects`, `is_conversation_pdf`, and `extract_page_user_bubbles` into `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]`.
+  - Wired explicit DTO re-exports (`Symbol as Symbol`) and bubble geometry proxy delegations in `@[backend_v2/services/ingress/pdf_chat_extractor.py#L19-L152]` (25/25 unit tests passing, 10/10 Universal Quality Gate stages passing).
 
 ## Learned
-- All 4 inline DTOs (`PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, `PdfBlockSignatureDTO`) relocate cleanly to `@[backend_v2/models/dtos/ingress.py#L51-L68]` in Phase 1 while preserving re-export parity via `from ... import Symbol as Symbol` in `pdf_chat_extractor.py` and `[NEW] @[backend_v2/services/ingress/pdf_extractor/__init__.py]`.
-- `DocumentExtractionService._extract_pdf_sync` (`@[backend_v2/services/document_extraction.py#L93-L156]`) currently uses an inline import of `PdfChatExtractorService`, which is promoted to a module top-level import during the Phase 4 cutover.
+- All 4 inline DTOs (`PdfCellCoordinatesDTO`, `PdfTextBlockDTO`, `RawTurnDTO`, `PdfBlockSignatureDTO`) relocate cleanly to `@[backend_v2/models/dtos/ingress.py#L77-L152]` in Phase 1 while preserving re-export parity via `from ... import Symbol as Symbol` in `pdf_chat_extractor.py`.
+- `_CANVAS_MAX_SIZE_RATIO` is exported from `[NEW] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py]` and imported by `_reconstruct_tables_as_markdown` for full-page container table filtering.
 
 ## Resume Command
-`/tier2-execute --full-auto @[docs/epic/pdf_chat_extractor_decomposition_tracker.md] @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md]`
+`/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`
 
 ## Remaining
-- Execute Phase 1 through Phase 4 (`Epoch 1: Strangler Fig Structural Decomposition & Atomic Package Cutover`).
+- Audit Phase 1 via `/tier8-audit-plan @[docs/epic/tasks_pdf_chat_extractor/phase1_dtos_and_geometry_extraction.md] @[docs/epic/pdf_chat_extractor_decomposition_tracker.md]`.
+- Execute Phase 2 through Phase 4 (`Epoch 1: Strangler Fig Structural Decomposition & Atomic Package Cutover`).
 - Execute Epoch 2 (`Tier 2 Per-File Deterministic Hardening & Test Expansion`).
 - Synchronize KIs and architecture documentation via `/tier7-describe-architecture`.
