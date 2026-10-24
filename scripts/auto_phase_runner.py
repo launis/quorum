@@ -479,9 +479,18 @@ def execute_phase_subagent(
     #   cmd.exe /c agy.cmd --model gemini-4-argon-high --dangerously-skip-permissions -i "<prompt>"
     # Spawns an isolated subagent process with an independent context window (zero token amnesia).
     if sys.platform == "win32" and str(agy_bin).lower().endswith((".cmd", ".bat")):
-        cmd = ["cmd.exe", "/c", str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "-i", prompt]
+        cmd = [
+            "cmd.exe",
+            "/c",
+            str(agy_bin),
+            "--model",
+            args.model,
+            "--dangerously-skip-permissions",
+            "--print",
+            prompt,
+        ]
     else:
-        cmd = [str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "-i", prompt]
+        cmd = [str(agy_bin), "--model", args.model, "--dangerously-skip-permissions", "--print", prompt]
 
     start_time = time.monotonic()
     collected_output: list[str] = []
@@ -489,6 +498,7 @@ def execute_phase_subagent(
 
     proc = subprocess.Popen(
         cmd,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -824,7 +834,7 @@ def run_post_hardening_gate(
         ]
         if args.hardening_agent:
             agent_cmd_template = (
-                f'agy --model {h_model} --dangerously-skip-permissions -i "/tier2-hardening-backend {{target}}"'
+                f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-backend {{target}}"'
             )
             backend_cmd.extend(["--agent-cmd", agent_cmd_template])
         if args.dry_run:
@@ -858,7 +868,7 @@ def run_post_hardening_gate(
         ]
         if args.hardening_agent:
             agent_cmd_template = (
-                f'agy --model {h_model} --dangerously-skip-permissions -i "/tier2-hardening-frontend {{target}}"'
+                f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-frontend {{target}}"'
             )
             frontend_cmd.extend(["--agent-cmd", agent_cmd_template])
         if args.dry_run:
