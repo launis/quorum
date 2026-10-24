@@ -253,13 +253,13 @@ class DisplayScale(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Explicit mapping to Frontend ARB camelCase translation keys."""
-        _L10N_MAP = {
-            DisplayScale.ORIGINAL: "displayScaleOriginal",
-            DisplayScale.CUSTOM: "displayScaleCustom",
-            DisplayScale.NORMALIZED_100: "displayScaleNormalized100",
-        }
-        return _L10N_MAP.get(self, "")
+        match self:
+            case DisplayScale.ORIGINAL:
+                return "displayScaleOriginal"
+            case DisplayScale.CUSTOM:
+                return "displayScaleCustom"
+            case DisplayScale.NORMALIZED_100:
+                return "displayScaleNormalized100"
 
 
 class BlockDataType(StrEnum):
@@ -363,20 +363,29 @@ class XaiExtensionType(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        _L10N_MAP = {
-            XaiExtensionType.COACHING: "xaiCoachingTip",
-            XaiExtensionType.JUSTIFICATION: "xaiJustification",
-            XaiExtensionType.FALSIFICATION: "xaiDevilsAdvocate",
-            XaiExtensionType.MISSING_CONTEXT: "xaiMissingContext",
-            XaiExtensionType.THEORY_LINK: "xaiTheoryLink",
-            XaiExtensionType.RISK_FLAG: "xaiRiskFlag",
-            XaiExtensionType.REMEDIATION_STEPS: "xaiRemediation",
-            XaiExtensionType.EMOTIONAL_SENTIMENT: "xaiSentiment",
-            XaiExtensionType.VARIANCE_VALIDATION: "xaiVarianceValidationTitle",
-            XaiExtensionType.AUTHENTICITY_EVALUATION: "xaiAuthenticityEvaluationTitle",
-        }
-        return _L10N_MAP.get(self, "")
+        match self:
+            case XaiExtensionType.COACHING:
+                return "xaiCoachingTip"
+            case XaiExtensionType.JUSTIFICATION:
+                return "xaiJustification"
+            case XaiExtensionType.FALSIFICATION:
+                return "xaiDevilsAdvocate"
+            case XaiExtensionType.MISSING_CONTEXT:
+                return "xaiMissingContext"
+            case XaiExtensionType.THEORY_LINK:
+                return "xaiTheoryLink"
+            case XaiExtensionType.RISK_FLAG:
+                return "xaiRiskFlag"
+            case XaiExtensionType.REMEDIATION_STEPS:
+                return "xaiRemediation"
+            case XaiExtensionType.EMOTIONAL_SENTIMENT:
+                return "xaiSentiment"
+            case XaiExtensionType.VARIANCE_VALIDATION:
+                return "xaiVarianceValidationTitle"
+            case XaiExtensionType.AUTHENTICITY_EVALUATION:
+                return "xaiAuthenticityEvaluationTitle"
+            case _:
+                return ""
 
 
 class XaiExtensionScope(StrEnum):
@@ -770,12 +779,13 @@ class TitleKey(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        _L10N_MAP = {
-            TitleKey.TITLE_TIMELINE: "titleTimeline",
-            TitleKey.TITLE_HYPOTHESES: "titleHypotheses",
-        }
-        return _L10N_MAP.get(self, "")
+        match self:
+            case TitleKey.TITLE_TIMELINE:
+                return "titleTimeline"
+            case TitleKey.TITLE_HYPOTHESES:
+                return "titleHypotheses"
+            case _:
+                return ""
 
 
 class LabelKey(StrEnum):

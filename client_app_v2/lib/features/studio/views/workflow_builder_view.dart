@@ -321,7 +321,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.workflowSavedSuccess),
-              backgroundColor: const Color(0xFF2E7D32),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
           context.pop();
@@ -457,11 +457,11 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                           ),
                   ),
                   backgroundColor: simulationBanner.value!.valid
-                      ? const Color(0xFFE8F5E9)
+                      ? Theme.of(context).colorScheme.primaryContainer
                       : Theme.of(context).colorScheme.errorContainer,
                   contentTextStyle: TextStyle(
                     color: simulationBanner.value!.valid
-                        ? const Color(0xFF2E7D32)
+                        ? Theme.of(context).colorScheme.onPrimaryContainer
                         : Theme.of(context).colorScheme.onErrorContainer,
                   ),
                   actions: [

@@ -44,7 +44,7 @@ class WorkflowStepsTab extends StatelessWidget {
     final steps = List<StepRule>.from(workflow.steps);
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     final newId =
-        'sr_${uuidHex.length >= 16 ? uuidHex.substring(0, 16) : uuidHex.padRight(16, '0')}';
+        'sr_${uuidHex.length >= 16 ? uuidHex.characters.take(16).toString() : uuidHex.padRight(16, '0')}';
     final newStep = StepRule(
       id: newId,
       taskBlueprint: '',
@@ -75,7 +75,7 @@ class WorkflowStepsTab extends StatelessWidget {
     final original = steps[index];
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     final clonedId =
-        'sr_${uuidHex.length >= 16 ? uuidHex.substring(0, 16) : uuidHex.padRight(16, '0')}';
+        'sr_${uuidHex.length >= 16 ? uuidHex.characters.take(16).toString() : uuidHex.padRight(16, '0')}';
     final clonedStep = original.copyWith(id: clonedId);
 
     steps.insert(index + 1, clonedStep);
