@@ -62,7 +62,7 @@
   - [x] @[backend_v2/models/dtos/ingress.py#L76-L91]
   - [x] @[backend_v2/services/ingress/pdf_extractor/bubble_geometry.py#L42-L49]
   - [x] @[backend_v2/services/ingress/pdf_extractor/table_and_card_stage.py#L33-L55]
-  - [ ] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]
+  - [x] @[backend_v2/services/ingress/pdf_extractor/turn_assembly_stage.py#L50-L86]
   - [ ] @[backend_v2/services/ingress/pdf_extractor/__init__.py#L45-L58]
   - [ ] @[backend_v2/services/ingress/__init__.py]
   - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py#L27-L197]
