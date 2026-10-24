@@ -7,6 +7,7 @@ topological sorting, overflow button truncation checks, and header/margin/orphan
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import fitz
 import pytest
@@ -64,7 +65,6 @@ def _create_synthetic_truncated_chat_pdf() -> bytes:
     return pdf_bytes
 
 
-# Phase 4, Step 1: Migrate turn segmentation, visual ordering, and truncation tests
 def test_pdf_chat_extractor_synthetic_detection_and_extraction() -> None:
     """Test successful detection and turn assembly on synthetic chat PDF."""
     pdf_bytes = _create_synthetic_chat_pdf()
@@ -228,3 +228,41 @@ def test_pdf_chat_extractor_span_deduplication_and_orphan_token_suppression() ->
         assert ">" not in ai_content
     finally:
         doc.close()
+
+
+def test_pdf_chat_extractor_exact_signature_deduplication_and_attachment_card() -> None:
+    """Verify exact PdfBlockSignatureDTO deduplication, attachment card insertion, and ISTQB margin/title boundaries."""
+    mock_page = MagicMock()
+    mock_page.rect = fitz.Rect(0.0, 0.0, 595.0, 842.0)
+    mock_page.find_tables.return_value = MagicMock(tables=[])
+    mock_page.get_drawings.return_value = [
+        {"rect": fitz.Rect(360.0, 100.0, 520.0, 220.0), "fill": (0.91, 0.93, 0.96)},
+        {"rect": fitz.Rect(370.0, 130.0, 446.0, 206.0), "fill": (0.95, 0.95, 0.95)},
+    ]
+    mock_page.get_text.return_value = [
+        # Below top print margin (y0 = 35.9 < 36.0) -> skipped
+        (50.0, 35.9, 200.0, 50.0, "Top margin header", 0, 0),
+        # Page 0 title header (y0 = 79.9 < 80.0) -> skipped
+        (50.0, 79.9, 250.0, 95.0, "Keskusteluhistoria", 1, 0),
+        # User bubble prompt and exact duplicate block -> second occurrence deduplicated via seen_blocks
+        (370.0, 110.0, 500.0, 125.0, "Analysoi tämä liite", 2, 0),
+        (370.04, 110.02, 500.01, 125.03, "Analysoi tämä liite", 3, 0),
+        # Attachment card inner filename text
+        (375.0, 150.0, 440.0, 170.0, "raportti.pdf", 4, 0),
+        # Valid AI response block at exact title boundary (y0 = 250.0 >= 80.0)
+        (59.0, 250.0, 400.0, 280.0, "Tässä on analyysi raportista.", 5, 0),
+        # Below bottom print margin (y1 = 806.1 > 842.0 - 36.0) -> skipped
+        (50.0, 790.0, 200.0, 806.1, "Bottom footer margin", 6, 0),
+    ]
+
+    mock_doc = MagicMock()
+    mock_doc.__len__.return_value = 1
+    mock_doc.__iter__.return_value = iter([mock_page])
+
+    chat_dto = extract_conversation_from_doc(mock_doc)
+    assert len(chat_dto.conversation) == 2
+    assert chat_dto.conversation[0].role == "user"
+    assert chat_dto.conversation[0].content.count("Analysoi tämä liite") == 1
+    assert "[Liite: raportti.pdf]" in chat_dto.conversation[0].content
+    assert chat_dto.conversation[1].role == "ai"
+    assert chat_dto.conversation[1].content == "Tässä on analyysi raportista."

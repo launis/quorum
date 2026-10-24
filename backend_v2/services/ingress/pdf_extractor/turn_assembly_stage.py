@@ -23,17 +23,12 @@ from backend_v2.services.ingress.pdf_extractor.table_and_card_stage import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "_ORPHAN_TOKEN_MAX_CHARS",
-    "_ORPHAN_TOKEN_MAX_WIDTH",
-    "_PAGE_ZERO_TITLE_MAX_Y0",
-    "_PRINT_MARGIN_VERTICAL_PT",
-    "_TRUNCATION_INDICATORS",
     "check_truncation",
     "extract_conversation_from_doc",
     "sort_blocks_visual_order",
 ]
 
-# Phase 3, Step 1: Relocate turn assembly and truncation constants
+# Enforce physical point thresholds for print margins, title headers, and orphan tokens
 _ORPHAN_TOKEN_MAX_WIDTH: float = 60.0
 _ORPHAN_TOKEN_MAX_CHARS: int = 20
 _PRINT_MARGIN_VERTICAL_PT: float = 36.0
@@ -103,6 +98,98 @@ def sort_blocks_visual_order(page_blocks: list[PdfTextBlockDTO]) -> list[PdfText
     return sorted(page_blocks, key=lambda b: (round(b.y0 / 10.0), b.x0))
 
 
+def _collect_sorted_page_blocks(
+    page: fitz.Page,
+    table_rects: list[fitz.Rect],
+) -> list[PdfTextBlockDTO]:
+    """Collects raw text, Markdown table, and attachment card blocks sorted in visual reading order.
+
+    Args:
+        page: Open PyMuPDF Page instance.
+        table_rects: Bounding rectangles for tables detected on the page.
+
+    Returns:
+        Visually sorted list of merged page text blocks.
+    """
+    reconstructed_tables = reconstruct_tables_as_markdown(page, table_rects)
+    attachment_cards = detect_attachment_cards(page)
+    card_rects = [crect for crect, _ in attachment_cards]
+
+    wrapped_blocks = [
+        PdfTextBlockDTO(
+            x0=float(b[0]),
+            y0=float(b[1]),
+            x1=float(b[2]),
+            y1=float(b[3]),
+            text=str(b[4]),
+            block_no=int(b[5]),
+            block_type=int(b[6]),
+        )
+        for b in page.get_text("blocks")
+    ]
+    filtered_blocks = filter_table_text_blocks(wrapped_blocks, table_rects)
+
+    combined_blocks: list[PdfTextBlockDTO] = [
+        b for b in filtered_blocks if not any(fitz.Rect(b.x0, b.y0, b.x1, b.y1).intersects(cr) for cr in card_rects)
+    ]
+
+    for trect, md_table in reconstructed_tables:
+        combined_blocks.append(
+            PdfTextBlockDTO(
+                x0=trect.x0, y0=trect.y0, x1=trect.x1, y1=trect.y1, text=md_table, block_no=-1, block_type=0
+            )
+        )
+
+    for crect, card_text in attachment_cards:
+        combined_blocks.append(
+            PdfTextBlockDTO(
+                x0=crect.x0, y0=crect.y0, x1=crect.x1, y1=crect.y1, text=card_text, block_no=-1, block_type=0
+            )
+        )
+
+    return sort_blocks_visual_order(combined_blocks)
+
+
+def _is_filtered_noise_block(
+    block: PdfTextBlockDTO,
+    text: str,
+    page_idx: int,
+    is_user: bool,
+) -> bool:
+    """Determines whether a non-margin text block is a title header, UI control label, or AI orphan token.
+
+    Args:
+        block: Candidate PDF text block DTO.
+        text: Stripped text content of the block.
+        page_idx: Zero-based page index in the document.
+        is_user: Whether the block intersects a user prompt bubble.
+
+    Returns:
+        True if the block should be suppressed as non-conversational noise, False otherwise.
+    """
+    if (
+        page_idx == 0
+        and block.y0 < _PAGE_ZERO_TITLE_MAX_Y0
+        and (
+            text.lower() in ("keskusteluhistoria", "conversation history")
+            or (len(text.split()) <= 3 and text.lower().startswith("keskustelu"))
+        )
+    ):
+        return True
+
+    if text in ("expand_more", "expand_less", "expand_more ⌵", "expand_less ⌵", "PDF", "report"):
+        return True
+
+    if not is_user and (
+        (block.x1 - block.x0) < _ORPHAN_TOKEN_MAX_WIDTH
+        and len(text) < _ORPHAN_TOKEN_MAX_CHARS
+        and not any(ch.isalpha() and len(text.split()) > 2 for ch in text)
+    ):
+        return True
+
+    return False
+
+
 def extract_conversation_from_doc(doc: fitz.Document) -> ChatHistoryDTO:
     """Extracts and segregates conversational turns from a PDF document into ChatMessageDTOs.
 
@@ -135,78 +222,31 @@ def extract_conversation_from_doc(doc: fitz.Document) -> ChatHistoryDTO:
         page_h = page.rect.height
         table_rects = get_page_table_rects(page)
         user_bubbles = extract_page_user_bubbles(page)
-        reconstructed_tables = reconstruct_tables_as_markdown(page, table_rects)
-        attachment_cards = detect_attachment_cards(page)
-        card_rects = [c[0] for c in attachment_cards]
 
-        wrapped_blocks = [
-            PdfTextBlockDTO(
-                x0=float(b[0]),
-                y0=float(b[1]),
-                x1=float(b[2]),
-                y1=float(b[3]),
-                text=str(b[4]),
-                block_no=int(b[5]),
-                block_type=int(b[6]),
-            )
-            for b in page.get_text("blocks")
-        ]
-        filtered_blocks = filter_table_text_blocks(wrapped_blocks, table_rects)
-
-        combined_blocks: list[PdfTextBlockDTO] = [
-            b for b in filtered_blocks if not any(fitz.Rect(b.x0, b.y0, b.x1, b.y1).intersects(cr) for cr in card_rects)
-        ]
-
-        for trect, md_table in reconstructed_tables:
-            combined_blocks.append(
-                PdfTextBlockDTO(
-                    x0=trect.x0, y0=trect.y0, x1=trect.x1, y1=trect.y1, text=md_table, block_no=-1, block_type=0
-                )
-            )
-
-        for crect, card_text in attachment_cards:
-            combined_blocks.append(
-                PdfTextBlockDTO(
-                    x0=crect.x0, y0=crect.y0, x1=crect.x1, y1=crect.y1, text=card_text, block_no=-1, block_type=0
-                )
-            )
-
-        for b in sort_blocks_visual_order(combined_blocks):
-            x0, y0, x1, y1, text = b.x0, b.y0, b.x1, b.y1, b.text.strip()
-            if not text or y0 < _PRINT_MARGIN_VERTICAL_PT or y1 > page_h - _PRINT_MARGIN_VERTICAL_PT:
+        for b in _collect_sorted_page_blocks(page, table_rects):
+            text = b.text.strip()
+            if not text or b.y0 < _PRINT_MARGIN_VERTICAL_PT or b.y1 > page_h - _PRINT_MARGIN_VERTICAL_PT:
                 continue
 
             sig = PdfBlockSignatureDTO(
-                page_idx=page_idx, x0=round(x0, 1), y0=round(y0, 1), x1=round(x1, 1), y1=round(y1, 1), text=text
+                page_idx=page_idx,
+                x0=round(b.x0, 1),
+                y0=round(b.y0, 1),
+                x1=round(b.x1, 1),
+                y1=round(b.y1, 1),
+                text=text,
             )
             if sig in seen_blocks:
                 continue
             seen_blocks.add(sig)
 
-            if (
-                page_idx == 0
-                and y0 < _PAGE_ZERO_TITLE_MAX_Y0
-                and (
-                    text.lower() in ("keskusteluhistoria", "conversation history")
-                    or (len(text.split()) <= 3 and text.lower().startswith("keskustelu"))
-                )
-            ):
-                continue
-
-            if text in ("expand_more", "expand_less", "expand_more ⌵", "expand_less ⌵", "PDF", "report"):
-                continue
-
-            brect = fitz.Rect(x0, y0, x1, y1)
+            brect = fitz.Rect(b.x0, b.y0, b.x1, b.y1)
             is_user = any(brect.intersects(bub) for bub in user_bubbles)
+            if _is_filtered_noise_block(b, text, page_idx, is_user):
+                continue
 
             if is_user:
                 check_truncation(text)
-            elif (
-                (x1 - x0) < _ORPHAN_TOKEN_MAX_WIDTH
-                and len(text) < _ORPHAN_TOKEN_MAX_CHARS
-                and not any(ch.isalpha() and len(text.split()) > 2 for ch in text)
-            ):
-                continue
 
             role = "user" if is_user else "ai"
             if role == current_role:
