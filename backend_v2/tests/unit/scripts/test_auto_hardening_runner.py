@@ -44,6 +44,7 @@ def test_fetch_unhardened_targets_from_tracker_markdown(tmp_path: Path) -> None:
   - [ ] [NEW] @[scripts/auto_hardening_runner.py]
   - [x] @[backend_v2/already_done.py]
   - [ ] @[backend_v2/services/target2.py]
+  - [ ] [DELETE] @[backend_v2/services/retired_monolith.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**:
   - [ ] @[client_app_v2/lib/features/view.dart]
 """

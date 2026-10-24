@@ -286,6 +286,8 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
     for line in lines:
         if line.startswith("- [") or line.startswith("## ") or line.startswith("### "):
             break
+        if "[DELETE]" in line:
+            continue
         m = item_pattern.match(line)
         if m:
             raw_path = m.group(1).replace("\\", "/").strip()
