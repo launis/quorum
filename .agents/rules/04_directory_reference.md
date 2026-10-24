@@ -24,8 +24,8 @@
 
     <rule_block id="test_directory_isolation">
         <mandate>NEVER place test files alongside production code or directly into `tests/` root without test pyramid categorization. Test files MUST strictly mirror production structure categorized into test pyramid roots:
-        - Python Backend: `backend_v2/tests/unit/...` (including `models/dtos/test_causal_discovery_dtos.py`, `services/orchestrator/test_dag_executor_causal_fusion.py`, `services/mcp/test_wikipedia_client.py`, `services/mcp/test_wikipedia.py`, `services/mcp/test_mcp_tool_loop.py`, `scripts/test_ablation_live_executor.py`, `scripts/test_auto_phase_runner.py`), `backend_v2/tests/integration/...` (including `test_multi_segment_causal_e2e.py`), `backend_v2/tests/e2e/...`
-        - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...`</mandate>
+        - Python Backend: `backend_v2/tests/unit/...` (including `models/dtos/test_causal_discovery_dtos.py`, `services/orchestrator/test_dag_executor_causal_fusion.py`, `services/mcp/test_wikipedia_client.py`, `services/mcp/test_wikipedia.py`, `services/mcp/test_mcp_tool_loop.py`, `scripts/test_ablation_live_executor.py`, `scripts/test_auto_phase_runner.py`), `backend_v2/tests/integration/...` (including `test_multi_segment_causal_e2e.py`, `test_causal_discovery_seed_integration.py`), `backend_v2/tests/e2e/...`
+        - Flutter Frontend: `client_app_v2/test/unit/...`, `client_app_v2/test/integration/...`, `client_app_v2/test/e2e/...` (including `test/features/studio/views/studio_dashboard_steps_tab_test.dart`)</mandate>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -34,13 +34,13 @@
 
     <module path="backend_v2/api/routers/">
         <responsibility>HTTP REST ENDPOINTS ONLY (1 ENTITY = 1 ROUTER SSOT)</responsibility>
-        <key_domains>execution/ (executions.py, reports.py), iam/, studio/, system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
+        <key_domains>execution/ (executions.py, reports.py), iam/, studio/ (steps.py), system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
     </module>
     
     <module path="backend_v2/services/">
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
-          - Pillar 2 (Ontology): studio/, translation_service.py, factories/ (output_profile_factory.py)
+          - Pillar 2 (Ontology): studio/ (workflow_service.py), translation_service.py, factories/ (output_profile_factory.py)
           - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/ (dispatcher.py, mcp_tool_loop.py, wikipedia_client.py, tools/ [tavily.py, wikipedia.py]), drivers/, file_driver.py, storage.py, orchestrator/ (engines/ [pure compute pipelines: causal_discovery_engine.py, prompt_engine.py, registry.py, synthesis_engine.py, tda_engine.py], strategies/ [node strategies: base.py, llm.py, logic.py], prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, causal_cohesion_evaluator.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
           - Pillar 4 (SDUI & Presentation): report_service.py, export/ (metadata_resolver.py, excel_styler.py, summary_builder.py, atom_row_builder.py, excel_exporter.py, csv_exporter.py, __init__.py facade), blueprint.py, pdf_generator.py, localization.py, sdui/ (sdui_mapper_service.py), sdui/adapters/ (base_adapter.py, causal_graph_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience & Observability): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes, mcp.py [MCPAuditTrace, MCPRetrievalResultDTO], wikipedia.py, tools.py), dtos/ (API boundaries, quote_evidence.py [QuoteEvidenceDTO, GateMatchResultDTO], ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py), view/ (SDUI Blocks), state.py, enums.py (CausalRootCauseType, LaxCausalRootCauseType, ToolCapability, LaxToolCapability)
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes, mcp.py [MCPAuditTrace, MCPRetrievalResultDTO], wikipedia.py, tools.py), dtos/ (API boundaries, quote_evidence.py [QuoteEvidenceDTO, GateMatchResultDTO], ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py), view/ (SDUI Blocks), state.py, enums.py (CausalRootCauseType, LaxCausalRootCauseType, StepFilterScope, LaxStepFilterScope, ToolCapability, LaxToolCapability)
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)
@@ -123,7 +123,7 @@
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
         <key_domains>
-          - studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; master views: mcp_gateways_master_view.dart, matrices_master_view.dart, workflows_master_view.dart, output_profile_list_view.dart; widgets: studio_master_header.dart, tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart, step_simulation_dialog.dart; models: mcp_gateway.dart, llm_platform.dart, workflow_ui_schema.dart, prompt_block_simulation.dart, workflow_simulation.dart)
+          - studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; master views: studio_dashboard_view.dart, mcp_gateways_master_view.dart, matrices_master_view.dart, workflows_master_view.dart, output_profile_list_view.dart; controllers: studio_controller.dart; widgets: studio_master_header.dart, tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart, step_simulation_dialog.dart; models: mcp_gateway.dart, llm_platform.dart, workflow_ui_schema.dart, prompt_block_simulation.dart, workflow_simulation.dart)
           - execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart, trace_context_carrier.dart, human_override_request_dto.dart, causal_discovery_dto.dart; views & widgets: new_execution_view.dart, dynamic_start_screen.dart, human_override_dialog.dart, sdui_matrix_table_widget.dart, sdui_blocks_renderer.dart, atom_matrix_table_widget.dart, xai_axis_telemetry_grid.dart, sdui_causal_graph_widget.dart; presentation/: causal_inspector_modal.dart)
           - reports/ (Pillar 4 Presentation & Materialized Reports: execution_reports_view.dart, create_report_dialog.dart, report_artifact.dart)
           - shell/ (Pillar 4 Presentation), auth/, settings/
@@ -132,7 +132,7 @@
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart (CausalRootCauseType, TargetSpeaker), models/generic_status_response_dto.dart, network/</key_domains>
+        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart (CausalRootCauseType, TargetSpeaker, StepFilterScope), models/generic_status_response_dto.dart, network/</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">
