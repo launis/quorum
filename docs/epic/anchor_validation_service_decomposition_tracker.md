@@ -52,7 +52,7 @@
   - [x] Step 1: Split `[DELETE] @[backend_v2/tests/unit/services/orchestrator/test_anchor_validation_service.py]` and `[DELETE] @[backend_v2/tests/unit/services/orchestrator/test_anchor_validation_atom_result.py]` into 5 modular unit test suites under `backend_v2/tests/unit/services/orchestrator/anchor_validation/`.
   - [x] Step 2: Atomically create `@[backend_v2/services/orchestrator/anchor_validation/__init__.py#L51-L147]` (`< 150` lines), delete `[DELETE] @[backend_v2/services/orchestrator/anchor_validation_service.py]`, and rewire all 1-hop consumer imports (`extractive_sensor_service.py`, `mcp_tool_loop.py`, `integrity.py`, `ablation_live_executor.py`, `audit_manifest_generator.py`, `run_ablation_benchmark.py`, `run_e2e_variance_test.py`, `test_multi_segment_quote_foundation.py`, `test_integrity.py`, `test_multi_segment_causal_e2e.py`).
   - [x] Step 3: Lock retired module `backend_v2.services.orchestrator.anchor_validation_service` in `@[scripts/_ast_guardrails.py#L1865-L1936]` and `@[scripts/_ast_guardrails.py#L1938-L2084]` (`QGR017`) and synchronize `@[.agents/rules/04_directory_reference.md]`.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]`
 
 ### Post-Implementation Gates
 
@@ -66,12 +66,12 @@
   - [x] `@[backend_v2/services/mcp/mcp_tool_loop.py#L150-L476]`
   - [x] `@[backend_v2/hooks/integrity.py#L118-L138]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
-- [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm 0 remaining references to `backend_v2.services.orchestrator.anchor_validation_service` and physical removal of `[DELETE] @[backend_v2/services/orchestrator/anchor_validation_service.py]`.
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 59 baseline unit tests pass across the modularized test suites (`@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_normalizer.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_matcher.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_evidence_validator.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_atom_evaluation_processor.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_anchor_validation_facade.py]`) with `>= 93%` line coverage.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Verify 100% symbol parity ($\mathcal{I}_{orig} \subseteq \bigcup \mathcal{I}_{sub}$) and execute `uv run pytest backend_v2/tests/integration/test_multi_segment_causal_e2e.py`, `uv run python scripts/audit_dict_eradication.py`, and `uv run python scripts/audit_clean_imports.py`.
+- [x] **[OK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm 0 remaining references to `backend_v2.services.orchestrator.anchor_validation_service` and physical removal of `[DELETE] @[backend_v2/services/orchestrator/anchor_validation_service.py]`.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Verify all 59 baseline unit tests pass across the modularized test suites (`@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_normalizer.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_lexical_matcher.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_evidence_validator.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_atom_evaluation_processor.py]`, `@[backend_v2/tests/unit/services/orchestrator/anchor_validation/test_anchor_validation_facade.py]`) with `>= 93%` line coverage.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Verify 100% symbol parity ($\mathcal{I}_{orig} \subseteq \bigcup \mathcal{I}_{sub}$) and execute `uv run pytest backend_v2/tests/integration/test_multi_segment_causal_e2e.py`, `uv run python scripts/audit_dict_eradication.py`, and `uv run python scripts/audit_clean_imports.py`.
 
 #### Conditional Mutation Coverage Gate (Archetype A Proof Anchor)
-- [ ] **[NOK] AST Mutation Coverage Gate**: Run `uv run python scripts/audit_mutation_coverage.py --strict` to verify 100% mutant kill rate across mathematical and algorithmic cores.
+- [x] **[OK] AST Mutation Coverage Gate**: Run `uv run python scripts/audit_mutation_coverage.py --strict` to verify 100% mutant kill rate across mathematical and algorithmic cores.
 
 #### Epoch 2: 12-Item Technical Debt Inventory (Target Scope for Tier 2 Hardening)
 1. **Item 6 (`inline_imports_ban` / `QGR009`)**: Ensure `from backend_v2.utils.alias_engine import AliasEngine` (previously inline at line 770 of `anchor_validation_service.py`) is declared at module top-level in `@[backend_v2/services/orchestrator/anchor_validation/atom_evaluation_processor.py#L18-L125]`.
@@ -88,7 +88,7 @@
   - **Pillar Documentation Sync**: Update Pillar 6 (`docs/architecture/06_enriched_atom_graph_engine.md`) to reflect the modular `backend_v2/services/orchestrator/anchor_validation/` package
 
 ### Final Epic Audit
-- [ ] **[NOK] Final Decomposition Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]` and verify 100% completion across all phases and gates.
+- [x] **[OK] Final Decomposition Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_anchor_validation_service/phase4_package_cutover_and_guardrails.md] @[docs/epic/anchor_validation_service_decomposition_tracker.md]` and verify 100% completion across all phases and gates.
 
 ## Instructions for the Execution Agent
 1. **Strict Two-Epoch Firewall**: During Epoch 1 (Phases 1–4), perform ONLY pure structural lift-and-shift extraction, consumer import rewiring, test suite modularization, and atomic package cutover with **zero behavioral changes**. Do NOT mix Epoch 2 tech debt fixes into Epoch 1.

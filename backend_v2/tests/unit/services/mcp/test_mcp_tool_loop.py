@@ -920,7 +920,6 @@ async def test_execute_mcp_retrieval_hallucinated_claim_rejected() -> None:
     assert exc_info.value.status_code == 400
 
 
-
 @pytest.mark.asyncio
 async def test_execute_mcp_retrieval_fast_client_init_failure_raises_app_exception() -> None:
     """Verify execute_mcp_retrieval raises AppException(500) when fast client initialization fails."""

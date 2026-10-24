@@ -750,8 +750,12 @@ def test_mark_tracker_target_done_with_backticks_and_anchors(tmp_path: Path) -> 
     assert success is True
 
     updated_content = tracker_file.read_text(encoding="utf-8")
-    assert "- [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`" in updated_content
-    assert "- [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`" in updated_content
+    assert (
+        "- [x] `@[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py#L27-L76]`" in updated_content
+    )
+    assert (
+        "- [ ] `@[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py#L27-L270]`" in updated_content
+    )
     # Parent gate remains [NOK] because lexical_matcher is still pending
     assert "- [ ] **[NOK] Tier 2 Hardening (Backend)**" in updated_content
 
@@ -807,4 +811,3 @@ def test_fetch_unhardened_targets_unparsed_items_fail_fast(tmp_path: Path) -> No
     args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.BACKEND)
     with pytest.raises(ValueError, match="has pending Tier 2 Hardening \\(Backend\\) checklist items"):
         fetch_unhardened_targets(args)
-

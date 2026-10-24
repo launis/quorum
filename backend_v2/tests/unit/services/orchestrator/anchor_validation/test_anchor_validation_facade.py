@@ -195,4 +195,3 @@ def test_anchor_validation_facade_validate_evidence_negative_boundary_violations
             reasoning_trace="[5. VALIDATION DECISION: FAIL]",
         )
     assert "Logical contradiction" in exc_trace.value.message
-
