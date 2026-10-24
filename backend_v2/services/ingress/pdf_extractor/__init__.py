@@ -42,7 +42,6 @@ __all__ = [
 ]
 
 
-# Phase 4, Step 2: Canonical PdfChatExtractorService package facade (< 150 lines)
 class PdfChatExtractorService:
     """Deterministic extractor for browser-printed and exported chat PDFs."""
 
