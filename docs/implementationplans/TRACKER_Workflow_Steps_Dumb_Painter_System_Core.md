@@ -26,7 +26,7 @@
   - [x] Step 5: DECOUPLED WORKFLOW BLUEPRINTS PROVIDER
   - [x] Step 6: FRONTEND DUMB PAINTER REFACTORING
   - [x] Step 7: TEST EXPANSION & QUALITY GATES
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
 
 ### Post-Implementation Gates
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
@@ -61,7 +61,7 @@
      - Update timeless narratives in `docs/architecture/` (specifically `02_data_seeding_and_ontology.md` and `04_server_driven_ui_and_presentation.md`) describing newly established invariants in present tense without historical language or plan IDs.
 
 ### Final Plan Audit
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -115,9 +115,7 @@
 - `allBlueprintsProvider` scope isolation (`StepFilterScope.all`) cleanly prevents dashboard filter chip states (`coreOnly` vs `nonCoreOnly`) from polluting the available blueprint options when configuring workflow step rules in Studio Workflow Builder.
 
 ## Remaining
-- Tier 8 System 2 Red-Team Plan Audit: `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]`
+- None. Implementation plan completed and 100% verified by Tier 8 Red-Team Audit.
 
-## Resume Command
-```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md] @[docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md]
-```
+## Next Action
+Plan lifecycle is complete. Ready for new feature, refactoring, or audit tasks.
