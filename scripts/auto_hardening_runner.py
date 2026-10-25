@@ -123,6 +123,7 @@ class HardeningGate(StrEnum):
 
     BACKEND = "backend"
     FRONTEND = "frontend"
+    ALL = "all"
 
 
 class HardeningRunnerArgsDTO(BaseModel):
@@ -132,8 +133,8 @@ class HardeningRunnerArgsDTO(BaseModel):
 
     tracker: Annotated[Path | None, Field(default=None, description="Path to tracker markdown file.")] = None
     state_file: Annotated[Path | None, Field(default=None, description="Path to hardening_state.json.")] = None
-    gate: Annotated[HardeningGate, Field(default=HardeningGate.BACKEND, description="Hardening gate category.")] = (
-        HardeningGate.BACKEND
+    gate: Annotated[HardeningGate, Field(default=HardeningGate.ALL, description="Hardening gate category.")] = (
+        HardeningGate.ALL
     )
     targets: Annotated[list[str] | None, Field(default=None, description="Explicit target file paths.")] = None
     max_files: Annotated[int | None, Field(default=None, description="Maximum number of files to process.")] = None
@@ -284,6 +285,11 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
     #   - [ ] Tier 2 Hardening (Backend)
     #     - [ ] [NEW] @[backend_v2/services/foo.py]
     #     - [ ] @[backend_v2/models/bar.py]
+    if gate == HardeningGate.ALL:
+        backend_targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.BACKEND)
+        frontend_targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.FRONTEND)
+        return backend_targets + frontend_targets
+
     gate_name = "Backend" if gate == HardeningGate.BACKEND else "Frontend"
     header_pattern = re.compile(
         rf"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\({gate_name}\)",
@@ -325,11 +331,16 @@ def check_tracker_has_unparsed_hardening_items(tracker_content: str, gate: Harde
 
     Args:
         tracker_content: Raw tracker markdown content.
-        gate: Hardening gate (backend or frontend) to inspect.
+        gate: Hardening gate (backend, frontend, or all) to inspect.
 
     Returns:
         True if the gate is unchecked and has pending child checklist lines, False otherwise.
     """
+    if gate == HardeningGate.ALL:
+        return check_tracker_has_unparsed_hardening_items(
+            tracker_content, HardeningGate.BACKEND
+        ) or check_tracker_has_unparsed_hardening_items(tracker_content, HardeningGate.FRONTEND)
+
     gate_name = "Backend" if gate == HardeningGate.BACKEND else "Frontend"
     header_pattern = re.compile(
         rf"^-\s*\[ \]\s*.*\bTier\s+2\s+Hardening\s*\({gate_name}\)",
@@ -599,7 +610,7 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
             return False
 
     if not args.no_auto_fix:
-        if args.gate == HardeningGate.BACKEND and target_file.endswith(".py"):
+        if target_file.endswith(".py"):
             subprocess.run(
                 ["uv", "run", "ruff", "check", "--fix", target_file],
                 cwd=root,
@@ -616,7 +627,7 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
                 check=False,
                 shell=False,
             )
-        elif args.gate == HardeningGate.FRONTEND and target_file.endswith(".dart"):
+        elif target_file.endswith(".dart"):
             subprocess.run(
                 ["dart", "format", target_file],
                 cwd=root,
@@ -636,7 +647,7 @@ def run_quality_gate(
 
     Args:
         target_file: Path of target file.
-        gate: Hardening gate (backend or frontend).
+        gate: Hardening gate (backend, frontend, or all).
         timeout_seconds: Per-target audit timeout duration.
         repo_root: Workspace root directory.
 
@@ -648,7 +659,7 @@ def run_quality_gate(
     # Dispatches the designated quality gate audit loop with strict AST guardrails:
     # - Backend: uv run python scripts/backend_audit_loop.py <target_file> --test --ast-strict
     # - Frontend: uv run python scripts/flutter_audit_loop.py <target_file> --build
-    if gate == HardeningGate.BACKEND:
+    if gate == HardeningGate.BACKEND or (gate == HardeningGate.ALL and not target_file.endswith(".dart")):
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
     else:
         cmd = ["uv", "run", "python", "scripts/flutter_audit_loop.py", target_file, "--build"]
@@ -904,6 +915,34 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
         HardeningRunSummaryDTO summarizing all target iterations.
     """
     root = repo_root or get_repo_root()
+
+    if args.gate == HardeningGate.ALL and not args.targets:
+        backend_args = args.model_copy(update={"gate": HardeningGate.BACKEND})
+        backend_summary = run_hardening_pipeline(backend_args, repo_root=root)
+        if backend_summary.failure_count > 0 and args.fail_fast and not args.continue_on_failure:
+            return backend_summary
+
+        rem_max = max(0, args.max_files - backend_summary.processed_count) if args.max_files is not None else None
+        frontend_agent = args.agent_cmd
+        if frontend_agent and "/tier2-hardening-backend" in frontend_agent:
+            frontend_agent = frontend_agent.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
+
+        frontend_args = args.model_copy(
+            update={"gate": HardeningGate.FRONTEND, "agent_cmd": frontend_agent, "max_files": rem_max}
+        )
+        frontend_summary = run_hardening_pipeline(frontend_args, repo_root=root)
+
+        b_iters = backend_summary.iterations or []
+        f_iters = frontend_summary.iterations or []
+        return HardeningRunSummaryDTO(
+            total_targets=backend_summary.total_targets + frontend_summary.total_targets,
+            processed_count=backend_summary.processed_count + frontend_summary.processed_count,
+            success_count=backend_summary.success_count + frontend_summary.success_count,
+            failure_count=backend_summary.failure_count + frontend_summary.failure_count,
+            skipped_count=backend_summary.skipped_count + frontend_summary.skipped_count,
+            iterations=b_iters + f_iters,
+        )
+
     all_targets = fetch_unhardened_targets(args)
     total_targets = len(all_targets)
 
@@ -1013,9 +1052,9 @@ Key Behavioral Invariants for Autonomous AI Agents:
     parser.add_argument(
         "--gate",
         type=str,
-        choices=["backend", "frontend"],
-        default="backend",
-        help="Hardening gate category (backend or frontend).",
+        choices=["backend", "frontend", "all"],
+        default="all",
+        help="Hardening gate category (backend, frontend, or all; default: all).",
     )
     parser.add_argument("--targets", nargs="+", default=[], help="Explicit list of target file paths.")
     parser.add_argument("--max-files", type=int, default=None, help="Maximum number of files to process.")
@@ -1077,9 +1116,12 @@ Key Behavioral Invariants for Autonomous AI Agents:
 
     resolved_agent_cmd: str | None = parsed.agent_cmd
     if not resolved_agent_cmd and not parsed.no_agent:
-        resolved_agent_cmd = (
-            DEFAULT_BACKEND_AGENT_TEMPLATE if parsed.gate == "backend" else DEFAULT_FRONTEND_AGENT_TEMPLATE
-        )
+        if parsed.gate == "backend":
+            resolved_agent_cmd = DEFAULT_BACKEND_AGENT_TEMPLATE
+        elif parsed.gate == "frontend":
+            resolved_agent_cmd = DEFAULT_FRONTEND_AGENT_TEMPLATE
+        else:
+            resolved_agent_cmd = None
 
     try:
         dto = HardeningRunnerArgsDTO(

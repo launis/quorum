@@ -811,3 +811,61 @@ def test_fetch_unhardened_targets_unparsed_items_fail_fast(tmp_path: Path) -> No
     args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.BACKEND)
     with pytest.raises(ValueError, match="has pending Tier 2 Hardening \\(Backend\\) checklist items"):
         fetch_unhardened_targets(args)
+
+
+def test_fetch_unhardened_targets_gate_all(tmp_path: Path) -> None:
+    """TC-AHR-036: Verify HardeningGate.ALL discovers both backend and frontend targets seamlessly."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] @[backend_v2/services/foo.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run auto_hardening_runner
+  - [ ] @[client_app_v2/lib/features/bar.dart]
+""",
+        encoding="utf-8",
+    )
+
+    args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.ALL)
+    targets = fetch_unhardened_targets(args)
+    assert targets == ["backend_v2/services/foo.py", "client_app_v2/lib/features/bar.dart"]
+
+
+def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-037: Verify run_hardening_pipeline delegates across backend and frontend under HardeningGate.ALL."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] @[backend_v2/services/foo.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run auto_hardening_runner
+  - [ ] @[client_app_v2/lib/features/bar.dart]
+""",
+        encoding="utf-8",
+    )
+
+    processed_gates: list[HardeningGate] = []
+
+    def mock_process(target: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> HardeningIterationResultDTO:
+        processed_gates.append(args.gate)
+        return HardeningIterationResultDTO(
+            target_file=target,
+            gate=args.gate,
+            success=True,
+            attempts=1,
+            duration_seconds=0.1,
+            git_committed=True,
+            tracker_marked=True,
+        )
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.process_target_with_retries", mock_process)
+
+    args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.ALL)
+    summary = run_hardening_pipeline(args, repo_root=tmp_path)
+
+    assert summary.total_targets == 2
+    assert summary.success_count == 2
+    assert summary.failure_count == 0
+    assert processed_gates == [HardeningGate.BACKEND, HardeningGate.FRONTEND]
