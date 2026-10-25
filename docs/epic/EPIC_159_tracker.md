@@ -107,7 +107,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/audit_dict_eradication.py]
   - [x] @[.agents/rules/04_directory_reference.md]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-frontend @[{target}]'"`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-frontend @[{target}]'"`
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
@@ -116,7 +116,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify zero orphaned references to deleted static tools (`tavily`, `wikipedia`, `BaseTool`) exist across the codebase.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving and new MCP services (`generic_mcp_client.py`, `url_validator.py`, `alias_registry.py`, `dispatcher.py`, `schema_factory.py`).
 
