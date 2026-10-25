@@ -96,7 +96,7 @@
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
   - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
   - [x] @[backend_v2/llm/schema_builder.py]
-  - [ ] @[backend_v2/llm/provider.py]
+  - [x] @[backend_v2/llm/provider.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/studio/system_config_service.py]
   - [ ] @[backend_v2/api/routers/studio/mcp_gateways.py]
