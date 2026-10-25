@@ -45,7 +45,7 @@
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 2.1: SSRF URL & Network Egress Validator (MCPUrlValidator with non-blocking DNS resolution and cloud metadata / CIDR blocking)
-  - [ ] Step 2.2: Protocol-Agnostic GenericMCPClient (Streamable HTTP & HTTP+SSE with Tenacity retries and dual wire framing)
+  - [x] Step 2.2: Protocol-Agnostic GenericMCPClient (Streamable HTTP & HTTP+SSE with Tenacity retries and dual wire framing)
   - [ ] Step 2.3: Studio Introspection Endpoint, Multi-Gateway Slug Uniqueness & Cache Persistence (POST /api/studio/mcp-gateways/{gateway_id}/discover, delete_mcp_gateways, MCPGatewayCache)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
