@@ -82,7 +82,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"`
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/models/dtos/mcp.py]
-  - [ ] @[backend_v2/models/domain/system_config.py]
+  - [x] @[backend_v2/models/domain/system_config.py]
   - [ ] @[backend_v2/models/domain/mcp.py]
   - [ ] @[backend_v2/database/interfaces.py]
   - [ ] @[backend_v2/database/repositories/system.py]
