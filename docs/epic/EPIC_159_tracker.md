@@ -79,7 +79,7 @@
 ### Post-Implementation Gates
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verified zero skipped (@pytest.mark.skip) or commented-out tests across modified domains.
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Verified zero legacy static tool wrappers or deprecated symbols remain across codebase (audit_epic_coverage 100% PASS).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"`
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/models/dtos/mcp.py]
   - [x] @[backend_v2/models/domain/system_config.py]
@@ -102,7 +102,7 @@
   - [x] @[backend_v2/api/routers/studio/mcp_gateways.py]
   - [x] @[backend_v2/services/cache/typed_cache.py]
   - [x] @[backend_v2/services/source_verification_service.py]
-  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [x] @[backend_v2/hooks/source_verification_hook.py]
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/audit_dict_eradication.py]
