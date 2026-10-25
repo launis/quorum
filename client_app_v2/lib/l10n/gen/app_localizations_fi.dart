@@ -5410,5 +5410,109 @@ class AppLocalizationsFi extends AppLocalizations {
   String get causalInspectorCitationEvidenceHeader => 'Sitaattitodisteet';
 
   @override
+  String get mcpConnectionCardTitle => 'Yhteys ja todennus';
+
+  @override
+  String get mcpEndpointUrlLabel =>
+      'Päätepisteen URL (esim. https://mcp.tavily.com/mcp)';
+
+  @override
+  String get mcpTransportTypeLabel => 'Siirtoprotokolla';
+
+  @override
+  String get mcpTransportStreamableHttp => 'Streamable HTTP (JSON-RPC 2.0)';
+
+  @override
+  String get mcpTransportSse => 'HTTP + Server-Sent Events (SSE)';
+
+  @override
+  String get mcpAuthTypeLabel => 'Todennusmenetelmä';
+
+  @override
+  String get mcpAuthNone => 'Ei todennusta';
+
+  @override
+  String get mcpAuthBearer => 'Bearer-valtuutusavain';
+
+  @override
+  String get mcpAuthApiKeyHeader => 'Mukautettu API-avainotsake';
+
+  @override
+  String get mcpAuthHeaderNameLabel =>
+      'Todennusotsakkeen nimi (esim. X-API-Key)';
+
+  @override
+  String get mcpAuthEnvVarLabel =>
+      'Ympäristömuuttujan nimi (esim. TAVILY_API_KEY)';
+
+  @override
+  String get mcpTimeoutSecondsLabel => 'Aikakatkaisu (sekuntia)';
+
+  @override
+  String get mcpDiscoverToolsButton => 'Yhdistä ja hae työkalut';
+
+  @override
+  String mcpToolsDiscoveredSuccess(int count) {
+    return 'Haettiin $count työkalua MCP-yhdyskäytävästä.';
+  }
+
+  @override
+  String mcpDiscoverToolsFailed(String error) {
+    return 'Työkalujen haku epäonnistui: $error';
+  }
+
+  @override
+  String mcpDiscoveredToolsCountBadge(int count) {
+    return '$count työkalua';
+  }
+
+  @override
+  String get mcpToolEnabledLabel => 'Sallittu suorituksessa';
+
+  @override
+  String get mcpToolCapabilityLabel => 'Työkalun kyvykkyyskategoria';
+
+  @override
+  String get mcpCapabilitySearch => 'Tiedonhaku ja faktantarkistus';
+
+  @override
+  String get mcpCapabilityDocumentReader => 'Dokumenttien lukija';
+
+  @override
+  String get mcpCapabilityAction => 'Ulkoinen toiminto';
+
+  @override
+  String get mcpCapabilityGeneral => 'Yleiskäyttöinen työkalu';
+
+  @override
+  String get mcpParametersTableTitle =>
+      'Tarkastetut syöteparametrit (Vain luku)';
+
+  @override
+  String get mcpParamColName => 'Parametri';
+
+  @override
+  String get mcpParamColType => 'Tyyppi';
+
+  @override
+  String get mcpParamColRequired => 'Pakollinen';
+
+  @override
+  String get mcpParamColDescription => 'Kuvaus';
+
+  @override
+  String get mcpParamRequiredYes => 'Kyllä';
+
+  @override
+  String get mcpParamRequiredNo => 'Ei';
+
+  @override
+  String get mcpNoParametersDefined =>
+      'Skeemassa ei ole määritelty syöteparametreja.';
+
+  @override
+  String get studioWorkflowMcpToolsBoundBadgeTitle => 'Sidotut MCP-työkalut:';
+
+  @override
   String get causalInspectorLocationPrefix => 'Sijainti: ';
 }

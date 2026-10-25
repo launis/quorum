@@ -104,20 +104,29 @@ void main() {
     });
 
     test(
-      'saveGateway performs optimistic update and confirms with backend data',
+      'saveGateway performs optimistic update, confirms with backend data, and invalidates mcpGatewayByIdProvider',
       () async {
         when(
           () => mockClient.getMcpGateways(),
         ).thenAnswer((_) async => [validGateway]);
+        when(
+          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+        ).thenAnswer((_) async => validGateway);
 
         final controller = container.read(
           mcpGatewaysControllerProvider.notifier,
         );
         await container.read(mcpGatewaysControllerProvider.future);
+        await container.read(
+          mcpGatewayByIdProvider('mcp_0123456789abcdef').future,
+        );
 
         final modifiedGateway = validGateway.copyWith(slug: 'saved-slug');
         when(
           () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+        ).thenAnswer((_) async => modifiedGateway);
+        when(
+          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
         ).thenAnswer((_) async => modifiedGateway);
 
         final result = await controller.saveGateway(
@@ -130,6 +139,10 @@ void main() {
           container.read(mcpGatewaysControllerProvider).value?.first.slug,
           'saved-slug',
         );
+        final refreshedById = await container.read(
+          mcpGatewayByIdProvider('mcp_0123456789abcdef').future,
+        );
+        expect(refreshedById.slug, 'saved-slug');
         verify(
           () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
         ).called(1);
@@ -306,6 +319,82 @@ void main() {
         ),
       ).called(1);
     });
+
+    test(
+      'discoverTools updates gateway tools, invalidates mcpGatewayByIdProvider, and handles negative error partitions',
+      () async {
+        when(
+          () => mockClient.getMcpGateways(),
+        ).thenAnswer((_) async => [validGateway]);
+
+        final controller = container.read(
+          mcpGatewaysControllerProvider.notifier,
+        );
+        await container.read(mcpGatewaysControllerProvider.future);
+
+        const discoveredTool = AllowedMcpTool(
+          toolId: 'mcp_tavily_search',
+          name: I18nText(translations: {'en': 'Tavily Search'}),
+          description: 'Web search tool',
+        );
+        final discoveredGateway = validGateway.copyWith(
+          tools: [validTool, discoveredTool],
+        );
+
+        when(
+          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+        ).thenAnswer((_) async => discoveredGateway);
+        when(
+          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+        ).thenAnswer((_) async => discoveredGateway);
+
+        final result = await controller.discoverTools('mcp_0123456789abcdef');
+        expect(result.tools.length, 2);
+        expect(
+          container
+              .read(mcpGatewaysControllerProvider)
+              .value
+              ?.first
+              .tools
+              .length,
+          2,
+        );
+
+        // Negative 1: DioException with AppException rolls back and rethrows AppException
+        final dioError = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/studio/mcp-gateways/mcp_0123456789abcdef/discover',
+          ),
+          error: AppException.network('SSRF blocked private IP'),
+        );
+        when(
+          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+        ).thenThrow(dioError);
+
+        await expectLater(
+          () => controller.discoverTools('mcp_0123456789abcdef'),
+          throwsA(isA<AppException>()),
+        );
+
+        // Negative 2: Generic exception throws AppException
+        when(
+          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+        ).thenThrow(Exception('Unexpected socket close'));
+
+        await expectLater(
+          () => controller.discoverTools('mcp_0123456789abcdef'),
+          throwsA(isA<AppException>()),
+        );
+        verify(
+          () => mockLogger.error(
+            'McpGatewaysController',
+            'Discover tools failed',
+            any(),
+            any(),
+          ),
+        ).called(2);
+      },
+    );
   });
 
   group('mcpGatewayByIdProvider', () {
@@ -414,5 +503,71 @@ void main() {
         'mcp_0123456789abcdef',
       );
     });
+
+    test(
+      'discoverTools saves gateway then triggers discovery and propagates errors unconditionally',
+      () async {
+        when(
+          () => mockClient.getMcpGateway('mcp_0123456789abcdef'),
+        ).thenAnswer((_) async => validGateway);
+        when(
+          () => mockClient.getMcpGateways(),
+        ).thenAnswer((_) async => [validGateway]);
+        when(
+          () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+        ).thenAnswer((_) async => validGateway);
+
+        const discoveredTool = AllowedMcpTool(
+          toolId: 'mcp_tavily_search',
+          name: I18nText(translations: {'en': 'Tavily Search'}),
+          description: 'Discovered search tool',
+        );
+        final discoveredGateway = validGateway.copyWith(
+          endpointUrl: 'https://mcp.example.com/rpc',
+          tools: [discoveredTool],
+        );
+        when(
+          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+        ).thenAnswer((_) async => discoveredGateway);
+
+        final formNotifier = container.read(
+          mcpGatewayFormProvider('mcp_0123456789abcdef').notifier,
+        );
+        await container.read(
+          mcpGatewayFormProvider('mcp_0123456789abcdef').future,
+        );
+
+        await formNotifier.discoverTools(
+          validGateway.copyWith(endpointUrl: 'https://mcp.example.com/rpc'),
+        );
+
+        final updatedFormValue = container
+            .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+            .value;
+        expect(updatedFormValue?.tools.first.toolId, 'mcp_tavily_search');
+
+        // Negative 1: discovery error propagates unconditionally via throw state.error!
+        when(
+          () => mockClient.discoverMcpGatewayTools('mcp_0123456789abcdef'),
+        ).thenThrow(AppException.network('Discovery endpoint unreachable'));
+
+        await expectLater(
+          () => formNotifier.discoverTools(validGateway),
+          throwsA(isA<AppException>()),
+        );
+        expect(
+          container
+              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+              .hasError,
+          isTrue,
+        );
+
+        // Negative 2: uninitialized gateway state without explicit payload throws validation error
+        await expectLater(
+          () => formNotifier.discoverTools(),
+          throwsA(isA<AppException>()),
+        );
+      },
+    );
   });
 }

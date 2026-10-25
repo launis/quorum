@@ -9678,6 +9678,192 @@ abstract class AppLocalizations {
   /// **'Citation Evidence'**
   String get causalInspectorCitationEvidenceHeader;
 
+  /// No description provided for @mcpConnectionCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection & Authentication'**
+  String get mcpConnectionCardTitle;
+
+  /// No description provided for @mcpEndpointUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint URL (e.g., https://mcp.tavily.com/mcp)'**
+  String get mcpEndpointUrlLabel;
+
+  /// No description provided for @mcpTransportTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport Protocol'**
+  String get mcpTransportTypeLabel;
+
+  /// No description provided for @mcpTransportStreamableHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'Streamable HTTP (JSON-RPC 2.0)'**
+  String get mcpTransportStreamableHttp;
+
+  /// No description provided for @mcpTransportSse.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP + Server-Sent Events (SSE)'**
+  String get mcpTransportSse;
+
+  /// No description provided for @mcpAuthTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication Scheme'**
+  String get mcpAuthTypeLabel;
+
+  /// No description provided for @mcpAuthNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get mcpAuthNone;
+
+  /// No description provided for @mcpAuthBearer.
+  ///
+  /// In en, this message translates to:
+  /// **'Bearer Token'**
+  String get mcpAuthBearer;
+
+  /// No description provided for @mcpAuthApiKeyHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom API Key Header'**
+  String get mcpAuthApiKeyHeader;
+
+  /// No description provided for @mcpAuthHeaderNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication Header Name (e.g., X-API-Key)'**
+  String get mcpAuthHeaderNameLabel;
+
+  /// No description provided for @mcpAuthEnvVarLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment Variable Name (e.g., TAVILY_API_KEY)'**
+  String get mcpAuthEnvVarLabel;
+
+  /// No description provided for @mcpTimeoutSecondsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeout (seconds)'**
+  String get mcpTimeoutSecondsLabel;
+
+  /// No description provided for @mcpDiscoverToolsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect and Discover Tools'**
+  String get mcpDiscoverToolsButton;
+
+  /// No description provided for @mcpToolsDiscoveredSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered {count} tools from MCP gateway.'**
+  String mcpToolsDiscoveredSuccess(int count);
+
+  /// No description provided for @mcpDiscoverToolsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool discovery failed: {error}'**
+  String mcpDiscoverToolsFailed(String error);
+
+  /// No description provided for @mcpDiscoveredToolsCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} tools'**
+  String mcpDiscoveredToolsCountBadge(int count);
+
+  /// No description provided for @mcpToolEnabledLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Allowlisted for Execution'**
+  String get mcpToolEnabledLabel;
+
+  /// No description provided for @mcpToolCapabilityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool Capability Category'**
+  String get mcpToolCapabilityLabel;
+
+  /// No description provided for @mcpCapabilitySearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search & Verification'**
+  String get mcpCapabilitySearch;
+
+  /// No description provided for @mcpCapabilityDocumentReader.
+  ///
+  /// In en, this message translates to:
+  /// **'Document Reader'**
+  String get mcpCapabilityDocumentReader;
+
+  /// No description provided for @mcpCapabilityAction.
+  ///
+  /// In en, this message translates to:
+  /// **'External Action'**
+  String get mcpCapabilityAction;
+
+  /// No description provided for @mcpCapabilityGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General Utility'**
+  String get mcpCapabilityGeneral;
+
+  /// No description provided for @mcpParametersTableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspected Input Parameters (Read-Only)'**
+  String get mcpParametersTableTitle;
+
+  /// No description provided for @mcpParamColName.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameter'**
+  String get mcpParamColName;
+
+  /// No description provided for @mcpParamColType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get mcpParamColType;
+
+  /// No description provided for @mcpParamColRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get mcpParamColRequired;
+
+  /// No description provided for @mcpParamColDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get mcpParamColDescription;
+
+  /// No description provided for @mcpParamRequiredYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get mcpParamRequiredYes;
+
+  /// No description provided for @mcpParamRequiredNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get mcpParamRequiredNo;
+
+  /// No description provided for @mcpNoParametersDefined.
+  ///
+  /// In en, this message translates to:
+  /// **'No input parameters declared in schema.'**
+  String get mcpNoParametersDefined;
+
+  /// No description provided for @studioWorkflowMcpToolsBoundBadgeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bound MCP Tools:'**
+  String get studioWorkflowMcpToolsBoundBadgeTitle;
+
   /// Prefix label for location coordinate in citation evidence
   ///
   /// In en, this message translates to:

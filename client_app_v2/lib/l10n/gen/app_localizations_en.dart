@@ -5370,5 +5370,109 @@ class AppLocalizationsEn extends AppLocalizations {
   String get causalInspectorCitationEvidenceHeader => 'Citation Evidence';
 
   @override
+  String get mcpConnectionCardTitle => 'Connection & Authentication';
+
+  @override
+  String get mcpEndpointUrlLabel =>
+      'Endpoint URL (e.g., https://mcp.tavily.com/mcp)';
+
+  @override
+  String get mcpTransportTypeLabel => 'Transport Protocol';
+
+  @override
+  String get mcpTransportStreamableHttp => 'Streamable HTTP (JSON-RPC 2.0)';
+
+  @override
+  String get mcpTransportSse => 'HTTP + Server-Sent Events (SSE)';
+
+  @override
+  String get mcpAuthTypeLabel => 'Authentication Scheme';
+
+  @override
+  String get mcpAuthNone => 'None';
+
+  @override
+  String get mcpAuthBearer => 'Bearer Token';
+
+  @override
+  String get mcpAuthApiKeyHeader => 'Custom API Key Header';
+
+  @override
+  String get mcpAuthHeaderNameLabel =>
+      'Authentication Header Name (e.g., X-API-Key)';
+
+  @override
+  String get mcpAuthEnvVarLabel =>
+      'Environment Variable Name (e.g., TAVILY_API_KEY)';
+
+  @override
+  String get mcpTimeoutSecondsLabel => 'Timeout (seconds)';
+
+  @override
+  String get mcpDiscoverToolsButton => 'Connect and Discover Tools';
+
+  @override
+  String mcpToolsDiscoveredSuccess(int count) {
+    return 'Discovered $count tools from MCP gateway.';
+  }
+
+  @override
+  String mcpDiscoverToolsFailed(String error) {
+    return 'Tool discovery failed: $error';
+  }
+
+  @override
+  String mcpDiscoveredToolsCountBadge(int count) {
+    return '$count tools';
+  }
+
+  @override
+  String get mcpToolEnabledLabel => 'Allowlisted for Execution';
+
+  @override
+  String get mcpToolCapabilityLabel => 'Tool Capability Category';
+
+  @override
+  String get mcpCapabilitySearch => 'Search & Verification';
+
+  @override
+  String get mcpCapabilityDocumentReader => 'Document Reader';
+
+  @override
+  String get mcpCapabilityAction => 'External Action';
+
+  @override
+  String get mcpCapabilityGeneral => 'General Utility';
+
+  @override
+  String get mcpParametersTableTitle =>
+      'Inspected Input Parameters (Read-Only)';
+
+  @override
+  String get mcpParamColName => 'Parameter';
+
+  @override
+  String get mcpParamColType => 'Type';
+
+  @override
+  String get mcpParamColRequired => 'Required';
+
+  @override
+  String get mcpParamColDescription => 'Description';
+
+  @override
+  String get mcpParamRequiredYes => 'Yes';
+
+  @override
+  String get mcpParamRequiredNo => 'No';
+
+  @override
+  String get mcpNoParametersDefined =>
+      'No input parameters declared in schema.';
+
+  @override
+  String get studioWorkflowMcpToolsBoundBadgeTitle => 'Bound MCP Tools:';
+
+  @override
   String get causalInspectorLocationPrefix => 'Location: ';
 }

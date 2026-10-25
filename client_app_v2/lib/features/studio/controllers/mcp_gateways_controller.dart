@@ -75,6 +75,8 @@ class McpGatewaysController extends _$McpGatewaysController {
           state = AsyncValue.data(currentList);
         }
       }
+      // Phase 4, Step 4.1: Invalidate single-gateway provider to prevent stale cache
+      ref.invalidate(mcpGatewayByIdProvider(id));
       return verifiedGateway;
     } catch (e, st) {
       // 4. Rollback on Failure
@@ -160,6 +162,40 @@ class McpGatewaysController extends _$McpGatewaysController {
       throw AppException.unknown(e);
     }
   }
+
+  /// Phase 4, Step 4.1: Connects to the external MCP server to discover tools and update schemas.
+  Future<McpGateway> discoverTools(String id) async {
+    final previousState = state;
+    try {
+      final client = ref.read(studioClientProvider);
+      final discoveredGateway = await client.discoverMcpGatewayTools(id);
+
+      if (state.hasValue && state.value != null) {
+        final currentList = List<McpGateway>.from(state.value!);
+        final index = currentList.indexWhere((m) => m.id == id);
+        if (index >= 0) {
+          currentList[index] = discoveredGateway;
+        } else {
+          currentList.add(discoveredGateway);
+        }
+        state = AsyncValue.data(currentList);
+      }
+      ref.invalidate(mcpGatewayByIdProvider(id));
+      return discoveredGateway;
+    } catch (e, st) {
+      state = previousState;
+      ref
+          .read(loggerServiceProvider)
+          .error('McpGatewaysController', 'Discover tools failed', e, st);
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      if (e is AppException) {
+        rethrow;
+      }
+      throw AppException.unknown(e);
+    }
+  }
 }
 
 /// Fetches a single MCP Gateway natively by ID
@@ -216,10 +252,32 @@ class McpGatewayForm extends _$McpGatewayForm {
 
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData.id.isNotEmpty ? updatedData.id : gatewayId;
-      await ref
+      final saved = await ref
           .read(mcpGatewaysControllerProvider.notifier)
           .saveGateway(idToSave, updatedData);
-      return updatedData; // Optimistic form state return
+      return saved;
+    });
+    if (state.hasError) {
+      throw state.error!;
+    }
+  }
+
+  /// Phase 4, Step 4.1: Saves current connection parameters and triggers live MCP tool discovery.
+  Future<void> discoverTools([McpGateway? updatedData]) async {
+    final currentPayload = updatedData ?? state.value;
+    if (currentPayload == null) {
+      throw AppException.validation('Cannot discover tools on uninitialized gateway.');
+    }
+
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(() async {
+      final idToDiscover =
+          currentPayload.id.isNotEmpty ? currentPayload.id : gatewayId;
+      final controller = ref.read(mcpGatewaysControllerProvider.notifier);
+      await controller.saveGateway(idToDiscover, currentPayload);
+      final discovered = await controller.discoverTools(idToDiscover);
+      return discovered;
     });
     if (state.hasError) {
       throw state.error!;

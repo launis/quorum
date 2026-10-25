@@ -40,7 +40,7 @@ final class McpGatewaysControllerProvider
 }
 
 String _$mcpGatewaysControllerHash() =>
-    r'708b01bdc76d4e830bdc0f815e2aaba293ca7e53';
+    r'c446b6f1d75dffa50a51ef00d8641c2ca40d7529';
 
 /// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
@@ -189,7 +189,7 @@ final class McpGatewayFormProvider
   }
 }
 
-String _$mcpGatewayFormHash() => r'3046992463e39c7fb1d4d42f0c6e7f55f4718144';
+String _$mcpGatewayFormHash() => r'522c6e92988e1dfdd2faba7902dcc0a3ae08f98d';
 
 final class McpGatewayFormFamily extends $Family
     with

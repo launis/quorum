@@ -353,4 +353,7 @@ class MockMcpGatewaysController extends AsyncNotifier<List<McpGateway>>
   @override
   Future<McpGateway> createMcpGatewayDraft() async =>
       const McpGateway(id: 'gw_draft', slug: 'draft');
+  @override
+  Future<McpGateway> discoverTools(String id) async =>
+      McpGateway(id: id, slug: 'discovered');
 }

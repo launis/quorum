@@ -2699,6 +2699,58 @@
   "@causalInspectorCitationEvidenceHeader": {
     "description": "Header for citation evidence section in causal inspector modal"
   },
+  "mcpConnectionCardTitle": "Connection & Authentication",
+  "mcpEndpointUrlLabel": "Endpoint URL (e.g., https://mcp.tavily.com/mcp)",
+  "mcpTransportTypeLabel": "Transport Protocol",
+  "mcpTransportStreamableHttp": "Streamable HTTP (JSON-RPC 2.0)",
+  "mcpTransportSse": "HTTP + Server-Sent Events (SSE)",
+  "mcpAuthTypeLabel": "Authentication Scheme",
+  "mcpAuthNone": "None",
+  "mcpAuthBearer": "Bearer Token",
+  "mcpAuthApiKeyHeader": "Custom API Key Header",
+  "mcpAuthHeaderNameLabel": "Authentication Header Name (e.g., X-API-Key)",
+  "mcpAuthEnvVarLabel": "Environment Variable Name (e.g., TAVILY_API_KEY)",
+  "mcpTimeoutSecondsLabel": "Timeout (seconds)",
+  "mcpDiscoverToolsButton": "Connect and Discover Tools",
+  "mcpToolsDiscoveredSuccess": "Discovered {count} tools from MCP gateway.",
+  "@mcpToolsDiscoveredSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mcpDiscoverToolsFailed": "Tool discovery failed: {error}",
+  "@mcpDiscoverToolsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mcpDiscoveredToolsCountBadge": "{count} tools",
+  "@mcpDiscoveredToolsCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mcpToolEnabledLabel": "Allowlisted for Execution",
+  "mcpToolCapabilityLabel": "Tool Capability Category",
+  "mcpCapabilitySearch": "Search & Verification",
+  "mcpCapabilityDocumentReader": "Document Reader",
+  "mcpCapabilityAction": "External Action",
+  "mcpCapabilityGeneral": "General Utility",
+  "mcpParametersTableTitle": "Inspected Input Parameters (Read-Only)",
+  "mcpParamColName": "Parameter",
+  "mcpParamColType": "Type",
+  "mcpParamColRequired": "Required",
+  "mcpParamColDescription": "Description",
+  "mcpParamRequiredYes": "Yes",
+  "mcpParamRequiredNo": "No",
+  "mcpNoParametersDefined": "No input parameters declared in schema.",
+  "studioWorkflowMcpToolsBoundBadgeTitle": "Bound MCP Tools:",
   "causalInspectorLocationPrefix": "Location: ",
   "@causalInspectorLocationPrefix": {
     "description": "Prefix label for location coordinate in citation evidence"

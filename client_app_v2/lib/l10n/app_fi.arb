@@ -1949,6 +1949,58 @@
   "@causalInspectorCitationEvidenceHeader": {
     "description": "Sitaattitodisteosion otsikko kausaalitarkastimessa"
   },
+  "mcpConnectionCardTitle": "Yhteys ja todennus",
+  "mcpEndpointUrlLabel": "Päätepisteen URL (esim. https://mcp.tavily.com/mcp)",
+  "mcpTransportTypeLabel": "Siirtoprotokolla",
+  "mcpTransportStreamableHttp": "Streamable HTTP (JSON-RPC 2.0)",
+  "mcpTransportSse": "HTTP + Server-Sent Events (SSE)",
+  "mcpAuthTypeLabel": "Todennusmenetelmä",
+  "mcpAuthNone": "Ei todennusta",
+  "mcpAuthBearer": "Bearer-valtuutusavain",
+  "mcpAuthApiKeyHeader": "Mukautettu API-avainotsake",
+  "mcpAuthHeaderNameLabel": "Todennusotsakkeen nimi (esim. X-API-Key)",
+  "mcpAuthEnvVarLabel": "Ympäristömuuttujan nimi (esim. TAVILY_API_KEY)",
+  "mcpTimeoutSecondsLabel": "Aikakatkaisu (sekuntia)",
+  "mcpDiscoverToolsButton": "Yhdistä ja hae työkalut",
+  "mcpToolsDiscoveredSuccess": "Haettiin {count} työkalua MCP-yhdyskäytävästä.",
+  "@mcpToolsDiscoveredSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mcpDiscoverToolsFailed": "Työkalujen haku epäonnistui: {error}",
+  "@mcpDiscoverToolsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "mcpDiscoveredToolsCountBadge": "{count} työkalua",
+  "@mcpDiscoveredToolsCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mcpToolEnabledLabel": "Sallittu suorituksessa",
+  "mcpToolCapabilityLabel": "Työkalun kyvykkyyskategoria",
+  "mcpCapabilitySearch": "Tiedonhaku ja faktantarkistus",
+  "mcpCapabilityDocumentReader": "Dokumenttien lukija",
+  "mcpCapabilityAction": "Ulkoinen toiminto",
+  "mcpCapabilityGeneral": "Yleiskäyttöinen työkalu",
+  "mcpParametersTableTitle": "Tarkastetut syöteparametrit (Vain luku)",
+  "mcpParamColName": "Parametri",
+  "mcpParamColType": "Tyyppi",
+  "mcpParamColRequired": "Pakollinen",
+  "mcpParamColDescription": "Kuvaus",
+  "mcpParamRequiredYes": "Kyllä",
+  "mcpParamRequiredNo": "Ei",
+  "mcpNoParametersDefined": "Skeemassa ei ole määritelty syöteparametreja.",
+  "studioWorkflowMcpToolsBoundBadgeTitle": "Sidotut MCP-työkalut:",
   "causalInspectorLocationPrefix": "Sijainti: ",
   "@causalInspectorLocationPrefix": {
     "description": "Sijaintikoordinaatin etuliite sitaattitodisteissa"
