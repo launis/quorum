@@ -85,8 +85,16 @@ class WorkflowFactory(ModelFactory[Workflow]):
     is_public: bool = False
     organization_id: str | None = "org_testorg123"
     historical_context_mode: Literal["DISABLED"] = "DISABLED"
-    expected_inputs: list[Any] = []
-    steps: list[Any] = []
+
+    @classmethod
+    def expected_inputs(cls) -> list[Any]:
+        """Generates an empty expected inputs list."""
+        return []
+
+    @classmethod
+    def steps(cls) -> list[Any]:
+        """Generates an empty workflow steps list."""
+        return []
 
     @classmethod
     def id(cls) -> str:
@@ -126,8 +134,12 @@ class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
     allow_decimals: bool = False
     is_lightweight_protocol: bool = False
     organization_id: str | None = "org_testorg123"
-    output_extensions: list[str] = []
     instruction_text: str | None = "System instruction text for test execution."
+
+    @classmethod
+    def output_extensions(cls) -> list[str]:
+        """Generates an empty output extensions list."""
+        return []
 
     @classmethod
     def id(cls) -> str:
@@ -158,20 +170,36 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
 
     organization_id: str | None = "org_testorg123"
     display_scale: DisplayScale = DisplayScale.ORIGINAL
-    target_block_order: list[TargetBlockType] = [
-        TargetBlockType.METADATA_BLOCK,
-        TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
-        TargetBlockType.SYNTHESIS_TEXT_BLOCK,
-    ]
-    matrix_synthesis_groups: list[MatrixSynthesisGroup] = []
-    metadata_visible_fields: list[str] = ["date", "organization", "user", "scoring_engine", "strictness"]
-    matrix_visible_columns: list[str] = [
-        "label",
-        "distribution",
-        "row_explanation",
-        "normalized_score",
-        "raw_score",
-    ]
+
+    @classmethod
+    def target_block_order(cls) -> list[TargetBlockType]:
+        """Generates standard target block ordering."""
+        return [
+            TargetBlockType.METADATA_BLOCK,
+            TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+            TargetBlockType.SYNTHESIS_TEXT_BLOCK,
+        ]
+
+    @classmethod
+    def matrix_synthesis_groups(cls) -> list[MatrixSynthesisGroup]:
+        """Generates an empty matrix synthesis groups list."""
+        return []
+
+    @classmethod
+    def metadata_visible_fields(cls) -> list[str]:
+        """Generates standard metadata visible fields."""
+        return ["date", "organization", "user", "scoring_engine", "strictness"]
+
+    @classmethod
+    def matrix_visible_columns(cls) -> list[str]:
+        """Generates standard matrix visible columns."""
+        return [
+            "label",
+            "distribution",
+            "row_explanation",
+            "normalized_score",
+            "raw_score",
+        ]
 
     @classmethod
     def id(cls) -> str:
@@ -277,7 +305,11 @@ class ExecutionStepFactory(ModelFactory[ExecutionStep]):
     cost_usd: float = 0.0
     duration_ms: int = 0
     chunk_count: int = 1
-    scorecard_atoms: dict[str, JsonValue] = {}
+
+    @classmethod
+    def scorecard_atoms(cls) -> dict[str, JsonValue]:
+        """Generates an empty scorecard atoms mapping."""
+        return {}
 
     @classmethod
     def id(cls) -> str:
@@ -294,16 +326,40 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
     target_locale: str = "en"
     status: ExecutionStatus = ExecutionStatus.PENDING
     workflow_version: int = 1
-    execution_trace: list[Any] = []
-    steps: list[Any] = []
-    step_states: dict[str, JsonValue] = {}
-    profile_syntheses: dict[str, JsonValue] = {}
-    source_identity_manifest: dict[str, JsonValue] = {}
-    models_used: dict[str, JsonValue] = {}
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached_tokens: int = 0
     reasoning_tokens: int = 0
+
+    @classmethod
+    def execution_trace(cls) -> list[Any]:
+        """Generates an empty execution trace list."""
+        return []
+
+    @classmethod
+    def steps(cls) -> list[Any]:
+        """Generates an empty steps list."""
+        return []
+
+    @classmethod
+    def step_states(cls) -> dict[str, JsonValue]:
+        """Generates an empty step states dictionary."""
+        return {}
+
+    @classmethod
+    def profile_syntheses(cls) -> dict[str, JsonValue]:
+        """Generates an empty profile syntheses dictionary."""
+        return {}
+
+    @classmethod
+    def source_identity_manifest(cls) -> dict[str, JsonValue]:
+        """Generates an empty source identity manifest dictionary."""
+        return {}
+
+    @classmethod
+    def models_used(cls) -> dict[str, JsonValue]:
+        """Generates an empty models used dictionary."""
+        return {}
 
     @classmethod
     def id(cls) -> str:
@@ -411,10 +467,18 @@ class CausalNodeDTOFactory(ModelFactory[CausalNodeDTO]):
     source_quotes: tuple[str, ...] | None = ("Verbatim quote.",)
     paragraph_ref: str | None = "B0"
     status: ExecutionStatus = ExecutionStatus.PASSED
-    blame_parent_ids: list[str] = []
-    dependent_child_ids: list[str] = []
     tda_score: float | None = None
     tda_level_key: str | None = None
+
+    @classmethod
+    def blame_parent_ids(cls) -> list[str]:
+        """Generates an empty blame parent IDs list."""
+        return []
+
+    @classmethod
+    def dependent_child_ids(cls) -> list[str]:
+        """Generates an empty dependent child IDs list."""
+        return []
 
 
 class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
@@ -422,6 +486,8 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
 
     __model__ = CausalGraphPayloadDTO
     __set_as_default_factory_for_type__ = True
+
+    cycle_detected: bool = False
 
     @classmethod
     def nodes(cls) -> list[CausalNodeDTO]:
@@ -458,6 +524,12 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
             )
         ]
 
-    root_cause_node_ids: list[str] = []
-    cycle_detected: bool = False
-    isolated_node_ids: list[str] = []
+    @classmethod
+    def root_cause_node_ids(cls) -> list[str]:
+        """Generates an empty root cause node IDs list."""
+        return []
+
+    @classmethod
+    def isolated_node_ids(cls) -> list[str]:
+        """Generates an empty isolated node IDs list."""
+        return []

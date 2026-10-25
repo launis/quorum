@@ -34,7 +34,7 @@
 
 ### Phase 4: Atomic Cutover & Consumer Rewiring
 **Plan:** @[docs/epic/tasks_report_service/phase4_cutover.md]
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]` (`fd2b35bea`)
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]` (`ae46aed27`)
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]
   - [x] Step 4.1: Mechanically rewire 1-hop consumer imports per `symbol_migration_map.md`
   - [x] Step 4.2: Partition monolithic test file into focused modular test suites
@@ -44,7 +44,7 @@
 ### Post-Implementation Gates
 
 #### Tier 2 Hardening (Backend)
-- [ ] **[NOK] Tier 2 Hardening:** /tier2-hardening-backend
+- [ ] **[NOK] Tier 2 Hardening (Backend):** /tier2-hardening-backend
   - [ ] @[backend_v2/services/report/lifecycle_service.py]
   - [ ] @[backend_v2/services/report/compilation_service.py]
   - [ ] @[backend_v2/services/report/format_reader_service.py]

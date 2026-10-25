@@ -475,9 +475,12 @@ def test_build_tool_evidence_message() -> None:
         duration_ms=10,
     )
     empty_msg = _build_tool_evidence_message(empty_trace, "call_123")
-    assert empty_msg["role"] == "tool"
-    assert empty_msg["tool_call_id"] == "call_123"
-    assert "Search returned no results" in empty_msg["content"]
+    assert empty_msg.role == "tool"
+    assert empty_msg.tool_call_id == "call_123"
+    assert isinstance(empty_msg.content, str)
+    assert "Search returned no results" in empty_msg.content
+
+
 
     # Populated trace
     populated_trace = MCPAuditTrace(
@@ -492,10 +495,14 @@ def test_build_tool_evidence_message() -> None:
         duration_ms=10,
     )
     pop_msg = _build_tool_evidence_message(populated_trace, "call_456")
-    assert pop_msg["role"] == "tool"
-    assert "<query>verified query</query>" in pop_msg["content"]
-    assert "<summary>Verified finding summary</summary>" in pop_msg["content"]
-    assert "<url>https://example.com/source1</url>" in pop_msg["content"]
+    assert pop_msg.role == "tool"
+    assert isinstance(pop_msg.content, str)
+    assert "<query>verified query</query>" in pop_msg.content
+    assert "<summary>Verified finding summary</summary>" in pop_msg.content
+    assert "<url>https://example.com/source1</url>" in pop_msg.content
+
+
+
 
 
 @pytest.mark.asyncio
@@ -537,7 +544,8 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
 
     assert result.result_data["score"] == 4.5
     call_args = executor.execute_structured_task.call_args.kwargs
-    first_msg = call_args["messages"][0]["content"]
+    first_msg = call_args["messages"][0].content
+    assert isinstance(first_msg, str)
     assert "<synthesis_preamble>Custom preamble for profile.</synthesis_preamble>" in first_msg
     assert "<synthesis_length_limit>200</synthesis_length_limit>" in first_msg
 
@@ -897,7 +905,8 @@ async def test_execute_mcp_retrieval_success_with_traces() -> None:
 
     call_args = executor.execute_structured_task.call_args
     passed_messages = call_args.kwargs["messages"]
-    sys_content = passed_messages[0]["content"]
+    sys_content = passed_messages[0].content
+    assert isinstance(sys_content, str)
     assert "<rule>Focus search strictly on financial filing names.</rule>" in sys_content
 
 
@@ -1105,5 +1114,6 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
     assert len(result.audit_traces) == 1
     assert mock_search.call_count == 1
     final_call_messages = executor.execute_structured_task.call_args.kwargs["messages"]
-    assert final_call_messages[0]["role"] == "system"
-    assert "<synthesis_preamble>Preamble constraint.</synthesis_preamble>" in final_call_messages[0]["content"]
+    assert final_call_messages[0].role == "system"
+    assert isinstance(final_call_messages[0].content, str)
+    assert "<synthesis_preamble>Preamble constraint.</synthesis_preamble>" in final_call_messages[0].content

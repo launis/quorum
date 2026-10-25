@@ -209,3 +209,15 @@ class TestSourceSufficiencyGate:
         from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
 
         assert is_source_sufficient("Check this link") is False
+
+    def test_invalid_query_relevance_failure(self) -> None:
+        """Negative: completely unrelated search query fails relevance validation."""
+        from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
+
+        assert (
+            validate_query_relevance(
+                "cryptocurrency arbitrage trading",
+                "Pediatric clinical guidelines for respiratory care.",
+            )
+            is False
+        )

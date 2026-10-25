@@ -9,7 +9,6 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
 import asyncio
-import json
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
@@ -22,6 +21,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
     CitationExtractionFailure,
+    CitationExtractionItemDTO,
     CitationExtractionResult,
     MCPRetrievalResultDTO,
     MCPSynthesisInstructionsDTO,
@@ -29,6 +29,7 @@ from backend_v2.models.domain.mcp import (
 )
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.mcp import MCPValidationContextDTO
 from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
@@ -111,7 +112,7 @@ def is_source_sufficient(source_context: str) -> bool:
     return len(source_context.strip()) >= SourceSufficiencyThreshold.MIN_CHARS.value
 
 
-def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dict[str, str]:
+def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> LLMMessageDTO:
     """Convert an MCPAuditTrace into a ToolMessage for LLM injection.
 
     Args:
@@ -120,17 +121,17 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
                       Must match exactly for LiteLLM/Gemini transformation.
 
     Returns:
-        Tool message formatted for OpenAI/LiteLLM.
+        Tool message formatted as an immutable LLMMessageDTO.
     """
     if not audit.response_summary and not audit.source_urls:
-        return {
-            "role": "tool",
-            "tool_call_id": tool_call_id,
-            "content": (
+        return LLMMessageDTO(
+            role="tool",
+            tool_call_id=tool_call_id,
+            content=(
                 "<tool_response><info>Search returned no results. "
                 "Proceed with your evaluation using available context only.</info></tool_response>"
             ),
-        }
+        )
 
     content = f"<tool_response>\n  <query>{audit.query}</query>\n"
     if audit.response_summary:
@@ -142,11 +143,11 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
         content += "  </sources>\n"
     content += "</tool_response>"
 
-    return {
-        "role": "tool",
-        "tool_call_id": tool_call_id,
-        "content": content,
-    }
+    return LLMMessageDTO(
+        role="tool",
+        tool_call_id=tool_call_id,
+        content=content,
+    )
 
 
 async def execute_mcp_retrieval(
@@ -226,32 +227,32 @@ async def execute_mcp_retrieval(
 
     effective_max_calls = get_settings().max_tool_calls_per_step
 
-    strictness_level = 100
-    if validation_context and "strictness_level" in validation_context:
-        strictness_val = validation_context["strictness_level"]
-        if isinstance(strictness_val, int):
-            strictness_level = strictness_val
-        elif isinstance(strictness_val, (str, float)):
-            strictness_level = int(strictness_val)
+    val_ctx = (
+        MCPValidationContextDTO.model_validate(validation_context, strict=False)
+        if validation_context is not None
+        else MCPValidationContextDTO()
+    )
+    strictness_level = int(val_ctx.strictness_level)
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     audit_traces: list[MCPAuditTrace] = []
 
-    query_guidance: str | None = None
-    if validation_context and "query_guidance" in validation_context:
-        raw_guidance = validation_context["query_guidance"]
-        if isinstance(raw_guidance, str) and raw_guidance.strip():
-            query_guidance = raw_guidance.strip()
+    query_guidance = (
+        val_ctx.query_guidance.strip()
+        if val_ctx.query_guidance is not None and val_ctx.query_guidance.strip()
+        else None
+    )
 
     extraction_sys_msg = build_mcp_citation_extraction_directive(
         target_language=target_language, query_guidance=query_guidance
     )
 
-    extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
+    extraction_messages: list[LLMMessageDTO] = [
+        LLMMessageDTO(role="system", content=extraction_sys_msg),
+    ]
     for msg in typed_messages:
         if msg.role == "user":
-            content_val = msg.content if isinstance(msg.content, str) else json.dumps(msg.content)
-            extraction_messages.append({"role": "user", "content": content_val})
+            extraction_messages.append(LLMMessageDTO(role="user", content=msg.content))
 
     fast_client = llm_client
     if repository is not None:
@@ -274,7 +275,7 @@ async def execute_mcp_retrieval(
                 messages=extraction_messages,
                 response_model=CitationExtractionResult,
                 mock_identity=mock_identity,
-                validation_context=validation_context,
+                validation_context=val_ctx.model_dump(mode="json"),
             )
             if not isinstance(res, CitationExtractionResult):
                 res = CitationExtractionResult.model_validate(res)
@@ -313,7 +314,7 @@ async def execute_mcp_retrieval(
         raise AppException(message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value})
 
     run_appearances: defaultdict[str, int] = defaultdict(int)
-    normalized_to_original = {}
+    normalized_to_original: dict[str, CitationExtractionItemDTO] = {}
 
     for res, _ in successful_runs:
         seen_in_this_run = set()
@@ -362,9 +363,9 @@ async def execute_mcp_retrieval(
                 correction_user_msg = (
                     f"<failed_claim>\n{claim}\n</failed_claim>\n\n<source_context>\n{source_context}\n</source_context>"
                 )
-                correction_messages = [
-                    {"role": "system", "content": CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION},
-                    {"role": "user", "content": correction_user_msg},
+                correction_messages: list[LLMMessageDTO] = [
+                    LLMMessageDTO(role="system", content=CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION),
+                    LLMMessageDTO(role="user", content=correction_user_msg),
                 ]
                 try:
                     correction_res_raw, correction_usage = await executor.execute_structured_task(
@@ -372,7 +373,7 @@ async def execute_mcp_retrieval(
                         messages=correction_messages,
                         response_model=CitationCorrectionResult,
                         mock_identity=mock_identity,
-                        validation_context=validation_context,
+                        validation_context=val_ctx.model_dump(mode="json"),
                     )
                     if correction_usage:
                         total_usage += correction_usage
@@ -437,16 +438,7 @@ async def execute_mcp_retrieval(
     evidence_payload = ""
     if audit_traces:
         evidence_blocks = []
-        if validation_context is None:
-            validation_context = {}
-        source_texts: dict[str, JsonValue] = {}
-        if (
-            "mcp_source_texts" in validation_context
-            and not isinstance(validation_context["mcp_source_texts"], (str, int, float, bool, list))
-            and validation_context["mcp_source_texts"] is not None
-        ):
-            source_texts = dict(validation_context["mcp_source_texts"])
-        validation_context["mcp_source_texts"] = source_texts
+        source_texts: dict[str, str] = dict(val_ctx.mcp_source_texts)
 
         local_alias_engine = alias_engine if alias_engine else AliasEngine()
 
@@ -463,6 +455,8 @@ async def execute_mcp_retrieval(
             source_texts[local_id] = text_payload
 
             evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')
+
+        val_ctx = val_ctx.model_copy(update={"mcp_source_texts": source_texts})
 
         evidence_str = "\n".join(evidence_blocks)
         evidence_payload = (
@@ -580,14 +574,16 @@ async def execute_tool_loop[T: BaseModel](
         repository=repository,
     )
 
-    final_messages = [{"role": m.role, "content": m.content} for m in typed_messages]
+    final_messages: list[LLMMessageDTO] = [
+        LLMMessageDTO(role=m.role, content=m.content) for m in typed_messages
+    ]
 
     if retrieval_result.evidence_payload:
         final_messages.append(
-            {
-                "role": "user",
-                "content": retrieval_result.evidence_payload,
-            }
+            LLMMessageDTO(
+                role="user",
+                content=retrieval_result.evidence_payload,
+            )
         )
 
     if synthesis_instructions:
@@ -612,11 +608,11 @@ async def execute_tool_loop[T: BaseModel](
             formatting_msg += f"    <synthesis_length_limit>{limit}</synthesis_length_limit>\n"
         formatting_msg += "  </output_profile_formatting_constraints>\n</execution_parameters>\n\n"
 
-        if final_messages and "role" in final_messages[0] and final_messages[0]["role"] == "system":
-            original = final_messages[0]["content"]
-            final_messages[0]["content"] = f"{formatting_msg}{original}"
+        if final_messages and final_messages[0].role == "system":
+            original = final_messages[0].content
+            final_messages[0] = final_messages[0].model_copy(update={"content": f"{formatting_msg}{original}"})
         else:
-            final_messages.insert(0, {"role": "system", "content": formatting_msg})
+            final_messages.insert(0, LLMMessageDTO(role="system", content=formatting_msg))
 
     try:
         result, usage = await executor.execute_structured_task(

@@ -11,8 +11,44 @@ from backend_v2.models.core_base import V2CoreBase
 __all__ = [
     "MCPFunctionDefinitionDTO",
     "MCPToolDeclarationDTO",
+    "MCPValidationContextDTO",
     "TavilySearchRequestDTO",
 ]
+
+
+class MCPValidationContextDTO(V2CoreBase):
+    """Typed validation context for MCP tool loop execution and quote anchoring.
+
+    Attributes:
+        strictness_level: Validation strictness threshold (0-100).
+        query_guidance: Optional domain-specific rule injected into extraction prompts.
+        mcp_source_texts: Mapping of MCP source aliases to formatted evidence text.
+        source_documents: Optional source document contexts for quote verification.
+        alias_registry: Optional alias registry mapping short aliases to opaque IDs.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    strictness_level: Annotated[
+        int | float,
+        Field(default=100, description="Validation strictness threshold (0-100)."),
+    ] = 100
+    query_guidance: Annotated[
+        str | None,
+        Field(default=None, description="Optional domain-specific rule injected into extraction prompts."),
+    ] = None
+    mcp_source_texts: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Mapping of MCP source aliases to formatted evidence text."),
+    ]
+    source_documents: Annotated[
+        list[JsonValue],
+        Field(default_factory=list, description="Optional source document contexts for quote verification."),
+    ]
+    alias_registry: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Optional alias registry mapping short aliases to opaque IDs."),
+    ]
 
 
 class TavilySearchRequestDTO(V2CoreBase):

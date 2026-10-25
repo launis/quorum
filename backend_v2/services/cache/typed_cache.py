@@ -43,7 +43,8 @@ class TypedCacheService:
         if self.redis is None:
             return None
 
-        raw_val = await self.redis.get(key)
+        redis = self.redis
+        raw_val = await redis.get(key)
         if raw_val is None:
             return None
 

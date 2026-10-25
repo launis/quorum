@@ -252,7 +252,8 @@ def test_mcp_retrieval_result_dto_valid_and_defaults() -> None:
 def test_mcp_retrieval_result_dto_forbids_extra_and_frozen() -> None:
     # Negative: extra fields forbidden
     with pytest.raises(ValidationError):
-        MCPRetrievalResultDTO.model_validate({"extra_key": "forbidden"})
+        invalid_payload = {"extra_key": "forbidden"}
+        MCPRetrievalResultDTO.model_validate(invalid_payload)
 
     # Negative: frozen immutability
     result = MCPRetrievalResultDTO()

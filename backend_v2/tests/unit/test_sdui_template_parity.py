@@ -236,7 +236,7 @@ def test_jinja_ast_attribute_validity() -> None:
         assert not (fake_accessed - valid_fields)
 
 
-def test_jinja_raises_app_exception_on_unrecognized_block_type() -> None:
+def test_jinja_invalid_block_type_raises_app_exception() -> None:
     """TC-SDUI-03: Asserts unrecognized SDUI block_type raises AppException."""
     service = PdfReportService()
 
@@ -245,9 +245,12 @@ def test_jinja_raises_app_exception_on_unrecognized_block_type() -> None:
         title = None
 
     class FakeReportDTO:
-        inner_sdui_blocks = [FakeUnsupportedBlock()]
+        def __init__(self) -> None:
+            self.inner_sdui_blocks = [FakeUnsupportedBlock()]
+            self.profile_name = None
+            self.mcp_tool_audit: list[MCPAuditTrace] = []
         profile_name = None
-        mcp_tool_audit: list[MCPAuditTrace] = []
+
 
     with pytest.raises(AppException) as exc_info:
         # Run template rendering directly or via generate_execution_html
@@ -271,9 +274,12 @@ def test_jinja_raises_app_exception_on_unrecognized_block_type() -> None:
         text = "Valid markdown"
 
     class FakeValidReportDTO:
-        inner_sdui_blocks = [FakeValidBlock()]
+        def __init__(self) -> None:
+            self.inner_sdui_blocks = [FakeValidBlock()]
+            self.profile_name = None
+            self.mcp_tool_audit: list[MCPAuditTrace] = []
         profile_name = None
-        mcp_tool_audit: list[MCPAuditTrace] = []
+
 
     rendered = template.render(
         execution_id="exec_test",
@@ -299,9 +305,12 @@ def test_pdf_generator_strict_undefined_missing_l10n_key_raises() -> None:
         quote_text = None
 
     class FakeReportDTO:
-        inner_sdui_blocks = [FakeBlock()]
+        def __init__(self) -> None:
+            self.inner_sdui_blocks = [FakeBlock()]
+            self.profile_name = None
+            self.mcp_tool_audit: list[MCPAuditTrace] = []
         profile_name = None
-        mcp_tool_audit: list[MCPAuditTrace] = []
+
 
     # Omit 'warning_label' from l10n dictionary
     incomplete_l10n = {

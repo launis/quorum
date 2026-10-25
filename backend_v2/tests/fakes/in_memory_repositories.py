@@ -967,6 +967,9 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             "sys_e26807f3bfa3454d": default_reg,
         }
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
+        self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {
+            self._mcp_gateways.id: self._mcp_gateways,
+        }
         self._system_settings: SystemSettingsDTO | None = None
         self._raw_system_configs: dict[str, JsonValue] = {}
 
@@ -1012,6 +1015,10 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def delete_system_config(self, config_id: str) -> bool:
         self._check_fault("delete_system_config")
+        if config_id in self._mcp_gateways_map:
+            del self._mcp_gateways_map[config_id]
+            return True
+
         if config_id in self._model_registries:
             del self._model_registries[config_id]
             return True
@@ -1019,8 +1026,11 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     def remove_system_config(self, config_id: str) -> None:
         """Removes a system config record from raw and model registries."""
+        if config_id in self._mcp_gateways_map:
+            del self._mcp_gateways_map[config_id]
         if config_id in self._raw_system_configs:
             del self._raw_system_configs[config_id]
+
         if config_id in self._model_registries:
             del self._model_registries[config_id]
         if config_id in self._storage:
@@ -1028,13 +1038,28 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
+        if id is not None and id in self._mcp_gateways_map:
+            return self._clone(self._mcp_gateways_map[id])
         try:
             return self._mcp_gateways.model_copy(deep=True)
         except AttributeError:
             return SystemConfigMCPGateways.model_validate(self._mcp_gateways, strict=False)
 
+
+    async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
+        self._check_fault("get_all_mcp_gateways")
+        return [
+            self._clone(gw)
+            for gw in sorted(self._mcp_gateways_map.values(), key=lambda g: g.id)
+        ]
+
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         self._check_fault("update_mcp_gateways")
+        validated = SystemConfigMCPGateways.model_validate(
+            gateways_data.model_dump(mode="python"), strict=False
+        )
+        self._mcp_gateways = validated
+        self._mcp_gateways_map[validated.id] = validated
         self._mcp_gateways = SystemConfigMCPGateways.model_validate(
             gateways_data.model_dump(mode="python"), strict=False
         )
@@ -1807,7 +1832,12 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         return await self._system.get_mcp_gateways(id)
 
+    async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
+        return await self._system.get_all_mcp_gateways()
+
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
+
+
         return await self._system.update_mcp_gateways(gateways_data)
 
     async def get_system_settings(self) -> SystemSettingsDTO | None:

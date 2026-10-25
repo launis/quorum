@@ -41,7 +41,8 @@ class SystemRepositoryImpl(BaseRepository):
             logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: registry_id is required.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id="")
 
-        res = await self.driver.get("system_config", registry_id)
+        driver = self.driver
+        res = await driver.get("system_config", registry_id)
         if not res or "type" not in res or res["type"] != "model_registry":
             logger.error(
                 "[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: Model registry '%s' is missing.",
@@ -115,8 +116,18 @@ class SystemRepositoryImpl(BaseRepository):
             raise ResourceNotFoundError(resource_type="system_config", resource_id=target_id)
         return SystemConfigMCPGateways.model_validate(res_list[0], strict=False)
 
+    async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
+        """Retrieves all MCP gateway configurations ordered deterministically by ID.
+
+        Returns:
+            A list of validated SystemConfigMCPGateways domain models.
+        """
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")])
+        models = [SystemConfigMCPGateways.model_validate(r, strict=False) for r in res_list]
+        return sorted(models, key=lambda g: g.id)
+
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
-        """Updates the MCP gateways configuration.
+        """Updates or inserts an MCP gateway configuration using its authoritative ID.
 
         Args:
             gateways_data: SystemConfigMCPGateways containing MCP gateway settings.
@@ -124,14 +135,8 @@ class SystemRepositoryImpl(BaseRepository):
         Returns:
             True if updated successfully.
         """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         payload = gateways_data.model_dump(mode="json", exclude_unset=True)
-        if res_list:
-            doc_id = str(res_list[0]["id"])
-        elif gateways_data.id:
-            doc_id = gateways_data.id
-        else:
-            doc_id = SystemConfigID.MCP_GATEWAYS.value
+        doc_id = gateways_data.id if gateways_data.id else SystemConfigID.MCP_GATEWAYS.value
         payload["id"] = doc_id
         payload["type"] = "mcp_gateways"
         await self.driver.upsert("system_config", payload, doc_id)
@@ -183,7 +188,8 @@ class SystemRepositoryImpl(BaseRepository):
         Returns:
             The typed AnySystemConfig if found, otherwise None.
         """
-        doc = await self.driver.get("system_config", config_id)
+        driver = self.driver
+        doc = await driver.get("system_config", config_id)
         if not doc:
             return None
         return AnySystemConfigAdapter.validate_python(doc, strict=False)
