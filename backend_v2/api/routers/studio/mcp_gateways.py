@@ -108,6 +108,8 @@ async def delete_mcp_gateway(
 ) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer.
 
+    # Phase 2, Step 2.3: Wire DELETE /{gateway_id} to delete_mcp_gateways
+
     Args:
         gateway_id: The unique identifier of the MCP gateway to delete.
         current_user: The authenticated user making the request.
@@ -120,7 +122,7 @@ async def delete_mcp_gateway(
         ResourceNotFoundError: If the MCP gateway is not found.
         AppException: If deleting the MCP gateway fails.
     """
-    await studio_service.delete_system_config(current_user, gateway_id)
+    await studio_service.delete_mcp_gateways(current_user, gateway_id)
     return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
 
 
@@ -145,3 +147,28 @@ async def clone_mcp_gateway(
         AppException: If cloning the MCP gateway fails.
     """
     return await studio_service.clone_mcp_gateways(current_user, gateway_id)
+
+
+@router.post("/{gateway_id}/discover", response_model=SystemConfigMCPGateways)
+async def discover_mcp_gateway_tools(
+    gateway_id: str,
+    current_user: CurrentUserDep,
+    studio_service: StudioSystemConfigServiceDep,
+) -> SystemConfigMCPGateways:
+    """Connect to the remote MCP Gateway and introspect available tools via tools/list.
+
+    # Phase 2, Step 2.3: Add POST /{gateway_id}/discover Studio introspection endpoint
+
+    Args:
+        gateway_id: The unique identifier of the MCP gateway to introspect.
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        The updated SystemConfigMCPGateways containing discovered tool definitions.
+
+    Raises:
+        ResourceNotFoundError: If the MCP gateway is not found.
+        AppException: If SSRF validation, authentication, or tool discovery fails.
+    """
+    return await studio_service.discover_mcp_gateway_tools(current_user, gateway_id)

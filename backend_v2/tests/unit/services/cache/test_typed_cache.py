@@ -1,4 +1,4 @@
-"""Unit tests for TypedCacheService and auto-eviction firewall."""
+"""Unit tests for TypedCacheService, MCPGatewayCache, and auto-eviction firewall."""
 
 from unittest.mock import AsyncMock
 
@@ -6,7 +6,10 @@ import pytest
 from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.services.cache.typed_cache import TypedCacheService
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
+from backend_v2.services.cache.typed_cache import MCPGatewayCache, TypedCacheService
 
 
 class SampleModel(BaseModel):
@@ -140,3 +143,53 @@ async def test_typed_cache_get_cached_auto_eviction_delete_fails() -> None:
 
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     mock_redis.delete.assert_called_once_with("corrupted_key")
+
+
+@pytest.mark.asyncio
+async def test_mcp_gateway_cache_memory_and_redis_roundtrip() -> None:
+    """Verify MCPGatewayCache stores, retrieves, and invalidates gateway records."""
+    gateway = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
+        type="mcp_gateways",
+        tools=[
+            AllowedMCPTool(
+                tool_id="tavily_search",
+                name=I18nText(translations={"en": "Tavily Search"}),
+                description="Search web",
+                input_schema=MCPToolInputSchemaDTO(),
+            )
+        ],
+    )
+    gw_cache = MCPGatewayCache()
+    assert MCPGatewayCache.build_key("sys_8172bda70c8641c5") == "mcp_gateway:sys_8172bda70c8641c5"
+    assert await gw_cache.get_gateway("sys_8172bda70c8641c5") is None
+
+    await gw_cache.set_gateway(gateway, expire_seconds=300)
+    cached = await gw_cache.get_gateway("sys_8172bda70c8641c5")
+    assert cached is not None
+    assert cached.id == "sys_8172bda70c8641c5"
+    assert cached.slug == "tavily_gateway"
+    assert len(cached.tools) == 1
+
+    await gw_cache.invalidate("sys_8172bda70c8641c5")
+    assert await gw_cache.get_gateway("sys_8172bda70c8641c5") is None
+
+
+@pytest.mark.asyncio
+async def test_mcp_gateway_cache_redis_hit_hydrates_memory() -> None:
+    """Verify MCPGatewayCache populates in-memory cache when Redis returns a hit."""
+    gateway = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
+        type="mcp_gateways",
+        tools=[],
+    )
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = gateway.model_dump_json()
+
+    gw_cache = MCPGatewayCache(cache_service=TypedCacheService(redis=mock_redis))
+    hit = await gw_cache.get_gateway("sys_8172bda70c8641c5")
+    assert hit is not None
+    assert hit.id == "sys_8172bda70c8641c5"
+    mock_redis.get.assert_called_once_with("mcp_gateway:sys_8172bda70c8641c5")

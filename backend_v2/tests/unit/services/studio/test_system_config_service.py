@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import re
+import socket
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
 from backend_v2.models.domain.system_config import (
@@ -17,9 +19,26 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
-from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
+from backend_v2.models.dtos.mcp import (
+    MCPDiscoveredToolWireDTO,
+    MCPInitializeResultDTO,
+    MCPJsonRpcRequestDTO,
+    MCPJsonRpcResponseDTO,
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+    MCPToolsListResultDTO,
+)
 from backend_v2.models.dtos.studio import GCPLocationDTO
-from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
+from backend_v2.models.enums import (
+    CognitiveTier,
+    JSONSchemaPropertyType,
+    LLMPlatformType,
+    LLMProvider,
+    MCPTransportType,
+    ToolCapability,
+)
+from backend_v2.services.cache.typed_cache import MCPGatewayCache
+from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
@@ -345,13 +364,26 @@ async def test_list_mcp_gateways(
 
 
 @pytest.mark.asyncio
-async def test_get_mcp_gateways_success(
+async def test_get_mcp_gateways_success_and_cache_hit(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Retrieve specific MCP gateway by id."""
+    """Retrieve specific MCP gateway by id and verify subsequent cache hit."""
     current = await system_repo.get_mcp_gateways()
     res = await service.get_mcp_gateways(root_token, current.id)
     assert res.id == current.id
+
+    # Second call hits MCPGatewayCache
+    cached_res = await service.get_mcp_gateways(root_token, current.id)
+    assert cached_res.id == current.id
+
+
+@pytest.mark.asyncio
+async def test_get_mcp_gateways_not_found(
+    service: StudioSystemConfigService, root_token: TokenData
+) -> None:
+    """Assert retrieving non-existent MCP gateway raises ResourceNotFoundError."""
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_mcp_gateways(root_token, "sys_9999999999999999")
 
 
 @pytest.mark.asyncio
@@ -368,6 +400,7 @@ async def test_save_mcp_gateways_success(
     """Save MCP gateways and verify true stateful roundtrip."""
     gw = SystemConfigMCPGateways(
         id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
             AllowedMCPTool(
@@ -380,6 +413,7 @@ async def test_save_mcp_gateways_success(
     )
     res = await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
     assert res.id == "sys_8172bda70c8641c5"
+    assert res.slug == "tavily_gateway"
     assert len(res.tools) == 1
     assert res.tools[0].tool_id == "mcp_tavily_search"
 
@@ -391,10 +425,43 @@ async def test_save_mcp_gateways_success(
 
 
 @pytest.mark.asyncio
+async def test_save_mcp_gateways_duplicate_slug_raises_validation_error(
+    service: StudioSystemConfigService, root_token: TokenData
+) -> None:
+    """Assert saving a gateway with a slug already in use by another gateway raises AppException."""
+    gw = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        slug="default_mcp_gateway",
+        type="mcp_gateways",
+        tools=[],
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_save_mcp_gateways_invalid_slug_format_raises_validation_error(
+    service: StudioSystemConfigService, root_token: TokenData
+) -> None:
+    """Assert saving a gateway with malformed double-underscore slug raises AppException."""
+    malformed = SystemConfigMCPGateways.model_construct(
+        id="sys_8172bda70c8641c5",
+        slug="bad__slug",
+        type="mcp_gateways",
+        tools=[],
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", malformed)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
 async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on save."""
     gw = SystemConfigMCPGateways(
         id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
     )
@@ -410,6 +477,7 @@ async def test_create_mcp_gateway_draft(
     res = await service.create_mcp_gateway_draft(root_token)
     assert res.id.startswith("sys_")
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+    assert res.slug == f"gateway_{res.id.removeprefix('sys_')[:8]}"
     assert res.type == "mcp_gateways"
 
     # Stateful Roundtrip:
@@ -418,19 +486,33 @@ async def test_create_mcp_gateway_draft(
 
 
 @pytest.mark.asyncio
-async def test_clone_mcp_gateways_success(
+async def test_clone_mcp_gateways_success_and_repeated_suffix(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Clone existing MCP gateway and verify stateful roundtrip."""
+    """Clone existing MCP gateway multiple times and verify unique copy slugs."""
     original = await system_repo.get_mcp_gateways()
     res = await service.clone_mcp_gateways(root_token, original.id)
     assert res.id != original.id
     assert res.id.startswith("sys_")
+    assert res.slug == f"{original.slug}_copy"
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
+
+    # Second clone of same original increments suffix to _copy_2
+    res2 = await service.clone_mcp_gateways(root_token, original.id)
+    assert res2.slug == f"{original.slug}_copy_2"
 
     # Stateful Roundtrip:
     persisted = await system_repo.get_mcp_gateways(id=res.id)
     assert persisted.id == res.id
+
+
+@pytest.mark.asyncio
+async def test_clone_mcp_gateways_not_found(
+    service: StudioSystemConfigService, root_token: TokenData
+) -> None:
+    """Assert cloning non-existent MCP gateway raises ResourceNotFoundError."""
+    with pytest.raises(ResourceNotFoundError):
+        await service.clone_mcp_gateways(root_token, "sys_9999999999999999")
 
 
 @pytest.mark.asyncio
@@ -440,6 +522,144 @@ async def test_clone_mcp_gateways_permission_denied(
     """Assert non-ROOT user raises PermissionDeniedError on clone."""
     with pytest.raises(PermissionDeniedError):
         await service.clone_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+
+
+@pytest.mark.asyncio
+async def test_delete_mcp_gateways_success_and_cache_invalidation(
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+) -> None:
+    """Delete MCP gateway, verify removal from repository and cache invalidation."""
+    draft = await service.create_mcp_gateway_draft(root_token)
+    assert await service.gateway_cache.get_gateway(draft.id) is not None
+
+    await service.delete_mcp_gateways(root_token, draft.id)
+    assert await service.gateway_cache.get_gateway(draft.id) is None
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_mcp_gateways(root_token, draft.id)
+
+
+@pytest.mark.asyncio
+async def test_delete_mcp_gateways_not_found(
+    service: StudioSystemConfigService, root_token: TokenData
+) -> None:
+    """Assert deleting non-existent MCP gateway raises ResourceNotFoundError."""
+    with pytest.raises(ResourceNotFoundError):
+        await service.delete_mcp_gateways(root_token, "sys_9999999999999999")
+
+
+@pytest.mark.asyncio
+async def test_delete_mcp_gateways_permission_denied(
+    service: StudioSystemConfigService, member_token: TokenData
+) -> None:
+    """Assert non-ROOT user raises PermissionDeniedError on delete_mcp_gateways."""
+    with pytest.raises(PermissionDeniedError):
+        await service.delete_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+
+
+@pytest.mark.asyncio
+async def test_discover_mcp_gateway_tools_preserves_existing_settings(
+    monkeypatch: pytest.MonkeyPatch,
+    system_repo: InMemorySystemRepository,
+    root_token: TokenData,
+) -> None:
+    """Introspect remote MCP gateway tools while preserving enabled, capability, and name on known tools."""
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda host, port, type=0: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        rpc_req = MCPJsonRpcRequestDTO.model_validate_json(request.content)
+        if rpc_req.method == "initialize":
+            init_resp = MCPJsonRpcResponseDTO(
+                id=rpc_req.id,
+                result=MCPInitializeResultDTO(
+                    protocolVersion="2025-03-26",
+                    serverInfo={"name": "tavily-mcp", "version": "1.0.0"},
+                ),
+            )
+            return httpx.Response(200, json=init_resp.model_dump(mode="json", by_alias=True))
+        if rpc_req.method == "notifications/initialized":
+            return httpx.Response(202)
+
+        list_resp = MCPJsonRpcResponseDTO(
+            id=rpc_req.id,
+            result=MCPToolsListResultDTO(
+                tools=[
+                    MCPDiscoveredToolWireDTO(
+                        name="tavily_search",
+                        description="Updated remote description",
+                        inputSchema=MCPToolInputSchemaDTO(
+                            properties={
+                                "query": MCPToolSchemaPropertyDTO(
+                                    type=JSONSchemaPropertyType.STRING,
+                                    description="Query string",
+                                )
+                            },
+                            required=["query"],
+                        ),
+                    ),
+                    MCPDiscoveredToolWireDTO(
+                        name="tavily_extract",
+                        description="Extract URL content",
+                        inputSchema=MCPToolInputSchemaDTO(),
+                    ),
+                ]
+            ),
+        )
+        return httpx.Response(200, json=list_resp.model_dump(mode="json", by_alias=True))
+
+    mcp_client = GenericMCPClient(transport=httpx.MockTransport(handler))
+    gw_cache = MCPGatewayCache()
+    svc = StudioSystemConfigService(system_repo=system_repo, mcp_client=mcp_client, gateway_cache=gw_cache)
+
+    gw = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
+        type="mcp_gateways",
+        endpoint_url="https://mcp.tavily.example.com/mcp",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        tools=[
+            AllowedMCPTool(
+                tool_id="tavily_search",
+                name=I18nText(translations={"en": "Custom Search Title", "fi": "Mukautettu haku"}),
+                description="Old description",
+                enabled=False,
+                capability=ToolCapability.DOCUMENT_READER,
+                input_schema=MCPToolInputSchemaDTO(),
+            )
+        ],
+    )
+    await svc.save_mcp_gateways(root_token, gw.id, gw)
+
+    updated = await svc.discover_mcp_gateway_tools(root_token, gw.id)
+    assert len(updated.tools) == 2
+
+    search_tool = next(t for t in updated.tools if t.tool_id == "tavily_search")
+    assert search_tool.enabled is False
+    assert search_tool.capability == ToolCapability.DOCUMENT_READER
+    assert search_tool.name.translations["fi"] == "Mukautettu haku"
+    assert search_tool.description == "Updated remote description"
+    assert "query" in search_tool.input_schema.properties
+
+    extract_tool = next(t for t in updated.tools if t.tool_id == "tavily_extract")
+    assert extract_tool.enabled is True
+    assert extract_tool.capability == ToolCapability.SEARCH
+
+
+@pytest.mark.asyncio
+async def test_discover_mcp_gateway_tools_negative_permissions_and_not_found(
+    service: StudioSystemConfigService,
+    root_token: TokenData,
+    member_token: TokenData,
+) -> None:
+    """Assert discover_mcp_gateway_tools enforces RBAC and ResourceNotFoundError."""
+    with pytest.raises(PermissionDeniedError):
+        await service.discover_mcp_gateway_tools(member_token, "sys_8172bda70c8641c5")
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.discover_mcp_gateway_tools(root_token, "sys_9999999999999999")
 
 
 @pytest.mark.asyncio
@@ -469,6 +689,7 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
     """Assert saving MCP gateways with mismatched ID updates to target ID parameter."""
     gw = SystemConfigMCPGateways(
         id="sys_8172bda70c8641c5",
+        slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
     )

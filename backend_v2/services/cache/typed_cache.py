@@ -10,10 +10,11 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["TypedCacheService"]
+__all__ = ["MCPGatewayCache", "TypedCacheService"]
 
 
 class TypedCacheService:
@@ -105,3 +106,82 @@ class TypedCacheService:
             return
 
         await self.redis.delete(key)
+
+
+class MCPGatewayCache:
+    """Typed cache namespace for discovered SystemConfigMCPGateways tool manifests.
+
+    # Phase 2, Step 2.3: Register MCPGatewayCache with deterministic invalidation
+    """
+
+    KEY_PREFIX: str = "mcp_gateway:"
+
+    def __init__(self, cache_service: TypedCacheService | None = None) -> None:
+        """Initialize MCPGatewayCache with an underlying TypedCacheService.
+
+        Args:
+            cache_service: Optional TypedCacheService instance wrapping Redis.
+        """
+        self.cache_service = cache_service if cache_service is not None else TypedCacheService()
+        self._memory_entries: dict[str, str] = {}
+
+    @classmethod
+    def build_key(cls, gateway_id: str) -> str:
+        """Construct the canonical cache key for an MCP gateway ID.
+
+        Args:
+            gateway_id: Canonical Opaque Stripe ID of the gateway.
+
+        Returns:
+            Namespaced cache key string.
+        """
+        return f"{cls.KEY_PREFIX}{gateway_id}"
+
+    async def get_gateway(self, gateway_id: str) -> SystemConfigMCPGateways | None:
+        """Retrieve a cached SystemConfigMCPGateways record by ID.
+
+        Args:
+            gateway_id: Canonical Opaque Stripe ID of the gateway.
+
+        Returns:
+            Validated SystemConfigMCPGateways instance or None on cache miss.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if cached payload is corrupted.
+        """
+        key = self.build_key(gateway_id)
+        redis_hit = await self.cache_service.get_cached(key, SystemConfigMCPGateways)
+        if redis_hit is not None:
+            self._memory_entries[key] = redis_hit.model_dump_json()
+            return redis_hit
+
+        if key in self._memory_entries:
+            return SystemConfigMCPGateways.model_validate_json(self._memory_entries[key])
+
+        return None
+
+    async def set_gateway(
+        self,
+        gateway: SystemConfigMCPGateways,
+        expire_seconds: int | None = None,
+    ) -> None:
+        """Store a SystemConfigMCPGateways record in cache.
+
+        Args:
+            gateway: Validated SystemConfigMCPGateways domain object.
+            expire_seconds: Optional expiration TTL in seconds.
+        """
+        key = self.build_key(gateway.id)
+        self._memory_entries[key] = gateway.model_dump_json()
+        await self.cache_service.set_cached(key, gateway, expire_seconds=expire_seconds)
+
+    async def invalidate(self, gateway_id: str) -> None:
+        """Deterministically evict a specific gateway manifest from cache.
+
+        Args:
+            gateway_id: Canonical Opaque Stripe ID of the gateway to evict.
+        """
+        key = self.build_key(gateway_id)
+        if key in self._memory_entries:
+            del self._memory_entries[key]
+        await self.cache_service.delete(key)

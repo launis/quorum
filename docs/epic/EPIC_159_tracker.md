@@ -42,12 +42,12 @@
 ### Phase 2: Protocol-Agnostic GenericMCPClient, SSRF Firewall & Studio Tool Discovery Endpoint
 **Plan:** @[docs/epic/tasks_EPIC_159/02_phase2_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/02_phase2_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 2.1: SSRF URL & Network Egress Validator (MCPUrlValidator with non-blocking DNS resolution and cloud metadata / CIDR blocking)
   - [x] Step 2.2: Protocol-Agnostic GenericMCPClient (Streamable HTTP & HTTP+SSE with Tenacity retries and dual wire framing)
-  - [ ] Step 2.3: Studio Introspection Endpoint, Multi-Gateway Slug Uniqueness & Cache Persistence (POST /api/studio/mcp-gateways/{gateway_id}/discover, delete_mcp_gateways, MCPGatewayCache)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 2.3: Studio Introspection Endpoint, Multi-Gateway Slug Uniqueness & Cache Persistence (POST /api/studio/mcp-gateways/{gateway_id}/discover, delete_mcp_gateways, MCPGatewayCache)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 
 ### Phase 3: Dynamic Pydantic Schema Factory, Namespace Routing & Legacy Wrapper Demolition
@@ -196,18 +196,18 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`) across all 3 steps:
-  - **Step 1.1 (`b8825194f`)**: Resolved all 64 Python technical debt findings (`QGR020`, `TD_DICT_GET`, `TD_MODEL_FACTORY`, `TD_ISTQB_NEGATIVE`, `MCPValidationContextDTO` in `mcp_tool_loop.py`, multi-gateway `get_all_mcp_gateways()` and `doc_id = gateways_data.id` in `system.py`) and 18 Flutter Theme Sovereignty (`PROHIBITED_NAKED_TEXT_STYLE`), `DGR005`, and `DGR009` (`AppErrorBoundary`) violations.
-  - **Step 1.2 (`a7616dbb3`)**: Added `MCPTransportType`, `MCPAuthType`, `JSONSchemaPropertyType`, and `ToolCapability.GENERAL` with 1:1 Dart `@JsonEnum()` parity; implemented recursive `MCPToolSchemaPropertyDTO`, `MCPToolInputSchemaDTO`, `ParsedMCPToolAliasDTO`, `MCPToolDescriptorDTO`, `MCPToolInvocationDTO`, and JSON-RPC 2.0 wire DTOs in `backend_v2/models/dtos/mcp.py`; upgraded `AllowedMCPTool`, `MCPAuditTrace`, and `SystemConfigMCPGateways` in `backend_v2/models/domain/system_config.py`; added generic MCP settings in `settings.py`; and synchronized Freezed models (`McpToolSchemaPropertyDto`, `McpToolInputSchemaDto`, `AllowedMcpTool`, `McpGateway`, `McpAuditTraceDto`).
-  - **Step 1.3**: Migrated `sys_8172bda70c8641c5` in `backend_v2/seed/seed_data.json#L209-L292`, verified and re-seeded local database (`run_seed.py local --dry-run`, `audit_database_atoms.py --strict`, `run_seed.py local`), removed `backend_v2/models/dtos/mcp.py`, `backend_v2/models/domain/system_config.py`, and `backend_v2/services/mcp/mcp_tool_loop.py` from `scripts/_ast_guardrails.py` open-JSON exemptions, and verified 100% pass across `backend_audit_loop.py`, `flutter_audit_loop.py --build`, `audit_dto_parity.py`, and `audit_technical_debt.py --strict`.
+- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`) and Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`):
+  - **Step 2.1 (`53083d9e7`)**: Implemented `MCPUrlValidator` in `@[backend_v2/services/mcp/url_validator.py]` with non-blocking DNS resolution (`socket.getaddrinfo`) blocking cloud metadata (`169.254.169.254`), loopback, link-local, and private subnets, verified by 49 ISTQB unit tests in `@[backend_v2/tests/unit/services/mcp/test_url_validator.py]` (99% coverage).
+  - **Step 2.2 (`f7cce13d8`)**: Implemented protocol-agnostic `GenericMCPClient` in `@[backend_v2/services/mcp/generic_mcp_client.py]` supporting both `STREAMABLE_HTTP` and `SSE` transports over JSON-RPC 2.0 with `follow_redirects=False`, Tenacity `_is_transient_llm_error` retries, dual `application/json` & `text/event-stream` framing, sentence boundary truncation, and CDATA encapsulation, verified by 13 unit tests in `@[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]` (99% coverage).
+  - **Step 2.3**: Added `MCPGatewayCache` in `@[backend_v2/services/cache/typed_cache.py]`, implemented `discover_mcp_gateway_tools` (`POST /api/studio/mcp-gateways/{gateway_id}/discover`), `delete_mcp_gateways` (`DELETE /api/studio/mcp-gateways/{gateway_id}`), and unique single-underscore `slug` validation in `@[backend_v2/services/studio/system_config_service.py]` and `@[backend_v2/api/routers/studio/mcp_gateways.py]`, verified across `@[backend_v2/tests/unit/services/cache/test_typed_cache.py]` (100% coverage), `@[backend_v2/tests/unit/test_mcp_gateways.py]` (100% coverage), and `@[backend_v2/tests/unit/services/studio/test_system_config_service.py]` (95% coverage) with 0 technical debt findings.
 
 ## Learned
-- `pydantic.mypy` requires `default_factory` fields to be declared with `= Field(default_factory=...)` on the RHS of the assignment to recognize optional constructor arguments under `mypy --strict`, whereas `QGR020` bans `Field()` only when duplicated inside `Annotated[..., Field(...)]` AND on the RHS `= Field(...)`.
-- All 54 cross-language DTO models pass `scripts/audit_dto_parity.py` with 1:1 alignment between Python Pydantic V2 and Dart Freezed.
+- `ServiceUnavailableError.__init__` accepts `message: str` and `details: dict[str, JsonValue] | None = None`, and `AllowedMCPTool.capability` defaults to `ToolCapability.SEARCH`.
+- In `test_mcp_gateways.py`, instantiating a real `StudioSystemConfigService` backed by `InMemorySystemRepository` and `GenericMCPClient(transport=httpx.MockTransport(...))` exercises full stateful router-to-repository roundtrips without tautological mocking (`TD_TAUTOLOGICAL_MOCK`).
 
 ## Remaining
-- Execute Tier 8 Plan Audit on Phase 1 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
-- Proceed to Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`): `MCPUrlValidator`, `GenericMCPClient`, and Studio discovery endpoint.
+- Execute Tier 8 Plan Audit on Phase 2 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
+- Proceed to Phase 3 (`@[docs/epic/tasks_EPIC_159/03_phase3_plan.md]`): Dynamic Pydantic Schema Factory (`SchemaFactory`), Namespace Routing (`AliasRegistry`, `ToolDispatcher`), and Legacy Static Wrapper Demolition.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
