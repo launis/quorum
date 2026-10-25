@@ -93,7 +93,7 @@
   - [ ] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/mcp/__init__.py]
-  - [ ] @[backend_v2/services/orchestrator/schema_factory.py]
+  - [x] @[backend_v2/services/orchestrator/schema_factory.py]
   - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
   - [ ] @[backend_v2/llm/schema_builder.py]
   - [ ] @[backend_v2/llm/provider.py]
