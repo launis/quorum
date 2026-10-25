@@ -494,4 +494,3 @@ def test_generic_mcp_settings_invariants() -> None:
         Settings(use_mock_llm=True, mcp_max_response_chars=499)
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, mcp_max_response_chars=50001)
-

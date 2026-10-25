@@ -6,7 +6,6 @@ import uuid
 from typing import Any, Literal
 
 from polyfactory.factories.pydantic_factory import ModelFactory
-from pydantic import JsonValue
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import (

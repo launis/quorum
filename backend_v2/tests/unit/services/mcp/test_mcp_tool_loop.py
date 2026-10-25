@@ -480,8 +480,6 @@ def test_build_tool_evidence_message() -> None:
     assert isinstance(empty_msg.content, str)
     assert "Search returned no results" in empty_msg.content
 
-
-
     # Populated trace
     populated_trace = MCPAuditTrace(
         id="t2",
@@ -500,9 +498,6 @@ def test_build_tool_evidence_message() -> None:
     assert "<query>verified query</query>" in pop_msg.content
     assert "<summary>Verified finding summary</summary>" in pop_msg.content
     assert "<url>https://example.com/source1</url>" in pop_msg.content
-
-
-
 
 
 @pytest.mark.asyncio

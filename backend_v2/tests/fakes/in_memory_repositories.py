@@ -1045,19 +1045,13 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         except AttributeError:
             return SystemConfigMCPGateways.model_validate(self._mcp_gateways, strict=False)
 
-
     async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
         self._check_fault("get_all_mcp_gateways")
-        return [
-            self._clone(gw)
-            for gw in sorted(self._mcp_gateways_map.values(), key=lambda m: (m.slug, m.id))
-        ]
+        return [self._clone(gw) for gw in sorted(self._mcp_gateways_map.values(), key=lambda m: (m.slug, m.id))]
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         self._check_fault("update_mcp_gateways")
-        validated = SystemConfigMCPGateways.model_validate(
-            gateways_data.model_dump(mode="python"), strict=False
-        )
+        validated = SystemConfigMCPGateways.model_validate(gateways_data.model_dump(mode="python"), strict=False)
         self._mcp_gateways = validated
         self._mcp_gateways_map[validated.id] = validated
         self._mcp_gateways = SystemConfigMCPGateways.model_validate(
@@ -1836,7 +1830,6 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         return await self._system.get_all_mcp_gateways()
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
-
 
         return await self._system.update_mcp_gateways(gateways_data)
 

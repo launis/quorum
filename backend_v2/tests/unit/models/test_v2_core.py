@@ -389,8 +389,8 @@ def test_execution_record_flat_finops_and_steps() -> None:
 def test_execution_record_extra_forbidden() -> None:
     """Verify ExecutionRecord rejects unknown extra fields."""
     with pytest.raises(ValidationError):
-        ExecutionRecord.model_validate(obj=
-            {
+        ExecutionRecord.model_validate(
+            obj={
                 "id": "exe_1111111111111111",
                 "workflow_id": "wor_1111111111111111",
                 "output_profile_id": "prof_default",
@@ -738,8 +738,8 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
     """Verifies ExecutionCreate resolves matrix_sampling_strategy when passed as None."""
     from backend_v2.models.domain.execution import ExecutionCreate
 
-    ec = ExecutionCreate.model_validate(obj=
-        {
+    ec = ExecutionCreate.model_validate(
+        obj={
             "workflow_id": "wor_1234567890abcdef",
             "target_locale": "fi",
             "matrix_sampling_strategy": None,

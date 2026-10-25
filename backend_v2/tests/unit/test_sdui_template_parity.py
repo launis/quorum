@@ -249,8 +249,8 @@ def test_jinja_invalid_block_type_raises_app_exception() -> None:
             self.inner_sdui_blocks = [FakeUnsupportedBlock()]
             self.profile_name = None
             self.mcp_tool_audit: list[MCPAuditTrace] = []
-        profile_name = None
 
+        profile_name = None
 
     with pytest.raises(AppException) as exc_info:
         # Run template rendering directly or via generate_execution_html
@@ -278,8 +278,8 @@ def test_jinja_invalid_block_type_raises_app_exception() -> None:
             self.inner_sdui_blocks = [FakeValidBlock()]
             self.profile_name = None
             self.mcp_tool_audit: list[MCPAuditTrace] = []
-        profile_name = None
 
+        profile_name = None
 
     rendered = template.render(
         execution_id="exec_test",
@@ -309,8 +309,8 @@ def test_pdf_generator_strict_undefined_missing_l10n_key_raises() -> None:
             self.inner_sdui_blocks = [FakeBlock()]
             self.profile_name = None
             self.mcp_tool_audit: list[MCPAuditTrace] = []
-        profile_name = None
 
+        profile_name = None
 
     # Omit 'warning_label' from l10n dictionary
     incomplete_l10n = {
