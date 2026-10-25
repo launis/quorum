@@ -114,7 +114,7 @@
   - [x] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
   - [x] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify zero orphaned references to deleted static tools (`tavily`, `wikipedia`, `BaseTool`) exist across the codebase.
