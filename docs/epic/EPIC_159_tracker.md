@@ -88,7 +88,7 @@
   - [x] @[backend_v2/database/repositories/system.py]
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/services/mcp/url_validator.py]
-  - [ ] @[backend_v2/services/mcp/generic_mcp_client.py]
+  - [x] @[backend_v2/services/mcp/generic_mcp_client.py]
   - [ ] @[backend_v2/services/mcp/alias_registry.py]
   - [ ] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
