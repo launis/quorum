@@ -620,6 +620,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     def visit_Module(self, node: ast.Module) -> None:
         # QGR017: Banned legacy God files & eradicated facades
         norm_path = self._normalized_path
+        if norm_path == "backend_v2/services/report_service.py" or norm_path.endswith(
+            "/backend_v2/services/report_service.py"
+        ):
+            # Phase 4, Step 2: Register retired path backend_v2/services/report_service.py under QGR017
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/services/report_service.py` detected.",
+                "Report functionality must reside exclusively in the modular package `backend_v2.services.report` (`backend_v2/services/report/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
         if norm_path == "backend_v2/services/auth.py" or norm_path.endswith("/backend_v2/services/auth.py"):
             self._add_violation(
                 node,
@@ -1924,6 +1935,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import anchor validation symbols from canonical package `backend_v2.services.orchestrator.anchor_validation`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif (
+                alias.name == "backend_v2.services.report_service"
+                or alias.name.endswith(".report_service")
+                or alias.name == "report_service"
+            ):
+                # Phase 4, Step 2: Lock retired report_service path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy module `{alias.name}`.",
+                    "Import report services from canonical package `backend_v2.services.report`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR021: Banned import of eradicated llm_debug_logger
             if "llm_debug_logger" in alias.name:
                 self._add_violation(
@@ -2060,6 +2084,31 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR017",
                             f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
                             "Import anchor validation symbols from canonical package `backend_v2.services.orchestrator.anchor_validation`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
+            elif (
+                node.module == "backend_v2.services.report_service"
+                or node.module.endswith(".report_service")
+                or node.module == "report_service"
+            ):
+                # Phase 4, Step 2: Lock retired report_service path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy module `{node.module}`.",
+                    "Import report services from canonical package `backend_v2.services.report`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if node.module == "backend_v2.services":
+                for alias in node.names:
+                    if alias.name == "report_service":
+                        # Phase 4, Step 2: Lock retired report_service symbol in QGR017
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
+                            "Import report services from canonical package `backend_v2.services.report`.",
                             severity=GuardrailSeverity.FATAL,
                         )
 

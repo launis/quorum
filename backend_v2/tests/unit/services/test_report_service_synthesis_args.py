@@ -19,7 +19,7 @@ from backend_v2.models.dtos.export import ExportPayloadDTO
 from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStoragePathsDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, ReportStatus
-from backend_v2.services.report_service import ReportService
+from backend_v2.services.report import ReportService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
 

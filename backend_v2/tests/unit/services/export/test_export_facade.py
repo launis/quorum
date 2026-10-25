@@ -2319,7 +2319,7 @@ async def test_export_facade_invalid_params_raises_validation_error() -> None:
 
 def test_report_service_integration_parity() -> None:
     """Verify ReportService consumes new ExportService package without regressions."""
-    from backend_v2.services.report_service import ReportService
+    from backend_v2.services.report import ReportService
     from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
     repo = InMemoryUnifiedWorkflowRepository()

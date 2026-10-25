@@ -105,6 +105,45 @@ def _create_dummy_report(
 
 
 @pytest.mark.asyncio
+async def test_compile_and_persist_artifact() -> None:
+    """Verify compile_and_persist_artifact sets GENERATING status and enqueues Arq job."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    arq_pool = AsyncMock()
+
+    service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
+    await service.compile_and_persist_artifact(report.id, arq_pool)
+
+    job_key = f"compile_report_{report.id}"
+    arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.GENERATING
+    arq_pool.enqueue_job.assert_called_once_with(
+        "generate_report_artifact_job", report_id=report.id, force_resynthesis=False, _job_id=job_key
+    )
+
+
+@pytest.mark.asyncio
+async def test_compile_and_persist_artifact_deduplicated_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify that when Arq deduplicates an in-flight job, a structured warning is logged."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    arq_pool = AsyncMock()
+    arq_pool.enqueue_job.return_value = None
+
+    service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
+    with caplog.at_level(logging.WARNING):
+        await service.compile_and_persist_artifact(report.id, arq_pool)
+
+    job_key = f"compile_report_{report.id}"
+    arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
+    assert f"Compilation job '{job_key}' deduplicated by Arq" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_compile_and_persist_artifact_success(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify full compilation pipeline compiles SDUI, PDF, XLSX, and CSV payloads and updates status."""
     repo = InMemoryUnifiedWorkflowRepository()
@@ -175,10 +214,8 @@ async def test_compile_execution_not_ready() -> None:
 
 
 @pytest.mark.asyncio
-async def test_compile_and_persist_artifact_not_found_and_deduplicated(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Verify compile_and_persist_artifact raises ResourceNotFoundError and logs warning on deduplication."""
+async def test_compile_and_persist_artifact_not_found() -> None:
+    """Verify compile_and_persist_artifact raises ResourceNotFoundError when report is missing."""
     repo = InMemoryUnifiedWorkflowRepository()
     service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
     arq_pool = AsyncMock()
@@ -186,57 +223,18 @@ async def test_compile_and_persist_artifact_not_found_and_deduplicated(
     with pytest.raises(ResourceNotFoundError):
         await service.compile_and_persist_artifact("rep_0000000000000000", arq_pool)
 
-    report = _create_dummy_report()
-    await repo.create_report_artifact(report)
-    arq_pool.enqueue_job.return_value = None
-
-    with caplog.at_level(logging.WARNING):
-        await service.compile_and_persist_artifact(report.id, arq_pool)
-    assert f"compile_report_{report.id}" in caplog.text
-
 
 @pytest.mark.asyncio
-async def test_process_artifact_compilation_branches(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify idempotency, force_resynthesis runner invocation, missing synthesis runner failure, and missing report."""
+async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify process_artifact_compilation saves all 4 format files and transitions report to READY."""
     repo = InMemoryUnifiedWorkflowRepository()
-    storage = AsyncMock()
-    service = ReportCompilationService(repo=repo, storage_driver=storage)
-
-    # 1. Missing report raises ResourceNotFoundError
-    with pytest.raises(ResourceNotFoundError):
-        await service.process_artifact_compilation("rep_0000000000000000")
-
-    # 2. Idempotent skip when READY and PDF exists
-    ready_report = _create_dummy_report(status=ReportStatus.READY)
-    await repo.create_report_artifact(ready_report)
-    storage.exists.return_value = True
-    await service.process_artifact_compilation(ready_report.id)
-    storage.exists.assert_awaited_once()
-
-    # 3. Missing execution dispatches to DLQ (FAILED status)
-    pending_report = _create_dummy_report(report_id="rep_0000000000000002", status=ReportStatus.PENDING)
-    await repo.create_report_artifact(pending_report)
-    await service.process_artifact_compilation(pending_report.id)
-    failed_rep = await repo.get_report_artifact(pending_report.id)
-    assert failed_rep is not None
-    assert failed_rep.status == ReportStatus.FAILED
-
-    # 4. Missing profile synthesis without synthesis_runner dispatches to DLQ
-    exec_no_synth = _create_dummy_execution().model_copy(update={"profile_syntheses": {}})
-    await repo.save_execution(exec_no_synth)
-    report_no_runner = _create_dummy_report(report_id="rep_0000000000000003", status=ReportStatus.PENDING)
-    await repo.create_report_artifact(report_no_runner)
-    await service.process_artifact_compilation(report_no_runner.id)
-    failed_no_runner = await repo.get_report_artifact(report_no_runner.id)
-    assert failed_no_runner is not None
-    assert failed_no_runner.status == ReportStatus.FAILED
-
-    # 5. force_resynthesis=True invalidates cache and runs synthesis_runner
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
     await repo.save_execution(_create_dummy_execution())
-    report_resynth = _create_dummy_report(report_id="rep_0000000000000004", status=ReportStatus.PENDING)
-    await repo.create_report_artifact(report_resynth)
 
+    storage = AsyncMock()
     storage.save.side_effect = lambda path, data: path
+
     export_service = AsyncMock()
     export_service.export_excel.return_value = ExportPayloadDTO(
         content_bytes=b"excel_bytes",
@@ -248,8 +246,202 @@ async def test_process_artifact_compilation_branches(monkeypatch: pytest.MonkeyP
         filename="report.csv",
         mime_type="text/csv",
     )
+
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    service = ReportCompilationService(
+        repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service
+    )
+    await service.process_artifact_compilation(report.id)
+
+    assert storage.save.call_count == 4
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.READY
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_failure_isolation() -> None:
+    """Verify failure sets ReportArtifact to FAILED without crashing or mutating ExecutionRecord."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+
+    service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
+    await service.process_artifact_compilation(report.id)
+
+    updated_rep = await repo.get_report_artifact(report.id)
+    assert updated_rep is not None
+    assert updated_rep.status == ReportStatus.FAILED
+    assert updated_rep.error_message is not None
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify compilation updates ExecutionRecord.pdf_report_path and sys_render step state."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    execution = _create_dummy_execution()
+    await repo.save_execution(execution)
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
+    )
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    service = ReportCompilationService(
+        repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service
+    )
+    await service.process_artifact_compilation(report.id)
+
+    updated_exec = await repo.get_execution(execution.id)
+    assert updated_exec is not None
+    assert updated_exec.pdf_report_path == f"artifacts/reports/{report.id}/report.pdf"
+    assert updated_exec.step_states is not None
+    assert f"sys_render_{report.profile_id}" in updated_exec.step_states
+    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].status == ExecutionStatus.PASSED
+    assert updated_exec.step_states[f"sys_render_{report.profile_id}"].progress == 100
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_missing_report_raises() -> None:
+    """Verify process_artifact_compilation raises ResourceNotFoundError if report does not exist."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.process_artifact_compilation("rep_missing")
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_idempotent_when_ready() -> None:
+    """Verify process_artifact_compilation short-circuits when status is READY and PDF exists."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    storage = AsyncMock()
+    storage.exists.return_value = True
+
+    paths = ReportStoragePathsDTO(pdf_path="artifacts/reports/rep_123/report.pdf")
+    report = _create_dummy_report(status=ReportStatus.READY)
+    report = report.model_copy(update={"storage_paths": paths})
+    await repo.create_report_artifact(report)
+
+    service = ReportCompilationService(repo=repo, storage_driver=storage)
+    await service.process_artifact_compilation(report.id)
+
+    persisted = await repo.get_report_artifact(report.id)
+    assert persisted is not None
+    assert persisted.status == ReportStatus.READY
+    storage.exists.assert_awaited_once_with("artifacts/reports/rep_123/report.pdf")
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_false_retains_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=False retains cached profile synthesis without calling runner."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
+    )
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+    synthesis_runner = AsyncMock()
+
+    service = ReportCompilationService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=synthesis_runner,
+    )
+    await service.process_artifact_compilation(report.id, force_resynthesis=False)
+
+    synthesis_runner.assert_not_called()
+    execution = await repo.get_execution(report.execution_id)
+    assert execution is not None
+    assert report.profile_id in execution.profile_syntheses
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_true_invalidates_cache_and_invokes_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=True prunes cache and triggers synthesis_runner."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report()
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
+    )
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
     dummy_dto = ReportDataDTO(
         workflow_id="wor_0123456789abcdef",
         execution_id="exe_1234567890abcdef",
@@ -258,24 +450,108 @@ async def test_process_artifact_compilation_branches(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
     async def mock_runner(execution_id: str, accept_language: str, profile_id: str) -> None:
-        exec_rec = await repo.get_execution(execution_id)
-        if exec_rec:
-            updated_syntheses = {
-                **exec_rec.profile_syntheses,
-                profile_id: RenderedSynthesisCache(variance_explanation="Resynthesized"),
+        exec_record = await repo.get_execution(execution_id)
+        if exec_record:
+            new_syntheses = {
+                **exec_record.profile_syntheses,
+                profile_id: RenderedSynthesisCache(variance_explanation="Fresh re-synthesized text"),
             }
-            await repo.update_execution(execution_id, ExecutionUpdateDTO(profile_syntheses=updated_syntheses))
+            await repo.update_execution(execution_id, ExecutionUpdateDTO(profile_syntheses=new_syntheses))
 
-    runner = AsyncMock(side_effect=mock_runner)
-    service_with_runner = ReportCompilationService(
+    synthesis_runner = AsyncMock(side_effect=mock_runner)
+
+    service = ReportCompilationService(
         repo=repo,
         storage_driver=storage,
         export_service=export_service,
         pdf_service=pdf_service,
-        synthesis_runner=runner,
+        synthesis_runner=synthesis_runner,
     )
-    await service_with_runner.process_artifact_compilation(report_resynth.id, force_resynthesis=True)
-    runner.assert_awaited_once()
-    final_rep = await repo.get_report_artifact(report_resynth.id)
-    assert final_rep is not None
-    assert final_rep.status == ReportStatus.READY
+    await service.process_artifact_compilation(report.id, force_resynthesis=True)
+
+    synthesis_runner.assert_awaited_once_with(
+        execution_id=report.execution_id,
+        accept_language=report.locale,
+        profile_id=report.profile_id,
+    )
+    execution = await repo.get_execution(report.execution_id)
+    assert execution is not None
+    assert report.profile_id in execution.profile_syntheses
+    assert execution.profile_syntheses[report.profile_id].variance_explanation == "Fresh re-synthesized text"
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_idempotency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify force_resynthesis=True does not early-return on READY status with existing files."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    storage = AsyncMock()
+    storage.exists.return_value = True
+    storage.save.side_effect = lambda path, data: path
+
+    paths = ReportStoragePathsDTO(pdf_path="artifacts/reports/rep_123/report.pdf")
+    report = _create_dummy_report(status=ReportStatus.READY)
+    report = report.model_copy(update={"storage_paths": paths})
+    await repo.create_report_artifact(report)
+    await repo.save_execution(_create_dummy_execution())
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = ExportPayloadDTO(
+        content_bytes=b"excel_bytes",
+        filename="report.xlsx",
+        mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    export_service.export_flat_csv.return_value = ExportPayloadDTO(
+        content_bytes=b"csv_bytes",
+        filename="report.csv",
+        mime_type="text/csv",
+    )
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    async def mock_runner(execution_id: str, accept_language: str, profile_id: str) -> None:
+        exec_record = await repo.get_execution(execution_id)
+        if exec_record:
+            new_syntheses = {
+                **exec_record.profile_syntheses,
+                profile_id: RenderedSynthesisCache(variance_explanation="Regenerated text"),
+            }
+            await repo.update_execution(execution_id, ExecutionUpdateDTO(profile_syntheses=new_syntheses))
+
+    synthesis_runner = AsyncMock(side_effect=mock_runner)
+
+    service = ReportCompilationService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=synthesis_runner,
+    )
+    await service.process_artifact_compilation(report.id, force_resynthesis=True)
+
+    assert storage.save.call_count == 4
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_missing_runner_dispatches_dlq() -> None:
+    """Verify missing profile synthesis without synthesis_runner dispatches to DLQ."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    exec_no_synth = _create_dummy_execution().model_copy(update={"profile_syntheses": {}})
+    await repo.save_execution(exec_no_synth)
+    report_no_runner = _create_dummy_report(report_id="rep_0000000000000003", status=ReportStatus.PENDING)
+    await repo.create_report_artifact(report_no_runner)
+
+    service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())
+    await service.process_artifact_compilation(report_no_runner.id)
+    failed_no_runner = await repo.get_report_artifact(report_no_runner.id)
+    assert failed_no_runner is not None
+    assert failed_no_runner.status == ReportStatus.FAILED

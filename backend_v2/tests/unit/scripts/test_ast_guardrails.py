@@ -1459,6 +1459,56 @@ def test_qgr017_import_pdf_chat_extractor_symbol_from_ingress_fatal() -> None:
     assert "pdf_chat_extractor" in qgr017[0].message
 
 
+def test_qgr017_banned_report_service_god_file_path_fatal() -> None:
+    """QGR017: scanning backend_v2/services/report_service.py emits FATAL violation."""
+    code = "# Banned report_service god file\nclass ReportService:\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/" + "report_service.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "report_service.py" in qgr017[0].message
+
+
+def test_qgr017_import_from_report_service_fatal() -> None:
+    """QGR017: from retired report_service module import ... emits FATAL violation."""
+    mod_name = "backend_v2.services." + "report_service"
+    code = f"from {mod_name} import ReportService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert mod_name in qgr017[0].message
+
+
+def test_qgr017_import_report_service_module_fatal() -> None:
+    """QGR017: import retired report_service module emits FATAL violation."""
+    mod_name = "backend_v2.services." + "report_service"
+    code = f"import {mod_name}\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert mod_name in qgr017[0].message
+
+
+def test_qgr017_import_report_service_symbol_from_services_fatal() -> None:
+    """QGR017: from backend_v2.services import report_service emits FATAL violation."""
+    code = "from backend_v2.services import report_service\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "report_service" in qgr017[0].message
+
+
+def test_qgr017_modular_report_package_allowed() -> None:
+    """QGR017: scanning modular report package files produces zero violations."""
+    code = "from backend_v2.services.report import ReportService\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/report/__init__.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 0
+
+
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================
 
@@ -1993,7 +2043,7 @@ async def get_execution_record(self, execution_id: str):
     exec_dict = await self.repo.get_execution(execution_id)
     return ExecutionRecord.model_validate(exec_dict)
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    violations = _scan_snippet(code, filepath="backend_v2/services/report/compilation_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 1
     assert qgr028[0].severity == GuardrailSeverity.FATAL
@@ -2007,7 +2057,7 @@ def test_qgr028_redundant_model_validate_on_direct_repo_call_triggers_fatal() ->
 async def fetch_workflow(self, workflow_id: str):
     return Workflow.model_validate(await self.repo.get_workflow(workflow_id))
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    violations = _scan_snippet(code, filepath="backend_v2/services/report/compilation_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 1
     assert qgr028[0].severity == GuardrailSeverity.FATAL
@@ -2021,7 +2071,7 @@ def update_state(execution, step_id, profile_id):
     syntheses = dict(execution.profile_syntheses)
     return step_states, syntheses
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    violations = _scan_snippet(code, filepath="backend_v2/services/report/compilation_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 2
     assert all(v.severity == GuardrailSeverity.FATAL for v in qgr028)
@@ -2039,7 +2089,7 @@ async def compile_artifact(self, execution_id: str, profile_id: str, step_id: st
         execution = execution.with_step_passed(step_id, "Report Render")
     return execution
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/report_service.py")
+    violations = _scan_snippet(code, filepath="backend_v2/services/report/compilation_service.py")
     qgr028 = [v for v in violations if v.rule_code == "QGR028"]
     assert len(qgr028) == 0
 

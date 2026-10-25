@@ -148,6 +148,44 @@ async def test_get_report_pdf_bytes_success() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_report_sdui_and_streams() -> None:
+    """Verify get_report_sdui, get_report_pdf_bytes, get_report_excel_bytes, and get_report_csv_bytes."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+
+    storage = AsyncMock()
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    storage.read.side_effect = [
+        dummy_dto.model_dump_json().encode("utf-8"),
+        b"pdf_bytes",
+        b"excel_bytes",
+        b"csv_bytes",
+    ]
+
+    service = ReportFormatReaderService(repo=repo, storage_driver=storage)
+
+    sdui = await service.get_report_sdui(report.id)
+    assert isinstance(sdui, ReportDataDTO)
+
+    pdf, fname_pdf = await service.get_report_pdf_bytes(report.id)
+    assert pdf == b"pdf_bytes"
+    assert fname_pdf.endswith(".pdf")
+
+    excel, fname_excel = await service.get_report_excel_bytes(report.id)
+    assert excel == b"excel_bytes"
+    assert fname_excel.endswith(".xlsx")
+
+    csv, fname_csv = await service.get_report_csv_bytes(report.id)
+    assert csv == b"csv_bytes"
+    assert fname_csv.endswith(".csv")
+
+
+@pytest.mark.asyncio
 async def test_get_report_excel_and_csv_bytes_success() -> None:
     """Verify get_report_excel_bytes and get_report_csv_bytes stream stored bytes and filenames."""
     repo = InMemoryUnifiedWorkflowRepository()
@@ -165,6 +203,89 @@ async def test_get_report_excel_and_csv_bytes_success() -> None:
     csv_bytes, csv_name = await service.get_report_csv_bytes(report.id)
     assert csv_bytes == b"csv_flat_content"
     assert csv_name == f"report_{report.id}.csv"
+
+
+@pytest.mark.asyncio
+async def test_get_report_rows() -> None:
+    """Verify get_report_rows returns ReportRowItemDTO items for evaluated atoms."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+    storage = AsyncMock()
+    storage.read.return_value = _create_dummy_report_data_dto().model_dump_json().encode("utf-8")
+
+    service = ReportFormatReaderService(repo=repo, storage_driver=storage)
+    rows = await service.get_report_rows(report.id)
+    assert len(rows) == 3
+    assert rows[0].metric_key == "blk_0123456789abcdef"
+    assert rows[0].metric_label == "Strategic Claim"
+    assert rows[0].score == 1.0
+    assert rows[0].max_scale == 1.0
+    assert rows[0].reasoning == "Sound reasoning."
+    assert rows[0].is_inverse_evidence is False
+
+
+@pytest.mark.asyncio
+async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
+    """Verify get_report_rows propagates is_inverse_evidence correctly for affirmative and inverse atoms."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    await repo.create_report_artifact(report)
+
+    atom_affirmative = AtomResultDTO(
+        tda_id="tda_0000000000000001",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quotes=("Affirmative quote",),
+        evaluation_reasoning="Affirmative reasoning.",
+        is_inverse_evidence=False,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_inverse = AtomResultDTO(
+        tda_id="tda_0000000000000002",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quotes=None,
+        evaluation_reasoning="Inverse reasoning.",
+        is_inverse_evidence=True,
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    report_data = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[],
+        results=[atom_affirmative, atom_inverse],
+        hydrated_references={
+            "tda_0000000000000001": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Affirmative Claim",
+            ),
+            "tda_0000000000000002": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Inverse Claim",
+            ),
+        },
+    )
+
+    storage = AsyncMock()
+    storage.read.return_value = report_data.model_dump_json().encode("utf-8")
+
+    service = ReportFormatReaderService(repo=repo, storage_driver=storage)
+    rows = await service.get_report_rows(report.id)
+    assert len(rows) == 2
+    assert rows[0].metric_label == "Affirmative Claim"
+    assert rows[0].is_inverse_evidence is False
+    assert rows[0].score == 1.0
+    assert rows[1].metric_label == "Inverse Claim"
+    assert rows[1].is_inverse_evidence is True
+    assert rows[1].score == 1.0
 
 
 @pytest.mark.asyncio
@@ -205,19 +326,38 @@ async def test_get_report_rows_and_dlq_log(caplog: pytest.LogCaptureFixture) -> 
 
 
 @pytest.mark.asyncio
+async def test_read_artifact_failures() -> None:
+    """Verify _read_artifact raises AppException when not ready or storage read fails."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    pending_report = _create_dummy_report(status=ReportStatus.PENDING)
+    ready_report = _create_dummy_report(status=ReportStatus.READY)
+
+    storage = AsyncMock()
+    storage.read.side_effect = OSError("Read failed")
+
+    service = ReportFormatReaderService(repo=repo, storage_driver=storage)
+
+    with pytest.raises(AppException) as exc_info1:
+        await service._read_artifact(pending_report, "artifacts/reports/rep_1/report.pdf", "PDF")
+    assert exc_info1.value.status_code == 409
+
+    with pytest.raises(AppException) as exc_info2:
+        await service._read_artifact(ready_report, "artifacts/reports/rep_1/report.pdf", "PDF")
+    assert exc_info2.value.status_code == 500
+
+
+@pytest.mark.asyncio
 async def test_format_reader_negative_not_found_and_not_ready() -> None:
     """Verify negative cases: missing report raises ResourceNotFoundError and non-READY status raises 409."""
     repo = InMemoryUnifiedWorkflowRepository()
     storage = AsyncMock()
     service = ReportFormatReaderService(repo=repo, storage_driver=storage)
 
-    # 1. Missing report_id raises ResourceNotFoundError
     with pytest.raises(ResourceNotFoundError) as exc_not_found:
         await service.get_report_sdui("rep_0000000000000000")
     assert exc_not_found.value.details is not None
     assert exc_not_found.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
-    # 2. Report in PENDING status raises AppException 409 REPORT_NOT_READY
     pending_report = _create_dummy_report(report_id="rep_0000000000000001", status=ReportStatus.PENDING)
     await repo.create_report_artifact(pending_report)
     with pytest.raises(AppException) as exc_not_ready:
@@ -226,7 +366,6 @@ async def test_format_reader_negative_not_found_and_not_ready() -> None:
     assert exc_not_ready.value.details is not None
     assert exc_not_ready.value.details["error_code"] == ErrorCodes.REPORT_NOT_READY.value
 
-    # 3. Report with empty storage path raises AppException 409 REPORT_NOT_READY
     empty_path_report = _create_dummy_report(report_id="rep_0000000000000002", status=ReportStatus.READY).model_copy(
         update={"storage_paths": ReportStoragePathsDTO(pdf_path=None)}
     )

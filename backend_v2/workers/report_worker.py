@@ -11,7 +11,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-import backend_v2.services.report_service as report_service_mod
+# Phase 4, Step 1: Rewire report_service_mod import to canonical report package
+import backend_v2.services.report as report_service_mod
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes

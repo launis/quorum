@@ -17,7 +17,7 @@ async def test_generate_report_artifact_job_delegates_to_service() -> None:
     mock_service.process_artifact_compilation = AsyncMock()
 
     with (
-        patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
+        patch("backend_v2.services.report.ReportService", return_value=mock_service),
         patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
     ):
         _ = await generate_report_artifact_job(
@@ -35,7 +35,7 @@ async def test_generate_report_artifact_job_forwards_force_resynthesis() -> None
     mock_service.process_artifact_compilation = AsyncMock()
 
     with (
-        patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
+        patch("backend_v2.services.report.ReportService", return_value=mock_service),
         patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
     ):
         await generate_report_artifact_job(
@@ -62,7 +62,7 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
     with (
-        patch("backend_v2.services.report_service.ReportService", return_value=mock_service),
+        patch("backend_v2.services.report.ReportService", return_value=mock_service),
         patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock),
         patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository", return_value=mock_repo),
     ):

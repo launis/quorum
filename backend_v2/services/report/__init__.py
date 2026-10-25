@@ -1,4 +1,4 @@
-"""Materialized Report Artifact domain service coordinates compilation, storage, and retrieval."""
+"""Canonical package facade for Materialized Report Artifact domain services."""
 
 from __future__ import annotations
 
@@ -20,16 +20,28 @@ from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.services.export import ExportService
 from backend_v2.services.file_driver import FileDriver
 from backend_v2.services.pdf_generator import PdfReportService
-from backend_v2.services.report.compilation_service import ReportCompilationService
-from backend_v2.services.report.format_reader_service import ReportFormatReaderService
-from backend_v2.services.report.lifecycle_service import ReportLifecycleService
+from backend_v2.services.report.compilation_service import (
+    ReportCompilationService as ReportCompilationService,
+)
+from backend_v2.services.report.format_reader_service import (
+    ReportFormatReaderService as ReportFormatReaderService,
+)
+from backend_v2.services.report.lifecycle_service import (
+    ReportLifecycleService as ReportLifecycleService,
+)
 from backend_v2.services.storage import get_storage_driver
 
-__all__ = ["ReportService"]
+# Phase 4, Step 2: Expose ReportService package aggregator facade with explicit __all__
+__all__ = [
+    "ReportCompilationService",
+    "ReportFormatReaderService",
+    "ReportLifecycleService",
+    "ReportService",
+]
 
 
 class ReportService:
-    """Domain service managing materialized report artifacts across all formats."""
+    """Domain package facade managing materialized report artifacts across all formats."""
 
     def __init__(
         self,
@@ -39,7 +51,7 @@ class ReportService:
         pdf_service: PdfReportService | None = None,
         synthesis_runner: Callable[..., Awaitable[None]] | None = None,
     ) -> None:
-        """Initialize ReportService with repository and presentation services.
+        """Initialize ReportService facade with repository and presentation sub-services.
 
         Args:
             repo: Unified workflow repository for report persistence.
@@ -55,9 +67,8 @@ class ReportService:
         )
         self.pdf_service: PdfReportService = pdf_service if pdf_service is not None else PdfReportService()
         self.synthesis_runner = synthesis_runner
-        # Phase 1, Step 2: Instantiate ReportLifecycleService for CRUD and lifecycle delegation
+        # Phase 4, Step 2: Route lifecycle, compilation, and format reader sub-services
         self._lifecycle = ReportLifecycleService(repo=self.repo, storage_driver=self.storage)
-        # Phase 2, Step 2: Instantiate ReportCompilationService for compilation and DLQ delegation
         self._compilation = ReportCompilationService(
             repo=self.repo,
             storage_driver=self.storage,
@@ -65,26 +76,24 @@ class ReportService:
             pdf_service=self.pdf_service,
             synthesis_runner=self.synthesis_runner,
         )
-        # Phase 3, Step 2: Instantiate ReportFormatReaderService for format retrieval delegation
         self._format_reader = ReportFormatReaderService(repo=self.repo, storage_driver=self.storage)
 
     async def get_report(self, report_id: str) -> ReportArtifact:
-        """Retrieves single report artifact model fail-fast.
+        """Retrieve single report artifact model fail-fast.
 
         Args:
             report_id: Canonical ID of the report artifact to fetch.
 
         Returns:
-            The fetched ReportArtifact domain model.
+            Fetched ReportArtifact domain model.
 
         Raises:
             ResourceNotFoundError: If report artifact does not exist in repository.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         return await self._lifecycle.get_report(report_id)
 
     async def list_reports_for_execution(self, execution_id: str) -> list[ReportArtifactSummaryDTO]:
-        """Lists all report artifacts for an execution as lightweight summaries.
+        """List all report artifacts for an execution as lightweight summaries.
 
         Args:
             execution_id: Canonical execution ID to query reports for.
@@ -92,23 +101,21 @@ class ReportService:
         Returns:
             List of ReportArtifactSummaryDTO objects.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         return await self._lifecycle.list_reports_for_execution(execution_id)
 
     async def create_report_artifact(self, payload: ReportArtifactCreateDTO) -> ReportArtifact:
-        """Validates execution and profile preconditions, then persists a new PENDING report artifact.
+        """Validate execution and profile preconditions, then persist a new PENDING report artifact.
 
         Args:
             payload: Creation DTO containing execution, profile, and locale parameters.
 
         Returns:
-            The newly created and persisted ReportArtifact model.
+            Newly created and persisted ReportArtifact model.
 
         Raises:
             ResourceNotFoundError: If execution or profile does not exist.
             ExecutionNotReadyError: If execution is not in PASSED state.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         return await self._lifecycle.create_report_artifact(payload)
 
     async def get_or_create_default_artifact(
@@ -117,7 +124,7 @@ class ReportService:
         profile_id: str | None = None,
         locale: str | None = None,
     ) -> ReportArtifact:
-        """Retrieves an existing matching report artifact or creates and persists a default pending artifact.
+        """Retrieve an existing matching report artifact or create a default pending artifact.
 
         Args:
             execution_id: Target execution identifier.
@@ -125,30 +132,28 @@ class ReportService:
             locale: Optional target locale code.
 
         Returns:
-            The existing or newly created ReportArtifact model.
+            Existing or newly created ReportArtifact model.
 
         Raises:
             ResourceNotFoundError: If execution or target workflow/profile does not exist.
             AppException: If execution is not ready or profile mismatch occurs.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         return await self._lifecycle.get_or_create_default_artifact(execution_id, profile_id, locale)
 
     async def compile_and_persist_artifact(
         self, report_id: str, arq_pool: ArqRedis, force_resynthesis: bool = False
     ) -> None:
-        """Sets status to GENERATING and enqueues background artifact compilation.
+        """Set status to GENERATING and enqueue background artifact compilation.
 
         Args:
             report_id: Canonical ID of the report artifact.
             arq_pool: Redis worker connection pool for job enqueuing.
             force_resynthesis: Whether to invalidate synthesis cache and force re-running LLM Phase 2 synthesis.
         """
-        # Phase 2, Step 2: Delegate to ReportCompilationService
         await self._compilation.compile_and_persist_artifact(report_id, arq_pool, force_resynthesis=force_resynthesis)
 
     async def process_artifact_compilation(self, report_id: str, force_resynthesis: bool = False) -> None:
-        """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage.
+        """Execute Phase 2 synthesis and compile Phase 3 presentation artifacts into storage.
 
         Args:
             report_id: Canonical ID of the report artifact to compile.
@@ -157,17 +162,15 @@ class ReportService:
         Raises:
             ResourceNotFoundError: If report or execution does not exist.
         """
-        # Phase 2, Step 2: Delegate to ReportCompilationService
         await self._compilation.process_artifact_compilation(report_id, force_resynthesis=force_resynthesis)
 
     async def _dispatch_report_compilation_dlq(self, report_id: str, exc: Exception) -> None:
-        """Dispatches compilation failure to artifact failure state.
+        """Dispatch compilation failure to artifact failure state.
 
         Args:
             report_id: Canonical ID of the report artifact.
             exc: Caught exception causing the compilation failure.
         """
-        # Phase 2, Step 2: Delegate to ReportCompilationService
         await self._compilation._dispatch_report_compilation_dlq(report_id, exc)
 
     async def _read_artifact(self, report: ReportArtifact, path: str | None, artifact_type: str) -> bytes:
@@ -176,20 +179,18 @@ class ReportService:
         Args:
             report: Target report artifact model.
             path: Relative storage path to artifact file.
-            artifact_type: Description of the artifact format (e.g. 'PDF', 'SDUI').
+            artifact_type: Description of the artifact format.
 
         Returns:
             Raw binary payload of the stored artifact.
 
         Raises:
-            AppException: With ErrorCodes.REPORT_NOT_READY if artifact is not ready,
-                or ErrorCodes.STORAGE_ACCESS_FAILED if storage driver read fails.
+            AppException: With ErrorCodes.REPORT_NOT_READY or ErrorCodes.STORAGE_ACCESS_FAILED.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader._read_artifact(report, path, artifact_type)
 
     async def get_report_sdui(self, report_id: str) -> ReportDataDTO:
-        """Streams compiled SDUI ReportDataDTO from storage driver.
+        """Stream compiled SDUI ReportDataDTO from storage driver.
 
         Args:
             report_id: Canonical ID of the report artifact.
@@ -200,56 +201,52 @@ class ReportService:
         Raises:
             AppException: If report is not ready or storage read fails.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader.get_report_sdui(report_id)
 
     async def get_report_pdf_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled PDF bytes from storage driver.
+        """Stream compiled PDF bytes from storage driver.
 
         Args:
             report_id: Canonical ID of the report artifact.
 
         Returns:
-            Tuple of (raw PDF bytes, download filename).
+            Tuple of raw PDF bytes and download filename.
 
         Raises:
             AppException: If report is not ready or storage read fails.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader.get_report_pdf_bytes(report_id)
 
     async def get_report_excel_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled Excel workbook bytes from storage driver.
+        """Stream compiled Excel workbook bytes from storage driver.
 
         Args:
             report_id: Canonical ID of the report artifact.
 
         Returns:
-            Tuple of (raw Excel workbook bytes, download filename).
+            Tuple of raw Excel workbook bytes and download filename.
 
         Raises:
             AppException: If report is not ready or storage read fails.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader.get_report_excel_bytes(report_id)
 
     async def get_report_csv_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled flat CSV bytes from storage driver.
+        """Stream compiled flat CSV bytes from storage driver.
 
         Args:
             report_id: Canonical ID of the report artifact.
 
         Returns:
-            Tuple of (raw CSV bytes, download filename).
+            Tuple of raw CSV bytes and download filename.
 
         Raises:
             AppException: If report is not ready or storage read fails.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader.get_report_csv_bytes(report_id)
 
     async def get_report_rows(self, report_id: str) -> list[ReportRowItemDTO]:
-        """Extracts tabular evaluated metric rows for B2B pipeline integration.
+        """Extract tabular evaluated metric rows for B2B pipeline integration.
 
         Args:
             report_id: Canonical ID of the report artifact.
@@ -257,20 +254,18 @@ class ReportService:
         Returns:
             List of ReportRowItemDTO items for tabular consumption.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         return await self._format_reader.get_report_rows(report_id)
 
     def _dlq_log_absent_storage_artifact(self, path: str) -> None:
-        """Logs when a storage artifact being deleted is already absent.
+        """Log when a storage artifact being deleted is already absent.
 
         Args:
             path: Storage path of the artifact.
         """
-        # Phase 3, Step 2: Delegate to ReportFormatReaderService
         self._format_reader._dlq_log_absent_storage_artifact(path)
 
     async def delete_report_artifact(self, report_id: str) -> None:
-        """Deletes database record and associated physical files from storage.
+        """Delete database record and associated physical files from storage.
 
         Args:
             report_id: Canonical ID of the report artifact to delete.
@@ -278,21 +273,19 @@ class ReportService:
         Raises:
             AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if physical file deletion fails.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         await self._lifecycle.delete_report_artifact(report_id)
 
     async def regenerate_report_artifact(self, report_id: str, arq_pool: ArqRedis) -> None:
-        """Resets status to GENERATING and triggers background compilation re-run.
+        """Reset status to GENERATING and trigger background compilation re-run.
 
         Args:
             report_id: Canonical ID of the report artifact to regenerate.
             arq_pool: Redis worker connection pool for job enqueuing.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         await self._lifecycle.regenerate_report_artifact(report_id, arq_pool)
 
     async def get_public_report(self, report_id: str) -> PublicReportDTO:
-        """Produces a sanitized public read-only B2B report DTO.
+        """Produce a sanitized public read-only B2B report DTO.
 
         Args:
             report_id: Canonical ID of the report artifact.
@@ -303,5 +296,4 @@ class ReportService:
         Raises:
             ResourceNotFoundError: If execution does not exist.
         """
-        # Phase 1, Step 2: Delegate to ReportLifecycleService
         return await self._lifecycle.get_public_report(report_id)
