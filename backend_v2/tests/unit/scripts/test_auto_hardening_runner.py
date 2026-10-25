@@ -13,6 +13,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from scripts.auto_hardening_runner import (
+    DEFAULT_BACKEND_AGENT_TEMPLATE,
+    DEFAULT_FRONTEND_AGENT_TEMPLATE,
     HardeningGate,
     HardeningIterationResultDTO,
     HardeningRunnerArgsDTO,
@@ -183,6 +185,7 @@ def test_frontend_gate_invokes_flutter_audit_loop(tmp_path: Path, monkeypatch: p
         "scripts/flutter_audit_loop.py",
         "client_app_v2/lib/view.dart",
         "--build",
+        "--strict",
     ]
     assert invoked_cmd == expected_cmd
 
@@ -847,9 +850,11 @@ def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.Mon
     )
 
     processed_gates: list[HardeningGate] = []
+    processed_agent_cmds: list[str | None] = []
 
     def mock_process(target: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> HardeningIterationResultDTO:
         processed_gates.append(args.gate)
+        processed_agent_cmds.append(args.agent_cmd)
         return HardeningIterationResultDTO(
             target_file=target,
             gate=args.gate,
@@ -869,3 +874,57 @@ def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.Mon
     assert summary.success_count == 2
     assert summary.failure_count == 0
     assert processed_gates == [HardeningGate.BACKEND, HardeningGate.FRONTEND]
+    assert processed_agent_cmds == [DEFAULT_BACKEND_AGENT_TEMPLATE, DEFAULT_FRONTEND_AGENT_TEMPLATE]
+
+
+def test_main_cli_default_subagent_template_resolution(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-038: Verify main CLI resolves strict default subagent templates unless --no-agent is passed."""
+    tracker_file = tmp_path / "tracker.md"
+    tracker_file.write_text(
+        """# Master Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run auto_hardening_runner
+  - [ ] @[backend_v2/services/foo.py]
+""",
+        encoding="utf-8",
+    )
+
+    captured_dtos: list[HardeningRunnerArgsDTO] = []
+
+    def mock_pipeline(dto: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> HardeningRunSummaryDTO:
+        captured_dtos.append(dto)
+        return HardeningRunSummaryDTO(
+            total_targets=1,
+            processed_count=1,
+            success_count=1,
+            failure_count=0,
+            skipped_count=0,
+            iterations=[],
+        )
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.run_hardening_pipeline", mock_pipeline)
+
+    # 1. Gate backend default -> DEFAULT_BACKEND_AGENT_TEMPLATE
+    code = main(["--tracker", str(tracker_file), "--gate", "backend"])
+    assert code == 0
+    assert captured_dtos[-1].no_agent is False
+    assert captured_dtos[-1].agent_cmd == DEFAULT_BACKEND_AGENT_TEMPLATE
+
+    # 2. Gate frontend default -> DEFAULT_FRONTEND_AGENT_TEMPLATE
+    code = main(["--tracker", str(tracker_file), "--gate", "frontend"])
+    assert code == 0
+    assert captured_dtos[-1].no_agent is False
+    assert captured_dtos[-1].agent_cmd == DEFAULT_FRONTEND_AGENT_TEMPLATE
+
+    # 3. Explicit --no-agent disables subagent
+    code = main(["--tracker", str(tracker_file), "--gate", "backend", "--no-agent"])
+    assert code == 0
+    assert captured_dtos[-1].no_agent is True
+    assert captured_dtos[-1].agent_cmd is None
+
+    # 4. Gate all defaults to no_agent=False
+    code = main(["--tracker", str(tracker_file)])
+    assert code == 0
+    assert captured_dtos[-1].no_agent is False
+    assert captured_dtos[-1].gate == HardeningGate.ALL
+

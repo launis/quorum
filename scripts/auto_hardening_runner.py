@@ -145,6 +145,9 @@ class HardeningRunnerArgsDTO(BaseModel):
     agent_cmd: Annotated[
         str | None, Field(default=None, description="Optional command template for subagent execution before audit.")
     ] = None
+    no_agent: Annotated[
+        bool, Field(default=False, description="Disable automatic AI subagent execution before audit.")
+    ] = False
     no_auto_fix: Annotated[
         bool, Field(default=False, description="Disable automatic ruff/dart format passes before audit.")
     ] = False
@@ -578,8 +581,17 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
     """
     root = repo_root or get_repo_root()
 
-    if args.agent_cmd:
-        formatted_cmd = args.agent_cmd.format(target=target_file, target_file=target_file)
+    subagent_template = args.agent_cmd
+    if not subagent_template and not args.no_agent and args.gate == HardeningGate.ALL:
+        subagent_template = (
+            DEFAULT_FRONTEND_AGENT_TEMPLATE if target_file.endswith(".dart") else DEFAULT_BACKEND_AGENT_TEMPLATE
+        )
+
+    if subagent_template and not args.no_agent:
+        if target_file.endswith(".dart") and "/tier2-hardening-backend" in subagent_template:
+            subagent_template = subagent_template.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
+
+        formatted_cmd = subagent_template.format(target=target_file, target_file=target_file)
         cmd_args = shlex.split(formatted_cmd, posix=False if sys.platform == "win32" else True)
         subagent_success = False
 
@@ -658,11 +670,11 @@ def run_quality_gate(
 
     # Dispatches the designated quality gate audit loop with strict AST guardrails:
     # - Backend: uv run python scripts/backend_audit_loop.py <target_file> --test --ast-strict
-    # - Frontend: uv run python scripts/flutter_audit_loop.py <target_file> --build
+    # - Frontend: uv run python scripts/flutter_audit_loop.py <target_file> --build --strict
     if gate == HardeningGate.BACKEND or (gate == HardeningGate.ALL and not target_file.endswith(".dart")):
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
     else:
-        cmd = ["uv", "run", "python", "scripts/flutter_audit_loop.py", target_file, "--build"]
+        cmd = ["uv", "run", "python", "scripts/flutter_audit_loop.py", target_file, "--build", "--strict"]
 
     try:
         res = execute_subprocess_with_tree_kill(cmd, timeout_seconds=timeout_seconds, cwd=root)
@@ -917,7 +929,8 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
     root = repo_root or get_repo_root()
 
     if args.gate == HardeningGate.ALL and not args.targets:
-        backend_args = args.model_copy(update={"gate": HardeningGate.BACKEND})
+        backend_agent = args.agent_cmd or (DEFAULT_BACKEND_AGENT_TEMPLATE if not args.no_agent else None)
+        backend_args = args.model_copy(update={"gate": HardeningGate.BACKEND, "agent_cmd": backend_agent})
         backend_summary = run_hardening_pipeline(backend_args, repo_root=root)
         if backend_summary.failure_count > 0 and args.fail_fast and not args.continue_on_failure:
             return backend_summary
@@ -926,6 +939,8 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
         frontend_agent = args.agent_cmd
         if frontend_agent and "/tier2-hardening-backend" in frontend_agent:
             frontend_agent = frontend_agent.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
+        elif not frontend_agent and not args.no_agent:
+            frontend_agent = DEFAULT_FRONTEND_AGENT_TEMPLATE
 
         frontend_args = args.model_copy(
             update={"gate": HardeningGate.FRONTEND, "agent_cmd": frontend_agent, "max_files": rem_max}
@@ -1133,6 +1148,7 @@ Key Behavioral Invariants for Autonomous AI Agents:
             max_retries=parsed.max_retries,
             timeout_seconds=parsed.timeout_seconds,
             agent_cmd=resolved_agent_cmd,
+            no_agent=parsed.no_agent,
             no_auto_fix=parsed.no_auto_fix,
             fail_fast=parsed.fail_fast,
             continue_on_failure=parsed.continue_on_failure,
