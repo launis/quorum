@@ -1,11 +1,11 @@
 """Domain models for system configuration and platform settings.
 
-SSOT for ChatMessageDTO, ChatHistoryDTO, DataDictionaryField, ProviderExtraParamsDTO,
-ModelProfile, SystemConfigModelRegistry, AllowedMCPTool, MCPAuditTrace, and
-SystemConfigMCPGateways.
+SSOT for AllowedMCPTool, ChatHistoryDTO, ChatMessageDTO, DataDictionaryField,
+MCPAuditTrace, ModelProfile, ProviderExtraParamsDTO, SystemConfigMCPGateways,
+SystemConfigModelRegistry, SystemConfigOptionDTO, and SystemValidationRulesDTO.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -68,51 +68,109 @@ class ChatHistoryDTO(V2CoreBase):
 
 
 class SystemConfigOptionDTO(V2CoreBase):
-    """Selectable option for dropdown/multiselect UI components."""
+    """Selectable option for dropdown/multiselect UI components.
+
+    Attributes:
+        value: Underlying option value.
+        label: Display label for the option.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    value: str
-    label: str | I18nText | None = None
+    value: Annotated[str, Field(description="Underlying option value.")]
+    label: Annotated[
+        str | I18nText | None,
+        Field(default=None, description="Display label for the option."),
+    ] = None
 
 
 class SystemValidationRulesDTO(V2CoreBase):
-    """Validation rules for SDUI dynamic data dictionary fields."""
+    """Validation rules for SDUI dynamic data dictionary fields.
+
+    Attributes:
+        min: Minimum numeric bound.
+        max: Maximum numeric bound.
+        required: Whether the field is mandatory.
+        pattern: Regex validation pattern.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    min: float | int | None = None
-    max: float | int | None = None
-    required: bool | None = None
-    pattern: str | None = None
+    min: Annotated[float | int | None, Field(default=None, description="Minimum numeric bound.")] = None
+    max: Annotated[float | int | None, Field(default=None, description="Maximum numeric bound.")] = None
+    required: Annotated[bool | None, Field(default=None, description="Whether the field is mandatory.")] = None
+    pattern: Annotated[str | None, Field(default=None, description="Regex validation pattern.")] = None
 
 
 class DataDictionaryField(V2CoreBase):
-    """UI Hints mapping for dynamic form generation (SDUI)."""
+    """UI Hints mapping for dynamic form generation (SDUI).
+
+    Attributes:
+        field_id: Unique field identifier.
+        component_type: UI component type identifier.
+        options: Selectable options for dropdown or multiselect components.
+        validation_rules: Validation constraints for the dynamic field.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    field_id: str
+    field_id: Annotated[str, Field(description="Unique field identifier.")]
     component_type: Annotated[LaxComponentType, Field(description="E.g., 'slider', 'text_input', 'dropdown'")]
-    options: list[SystemConfigOptionDTO] | None = None
-    validation_rules: SystemValidationRulesDTO | None = None
+    options: Annotated[
+        list[SystemConfigOptionDTO] | None,
+        Field(default=None, description="Selectable options for dropdown or multiselect components."),
+    ] = None
+    validation_rules: Annotated[
+        SystemValidationRulesDTO | None,
+        Field(default=None, description="Validation constraints for the dynamic field."),
+    ] = None
 
 
 class ProviderExtraParamsDTO(BaseModel):
-    """Provider-specific optional parameters for ModelProfile."""
+    """Provider-specific optional parameters for ModelProfile.
+
+    Attributes:
+        temperature: Sampling temperature override.
+        top_p: Nucleus sampling probability override.
+        top_k: Top-K sampling override.
+        max_output_tokens: Maximum output token limit.
+        reasoning_effort: Reasoning effort level.
+        vertex_location: Vertex AI region override.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    temperature: float | None = None
-    top_p: float | None = None
-    top_k: int | None = None
-    max_output_tokens: int | None = None
-    reasoning_effort: str | None = None
-    vertex_location: str | None = None
+    temperature: Annotated[float | None, Field(default=None, description="Sampling temperature override.")] = None
+    top_p: Annotated[float | None, Field(default=None, description="Nucleus sampling probability override.")] = None
+    top_k: Annotated[int | None, Field(default=None, description="Top-K sampling override.")] = None
+    max_output_tokens: Annotated[int | None, Field(default=None, description="Maximum output token limit.")] = None
+    reasoning_effort: Annotated[str | None, Field(default=None, description="Reasoning effort level.")] = None
+    vertex_location: Annotated[str | None, Field(default=None, description="Vertex AI region override.")] = None
 
 
 class ModelProfile(V2CoreBase):
-    """A flattened physical AI model representation."""
+    """A flattened physical AI model representation.
+
+    Attributes:
+        provider: Underlying model provider identifier.
+        model_name: The underlying API model name.
+        temperature: Generation temperature.
+        top_p: Nucleus sampling probability.
+        top_k: Top-K sampling parameter.
+        tpm_limit: Tokens per minute limit.
+        rpm_limit: Requests per minute limit.
+        max_tokens: Max generated tokens.
+        frequency_penalty: Frequency penalty.
+        presence_penalty: Presence penalty.
+        allowed_tools: Enabled tools.
+        supports_grounding: Supports Google Search Grounding.
+        api_key: Optional override API key.
+        parsing_mode: Parser logic flag.
+        caching_strategy: Cache strategy identifier.
+        thinking_budget_tokens: Reasoning/thinking token budget for reasoning models.
+        additional_params: Additional provider-specific parameters.
+        is_active: Whether the model is actively available.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -126,7 +184,7 @@ class ModelProfile(V2CoreBase):
     max_tokens: Annotated[int | None, Field(default=None, description="Max generated tokens")] = None
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty")] = None
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty")] = None
-    allowed_tools: list[str] = Field(default_factory=list, description="Enabled tools")
+    allowed_tools: Annotated[list[str], Field(default_factory=list, description="Enabled tools")]
     supports_grounding: Annotated[bool, Field(default=False, description="Supports Google Search Grounding")] = False
     api_key: Annotated[str | None, Field(default=None, description="Optional override API key")] = None
     parsing_mode: Annotated[
@@ -143,14 +201,24 @@ class ModelProfile(V2CoreBase):
             description="Reasoning/thinking token budget for reasoning models (e.g. Gemini 3.7, Claude 3.7)",
         ),
     ] = None
-    additional_params: ProviderExtraParamsDTO = Field(
-        default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."
-    )
+    additional_params: Annotated[
+        ProviderExtraParamsDTO,
+        Field(default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."),
+    ]
     is_active: Annotated[bool, Field(default=True, description="Whether the model is actively available")] = True
 
 
 class SystemConfigModelRegistry(V2CoreBase):
-    """V2 Flattened Model Registry System Config."""
+    """V2 Flattened Model Registry System Config.
+
+    Attributes:
+        id: System config Opaque Stripe ID.
+        name: Human-readable title.
+        type: Discriminator literal ('model_registry').
+        slug: System Config identifier slug.
+        default_provider: Default LLM provider.
+        tier_definitions: Direct mapping of the four canonical cognitive tiers to physical profiles.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
@@ -175,7 +243,14 @@ class SystemConfigModelRegistry(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_tier_completeness(self) -> Self:
-        """Enforces that the model registry implements all four canonical CognitiveTiers."""
+        """Enforce that the model registry implements all four canonical CognitiveTiers.
+
+        Returns:
+            Validated SystemConfigModelRegistry instance.
+
+        Raises:
+            ValueError: If any canonical CognitiveTier is missing from tier_definitions.
+        """
         required_tiers = set(CognitiveTier)
         missing = required_tiers - set(self.tier_definitions.keys())
         if missing:
@@ -186,9 +261,17 @@ class SystemConfigModelRegistry(V2CoreBase):
         return self
 
 
-# Phase 1, Step 1.2: Upgrade AllowedMCPTool with strict MCPToolInputSchemaDTO and frozen=True
 class AllowedMCPTool(V2CoreBase):
-    """Declares a single MCP tool available for LLM function calling."""
+    """Declares a single MCP tool available for LLM function calling.
+
+    Attributes:
+        tool_id: The unique technical identifier of the MCP tool.
+        capability: Operational capability category of the tool.
+        name: Localized display name.
+        description: English-only LLM description for function calling schema.
+        input_schema: Strict recursive JSON Schema for tool parameters.
+        enabled: Whether this discovered tool is enabled for agent execution.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -202,19 +285,40 @@ class AllowedMCPTool(V2CoreBase):
     ] = ToolCapability.SEARCH
     name: Annotated[I18nText, Field(description="Localized display name.")]
     description: Annotated[str, Field(description="English-only LLM description for function calling schema.")]
-    input_schema: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO,
-        description="Strict recursive JSON Schema for tool parameters.",
-    )
+    input_schema: Annotated[
+        MCPToolInputSchemaDTO,
+        Field(
+            default_factory=MCPToolInputSchemaDTO,
+            description="Strict recursive JSON Schema for tool parameters.",
+        ),
+    ]
     enabled: Annotated[
         bool,
         Field(default=True, description="Whether this discovered tool is enabled for agent execution."),
     ] = True
 
 
-# Phase 1, Step 1.2: Upgrade MCPAuditTrace with provenance fields and PEP 593 Annotated syntax
 class MCPAuditTrace(V2CoreBase):
-    """Immutable audit log entry for a single MCP tool invocation."""
+    """Immutable audit log entry for a single MCP tool invocation.
+
+    Attributes:
+        id: Unique identifier for the trace injected by the driver.
+        tool_id: Which tool was called.
+        gateway_id: Opaque ID of the MCP gateway that executed the tool.
+        gateway_slug: Namespace slug of the MCP gateway.
+        namespaced_alias: Full namespaced tool alias invoked by the LLM.
+        step_name: DAG step that triggered the call.
+        claim_text: The verbatim claim that triggered this search.
+        query: The search query or tool input.
+        knowledge_gap: The knowledge gap that needs to be resolved.
+        search_rationale: The rationale for the search query.
+        reasoning: Brief explanation of why this claim was verified.
+        response_summary: Extracted text summary.
+        source_urls: Source URLs returned.
+        impacted_axis_names: List of matrix axis names that used this trace.
+        timestamp: UTC timestamp of the tool call.
+        duration_ms: Round-trip latency in milliseconds.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -258,20 +362,36 @@ class MCPAuditTrace(V2CoreBase):
         Field(default="", description="Brief explanation of why this claim was verified."),
     ] = ""
     response_summary: Annotated[str, Field(default="", description="Extracted text summary.")] = ""
-    source_urls: list[str] = Field(default_factory=list, description="Source URLs returned.")
-    impacted_axis_names: list[str] = Field(
-        default_factory=list, description="List of matrix axis names that used this trace."
-    )
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="UTC timestamp of the tool call.",
-    )
+    source_urls: Annotated[list[str], Field(default_factory=list, description="Source URLs returned.")]
+    impacted_axis_names: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of matrix axis names that used this trace."),
+    ]
+    timestamp: Annotated[
+        datetime,
+        Field(
+            default_factory=lambda: datetime.now(UTC),
+            description="UTC timestamp of the tool call.",
+        ),
+    ]
     duration_ms: Annotated[int, Field(default=0, description="Round-trip latency in milliseconds.")] = 0
 
 
-# Phase 1, Step 1.2: Upgrade SystemConfigMCPGateways with transport, auth, and non-empty single-underscore slug
 class SystemConfigMCPGateways(V2CoreBase):
-    """System-level registry of available MCP tool gateways."""
+    """System-level registry of available MCP tool gateways.
+
+    Attributes:
+        id: System config Opaque Stripe ID.
+        type: Config type discriminator ('mcp_gateways').
+        slug: Collision-free gateway namespace slug without double underscores.
+        endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.
+        transport_type: MCP transport protocol.
+        auth_type: Authentication scheme for the MCP gateway.
+        auth_header_name: Custom HTTP header name when auth_type is api_key_header.
+        auth_env_var: Name of the environment variable holding the secret token or API key.
+        timeout_seconds: Request timeout in seconds for this MCP gateway.
+        tools: Registry of all available MCP tools in the system.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="mcp_gateways")
 
@@ -313,6 +433,7 @@ class SystemConfigMCPGateways(V2CoreBase):
         int,
         Field(default=30, ge=1, le=300, description="Request timeout in seconds for this MCP gateway."),
     ] = 30
-    tools: list[AllowedMCPTool] = Field(
-        default_factory=list, description="Registry of all available MCP tools in the system."
-    )
+    tools: Annotated[
+        list[AllowedMCPTool],
+        Field(default_factory=list, description="Registry of all available MCP tools in the system."),
+    ]
