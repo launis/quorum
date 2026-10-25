@@ -92,7 +92,7 @@
   - [x] @[backend_v2/services/mcp/alias_registry.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
-  - [ ] @[backend_v2/services/mcp/__init__.py]
+  - [x] @[backend_v2/services/mcp/__init__.py]
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
   - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
   - [x] @[backend_v2/llm/schema_builder.py]
