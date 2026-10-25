@@ -45,7 +45,7 @@
 
 #### Tier 2 Hardening (Backend)
 - [ ] **[NOK] Tier 2 Hardening (Backend):** /tier2-hardening-backend
-  - [ ] @[backend_v2/services/report/lifecycle_service.py]
+  - [x] @[backend_v2/services/report/lifecycle_service.py]
   - [ ] @[backend_v2/services/report/compilation_service.py]
   - [ ] @[backend_v2/services/report/format_reader_service.py]
 
@@ -85,6 +85,7 @@
 - Completed Phase 2 (Compilation Extraction): Created `backend_v2/services/report/compilation_service.py` (`ReportCompilationService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 2 test contracts (`test_compile_and_persist_artifact_success`, `test_compile_execution_not_ready`) and unit test suite `backend_v2/tests/unit/services/report/test_compilation_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `compilation_service.py`.
 - Completed Phase 3 (Format Reader Extraction): Created `backend_v2/services/report/format_reader_service.py` (`ReportFormatReaderService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 3 test contracts (`test_get_report_sdui_success`, `test_get_report_pdf_bytes_success`) and unit test suite `backend_v2/tests/unit/services/report/test_format_reader_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `format_reader_service.py`.
 - Completed Phase 4 (Atomic Cutover & Consumer Rewiring): Rewired 1-hop consumers (`backend_v2/api/dependencies.py`, `backend_v2/workers/report_worker.py`, `backend_v2/workers/synthesis_worker.py`, `backend_v2/workers/synthesis_reducers.py`, and unit tests) to import from `backend_v2.services.report`, created package facade `backend_v2/services/report/__init__.py`, partitioned monolithic test suite into `test_lifecycle_service.py`, `test_compilation_service.py`, `test_format_reader_service.py`, and `test_report_facade.py` (47 tests, 100.00% coverage across all 4 modules in `backend_v2/services/report/`), deleted external proxy `backend_v2/services/report_service.py`, registered `QGR017` lockdown in `scripts/_ast_guardrails.py`, and updated `.agents/rules/04_directory_reference.md`.
+- Completed Epoch 2 Tier 2 Hardening on `@[backend_v2/services/report/lifecycle_service.py]`: Decomposed `_get_validated_profile` and `_resolve_default_profile_id` (<50 lines per method), enforced RFC 7807 structured `extra` logging and `exc_info=True`, replaced `or` coalescing with explicit `is not None` conditional, documented explicit `ErrorCodes` in PEP 257 `Raises:` blocks, and verified 182/182 rules plus 100% test coverage via `backend_audit_loop.py`.
 
 ## Learned
 - `ReportService` exhibits high internal cohesion within its 3 domains; leaf models are already cleanly separated in `models/dtos/` and `models/domain/`.
@@ -93,11 +94,16 @@
 - When adding `QGR017` unit tests for a retired module in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`, avoid placing the literal retired module path string in test docstrings so codebase-wide substring regression checks (`test_zero_legacy_report_service_imports`) pass with zero false positives.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`
+`/tier2-hardening-backend @[backend_v2/services/report/compilation_service.py] @[docs/epic/report_service_decomposition_tracker.md]`
 
 ## Remaining
 - Audit Phase 1: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase1_lifecycle_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 2: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 3: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 4: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`
-- Execute Epoch 2 Tier 2 Hardening: `/tier2-hardening-backend` on `@[backend_v2/services/report/lifecycle_service.py]`, `@[backend_v2/services/report/compilation_service.py]`, and `@[backend_v2/services/report/format_reader_service.py]`
+- Execute Epoch 2 Tier 2 Hardening on `@[backend_v2/services/report/compilation_service.py]` and `@[backend_v2/services/report/format_reader_service.py]`
+
+### Hardening State Snapshot
+- **TARGETS:** `@[backend_v2/services/report/lifecycle_service.py]`, `@[backend_v2/services/report/compilation_service.py]`, `@[backend_v2/services/report/format_reader_service.py]`
+- **DONE:** `@[backend_v2/services/report/lifecycle_service.py]`
+- **REMAINING:** `@[backend_v2/services/report/compilation_service.py]`, `@[backend_v2/services/report/format_reader_service.py]`
