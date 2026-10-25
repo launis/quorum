@@ -105,7 +105,7 @@
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
   - [x] @[backend_v2/services/blueprint.py]
   - [x] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/audit_dict_eradication.py]
+  - [x] @[scripts/audit_dict_eradication.py]
   - [x] @[.agents/rules/04_directory_reference.md]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
