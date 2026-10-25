@@ -86,7 +86,6 @@ class PromptCompilerAdapter:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
-        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
@@ -102,7 +101,6 @@ class PromptCompilerAdapter:
             source_document_ids: Optional list of document IDs.
             allowed_atom_ids: Optional allowed atom ID filter.
             allowed_dynamic_keys: Optional list of dynamic input keys.
-            allowed_mcp_prefixes: Optional MCP tool prefix filter.
             max_evaluations: Optional limit on evaluation count.
             expected_sdui_type: Target SDUI component presentation format.
             dag_results: Optional upstream DAG step execution results.
@@ -119,7 +117,6 @@ class PromptCompilerAdapter:
             source_document_ids=source_document_ids,
             allowed_atom_ids=allowed_atom_ids,
             allowed_dynamic_keys=allowed_dynamic_keys,
-            allowed_mcp_prefixes=allowed_mcp_prefixes,
             max_evaluations=max_evaluations,
             expected_sdui_type=expected_sdui_type,
             dag_results=dag_results,

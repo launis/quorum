@@ -10,6 +10,12 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.system_config import AllowedMCPTool
+from backend_v2.models.dtos.mcp import (
+    MCPToolDeclarationDTO,
+    MCPToolDescriptorDTO,
+    MCPToolInputSchemaDTO,
+)
 from backend_v2.models.enums import BlockDataType, XaiExtensionType
 from backend_v2.models.prompts.common import (
     XAI_DESC_CITATION,
@@ -23,6 +29,7 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_RISK_FLAG,
     XAI_DESC_THEORY_LINK,
 )
+from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 __all__ = ["BlockSchemaConfigDTO", "DynamicFieldDefinition", "DynamicFieldSpecDTO", "SchemaCompilerService"]
 
@@ -67,7 +74,7 @@ class DynamicFieldSpecDTO(V2CoreBase):
 
 
 class SchemaCompilerService:
-    """Compiles PromptBlocks into dynamic Pydantic Models for LLM structured outputs."""
+    """Compiles PromptBlocks and MCP Tool schemas into dynamic Pydantic Models."""
 
     @staticmethod
     def _generate_hash(blocks_config: list[BlockSchemaConfigDTO]) -> str:
@@ -254,3 +261,43 @@ class SchemaCompilerService:
         # Convert to immutable tuple to safely cross the LRU cache boundary
         fields_tuple = tuple(fields_list)
         return cls._get_or_create_model(schema_hash, fields_tuple)
+
+    @classmethod
+    def create_mcp_tool_argument_model(
+        cls,
+        namespaced_alias: str,
+        input_schema: MCPToolInputSchemaDTO,
+    ) -> type[BaseModel]:
+        """Delegate runtime MCP tool argument model compilation to SchemaFactory.
+
+        Args:
+            namespaced_alias: Full namespaced tool alias ('{gateway_slug}__{tool_id}').
+            input_schema: Strict recursive JSON Schema DTO for the tool's input parameters.
+
+        Returns:
+            Dynamically generated Pydantic V2 BaseModel enforcing strict=True, extra='forbid', frozen=True.
+
+        Raises:
+            AppException: If namespaced_alias is empty or input_schema has invalid required keys.
+        """
+        return SchemaFactory.create_mcp_tool_argument_model(namespaced_alias, input_schema)
+
+    @classmethod
+    def build_mcp_tool_declaration(
+        cls,
+        namespaced_alias: str,
+        tool: AllowedMCPTool | MCPToolDescriptorDTO,
+    ) -> MCPToolDeclarationDTO:
+        """Delegate MCPToolDeclarationDTO construction to SchemaFactory.
+
+        Args:
+            namespaced_alias: Full namespaced tool alias ('{gateway_slug}__{tool_id}').
+            tool: AllowedMCPTool domain configuration or hydrated MCPToolDescriptorDTO.
+
+        Returns:
+            Strongly typed MCPToolDeclarationDTO ready for LLM provider serialization.
+
+        Raises:
+            AppException: If namespaced_alias is empty.
+        """
+        return SchemaFactory.build_mcp_tool_declaration(namespaced_alias, tool)

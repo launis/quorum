@@ -1048,4 +1048,109 @@ async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp
             await mock_prov.generate("track fail prompt", temperature=0.0, max_tokens=50)
 
 
+@pytest.mark.asyncio
+async def test_lite_llm_provider_serializes_mcp_tool_declarations_to_standard_json_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Positive & Negative: Verify LiteLLMProvider.generate maps enum_values and additional_properties to JSON Schema."""
+    import litellm
+
+    from backend_v2.llm.provider import _normalize_mcp_tool_schema_for_llm
+    from backend_v2.models.dtos.mcp import (
+        MCPFunctionDefinitionDTO,
+        MCPToolDeclarationDTO,
+        MCPToolInputSchemaDTO,
+        MCPToolSchemaPropertyDTO,
+    )
+    from backend_v2.models.enums import JSONSchemaPropertyType
+    from backend_v2.settings import get_settings
+
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.001)
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.4",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+
+    mock_usage = MagicMock(
+        prompt_tokens=10,
+        completion_tokens=5,
+        total_tokens=15,
+        prompt_tokens_details=MagicMock(cached_tokens=0),
+        completion_tokens_details=MagicMock(reasoning_tokens=0),
+    )
+    mock_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content='{"ok": true}', tool_calls=None, provider_specific_fields=None))],
+        usage=mock_usage,
+        system_fingerprint="fp_123",
+        _hidden_params={},
+        model_extra={},
+    )
+    mock_response.model_dump.return_value = {}
+    provider.router.acompletion = AsyncMock(return_value=mock_response)
+
+    tool_decl = MCPToolDeclarationDTO(
+        type="function",
+        function=MCPFunctionDefinitionDTO(
+            name="default_mcp_gateway__mcp_tavily_search",
+            description="Search web via MCP",
+            parameters=MCPToolInputSchemaDTO(
+                properties={
+                    "query": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.STRING,
+                        description="Search query",
+                    ),
+                    "search_depth": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.STRING,
+                        description="Depth",
+                        enum_values=["basic", "advanced"],
+                    ),
+                    "filter_obj": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.OBJECT,
+                        properties={
+                            "mode": MCPToolSchemaPropertyDTO(
+                                type=JSONSchemaPropertyType.STRING,
+                                enum_values=["strict", "relaxed"],
+                            ),
+                        },
+                        additional_properties=False,
+                    ),
+                },
+                required=["query"],
+                additional_properties=False,
+            ),
+            strict=True,
+        ),
+    )
+
+    await provider.generate(
+        prompt="Run search",
+        temperature=0.0,
+        max_tokens=100,
+        tools=[tool_decl],
+    )
+
+    called_kwargs = provider.router.acompletion.call_args[1]
+    assert "tools" in called_kwargs
+    serialized_tool = called_kwargs["tools"][0]
+    params = serialized_tool["function"]["parameters"]
+    assert params["additionalProperties"] is False
+    assert "additional_properties" not in params
+    assert params["properties"]["search_depth"]["enum"] == ["basic", "advanced"]
+    assert "enum_values" not in params["properties"]["search_depth"]
+    nested_obj = params["properties"]["filter_obj"]
+    assert nested_obj["additionalProperties"] is False
+    assert nested_obj["properties"]["mode"]["enum"] == ["strict", "relaxed"]
+
+    # Boundary/negative checks on _normalize_mcp_tool_schema_for_llm with primitives, lists, and direct BaseModel
+    assert _normalize_mcp_tool_schema_for_llm(None) is None
+    assert _normalize_mcp_tool_schema_for_llm(42) == 42
+    direct_normalized = _normalize_mcp_tool_schema_for_llm([tool_decl])
+    assert direct_normalized[0]["function"]["parameters"]["additionalProperties"] is False
+
+
 # Re-export provider-focused unit test suites so backend_audit_loop discovers full coverage

@@ -149,7 +149,6 @@ class PromptCompiler:
         source_document_ids: list[str] | None = None,
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
-        allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
         dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
@@ -165,7 +164,6 @@ class PromptCompiler:
             source_document_ids: Dynamic literals corresponding to available documents.
             allowed_atom_ids: Dynamic literals corresponding to available atom items.
             allowed_dynamic_keys: Dynamic keys loaded from step input mappings.
-            allowed_mcp_prefixes: List of dynamic tool prefixes (e.g. tavily_, jira_).
             max_evaluations: Dynamic upper limit for evaluations array.
             expected_sdui_type: Expected Server-Driven UI component type layout.
             dag_results: Dictionary of previous topological execution results.

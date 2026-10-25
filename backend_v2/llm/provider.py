@@ -51,6 +51,7 @@ __all__ = [
     "LiteLLMProvider",
     "LogfireShieldedClient",
     "MockProvider",
+    "_normalize_mcp_tool_schema_for_llm",
     "resolve_env_variables",
 ]
 
@@ -129,6 +130,33 @@ def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
         else:
             resolved[k] = v
     return resolved
+
+
+def _normalize_mcp_tool_schema_for_llm(node: Any) -> Any:
+    """Recursively map internal DTO schema keys to standard JSON Schema keys for LLM providers.
+
+    Transforms 'enum_values' to 'enum' and 'additional_properties' to 'additionalProperties'
+    at the outbound LLM provider boundary while preserving internal DTO field names for REST parity.
+
+    Args:
+        node: Serialized tool declaration or nested JSON Schema structure.
+
+    Returns:
+        Normalized JSON Schema structure with standard 'enum' and 'additionalProperties' keys.
+    """
+    if isinstance(node, BaseModel):
+        dumped = node.model_dump(mode="json", by_alias=True, exclude_none=True)
+        return _normalize_mcp_tool_schema_for_llm(dumped)
+    if type(node) is dict:
+        return {
+            ("enum" if k == "enum_values" else ("additionalProperties" if k == "additional_properties" else k)): (
+                _normalize_mcp_tool_schema_for_llm(v)
+            )
+            for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_normalize_mcp_tool_schema_for_llm(item) for item in node]
+    return node
 
 
 def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> None:
@@ -834,6 +862,13 @@ class LiteLLMProvider(LLMProvider):
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
+            if "tools" in call_kwargs and call_kwargs["tools"]:
+                call_kwargs["tools"] = [
+                    _normalize_mcp_tool_schema_for_llm(
+                        t.model_dump(mode="json", by_alias=True, exclude_none=True) if isinstance(t, BaseModel) else t
+                    )
+                    for t in call_kwargs["tools"]
+                ]
             for key in _INTERNAL_NON_API_KEYS:
                 if key in call_kwargs:
                     del call_kwargs[key]

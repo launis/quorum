@@ -658,12 +658,6 @@ class LLMNodeStrategy(NodeStrategy):
             allowed_dynamic_keys.extend(input_mappings.keys())
             allowed_dynamic_keys = list(set(allowed_dynamic_keys))
 
-            # Extensibility for dynamic MCP providers
-            mcp_prefixes = ["call_", "mcp_", "search_"]
-            for tool_name in step_obj.allowed_mcp_tools:
-                mcp_prefixes.append(f"{tool_name}_")
-            allowed_mcp_prefixes = list(set(mcp_prefixes))
-
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
                 criteria=criteria_blocks,
@@ -672,7 +666,6 @@ class LLMNodeStrategy(NodeStrategy):
                 strictness_level=context.strictness_level,
                 source_document_ids=source_doc_ids,
                 allowed_dynamic_keys=allowed_dynamic_keys,
-                allowed_mcp_prefixes=allowed_mcp_prefixes,
             )
             dynamic_schema = global_schema
 

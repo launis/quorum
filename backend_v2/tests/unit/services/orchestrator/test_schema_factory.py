@@ -1,8 +1,18 @@
 """Unit tests for SchemaFactory dynamic Pydantic schema generation."""
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
+from backend_v2.exceptions import AppException
+from backend_v2.llm.schema_builder import SchemaCompilerService
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import AllowedMCPTool
+from backend_v2.models.dtos.mcp import (
+    MCPToolDescriptorDTO,
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+)
+from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 
@@ -83,7 +93,6 @@ def test_normal_typo_still_rejected_by_extra_forbid() -> None:
 
 def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFactory) -> None:
     """Verify that build_dynamic_schema enforces dynamic Literal validation on source_document_ids."""
-    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
@@ -130,3 +139,175 @@ def test_build_dynamic_schema_with_source_document_ids(schema_factory: SchemaFac
     invalid_data["source_document_aliases"] = ["doc_invalid"]
     obj_invalid = inner_model.model_validate(invalid_data, context={"alias_map": {"doc_a": "opa_1", "doc_b": "opa_2"}})
     assert obj_invalid.source_document_aliases == ["N/A"]
+
+
+def test_create_mcp_tool_argument_model_all_json_schema_types_positive() -> None:
+    """Positive: Verify create_mcp_tool_argument_model compiles recursive JSON Schema types into strict Pydantic V2."""
+    input_schema = MCPToolInputSchemaDTO(
+        properties={
+            "query": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                description="Search query string",
+            ),
+            "max_results": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.INTEGER,
+                description="Maximum number of results",
+            ),
+            "threshold": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.NUMBER,
+                description="Relevance score threshold",
+            ),
+            "include_raw": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.BOOLEAN,
+                description="Include raw page content",
+            ),
+            "search_depth": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                description="Depth mode",
+                enum_values=["basic", "advanced"],
+            ),
+            "tags": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.ARRAY,
+                description="Filter tags",
+                items=MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+            ),
+            "untyped_array": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.ARRAY,
+                description="Fallback string array when items is omitted",
+            ),
+            "filter_obj": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.OBJECT,
+                description="Nested filter object",
+                properties={
+                    "domain": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.STRING,
+                        description="Target domain",
+                    ),
+                },
+                required=["domain"],
+            ),
+        },
+        required=["query", "search_depth", "filter_obj"],
+        additional_properties=False,
+    )
+
+    ArgModel = SchemaCompilerService.create_mcp_tool_argument_model(
+        "default_mcp_gateway__mcp_tavily_search",
+        input_schema,
+    )
+    validated = ArgModel.model_validate(
+        {
+            "query": "ISO 9001 quality management",
+            "max_results": 5,
+            "threshold": 0.75,
+            "include_raw": False,
+            "search_depth": "advanced",
+            "tags": ["iso", "quality"],
+            "untyped_array": ["item1"],
+            "filter_obj": {"domain": "iso.org"},
+        }
+    )
+    dumped = validated.model_dump(exclude_none=True)
+    assert dumped["query"] == "ISO 9001 quality management"
+    assert dumped["max_results"] == 5
+    assert dumped["search_depth"] == "advanced"
+    assert dumped["filter_obj"] == {"domain": "iso.org"}
+
+
+def test_create_mcp_tool_argument_model_rejects_extra_and_invalid_types_negative() -> None:
+    """Negative 1: Verify compiled runtime argument model rejects extra fields, invalid enum literals, and wrong types."""
+    input_schema = MCPToolInputSchemaDTO(
+        properties={
+            "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+            "mode": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                enum_values=["fast", "deep"],
+            ),
+        },
+        required=["query", "mode"],
+    )
+
+    ArgModel = SchemaFactory.create_mcp_tool_argument_model("gw__search", input_schema)
+
+    # Extra field rejected
+    with pytest.raises(ValidationError):
+        ArgModel.model_validate({"query": "hello", "mode": "fast", "unexpected": 123})
+
+    # Invalid Literal value rejected
+    with pytest.raises(ValidationError):
+        ArgModel.model_validate({"query": "hello", "mode": "invalid_mode"})
+
+    # Missing required field rejected
+    with pytest.raises(ValidationError):
+        ArgModel.model_validate({"mode": "fast"})
+
+
+def test_create_mcp_tool_argument_model_invalid_definition_negative() -> None:
+    """Negative 2: Verify empty namespaced_alias or missing required property key raises AppException."""
+    valid_schema = MCPToolInputSchemaDTO(
+        properties={"query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
+        required=["query"],
+    )
+
+    with pytest.raises(AppException):
+        SchemaFactory.create_mcp_tool_argument_model("   ", valid_schema)
+
+    inconsistent_schema = MCPToolInputSchemaDTO(
+        properties={"query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
+        required=["query", "non_existent_required_key"],
+    )
+    with pytest.raises(AppException):
+        SchemaFactory.create_mcp_tool_argument_model("gw__search", inconsistent_schema)
+
+    missing_obj_props_schema = MCPToolInputSchemaDTO(
+        properties={
+            "nested": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.OBJECT,
+                properties=None,
+            )
+        },
+        required=["nested"],
+    )
+    with pytest.raises(AppException):
+        SchemaFactory.create_mcp_tool_argument_model("gw__search", missing_obj_props_schema)
+
+
+def test_build_mcp_tool_declaration_positive_and_negative() -> None:
+    """Positive & Negative: Verify build_mcp_tool_declaration constructs strict declaration and rejects blank alias."""
+    schema = MCPToolInputSchemaDTO(
+        properties={"query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
+        required=["query"],
+    )
+    tool = AllowedMCPTool(
+        tool_id="mcp_tavily_search",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Search", "fi": "Haku"}),
+        description="Search the web for factual verification.",
+        input_schema=schema,
+        enabled=True,
+    )
+    decl = SchemaCompilerService.build_mcp_tool_declaration(
+        "default_mcp_gateway__mcp_tavily_search",
+        tool,
+    )
+    assert decl.type == "function"
+    assert decl.function.name == "default_mcp_gateway__mcp_tavily_search"
+    assert decl.function.description == "Search the web for factual verification."
+    assert decl.function.parameters == schema
+    assert decl.function.strict is True
+
+    descriptor = MCPToolDescriptorDTO(
+        gateway_id="sys_mcp_gw_default_01",
+        gateway_slug="default_mcp_gateway",
+        namespaced_alias="default_mcp_gateway__mcp_tavily_search",
+        tool_id="mcp_tavily_search",
+        description="Search the web.",
+        capability=ToolCapability.SEARCH,
+        input_schema=schema,
+        enabled=True,
+    )
+    decl_from_desc = SchemaFactory.build_mcp_tool_declaration(descriptor.namespaced_alias, descriptor)
+    assert decl_from_desc.function.name == "default_mcp_gateway__mcp_tavily_search"
+
+    with pytest.raises(AppException):
+        SchemaFactory.build_mcp_tool_declaration("", tool)
