@@ -184,7 +184,7 @@ class ModelProfile(V2CoreBase):
     max_tokens: Annotated[int | None, Field(default=None, description="Max generated tokens")] = None
     frequency_penalty: Annotated[float | None, Field(default=None, description="Frequency penalty")] = None
     presence_penalty: Annotated[float | None, Field(default=None, description="Presence penalty")] = None
-    allowed_tools: Annotated[list[str], Field(default_factory=list, description="Enabled tools")]
+    allowed_tools: list[str] = Field(default_factory=list, description="Enabled tools")
     supports_grounding: Annotated[bool, Field(default=False, description="Supports Google Search Grounding")] = False
     api_key: Annotated[str | None, Field(default=None, description="Optional override API key")] = None
     parsing_mode: Annotated[
@@ -201,10 +201,9 @@ class ModelProfile(V2CoreBase):
             description="Reasoning/thinking token budget for reasoning models (e.g. Gemini 3.7, Claude 3.7)",
         ),
     ] = None
-    additional_params: Annotated[
-        ProviderExtraParamsDTO,
-        Field(default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."),
-    ]
+    additional_params: ProviderExtraParamsDTO = Field(
+        default_factory=ProviderExtraParamsDTO, description="Additional provider-specific parameters."
+    )
     is_active: Annotated[bool, Field(default=True, description="Whether the model is actively available")] = True
 
 
@@ -285,13 +284,10 @@ class AllowedMCPTool(V2CoreBase):
     ] = ToolCapability.SEARCH
     name: Annotated[I18nText, Field(description="Localized display name.")]
     description: Annotated[str, Field(description="English-only LLM description for function calling schema.")]
-    input_schema: Annotated[
-        MCPToolInputSchemaDTO,
-        Field(
-            default_factory=MCPToolInputSchemaDTO,
-            description="Strict recursive JSON Schema for tool parameters.",
-        ),
-    ]
+    input_schema: MCPToolInputSchemaDTO = Field(
+        default_factory=MCPToolInputSchemaDTO,
+        description="Strict recursive JSON Schema for tool parameters.",
+    )
     enabled: Annotated[
         bool,
         Field(default=True, description="Whether this discovered tool is enabled for agent execution."),
@@ -362,18 +358,14 @@ class MCPAuditTrace(V2CoreBase):
         Field(default="", description="Brief explanation of why this claim was verified."),
     ] = ""
     response_summary: Annotated[str, Field(default="", description="Extracted text summary.")] = ""
-    source_urls: Annotated[list[str], Field(default_factory=list, description="Source URLs returned.")]
-    impacted_axis_names: Annotated[
-        list[str],
-        Field(default_factory=list, description="List of matrix axis names that used this trace."),
-    ]
-    timestamp: Annotated[
-        datetime,
-        Field(
-            default_factory=lambda: datetime.now(UTC),
-            description="UTC timestamp of the tool call.",
-        ),
-    ]
+    source_urls: list[str] = Field(default_factory=list, description="Source URLs returned.")
+    impacted_axis_names: list[str] = Field(
+        default_factory=list, description="List of matrix axis names that used this trace."
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="UTC timestamp of the tool call.",
+    )
     duration_ms: Annotated[int, Field(default=0, description="Round-trip latency in milliseconds.")] = 0
 
 
@@ -433,7 +425,6 @@ class SystemConfigMCPGateways(V2CoreBase):
         int,
         Field(default=30, ge=1, le=300, description="Request timeout in seconds for this MCP gateway."),
     ] = 30
-    tools: Annotated[
-        list[AllowedMCPTool],
-        Field(default_factory=list, description="Registry of all available MCP tools in the system."),
-    ]
+    tools: list[AllowedMCPTool] = Field(
+        default_factory=list, description="Registry of all available MCP tools in the system."
+    )
