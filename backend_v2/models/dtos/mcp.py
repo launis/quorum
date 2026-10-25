@@ -37,7 +37,6 @@ __all__ = [
     "ParsedMCPToolAliasDTO",
 ]
 
-# Phase 1, Step 1.2: Strict MCP argument scalar and collection union types
 type MCPArgumentScalar = str | int | float | bool
 type MCPArgumentValue = MCPArgumentScalar | list[str] | list[int] | list[float] | list[bool]
 
@@ -74,7 +73,6 @@ class MCPValidationContextDTO(V2CoreBase):
     )
 
 
-# Phase 1, Step 1.2: Recursive self-referential JSON Schema property DTO
 class MCPToolSchemaPropertyDTO(V2CoreBase):
     """Recursive JSON Schema property definition for an MCP tool parameter.
 
@@ -252,12 +250,12 @@ class MCPFunctionDefinitionDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    name: Annotated[str, Field(description="Tool function identifier name")]
-    description: Annotated[str, Field(description="Detailed tool description for LLM")]
+    name: Annotated[str, Field(description="Tool function identifier name.")]
+    description: Annotated[str, Field(description="Detailed tool description for LLM.")]
     parameters: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO, description="JSON schema parameter definitions"
+        default_factory=MCPToolInputSchemaDTO, description="JSON schema parameter definitions."
     )
-    strict: Annotated[bool, Field(default=True, description="Whether schema enforces strict adherence")] = True
+    strict: Annotated[bool, Field(default=True, description="Whether schema enforces strict adherence.")] = True
 
 
 class MCPToolDeclarationDTO(V2CoreBase):
@@ -270,11 +268,8 @@ class MCPToolDeclarationDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    type: Annotated[str, Field(default="function", description="Tool declaration type")] = "function"
-    function: Annotated[MCPFunctionDefinitionDTO, Field(description="Function definition")]
-
-
-# Phase 1, Step 1.2: JSON-RPC 2.0 Wire Boundary DTOs (MCP 2025-03-26 Specification)
+    type: Annotated[str, Field(default="function", description="Tool declaration type.")] = "function"
+    function: Annotated[MCPFunctionDefinitionDTO, Field(description="Function definition.")]
 
 
 class MCPCapabilityConfigDTO(V2CoreBase):
@@ -404,6 +399,7 @@ class MCPInitializeResultDTO(V2CoreBase):
     Attributes:
         protocol_version: Negotiated MCP protocol version.
         server_info: Server implementation metadata (name/version).
+        capabilities: Server capability declarations.
         instructions: Optional server usage instructions.
     """
 

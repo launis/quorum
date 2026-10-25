@@ -24,8 +24,10 @@ from backend_v2.models.dtos.mcp import (
     MCPToolInvocationDTO,
     MCPToolSchemaPropertyDTO,
     MCPToolsListResultDTO,
+    MCPValidationContextDTO,
     ParsedMCPToolAliasDTO,
 )
+from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
 
 
@@ -229,3 +231,31 @@ def test_mcp_tool_invocation_dto_negative_invalid_gateway_id() -> None:
             namespaced_alias="gw__t1",
             arguments={},
         )
+
+
+def test_mcp_validation_context_dto_positive_and_negative() -> None:
+    """Test MCPValidationContextDTO positive hydration and negative strict/extra boundaries."""
+    doc = SourceDocumentContext(
+        opaque_id="doc_8172bda70c8641c5",
+        text_content="Evidence body text.",
+        display_name="Source A",
+    )
+    ctx = MCPValidationContextDTO(
+        strictness_level=85.5,
+        query_guidance="Use exact search keywords.",
+        mcp_source_texts={"mcp_0": "Fetched web text."},
+        source_documents=[doc],
+        alias_registry={"src_0": "doc_8172bda70c8641c5"},
+    )
+    assert ctx.strictness_level == 85.5
+    assert ctx.query_guidance == "Use exact search keywords."
+    assert ctx.mcp_source_texts["mcp_0"] == "Fetched web text."
+    assert len(ctx.source_documents) == 1
+    assert ctx.alias_registry["src_0"] == "doc_8172bda70c8641c5"
+
+    with pytest.raises(ValidationError):
+        MCPValidationContextDTO.model_validate({"strictness_level": "not_a_number"})
+
+    with pytest.raises(ValidationError):
+        MCPValidationContextDTO.model_validate({"unexpected_key": True})
+
