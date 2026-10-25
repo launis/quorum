@@ -184,11 +184,7 @@ async def test_generic_mcp_client_sse_transport_and_event_stream_framing(
     def _responder(request: httpx.Request) -> httpx.Response:
         seen_urls.append(str(request.url))
         if request.method == "GET":
-            sse_handshake = (
-                ": keep-alive comment\n"
-                "event: endpoint\n"
-                "data: /v1/messages?session_id=sse_1"
-            )
+            sse_handshake = ": keep-alive comment\nevent: endpoint\ndata: /v1/messages?session_id=sse_1"
             return httpx.Response(
                 200,
                 headers={"Content-Type": "text/event-stream"},

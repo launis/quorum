@@ -378,9 +378,7 @@ async def test_get_mcp_gateways_success_and_cache_hit(
 
 
 @pytest.mark.asyncio
-async def test_get_mcp_gateways_not_found(
-    service: StudioSystemConfigService, root_token: TokenData
-) -> None:
+async def test_get_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert retrieving non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
         await service.get_mcp_gateways(root_token, "sys_9999999999999999")
@@ -507,9 +505,7 @@ async def test_clone_mcp_gateways_success_and_repeated_suffix(
 
 
 @pytest.mark.asyncio
-async def test_clone_mcp_gateways_not_found(
-    service: StudioSystemConfigService, root_token: TokenData
-) -> None:
+async def test_clone_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert cloning non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
         await service.clone_mcp_gateways(root_token, "sys_9999999999999999")
@@ -539,9 +535,7 @@ async def test_delete_mcp_gateways_success_and_cache_invalidation(
 
 
 @pytest.mark.asyncio
-async def test_delete_mcp_gateways_not_found(
-    service: StudioSystemConfigService, root_token: TokenData
-) -> None:
+async def test_delete_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert deleting non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
         await service.delete_mcp_gateways(root_token, "sys_9999999999999999")
