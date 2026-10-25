@@ -35,7 +35,6 @@ __all__ = [
     "MCPToolsListResultDTO",
     "MCPValidationContextDTO",
     "ParsedMCPToolAliasDTO",
-    "TavilySearchRequestDTO",
 ]
 
 # Phase 1, Step 1.2: Strict MCP argument scalar and collection union types
@@ -73,28 +72,6 @@ class MCPValidationContextDTO(V2CoreBase):
     alias_registry: dict[str, str] = Field(
         default_factory=dict, description="Optional alias registry mapping short aliases to opaque IDs."
     )
-
-
-class TavilySearchRequestDTO(V2CoreBase):
-    """Payload sent to the Tavily search API endpoint.
-
-    Attributes:
-        api_key: Tavily API key.
-        query: Search query string.
-        max_results: Maximum number of search results.
-        include_answer: Include concise AI answer.
-        include_raw_content: Include full raw content.
-        search_depth: Search depth (basic or advanced).
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    api_key: Annotated[str, Field(description="Tavily API key")]
-    query: Annotated[str, Field(description="Search query string")]
-    max_results: Annotated[int, Field(default=5, description="Maximum number of search results")] = 5
-    include_answer: Annotated[bool, Field(default=True, description="Include concise AI answer")] = True
-    include_raw_content: Annotated[bool, Field(default=False, description="Include full raw content")] = False
-    search_depth: Annotated[str, Field(default="basic", description="Search depth (basic or advanced)")] = "basic"
 
 
 # Phase 1, Step 1.2: Recursive self-referential JSON Schema property DTO

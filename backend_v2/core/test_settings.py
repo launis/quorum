@@ -33,8 +33,6 @@ TEST_SETTINGS_OVERRIDES: dict[str, int | str | bool] = {
     "rag_preflight_chunk_size": 4000,
     "max_precedent_scan_depth": 0,
     "max_precedent_return_count": 0,
-    "tavily_max_results": 1,
-    "mcp_wikipedia_max_search_results": 1,
     "mcp_default_timeout_seconds": 30,
     "mcp_discovery_timeout_seconds": 10,
     "mcp_max_response_chars": 8000,

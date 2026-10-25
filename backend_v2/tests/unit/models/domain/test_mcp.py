@@ -13,10 +13,6 @@ from backend_v2.models.domain.mcp import (
     OpenAIFunctionCallDTO,
     OpenAIProbeResponseDTO,
     OpenAIToolCallDTO,
-    TavilyApiResponseDTO,
-    TavilyApiResultItemDTO,
-    TavilySearchResult,
-    TavilyToolArgsDTO,
 )
 from backend_v2.models.domain.system_config import MCPAuditTrace
 
@@ -85,12 +81,6 @@ def test_openai_probe_response_dto_forbids_extra() -> None:
         OpenAIProbeResponseDTO.model_validate(data)
 
 
-def test_tavily_tool_args_dto_valid() -> None:
-    data = {"query": "test query"}
-    model = TavilyToolArgsDTO.model_validate(data)
-    assert model.query == "test query"
-
-
 def test_mcp_tool_loop_result_valid() -> None:
     audit = MCPAuditTrace(
         tool_id="mcp_tavily_search",
@@ -118,54 +108,6 @@ def test_mcp_tool_loop_result_defaults() -> None:
     model = MCPToolLoopResult.model_validate(data)
     assert model.audit_traces == []
     assert model.usage.total_tokens == 0
-
-
-def test_tavily_api_result_item_dto() -> None:
-    data = {
-        "id": "7df8ff-00",
-        "title": "Example Result",
-        "url": "https://example.com",
-        "content": "Example content",
-        "score": 0.95,
-        "published_date": "2026-08-28",
-    }
-    model = TavilyApiResultItemDTO.model_validate(data)
-    assert model.id == "7df8ff-00"
-    assert model.title == "Example Result"
-    assert model.url == "https://example.com"
-
-
-def test_tavily_api_response_dto() -> None:
-    data = {
-        "query": "test",
-        "answer": "answer",
-        "response_time": 0.5,
-        "images": [],
-        "results": [
-            {
-                "id": "res_1",
-                "title": "Title",
-                "url": "https://example.com",
-                "content": "Content",
-            }
-        ],
-    }
-    model = TavilyApiResponseDTO.model_validate(data)
-    assert model.query == "test"
-    assert len(model.results) == 1
-    assert model.results[0].id == "res_1"
-
-
-def test_tavily_search_result_dto() -> None:
-    model = TavilySearchResult(
-        query="test query",
-        answer="test answer",
-        source_urls=["https://example.com"],
-        raw_content="raw content",
-        duration_ms=150,
-    )
-    assert model.query == "test query"
-    assert model.source_urls == ["https://example.com"]
 
 
 def test_mcp_synthesis_instructions_dto() -> None:
@@ -230,7 +172,7 @@ def test_mcp_retrieval_result_dto_valid_and_defaults() -> None:
 
     # Explicit values
     audit = MCPAuditTrace(
-        tool_id="wikipedia_search",
+        tool_id="mcp_wikipedia_search",
         step_name="archivist_step",
         query="Kahneman bias",
         response_summary="Found article on cognitive biases",
@@ -244,7 +186,7 @@ def test_mcp_retrieval_result_dto_valid_and_defaults() -> None:
         evidence_payload="<external_evidence>evidence text</external_evidence>",
     )
     assert len(populated.audit_traces) == 1
-    assert populated.audit_traces[0].tool_id == "wikipedia_search"
+    assert populated.audit_traces[0].tool_id == "mcp_wikipedia_search"
     assert populated.usage.total_tokens == 180
     assert populated.evidence_payload == "<external_evidence>evidence text</external_evidence>"
 

@@ -97,9 +97,7 @@ def test_tool_dispatcher_init_and_get_declarations() -> None:
 
     all_aliases = dispatcher.get_all_enabled_tool_aliases()
     assert all_aliases == ["default_mcp_gateway__mcp_tavily_search"]
-    assert dispatcher.get_all_enabled_tool_aliases(ToolCapability.SEARCH) == [
-        "default_mcp_gateway__mcp_tavily_search"
-    ]
+    assert dispatcher.get_all_enabled_tool_aliases(ToolCapability.SEARCH) == ["default_mcp_gateway__mcp_tavily_search"]
     assert dispatcher.get_all_enabled_tool_aliases(ToolCapability.DOCUMENT_READER) == []
 
 

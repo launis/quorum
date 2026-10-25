@@ -82,7 +82,6 @@ FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset(
         "scripts/backend_audit_loop.py",
         "scripts/flutter_audit_loop.py",
         "tools/check_trace_size.py",
-        "backend_v2/services/mcp/mcp_tool_loop.py",
         "backend_v2/services/orchestrator/extractive_sensor_service.py",
         "backend_v2/services/orchestrator/localization_compiler.py",
         "backend_v2/services/orchestrator/prompt_compiler_adapter.py",
@@ -91,7 +90,6 @@ FROZEN_APPROVED_PER_FILE_IGNORE_PATHS: frozenset[str] = frozenset(
         "backend_v2/tests/unit/hooks/test_scoring.py",
         "backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py",
         "backend_v2/tests/unit/services/test_blueprint.py",
-        "backend_v2/tests/unit/test_tavily_search_client.py",
         "backend_v2/utils/alias_engine.py",
     }
 )

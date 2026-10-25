@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+import backend_v2.hooks.source_verification_hook as hook_module
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
@@ -13,7 +14,6 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException
-import backend_v2.hooks.source_verification_hook as hook_module
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.source_verification import (

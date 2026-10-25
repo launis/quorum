@@ -654,6 +654,25 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Export functionality must reside exclusively in the modular package `backend_v2.services.export` (`backend_v2/services/export/`).",
                 severity=GuardrailSeverity.FATAL,
             )
+        else:
+            # Phase 3, Step 3.3: Lock eradicated legacy MCP static wrapper file paths in QGR017
+            eradicated_mcp_paths = (
+                "backend_v2/services/mcp/tools/tavily.py",
+                "backend_v2/services/mcp/tools/wikipedia.py",
+                "backend_v2/services/mcp/tavily_search_client.py",
+                "backend_v2/services/mcp/wikipedia_client.py",
+                "backend_v2/models/domain/wikipedia.py",
+                "backend_v2/models/domain/tools.py",
+            )
+            for banned_mcp_path in eradicated_mcp_paths:
+                if norm_path == banned_mcp_path or norm_path.endswith("/" + banned_mcp_path):
+                    self._add_violation(
+                        node,
+                        "QGR017",
+                        f"Banned legacy static MCP wrapper file `{banned_mcp_path}` detected.",
+                        "Use protocol-agnostic `GenericMCPClient`, `ToolDispatcher`, and `SchemaFactory` instead of static tool wrappers.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -1945,6 +1964,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import report services from canonical package `backend_v2.services.report`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif alias.name in (
+                "backend_v2.services.mcp.tools.tavily",
+                "backend_v2.services.mcp.tools.wikipedia",
+                "backend_v2.services.mcp.tavily_search_client",
+                "backend_v2.services.mcp.wikipedia_client",
+                "backend_v2.models.domain.wikipedia",
+                "backend_v2.models.domain.tools",
+            ):
+                # Phase 3, Step 3.3: Lock eradicated legacy MCP wrapper modules in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy MCP wrapper module `{alias.name}`.",
+                    "Use dynamic `ToolDispatcher`, `GenericMCPClient`, and `SchemaFactory` instead of static MCP wrappers.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR021: Banned import of eradicated llm_debug_logger
             if "llm_debug_logger" in alias.name:
                 self._add_violation(
@@ -2106,6 +2141,53 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR017",
                             f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
                             "Import report services from canonical package `backend_v2.services.report`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
+            # Phase 3, Step 3.3: Lock eradicated legacy MCP wrapper modules in QGR017
+            if node.module in (
+                "backend_v2.services.mcp.tools.tavily",
+                "backend_v2.services.mcp.tools.wikipedia",
+                "backend_v2.services.mcp.tavily_search_client",
+                "backend_v2.services.mcp.wikipedia_client",
+                "backend_v2.models.domain.wikipedia",
+                "backend_v2.models.domain.tools",
+            ):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy MCP wrapper module `{node.module}`.",
+                    "Use dynamic `ToolDispatcher`, `GenericMCPClient`, and `SchemaFactory` instead of static MCP wrappers.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module == "backend_v2.services.mcp.tools":
+                for alias in node.names:
+                    if alias.name in ("tavily", "wikipedia"):
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy MCP wrapper `{alias.name}` from `{node.module}`.",
+                            "Use dynamic `ToolDispatcher`, `GenericMCPClient`, and `SchemaFactory` instead of static MCP wrappers.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            elif node.module == "backend_v2.services.mcp":
+                for alias in node.names:
+                    if alias.name in ("tavily_search_client", "wikipedia_client", "tools"):
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy MCP wrapper `{alias.name}` from `{node.module}`.",
+                            "Use dynamic `ToolDispatcher`, `GenericMCPClient`, and `SchemaFactory` instead of static MCP wrappers.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            elif node.module == "backend_v2.models.domain":
+                for alias in node.names:
+                    if alias.name in ("wikipedia", "tools"):
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy MCP domain module `{alias.name}` from `{node.module}`.",
+                            "Use canonical MCP DTOs and domain models in `backend_v2.models.dtos.mcp` and `backend_v2.models.domain.mcp`.",
                             severity=GuardrailSeverity.FATAL,
                         )
 

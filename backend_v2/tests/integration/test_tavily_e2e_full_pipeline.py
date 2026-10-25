@@ -9,6 +9,7 @@ Tests the complete lifecycle:
 """
 
 import _socket
+import os
 import socket
 
 import pytest
@@ -45,7 +46,7 @@ def allow_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     """End-to-end test: Ingest text -> extract claims -> live Tavily search -> build SDUI bibliography."""
     settings = get_settings()
-    if not settings.tavily_api_key:
+    if "TAVILY_API_KEY" not in os.environ or not os.environ["TAVILY_API_KEY"]:
         pytest.skip("TAVILY_API_KEY is not configured in environment.")
 
     driver = await get_driver(settings)
@@ -162,7 +163,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_block() -> None:
     """End-to-end test: Non-verifiable text skips Tavily search and omits bibliography from SDUI."""
     settings = get_settings()
-    if not settings.tavily_api_key:
+    if "TAVILY_API_KEY" not in os.environ or not os.environ["TAVILY_API_KEY"]:
         pytest.skip("TAVILY_API_KEY is not configured in environment.")
 
     driver = await get_driver(settings)

@@ -65,7 +65,6 @@ class Settings(BaseSettings):
         google_api_key: Developer API key for Gemini.
         openai_api_key: API key for OpenAI engines.
         anthropic_api_key: API key for Anthropic engines.
-        tavily_api_key: API key for search orchestration.
         vertex_location: Regional anchor for GCP resources.
         discovery_location: Target region for Model Discovery.
         default_model_strategy: Preferred routing blueprint.
@@ -74,10 +73,6 @@ class Settings(BaseSettings):
         mcp_discovery_timeout_seconds: Network timeout in seconds for MCP tools/list discovery handshakes.
         mcp_max_response_chars: Maximum character budget for external MCP tool responses before truncation.
         mcp_allow_private_networks: Whether MCP endpoint URL validator permits loopback and private networks.
-        mcp_wikipedia_max_search_results: Maximum Wikipedia search results returned.
-        mcp_wikipedia_max_chars: Maximum characters of Wikipedia article extract before truncation.
-        mcp_wikipedia_timeout_seconds: HTTP timeout in seconds for Wikipedia API calls.
-        mcp_wikipedia_user_agent: Wikimedia-compliant User-Agent header string.
         llm_retry_delay: Backoff pause between transient faults.
         llm_default_tpm: Maximum tokens allowed per minute.
         llm_default_rpm: Maximum requests allowed per minute.
@@ -476,47 +471,6 @@ class Settings(BaseSettings):
     ] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
-    tavily_api_key: Annotated[str | None, Field(description="Tavily AI Search API Key")] = None
-    tavily_api_url: Annotated[str, Field(description="Tavily API URL")] = "https://api.tavily.com/search"
-    tavily_max_concurrent_requests: Annotated[int, Field(description="Max parallel Tavily search requests")] = 5
-    tavily_timeout_seconds: Annotated[int, Field(description="Timeout for Tavily requests")] = 15
-    tavily_max_results: Annotated[int, Field(description="Max search results to fetch")] = 5
-    tavily_content_char_limit: Annotated[int, Field(description="Max content characters from search")] = 8000
-    mcp_wikipedia_max_search_results: Annotated[
-        int,
-        Field(
-            default=5,
-            ge=1,
-            le=20,
-            description="Maximum number of search results returned from Wikipedia Action API.",
-        ),
-    ] = 5
-    mcp_wikipedia_max_chars: Annotated[
-        int,
-        Field(
-            default=8000,
-            ge=500,
-            le=30000,
-            description="Maximum characters of article extract to retrieve before truncation.",
-        ),
-    ] = 8000
-    mcp_wikipedia_timeout_seconds: Annotated[
-        float,
-        Field(
-            default=10.0,
-            ge=1.0,
-            le=60.0,
-            description="HTTP timeout in seconds for Wikipedia API calls.",
-        ),
-    ] = 10.0
-    mcp_wikipedia_user_agent: Annotated[
-        str,
-        Field(
-            default="QuorumBot/2.0 (https://github.com/launis/quorum; contact@launis.fi)",
-            min_length=10,
-            description="Wikimedia-compliant User-Agent identifying the client.",
-        ),
-    ] = "QuorumBot/2.0 (https://github.com/launis/quorum; contact@launis.fi)"
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
     discovery_location: Annotated[str, Field(description="Source Region for Model Discovery (e.g. us-central1)")] = (
         "us-central1"
@@ -907,10 +861,6 @@ class Settings(BaseSettings):
             self.schema_max_quotes_target = 1
             self.schema_max_quote_length = 50
             self.schema_max_evaluations = 1
-            if "tavily_max_results" not in self.model_fields_set:
-                self.tavily_max_results = 1
-            if "mcp_wikipedia_max_search_results" not in self.model_fields_set:
-                self.mcp_wikipedia_max_search_results = 1
             if "max_precedent_scan_depth" not in self.model_fields_set:
                 self.max_precedent_scan_depth = 0
             if "max_precedent_return_count" not in self.model_fields_set:

@@ -74,18 +74,6 @@ class OpenAIProbeResponseDTO(V2CoreBase):
     ] = None
 
 
-class TavilyToolArgsDTO(V2CoreBase):
-    """Arguments for a Tavily tool call.
-
-    Attributes:
-        query: The search query.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    query: Annotated[str, Field(description="The search query.")]
-
-
 class MCPToolLoopResult(V2CoreBase):
     """Result from the Tool Loop — structured output + audit trail.
 
@@ -147,72 +135,6 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
         int | None,
         Field(default=None, description="Optional length limit for synthesis."),
     ] = None
-
-
-class TavilyApiResultItemDTO(V2CoreBase):
-    """A single search result item from Tavily API.
-
-    Attributes:
-        id: Unique identifier for the search result, if provided.
-        title: Title of the search result.
-        url: URL of the search result.
-        content: Search result content.
-        raw_content: Unprocessed raw content, if available.
-        score: Relevance score.
-        published_date: Published date, if available.
-    """
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    id: Annotated[str | None, Field(default=None, description="Unique identifier for the search result.")] = None
-    title: Annotated[str, Field(default="", description="Title of the search result.")] = ""
-    url: Annotated[str, Field(default="", description="URL of the search result.")] = ""
-    content: Annotated[str, Field(default="", description="Search result content.")] = ""
-    raw_content: Annotated[str | None, Field(default=None, description="Unprocessed raw content.")] = None
-    score: Annotated[float, Field(default=0.0, description="Relevance score.")] = 0.0
-    published_date: Annotated[str | None, Field(default=None, description="Published date.")] = None
-
-
-class TavilyApiResponseDTO(V2CoreBase):
-    """Complete response payload from Tavily API.
-
-    Attributes:
-        query: The original search query.
-        answer: AI-generated answer, if requested.
-        response_time: Response time in seconds.
-        images: List of related images.
-        results: Search results list from Tavily.
-    """
-
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
-
-    query: Annotated[str, Field(default="", description="The original search query.")] = ""
-    answer: Annotated[str | None, Field(default="", description="AI-generated answer.")] = ""
-    response_time: Annotated[float, Field(default=0.0, description="Response time in seconds.")] = 0.0
-    images: list[str] = Field(default_factory=list, description="List of related images.")
-    results: Annotated[list[TavilyApiResultItemDTO], Field(description="Search results list from Tavily.")]
-    follow_up_questions: Annotated[list[str] | None, Field(default=None, description="Follow-up questions.")] = None
-    request_id: Annotated[str | None, Field(default=None, description="Request ID.")] = None
-
-
-class TavilySearchResult(V2CoreBase):
-    """Parsed Tavily response for downstream consumption.
-
-    Attributes:
-        query: Echo of the original search query.
-        answer: AI-generated summary from Tavily.
-        source_urls: Deduplicated source URLs.
-        raw_content: Concatenated source texts (truncated).
-        duration_ms: Round-trip latency in milliseconds.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    query: Annotated[str, Field(description="Echo of the original search query.")]
-    answer: Annotated[str, Field(description="AI-generated summary from Tavily.")] = ""
-    source_urls: list[str] = Field(default_factory=list, description="Deduplicated source URLs.")
-    raw_content: Annotated[str, Field(description="Concatenated source texts (truncated).")] = ""
-    duration_ms: Annotated[int, Field(description="Round-trip latency in milliseconds.")] = 0
 
 
 class CitationExtractionItemDTO(V2CoreBase):

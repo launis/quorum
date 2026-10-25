@@ -1509,6 +1509,50 @@ def test_qgr017_modular_report_package_allowed() -> None:
     assert len(qgr017) == 0
 
 
+def test_qgr017_eradicated_mcp_wrappers_fatal() -> None:
+    """QGR017: importing or scanning eradicated legacy MCP static wrapper modules emits FATAL violation."""
+    banned_imports = [
+        "from backend_v2.services.mcp.tools.tavily import something\n",
+        "from backend_v2.services.mcp.tools.wikipedia import something\n",
+        "from backend_v2.services.mcp.tavily_search_client import something\n",
+        "from backend_v2.services.mcp.wikipedia_client import something\n",
+        "from backend_v2.models.domain.wikipedia import something\n",
+        "from backend_v2.models.domain.tools import something\n",
+        "import backend_v2.services.mcp.tools.tavily\n",
+        "from backend_v2.services.mcp import tavily_search_client\n",
+        "from backend_v2.services.mcp.tools import wikipedia\n",
+        "from backend_v2.models.domain import tools\n",
+    ]
+    for snippet in banned_imports:
+        violations = _scan_snippet(snippet, filepath="backend_v2/services/foo.py")
+        qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+        assert len(qgr017) == 1
+        assert qgr017[0].severity == GuardrailSeverity.FATAL
+
+    # Scanning any eradicated file path directly emits FATAL QGR017
+    for banned_path in (
+        "backend_v2/services/mcp/tools/tavily.py",
+        "backend_v2/services/mcp/tools/wikipedia.py",
+        "backend_v2/services/mcp/tavily_search_client.py",
+        "backend_v2/services/mcp/wikipedia_client.py",
+        "backend_v2/models/domain/wikipedia.py",
+        "backend_v2/models/domain/tools.py",
+    ):
+        v_path = _scan_snippet("x = 1\n", filepath=banned_path)
+        qgr017_path = [v for v in v_path if v.rule_code == "QGR017"]
+        assert len(qgr017_path) == 1
+        assert qgr017_path[0].severity == GuardrailSeverity.FATAL
+
+    # Positive immunity: canonical MCP imports emit 0 violations
+    valid_mcp_code = (
+        "from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient\n"
+        "from backend_v2.services.mcp.dispatcher import ToolDispatcher\n"
+        "from backend_v2.services.mcp.alias_registry import AliasRegistry\n"
+    )
+    v_valid = _scan_snippet(valid_mcp_code, filepath="backend_v2/services/foo.py")
+    assert len([v for v in v_valid if v.rule_code == "QGR017"]) == 0
+
+
 # Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
 # ==============================================================================
 

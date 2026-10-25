@@ -25,26 +25,8 @@ from backend_v2.models.dtos.mcp import (
     MCPToolSchemaPropertyDTO,
     MCPToolsListResultDTO,
     ParsedMCPToolAliasDTO,
-    TavilySearchRequestDTO,
 )
 from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
-
-
-def test_tavily_search_request_dto() -> None:
-    """Test TavilySearchRequestDTO default fields and validation."""
-    req = TavilySearchRequestDTO(
-        api_key="tvly-secret",
-        query="python 3.14 features",
-    )
-    assert req.api_key == "tvly-secret"
-    assert req.query == "python 3.14 features"
-    assert req.max_results == 5
-    assert req.include_answer is True
-    assert req.include_raw_content is False
-    assert req.search_depth == "basic"
-
-    with pytest.raises(ValidationError):
-        req.query = "new query"
 
 
 def test_mcp_tool_declaration_dto() -> None:
@@ -205,17 +187,17 @@ def test_mcp_dto_missing_required() -> None:
     """Test validation errors when required arguments are missing."""
     empty_payload: dict[str, str] = {}
     with pytest.raises(ValidationError):
-        _ = TavilySearchRequestDTO.model_validate(empty_payload)
+        _ = ParsedMCPToolAliasDTO.model_validate(empty_payload)
 
     with pytest.raises(ValidationError):
         _ = MCPToolDeclarationDTO.model_validate(empty_payload)
 
 
-def test_tavily_search_request_dto_negative_extra_forbid() -> None:
-    """Test TavilySearchRequestDTO rejects extra forbidden fields."""
-    invalid_req: dict[str, str] = {"api_key": "k", "query": "q", "extra_field": "bad"}
+def test_parsed_mcp_tool_alias_dto_negative_extra_forbid() -> None:
+    """Test ParsedMCPToolAliasDTO rejects extra forbidden fields."""
+    invalid_req: dict[str, str] = {"gateway_slug": "gw", "tool_id": "t1", "extra_field": "bad"}
     with pytest.raises(ValidationError):
-        TavilySearchRequestDTO.model_validate(invalid_req)
+        ParsedMCPToolAliasDTO.model_validate(invalid_req)
 
 
 def test_mcp_function_definition_dto_negative_extra_forbid() -> None:
@@ -230,11 +212,11 @@ def test_mcp_function_definition_dto_negative_extra_forbid() -> None:
         MCPFunctionDefinitionDTO.model_validate(invalid_fn)
 
 
-def test_tavily_search_request_dto_negative_strict_type() -> None:
-    """Test strict type validation rejects integer for query string."""
-    invalid_type_payload: dict[str, str | int] = {"api_key": "k", "query": 12345}
+def test_parsed_mcp_tool_alias_dto_negative_strict_type() -> None:
+    """Test strict type validation rejects integer for tool_id string."""
+    invalid_type_payload: dict[str, str | int] = {"gateway_slug": "gw", "tool_id": 12345}
     with pytest.raises(ValidationError):
-        TavilySearchRequestDTO.model_validate(invalid_type_payload)
+        ParsedMCPToolAliasDTO.model_validate(invalid_type_payload)
 
 
 def test_mcp_tool_invocation_dto_negative_invalid_gateway_id() -> None:
