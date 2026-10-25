@@ -54,11 +54,11 @@
 **Plan:** @[docs/epic/tasks_EPIC_159/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/03_phase3_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]` (`4c7c6e13e`)
   - [x] Step 3.1: Runtime Pydantic Schema Factory (pydantic.create_model) & LLM Provider Wiring (schema_factory.py, provider.py)
   - [x] Step 3.2: Deterministic Namespace Prefixing ({gateway_slug}__{tool_name}) & Dynamic ToolDispatcher (alias_registry.py, dispatcher.py, mcp_tool_loop.py, strategies/llm.py, source_verification_service.py)
-  - [ ] Step 3.3: Legacy Static Wrapper Demolition & Guardrail Allowlist Sync (Delete tavily.py, wikipedia.py, tavily_search_client.py, wikipedia_client.py, models/domain/tools.py, models/domain/wikipedia.py, settings cleanup)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 3.3: Legacy Static Wrapper Demolition & Guardrail Allowlist Sync (Delete tavily.py, wikipedia.py, tavily_search_client.py, wikipedia_client.py, models/domain/tools.py, models/domain/wikipedia.py, settings cleanup)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 
 ### Phase 4: Frontend Flutter Studio Integration, Freezed DTO Synchronization & E2E Verification Gate
@@ -196,18 +196,18 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`) and Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`):
-  - **Step 2.1 (`53083d9e7`)**: Implemented `MCPUrlValidator` in `@[backend_v2/services/mcp/url_validator.py]` with non-blocking DNS resolution (`socket.getaddrinfo`) blocking cloud metadata (`169.254.169.254`), loopback, link-local, and private subnets, verified by 49 ISTQB unit tests in `@[backend_v2/tests/unit/services/mcp/test_url_validator.py]` (99% coverage).
-  - **Step 2.2 (`f7cce13d8`)**: Implemented protocol-agnostic `GenericMCPClient` in `@[backend_v2/services/mcp/generic_mcp_client.py]` supporting both `STREAMABLE_HTTP` and `SSE` transports over JSON-RPC 2.0 with `follow_redirects=False`, Tenacity `_is_transient_llm_error` retries, dual `application/json` & `text/event-stream` framing, sentence boundary truncation, and CDATA encapsulation, verified by 13 unit tests in `@[backend_v2/tests/unit/services/mcp/test_generic_mcp_client.py]` (99% coverage).
-  - **Step 2.3**: Added `MCPGatewayCache` in `@[backend_v2/services/cache/typed_cache.py]`, implemented `discover_mcp_gateway_tools` (`POST /api/studio/mcp-gateways/{gateway_id}/discover`), `delete_mcp_gateways` (`DELETE /api/studio/mcp-gateways/{gateway_id}`), and unique single-underscore `slug` validation in `@[backend_v2/services/studio/system_config_service.py]` and `@[backend_v2/api/routers/studio/mcp_gateways.py]`, verified across `@[backend_v2/tests/unit/services/cache/test_typed_cache.py]` (100% coverage), `@[backend_v2/tests/unit/test_mcp_gateways.py]` (100% coverage), and `@[backend_v2/tests/unit/services/studio/test_system_config_service.py]` (95% coverage) with 0 technical debt findings.
+- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`), and Phase 3 (`@[docs/epic/tasks_EPIC_159/03_phase3_plan.md]`):
+  - **Step 3.1 (`be6e9f14c`)**: Implemented runtime Pydantic V2 model synthesis via `pydantic.create_model` in `@[backend_v2/services/orchestrator/schema_factory.py]` (`create_mcp_tool_argument_model` and `build_mcp_tool_declaration`) and updated `@[backend_v2/llm/provider.py]` to serialize recursive `enum_values` and `additional_properties` to standard JSON Schema keys (`enum` and `additionalProperties`).
+  - **Step 3.2 (`962d0db78`)**: Implemented bijective `{gateway_slug}__{tool_id}` namespace formatting and parsing (`ParsedMCPToolAliasDTO`) in `@[backend_v2/services/mcp/alias_registry.py]`, refactored `@[backend_v2/services/mcp/dispatcher.py]` (`ToolDispatcher`) to dynamically dispatch via `GenericMCPClient` with OpenTelemetry `mcp.tool_call` spans, rewired `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/source_verification_service.py]`, `@[backend_v2/hooks/source_verification_hook.py]`, and `@[backend_v2/services/blueprint.py]`, and removed the static `DISPATCHER` singleton.
+  - **Step 3.3 (`4c7c6e13e`)**: Demolished all 6 legacy static tool wrapper files (`backend_v2/services/mcp/tools/tavily.py`, `backend_v2/services/mcp/tools/wikipedia.py`, `backend_v2/services/mcp/tavily_search_client.py`, `backend_v2/services/mcp/wikipedia_client.py`, `backend_v2/models/domain/wikipedia.py`, `backend_v2/models/domain/tools.py`) and 9 obsolete test/script files, purged vendor-specific Tavily and Wikipedia settings from `@[backend_v2/settings.py]` and `@[backend_v2/core/test_settings.py]`, locked `QGR017` bans against eradicated MCP wrappers in `@[scripts/_ast_guardrails.py]`, updated `@[scripts/audit_dict_eradication.py]`, `@[pyproject.toml]`, and `@[.agents/rules/04_directory_reference.md]`, and verified 100% pass across global backend (6122 passed, 97.88% coverage) and Flutter audit loops.
 
 ## Learned
-- `ServiceUnavailableError.__init__` accepts `message: str` and `details: dict[str, JsonValue] | None = None`, and `AllowedMCPTool.capability` defaults to `ToolCapability.SEARCH`.
-- In `test_mcp_gateways.py`, instantiating a real `StudioSystemConfigService` backed by `InMemorySystemRepository` and `GenericMCPClient(transport=httpx.MockTransport(...))` exercises full stateful router-to-repository roundtrips without tautological mocking (`TD_TAUTOLOGICAL_MOCK`).
+- All demolished Python symbols (`TavilyTool`, `WikipediaTool`, `TavilySearchClient`, `WikipediaClient`, `BaseTool`, `BaseSearchTool`, and legacy Tavily request/response models and settings) are 100% eradicated across `backend_v2/` and `scripts/` per `audit_epic_coverage.py`.
+- `QGR017` in `@[scripts/_ast_guardrails.py]` now enforces FATAL violations on any import or file scan of the 6 eradicated legacy MCP static wrapper modules.
 
 ## Remaining
-- Execute Tier 8 Plan Audit on Phase 2 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
-- Proceed to Phase 3 (`@[docs/epic/tasks_EPIC_159/03_phase3_plan.md]`): Dynamic Pydantic Schema Factory (`SchemaFactory`), Namespace Routing (`AliasRegistry`, `ToolDispatcher`), and Legacy Static Wrapper Demolition.
+- Execute Tier 8 Plan Audit on Phase 3 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
+- Proceed to Phase 4 (`@[docs/epic/tasks_EPIC_159/04_phase4_plan.md]`): Frontend Flutter Studio Integration, Freezed DTO Synchronization & E2E Verification Gate.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
