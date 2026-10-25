@@ -67,7 +67,7 @@
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 4.1: Studio Client API, Controller Discovery Action & Localization (studio_client.dart, mcp_gateways_controller.dart, arb files)
-  - [ ] Step 4.2: Studio MCP Gateway View, Step Builder View & Workflow Step Card Integration (mcp_gateway_view.dart, step_builder_view.dart, workflow_step_card.dart, AppErrorBoundary, 1200px constraint)
+  - [x] Step 4.2: Studio MCP Gateway View, Step Builder View & Workflow Step Card Integration (mcp_gateway_view.dart, step_builder_view.dart, workflow_step_card.dart, AppErrorBoundary, 1200px constraint)
   - [ ] Step 4.3: Mandatory Live E2E Integration Gate & SDUI Audit Trail Parity (test_dynamic_mcp_pipeline_e2e.py, test_sdui_semantic_parity.py, test_integration_real_llm.py)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`

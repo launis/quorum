@@ -266,14 +266,17 @@ class McpGatewayForm extends _$McpGatewayForm {
   Future<void> discoverTools([McpGateway? updatedData]) async {
     final currentPayload = updatedData ?? state.value;
     if (currentPayload == null) {
-      throw AppException.validation('Cannot discover tools on uninitialized gateway.');
+      throw AppException.validation(
+        'Cannot discover tools on uninitialized gateway.',
+      );
     }
 
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      final idToDiscover =
-          currentPayload.id.isNotEmpty ? currentPayload.id : gatewayId;
+      final idToDiscover = currentPayload.id.isNotEmpty
+          ? currentPayload.id
+          : gatewayId;
       final controller = ref.read(mcpGatewaysControllerProvider.notifier);
       await controller.saveGateway(idToDiscover, currentPayload);
       final discovered = await controller.discoverTools(idToDiscover);

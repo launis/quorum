@@ -426,7 +426,7 @@ class StepBuilderView extends HookConsumerWidget {
 
                 AppSpacing.h24,
 
-                // allowed_mcp_tools
+                // allowed_mcp_tools (Phase 4, Step 4.2: Dynamic {gateway.slug}__{tool.toolId} FilterChips)
                 Text(
                   l10n.mcpGatewaysTitle,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -434,55 +434,87 @@ class StepBuilderView extends HookConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  children: mcpGateways
-                      .expand((gateway) => gateway.tools)
-                      .where((tool) => tool.toolId.isNotEmpty)
-                      .map((tool) {
-                        final toolId = tool.toolId;
-                        final currentLocale = Localizations.localeOf(
-                          context,
-                        ).languageCode;
-                        final labelText = tool.name.get(currentLocale);
+                AppSpacing.h16,
+                ...mcpGateways
+                    .where(
+                      (gateway) => gateway.tools.any(
+                        (tool) => tool.enabled && tool.toolId.isNotEmpty,
+                      ),
+                    )
+                    .map((gateway) {
+                      final enabledTools = gateway.tools
+                          .where(
+                            (tool) => tool.enabled && tool.toolId.isNotEmpty,
+                          )
+                          .toList();
 
-                        if (labelText.trim().isEmpty) {
-                          throw AppException.validation(
-                            'Fail-Fast: MCP tool $toolId lacks required translation for locale $currentLocale or en fallback.',
-                          );
-                        }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              gateway.slug,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            AppSpacing.h8,
+                            Wrap(
+                              spacing: AppSpacing.s8,
+                              runSpacing: AppSpacing.s8,
+                              children: enabledTools.map((tool) {
+                                final namespacedAlias =
+                                    '${gateway.slug}__${tool.toolId}';
+                                final currentLocale = Localizations.localeOf(
+                                  context,
+                                ).languageCode;
+                                final labelText = tool.name.get(currentLocale);
 
-                        final allowedMcpTools = List<String>.from(
-                          payload.allowedMcpTools,
-                        );
-                        final isSelected = allowedMcpTools.contains(toolId);
+                                if (labelText.trim().isEmpty) {
+                                  throw AppException.validation(
+                                    'Fail-Fast: MCP tool $namespacedAlias lacks required translation for locale $currentLocale or en fallback.',
+                                  );
+                                }
 
-                        return FilterChip(
-                          label: Text(labelText),
-                          selected: isSelected,
-                          onSelected: (bool selected) {
-                            if (selected) {
-                              if (!allowedMcpTools.contains(toolId)) {
-                                allowedMcpTools.add(toolId);
-                              }
-                            } else {
-                              allowedMcpTools.remove(toolId);
-                            }
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild(
-                                  payload.copyWith(
-                                    allowedMcpTools: allowedMcpTools,
-                                  ),
+                                final allowedMcpTools = List<String>.from(
+                                  payload.allowedMcpTools,
                                 );
-                          },
-                        );
-                      })
-                      .toList(),
-                ),
+                                final isSelected = allowedMcpTools.contains(
+                                  namespacedAlias,
+                                );
+                                final chipLabel =
+                                    '$labelText ($namespacedAlias)';
 
-                const SizedBox(height: 24),
+                                return FilterChip(
+                                  label: Text(chipLabel),
+                                  selected: isSelected,
+                                  onSelected: (bool selected) {
+                                    if (selected) {
+                                      if (!allowedMcpTools.contains(
+                                        namespacedAlias,
+                                      )) {
+                                        allowedMcpTools.add(namespacedAlias);
+                                      }
+                                    } else {
+                                      allowedMcpTools.remove(namespacedAlias);
+                                    }
+                                    ref
+                                        .read(stepFormProvider(stepId).notifier)
+                                        .forceRebuild(
+                                          payload.copyWith(
+                                            allowedMcpTools: allowedMcpTools,
+                                          ),
+                                        );
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                AppSpacing.h24,
 
                 // pre_hooks
                 Row(

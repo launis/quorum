@@ -655,6 +655,65 @@ class WorkflowStepCard extends StatelessWidget {
                   ),
                 ),
               ],
+              if ((currentBlueprint?.allowedMcpTools ?? const <String>[])
+                  .isNotEmpty) ...[
+                // Phase 4, Step 4.2: Read-only summary badges for bound MCP tools
+                AppSpacing.h16,
+                Text(
+                  l10n.studioWorkflowMcpToolsBoundBadgeTitle,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                AppSpacing.h8,
+                Wrap(
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  children:
+                      (currentBlueprint?.allowedMcpTools ?? const <String>[])
+                          .where((toolRef) => toolRef.trim().isNotEmpty)
+                          .map((toolRef) {
+                            String namespacedBadge = toolRef.trim();
+                            if (!namespacedBadge.contains('__')) {
+                              for (final gw in mcpGateways) {
+                                if (gw.tools.any(
+                                  (t) => t.toolId == namespacedBadge,
+                                )) {
+                                  namespacedBadge =
+                                      '${gw.slug}__$namespacedBadge';
+                                  break;
+                                }
+                              }
+                            }
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s8,
+                                vertical: AppSpacing.s4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.s12,
+                                ),
+                              ),
+                              child: Text(
+                                namespacedBadge,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                                    ),
+                              ),
+                            );
+                          })
+                          .toList(),
+                ),
+              ],
             ],
           ],
         ),

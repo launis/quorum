@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -10,7 +11,6 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
-import 'dart:convert';
 
 /// Admin Studio View for managing the MCP Gateways.
 /// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
@@ -117,6 +117,7 @@ class McpGatewayView extends HookConsumerWidget {
           final current = ref.read(mcpGatewayFormProvider(id)).value ?? payload;
           final notifier = ref.read(mcpGatewayFormProvider(id).notifier);
           await notifier.submit(current);
+          if (!context.mounted) return;
           bannerMessage.value = l10n.gatewaySavedSuccess;
           isBannerError.value = false;
         } catch (e, st) {
@@ -125,6 +126,29 @@ class McpGatewayView extends HookConsumerWidget {
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to save gateway: $e', e, st);
           bannerMessage.value = l10n.saveFailedError(e.toString());
+          isBannerError.value = true;
+        }
+      }
+    }
+
+    Future<void> discoverTools() async {
+      if (formKey.currentState!.validate()) {
+        formKey.currentState!.save();
+        try {
+          final current = ref.read(mcpGatewayFormProvider(id)).value ?? payload;
+          final notifier = ref.read(mcpGatewayFormProvider(id).notifier);
+          await notifier.discoverTools(current);
+          if (!context.mounted) return;
+          final updated = ref.read(mcpGatewayFormProvider(id)).value;
+          final count = updated?.tools.length ?? 0;
+          bannerMessage.value = l10n.mcpToolsDiscoveredSuccess(count);
+          isBannerError.value = false;
+        } catch (e, st) {
+          if (!context.mounted) return;
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to discover MCP tools: $e', e, st);
+          bannerMessage.value = l10n.mcpDiscoverToolsFailed(e.toString());
           isBannerError.value = true;
         }
       }
@@ -163,31 +187,55 @@ class McpGatewayView extends HookConsumerWidget {
       ),
       body: Form(
         key: formKey,
-        child: ListView(
-          padding: AppSpacing.p16,
-          children: [
-            if (bannerMessage.value != null) ...[
-              MaterialBanner(
-                content: Text(bannerMessage.value!),
-                backgroundColor: isBannerError.value
-                    ? Theme.of(context).colorScheme.errorContainer
-                    : Theme.of(context).colorScheme.primaryContainer,
-                actions: [
-                  TextButton(
-                    onPressed: () => bannerMessage.value = null,
-                    child: Text(l10n.cancelButton),
+        // Phase 4, Step 4.2: Wrap form ListView in 1200px ConstrainedBox
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: ListView(
+              padding: AppSpacing.p16,
+              children: [
+                if (bannerMessage.value != null) ...[
+                  MaterialBanner(
+                    content: Text(bannerMessage.value!),
+                    backgroundColor: isBannerError.value
+                        ? Theme.of(context).colorScheme.errorContainer
+                        : Theme.of(context).colorScheme.primaryContainer,
+                    actions: [
+                      TextButton(
+                        onPressed: () => bannerMessage.value = null,
+                        child: Text(l10n.cancelButton),
+                      ),
+                    ],
                   ),
+                  AppSpacing.h16,
                 ],
-              ),
-              AppSpacing.h16,
-            ],
-            _buildSystemAttributes(context, l10n, payload, ref),
-            AppSpacing.h24,
-            _buildToolsSection(context, ref, l10n, payload),
-          ],
+                _buildSystemAttributes(context, l10n, payload, ref),
+                AppSpacing.h16,
+                _buildConnectionCard(
+                  context,
+                  ref,
+                  l10n,
+                  payload,
+                  formState.isLoading,
+                  discoverTools,
+                ),
+                AppSpacing.h24,
+                _buildToolsSection(context, ref, l10n, payload),
+              ],
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  void _updateGateway(WidgetRef ref, McpGateway Function(McpGateway) update) {
+    final current = ref.read(mcpGatewayFormProvider(id)).value;
+    if (current != null) {
+      ref
+          .read(mcpGatewayFormProvider(id).notifier)
+          .forceRebuild(update(current));
+    }
   }
 
   Widget _buildSystemAttributes(
@@ -220,18 +268,14 @@ class McpGatewayView extends HookConsumerWidget {
               initialValue: data.slug,
               decoration: InputDecoration(labelText: l10n.slugLabel),
               onSaved: (val) {
-                final current = ref.read(mcpGatewayFormProvider(id)).value;
-                if (current != null) {
-                  ref
-                      .read(mcpGatewayFormProvider(id).notifier)
-                      .forceRebuild(
-                        current.copyWith(
-                          slug: val != null && val.trim().isNotEmpty
-                              ? val.trim()
-                              : 'default_mcp_gateway',
-                        ),
-                      );
-                }
+                _updateGateway(
+                  ref,
+                  (current) => current.copyWith(
+                    slug: val != null && val.trim().isNotEmpty
+                        ? val.trim()
+                        : 'default_mcp_gateway',
+                  ),
+                );
               },
             ),
             AppSpacing.h8,
@@ -239,6 +283,191 @@ class McpGatewayView extends HookConsumerWidget {
               initialValue: data.type,
               decoration: InputDecoration(labelText: l10n.configTypeLabel),
               readOnly: true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionCard(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    McpGateway data,
+    bool isLoading,
+    Future<void> Function() onDiscoverTools,
+  ) {
+    // Phase 4, Step 4.2: Connection & Authentication Card with live discovery trigger
+    return Card(
+      child: Padding(
+        padding: AppSpacing.p16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.mcpConnectionCardTitle,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                AppSpacing.w16,
+                FilledButton.icon(
+                  onPressed: isLoading ? null : onDiscoverTools,
+                  icon: const Icon(Icons.sync),
+                  label: Text(l10n.mcpDiscoverToolsButton),
+                ),
+              ],
+            ),
+            AppSpacing.h16,
+            TextFormField(
+              initialValue: data.endpointUrl,
+              decoration: InputDecoration(
+                labelText: l10n.mcpEndpointUrlLabel,
+                border: const OutlineInputBorder(),
+              ),
+              onSaved: (val) {
+                _updateGateway(
+                  ref,
+                  (gw) => gw.copyWith(endpointUrl: val?.trim() ?? ''),
+                );
+              },
+            ),
+            AppSpacing.h16,
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<McpTransportType>(
+                    isExpanded: true,
+                    initialValue: data.transportType,
+                    decoration: InputDecoration(
+                      labelText: l10n.mcpTransportTypeLabel,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: McpTransportType.values.map((t) {
+                      final label = switch (t) {
+                        McpTransportType.streamableHttp =>
+                          l10n.mcpTransportStreamableHttp,
+                        McpTransportType.sse => l10n.mcpTransportSse,
+                      };
+                      return DropdownMenuItem(
+                        value: t,
+                        child: Text(label, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateGateway(
+                          ref,
+                          (gw) => gw.copyWith(transportType: val),
+                        );
+                      }
+                    },
+                  ),
+                ),
+                AppSpacing.w16,
+                Expanded(
+                  child: DropdownButtonFormField<McpAuthType>(
+                    isExpanded: true,
+                    initialValue: data.authType,
+                    decoration: InputDecoration(
+                      labelText: l10n.mcpAuthTypeLabel,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: McpAuthType.values.map((a) {
+                      final label = switch (a) {
+                        McpAuthType.none => l10n.mcpAuthNone,
+                        McpAuthType.bearer => l10n.mcpAuthBearer,
+                        McpAuthType.apiKeyHeader => l10n.mcpAuthApiKeyHeader,
+                      };
+                      return DropdownMenuItem(
+                        value: a,
+                        child: Text(label, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        _updateGateway(ref, (gw) => gw.copyWith(authType: val));
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (data.authType == McpAuthType.apiKeyHeader) ...[
+              AppSpacing.h16,
+              TextFormField(
+                initialValue: data.authHeaderName ?? '',
+                decoration: InputDecoration(
+                  labelText: l10n.mcpAuthHeaderNameLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                onSaved: (val) {
+                  _updateGateway(
+                    ref,
+                    (gw) => gw.copyWith(
+                      authHeaderName: val != null && val.trim().isNotEmpty
+                          ? val.trim()
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ],
+            if (data.authType != McpAuthType.none) ...[
+              AppSpacing.h16,
+              TextFormField(
+                initialValue: data.authEnvVar ?? '',
+                decoration: InputDecoration(
+                  labelText: l10n.mcpAuthEnvVarLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                onSaved: (val) {
+                  _updateGateway(
+                    ref,
+                    (gw) => gw.copyWith(
+                      authEnvVar: val != null && val.trim().isNotEmpty
+                          ? val.trim()
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ],
+            AppSpacing.h16,
+            TextFormField(
+              initialValue: data.timeoutSeconds.toString(),
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: l10n.mcpTimeoutSecondsLabel,
+                border: const OutlineInputBorder(),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return l10n.invalidJsonError;
+                }
+                final parsed = int.tryParse(val.trim());
+                if (parsed == null || parsed < 1) {
+                  return l10n.invalidJsonError;
+                }
+                return null;
+              },
+              onSaved: (val) {
+                final parsed = int.tryParse(val?.trim() ?? '');
+                if (parsed != null && parsed >= 1) {
+                  _updateGateway(
+                    ref,
+                    (gw) => gw.copyWith(timeoutSeconds: parsed),
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -260,13 +489,41 @@ class McpGatewayView extends HookConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              l10n.allowedMcpToolsTitle,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      l10n.allowedMcpToolsTitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.w8,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                      vertical: AppSpacing.s2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppSpacing.s12),
+                    ),
+                    child: Text(
+                      l10n.mcpDiscoveredToolsCountBadge(tools.length),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            AppSpacing.w16,
             FilledButton.icon(
               onPressed: () {
                 ref.read(mcpGatewayFormProvider(id).notifier).addTool();
@@ -286,7 +543,10 @@ class McpGatewayView extends HookConsumerWidget {
             margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             child: ExpansionTile(
               initiallyExpanded: true,
-              title: Text(l10n.toolTitlePrefix(tool.toolId)),
+              title: Text(
+                l10n.toolTitlePrefix(tool.toolId),
+                overflow: TextOverflow.ellipsis,
+              ),
               trailing: IconButton(
                 icon: Icon(
                   Icons.delete,
@@ -302,7 +562,26 @@ class McpGatewayView extends HookConsumerWidget {
                 Padding(
                   padding: AppSpacing.p16,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          l10n.mcpToolEnabledLabel,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        value: tool.enabled,
+                        onChanged: (bool val) {
+                          _updateTool(
+                            ref,
+                            index,
+                            (t) => t.copyWith(enabled: val),
+                          );
+                        },
+                      ),
+                      AppSpacing.h8,
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s16),
                         child: TextFormField(
@@ -311,12 +590,55 @@ class McpGatewayView extends HookConsumerWidget {
                             labelText: l10n.toolIdLabel,
                             border: const OutlineInputBorder(),
                           ),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return l10n.invalidJsonError;
+                            }
+                            return null;
+                          },
                           onSaved: (val) {
                             _updateTool(
                               ref,
                               index,
-                              (t) => t.copyWith(toolId: val ?? ''),
+                              (t) => t.copyWith(toolId: val?.trim() ?? ''),
                             );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                        child: DropdownButtonFormField<ToolCapability>(
+                          isExpanded: true,
+                          initialValue: tool.capability,
+                          decoration: InputDecoration(
+                            labelText: l10n.mcpToolCapabilityLabel,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: ToolCapability.values.map((cap) {
+                            final capLabel = switch (cap) {
+                              ToolCapability.search => l10n.mcpCapabilitySearch,
+                              ToolCapability.documentReader =>
+                                l10n.mcpCapabilityDocumentReader,
+                              ToolCapability.action => l10n.mcpCapabilityAction,
+                              ToolCapability.general =>
+                                l10n.mcpCapabilityGeneral,
+                            };
+                            return DropdownMenuItem(
+                              value: cap,
+                              child: Text(
+                                capLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              _updateTool(
+                                ref,
+                                index,
+                                (t) => t.copyWith(capability: val),
+                              );
+                            }
                           },
                         ),
                       ),
@@ -339,7 +661,7 @@ class McpGatewayView extends HookConsumerWidget {
                           },
                         ),
                       ),
-                      _buildJsonEditorField(context, ref, index, tool, l10n),
+                      _buildParametersTable(context, tool, l10n),
                     ],
                   ),
                 ),
@@ -367,50 +689,80 @@ class McpGatewayView extends HookConsumerWidget {
     }
   }
 
-  Widget _buildJsonEditorField(
+  Widget _buildParametersTable(
     BuildContext context,
-    WidgetRef ref,
-    int toolIndex,
     AllowedMcpTool tool,
     AppLocalizations l10n,
   ) {
-    final currentStr = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(tool.inputSchema.toJson());
+    // Phase 4, Step 4.2: Structured read-only parameter preview DataTable
+    final properties = tool.inputSchema.properties;
+    final requiredSet = tool.inputSchema.requiredFields.toSet();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-      child: TextFormField(
-        initialValue: currentStr,
-        maxLines: 5,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
-        decoration: InputDecoration(
-          labelText: l10n.jsonInputSchemaLabel,
-          border: const OutlineInputBorder(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.mcpParametersTableTitle,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
-        validator: (val) {
-          if (val == null || val.trim().isEmpty) return null;
-          try {
-            jsonDecode(val);
-            return null;
-          } catch (e) {
-            return l10n.invalidJsonError;
-          }
-        },
-        onSaved: (val) {
-          McpToolInputSchemaDto schema = const McpToolInputSchemaDto();
-          if (val != null && val.trim().isNotEmpty) {
-            try {
-              schema = McpToolInputSchemaDto.fromJson(
-                jsonDecode(val) as Map<String, Object?>,
-              );
-            } catch (_) {}
-          }
-          _updateTool(ref, toolIndex, (t) => t.copyWith(inputSchema: schema));
-        },
-      ),
+        AppSpacing.h8,
+        if (properties.isEmpty)
+          Text(
+            l10n.mcpNoParametersDefined,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: [
+                DataColumn(label: Text(l10n.mcpParamColName)),
+                DataColumn(label: Text(l10n.mcpParamColType)),
+                DataColumn(label: Text(l10n.mcpParamColRequired)),
+                DataColumn(label: Text(l10n.mcpParamColDescription)),
+              ],
+              rows: properties.entries.map((propEntry) {
+                final propName = propEntry.key;
+                final propDef = propEntry.value;
+                final isRequired = requiredSet.contains(propName);
+
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Text(
+                        propName,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                    DataCell(Text(propDef.type.name)),
+                    DataCell(
+                      Text(
+                        isRequired
+                            ? l10n.mcpParamRequiredYes
+                            : l10n.mcpParamRequiredNo,
+                      ),
+                    ),
+                    DataCell(
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 350),
+                        child: Text(
+                          propDef.description,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+      ],
     );
   }
 

@@ -6,6 +6,7 @@ import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/features/studio/views/widgets/workflow/workflow_general_tab.dart';
+import 'package:client_app/features/studio/views/widgets/workflow/workflow_step_card.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
@@ -249,6 +250,105 @@ void main() {
                 'Dropdown must have isExpanded: true to prevent horizontal overflow',
           );
         }
+      },
+    );
+
+    testWidgets(
+      'WorkflowStepCard renders read-only summary badges for bound namespaced MCP tools',
+      (WidgetTester tester) async {
+        const stepRule = StepRule(
+          id: 'sr_1234567890abcdef',
+          taskBlueprint: 'sp_1234567890abcdef',
+        );
+        const blueprint = NodeStrategy.llm(
+          id: 'sp_1234567890abcdef',
+          slug: 'web_research_specialist',
+          name: I18nText(translations: {'en': 'Web Research Specialist'}),
+          allowedMcpTools: ['default_mcp_gateway__mcp_tavily_search'],
+        );
+        const gateway = McpGateway(
+          id: 'sys_1234567890abcdef',
+          slug: 'default_mcp_gateway',
+          tools: [
+            AllowedMcpTool(
+              toolId: 'mcp_tavily_search',
+              name: I18nText(translations: {'en': 'Tavily Search'}),
+              description: 'Search web',
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => WorkflowStepCard(
+                  index: 0,
+                  stepDef: stepRule,
+                  blueprints: const [blueprint],
+                  allSteps: const [stepRule],
+                  mcpGateways: const [gateway],
+                  globalWorkflowInputs: const [],
+                  l10n: AppLocalizations.of(context)!,
+                  onChanged: (_) {},
+                  onDelete: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Bound MCP Tools:'), findsOneWidget);
+        expect(
+          find.text('default_mcp_gateway__mcp_tavily_search'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'negative ISTQB partition: WorkflowStepCard omits MCP tool badges when blueprint has empty allowedMcpTools',
+      (WidgetTester tester) async {
+        const stepRule = StepRule(
+          id: 'sr_1234567890abcdef',
+          taskBlueprint: 'sp_1234567890abcdef',
+        );
+        const blueprint = NodeStrategy.llm(
+          id: 'sp_1234567890abcdef',
+          slug: 'no_tools_specialist',
+          name: I18nText(translations: {'en': 'No Tools Specialist'}),
+          allowedMcpTools: [],
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => WorkflowStepCard(
+                  index: 0,
+                  stepDef: stepRule,
+                  blueprints: const [blueprint],
+                  allSteps: const [stepRule],
+                  mcpGateways: const [],
+                  globalWorkflowInputs: const [],
+                  l10n: AppLocalizations.of(context)!,
+                  onChanged: (_) {},
+                  onDelete: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Bound MCP Tools:'), findsNothing);
       },
     );
   });
