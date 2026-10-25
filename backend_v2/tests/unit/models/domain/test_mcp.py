@@ -249,7 +249,7 @@ def test_mcp_retrieval_result_dto_valid_and_defaults() -> None:
     assert populated.evidence_payload == "<external_evidence>evidence text</external_evidence>"
 
 
-def test_mcp_retrieval_result_dto_forbids_extra_and_frozen() -> None:
+def test_mcp_retrieval_result_dto_forbids_extra_and_frozen_invalid() -> None:
     # Negative: extra fields forbidden
     with pytest.raises(ValidationError):
         invalid_payload = {"extra_key": "forbidden"}

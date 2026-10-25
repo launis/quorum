@@ -18,8 +18,9 @@ from backend_v2.models.enums import CognitiveTier, LaxCognitiveTier, ToolCapabil
 
 def test_system_validation_rules_dto_rejects_unknown_attribute() -> None:
     """Verify extra attributes are rejected by SystemValidationRulesDTO."""
+    invalid_rules = {"unknown_rule": "bad"}
     with pytest.raises(ValidationError):
-        SystemValidationRulesDTO.model_validate({"unknown_rule": "bad"})
+        SystemValidationRulesDTO.model_validate(invalid_rules)
 
 
 def test_system_validation_rules_dto_valid() -> None:
@@ -40,8 +41,9 @@ def test_system_config_option_dto_valid() -> None:
 
 def test_system_config_option_dto_rejects_unknown_attribute() -> None:
     """Verify extra attributes are rejected by SystemConfigOptionDTO."""
+    invalid_opt = {"label": "Opt1", "value": "val1", "extra": "bad"}
     with pytest.raises(ValidationError):
-        SystemConfigOptionDTO.model_validate({"label": "Opt1", "value": "val1", "extra": "bad"})
+        SystemConfigOptionDTO.model_validate(invalid_opt)
 
 
 def test_allowed_mcp_tool_valid_and_defaults() -> None:
@@ -65,15 +67,14 @@ def test_allowed_mcp_tool_valid_and_defaults() -> None:
 
 def test_allowed_mcp_tool_rejects_unknown_attribute() -> None:
     """Verify AllowedMCPTool enforces extra='forbid'."""
+    invalid_tool = {
+        "tool_id": "mcp_test",
+        "name": {"translations": {"fi": "Testi", "en": "Test"}},
+        "description": "Test tool",
+        "extra_key": "forbidden",
+    }
     with pytest.raises(ValidationError):
-        AllowedMCPTool.model_validate(
-            {
-                "tool_id": "mcp_test",
-                "name": {"translations": {"fi": "Testi", "en": "Test"}},
-                "description": "Test tool",
-                "extra_key": "forbidden",
-            }
-        )
+        AllowedMCPTool.model_validate(invalid_tool)
 
 
 def test_system_config_model_registry_missing_tier_raises_value_error() -> None:

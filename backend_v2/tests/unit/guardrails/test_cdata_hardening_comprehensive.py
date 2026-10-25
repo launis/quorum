@@ -83,7 +83,7 @@ def test_ast_no_unshielded_source_data_or_user_payload_fstrings() -> None:
                                 )
 
 
-def test_breakout_neutralization_matrix() -> None:
+def test_breakout_invalid_payload_neutralization_matrix() -> None:
     """Verify that CDATA breakout sequence ']]>' is neutralized and cannot inject XML elements."""
     malicious_payloads = [
         "]]>",

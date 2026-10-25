@@ -230,18 +230,18 @@ async def execute_mcp_retrieval(
     val_ctx = (
         MCPValidationContextDTO.model_validate(validation_context, strict=False)
         if validation_context is not None
-        else MCPValidationContextDTO()
+        else MCPValidationContextDTO.model_validate({})
     )
     strictness_level = int(val_ctx.strictness_level)
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     audit_traces: list[MCPAuditTrace] = []
 
-    query_guidance = (
-        val_ctx.query_guidance.strip()
-        if val_ctx.query_guidance is not None and val_ctx.query_guidance.strip()
-        else None
-    )
+    query_guidance: str | None = None
+    if val_ctx.query_guidance is not None:
+        stripped_guidance = val_ctx.query_guidance.strip()
+        if stripped_guidance:
+            query_guidance = stripped_guidance
 
     extraction_sys_msg = build_mcp_citation_extraction_directive(
         target_language=target_language, query_guidance=query_guidance
@@ -574,9 +574,7 @@ async def execute_tool_loop[T: BaseModel](
         repository=repository,
     )
 
-    final_messages: list[LLMMessageDTO] = [
-        LLMMessageDTO(role=m.role, content=m.content) for m in typed_messages
-    ]
+    final_messages: list[LLMMessageDTO] = [LLMMessageDTO(role=m.role, content=m.content) for m in typed_messages]
 
     if retrieval_result.evidence_payload:
         final_messages.append(

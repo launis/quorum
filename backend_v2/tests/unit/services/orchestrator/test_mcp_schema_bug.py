@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
@@ -45,6 +48,40 @@ def test_mcp_source_id_literal_validation() -> None:
     assert validated.model_dump()["blk_0123456789abcdef0123456789abcdef"]["exact_quotes"][0]["source_id"] == "mcp0"
 
 
-def test_llm_has_search_flag_resolution() -> None:
-    """Old test logic, kept for coverage but no longer strictly controls regex directly."""
-    pass
+def test_mcp_source_id_literal_validation_invalid_source_rejected() -> None:
+    """Negative: Verify that an unauthorized source_id is rejected by SchemaFactory union schema."""
+    factory = SchemaFactory(resolve_i18n_fn=lambda t, locale: str(t) if t else "")
+
+    block = SystemRulePromptBlock(
+        id="blk_0123456789abcdef0123456789abcdef",
+        slug="test",
+        description=I18nText(translations={"en": "test"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.STRING,
+        label=I18nText(translations={"en": "test"}),
+    )
+
+    Schema = factory.build_dynamic_schema(
+        schema_name="TestSchema",
+        criteria=[block],
+        strictness_level=1,
+        source_document_ids=["doc0"],
+        allowed_atom_ids=["a0"],
+        allowed_dynamic_keys=["chat_log"],
+    )
+
+    invalid_payload = {
+        "blk_0123456789abcdef0123456789abcdef": {
+            "source_document_aliases": ["doc0"],
+            "exact_quotes": [{"source_id": "mcp_unauthorized", "text": "Unverified fact."}],
+            "semantic_reasoning": "Reasoning",
+            "rule_internalization": "Understood",
+            "reasoning_steps": "Step 1",
+            "decision": True,
+        },
+        "evaluation_notes": "",
+        "reasoning_trace": "",
+    }
+
+    with pytest.raises(ValidationError):
+        Schema.model_validate(invalid_payload)

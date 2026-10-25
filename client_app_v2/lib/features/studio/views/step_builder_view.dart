@@ -302,10 +302,11 @@ class StepBuilderView extends HookConsumerWidget {
                           children: [
                             Text(
                               l10n.configurationTitle,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
                             if (payload.isSystemCore) ...[
                               AppSpacing.w8,
@@ -322,13 +323,14 @@ class StepBuilderView extends HookConsumerWidget {
                                 ),
                                 child: Text(
                                   l10n.studioSystemCoreBadge,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                  ),
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
+                                      ),
                                 ),
                               ),
                             ],
@@ -427,7 +429,7 @@ class StepBuilderView extends HookConsumerWidget {
                 // allowed_mcp_tools
                 Text(
                   l10n.mcpGatewaysTitle,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -488,7 +490,7 @@ class StepBuilderView extends HookConsumerWidget {
                   children: [
                     Text(
                       l10n.preHooksTitle,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -536,7 +538,7 @@ class StepBuilderView extends HookConsumerWidget {
                   children: [
                     Text(
                       l10n.postHooksTitle,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -590,20 +592,22 @@ class StepBuilderView extends HookConsumerWidget {
                         children: [
                           Text(
                             l10n.protocolBlockLabel,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             l10n.protocolBlockDescription,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontSize: 13,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
@@ -685,20 +689,22 @@ class StepBuilderView extends HookConsumerWidget {
                         children: [
                           Text(
                             l10n.executionPersonaTitle,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             l10n.executionPersonaDescription,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  fontSize: 13,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
@@ -780,20 +786,22 @@ class StepBuilderView extends HookConsumerWidget {
                           children: [
                             Text(
                               l10n.criteriaBlocksTitle,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               l10n.criteriaBlocksDescription,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    fontSize: 13,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),

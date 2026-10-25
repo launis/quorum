@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -24,29 +25,31 @@ class McpGatewayView extends HookConsumerWidget {
 
     final formState = ref.watch(mcpGatewayFormProvider(id));
 
-    return switch (formState) {
-      AsyncLoading() => Scaffold(
-        appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      AsyncError(:final error, :final stackTrace) => Scaffold(
-        appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
-        body: ErrorView(
-          error: error,
-          stackTrace: stackTrace,
-          compact: false,
-          onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
+    return AppErrorBoundary(
+      child: switch (formState) {
+        AsyncLoading() => Scaffold(
+          appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
+          body: const Center(child: CircularProgressIndicator()),
         ),
-      ),
-      AsyncData(value: final payload) => _buildScaffold(
-        context,
-        ref,
-        l10n,
-        formKey,
-        formState,
-        payload,
-      ),
-    };
+        AsyncError(:final error, :final stackTrace) => Scaffold(
+          appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
+          body: ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+            compact: false,
+            onRetry: () => ref.invalidate(mcpGatewayFormProvider(id)),
+          ),
+        ),
+        AsyncData(value: final payload) => _buildScaffold(
+          context,
+          ref,
+          l10n,
+          formKey,
+          formState,
+          payload,
+        ),
+      },
+    );
   }
 
   Widget _buildScaffold(
@@ -178,7 +181,7 @@ class McpGatewayView extends HookConsumerWidget {
               ),
               AppSpacing.h16,
             ],
-            _buildSystemAttributes(l10n, payload, ref),
+            _buildSystemAttributes(context, l10n, payload, ref),
             AppSpacing.h24,
             _buildToolsSection(context, ref, l10n, payload),
           ],
@@ -188,6 +191,7 @@ class McpGatewayView extends HookConsumerWidget {
   }
 
   Widget _buildSystemAttributes(
+    BuildContext context,
     AppLocalizations l10n,
     McpGateway data,
     WidgetRef ref,
@@ -200,7 +204,10 @@ class McpGatewayView extends HookConsumerWidget {
           children: [
             Text(
               l10n.gatewayMetadataTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             AppSpacing.h16,
             TextFormField(
@@ -255,7 +262,10 @@ class McpGatewayView extends HookConsumerWidget {
           children: [
             Text(
               l10n.allowedMcpToolsTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             FilledButton.icon(
               onPressed: () {
@@ -310,7 +320,7 @@ class McpGatewayView extends HookConsumerWidget {
                           },
                         ),
                       ),
-                      _buildI18nGroup(ref, index, tool, l10n),
+                      _buildI18nGroup(context, ref, index, tool, l10n),
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s16),
                         child: TextFormField(
@@ -329,7 +339,7 @@ class McpGatewayView extends HookConsumerWidget {
                           },
                         ),
                       ),
-                      _buildJsonEditorField(ref, index, tool, l10n),
+                      _buildJsonEditorField(context, ref, index, tool, l10n),
                     ],
                   ),
                 ),
@@ -358,6 +368,7 @@ class McpGatewayView extends HookConsumerWidget {
   }
 
   Widget _buildJsonEditorField(
+    BuildContext context,
     WidgetRef ref,
     int toolIndex,
     AllowedMcpTool tool,
@@ -372,7 +383,9 @@ class McpGatewayView extends HookConsumerWidget {
       child: TextFormField(
         initialValue: currentStr,
         maxLines: 5,
-        style: const TextStyle(fontFamily: 'monospace'),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontFamily: 'monospace'),
         decoration: InputDecoration(
           labelText: l10n.jsonInputSchemaLabel,
           border: const OutlineInputBorder(),
@@ -400,6 +413,7 @@ class McpGatewayView extends HookConsumerWidget {
   }
 
   Widget _buildI18nGroup(
+    BuildContext context,
     WidgetRef ref,
     int toolIndex,
     AllowedMcpTool tool,
@@ -412,7 +426,9 @@ class McpGatewayView extends HookConsumerWidget {
       children: [
         Text(
           l10n.uiDisplayNameTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         AppSpacing.h8,
         Padding(

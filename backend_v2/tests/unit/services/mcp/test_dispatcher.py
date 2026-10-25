@@ -136,7 +136,7 @@ async def test_tool_dispatcher_execute_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tool_dispatcher_execute_not_found_raises() -> None:
+async def test_tool_dispatcher_execute_not_found_error() -> None:
     dispatcher = ToolDispatcher([])
 
     with pytest.raises(AppException) as exc_info:

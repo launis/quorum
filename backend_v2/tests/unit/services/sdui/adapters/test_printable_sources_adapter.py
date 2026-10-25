@@ -412,6 +412,7 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
     from backend_v2.models.enums import ExecutionStatus, VisualIntent
     from backend_v2.models.view.sdui import ParagraphBlock
 
+    quote_payload = {"source_quotes": "Verbatim input document extract quote.", "source_alias": []}
     atom = ScorecardAtomDTO(
         atom_id="tda_0123456789abcdef0123456789abcdef",
         level=1,
@@ -420,7 +421,7 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
         extracted_facts={},
         exact_quotes=[
             QuoteEvidenceDTO.model_validate(
-                {"source_quotes": "Verbatim input document extract quote.", "source_alias": []},
+                quote_payload,
                 context={"alias_registry": {}},
             )
         ],

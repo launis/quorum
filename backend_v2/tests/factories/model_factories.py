@@ -307,7 +307,7 @@ class ExecutionStepFactory(ModelFactory[ExecutionStep]):
     chunk_count: int = 1
 
     @classmethod
-    def scorecard_atoms(cls) -> dict[str, JsonValue]:
+    def scorecard_atoms(cls) -> dict[str, str]:
         """Generates an empty scorecard atoms mapping."""
         return {}
 
@@ -342,22 +342,22 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
         return []
 
     @classmethod
-    def step_states(cls) -> dict[str, JsonValue]:
+    def step_states(cls) -> dict[str, str]:
         """Generates an empty step states dictionary."""
         return {}
 
     @classmethod
-    def profile_syntheses(cls) -> dict[str, JsonValue]:
+    def profile_syntheses(cls) -> dict[str, str]:
         """Generates an empty profile syntheses dictionary."""
         return {}
 
     @classmethod
-    def source_identity_manifest(cls) -> dict[str, JsonValue]:
+    def source_identity_manifest(cls) -> dict[str, str]:
         """Generates an empty source identity manifest dictionary."""
         return {}
 
     @classmethod
-    def models_used(cls) -> dict[str, JsonValue]:
+    def models_used(cls) -> dict[str, str]:
         """Generates an empty models used dictionary."""
         return {}
 

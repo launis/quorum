@@ -159,7 +159,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
 
 @pytest.mark.asyncio
-async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() -> None:
+async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_block() -> None:
     """End-to-end test: Non-verifiable text skips Tavily search and omits bibliography from SDUI."""
     settings = get_settings()
     if not settings.tavily_api_key:

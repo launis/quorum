@@ -468,7 +468,7 @@ def test_negative_raw_xml_in_ai_description_rejected() -> None:
 def test_negative_missing_input_modes_fails_validation() -> None:
     """ISTQB Negative Test 4: ExpectedInput with empty input_modes fails Pydantic validation."""
     with pytest.raises(pydantic.ValidationError, match=r"at least one input_mode"):
-        ExpectedInput.model_validate(
+        ExpectedInput.model_validate(obj=
             {
                 "input_key": "test_input",
                 "label": {"translations": {"fi": "Testi", "en": "Test"}},
@@ -513,7 +513,7 @@ def test_negative_orphan_step_dependency_fails_dag() -> None:
 def test_negative_matrix_group_dimensional_cardinality_mismatch() -> None:
     """ISTQB Negative Test 7: 1D MatrixSynthesisGroup with 2 target blocks fails validation."""
     with pytest.raises(pydantic.ValidationError, match=r"requires exactly 1 target block"):
-        MatrixSynthesisGroup.model_validate(
+        MatrixSynthesisGroup.model_validate(obj=
             {
                 "id": "grp_01e1d71000000001",
                 "title": {"translations": {"fi": "Testi", "en": "Test"}},
@@ -615,7 +615,7 @@ def test_competency_workflow_assignment_context_governance() -> None:
         assert wf.enable_contextual_overrides is True, f"Workflow {wf_id} must have enable_contextual_overrides=True"
 
     # 2. Verify ExpectedInput assignment governance invariants on model level
-    valid_assignment = ExpectedInput.model_validate(
+    valid_assignment = ExpectedInput.model_validate(obj=
         {
             "input_key": "assignment_context",
             "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},
@@ -629,7 +629,7 @@ def test_competency_workflow_assignment_context_governance() -> None:
 
     # 3. Assert mutual exclusivity of assignment mode with is_chat_history=True
     with pytest.raises(ValidationError, match=r"[Aa]ssignment"):
-        ExpectedInput.model_validate(
+        ExpectedInput.model_validate(obj=
             {
                 "input_key": "assignment_context",
                 "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},
@@ -642,7 +642,7 @@ def test_competency_workflow_assignment_context_governance() -> None:
 
     # 4. Assert mutual exclusivity of assignment mode with is_endorsed_deliverable=True
     with pytest.raises(ValidationError, match=r"[Aa]ssignment"):
-        ExpectedInput.model_validate(
+        ExpectedInput.model_validate(obj=
             {
                 "input_key": "assignment_context",
                 "label": {"translations": {"fi": "Tehtävänanto", "en": "Assignment"}},

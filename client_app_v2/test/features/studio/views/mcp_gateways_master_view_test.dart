@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/views/mcp_gateways_master_view.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -77,6 +78,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(AppErrorBoundary), findsOneWidget);
       expect(find.text('gw_web_search'), findsOneWidget);
       expect(find.text('gw_database_query'), findsOneWidget);
       expect(find.text('Showing 2 of 2 items'), findsOneWidget);

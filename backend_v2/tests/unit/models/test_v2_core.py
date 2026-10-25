@@ -32,14 +32,16 @@ def test_provider_extra_params_valid() -> None:
 def test_provider_extra_params_extra_forbidden() -> None:
     """Test Contract 2: ProviderExtraParamsDTO raises ValidationError on unknown extra field."""
     with pytest.raises(ValidationError) as exc_info:
-        ProviderExtraParamsDTO.model_validate({"temperature": 0.7, "unknown_field": "invalid"})
+        invalid_extra = {"temperature": 0.7, "unknown_field": "invalid"}
+        ProviderExtraParamsDTO.model_validate(invalid_extra)
     assert "Extra inputs are not permitted" in str(exc_info.value)
 
 
 def test_provider_extra_params_type_strictness() -> None:
     """Test Contract 3: ProviderExtraParamsDTO raises ValidationError on type mismatch."""
     with pytest.raises(ValidationError) as exc_info:
-        ProviderExtraParamsDTO.model_validate({"max_output_tokens": "two_thousand"})
+        invalid_tokens = {"max_output_tokens": "two_thousand"}
+        ProviderExtraParamsDTO.model_validate(invalid_tokens)
     assert "Input should be a valid integer" in str(exc_info.value)
 
 
@@ -56,14 +58,16 @@ def test_model_profile_uses_provider_extra_params() -> None:
 def test_step_trace_metadata_extra_forbidden() -> None:
     """Test Contract 4: StepTraceMetadataDTO raises ValidationError on forbidden extra field."""
     with pytest.raises(ValidationError) as exc_info:
-        StepTraceMetadataDTO.model_validate({"task_blueprint": "step_1", "fake_key": 123})
+        invalid_meta = {"task_blueprint": "step_1", "fake_key": 123}
+        StepTraceMetadataDTO.model_validate(invalid_meta)
     assert "Extra inputs are not permitted" in str(exc_info.value)
 
 
 def test_step_trace_metadata_type_strictness() -> None:
     """Test StepTraceMetadataDTO raises ValidationError on invalid types."""
     with pytest.raises(ValidationError):
-        StepTraceMetadataDTO.model_validate({"chunk_size": "invalid_size"})
+        invalid_chunk = {"chunk_size": "invalid_size"}
+        StepTraceMetadataDTO.model_validate(invalid_chunk)
 
 
 def test_trace_event_metadata_envelope_hydration() -> None:
@@ -385,7 +389,7 @@ def test_execution_record_flat_finops_and_steps() -> None:
 def test_execution_record_extra_forbidden() -> None:
     """Verify ExecutionRecord rejects unknown extra fields."""
     with pytest.raises(ValidationError):
-        ExecutionRecord.model_validate(
+        ExecutionRecord.model_validate(obj=
             {
                 "id": "exe_1111111111111111",
                 "workflow_id": "wor_1111111111111111",
@@ -734,7 +738,7 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
     """Verifies ExecutionCreate resolves matrix_sampling_strategy when passed as None."""
     from backend_v2.models.domain.execution import ExecutionCreate
 
-    ec = ExecutionCreate.model_validate(
+    ec = ExecutionCreate.model_validate(obj=
         {
             "workflow_id": "wor_1234567890abcdef",
             "target_locale": "fi",

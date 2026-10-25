@@ -56,7 +56,7 @@ async def test_get_model_registry_success(sample_model_registry: SystemConfigMod
 
 
 @pytest.mark.asyncio
-async def test_get_model_registry_not_found_raises() -> None:
+async def test_get_model_registry_not_found_error() -> None:
     """Negative: raises ResourceNotFoundError if model_registry document is missing."""
     mock_driver = AsyncMock()
     mock_driver.get.return_value = None
@@ -143,6 +143,19 @@ async def test_get_mcp_gateways_not_found_raises() -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["resource_id"] == "cfg_nonexistent123"
+
+
+@pytest.mark.asyncio
+async def test_get_all_mcp_gateways_success(sample_mcp_gateways: SystemConfigMCPGateways) -> None:
+    """Positive: retrieves all mcp_gateways documents."""
+    mock_driver = AsyncMock()
+    mock_driver.query.return_value = [sample_mcp_gateways.model_dump(mode="json")]
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    res = await repo.get_all_mcp_gateways()
+
+    assert len(res) == 1
+    assert res[0].id == sample_mcp_gateways.id
 
 
 @pytest.mark.asyncio

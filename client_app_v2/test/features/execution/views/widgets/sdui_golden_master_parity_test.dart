@@ -21,7 +21,7 @@ void main() {
     );
   }
 
-  Map<String, dynamic> loadGoldenMasterJson() {
+  Map<String, Object?> loadGoldenMasterJson() {
     // Look up fixture from backend_v2/tests/fixtures
     final candidatePaths = [
       '../backend_v2/tests/fixtures/sdui_golden_master.json',
@@ -33,7 +33,7 @@ void main() {
       final file = File(p);
       if (file.existsSync()) {
         final content = file.readAsStringSync();
-        return jsonDecode(content) as Map<String, dynamic>;
+        return jsonDecode(content) as Map<String, Object?>;
       }
     }
     throw StateError(
@@ -42,7 +42,7 @@ void main() {
   }
 
   group('SDUI Golden Master Parity & Widget Tests', () {
-    late Map<String, dynamic> masterJson;
+    late Map<String, Object?> masterJson;
     late List<SduiBlockDTO> parsedBlocks;
     late List<McpAuditTraceDto> parsedAudit;
 
@@ -50,12 +50,12 @@ void main() {
       masterJson = loadGoldenMasterJson();
       final rawBlocks = masterJson['inner_sdui_blocks'] as List<dynamic>;
       parsedBlocks = rawBlocks
-          .map((e) => SduiBlockDTO.fromJson(e as Map<String, dynamic>))
+          .map((e) => SduiBlockDTO.fromJson(e as Map<String, Object?>))
           .toList();
 
       final rawAudit = masterJson['mcp_tool_audit'] as List<dynamic>?;
       parsedAudit = (rawAudit ?? [])
-          .map((e) => McpAuditTraceDto.fromJson(e as Map<String, dynamic>))
+          .map((e) => McpAuditTraceDto.fromJson(e as Map<String, Object?>))
           .toList();
     });
 

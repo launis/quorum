@@ -766,3 +766,9 @@ async def test_all_15_fake_repositories_and_facade() -> None:
         ReportArtifactUpdateDTO(error_message="Err2"),
     )
     assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
+
+    gw = SystemConfigMCPGateways(id="cfg_8172bda70c8641c5", slug="mcp_gateways", type="mcp_gateways", tools=[])
+    await unified.update_mcp_gateways(gw)
+    all_gws = await unified.get_all_mcp_gateways()
+    assert len(all_gws) >= 1
+    assert any(g.id == "cfg_8172bda70c8641c5" for g in all_gws)

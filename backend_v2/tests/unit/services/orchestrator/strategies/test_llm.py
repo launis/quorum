@@ -87,7 +87,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 
-    reg = SystemConfigModelRegistry.model_validate(
+    reg = SystemConfigModelRegistry.model_validate(obj=
         {
             "id": "sys_e26807f3bfa3454d",
             "name": "Default Stack",

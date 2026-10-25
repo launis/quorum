@@ -33,7 +33,7 @@
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/01_phase1_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-  - [ ] Step 1.1: Scoped Boy Scout Technical Debt Cleanups in Touched Targets (Zero-Behavioral-Change Gate resolving 64 Python & 18 Flutter findings)
+  - [x] Step 1.1: Scoped Boy Scout Technical Debt Cleanups in Touched Targets (Zero-Behavioral-Change Gate resolving 64 Python & 18 Flutter findings)
   - [ ] Step 1.2: Taxonomies & Recursive JSON Schema DTOs (Zero Permissive Typing: MCPTransportType, MCPAuthType, ToolCapability, JSONSchemaPropertyType, MCPToolSchemaPropertyDTO, MCPToolInputSchemaDTO, MCPToolInvocationDTO)
   - [ ] Step 1.3: Seed Vault Integrity, Default Gateway & Workflow Step Reference Migration (seed_data.json#L209-L284, #L21696-L21700, #L22022-L22026)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.

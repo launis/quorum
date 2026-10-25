@@ -46,33 +46,35 @@ def test_mcp_tool_declaration_dto() -> None:
 
 def test_mcp_dto_missing_required() -> None:
     """Test validation errors when required arguments are missing."""
+    empty_payload: dict[str, str] = {}
     with pytest.raises(ValidationError):
-        _ = TavilySearchRequestDTO.model_validate({})
+        _ = TavilySearchRequestDTO.model_validate(empty_payload)
 
     with pytest.raises(ValidationError):
-        _ = MCPToolDeclarationDTO.model_validate({})
+        _ = MCPToolDeclarationDTO.model_validate(empty_payload)
 
 
 def test_tavily_search_request_dto_negative_extra_forbid() -> None:
     """Test TavilySearchRequestDTO rejects extra forbidden fields."""
+    invalid_req = {"api_key": "k", "query": "q", "extra_field": "bad"}
     with pytest.raises(ValidationError):
-        TavilySearchRequestDTO.model_validate({"api_key": "k", "query": "q", "extra_field": "bad"})
+        TavilySearchRequestDTO.model_validate(invalid_req)
 
 
 def test_mcp_function_definition_dto_negative_extra_forbid() -> None:
     """Test MCPFunctionDefinitionDTO rejects extra forbidden fields."""
+    invalid_fn = {
+        "name": "fn",
+        "description": "desc",
+        "parameters": {},
+        "extra_field": "bad",
+    }
     with pytest.raises(ValidationError):
-        MCPFunctionDefinitionDTO.model_validate(
-            {
-                "name": "fn",
-                "description": "desc",
-                "parameters": {},
-                "extra_field": "bad",
-            }
-        )
+        MCPFunctionDefinitionDTO.model_validate(invalid_fn)
 
 
 def test_tavily_search_request_dto_negative_strict_type() -> None:
     """Test strict type validation rejects integer for query string."""
+    invalid_type_payload = {"api_key": "k", "query": 12345}
     with pytest.raises(ValidationError):
-        TavilySearchRequestDTO.model_validate({"api_key": "k", "query": 12345})
+        TavilySearchRequestDTO.model_validate(invalid_type_payload)
