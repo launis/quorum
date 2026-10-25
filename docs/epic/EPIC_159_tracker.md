@@ -90,7 +90,7 @@
   - [x] @[backend_v2/services/mcp/url_validator.py]
   - [x] @[backend_v2/services/mcp/generic_mcp_client.py]
   - [x] @[backend_v2/services/mcp/alias_registry.py]
-  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/mcp/__init__.py]
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
