@@ -99,7 +99,7 @@
   - [x] @[backend_v2/llm/provider.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [x] @[backend_v2/services/studio/system_config_service.py]
-  - [ ] @[backend_v2/api/routers/studio/mcp_gateways.py]
+  - [x] @[backend_v2/api/routers/studio/mcp_gateways.py]
   - [x] @[backend_v2/services/cache/typed_cache.py]
   - [ ] @[backend_v2/services/source_verification_service.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
