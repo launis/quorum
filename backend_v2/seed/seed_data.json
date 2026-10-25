@@ -208,10 +208,17 @@
     },
     {
       "id": "sys_8172bda70c8641c5",
+      "slug": "default_mcp_gateway",
+      "endpoint_url": "https://mcp.tavily.com/mcp",
+      "transport_type": "streamable_http",
+      "auth_type": "bearer",
+      "auth_env_var": "TAVILY_API_KEY",
+      "timeout_seconds": 30,
       "type": "mcp_gateways",
       "tools": [
         {
           "tool_id": "mcp_tavily_search",
+          "enabled": true,
           "capability": "search",
           "name": {
             "translations": {
@@ -235,6 +242,7 @@
         },
         {
           "tool_id": "mcp_wikipedia_search",
+          "enabled": true,
           "capability": "search",
           "name": {
             "translations": {
@@ -258,6 +266,7 @@
         },
         {
           "tool_id": "mcp_wikipedia_read",
+          "enabled": true,
           "capability": "document_reader",
           "name": {
             "translations": {

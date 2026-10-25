@@ -39,9 +39,7 @@ abstract class McpToolInputSchemaDto with _$McpToolInputSchemaDto {
     @Default('') String description,
     @Default(<String, McpToolSchemaPropertyDto>{})
     Map<String, McpToolSchemaPropertyDto> properties,
-    @Default(<String>[])
-    @JsonKey(name: 'required')
-    List<String> requiredFields,
+    @Default(<String>[]) @JsonKey(name: 'required') List<String> requiredFields,
     @JsonKey(name: 'additional_properties') bool? additionalProperties,
   }) = _McpToolInputSchemaDto;
 
@@ -84,9 +82,7 @@ abstract class McpGateway with _$McpGateway {
     @JsonKey(name: 'transport_type')
     @Default(McpTransportType.streamableHttp)
     McpTransportType transportType,
-    @JsonKey(name: 'auth_type')
-    @Default(McpAuthType.none)
-    McpAuthType authType,
+    @JsonKey(name: 'auth_type') @Default(McpAuthType.none) McpAuthType authType,
     @JsonKey(name: 'auth_header_name') String? authHeaderName,
     @JsonKey(name: 'auth_env_var') String? authEnvVar,
     @JsonKey(name: 'timeout_seconds') @Default(30) int timeoutSeconds,

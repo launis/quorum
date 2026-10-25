@@ -23,7 +23,7 @@ def test_tavily_tool_properties() -> None:
     assert decl.type == "function"
     assert decl.function.name == TAVILY_TOOL_ID
     assert "internet" in decl.function.description
-    assert decl.function.parameters["type"] == "object"
+    assert decl.function.parameters.type == "object"
     assert decl.function.strict is True
 
 

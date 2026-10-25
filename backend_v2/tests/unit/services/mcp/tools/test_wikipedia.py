@@ -36,8 +36,8 @@ def test_wikipedia_search_tool_properties() -> None:
     assert decl.type == "function"
     assert decl.function.name == WIKIPEDIA_SEARCH_TOOL_ID
     assert "Wikipedia" in decl.function.description
-    assert decl.function.parameters["type"] == "object"
-    assert decl.function.parameters["required"] == ["query", "reasoning"]
+    assert decl.function.parameters.type == "object"
+    assert decl.function.parameters.required == ["query", "reasoning"]
     assert decl.function.strict is True
 
 
@@ -273,8 +273,8 @@ def test_wikipedia_read_tool_properties() -> None:
     assert decl.type == "function"
     assert decl.function.name == WIKIPEDIA_READ_TOOL_ID
     assert "summary" in decl.function.description
-    assert decl.function.parameters["type"] == "object"
-    assert decl.function.parameters["required"] == ["title", "reasoning"]
+    assert decl.function.parameters.type == "object"
+    assert decl.function.parameters.required == ["title", "reasoning"]
     assert decl.function.strict is True
 
 

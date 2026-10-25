@@ -130,9 +130,7 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                   title: Text(
                                     'Prototype Gateway ID',
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge
+                                    style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   subtitle: const Text(

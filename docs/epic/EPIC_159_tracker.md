@@ -31,12 +31,12 @@
 ### Phase 1: Pre-Implementation Technical Debt Cleanups, Strict Recursive MCP Schema DTOs & Seed Vault Migration
 **Plan:** @[docs/epic/tasks_EPIC_159/01_phase1_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/01_phase1_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 1.1: Scoped Boy Scout Technical Debt Cleanups in Touched Targets (Zero-Behavioral-Change Gate resolving 64 Python & 18 Flutter findings)
   - [x] Step 1.2: Taxonomies & Recursive JSON Schema DTOs (Zero Permissive Typing: MCPTransportType, MCPAuthType, ToolCapability, JSONSchemaPropertyType, MCPToolSchemaPropertyDTO, MCPToolInputSchemaDTO, MCPToolInvocationDTO)
-  - [ ] Step 1.3: Seed Vault Integrity, Default Gateway & Workflow Step Reference Migration (seed_data.json#L209-L284, #L21696-L21700, #L22022-L22026)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 1.3: Seed Vault Integrity, Default Gateway & Workflow Step Reference Migration (seed_data.json#L209-L284, #L21696-L21700, #L22022-L22026)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 
 ### Phase 2: Protocol-Agnostic GenericMCPClient, SSRF Firewall & Studio Tool Discovery Endpoint
@@ -196,26 +196,18 @@
 # Session Handover Context
 
 ## Achieved
-- Initialized standardized Epic tracking document `docs/epic/EPIC_159_tracker.md` from approved Epic `docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md` and audit report `docs/epic/EPIC_159_audit_report.md`.
-- Generated detailed architectural implementation plans for all 4 phases in `docs/epic/tasks_EPIC_159/`:
-  - `01_phase1_plan.md` (Tech debt cleanups, recursive schema DTOs, seed vault migration)
-  - `02_phase2_plan.md` (Protocol transport, SSRF firewall, discovery endpoint)
-  - `03_phase3_plan.md` (Dynamic schema factory, namespace routing, legacy demolition)
-  - `04_phase4_plan.md` (Flutter Studio integration, Freezed models, live E2E gate)
-- Formatted `## Phase Execution Status` across all 4 implementation phases with completed plan links and micro-step checklists.
-- Constructed complete Requirements Traceability Matrix mapping 36 granular technical requirements (REQ-159-001 through REQ-159-036) across Phase 1 through Phase 4.
-- Defined deterministic file-level Tier 2 Hardening checklists for 27 production backend Python files and 9 production frontend Dart files.
-- Configured fully parameterized Tier 7 As-Built Architectural Sync command with explicit target KIs, directory reference updates, and pillar documentation directives.
+- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`) across all 3 steps:
+  - **Step 1.1 (`b8825194f`)**: Resolved all 64 Python technical debt findings (`QGR020`, `TD_DICT_GET`, `TD_MODEL_FACTORY`, `TD_ISTQB_NEGATIVE`, `MCPValidationContextDTO` in `mcp_tool_loop.py`, multi-gateway `get_all_mcp_gateways()` and `doc_id = gateways_data.id` in `system.py`) and 18 Flutter Theme Sovereignty (`PROHIBITED_NAKED_TEXT_STYLE`), `DGR005`, and `DGR009` (`AppErrorBoundary`) violations.
+  - **Step 1.2 (`a7616dbb3`)**: Added `MCPTransportType`, `MCPAuthType`, `JSONSchemaPropertyType`, and `ToolCapability.GENERAL` with 1:1 Dart `@JsonEnum()` parity; implemented recursive `MCPToolSchemaPropertyDTO`, `MCPToolInputSchemaDTO`, `ParsedMCPToolAliasDTO`, `MCPToolDescriptorDTO`, `MCPToolInvocationDTO`, and JSON-RPC 2.0 wire DTOs in `backend_v2/models/dtos/mcp.py`; upgraded `AllowedMCPTool`, `MCPAuditTrace`, and `SystemConfigMCPGateways` in `backend_v2/models/domain/system_config.py`; added generic MCP settings in `settings.py`; and synchronized Freezed models (`McpToolSchemaPropertyDto`, `McpToolInputSchemaDto`, `AllowedMcpTool`, `McpGateway`, `McpAuditTraceDto`).
+  - **Step 1.3**: Migrated `sys_8172bda70c8641c5` in `backend_v2/seed/seed_data.json#L209-L292`, verified and re-seeded local database (`run_seed.py local --dry-run`, `audit_database_atoms.py --strict`, `run_seed.py local`), removed `backend_v2/models/dtos/mcp.py`, `backend_v2/models/domain/system_config.py`, and `backend_v2/services/mcp/mcp_tool_loop.py` from `scripts/_ast_guardrails.py` open-JSON exemptions, and verified 100% pass across `backend_audit_loop.py`, `flutter_audit_loop.py --build`, `audit_dto_parity.py`, and `audit_technical_debt.py --strict`.
 
 ## Learned
-- **Baseline State Snapshot**: Quorum currently operates against semi-dynamic MCP tool infrastructure where `mcp_tool_loop.py` instantiates a static `DISPATCHER` importing hardcoded Python tool classes (`tavily.py`, `wikipedia.py`), with tool parameters typed as `dict[str, JsonValue]` in `AllowedMCPTool` and `MCPFunctionDefinitionDTO`.
-- Pre-flight technical debt audit identified 64 Python findings (including 23 `QGR020` class-level mutable defaults in test factories and repositories) and 18 Flutter Theme Sovereignty violations in touched targets. These are strictly scheduled in Phase 1.1 as a Zero-Behavioral-Change gate prior to introducing new recursive DTOs in Phase 1.2.
-- The `SystemRepositoryImpl.update_mcp_gateways` method currently contains a `limit=1` overwrite bug that overwrites unrelated gateway documents; this is remediated in Phase 1.1 to upsert strictly by `doc_id = gateways_data.id`.
+- `pydantic.mypy` requires `default_factory` fields to be declared with `= Field(default_factory=...)` on the RHS of the assignment to recognize optional constructor arguments under `mypy --strict`, whereas `QGR020` bans `Field()` only when duplicated inside `Annotated[..., Field(...)]` AND on the RHS `= Field(...)`.
+- All 54 cross-language DTO models pass `scripts/audit_dto_parity.py` with 1:1 alignment between Python Pydantic V2 and Dart Freezed.
 
 ## Remaining
-- Execute Tier 0 Red-Team Research on Phase 1 Plan via `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
-- Execute Phase 1 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
-- Progress through Phase 2, Phase 3, and Phase 4 execution, hardening, and Tier 7 documentation.
+- Execute Tier 8 Plan Audit on Phase 1 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
+- Proceed to Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`): `MCPUrlValidator`, `GenericMCPClient`, and Studio discovery endpoint.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`

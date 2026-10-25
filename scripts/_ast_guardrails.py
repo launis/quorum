@@ -111,8 +111,6 @@ OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/exceptions.py",
         "backend_v2/models/domain/mcp.py",
-        "backend_v2/models/dtos/mcp.py",
-        "backend_v2/models/domain/system_config.py",
         "backend_v2/models/domain/validation.py",
         "backend_v2/models/domain/base.py",
         "backend_v2/models/llm.py",
@@ -129,7 +127,6 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
         "backend_v2/llm/mock_data.py",
         "backend_v2/services/llm_task_executor.py",
         # Phase 4 (Services & Tools)
-        "backend_v2/services/mcp/mcp_tool_loop.py",
         # Phase 5 (Orchestrator & DAG)
         "backend_v2/services/orchestrator/context_router.py",
         "backend_v2/services/orchestrator/dag_executor.py",
