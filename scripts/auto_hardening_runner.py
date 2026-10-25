@@ -311,6 +311,10 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
             raw_path = (m.group(1) or m.group(2) or "").replace("\\", "/").strip()
             clean_path = raw_path.split("#")[0].strip()
             if clean_path and not clean_path.startswith("["):
+                if gate == HardeningGate.BACKEND and not clean_path.endswith(".py"):
+                    continue
+                if gate == HardeningGate.FRONTEND and not clean_path.endswith(".dart"):
+                    continue
                 unhardened.append(clean_path)
 
     return unhardened
@@ -464,6 +468,7 @@ def execute_subprocess_with_tree_kill(
     """
     proc = subprocess.Popen(
         cmd,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

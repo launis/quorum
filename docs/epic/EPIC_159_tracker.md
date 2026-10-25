@@ -83,7 +83,7 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/models/dtos/mcp.py]
   - [x] @[backend_v2/models/domain/system_config.py]
-  - [ ] @[backend_v2/models/domain/mcp.py]
+  - [x] @[backend_v2/models/domain/mcp.py]
   - [ ] @[backend_v2/database/interfaces.py]
   - [ ] @[backend_v2/database/repositories/system.py]
   - [ ] @[backend_v2/settings.py]
@@ -106,7 +106,7 @@
   - [ ] @[backend_v2/services/blueprint.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_dict_eradication.py]
-  - [ ] @[.agents/rules/04_directory_reference.md]
+  - [x] @[.agents/rules/04_directory_reference.md]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
