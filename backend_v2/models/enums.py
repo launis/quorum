@@ -1,5 +1,6 @@
-"""Enums for V2 Backend.
-Strict definition of allowed types to enforce the No-String Mandate.
+"""Enumerations and taxonomy constants for the Quorum backend.
+
+Strict definitions of allowed domain types enforcing the No-String Mandate.
 """
 
 from dataclasses import dataclass
@@ -33,11 +34,14 @@ __all__ = [
     "ExecutionProfile",
     "ExecutionStatus",
     "FidelityLevel",
+    "GCPVertexDiscoveryRegion",
+    "GCPVertexLocation",
     "HelpTextKey",
     "HistoricalContextMode",
     "InteractionStrategy",
     "JSONSchemaPropertyType",
     "LLMCachingStrategy",
+    "LLMPlatformType",
     "LLMProvider",
     "LLMProviderName",
     "LabelKey",
@@ -76,6 +80,7 @@ __all__ = [
     "LaxSourcesDisplayMode",
     "LaxStepFilterScope",
     "LaxStepType",
+    "LaxStepZone",
     "LaxStrategicDepth",
     "LaxSystemLocale",
     "LaxTargetBlockType",
@@ -108,6 +113,7 @@ __all__ = [
     "SpecialAliasChoices",
     "StepFilterScope",
     "StepType",
+    "StepZone",
     "StrategicDepth",
     "StrictnessAnchor",
     "SystemConfigID",
@@ -144,7 +150,7 @@ class StepType(StrEnum):
 
 
 class EvaluationMandate(StrEnum):
-    """Architectural Nollahypoteesi mandate attached to all strict evaluations."""
+    """Architectural null hypothesis mandate attached to all strict evaluations."""
 
     FAIL_FAST_NO_EVIDENCE = (
         " ENFORCEMENT: Evaluate as FALSE immediately unless explicit, documented evidence is provided."
@@ -155,9 +161,9 @@ class ExecutionProfile(StrEnum):
     """Defines the execution intent for an LLM client, overriding static configuration rules.
 
     Attributes:
-        ONE_SHOT: A single execution (e.g. Hooks, ChatParser). Explicitly bypasses Context Caching
+        ONE_SHOT: A single execution for hooks or parsers. Explicitly bypasses Context Caching
                   because cache creation costs outweigh single-run benefits.
-        ITERATIVE: A looped or heavily re-executed process (e.g. ChunkWorker, Synthesis Regenerate).
+        ITERATIVE: A looped or heavily re-executed process for chunk workers or synthesis regeneration.
                    Strictly enforces Context Caching to minimize token costs over multiple identical runs.
         CONVERSATIONAL: Standard interactive multi-turn chat behavior.
     """
@@ -195,8 +201,9 @@ class EvaluationRunCount(int, Enum):
 
 
 class EnsembleJitter(float, Enum):
-    """Defines the delay multiplier (in seconds) for ensemble runs,
-    used to force Vertex AI cache divergence.
+    """Defines the delay multiplier in seconds for ensemble runs.
+
+    Used to force Vertex AI cache divergence across parallel runs.
     """
 
     BASE_DELAY = 0.200
@@ -259,6 +266,11 @@ class DisplayScale(StrEnum):
 
     @property
     def l10n_key(self) -> str:
+        """Return the camelCase Flutter ARB localization key for this display scale.
+
+        Returns:
+            Localization key string for the display scale.
+        """
         match self:
             case DisplayScale.ORIGINAL:
                 return "displayScaleOriginal"
@@ -270,7 +282,8 @@ class DisplayScale(StrEnum):
 
 class BlockDataType(StrEnum):
     """Data types allowed for PromptBlock extracted values.
-    Accepts core extraction types, plus valid legacy structural types.
+
+    Encompasses primitive extraction types and structural block types.
     """
 
     FLOAT = "float"
@@ -369,6 +382,11 @@ class XaiExtensionType(StrEnum):
 
     @property
     def l10n_key(self) -> str:
+        """Return the camelCase Flutter ARB localization key for this XAI extension.
+
+        Returns:
+            Localization key string, or empty string if unmapped in UI.
+        """
         match self:
             case XaiExtensionType.COACHING:
                 return "xaiCoachingTip"
@@ -425,7 +443,8 @@ XAI_EXTENSION_SCOPE: dict[XaiExtensionType, XaiExtensionScope] = {
 
 
 class SelfHealingThresholdRatio(float, Enum):
-    """Semantic Self-Healing strictness ratios for LLM Evaluation.
+    """Semantic self-healing strictness ratios for LLM evaluation.
+
     Defines what top percentage of a numerical scale triggers mandatory evidence constraints.
     """
 
@@ -471,8 +490,28 @@ class ExecutionStatus(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """strict_enum_l10n_mapping: Guarantees Flutter .arb compatibility."""
-        return f"status_{self.name.lower()}"
+        """Return the localization key for this execution status.
+
+        Returns:
+            Localization key string matching Flutter ARB definitions.
+        """
+        match self:
+            case ExecutionStatus.PASSED:
+                return "status_passed"
+            case ExecutionStatus.FAILED:
+                return "status_failed"
+            case ExecutionStatus.N_A:
+                return "status_n_a"
+            case ExecutionStatus.SYSTEM_ERROR:
+                return "status_system_error"
+            case ExecutionStatus.BLOCKED:
+                return "status_blocked"
+            case ExecutionStatus.PENDING:
+                return "status_pending"
+            case ExecutionStatus.RUNNING:
+                return "status_running"
+            case ExecutionStatus.QUEUED:
+                return "status_queued"
 
 
 class ReportStatus(StrEnum):
@@ -485,7 +524,11 @@ class ReportStatus(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Maps enum value to camelCase Flutter ARB key."""
+        """Map enum value to camelCase Flutter ARB key.
+
+        Returns:
+            Localization key string for the report status.
+        """
         match self:
             case ReportStatus.PENDING:
                 return "reportStatusPending"
@@ -501,7 +544,7 @@ LaxReportStatus = ReportStatus | str
 
 
 class SDUIComponentType(StrEnum):
-    """no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."""
+    """Canonical SDUI card component identifiers for frontend rendering."""
 
     BOOLEAN_CARD = "boolean_card"
     EXTRACTED_VALUE_CARD = "extracted_value_card"
@@ -510,8 +553,20 @@ class SDUIComponentType(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """strict_enum_l10n_mapping: Guarantees Flutter .arb compatibility."""
-        return f"sdui_{self.name.lower()}"
+        """Return the localization key for this SDUI component type.
+
+        Returns:
+            Localization key string matching Flutter ARB definitions.
+        """
+        match self:
+            case SDUIComponentType.BOOLEAN_CARD:
+                return "sdui_boolean_card"
+            case SDUIComponentType.EXTRACTED_VALUE_CARD:
+                return "sdui_extracted_value_card"
+            case SDUIComponentType.ERROR_CARD:
+                return "sdui_error_card"
+            case SDUIComponentType.N_A_CARD:
+                return "sdui_n_a_card"
 
 
 class VirtualSystemStepID(StrEnum):
@@ -560,7 +615,7 @@ class LLMProviderName(StrEnum):
 
 
 class GCPVertexLocation(StrEnum):
-    """[DEPRECATED] Static GCP Vertex AI locations. Dynamic discovery replaces this enum."""
+    """Static GCP Vertex AI regional locations."""
 
     EUROPE_NORTH1 = "europe-north1"  # Hamina, Finland
     EUROPE_WEST1 = "europe-west1"  # St. Ghislain, Belgium
@@ -598,9 +653,6 @@ class ValidationThresholdRatio(float, Enum):
     """Float threshold limits for validation safety nets."""
 
     COVERAGE_SAFETY_NET = 0.60
-
-
-# --- Restored V1 Enums ---
 
 
 class StrictnessAnchor(IntEnum):
@@ -707,24 +759,32 @@ class RoleClassification(StrEnum):
             RoleClassification enum member corresponding to clamped score.
         """
         clamped = max(1, min(5, int(round(float(score)))))
-        if clamped <= 2:
-            return cls.PASSENGER
-        if clamped == 3:
-            return cls.NAVIGATOR
-        if clamped == 4:
-            return cls.DRIVER
-        return cls.ARCHITECT
+        match clamped:
+            case 1 | 2:
+                return cls.PASSENGER
+            case 3:
+                return cls.NAVIGATOR
+            case 4:
+                return cls.DRIVER
+            case _:
+                return cls.ARCHITECT
 
     @property
     def l10n_key(self) -> str:
-        """Explicit mapping between Backend UPPER_SNAKE_CASE enums and Frontend ARB camelCase translation keys."""
-        _L10N_MAP = {
-            RoleClassification.PASSENGER: "rolePassenger",
-            RoleClassification.NAVIGATOR: "roleNavigator",
-            RoleClassification.DRIVER: "roleDriver",
-            RoleClassification.ARCHITECT: "roleArchitect",
-        }
-        return _L10N_MAP[self]
+        """Map enum member to camelCase Flutter ARB translation key.
+
+        Returns:
+            Localization key string for the role classification.
+        """
+        match self:
+            case RoleClassification.PASSENGER:
+                return "rolePassenger"
+            case RoleClassification.NAVIGATOR:
+                return "roleNavigator"
+            case RoleClassification.DRIVER:
+                return "roleDriver"
+            case RoleClassification.ARCHITECT:
+                return "roleArchitect"
 
 
 class InteractionStrategy(StrEnum):
@@ -752,6 +812,8 @@ class EthicalSeverity(StrEnum):
 
 
 class HelpTextKey(StrEnum):
+    """Localization keys for contextual help tooltips across UI evaluation cards."""
+
     BLOOM = "helpBloom"
     TOULMIN = "helpToulmin"
     STRATEGIC_DEPTH = "helpStrategicDepth"
@@ -768,6 +830,8 @@ class HelpTextKey(StrEnum):
 
 
 class TitleKey(StrEnum):
+    """Canonical section title identifiers for agent and report cards."""
+
     SECURITY = "TITLE_SECURITY"
     USAGE = "TITLE_USAGE"
     PROFILER = "TITLE_PROFILER"
@@ -785,6 +849,11 @@ class TitleKey(StrEnum):
 
     @property
     def l10n_key(self) -> str:
+        """Return the camelCase Flutter ARB localization key for this title.
+
+        Returns:
+            Localization key string, or empty string if resolved via enum value.
+        """
         match self:
             case TitleKey.TITLE_TIMELINE:
                 return "titleTimeline"
@@ -927,9 +996,14 @@ DEFAULT_NULL_HYPOTHESIS_BLACKLIST: frozenset[str] = frozenset(
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class PipelineConfig:
-    """Static configuration for internal execution pipelines."""
+    """Immutable static configuration for internal execution pipelines.
+
+    Attributes:
+        profile: Execution profile governing caching and iteration behavior.
+        default_strategy: Optional cognitive tier strategy name.
+    """
 
     profile: ExecutionProfile
     default_strategy: str | None = None
@@ -988,7 +1062,11 @@ class ReportMatrixColumn(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Returns the localization key in backend translation files."""
+        """Return the localization key in backend translation files.
+
+        Returns:
+            Localization key string for the matrix summary column.
+        """
         return f"matrix_col_{self.value}"
 
 
@@ -1012,7 +1090,11 @@ class ReportAtomColumn(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Returns the localization key in backend translation files."""
+        """Return the localization key in backend translation files.
+
+        Returns:
+            Localization key string for the atom export column.
+        """
         return f"export_col_{self.value}"
 
 
@@ -1024,7 +1106,11 @@ class ReportSheetKey(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Returns the localization key in backend translation files."""
+        """Return the localization key in backend translation files.
+
+        Returns:
+            Localization key string for the workbook sheet.
+        """
         return f"export_sheet_{self.value}"
 
 
@@ -1037,8 +1123,18 @@ class CausalRootCauseType(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Returns the localization key in backend translation files."""
-        return f"causal_root_cause_{self.value.lower()}"
+        """Return the localization key in backend translation files.
+
+        Returns:
+            Localization key string for the causal root cause type.
+        """
+        match self:
+            case CausalRootCauseType.NODE_FAILURE:
+                return "causal_root_cause_node_failure"
+            case CausalRootCauseType.WARRANT_GROUNDING_FAILURE:
+                return "causal_root_cause_warrant_grounding_failure"
+            case CausalRootCauseType.PRECONDITION_MISMATCH:
+                return "causal_root_cause_precondition_mismatch"
 
 
 LaxCausalRootCauseType = Annotated[CausalRootCauseType, Field(strict=False)]
@@ -1054,7 +1150,11 @@ class ToolCapability(StrEnum):
 
     @property
     def l10n_key(self) -> str:
-        """Returns the localization key in backend translation files."""
+        """Return the localization key in backend translation files.
+
+        Returns:
+            Localization key string for the MCP tool capability.
+        """
         return f"mcp_capability_{self.value}"
 
 

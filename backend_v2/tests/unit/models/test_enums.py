@@ -1,19 +1,26 @@
+"""Unit tests for backend_v2.models.enums."""
+
 import pytest
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.models.enums import (
     BlockDataType,
+    CausalRootCauseType,
     ComponentType,
     DisplayScale,
+    ExecutionProfile,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
+    LaxCausalRootCauseType,
     LaxComponentType,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxStepType,
+    LaxStepZone,
     LaxToolCapability,
     LaxXaiExtensionType,
+    PipelineConfig,
     ReportAtomColumn,
     ReportMatrixColumn,
     ReportSheetKey,
@@ -21,6 +28,7 @@ from backend_v2.models.enums import (
     RoleClassification,
     SDUIComponentType,
     StepType,
+    StepZone,
     TitleKey,
     ToolCapability,
     UiVariant,
@@ -29,6 +37,8 @@ from backend_v2.models.enums import (
 
 
 def test_lax_xai_extension_type() -> None:
+    """Verify LaxXaiExtensionType parses enums and strings and rejects invalid values."""
+
     class DummyModel(BaseModel):
         ext: LaxXaiExtensionType
 
@@ -46,6 +56,8 @@ def test_lax_xai_extension_type() -> None:
 
 
 def test_lax_step_type() -> None:
+    """Verify LaxStepType parses enums and strings and rejects invalid values."""
+
     class DummyModel(BaseModel):
         step_type: LaxStepType
 
@@ -60,6 +72,8 @@ def test_lax_step_type() -> None:
 
 
 def test_lax_execution_status() -> None:
+    """Verify LaxExecutionStatus parses valid status strings and rejects unknown values."""
+
     class DummyModel(BaseModel):
         status: LaxExecutionStatus
 
@@ -71,6 +85,8 @@ def test_lax_execution_status() -> None:
 
 
 def test_lax_block_data_type() -> None:
+    """Verify LaxBlockDataType parses valid data type strings and rejects invalid values."""
+
     class DummyModel(BaseModel):
         data_type: LaxBlockDataType
 
@@ -82,6 +98,8 @@ def test_lax_block_data_type() -> None:
 
 
 def test_lax_component_type() -> None:
+    """Verify LaxComponentType parses valid component strings and rejects invalid values."""
+
     class DummyModel(BaseModel):
         comp_type: LaxComponentType
 
@@ -93,6 +111,8 @@ def test_lax_component_type() -> None:
 
 
 def test_lax_historical_context_mode() -> None:
+    """Verify LaxHistoricalContextMode parses valid mode strings and rejects invalid values."""
+
     class DummyModel(BaseModel):
         mode: LaxHistoricalContextMode
 
@@ -122,15 +142,37 @@ def test_enum_l10n_properties() -> None:
 
     assert XaiExtensionType.COACHING.l10n_key == "xaiCoachingTip"
     assert XaiExtensionType.JUSTIFICATION.l10n_key == "xaiJustification"
+    assert XaiExtensionType.FALSIFICATION.l10n_key == "xaiDevilsAdvocate"
+    assert XaiExtensionType.MISSING_CONTEXT.l10n_key == "xaiMissingContext"
+    assert XaiExtensionType.THEORY_LINK.l10n_key == "xaiTheoryLink"
+    assert XaiExtensionType.RISK_FLAG.l10n_key == "xaiRiskFlag"
+    assert XaiExtensionType.REMEDIATION_STEPS.l10n_key == "xaiRemediation"
+    assert XaiExtensionType.EMOTIONAL_SENTIMENT.l10n_key == "xaiSentiment"
+    assert XaiExtensionType.VARIANCE_VALIDATION.l10n_key == "xaiVarianceValidationTitle"
+    assert XaiExtensionType.AUTHENTICITY_EVALUATION.l10n_key == "xaiAuthenticityEvaluationTitle"
     assert XaiExtensionType.CITATION.l10n_key == ""
 
     assert ExecutionStatus.PASSED.l10n_key == "status_passed"
-    assert SDUIComponentType.BOOLEAN_CARD.l10n_key == "sdui_boolean_card"
+    assert ExecutionStatus.FAILED.l10n_key == "status_failed"
+    assert ExecutionStatus.N_A.l10n_key == "status_n_a"
+    assert ExecutionStatus.SYSTEM_ERROR.l10n_key == "status_system_error"
+    assert ExecutionStatus.BLOCKED.l10n_key == "status_blocked"
+    assert ExecutionStatus.PENDING.l10n_key == "status_pending"
+    assert ExecutionStatus.RUNNING.l10n_key == "status_running"
+    assert ExecutionStatus.QUEUED.l10n_key == "status_queued"
 
-    assert RoleClassification.ARCHITECT.l10n_key == "roleArchitect"
+    assert SDUIComponentType.BOOLEAN_CARD.l10n_key == "sdui_boolean_card"
+    assert SDUIComponentType.EXTRACTED_VALUE_CARD.l10n_key == "sdui_extracted_value_card"
+    assert SDUIComponentType.ERROR_CARD.l10n_key == "sdui_error_card"
+    assert SDUIComponentType.N_A_CARD.l10n_key == "sdui_n_a_card"
+
+    assert RoleClassification.PASSENGER.l10n_key == "rolePassenger"
+    assert RoleClassification.NAVIGATOR.l10n_key == "roleNavigator"
     assert RoleClassification.DRIVER.l10n_key == "roleDriver"
+    assert RoleClassification.ARCHITECT.l10n_key == "roleArchitect"
 
     assert TitleKey.TITLE_TIMELINE.l10n_key == "titleTimeline"
+    assert TitleKey.TITLE_HYPOTHESES.l10n_key == "titleHypotheses"
     assert TitleKey.SECURITY.l10n_key == ""
 
     assert ReportStatus.PENDING.l10n_key == "reportStatusPending"
@@ -144,10 +186,68 @@ def test_enum_l10n_properties() -> None:
     assert ReportAtomColumn.BLAME_PARENT_ID.l10n_key == "export_col_blame_parent_id"
     assert ReportAtomColumn.DEPENDENT_COUNT.l10n_key == "export_col_dependent_count"
     assert ReportSheetKey.SUMMARY.l10n_key == "export_sheet_summary"
+    assert ReportSheetKey.RAW_DATA.l10n_key == "export_sheet_raw_data"
+
+    assert CausalRootCauseType.NODE_FAILURE.l10n_key == "causal_root_cause_node_failure"
+    assert CausalRootCauseType.WARRANT_GROUNDING_FAILURE.l10n_key == "causal_root_cause_warrant_grounding_failure"
+    assert CausalRootCauseType.PRECONDITION_MISMATCH.l10n_key == "causal_root_cause_precondition_mismatch"
 
     assert ToolCapability.SEARCH.l10n_key == "mcp_capability_search"
     assert ToolCapability.DOCUMENT_READER.l10n_key == "mcp_capability_document_reader"
     assert ToolCapability.ACTION.l10n_key == "mcp_capability_action"
+    assert ToolCapability.GENERAL.l10n_key == "mcp_capability_general"
+
+
+def test_role_classification_from_score_boundaries() -> None:
+    """Verify RoleClassification.from_score across ISTQB boundary value partitions."""
+    assert RoleClassification.from_score(-10.0) == RoleClassification.PASSENGER
+    assert RoleClassification.from_score(0) == RoleClassification.PASSENGER
+    assert RoleClassification.from_score(1) == RoleClassification.PASSENGER
+    assert RoleClassification.from_score(2.4) == RoleClassification.PASSENGER
+    assert RoleClassification.from_score(2.6) == RoleClassification.NAVIGATOR
+    assert RoleClassification.from_score(3) == RoleClassification.NAVIGATOR
+    assert RoleClassification.from_score(3.4) == RoleClassification.NAVIGATOR
+    assert RoleClassification.from_score(3.6) == RoleClassification.DRIVER
+    assert RoleClassification.from_score(4) == RoleClassification.DRIVER
+    assert RoleClassification.from_score(4.4) == RoleClassification.DRIVER
+    assert RoleClassification.from_score(4.6) == RoleClassification.ARCHITECT
+    assert RoleClassification.from_score(5) == RoleClassification.ARCHITECT
+    assert RoleClassification.from_score(99.9) == RoleClassification.ARCHITECT
+
+
+def test_role_classification_from_score_invalid_inputs() -> None:
+    """Negative test: Verify RoleClassification.from_score rejects non-finite float inputs."""
+    with pytest.raises(ValueError):
+        RoleClassification.from_score(float("nan"))
+
+    with pytest.raises(OverflowError):
+        RoleClassification.from_score(float("inf"))
+
+
+def test_pipeline_config_immutability() -> None:
+    """Verify PipelineConfig is frozen and hashable."""
+    cfg = PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast")
+    assert cfg.profile == ExecutionProfile.ONE_SHOT
+    assert cfg.default_strategy == "fast"
+    assert isinstance(hash(cfg), int)
+
+
+def test_lax_causal_root_cause_and_step_zone() -> None:
+    """Verify LaxCausalRootCauseType and LaxStepZone positive coercion and negative rejection."""
+
+    class DummyModel(BaseModel):
+        cause: LaxCausalRootCauseType
+        zone: LaxStepZone
+
+    obj = DummyModel(cause="node_failure", zone="zone_a")
+    assert obj.cause == CausalRootCauseType.NODE_FAILURE
+    assert obj.zone == StepZone.ZONE_A
+
+    with pytest.raises(ValidationError):
+        DummyModel(cause="invalid_cause", zone="zone_a")
+
+    with pytest.raises(ValidationError):
+        DummyModel(cause="node_failure", zone="invalid_zone")
 
 
 def test_lax_tool_capability() -> None:
