@@ -13,6 +13,8 @@ from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/mcp-gateways", tags=["Admin Studio V2 - MCP Gateways"])
 
 

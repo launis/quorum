@@ -7,6 +7,8 @@ from urllib.parse import ParseResult, urlparse
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
+__all__ = ["MCPUrlValidator"]
+
 logger = logging.getLogger(__name__)
 
 _ALLOWED_SCHEMES: frozenset[str] = frozenset({"http", "https"})

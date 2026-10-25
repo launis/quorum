@@ -39,6 +39,8 @@ from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary
 from backend_v2.services.mcp.url_validator import MCPUrlValidator
 from backend_v2.settings import get_settings
 
+__all__ = ["GenericMCPClient"]
+
 logger = logging.getLogger(__name__)
 
 _REDIRECT_STATUS_CODES: frozenset[int] = frozenset({301, 302, 303, 307, 308})
@@ -68,7 +70,9 @@ class GenericMCPClient:
             Validated MCPInitializeResultDTO returned by the server.
 
         Raises:
-            AppException: On SSRF violation, auth misconfiguration, transport error, or invalid response.
+            AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
+                ErrorCodes.VALIDATION_ERROR on configuration error, or
+                ErrorCodes.SERVICE_UNAVAILABLE on transport error.
         """
         settings = get_settings()
         validated_url = await asyncio.to_thread(
@@ -114,7 +118,9 @@ class GenericMCPClient:
             List of AllowedMCPTool domain objects with recursive input_schema definitions.
 
         Raises:
-            AppException: On SSRF violation, auth error, timeout, or malformed JSON-RPC response.
+            AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
+                ErrorCodes.VALIDATION_ERROR on configuration error, or
+                ErrorCodes.SERVICE_UNAVAILABLE on transport error.
         """
         settings = get_settings()
         validated_url = await asyncio.to_thread(
@@ -174,7 +180,9 @@ class GenericMCPClient:
             CDATA-shielded and character-budgeted tool response string.
 
         Raises:
-            AppException: On SSRF violation, auth error, JSON-RPC error, or tool execution failure.
+            AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
+                ErrorCodes.SERVICE_UNAVAILABLE on transport failure, or
+                ErrorCodes.VALIDATION_ERROR on invalid tool execution payload.
         """
         settings = get_settings()
         validated_url = await asyncio.to_thread(
