@@ -211,9 +211,7 @@ async def test_package_facade_instantiation(monkeypatch: pytest.MonkeyPatch) -> 
     pdf_service = AsyncMock()
     pdf_service.generate_execution_pdf.return_value = b"%PDF-1.4"
 
-    monkeypatch.setattr(
-        blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=sdui_dto)
-    )
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=sdui_dto))
 
     service = ReportService(
         repo=repo,
@@ -242,9 +240,7 @@ async def test_package_facade_instantiation(monkeypatch: pytest.MonkeyPatch) -> 
     assert len(summaries) == 1
     assert summaries[0].id == created.id
 
-    default_art = await service.get_or_create_default_artifact(
-        "exe_1234567890abcdef", "prf_1234567890abcdef", "fi"
-    )
+    default_art = await service.get_or_create_default_artifact("exe_1234567890abcdef", "prf_1234567890abcdef", "fi")
     assert default_art.id == created.id
 
     # 2. compile_and_persist_artifact & process_artifact_compilation

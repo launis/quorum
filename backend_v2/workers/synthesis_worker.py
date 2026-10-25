@@ -53,6 +53,7 @@ from backend_v2.models.prompts import (
 from backend_v2.models.state import StateProjector
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+
 # Phase 4, Step 1: Rewire ReportService import to canonical report package
 from backend_v2.services.report import ReportService
 from backend_v2.settings import get_settings

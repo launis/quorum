@@ -30,7 +30,7 @@
 
 ### Phase 1: Pre-Implementation Technical Debt Cleanups, Strict Recursive MCP Schema DTOs & Seed Vault Migration
 **Plan:** @[docs/epic/tasks_EPIC_159/01_phase1_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=1`
+- [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/01_phase1_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [ ] Step 1.1: Scoped Boy Scout Technical Debt Cleanups in Touched Targets (Zero-Behavioral-Change Gate resolving 64 Python & 18 Flutter findings)
@@ -41,7 +41,7 @@
 
 ### Phase 2: Protocol-Agnostic GenericMCPClient, SSRF Firewall & Studio Tool Discovery Endpoint
 **Plan:** @[docs/epic/tasks_EPIC_159/02_phase2_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=2`
+- [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/02_phase2_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/02_phase2_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [ ] Step 2.1: SSRF URL & Network Egress Validator (MCPUrlValidator with non-blocking DNS resolution and cloud metadata / CIDR blocking)
@@ -52,7 +52,7 @@
 
 ### Phase 3: Dynamic Pydantic Schema Factory, Namespace Routing & Legacy Wrapper Demolition
 **Plan:** @[docs/epic/tasks_EPIC_159/03_phase3_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=3`
+- [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/03_phase3_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [ ] Step 3.1: Runtime Pydantic Schema Factory (pydantic.create_model) & LLM Provider Wiring (schema_factory.py, provider.py)
@@ -63,7 +63,7 @@
 
 ### Phase 4: Frontend Flutter Studio Integration, Freezed DTO Synchronization & E2E Verification Gate
 **Plan:** @[docs/epic/tasks_EPIC_159/04_phase4_plan.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=4`
+- [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/04_phase4_plan.md`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [ ] Step 4.1: Studio Client API, Controller Discovery Action & Localization (studio_client.dart, mcp_gateways_controller.dart, arb files)
@@ -197,7 +197,12 @@
 
 ## Achieved
 - Initialized standardized Epic tracking document `docs/epic/EPIC_159_tracker.md` from approved Epic `docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md` and audit report `docs/epic/EPIC_159_audit_report.md`.
-- Formatted `## Phase Execution Status` across all 4 implementation phases with explicit deferred plan generation commands (`/tier0-create-plan`) and granular micro-step checklists.
+- Generated detailed architectural implementation plans for all 4 phases in `docs/epic/tasks_EPIC_159/`:
+  - `01_phase1_plan.md` (Tech debt cleanups, recursive schema DTOs, seed vault migration)
+  - `02_phase2_plan.md` (Protocol transport, SSRF firewall, discovery endpoint)
+  - `03_phase3_plan.md` (Dynamic schema factory, namespace routing, legacy demolition)
+  - `04_phase4_plan.md` (Flutter Studio integration, Freezed models, live E2E gate)
+- Formatted `## Phase Execution Status` across all 4 implementation phases with completed plan links and micro-step checklists.
 - Constructed complete Requirements Traceability Matrix mapping 36 granular technical requirements (REQ-159-001 through REQ-159-036) across Phase 1 through Phase 4.
 - Defined deterministic file-level Tier 2 Hardening checklists for 27 production backend Python files and 9 production frontend Dart files.
 - Configured fully parameterized Tier 7 As-Built Architectural Sync command with explicit target KIs, directory reference updates, and pillar documentation directives.
@@ -208,9 +213,9 @@
 - The `SystemRepositoryImpl.update_mcp_gateways` method currently contains a `limit=1` overwrite bug that overwrites unrelated gateway documents; this is remediated in Phase 1.1 to upsert strictly by `doc_id = gateways_data.id`.
 
 ## Remaining
-- Generate Phase 1 Implementation Plan via `/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=1`.
 - Execute Tier 0 Red-Team Research on Phase 1 Plan via `/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
 - Execute Phase 1 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
+- Progress through Phase 2, Phase 3, and Phase 4 execution, hardening, and Tier 7 documentation.
 
 ## Resume Command
-`/tier0-create-plan @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md] @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md] --phase=1`
+`/tier0-research-plan @[docs/epic/tasks_EPIC_159/01_phase1_plan.md] @[docs/epic/EPIC_159_tracker.md]`

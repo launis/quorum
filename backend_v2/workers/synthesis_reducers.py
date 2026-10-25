@@ -35,6 +35,7 @@ from backend_v2.models.state import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
+
 # Phase 4, Step 1: Rewire ReportService import to canonical report package
 from backend_v2.services.report import ReportService
 from backend_v2.services.storage import get_storage_driver

@@ -27,19 +27,19 @@
 
 ### Phase 3: Format Reader Extraction
 **Plan:** @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md]
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]` (`8c260a2f2`)
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]` (`e2d53ac48`)
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]
   - [x] Step 3.1: Create target domain file `format_reader_service.py` and transplant reader methods
   - [x] Step 3.2: Update `ReportService` proxy delegations and verify test baseline
 
 ### Phase 4: Atomic Cutover & Consumer Rewiring
 **Plan:** @[docs/epic/tasks_report_service/phase4_cutover.md]
-- [ ] **[NOK] Execution:** /tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]` (`fd2b35bea`)
 - [ ] **[NOK] Audit:** /tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]
-  - [ ] Step 4.1: Mechanically rewire 1-hop consumer imports per `symbol_migration_map.md`
-  - [ ] Step 4.2: Partition monolithic test file into focused modular test suites
-  - [ ] Step 4.3: Create package facade `report/__init__.py` and delete `report_service.py`
-  - [ ] Step 4.4: Register QGR017 lockdown in `scripts/_ast_guardrails.py` and run global audit loop
+  - [x] Step 4.1: Mechanically rewire 1-hop consumer imports per `symbol_migration_map.md`
+  - [x] Step 4.2: Partition monolithic test file into focused modular test suites
+  - [x] Step 4.3: Create package facade `report/__init__.py` and delete `report_service.py`
+  - [x] Step 4.4: Register QGR017 lockdown in `scripts/_ast_guardrails.py` and run global audit loop
 
 ### Post-Implementation Gates
 
@@ -84,17 +84,20 @@
 - Completed Phase 1 (Lifecycle Extraction): Created `backend_v2/services/report/lifecycle_service.py` (`ReportLifecycleService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 1 test contracts and unit test suite `backend_v2/tests/unit/services/report/test_lifecycle_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and >95% coverage.
 - Completed Phase 2 (Compilation Extraction): Created `backend_v2/services/report/compilation_service.py` (`ReportCompilationService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 2 test contracts (`test_compile_and_persist_artifact_success`, `test_compile_execution_not_ready`) and unit test suite `backend_v2/tests/unit/services/report/test_compilation_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `compilation_service.py`.
 - Completed Phase 3 (Format Reader Extraction): Created `backend_v2/services/report/format_reader_service.py` (`ReportFormatReaderService`), wired 1-line proxy delegations in `backend_v2/services/report_service.py`, added Phase 3 test contracts (`test_get_report_sdui_success`, `test_get_report_pdf_bytes_success`) and unit test suite `backend_v2/tests/unit/services/report/test_format_reader_service.py`, and passed `backend_audit_loop.py` with 100% test pass rate and 100% coverage on `format_reader_service.py`.
+- Completed Phase 4 (Atomic Cutover & Consumer Rewiring): Rewired 1-hop consumers (`backend_v2/api/dependencies.py`, `backend_v2/workers/report_worker.py`, `backend_v2/workers/synthesis_worker.py`, `backend_v2/workers/synthesis_reducers.py`, and unit tests) to import from `backend_v2.services.report`, created package facade `backend_v2/services/report/__init__.py`, partitioned monolithic test suite into `test_lifecycle_service.py`, `test_compilation_service.py`, `test_format_reader_service.py`, and `test_report_facade.py` (47 tests, 100.00% coverage across all 4 modules in `backend_v2/services/report/`), deleted external proxy `backend_v2/services/report_service.py`, registered `QGR017` lockdown in `scripts/_ast_guardrails.py`, and updated `.agents/rules/04_directory_reference.md`.
 
 ## Learned
 - `ReportService` exhibits high internal cohesion within its 3 domains; leaf models are already cleanly separated in `models/dtos/` and `models/domain/`.
 - Fast-Track mode cleanly eliminates planning latency: all 4 phase plans were generated without mid-flight halts.
 - Standard TRK001-TRK006 tracker structure seamlessly accommodates the Two-Epoch protocol when Epoch 1 is mapped to `## Phase Execution Status` and Epoch 2 is mapped to `### Post-Implementation Gates`.
+- When adding `QGR017` unit tests for a retired module in `backend_v2/tests/unit/scripts/test_ast_guardrails.py`, avoid placing the literal retired module path string in test docstrings so codebase-wide substring regression checks (`test_zero_legacy_report_service_imports`) pass with zero false positives.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`
 
 ## Remaining
 - Audit Phase 1: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase1_lifecycle_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 2: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase2_compilation_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
 - Audit Phase 3: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase3_format_reader_extraction.md] @[docs/epic/report_service_decomposition_tracker.md]`
-- Execute Phase 4: `/tier2-execute @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`
+- Audit Phase 4: `/tier8-audit-plan @[docs/epic/tasks_report_service/phase4_cutover.md] @[docs/epic/report_service_decomposition_tracker.md]`
+- Execute Epoch 2 Tier 2 Hardening: `/tier2-hardening-backend` on `@[backend_v2/services/report/lifecycle_service.py]`, `@[backend_v2/services/report/compilation_service.py]`, and `@[backend_v2/services/report/format_reader_service.py]`
