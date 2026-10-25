@@ -1,10 +1,14 @@
 """MCP Models.
 
 This module defines the standardized request and response structures for interacting
-with Model Context Protocol (MCP) tool loops.
+with Model Context Protocol (MCP) tool loops and citation verification pipelines.
+
+SSOT for CitationCorrectionResult, CitationExtractionFailure, CitationExtractionItemDTO,
+CitationExtractionResult, MCPRetrievalResultDTO, MCPSynthesisInstructionsDTO,
+MCPToolLoopResult, OpenAIFunctionCallDTO, OpenAIProbeResponseDTO, and OpenAIToolCallDTO.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, JsonValue, field_validator
 
@@ -12,6 +16,19 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPArgumentValue
+
+__all__ = [
+    "CitationCorrectionResult",
+    "CitationExtractionFailure",
+    "CitationExtractionItemDTO",
+    "CitationExtractionResult",
+    "MCPRetrievalResultDTO",
+    "MCPSynthesisInstructionsDTO",
+    "MCPToolLoopResult",
+    "OpenAIFunctionCallDTO",
+    "OpenAIProbeResponseDTO",
+    "OpenAIToolCallDTO",
+]
 
 
 class OpenAIFunctionCallDTO(V2CoreBase):
@@ -42,7 +59,7 @@ class OpenAIToolCallDTO(V2CoreBase):
         provider_specific_fields: Optional provider-specific fields.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     index: Annotated[int | None, Field(default=None, description="Call index.")] = None
     id: Annotated[str, Field(description="Tool call ID.")]
@@ -86,11 +103,17 @@ class MCPToolLoopResult(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     result_data: Annotated[dict[str, JsonValue], Field(description="Final structured output dict.")]
-    audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
-    usage: TokenUsage = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        description="Cumulative token usage.",
-    )
+    audit_traces: Annotated[
+        list[MCPAuditTrace],
+        Field(default_factory=list, description="Audit log of all tool invocations."),
+    ]
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Cumulative token usage.",
+        ),
+    ]
 
 
 class MCPRetrievalResultDTO(V2CoreBase):
@@ -104,13 +127,17 @@ class MCPRetrievalResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    audit_traces: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Audit log of all tool invocations during retrieval."
-    )
-    usage: TokenUsage = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        description="Token usage incurred during retrieval.",
-    )
+    audit_traces: Annotated[
+        list[MCPAuditTrace],
+        Field(default_factory=list, description="Audit log of all tool invocations during retrieval."),
+    ]
+    usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage incurred during retrieval.",
+        ),
+    ]
     evidence_payload: Annotated[
         str,
         Field(default="", description="Assembled evidence text formatted for prompt inclusion."),
@@ -148,7 +175,7 @@ class CitationExtractionItemDTO(V2CoreBase):
         reasoning: Max 1 short sentence. Briefly explain WHY you are verifying this claim.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     claim_text: Annotated[str, Field(description="Exact quote of the claim from the text.")]
     search_query: Annotated[
@@ -160,8 +187,10 @@ class CitationExtractionItemDTO(V2CoreBase):
             )
         ),
     ]
-    knowledge_gap: Annotated[str, Field(description="The specific knowledge gap needing resolution.")] = ""
-    search_rationale: Annotated[str, Field(description="The rationale mapping the query to the knowledge gap.")] = ""
+    knowledge_gap: Annotated[str, Field(default="", description="The specific knowledge gap needing resolution.")] = ""
+    search_rationale: Annotated[
+        str, Field(default="", description="The rationale mapping the query to the knowledge gap.")
+    ] = ""
     reasoning: Annotated[
         str,
         Field(max_length=400, description="Max 1-2 short sentences. Briefly explain WHY you are verifying this claim."),
@@ -169,7 +198,15 @@ class CitationExtractionItemDTO(V2CoreBase):
 
     @field_validator("reasoning", mode="before")
     @classmethod
-    def truncate_reasoning(cls, v: Any) -> Any:
+    def truncate_reasoning(cls, v: object) -> object:
+        """Truncate reasoning text exceeding 400 characters at the nearest sentence boundary.
+
+        Args:
+            v: Raw reasoning input value prior to validation.
+
+        Returns:
+            Truncated string if input exceeds 400 characters, otherwise original value.
+        """
         if isinstance(v, str) and len(v) > 400:
             truncated = v[:397]
             last_period = truncated.rfind(".")
@@ -186,7 +223,7 @@ class CitationExtractionResult(V2CoreBase):
         citations: List of extracted claims to verify.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     citations: Annotated[list[CitationExtractionItemDTO], Field(description="List of extracted claims to verify.")]
 
@@ -198,7 +235,7 @@ class CitationCorrectionResult(V2CoreBase):
         corrected_claim: The verbatim corrected claim text found in the source context.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     corrected_claim: Annotated[str, Field(description="The verbatim corrected claim text found in the source context.")]
 
@@ -210,6 +247,6 @@ class CitationExtractionFailure(V2CoreBase):
         error_message: Error message from failed ensemble run.
     """
 
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     error_message: Annotated[str, Field(description="Error message from failed ensemble run.")]
