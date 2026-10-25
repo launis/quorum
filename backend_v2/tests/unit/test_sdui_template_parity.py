@@ -465,7 +465,7 @@ async def test_jinja_sdui_golden_master_rendering() -> None:
         # 17. audit_trail
         audit_div = soup.find("div", class_="card", style=lambda s: s and "#009688" in s)
         assert audit_div is not None, f"[{locale}] Missing audit_trail box"
-        assert "tavily_search" in audit_div.get_text()
+        assert "mcp_tavily_search" in audit_div.get_text()
         assert "Enterprise Cognitive Architecture Standards" in audit_div.get_text()
 
         # 18. causal_graph (omitted in static PDF documents per UX specification)

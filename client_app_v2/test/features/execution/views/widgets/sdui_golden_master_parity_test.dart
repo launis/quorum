@@ -235,7 +235,7 @@ void main() {
           expect(find.text(expectedMatrixRow), findsOneWidget);
 
           // 17. SduiAuditTrailBlock
-          expect(find.text('tavily_search'), findsOneWidget);
+          expect(find.text('mcp_tavily_search'), findsOneWidget);
           expect(
             find.textContaining('Enterprise Cognitive Architecture Standards'),
             findsOneWidget,

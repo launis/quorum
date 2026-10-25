@@ -31,7 +31,7 @@
   "reasoning_tokens": 0,
   "mcp_tool_audit": [
     {
-      "tool_id": "tavily_search",
+      "tool_id": "mcp_tavily_search",
       "step_name": "step_source_verification",
       "query": "Enterprise Cognitive Architecture Standards",
       "duration_ms": 245,

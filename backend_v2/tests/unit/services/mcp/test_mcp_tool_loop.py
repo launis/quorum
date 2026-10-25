@@ -1,19 +1,50 @@
-"""Unit tests for deterministic MCP Tool Loop Conductor (Phase 0)."""
+"""Unit tests for deterministic MCP Tool Loop Conductor."""
 
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.mcp import (
+    CitationCorrectionResult,
     CitationExtractionItemDTO,
     CitationExtractionResult,
     MCPRetrievalResultDTO,
+    MCPSynthesisInstructionsDTO,
+)
+from backend_v2.models.domain.system_config import (
+    AllowedMCPTool,
+    MCPAuditTrace,
+    SystemConfigMCPGateways,
 )
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval, execute_tool_loop
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO
+from backend_v2.models.enums import (
+    JSONSchemaPropertyType,
+    MCPAuthType,
+    MCPTransportType,
+    SourceSufficiencyThreshold,
+    ToolCapability,
+)
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
+from backend_v2.services.mcp.mcp_tool_loop import (
+    _build_tool_evidence_message,
+    _resolve_dispatcher,
+    execute_mcp_retrieval,
+    execute_tool_loop,
+    is_source_sufficient,
+    validate_query_relevance,
+)
+from backend_v2.utils.alias_engine import AliasEngine
+
+TAVILY_ALIAS = "default_mcp_gateway__mcp_tavily_search"
+WIKI_SEARCH_ALIAS = "default_mcp_gateway__mcp_wikipedia_search"
+WIKI_READ_ALIAS = "default_mcp_gateway__mcp_wikipedia_read"
 
 
 class MockResponseModel(BaseModel):
@@ -26,12 +57,69 @@ def _make_mock_llm_client() -> MagicMock:
     return MagicMock()
 
 
+def _make_gateway_fixture() -> SystemConfigMCPGateways:
+    search_schema = MCPToolInputSchemaDTO(
+        properties={
+            "query": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                description="Search query string.",
+            )
+        },
+        required=["query"],
+    )
+    read_schema = MCPToolInputSchemaDTO(
+        properties={
+            "title": MCPToolSchemaPropertyDTO(
+                type=JSONSchemaPropertyType.STRING,
+                description="Article title.",
+            )
+        },
+        required=["title"],
+    )
+    return SystemConfigMCPGateways(
+        id="sys_a1b2c3d4e5f60718",
+        slug="default_mcp_gateway",
+        endpoint_url="https://mcp.example.com/v1",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        timeout_seconds=15,
+        tools=[
+            AllowedMCPTool(
+                tool_id="mcp_tavily_search",
+                name=I18nText(translations={"en": "Tavily Search", "fi": "Tavily-haku"}),
+                description="Search the web",
+                enabled=True,
+                capability=ToolCapability.SEARCH,
+                input_schema=search_schema,
+            ),
+            AllowedMCPTool(
+                tool_id="mcp_wikipedia_search",
+                name=I18nText(translations={"en": "Wikipedia Search", "fi": "Wikipedia-haku"}),
+                description="Search Wikipedia",
+                enabled=True,
+                capability=ToolCapability.SEARCH,
+                input_schema=search_schema,
+            ),
+            AllowedMCPTool(
+                tool_id="mcp_wikipedia_read",
+                name=I18nText(translations={"en": "Wikipedia Read", "fi": "Wikipedia-luku"}),
+                description="Read Wikipedia",
+                enabled=True,
+                capability=ToolCapability.DOCUMENT_READER,
+                input_schema=read_schema,
+            ),
+        ],
+    )
+
+
+def _make_test_dispatcher() -> ToolDispatcher:
+    return ToolDispatcher(gateways=[_make_gateway_fixture()], mcp_client=MagicMock())
+
+
 def _make_mock_executor(extracted_claims: list[str] | None = None) -> MagicMock:
     executor = MagicMock()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
-        from backend_v2.models.domain.mcp import CitationCorrectionResult
-
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
             citations = [
@@ -57,9 +145,26 @@ def _make_mock_executor(extracted_claims: list[str] | None = None) -> MagicMock:
 
 
 @pytest.mark.asyncio
+async def test_resolve_dispatcher_from_repository_and_fallback() -> None:
+    """Verify _resolve_dispatcher resolves gateways from repository or returns empty ToolDispatcher."""
+    from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
+
+    gateway = _make_gateway_fixture()
+    repo = InMemorySystemRepository()
+    await repo.update_mcp_gateways(gateway)
+
+    resolved = await _resolve_dispatcher(dispatcher=None, repository=repo)
+    assert TAVILY_ALIAS in resolved.get_all_enabled_tool_aliases()
+
+    empty_resolved = await _resolve_dispatcher(dispatcher=None, repository=None)
+    assert empty_resolved.get_all_enabled_tool_aliases() == []
+
+
+@pytest.mark.asyncio
 async def test_tool_loop_no_tools_passthrough() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor()
+    dispatcher = _make_test_dispatcher()
     result = await execute_tool_loop(
         llm_client=client,
         executor=executor,
@@ -67,6 +172,7 @@ async def test_tool_loop_no_tools_passthrough() -> None:
         response_model=MockResponseModel,
         allowed_tools=[],
         step_name="test_step",
+        dispatcher=dispatcher,
     )
     assert result.result_data["score"] == 4.5
     assert len(result.audit_traces) == 0
@@ -77,16 +183,18 @@ async def test_tool_loop_no_tools_passthrough() -> None:
 async def test_citation_extraction_empty_document() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=[])
+    dispatcher = _make_test_dispatcher()
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         result = await execute_tool_loop(
             llm_client=client,
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="some context",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 0
@@ -98,6 +206,7 @@ async def test_citation_extraction_empty_document() -> None:
 async def test_citation_extraction_hallucinated_claim_rejected() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["This claim does not exist in the source document"])
+    dispatcher = _make_test_dispatcher()
 
     with pytest.raises(SemanticEvidenceError) as exc_info:
         await execute_tool_loop(
@@ -105,9 +214,10 @@ async def test_citation_extraction_hallucinated_claim_rejected() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="Actual source context without the hallucinated claim.",
+            dispatcher=dispatcher,
         )
     assert "Self-correction failed" in str(exc_info.value.message)
 
@@ -116,25 +226,22 @@ async def test_citation_extraction_hallucinated_claim_rejected() -> None:
 async def test_execute_tool_loop_deterministic_search() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim 1", "valid claim 2"])
+    dispatcher = _make_test_dispatcher()
 
     mock_settings = MagicMock()
     mock_settings.max_tool_calls_per_step = 3
     with (
-        patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search,
+        patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search,
         patch("backend_v2.services.mcp.mcp_tool_loop.get_settings", return_value=mock_settings),
     ):
-        from datetime import datetime, timezone
 
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
-        async def fake_search(*args: Any, **kwargs: Any):
-            query = "test"
-            if args:
-                query = args[0]
-            elif "query" in kwargs and kwargs["query"]:
-                query = kwargs["query"]
+        async def fake_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
+            raw_args = kwargs["raw_arguments"] if "raw_arguments" in kwargs else {}
+            query = str(raw_args["query"]) if "query" in raw_args else "test"
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
+                namespaced_alias=TAVILY_ALIAS,
+                gateway_slug="default_mcp_gateway",
                 step_name="test_step",
                 query=query,
                 response_summary="Found some evidence",
@@ -150,9 +257,10 @@ async def test_execute_tool_loop_deterministic_search() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="valid claim 1 and valid claim 2 are here.",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 2
@@ -165,23 +273,22 @@ async def test_execute_tool_loop_deterministic_search() -> None:
 async def test_execute_tool_loop_with_wikipedia_search() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["wikipedia claim 1"])
+    dispatcher = _make_test_dispatcher()
 
     mock_settings = MagicMock()
     mock_settings.max_tool_calls_per_step = 3
     with (
-        patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_tool_exec,
+        patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_tool_exec,
         patch("backend_v2.services.mcp.mcp_tool_loop.get_settings", return_value=mock_settings),
     ):
-        from datetime import datetime, timezone
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_wiki_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
-            query = "test"
-            if "query" in kwargs and kwargs["query"]:
-                query = str(kwargs["query"])
+            raw_args = kwargs["raw_arguments"] if "raw_arguments" in kwargs else {}
+            query = str(raw_args["query"]) if "query" in raw_args else "test"
             return MCPAuditTrace(
                 tool_id="mcp_wikipedia_search",
+                namespaced_alias=WIKI_SEARCH_ALIAS,
+                gateway_slug="default_mcp_gateway",
                 step_name="wiki_step",
                 query=query,
                 response_summary="Wikipedia evidence summary",
@@ -197,9 +304,10 @@ async def test_execute_tool_loop_with_wikipedia_search() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_wikipedia_search", "mcp_wikipedia_read"],
+            allowed_tools=[WIKI_SEARCH_ALIAS, WIKI_READ_ALIAS],
             step_name="wiki_step",
             source_context="wikipedia claim 1 is documented in encyclopedias.",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -212,6 +320,7 @@ async def test_execute_tool_loop_with_wikipedia_search() -> None:
 async def test_ensemble_vote_consensus() -> None:
     client = _make_mock_llm_client()
     executor = MagicMock()
+    dispatcher = _make_test_dispatcher()
 
     call_count = 0
 
@@ -239,15 +348,15 @@ async def test_ensemble_vote_consensus() -> None:
 
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        from datetime import datetime, timezone
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
 
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
-        async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
+        async def fake_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
+            raw_args = kwargs["raw_arguments"] if "raw_arguments" in kwargs else {}
+            query = str(raw_args["query"]) if "query" in raw_args else ""
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
+                namespaced_alias=TAVILY_ALIAS,
+                gateway_slug="default_mcp_gateway",
                 step_name="test_step",
                 query=query,
                 response_summary="Found",
@@ -263,9 +372,10 @@ async def test_ensemble_vote_consensus() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="claim A claim B claim C",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -277,16 +387,17 @@ async def test_ensemble_vote_consensus() -> None:
 async def test_strictness_override_bypasses_physical_anchoring() -> None:
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["hallucinated claim"])
+    dispatcher = _make_test_dispatcher()
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        from datetime import datetime, timezone
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
 
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
-        async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
+        async def fake_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
+            raw_args = kwargs["raw_arguments"] if "raw_arguments" in kwargs else {}
+            query = str(raw_args["query"]) if "query" in raw_args else ""
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
+                namespaced_alias=TAVILY_ALIAS,
+                gateway_slug="default_mcp_gateway",
                 step_name="test_step",
                 query=query,
                 response_summary="Found",
@@ -302,10 +413,11 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="totally unrelated source context",
             validation_context={"strictness_level": 85},
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -316,8 +428,7 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
 @pytest.mark.asyncio
 async def test_agentic_self_reflection_success() -> None:
     client = _make_mock_llm_client()
-
-    from backend_v2.models.domain.mcp import CitationCorrectionResult
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -343,15 +454,15 @@ async def test_agentic_self_reflection_success() -> None:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        from datetime import datetime, timezone
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
 
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
-        async def fake_search(*args: Any, **kwargs: Any):
-            query = kwargs["query"] if "query" in kwargs and kwargs["query"] else (args[0] if args else "")
+        async def fake_search(*args: Any, **kwargs: Any) -> MCPAuditTrace:
+            raw_args = kwargs["raw_arguments"] if "raw_arguments" in kwargs else {}
+            query = str(raw_args["query"]) if "query" in raw_args else ""
             return MCPAuditTrace(
                 tool_id="mcp_tavily_search",
+                namespaced_alias=TAVILY_ALIAS,
+                gateway_slug="default_mcp_gateway",
                 step_name="test_step",
                 query=query,
                 response_summary="Found",
@@ -367,10 +478,11 @@ async def test_agentic_self_reflection_success() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="source context containing precise claim here",
             validation_context={"strictness_level": 100},
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -381,8 +493,7 @@ async def test_agentic_self_reflection_success() -> None:
 @pytest.mark.asyncio
 async def test_agentic_self_reflection_failure_raises_error() -> None:
     client = _make_mock_llm_client()
-
-    from backend_v2.models.domain.mcp import CitationCorrectionResult
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -414,29 +525,25 @@ async def test_agentic_self_reflection_failure_raises_error() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="source context with no overlap at all",
             validation_context={"strictness_level": 100},
+            dispatcher=dispatcher,
         )
     assert "Self-correction failed" in str(exc_info.value.message)
 
 
 def test_validate_query_relevance() -> None:
     """Tests validate_query_relevance for various contexts and query inputs."""
-    from backend_v2.services.mcp.mcp_tool_loop import validate_query_relevance
-
-    # Empty context or empty query
     assert validate_query_relevance("test query", "") is True
     assert validate_query_relevance("  ", "some context") is True
 
-    # Relevant query (words overlap)
     assert (
         validate_query_relevance("Harvard medical research", "This document contains Harvard clinical findings.")
         is True
     )
 
-    # Irrelevant query (no words overlap)
     assert (
         validate_query_relevance("Bitcoin exchange rate", "This document discusses pediatric nutrition exclusively.")
         is False
@@ -445,9 +552,6 @@ def test_validate_query_relevance() -> None:
 
 def test_is_source_sufficient() -> None:
     """Tests is_source_sufficient against MIN_CHARS threshold."""
-    from backend_v2.models.enums import SourceSufficiencyThreshold
-    from backend_v2.services.mcp.mcp_tool_loop import is_source_sufficient
-
     short_text = "short text"
     assert is_source_sufficient(short_text) is False
 
@@ -457,12 +561,6 @@ def test_is_source_sufficient() -> None:
 
 def test_build_tool_evidence_message() -> None:
     """Tests _build_tool_evidence_message formatting for both empty and populated audit traces."""
-    import datetime
-
-    from backend_v2.models.domain.system_config import MCPAuditTrace
-    from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
-
-    # Empty response summary and empty sources
     empty_trace = MCPAuditTrace(
         id="t1",
         tool_id="mcp_tavily_search",
@@ -471,7 +569,7 @@ def test_build_tool_evidence_message() -> None:
         reasoning="r",
         response_summary="",
         source_urls=[],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.now(timezone.utc),
         duration_ms=10,
     )
     empty_msg = _build_tool_evidence_message(empty_trace, "call_123")
@@ -480,7 +578,6 @@ def test_build_tool_evidence_message() -> None:
     assert isinstance(empty_msg.content, str)
     assert "Search returned no results" in empty_msg.content
 
-    # Populated trace
     populated_trace = MCPAuditTrace(
         id="t2",
         tool_id="mcp_tavily_search",
@@ -489,7 +586,7 @@ def test_build_tool_evidence_message() -> None:
         reasoning="r",
         response_summary="Verified finding summary",
         source_urls=["https://example.com/source1"],
-        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        timestamp=datetime.now(timezone.utc),
         duration_ms=10,
     )
     pop_msg = _build_tool_evidence_message(populated_trace, "call_456")
@@ -505,36 +602,37 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
     """Tests execute_tool_loop injecting synthesis formatting constraints."""
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim"])
+    dispatcher = _make_test_dispatcher()
 
     synthesis_payload = {
         "synthesis_preamble": "Custom preamble for profile.",
         "synthesis_length_limit": 200,
     }
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_synth_step",
             query="valid claim",
             response_summary="Evidence summary",
             source_urls=["https://example.com"],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=50,
         )
 
+        synth_arg: Any = synthesis_payload
         result = await execute_tool_loop(
             llm_client=client,
             executor=executor,
             messages=[{"role": "system", "content": "Base prompt."}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_synth_step",
             source_context="source document text with valid claim here",
-            synthesis_instructions=synthesis_payload,
+            synthesis_instructions=synth_arg,
+            dispatcher=dispatcher,
         )
 
     assert result.result_data["score"] == 4.5
@@ -548,36 +646,35 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
 @pytest.mark.asyncio
 async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_exception() -> None:
     """Tests execute_tool_loop raising AppException on invalid synthesis instructions."""
-    from backend_v2.exceptions import AppException
-
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim"])
+    dispatcher = _make_test_dispatcher()
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_synth_step",
             query="valid claim",
             response_summary="Evidence summary",
             source_urls=["https://example.com"],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=50,
         )
 
+        invalid_synth: Any = "invalid_non_dict_payload"
         with pytest.raises(AppException) as exc_info:
             await execute_tool_loop(
                 llm_client=client,
                 executor=executor,
                 messages=[{"role": "user", "content": "test"}],
                 response_model=MockResponseModel,
-                allowed_tools=["mcp_tavily_search"],
+                allowed_tools=[TAVILY_ALIAS],
                 step_name="test_synth_step",
                 source_context="source document text with valid claim here",
-                synthesis_instructions="invalid_non_dict_payload",
+                synthesis_instructions=invalid_synth,
+                dispatcher=dispatcher,
             )
     assert exc_info.value.status_code == 400
 
@@ -585,9 +682,8 @@ async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_excep
 @pytest.mark.asyncio
 async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
     """Tests execute_tool_loop catching unexpected Phase 2 crash and raising AppException."""
-    from backend_v2.exceptions import AppException
-
     client = _make_mock_llm_client()
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -602,18 +698,16 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_crash_step",
             query="valid claim",
             response_summary="Evidence summary",
             source_urls=[],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=50,
         )
 
@@ -623,9 +717,10 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
                 executor=executor,
                 messages=[{"role": "user", "content": "test"}],
                 response_model=MockResponseModel,
-                allowed_tools=["mcp_tavily_search"],
+                allowed_tools=[TAVILY_ALIAS],
                 step_name="test_crash_step",
                 source_context="source document with valid claim here",
+                dispatcher=dispatcher,
             )
     assert exc_info.value.status_code == 500
 
@@ -633,11 +728,10 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
 @pytest.mark.asyncio
 async def test_ensemble_all_runs_fail_raises_app_exception() -> None:
     """Tests that Phase 0 raises AppException when all 3 ensemble extractions fail."""
-    from backend_v2.exceptions import AppException
-
     client = _make_mock_llm_client()
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=RuntimeError("Extraction failed"))
+    dispatcher = _make_test_dispatcher()
 
     with pytest.raises(AppException) as exc_info:
         await execute_tool_loop(
@@ -645,9 +739,10 @@ async def test_ensemble_all_runs_fail_raises_app_exception() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="source context",
+            dispatcher=dispatcher,
         )
     assert exc_info.value.status_code == 502
 
@@ -661,19 +756,18 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
 
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["claim1", "claim2", "claim3"])
+    dispatcher = _make_test_dispatcher()
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_step",
             query="claim1",
             response_summary="summary",
             source_urls=[],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=10,
         )
 
@@ -682,9 +776,10 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="claim1 and claim2 and claim3 are in source",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -695,11 +790,11 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
 async def test_extraction_dict_model_validation() -> None:
     """Tests that a dict returned for CitationExtractionResult is properly model_validated."""
     client = _make_mock_llm_client()
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
         if response_model == CitationExtractionResult:
-            # Return raw dictionary instead of Pydantic model instance
             return (
                 {"citations": [{"claim_text": "claim1", "search_query": "claim1", "reasoning": "r"}]},
                 TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
@@ -710,18 +805,16 @@ async def test_extraction_dict_model_validation() -> None:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_step",
             query="claim1",
             response_summary="summary",
             source_urls=[],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=10,
         )
 
@@ -730,9 +823,10 @@ async def test_extraction_dict_model_validation() -> None:
             executor=executor,
             messages=[{"role": "user", "content": "test"}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="claim1 is here",
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1
@@ -741,9 +835,8 @@ async def test_extraction_dict_model_validation() -> None:
 @pytest.mark.asyncio
 async def test_phase2_app_exception_passthrough() -> None:
     """Tests that an AppException raised during Phase 2 is directly re-raised without re-wrapping."""
-    from backend_v2.exceptions import AppException, ErrorCodes
-
     client = _make_mock_llm_client()
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -762,18 +855,16 @@ async def test_phase2_app_exception_passthrough() -> None:
     executor = MagicMock()
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_crash_step",
             query="valid claim",
             response_summary="Evidence",
             source_urls=[],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=50,
         )
 
@@ -783,9 +874,10 @@ async def test_phase2_app_exception_passthrough() -> None:
                 executor=executor,
                 messages=[{"role": "user", "content": "test"}],
                 response_model=MockResponseModel,
-                allowed_tools=["mcp_tavily_search"],
+                allowed_tools=[TAVILY_ALIAS],
                 step_name="test_crash_step",
                 source_context="source document with valid claim here",
+                dispatcher=dispatcher,
             )
     assert exc_info.value.status_code == 422
 
@@ -793,10 +885,9 @@ async def test_phase2_app_exception_passthrough() -> None:
 @pytest.mark.asyncio
 async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
     """Verify tool loop handles LLMMessageDTO inputs with string/block contents and float strictness."""
-    from backend_v2.models.llm import LLMMessageDTO
-
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim"])
+    dispatcher = _make_test_dispatcher()
 
     messages = [
         LLMMessageDTO(role="system", content="System instruction"),
@@ -804,18 +895,16 @@ async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
         LLMMessageDTO(role="user", content=[{"type": "text", "text": "Block user claim: valid claim"}]),
     ]
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
-        import datetime
-
-        from backend_v2.models.domain.system_config import MCPAuditTrace
-
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="test_step",
             query="valid claim",
             response_summary="Found evidence online.",
             source_urls=["https://example.com"],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=50,
         )
 
@@ -824,10 +913,11 @@ async def test_tool_loop_llm_message_dto_and_float_strictness() -> None:
             executor=executor,
             messages=messages,
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="test_step",
             source_context="source document with valid claim here",
             validation_context={"strictness_level": 70.0},
+            dispatcher=dispatcher,
         )
         assert result.result_data["score"] == 4.5
 
@@ -837,6 +927,7 @@ async def test_execute_mcp_retrieval_empty_tools() -> None:
     """Verify execute_mcp_retrieval with empty tools returns empty MCPRetrievalResultDTO without task execution."""
     client = _make_mock_llm_client()
     executor = _make_mock_executor()
+    dispatcher = _make_test_dispatcher()
 
     result = await execute_mcp_retrieval(
         llm_client=client,
@@ -844,6 +935,7 @@ async def test_execute_mcp_retrieval_empty_tools() -> None:
         messages=[{"role": "user", "content": "test content"}],
         allowed_tools=[],
         step_name="test_empty_step",
+        dispatcher=dispatcher,
     )
 
     assert isinstance(result, MCPRetrievalResultDTO)
@@ -856,24 +948,22 @@ async def test_execute_mcp_retrieval_empty_tools() -> None:
 @pytest.mark.asyncio
 async def test_execute_mcp_retrieval_success_with_traces() -> None:
     """Verify execute_mcp_retrieval executes tools, formats evidence payload, and registers aliases."""
-    import datetime
-
-    from backend_v2.models.domain.system_config import MCPAuditTrace
-    from backend_v2.utils.alias_engine import AliasEngine
-
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["verified fact"])
     alias_engine = AliasEngine()
+    dispatcher = _make_test_dispatcher()
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_tool:
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_tool:
         mock_tool.return_value = MCPAuditTrace(
             id="trc_001",
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="retrieval_step",
             query="verified fact",
             response_summary="Verified fact evidence summary.",
             source_urls=["https://example.com/verified"],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=42,
         )
 
@@ -881,11 +971,12 @@ async def test_execute_mcp_retrieval_success_with_traces() -> None:
             llm_client=client,
             executor=executor,
             messages=[{"role": "user", "content": "Here is a verified fact in text"}],
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="retrieval_step",
             source_context="Here is a verified fact in text",
             alias_engine=alias_engine,
             validation_context={"query_guidance": "Focus search strictly on financial filing names."},
+            dispatcher=dispatcher,
         )
 
     assert isinstance(result, MCPRetrievalResultDTO)
@@ -910,15 +1001,17 @@ async def test_execute_mcp_retrieval_hallucinated_claim_rejected() -> None:
     """Verify execute_mcp_retrieval raises SemanticEvidenceError when claims fail physical anchoring."""
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["completely hallucinated claim"])
+    dispatcher = _make_test_dispatcher()
 
     with pytest.raises(SemanticEvidenceError) as exc_info:
         await execute_mcp_retrieval(
             llm_client=client,
             executor=executor,
             messages=[{"role": "user", "content": "source text"}],
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="retrieval_step",
             source_context="totally different source text",
+            dispatcher=dispatcher,
         )
 
     assert exc_info.value.status_code == 400
@@ -927,22 +1020,23 @@ async def test_execute_mcp_retrieval_hallucinated_claim_rejected() -> None:
 @pytest.mark.asyncio
 async def test_execute_mcp_retrieval_fast_client_init_failure_raises_app_exception() -> None:
     """Verify execute_mcp_retrieval raises AppException(500) when fast client initialization fails."""
-    from backend_v2.exceptions import AppException, ErrorCodes
     from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
     client = _make_mock_llm_client()
     executor = _make_mock_executor(extracted_claims=["valid claim"])
     empty_db = InMemoryUnifiedWorkflowRepository()
+    dispatcher = _make_test_dispatcher()
 
     with pytest.raises(AppException) as exc_info:
         await execute_mcp_retrieval(
             llm_client=client,
             executor=executor,
             messages=[{"role": "user", "content": "valid claim"}],
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="retrieval_step",
             source_context="valid claim",
             repository=empty_db,
+            dispatcher=dispatcher,
         )
 
     assert exc_info.value.status_code == 500
@@ -952,9 +1046,8 @@ async def test_execute_mcp_retrieval_fast_client_init_failure_raises_app_excepti
 @pytest.mark.asyncio
 async def test_self_correction_task_exception_raises_semantic_evidence_error() -> None:
     """Verify execute_mcp_retrieval wraps unexpected self-correction task exceptions in SemanticEvidenceError."""
-    from backend_v2.models.domain.mcp import CitationCorrectionResult
-
     client = _make_mock_llm_client()
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -983,9 +1076,10 @@ async def test_self_correction_task_exception_raises_semantic_evidence_error() -
             llm_client=client,
             executor=executor,
             messages=[{"role": "user", "content": "source text"}],
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="retrieval_step",
             source_context="source text without that claim",
+            dispatcher=dispatcher,
         )
 
     assert "Self-correction failed due to task error" in exc_info.value.message
@@ -994,19 +1088,19 @@ async def test_self_correction_task_exception_raises_semantic_evidence_error() -
 @pytest.mark.asyncio
 async def test_source_sufficiency_suppression_when_no_primary_search_tool() -> None:
     """Verify source sufficiency gate and non-search tool suppression in retrieval and tool loop."""
-    from backend_v2.models.enums import SourceSufficiencyThreshold
-
     client = _make_mock_llm_client()
     executor = _make_mock_executor()
+    dispatcher = _make_test_dispatcher()
     long_source = "a" * (SourceSufficiencyThreshold.MIN_CHARS.value + 50)
 
     retrieval_sufficient = await execute_mcp_retrieval(
         llm_client=client,
         executor=executor,
         messages=[{"role": "user", "content": "test"}],
-        allowed_tools=["mcp_wikipedia_read"],
+        allowed_tools=[WIKI_READ_ALIAS],
         step_name="sufficiency_step",
         source_context=long_source,
+        dispatcher=dispatcher,
     )
     assert retrieval_sufficient.audit_traces == []
     assert retrieval_sufficient.evidence_payload == ""
@@ -1015,9 +1109,10 @@ async def test_source_sufficiency_suppression_when_no_primary_search_tool() -> N
         llm_client=client,
         executor=executor,
         messages=[{"role": "user", "content": "test"}],
-        allowed_tools=["mcp_wikipedia_read"],
+        allowed_tools=[WIKI_READ_ALIAS],
         step_name="short_non_search_step",
         source_context="short context",
+        dispatcher=dispatcher,
     )
     assert retrieval_short.audit_traces == []
 
@@ -1026,9 +1121,10 @@ async def test_source_sufficiency_suppression_when_no_primary_search_tool() -> N
         executor=executor,
         messages=[{"role": "user", "content": "test"}],
         response_model=MockResponseModel,
-        allowed_tools=["mcp_wikipedia_read"],
+        allowed_tools=[WIKI_READ_ALIAS],
         step_name="loop_sufficiency_step",
         source_context=long_source,
+        dispatcher=dispatcher,
     )
     assert loop_sufficient.result_data["score"] == 4.5
     assert loop_sufficient.audit_traces == []
@@ -1037,14 +1133,8 @@ async def test_source_sufficiency_suppression_when_no_primary_search_tool() -> N
 @pytest.mark.asyncio
 async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert() -> None:
     """Verify dict hydration for CitationCorrectionResult, empty query skip, and user-first synthesis insert."""
-    import datetime
-
-    from pydantic import JsonValue
-
-    from backend_v2.models.domain.mcp import CitationCorrectionResult, MCPSynthesisInstructionsDTO
-    from backend_v2.models.domain.system_config import MCPAuditTrace
-
     client = _make_mock_llm_client()
+    dispatcher = _make_test_dispatcher()
 
     async def mock_execute_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
         response_model = kwargs["response_model"] if "response_model" in kwargs else None
@@ -1079,15 +1169,17 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
     executor.execute_structured_task = AsyncMock(side_effect=mock_execute_structured_task)
     validation_ctx: dict[str, JsonValue] = {"mcp_source_texts": {"existing_alias": "existing text"}}
 
-    with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_search:
         mock_search.return_value = MCPAuditTrace(
-            id="trc_99",
+            id="",
             tool_id="mcp_tavily_search",
+            namespaced_alias=TAVILY_ALIAS,
+            gateway_slug="default_mcp_gateway",
             step_name="step_edge",
             query="verified claim",
             response_summary="Summary text",
             source_urls=["https://example.com"],
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(timezone.utc),
             duration_ms=25,
         )
 
@@ -1096,7 +1188,7 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
             executor=executor,
             messages=[{"role": "user", "content": "Document with verified claim inside."}],
             response_model=MockResponseModel,
-            allowed_tools=["mcp_tavily_search"],
+            allowed_tools=[TAVILY_ALIAS],
             step_name="step_edge",
             source_context="Document with verified claim inside.",
             synthesis_instructions=MCPSynthesisInstructionsDTO(
@@ -1104,6 +1196,7 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
                 synthesis_length_limit=150,
             ),
             validation_context=validation_ctx,
+            dispatcher=dispatcher,
         )
 
     assert len(result.audit_traces) == 1

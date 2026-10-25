@@ -1773,7 +1773,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
     step.id = "stp_1111111111111111"
     step.task_blueprint = "stp_1111111111111111"
     step.input_mappings = {}
-    step.allowed_mcp_tools = ["mcp_tavily_search"]
+    step.allowed_mcp_tools = ["default_mcp_gateway__mcp_tavily_search"]
 
     projector = MagicMock()
     projector.snapshot = []
@@ -1804,7 +1804,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
             "extraction_protocol_block_id": "blk_573802341db9d68c",
             "criteria_block_ids": ["blk_1111111111111111"],
             "cognitive_tier": "fast",
-            "allowed_mcp_tools": ["mcp_tavily_search"],
+            "allowed_mcp_tools": ["default_mcp_gateway__mcp_tavily_search"],
         }
     )
 
@@ -1922,7 +1922,7 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
 
     assert len(traces) == 1
     mock_retrieve.assert_called_once()
-    assert mock_retrieve.call_args.kwargs["allowed_tools"] == ["mcp_tavily_search"]
+    assert mock_retrieve.call_args.kwargs["allowed_tools"] == ["default_mcp_gateway__mcp_tavily_search"]
     assert mock_retrieve.call_args.kwargs["step_name"] == "stp_1111111111111111"
     assert len(traces[0].mcp_audit_traces) == 1
     assert traces[0].mcp_audit_traces[0].query == "test search query"
@@ -2094,7 +2094,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
     step.id = "stp_3333333333333333"
     step.task_blueprint = "stp_3333333333333333"
     step.input_mappings = {}
-    step.allowed_mcp_tools = ["mcp_tavily_search"]
+    step.allowed_mcp_tools = ["default_mcp_gateway__mcp_tavily_search"]
 
     projector = MagicMock()
     projector.snapshot = []
@@ -2125,7 +2125,7 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
             "extraction_protocol_block_id": "blk_573802341db9d68c",
             "criteria_block_ids": ["blk_3333333333333333"],
             "cognitive_tier": "fast",
-            "allowed_mcp_tools": ["mcp_tavily_search"],
+            "allowed_mcp_tools": ["default_mcp_gateway__mcp_tavily_search"],
         }
     )
 

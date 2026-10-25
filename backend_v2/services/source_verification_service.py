@@ -1,6 +1,6 @@
 """Source Verification Service.
 
-Responsible for extracting source claims from text and verifying them via Tavily AI.
+Responsible for extracting source claims from text and verifying them via dynamic MCP search tools.
 Adheres strictly to the SRP God Method Mandate, Single Source of Truth, and Pydantic Strict Nirvana.
 """
 
@@ -19,15 +19,14 @@ from backend_v2.models.domain.source_verification import (
 )
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.enums import ToolCapability
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
 )
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
-from backend_v2.services.localization import get_language
-from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
-from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.settings import get_settings
 
 __all__ = ["SourceVerificationService"]
@@ -42,15 +41,18 @@ class SourceVerificationService:
         self,
         llm_task_executor: LLMTaskExecutor,
         llm_client: LLMClient,
+        dispatcher: ToolDispatcher | None = None,
     ) -> None:
         """Initializes the service with explicit dependencies.
 
         Args:
             llm_task_executor: Injected LLMTaskExecutor instance.
             llm_client: Injected LLMClient instance.
+            dispatcher: Optional injected ToolDispatcher instance for dynamic MCP tool routing.
         """
         self.task_executor: LLMTaskExecutor = llm_task_executor
         self.llm_client: LLMClient = llm_client
+        self.dispatcher: ToolDispatcher | None = dispatcher
 
     async def _extract_source_claims(self, text: str) -> list[SourceClaimDTO]:
         """Extracts source claims from text using structured LLM output.
@@ -62,7 +64,7 @@ class SourceVerificationService:
             List of SourceClaimDTO objects.
 
         Raises:
-            AppException: If extraction fails due to structural or network errors.
+            AppException: If extraction fails due to structural or network errors (ErrorCodes.FETCH_FAILED).
         """
         settings = get_settings()
         if not text or len(text.strip()) < settings.source_verification_min_text_length:
@@ -93,7 +95,7 @@ class SourceVerificationService:
             ) from e
 
     async def _verify_single_claim(self, claim: SourceClaimDTO) -> tuple[VerifiedSourceDTO, MCPAuditTrace | None]:
-        """Verifies a single claim against the Tavily search tool.
+        """Verifies a single claim against the primary MCP search tool.
 
         Args:
             claim: The claim to verify.
@@ -110,12 +112,32 @@ class SourceVerificationService:
         query = " ".join(query_parts)
 
         try:
-            audit_trace: MCPAuditTrace = await DISPATCHER.execute_tool(
-                tool_id=TAVILY_TOOL_ID,
-                query=query,
+            if self.dispatcher is None:
+                msg = "ToolDispatcher is not configured for source verification."
+                logger.error("%s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
+            enabled_search_aliases = self.dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
+            primary_tool = self.dispatcher.resolve_primary_search_tool(enabled_search_aliases)
+            if primary_tool is None:
+                msg = "No enabled search tool available in ToolDispatcher."
+                logger.error("%s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
+            search_args = self.dispatcher.build_search_arguments(primary_tool, query)
+            audit_trace: MCPAuditTrace = await self.dispatcher.execute_tool(
+                tool_id=primary_tool.namespaced_alias,
+                raw_arguments=search_args,
+                allowed_step_tools=set(enabled_search_aliases),
                 step_name="source_verification",
-                target_language=get_language(),
-                llm_client=self.llm_client,
                 claim_text=claim.claim_text,
             )
 
@@ -164,7 +186,7 @@ class SourceVerificationService:
             )
 
         except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-            # Circuit Breaker degradation for per-claim Tavily API failures
+            # Circuit Breaker degradation for per-claim search tool failures
             logger.error(
                 "Failed to verify claim '%s': %s",
                 claim.claim_text,
@@ -192,7 +214,7 @@ class SourceVerificationService:
             Tuple of verified claims list and audit traces list.
 
         Raises:
-            AppException: If parallel task execution crashes unrecoverably.
+            AppException: If parallel task execution crashes unrecoverably (ErrorCodes.FETCH_FAILED).
         """
         if not claims:
             return [], []
@@ -230,11 +252,12 @@ class SourceVerificationService:
             The structured verification result containing verified claims and audit traces.
         """
         settings = get_settings()
-        if (
-            settings.tavily_max_results <= 0
-            or not text
-            or len(text.strip()) < settings.source_verification_min_text_length
-        ):
+        has_search_tool = False
+        if self.dispatcher is not None:
+            enabled_search_aliases = self.dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
+            has_search_tool = self.dispatcher.resolve_primary_search_tool(enabled_search_aliases) is not None
+
+        if not has_search_tool or not text or len(text.strip()) < settings.source_verification_min_text_length:
             return SourceVerificationResultDTO(
                 claims=[],
                 verification_timestamp=datetime.now(UTC).isoformat(),

@@ -21704,7 +21704,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [
-        "mcp_tavily_search"
+        "default_mcp_gateway__mcp_tavily_search"
       ],
       "cognitive_tier": "fast",
       "expected_inputs": [
@@ -22030,7 +22030,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [
-        "mcp_tavily_search"
+        "default_mcp_gateway__mcp_tavily_search"
       ],
       "cognitive_tier": "fast",
       "expected_inputs": [

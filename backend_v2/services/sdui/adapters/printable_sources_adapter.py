@@ -88,6 +88,18 @@ class PrintableSourcesAdapter:
                 return tool.name.resolve(locale)
             return tool_id
 
+        if tool_id and "__" in tool_id:
+            short_tool_id = tool_id.split("__", 1)[1]
+            if short_tool_id in context.mcp_tools_map:
+                tool = context.mcp_tools_map[short_tool_id]
+                if isinstance(tool.name, str):
+                    return tool.name
+                if isinstance(tool.name, I18nText):
+                    return tool.name.resolve(locale)
+                return short_tool_id
+            clean_name = short_tool_id.removeprefix("mcp_").replace("_", " ").title()
+            return f"{clean_name} Gateway"
+
         if tool_id:
             clean_name = tool_id.removeprefix("mcp_").replace("_", " ").title()
             return f"{clean_name} Gateway"

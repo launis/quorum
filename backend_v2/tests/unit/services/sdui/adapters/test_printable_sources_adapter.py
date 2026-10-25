@@ -556,6 +556,42 @@ def test_build_mcp_tools_map_localization(valid_output_profile_fixture: OutputPr
     assert len(blocks_en) == 1
     assert "Tavily AI Search" in blocks_en[0].text
 
+    # Test namespaced tool_id resolution via short_tool_id and fallback formatting
+    namespaced_audit_map = {
+        "trace_ns_1": MCPAuditTrace(
+            tool_id="default_mcp_gateway__mcp_tavily_search",
+            step_name="faktantarkistaja",
+            claim_text="Kasvu 25 %.",
+            query="kasvu",
+            response_summary="Vahvistettu 25 %.",
+            source_urls=["https://example.com"],
+        ),
+        "trace_ns_2": MCPAuditTrace(
+            tool_id="custom_gw__mcp_arxiv_search",
+            step_name="faktantarkistaja",
+            claim_text="Arxiv paper.",
+            query="arxiv",
+            response_summary="Found paper.",
+            source_urls=["https://arxiv.org/abs/1234.5678"],
+        ),
+    }
+    ctx_ns = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=namespaced_audit_map,
+        mcp_tools_map=mcp_tools_map,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    blocks_ns = PrintableSourcesAdapter.build(ctx_ns)
+    assert len(blocks_ns) == 1
+    assert "Tavily AI Search" in blocks_ns[0].text
+    assert "Arxiv Search Gateway" in blocks_ns[0].text
+
 
 def test_build_mcp_tools_map_fallback_missing_locale(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: tool name missing target locale falls back cleanly to English ('en')."""

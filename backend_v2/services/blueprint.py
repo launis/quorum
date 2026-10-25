@@ -160,24 +160,41 @@ class BlueprintTransformer:
             logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
+        # Phase 3, Step 3.2: Index both namespaced and short tool IDs in mcp_tools_map
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
         mcp_gw_id = workflow_obj.mcp_gateway_id
-        if isinstance(mcp_gw_id, str) and mcp_gw_id:
-            try:
+        try:
+            all_gateways_raw = await self.system_repo.get_all_mcp_gateways()
+            if isinstance(all_gateways_raw, list):
+                for raw_gw in all_gateways_raw:
+                    gw_obj = (
+                        raw_gw
+                        if isinstance(raw_gw, SystemConfigMCPGateways)
+                        else TypeAdapter(SystemConfigMCPGateways).validate_python(raw_gw)
+                    )
+                    for tool in gw_obj.tools:
+                        mcp_tools_map[tool.tool_id] = tool
+                        mcp_tools_map[f"{gw_obj.slug}__{tool.tool_id}"] = tool
+
+            if isinstance(mcp_gw_id, str) and mcp_gw_id:
                 raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
                 if isinstance(raw_gateway, SystemConfigMCPGateways):
-                    mcp_tools_map = {tool.tool_id: tool for tool in raw_gateway.tools}
+                    for tool in raw_gateway.tools:
+                        mcp_tools_map[tool.tool_id] = tool
+                        mcp_tools_map[f"{raw_gateway.slug}__{tool.tool_id}"] = tool
                 elif raw_gateway is not None:
                     gateway_obj = TypeAdapter(SystemConfigMCPGateways).validate_python(raw_gateway)
-                    mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
-            except (ValidationError, TypeError, AttributeError) as gw_err:
-                msg = f"Failed to parse MCP gateway config for gateway '{mcp_gw_id}': {gw_err}"
-                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from gw_err
+                    for tool in gateway_obj.tools:
+                        mcp_tools_map[tool.tool_id] = tool
+                        mcp_tools_map[f"{gateway_obj.slug}__{tool.tool_id}"] = tool
+        except (ValidationError, TypeError, AttributeError) as gw_err:
+            msg = f"Failed to parse MCP gateway config for gateway '{mcp_gw_id}': {gw_err}"
+            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from gw_err
 
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)

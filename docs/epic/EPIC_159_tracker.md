@@ -56,7 +56,7 @@
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 3.1: Runtime Pydantic Schema Factory (pydantic.create_model) & LLM Provider Wiring (schema_factory.py, provider.py)
-  - [ ] Step 3.2: Deterministic Namespace Prefixing ({gateway_slug}__{tool_name}) & Dynamic ToolDispatcher (alias_registry.py, dispatcher.py, mcp_tool_loop.py, strategies/llm.py, source_verification_service.py)
+  - [x] Step 3.2: Deterministic Namespace Prefixing ({gateway_slug}__{tool_name}) & Dynamic ToolDispatcher (alias_registry.py, dispatcher.py, mcp_tool_loop.py, strategies/llm.py, source_verification_service.py)
   - [ ] Step 3.3: Legacy Static Wrapper Demolition & Guardrail Allowlist Sync (Delete tavily.py, wikipedia.py, tavily_search_client.py, wikipedia_client.py, models/domain/tools.py, models/domain/wikipedia.py, settings cleanup)
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`

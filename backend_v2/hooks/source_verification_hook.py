@@ -1,7 +1,7 @@
 """Hook for verifying source claims before DAG execution.
 
 This hook extracts explicit source claims from input documents and uses
-the Tavily AI search client to verify them against live web data.
+dynamic MCP search gateways via ToolDispatcher to verify them against live web data.
 """
 
 import logging
@@ -21,14 +21,16 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import (
     SourceVerificationInputsDTO,
     SourceVerificationPayloadDTO,
 )
-from backend_v2.models.enums import SystemLocale
+from backend_v2.models.enums import SystemLocale, ToolCapability
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.source_verification_service import SourceVerificationService
 from backend_v2.settings import get_settings
@@ -50,7 +52,17 @@ type CandidateInputs = (
 
 
 def _extract_text_from_mapping(inputs: Mapping[str, DomainInputValue]) -> str:
-    """Extract consolidated text from an input mapping using SourceVerificationPayloadDTO."""
+    """Extract consolidated text from an input mapping using SourceVerificationPayloadDTO.
+
+    Args:
+        inputs: Mapping of input keys to domain input values.
+
+    Returns:
+        Consolidated extracted text string.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if non-string extra values or validation errors occur.
+    """
     known_keys = {"document_text", "prior_analysis", "text", "document"}
     payload_dict: dict[str, DomainInputValue] = {}
     extra_data: dict[str, str] = {}
@@ -158,16 +170,6 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
     """
     settings = get_settings()
 
-    if settings.tavily_max_results <= 0:
-        logger.info("[SourceVerificationHook] External web search bypassed (tavily_max_results <= 0).")
-        return HookResult(
-            success=True,
-            state_delta=HookDeltaDTO(
-                delta=ExternalEvidenceResultDTO(external_evidence=""),
-                metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=[]),
-            ),
-        )
-
     if not state.inputs:
         return HookResult(
             success=True,
@@ -207,6 +209,21 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         set_language(target_locale)
 
     try:
+        raw_gateways = await deps.system_repo.get_all_mcp_gateways()
+        gateways = [gw for gw in raw_gateways if isinstance(gw, SystemConfigMCPGateways)]
+        dispatcher = ToolDispatcher(gateways=gateways)
+
+        enabled_search_aliases = dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
+        if dispatcher.resolve_primary_search_tool(enabled_search_aliases) is None:
+            logger.info("[SourceVerificationHook] External web search bypassed (no enabled search tools configured).")
+            return HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(
+                    delta=ExternalEvidenceResultDTO(external_evidence=""),
+                    metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=[]),
+                ),
+            )
+
         registry_id = state.metadata.model_registry_id
         provider = state.metadata.provider_override
         if registry_id is not None or provider is not None:
@@ -224,7 +241,11 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
                 pipeline_name="source_verification",
             )
         task_executor = LLMTaskExecutor(PromptCompiler())
-        service = SourceVerificationService(llm_task_executor=task_executor, llm_client=llm_client)
+        service = SourceVerificationService(
+            llm_task_executor=task_executor,
+            llm_client=llm_client,
+            dispatcher=dispatcher,
+        )
 
         result: SourceVerificationResultDTO = await service.run_full_verification(candidate_text)
 

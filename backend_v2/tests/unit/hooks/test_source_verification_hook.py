@@ -13,23 +13,64 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException
+import backend_v2.hooks.source_verification_hook as hook_module
 from backend_v2.hooks.source_verification_hook import source_verification_hook
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.source_verification import (
     SourceVerificationResultDTO,
     SourceVerificationStatus,
     VerifiedSourceDTO,
 )
-from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.system_config import (
+    AllowedMCPTool,
+    MCPAuditTrace,
+    SystemConfigMCPGateways,
+)
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
+from backend_v2.models.enums import (
+    JSONSchemaPropertyType,
+    MCPAuthType,
+    MCPTransportType,
+    ToolCapability,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
 @pytest.fixture
 def mock_deps() -> HookDependencies:
-    """Mock dependencies fixture for HookDependencies."""
+    """Mock dependencies fixture for HookDependencies with an active search gateway."""
     repo = InMemoryUnifiedWorkflowRepository()
+    gateway = SystemConfigMCPGateways(
+        id="sys_a1b2c3d4e5f60718",
+        slug="default_mcp_gateway",
+        endpoint_url="https://mcp.example.com/v1",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        timeout_seconds=15,
+        tools=[
+            AllowedMCPTool(
+                tool_id="mcp_tavily_search",
+                name=I18nText(translations={"en": "Tavily Search", "fi": "Tavily-haku"}),
+                description="Search the web",
+                enabled=True,
+                capability=ToolCapability.SEARCH,
+                input_schema=MCPToolInputSchemaDTO(
+                    properties={
+                        "query": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description="Search query string.",
+                        )
+                    },
+                    required=["query"],
+                ),
+            )
+        ],
+    )
+    repo._system._mcp_gateways_map = {gateway.id: gateway}
+    repo._system._mcp_gateways = gateway
     return HookDependencies(
         exec_repo=repo,
         workflow_repo=repo,
@@ -40,9 +81,6 @@ def mock_deps() -> HookDependencies:
         audit_repo=repo,
         system_repo=repo,
     )
-
-
-import backend_v2.hooks.source_verification_hook as hook_module
 
 
 def test_source_verification_hook_exports() -> None:
@@ -153,6 +191,8 @@ async def test_source_verification_hook_success(
     mock_trace = MCPAuditTrace(
         id="tavily_12345678",
         tool_id="mcp_tavily_search",
+        namespaced_alias="default_mcp_gateway__mcp_tavily_search",
+        gateway_slug="default_mcp_gateway",
         step_name="source_verification",
         query="Verify claim",
         reasoning="Fact checking",
@@ -379,7 +419,6 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         audit_traces=[],
     )
 
-    # 1. Test pure string input
     state_str = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
@@ -392,7 +431,6 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     assert result_str.success is True
     mock_instance.run_full_verification.assert_called_with("A direct string input for source checking.")
 
-    # 2. Test list of items input
     state_list = HookState.model_construct(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
@@ -443,7 +481,6 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     res = await source_verification_hook(state_bm, mock_deps)
     assert res.success is True
 
-    # Test non-AppException wrapping into AppException(500)
     mock_instance.run_full_verification.side_effect = RuntimeError("Unexpected stdlib error")
     with pytest.raises(AppException) as exc_info:
         await source_verification_hook(state_bm, mock_deps)
@@ -452,10 +489,19 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
 
 
 @pytest.mark.asyncio
-async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
-    mock_deps: HookDependencies,
-) -> None:
-    """Test that source_verification_hook returns empty HookResult when tavily_max_results <= 0."""
+async def test_source_verification_hook_bypasses_when_no_search_tools_configured() -> None:
+    """Test that source_verification_hook returns empty HookResult when no search tools are configured."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    deps_empty_tools = HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
     state = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
@@ -466,23 +512,28 @@ async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
         ),
     )
 
-    with patch("backend_v2.hooks.source_verification_hook.get_settings") as mock_get:
-        mock_get.return_value.tavily_max_results = 0
+    result = await source_verification_hook(state, deps_empty_tools)
 
-        result = await source_verification_hook(state, mock_deps)
-
-        assert result.success is True
-        assert result.state_delta is not None
-        assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
-        assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
+    assert result.success is True
+    assert result.state_delta is not None
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+    assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
 
 
 @pytest.mark.asyncio
-async def test_source_verification_hook_extra_none_and_invalid_type(
-    mock_deps: HookDependencies,
-) -> None:
+async def test_source_verification_hook_extra_none_and_invalid_type() -> None:
     """Test inputs parsing with None extra values and invalid non-string extra value."""
-    # Extra key with None is skipped
+    repo = InMemoryUnifiedWorkflowRepository()
+    deps_empty_tools = HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
     state_none = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
@@ -492,12 +543,9 @@ async def test_source_verification_hook_extra_none_and_invalid_type(
             raw_inputs={"document_text": "Valid document content for verification.", "extra_key": None}
         ),
     )
-    with patch("backend_v2.hooks.source_verification_hook.get_settings") as mock_get:
-        mock_get.return_value.tavily_max_results = 0
-        result = await source_verification_hook(state_none, mock_deps)
-        assert result.success is True
+    result = await source_verification_hook(state_none, deps_empty_tools)
+    assert result.success is True
 
-    # Extra key with non-string raises AppException
     state_invalid = HookState(
         execution_id="exe_1111222233334444",
         workflow_id="wor_1111222233334444",
@@ -508,7 +556,7 @@ async def test_source_verification_hook_extra_none_and_invalid_type(
         ),
     )
     with pytest.raises(AppException) as exc:
-        await source_verification_hook(state_invalid, mock_deps)
+        await source_verification_hook(state_invalid, deps_empty_tools)
     assert exc.value.status_code == 400
 
 

@@ -1,18 +1,31 @@
 """Unit tests for SourceVerificationService."""
 
 import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
     SourceVerificationStatus,
 )
-from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.system_config import (
+    AllowedMCPTool,
+    MCPAuditTrace,
+    SystemConfigMCPGateways,
+)
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
+from backend_v2.models.enums import (
+    JSONSchemaPropertyType,
+    MCPAuthType,
+    MCPTransportType,
+    ToolCapability,
+)
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.source_verification_service import SourceVerificationService
 
@@ -31,11 +44,48 @@ def mock_llm_client() -> AsyncMock:
 
 
 @pytest.fixture
-def service(mock_task_executor: AsyncMock, mock_llm_client: AsyncMock) -> SourceVerificationService:
+def configured_dispatcher() -> ToolDispatcher:
+    """Returns a ToolDispatcher with an enabled search tool."""
+    gateway = SystemConfigMCPGateways(
+        id="sys_a1b2c3d4e5f60718",
+        slug="default_mcp_gateway",
+        endpoint_url="https://mcp.example.com/v1",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        timeout_seconds=15,
+        tools=[
+            AllowedMCPTool(
+                tool_id="mcp_tavily_search",
+                name=I18nText(translations={"en": "Tavily Search", "fi": "Tavily-haku"}),
+                description="Search the web",
+                enabled=True,
+                capability=ToolCapability.SEARCH,
+                input_schema=MCPToolInputSchemaDTO(
+                    properties={
+                        "query": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description="Search query string.",
+                        )
+                    },
+                    required=["query"],
+                ),
+            )
+        ],
+    )
+    return ToolDispatcher(gateways=[gateway], mcp_client=MagicMock())
+
+
+@pytest.fixture
+def service(
+    mock_task_executor: AsyncMock,
+    mock_llm_client: AsyncMock,
+    configured_dispatcher: ToolDispatcher,
+) -> SourceVerificationService:
     """Returns a SourceVerificationService with mocked dependencies."""
     return SourceVerificationService(
         llm_task_executor=mock_task_executor,
         llm_client=mock_llm_client,
+        dispatcher=configured_dispatcher,
     )
 
 
@@ -45,6 +95,8 @@ def mock_audit_trace() -> MCPAuditTrace:
     return MCPAuditTrace(
         id="tavily_12345678",
         tool_id="mcp_tavily_search",
+        namespaced_alias="default_mcp_gateway__mcp_tavily_search",
+        gateway_slug="default_mcp_gateway",
         step_name="source_verification",
         query="Verify this claim: Test claim 1",
         reasoning="Fact checking claim",
@@ -125,53 +177,87 @@ async def test_extract_source_claims_failure(service: SourceVerificationService,
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_verified(
-    mock_execute_tool: AsyncMock,
     service: SourceVerificationService,
+    configured_dispatcher: ToolDispatcher,
     mock_task_executor: AsyncMock,
     mock_audit_trace: MCPAuditTrace,
 ) -> None:
-    """Tests verifying a single claim successfully."""
+    """Tests verifying a single claim successfully via dynamic ToolDispatcher."""
     claim = SourceClaimDTO(claim_text="Test claim 1", institution_name="Inst A", publication_year=2023)
 
-    mock_execute_tool.return_value = mock_audit_trace
-    mock_task_executor.execute_chat_task.return_value = "VERIFIED"
+    with patch.object(configured_dispatcher, "execute_tool", new_callable=AsyncMock) as mock_execute_tool:
+        mock_execute_tool.return_value = mock_audit_trace
+        mock_task_executor.execute_chat_task.return_value = "VERIFIED"
 
-    dto, trace = await service._verify_single_claim(claim)
+        dto, trace = await service._verify_single_claim(claim)
 
     assert dto.status == SourceVerificationStatus.VERIFIED
     assert dto.source_urls == ["http://test.com"]
     assert dto.tavily_answer == "Yes, it is true."
     assert trace is mock_audit_trace
-    mock_execute_tool.assert_called_once()
+    mock_execute_tool.assert_called_once_with(
+        tool_id="default_mcp_gateway__mcp_tavily_search",
+        raw_arguments={"query": "Verify this claim: Test claim 1 by Inst A (2023)"},
+        allowed_step_tools={"default_mcp_gateway__mcp_tavily_search"},
+        step_name="source_verification",
+        claim_text="Test claim 1",
+    )
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_inconclusive_fallback(
-    mock_execute_tool: AsyncMock, service: SourceVerificationService
+    service: SourceVerificationService,
+    configured_dispatcher: ToolDispatcher,
 ) -> None:
     """Tests that a failure in search results in INCONCLUSIVE status via circuit breaker."""
     claim = SourceClaimDTO(claim_text="Test claim")
-    mock_execute_tool.side_effect = AppException(message="Search timeout", status_code=502, details={})
-
-    dto, trace = await service._verify_single_claim(claim)
+    with patch.object(
+        configured_dispatcher,
+        "execute_tool",
+        new_callable=AsyncMock,
+        side_effect=AppException(message="Search timeout", status_code=502, details={}),
+    ):
+        dto, trace = await service._verify_single_claim(claim)
 
     assert dto.status == SourceVerificationStatus.INCONCLUSIVE
     assert trace is None
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
+async def test_verify_single_claim_missing_dispatcher_or_no_search_tool_degrades(
+    mock_task_executor: AsyncMock,
+    mock_llm_client: AsyncMock,
+) -> None:
+    """Tests that missing dispatcher or empty search tools degrades to INCONCLUSIVE."""
+    claim = SourceClaimDTO(claim_text="Unverifiable claim")
+    svc_no_dispatcher = SourceVerificationService(
+        llm_task_executor=mock_task_executor,
+        llm_client=mock_llm_client,
+        dispatcher=None,
+    )
+    dto1, trace1 = await svc_no_dispatcher._verify_single_claim(claim)
+    assert dto1.status == SourceVerificationStatus.INCONCLUSIVE
+    assert trace1 is None
+
+    svc_empty_dispatcher = SourceVerificationService(
+        llm_task_executor=mock_task_executor,
+        llm_client=mock_llm_client,
+        dispatcher=ToolDispatcher(gateways=[]),
+    )
+    dto2, trace2 = await svc_empty_dispatcher._verify_single_claim(claim)
+    assert dto2.status == SourceVerificationStatus.INCONCLUSIVE
+    assert trace2 is None
+
+
+@pytest.mark.asyncio
 async def test_run_full_verification(
-    mock_execute_tool: AsyncMock,
     service: SourceVerificationService,
+    configured_dispatcher: ToolDispatcher,
     mock_task_executor: AsyncMock,
     mock_audit_trace: MCPAuditTrace,
 ) -> None:
     """Tests the full orchestration method returning claims and audit traces."""
-    # 1. Mock Extraction
     mock_task_executor.execute_structured_task.return_value = (
         SourceExtractionResponseSchema(
             claims=[
@@ -182,13 +268,11 @@ async def test_run_full_verification(
         None,
     )
 
-    # 2. Mock Search
-    mock_execute_tool.return_value = mock_audit_trace
+    with patch.object(configured_dispatcher, "execute_tool", new_callable=AsyncMock) as mock_execute_tool:
+        mock_execute_tool.return_value = mock_audit_trace
+        mock_task_executor.execute_chat_task.side_effect = [("VERIFIED", None), "HALLUCINATION"]
 
-    # 3. Mock Evaluation (1 VERIFIED, 1 HALLUCINATION)
-    mock_task_executor.execute_chat_task.side_effect = ["VERIFIED", "HALLUCINATION"]
-
-    result = await service.run_full_verification("This is a full document with sufficient length for testing.")
+        result = await service.run_full_verification("This is a full document with sufficient length for testing.")
 
     assert result.total_claims == 2
     assert result.verified_count == 1
@@ -219,37 +303,37 @@ async def test_verify_claims_empty(service: SourceVerificationService) -> None:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_inconclusive_dict_response(
-    mock_execute_tool: AsyncMock,
     service: SourceVerificationService,
+    configured_dispatcher: ToolDispatcher,
     mock_task_executor: AsyncMock,
     mock_audit_trace: MCPAuditTrace,
 ) -> None:
-    """Tests that dict content response from execute_chat_task is correctly parsed."""
+    """Tests that non-string response from execute_chat_task is safely coerced."""
     claim = SourceClaimDTO(claim_text="Test claim with dict response")
-    mock_execute_tool.return_value = mock_audit_trace
-    mock_task_executor.execute_chat_task.return_value = {"content": "INCONCLUSIVE"}
+    with patch.object(configured_dispatcher, "execute_tool", new_callable=AsyncMock) as mock_execute_tool:
+        mock_execute_tool.return_value = mock_audit_trace
+        mock_task_executor.execute_chat_task.return_value = {"content": "INCONCLUSIVE"}
 
-    dto, trace = await service._verify_single_claim(claim)
+        dto, trace = await service._verify_single_claim(claim)
     assert dto.status == SourceVerificationStatus.INCONCLUSIVE
     assert trace is mock_audit_trace
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
 async def test_verify_single_claim_unknown_status_fallback(
-    mock_execute_tool: AsyncMock,
     service: SourceVerificationService,
+    configured_dispatcher: ToolDispatcher,
     mock_task_executor: AsyncMock,
     mock_audit_trace: MCPAuditTrace,
 ) -> None:
     """Tests that unexpected text fallback defaults to INCONCLUSIVE."""
     claim = SourceClaimDTO(claim_text="Test claim with random status")
-    mock_execute_tool.return_value = mock_audit_trace
-    mock_task_executor.execute_chat_task.return_value = "UNKNOWN_STRING"
+    with patch.object(configured_dispatcher, "execute_tool", new_callable=AsyncMock) as mock_execute_tool:
+        mock_execute_tool.return_value = mock_audit_trace
+        mock_task_executor.execute_chat_task.return_value = "UNKNOWN_STRING"
 
-    dto, trace = await service._verify_single_claim(claim)
+        dto, trace = await service._verify_single_claim(claim)
     assert dto.status == SourceVerificationStatus.INCONCLUSIVE
     assert trace is mock_audit_trace
 
@@ -273,47 +357,26 @@ async def test_verify_claims_fatal_exception_handling(service: SourceVerificatio
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.source_verification_service.DISPATCHER.execute_tool")
-async def test_verify_single_claim_passes_centralized_get_language(
-    mock_execute_tool: AsyncMock,
-    service: SourceVerificationService,
+async def test_run_full_verification_bypasses_when_no_search_tools_available(
     mock_task_executor: AsyncMock,
-    mock_audit_trace: MCPAuditTrace,
+    mock_llm_client: AsyncMock,
 ) -> None:
-    """Tests that DISPATCHER.execute_tool receives the centralized get_language() value."""
-    from backend_v2.services.localization import set_language
+    """Test that run_full_verification returns empty envelope without calling LLM when no search tools exist."""
+    svc = SourceVerificationService(
+        llm_task_executor=mock_task_executor,
+        llm_client=mock_llm_client,
+        dispatcher=ToolDispatcher(gateways=[]),
+    )
 
-    set_language("fi")
-    claim = SourceClaimDTO(claim_text="Test claim for Finnish locale")
-    mock_execute_tool.return_value = mock_audit_trace
-    mock_task_executor.execute_chat_task.return_value = "VERIFIED"
+    result = await svc.run_full_verification("A sufficiently long document for verification testing.")
 
-    await service._verify_single_claim(claim)
-
-    mock_execute_tool.assert_called_once()
-    call_kwargs = mock_execute_tool.call_args.kwargs
-    assert call_kwargs["target_language"] == "fi"
-
-
-@pytest.mark.asyncio
-async def test_run_full_verification_bypasses_when_tavily_max_results_zero(
-    service: SourceVerificationService,
-    mock_task_executor: AsyncMock,
-) -> None:
-    """Test that run_full_verification returns empty envelope without calling LLM when tavily_max_results <= 0."""
-    with patch("backend_v2.services.source_verification_service.get_settings") as mock_get:
-        mock_get.return_value.tavily_max_results = 0
-        mock_get.return_value.source_verification_min_text_length = 15
-
-        result = await service.run_full_verification("A sufficiently long document for verification testing.")
-
-        assert result.total_claims == 0
-        assert result.verified_count == 0
-        assert result.hallucination_count == 0
-        assert result.claims == []
-        assert result.audit_traces == []
-        assert result.verification_timestamp != ""
-        mock_task_executor.execute_structured_task.assert_not_called()
+    assert result.total_claims == 0
+    assert result.verified_count == 0
+    assert result.hallucination_count == 0
+    assert result.claims == []
+    assert result.audit_traces == []
+    assert result.verification_timestamp != ""
+    mock_task_executor.execute_structured_task.assert_not_called()
 
 
 @pytest.mark.asyncio

@@ -39,7 +39,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
-from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -60,6 +60,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
@@ -692,6 +693,11 @@ class LLMNodeStrategy(NodeStrategy):
         retrieval_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         if effective_mcp_tools:
+            raw_gateways = await self.system_repo.get_all_mcp_gateways()
+            active_gateways: list[SystemConfigMCPGateways] = []
+            if isinstance(raw_gateways, list):
+                active_gateways = [g for g in raw_gateways if isinstance(g, SystemConfigMCPGateways)]
+            dispatcher = ToolDispatcher(gateways=active_gateways)
             task_executor = LLMTaskExecutor(prompt_compiler=self.compiler)
             retrieval_result = await execute_mcp_retrieval(
                 llm_client=bound_client,
@@ -704,6 +710,7 @@ class LLMNodeStrategy(NodeStrategy):
                 source_context=global_source_text or user_payload,
                 alias_engine=alias_engine,
                 repository=self.system_repo,
+                dispatcher=dispatcher,
             )
             if retrieval_result.audit_traces:
                 if user_payload:

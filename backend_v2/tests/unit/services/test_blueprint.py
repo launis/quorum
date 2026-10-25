@@ -2699,7 +2699,7 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
 
     audit_trace = MCPAuditTrace(
         id="mcp_00000000000000000000000000000001",
-        tool_id="tavily_search",
+        tool_id="mcp_tavily_search",
         step_name="step_evidence",
         query="search query",
         knowledge_gap="gap",
@@ -2864,7 +2864,7 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
 
     audit_trace = MCPAuditTrace(
         id="mcp_00000000000000000000000000000001",
-        tool_id="tavily_search",
+        tool_id="mcp_tavily_search",
         step_name="step_evidence",
         query="search query",
         knowledge_gap="gap",
@@ -3937,7 +3937,7 @@ async def test_blueprint_token_fallback_and_mcp_reverse_lookup() -> None:
 
     audit_trace = MCPAuditTrace(
         id="ev_src_1",
-        tool_id="tavily_search",
+        tool_id="mcp_tavily_search",
         step_name="step_tokens",
         query="search query",
     )

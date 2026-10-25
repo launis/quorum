@@ -8,6 +8,8 @@ Implements a 2-phase execution:
 Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections import defaultdict
@@ -27,7 +29,7 @@ from backend_v2.models.domain.mcp import (
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
 )
-from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPValidationContextDTO
 from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
@@ -38,8 +40,6 @@ from backend_v2.models.prompts import (
     build_mcp_citation_extraction_directive,
 )
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
-from backend_v2.services.mcp.tools.tavily import TavilyTool
-from backend_v2.services.mcp.tools.wikipedia import WikipediaReadTool, WikipediaSearchTool
 from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -47,21 +47,34 @@ from backend_v2.utils.alias_engine import AliasEngine
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "DISPATCHER",
     "execute_mcp_retrieval",
     "execute_tool_loop",
     "is_source_sufficient",
     "validate_query_relevance",
 ]
 
-# Global Dispatcher Instance
-DISPATCHER = ToolDispatcher(
-    tools=[
-        TavilyTool(),
-        WikipediaSearchTool(),
-        WikipediaReadTool(),
-    ]
-)
+
+async def _resolve_dispatcher(
+    dispatcher: ToolDispatcher | None,
+    repository: Any,
+) -> ToolDispatcher:
+    """Resolve an active ToolDispatcher from explicit injection or system repository.
+
+    Args:
+        dispatcher: Optional pre-instantiated ToolDispatcher.
+        repository: Optional system config repository exposing get_all_mcp_gateways().
+
+    Returns:
+        Configured ToolDispatcher instance.
+    """
+    if dispatcher is not None:
+        return dispatcher
+    if repository is not None:
+        gateways_res = await repository.get_all_mcp_gateways()
+        if isinstance(gateways_res, list):
+            valid_gateways = [g for g in gateways_res if isinstance(g, SystemConfigMCPGateways)]
+            return ToolDispatcher(gateways=valid_gateways)
+    return ToolDispatcher(gateways=[])
 
 
 def validate_query_relevance(query: str, source_context: str) -> bool:
@@ -162,24 +175,26 @@ async def execute_mcp_retrieval(
     source_context: str = "",
     alias_engine: AliasEngine | None = None,
     repository: Any = None,
+    dispatcher: ToolDispatcher | None = None,
 ) -> MCPRetrievalResultDTO:
     """Execute the MCP retrieval phase — citation extraction, anchoring, and tool dispatch.
 
     Phase 1 (Probe): Uses an ensemble of extraction prompts to identify claims needing verification,
-    enforces physical anchoring against the source document, and executes resolved tools via DISPATCHER.
+    enforces physical anchoring against the source document, and executes resolved tools via ToolDispatcher.
 
     Args:
         llm_client: Bound LLMClient instance.
         executor: Bound LLMTaskExecutor instance.
         messages: Compiled chat messages (system + user).
-        allowed_tools: List of tool IDs allowed for this step.
+        allowed_tools: List of namespaced tool aliases allowed for this step.
         step_name: Current DAG step name (for audit logging).
         mock_identity: Mock identity for testing.
         target_language: Optional user requested language.
         validation_context: Context dictionary passed to executor.
         source_context: Source document text available in prompt.
         alias_engine: Optional alias engine for registering evidence aliases.
-        repository: Optional system config repository for resolving cognitive tier.
+        repository: Optional system config repository for resolving cognitive tier and gateways.
+        dispatcher: Optional pre-configured ToolDispatcher instance.
 
     Returns:
         Structured retrieval result containing audit traces, usage, and assembled evidence payload.
@@ -194,7 +209,8 @@ async def execute_mcp_retrieval(
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    tool_declarations = DISPATCHER.get_declarations(allowed_tools)
+    resolved_dispatcher = await _resolve_dispatcher(dispatcher=dispatcher, repository=repository)
+    tool_declarations = resolved_dispatcher.get_declarations(allowed_tools)
     if not tool_declarations:
         return MCPRetrievalResultDTO(
             audit_traces=[],
@@ -202,7 +218,7 @@ async def execute_mcp_retrieval(
             evidence_payload="",
         )
 
-    active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)
+    active_search_tool = resolved_dispatcher.resolve_primary_search_tool(allowed_tools)
 
     if is_source_sufficient(source_context) and active_search_tool is None:
         logger.info(
@@ -227,11 +243,10 @@ async def execute_mcp_retrieval(
 
     effective_max_calls = get_settings().max_tool_calls_per_step
 
-    val_ctx = (
-        MCPValidationContextDTO.model_validate(validation_context, strict=False)
-        if validation_context is not None
-        else MCPValidationContextDTO.model_validate({})
-    )
+    if validation_context is not None:
+        val_ctx = MCPValidationContextDTO.model_validate(validation_context, strict=False)
+    else:
+        val_ctx = MCPValidationContextDTO.model_validate({})
     strictness_level = int(val_ctx.strictness_level)
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
@@ -326,7 +341,9 @@ async def execute_mcp_retrieval(
                 if norm_claim not in normalized_to_original:
                     normalized_to_original[norm_claim] = citation
 
-    required_count = 2 if N >= 2 else 1
+    required_count = 1
+    if N >= 2:
+        required_count = 2
     consensus_citations = list(
         dict.fromkeys(
             citation
@@ -340,6 +357,7 @@ async def execute_mcp_retrieval(
     extraction_result = CitationExtractionResult(citations=consensus_citations)
 
     tool_call_count = 0
+    allowed_set = set(allowed_tools)
 
     for citation in extraction_result.citations:
         if tool_call_count >= effective_max_calls:
@@ -420,17 +438,21 @@ async def execute_mcp_retrieval(
 
         logger.info(
             "Executing primary search tool for validated claim",
-            extra={"step_name": step_name, "query": query, "tool_id": active_search_tool.tool_id},
+            extra={
+                "step_name": step_name,
+                "query": query,
+                "tool_id": active_search_tool.namespaced_alias,
+            },
         )
 
-        audit = await DISPATCHER.execute_tool(
-            tool_id=active_search_tool.tool_id,
-            query=query,
+        search_args = resolved_dispatcher.build_search_arguments(active_search_tool, query)
+        audit = await resolved_dispatcher.execute_tool(
+            tool_id=active_search_tool.namespaced_alias,
+            raw_arguments=search_args,
+            allowed_step_tools=allowed_set,
             step_name=step_name,
-            target_language=target_language,
-            llm_client=llm_client,
-            reasoning=citation.reasoning,
             claim_text=claim,
+            reasoning=citation.reasoning,
         )
         audit_traces.append(audit)
         tool_call_count += 1
@@ -440,10 +462,16 @@ async def execute_mcp_retrieval(
         evidence_blocks = []
         source_texts: dict[str, str] = dict(val_ctx.mcp_source_texts)
 
-        local_alias_engine = alias_engine if alias_engine else AliasEngine()
+        if alias_engine is not None:
+            local_alias_engine = alias_engine
+        else:
+            local_alias_engine = AliasEngine()
 
         for audit in audit_traces:
-            real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
+            if audit.id:
+                real_id = audit.id
+            else:
+                real_id = f"mcp_trace_{audit.query[:20]}"
             local_id = local_alias_engine.register(real_id, prefix="mcp")
             local_alias_engine.source_document_aliases.append(local_id)
             text_payload = f"Query: {audit.query}\n"
@@ -484,6 +512,7 @@ async def execute_tool_loop[T: BaseModel](
     source_context: str = "",
     alias_engine: AliasEngine | None = None,
     repository: Any = None,
+    dispatcher: ToolDispatcher | None = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -495,7 +524,7 @@ async def execute_tool_loop[T: BaseModel](
         executor: Bound LLMTaskExecutor instance.
         messages: The compiled chat messages (system + user).
         response_model: Pydantic schema for structured output.
-        allowed_tools: List of tool IDs allowed for this step.
+        allowed_tools: List of namespaced tool aliases allowed for this step.
         step_name: Current DAG step name (for audit logging).
         mock_identity: Mock identity for testing.
         target_language: Optional user requested language.
@@ -504,6 +533,7 @@ async def execute_tool_loop[T: BaseModel](
         source_context: The text of the document being evaluated.
         alias_engine: Optional alias engine.
         repository: Optional system config repository.
+        dispatcher: Optional pre-configured ToolDispatcher instance.
 
     Returns:
         Structured tool loop results and audit traces.
@@ -520,7 +550,8 @@ async def execute_tool_loop[T: BaseModel](
         m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages
     ]
 
-    tool_declarations = DISPATCHER.get_declarations(allowed_tools)
+    resolved_dispatcher = await _resolve_dispatcher(dispatcher=dispatcher, repository=repository)
+    tool_declarations = resolved_dispatcher.get_declarations(allowed_tools)
 
     if not tool_declarations:
         # No valid tools — direct passthrough (zero overhead)
@@ -531,13 +562,16 @@ async def execute_tool_loop[T: BaseModel](
             mock_identity=mock_identity,
             validation_context=validation_context,
         )
+        resolved_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        if usage is not None:
+            resolved_usage = usage
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=[],
-            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=resolved_usage,
         )
 
-    active_search_tool = DISPATCHER.resolve_primary_search_tool(allowed_tools)
+    active_search_tool = resolved_dispatcher.resolve_primary_search_tool(allowed_tools)
 
     if is_source_sufficient(source_context) and active_search_tool is None:
         logger.info(
@@ -554,10 +588,13 @@ async def execute_tool_loop[T: BaseModel](
             mock_identity=mock_identity,
             validation_context=validation_context,
         )
+        resolved_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        if usage is not None:
+            resolved_usage = usage
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=[],
-            usage=usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            usage=resolved_usage,
         )
 
     retrieval_result = await execute_mcp_retrieval(
@@ -572,6 +609,7 @@ async def execute_tool_loop[T: BaseModel](
         source_context=source_context,
         alias_engine=alias_engine,
         repository=repository,
+        dispatcher=resolved_dispatcher,
     )
 
     final_messages: list[LLMMessageDTO] = [LLMMessageDTO(role=m.role, content=m.content) for m in typed_messages]
@@ -586,11 +624,10 @@ async def execute_tool_loop[T: BaseModel](
 
     if synthesis_instructions:
         try:
-            instructions = (
-                synthesis_instructions
-                if isinstance(synthesis_instructions, MCPSynthesisInstructionsDTO)
-                else MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
-            )
+            if isinstance(synthesis_instructions, MCPSynthesisInstructionsDTO):
+                instructions = synthesis_instructions
+            else:
+                instructions = MCPSynthesisInstructionsDTO.model_validate(synthesis_instructions)
         except Exception as e:
             err_msg = "Failed to validate synthesis_instructions."
             logger.error("[MCPToolLoop] %s: %s", ErrorCodes.VALIDATION_FAILED.name, err_msg, exc_info=True)
@@ -620,7 +657,9 @@ async def execute_tool_loop[T: BaseModel](
             mock_identity=mock_identity,
             validation_context=validation_context,
         )
-        completion_usage = usage if usage else TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        completion_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        if usage is not None:
+            completion_usage = usage
         return MCPToolLoopResult(
             result_data=result.model_dump(mode="json"),
             audit_traces=retrieval_result.audit_traces,

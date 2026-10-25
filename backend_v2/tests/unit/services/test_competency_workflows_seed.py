@@ -566,7 +566,7 @@ def test_tavily_search_selective_routing_governance() -> None:
                 blueprint = steps[step.task_blueprint]
                 tools = blueprint["allowed_mcp_tools"] if "allowed_mcp_tools" in blueprint else []
                 pre_hooks = blueprint["pre_hooks"] if "pre_hooks" in blueprint else []
-                if "mcp_tavily_search" in tools or "source_verification_hook" in pre_hooks:
+                if "default_mcp_gateway__mcp_tavily_search" in tools or "source_verification_hook" in pre_hooks:
                     has_tavily_step = True
                     break
         assert has_tavily_step, f"Research workflow {wf_id} must incorporate Tavily search verification"
@@ -580,8 +580,8 @@ def test_tavily_search_selective_routing_governance() -> None:
             if step.task_blueprint in steps:
                 blueprint = steps[step.task_blueprint]
                 tools = blueprint["allowed_mcp_tools"] if "allowed_mcp_tools" in blueprint else []
-                assert "mcp_tavily_search" not in tools, (
-                    f"Non-research workflow {wf_id} must NOT include mcp_tavily_search in step {step.id}"
+                assert "default_mcp_gateway__mcp_tavily_search" not in tools, (
+                    f"Non-research workflow {wf_id} must NOT include default_mcp_gateway__mcp_tavily_search in step {step.id}"
                 )
 
 
@@ -598,7 +598,7 @@ def test_negative_tavily_in_non_research_workflow_rejected() -> None:
         for step in wf_model.steps:
             if step.task_blueprint in steps:
                 bp_model = Step.model_validate(steps[step.task_blueprint])
-                assert "mcp_tavily_search" not in bp_model.allowed_mcp_tools, (
+                assert "default_mcp_gateway__mcp_tavily_search" not in bp_model.allowed_mcp_tools, (
                     f"Tavily tool detected in non-research workflow {wf_id}"
                 )
 
