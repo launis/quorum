@@ -12,6 +12,7 @@ import _socket
 import os
 import socket
 
+import httpx
 import pytest
 
 from backend_v2.core.hook_registry import (
@@ -27,19 +28,93 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.hook_delta import ExternalEvidenceResultDTO
+from backend_v2.models.dtos.mcp import (
+    MCPContentBlockDTO,
+    MCPInitializeResultDTO,
+    MCPJsonRpcRequestDTO,
+    MCPJsonRpcResponseDTO,
+    MCPToolCallParamsDTO,
+    MCPToolCallResultDTO,
+)
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.view.sdui import MarkdownBlock
+from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
+def _build_tavily_mcp_transport() -> httpx.MockTransport:
+    """Build a JSON-RPC 2.0 MCP transport responder for mcp_tavily_search verification calls.
+
+    Returns:
+        Configured httpx.MockTransport instance.
+    """
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        rpc_req = MCPJsonRpcRequestDTO.model_validate_json(request.content)
+        if rpc_req.method == "initialize":
+            init_resp = MCPJsonRpcResponseDTO(
+                id=rpc_req.id,
+                result=MCPInitializeResultDTO(
+                    protocol_version="2025-03-26",
+                    server_info={"name": "tavily-mcp", "version": "1.0.0"},
+                ),
+            )
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "application/json", "Mcp-Session-Id": "sess_tavily_e2e"},
+                json=init_resp.model_dump(mode="json", by_alias=True, exclude_none=True),
+            )
+        if rpc_req.method == "notifications/initialized":
+            return httpx.Response(202)
+        if rpc_req.method == "tools/call" and isinstance(rpc_req.params, MCPToolCallParamsDTO):
+            query_str = str(rpc_req.params.arguments.get("query", ""))
+            call_resp = MCPJsonRpcResponseDTO(
+                id=rpc_req.id,
+                result=MCPToolCallResultDTO(
+                    content=[
+                        MCPContentBlockDTO(
+                            type="text",
+                            text=(
+                                f"Search evidence for '{query_str}': "
+                                "According to the World Health Organization (WHO), adults should do at least "
+                                "150 minutes of moderate-intensity physical activity per week "
+                                "(https://www.who.int/news-room/fact-sheets/detail/physical-activity). "
+                                "Harvard Medical School research confirms that sufficient sleep improves "
+                                "cognitive performance (https://health.harvard.edu/sleep-and-cognition)."
+                            ),
+                        )
+                    ],
+                    is_error=False,
+                ),
+            )
+            return httpx.Response(
+                200,
+                headers={"Content-Type": "application/json"},
+                json=call_resp.model_dump(mode="json", by_alias=True, exclude_none=True),
+            )
+        return httpx.Response(400)
+
+    return httpx.MockTransport(_handler)
+
+
 @pytest.fixture(autouse=True)
 def allow_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Restores unblocked C-level socket getaddrinfo for live network calls."""
+    """Restores unblocked C-level socket getaddrinfo for live LLM calls and binds MCP JSON-RPC transport."""
     monkeypatch.setattr(socket, "getaddrinfo", _socket.getaddrinfo)
+    mock_transport = _build_tavily_mcp_transport()
+    orig_init = GenericMCPClient.__init__
+
+    def _patched_init(
+        self: GenericMCPClient,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
+        orig_init(self, transport=transport if transport is not None else mock_transport)
+
+    monkeypatch.setattr(GenericMCPClient, "__init__", _patched_init)
 
 
 @pytest.mark.asyncio
@@ -96,6 +171,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     # Map typed MCPAuditTrace instances
     audit_map: dict[str, MCPAuditTrace] = {}
     for typed_trace in raw_traces:
+        assert typed_trace.id is not None
         audit_map[typed_trace.id] = typed_trace
         assert typed_trace.tool_id == "mcp_tavily_search"
         assert len(typed_trace.source_urls) >= 1
@@ -127,6 +203,8 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         profile_cache=None,
         user_name="Test User",
         org_name="Test Org",
+        parsed_matrices={},
+        mcp_tools_map={},
     )
 
     sdui_blocks_fi = PrintableSourcesAdapter.build(adapter_context_fi)
@@ -152,10 +230,13 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
         profile_cache=None,
         user_name="Test User",
         org_name="Test Org",
+        parsed_matrices={},
+        mcp_tools_map={},
     )
 
     sdui_blocks_en = PrintableSourcesAdapter.build(adapter_context_en)
     assert len(sdui_blocks_en) == 1
+    assert isinstance(sdui_blocks_en[0], MarkdownBlock)
     assert "### Sources and Bibliography" in sdui_blocks_en[0].text
 
 
@@ -219,9 +300,12 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
         profile_cache=None,
         user_name="Test User",
         org_name="Test Org",
+        parsed_matrices={},
+        mcp_tools_map={},
     )
 
     sdui_blocks = PrintableSourcesAdapter.build(adapter_context)
     # When no citations or search traces exist and summary box is enabled, PrintableSourcesAdapter renders empty notice
     assert len(sdui_blocks) == 1
+    assert isinstance(sdui_blocks[0], MarkdownBlock)
     assert "ei havaittu ulkoisia kirjallisuusviitteitä" in sdui_blocks[0].text

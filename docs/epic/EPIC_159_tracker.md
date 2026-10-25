@@ -64,21 +64,21 @@
 ### Phase 4: Frontend Flutter Studio Integration, Freezed DTO Synchronization & E2E Verification Gate
 **Plan:** @[docs/epic/tasks_EPIC_159/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/04_phase4_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
   - [x] Step 4.1: Studio Client API, Controller Discovery Action & Localization (studio_client.dart, mcp_gateways_controller.dart, arb files)
   - [x] Step 4.2: Studio MCP Gateway View, Step Builder View & Workflow Step Card Integration (mcp_gateway_view.dart, step_builder_view.dart, workflow_step_card.dart, AppErrorBoundary, 1200px constraint)
-  - [ ] Step 4.3: Mandatory Live E2E Integration Gate & SDUI Audit Trail Parity (test_dynamic_mcp_pipeline_e2e.py, test_sdui_semantic_parity.py, test_integration_real_llm.py)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 4.3: Mandatory Live E2E Integration Gate & SDUI Audit Trail Parity (test_dynamic_mcp_pipeline_e2e.py, test_sdui_semantic_parity.py, test_integration_real_llm.py)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Backend Integration Suite**: Run `uv run pytest backend_v2/tests/integration/test_dynamic_mcp_pipeline_e2e.py backend_v2/tests/integration/test_tavily_e2e_full_pipeline.py`
-- [ ] **[NOK] Frontend Compilation & Build Runner Gate**: Run `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
+- [x] **[OK] Backend Integration Suite**: Run `uv run pytest backend_v2/tests/integration/test_dynamic_mcp_pipeline_e2e.py backend_v2/tests/integration/test_tavily_e2e_full_pipeline.py`
+- [x] **[OK] Frontend Compilation & Build Runner Gate**: Run `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Verified zero skipped (@pytest.mark.skip) or commented-out tests across modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Verified zero legacy static tool wrappers or deprecated symbols remain across codebase (audit_epic_coverage 100% PASS).
+- [x] **[OK] Golden Master & Test Restoration Audit**: Verified zero skipped (@pytest.mark.skip) or commented-out tests across modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Verified zero legacy static tool wrappers or deprecated symbols remain across codebase (audit_epic_coverage 100% PASS).
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/models/dtos/mcp.py]
@@ -117,8 +117,8 @@
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify zero orphaned references to deleted static tools (`tavily`, `wikipedia`, `BaseTool`) exist across the codebase.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving and new MCP services (`generic_mcp_client.py`, `url_validator.py`, `alias_registry.py`, `dispatcher.py`, `schema_factory.py`).
+- [x] **[OK] Pre-Delete Audit**: Verify zero orphaned references to deleted static tools (`tavily`, `wikipedia`, `BaseTool`) exist across the codebase.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all surviving and new MCP services (`generic_mcp_client.py`, `url_validator.py`, `alias_registry.py`, `dispatcher.py`, `schema_factory.py`).
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK]** As-Built Architectural Sync: Run:
@@ -196,18 +196,17 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`), and Phase 3 (`@[docs/epic/tasks_EPIC_159/03_phase3_plan.md]`):
-  - **Step 3.1 (`be6e9f14c`)**: Implemented runtime Pydantic V2 model synthesis via `pydantic.create_model` in `@[backend_v2/services/orchestrator/schema_factory.py]` (`create_mcp_tool_argument_model` and `build_mcp_tool_declaration`) and updated `@[backend_v2/llm/provider.py]` to serialize recursive `enum_values` and `additional_properties` to standard JSON Schema keys (`enum` and `additionalProperties`).
-  - **Step 3.2 (`962d0db78`)**: Implemented bijective `{gateway_slug}__{tool_id}` namespace formatting and parsing (`ParsedMCPToolAliasDTO`) in `@[backend_v2/services/mcp/alias_registry.py]`, refactored `@[backend_v2/services/mcp/dispatcher.py]` (`ToolDispatcher`) to dynamically dispatch via `GenericMCPClient` with OpenTelemetry `mcp.tool_call` spans, rewired `@[backend_v2/services/mcp/mcp_tool_loop.py]`, `@[backend_v2/services/orchestrator/strategies/llm.py]`, `@[backend_v2/services/source_verification_service.py]`, `@[backend_v2/hooks/source_verification_hook.py]`, and `@[backend_v2/services/blueprint.py]`, and removed the static `DISPATCHER` singleton.
-  - **Step 3.3 (`4c7c6e13e`)**: Demolished all 6 legacy static tool wrapper files (`backend_v2/services/mcp/tools/tavily.py`, `backend_v2/services/mcp/tools/wikipedia.py`, `backend_v2/services/mcp/tavily_search_client.py`, `backend_v2/services/mcp/wikipedia_client.py`, `backend_v2/models/domain/wikipedia.py`, `backend_v2/models/domain/tools.py`) and 9 obsolete test/script files, purged vendor-specific Tavily and Wikipedia settings from `@[backend_v2/settings.py]` and `@[backend_v2/core/test_settings.py]`, locked `QGR017` bans against eradicated MCP wrappers in `@[scripts/_ast_guardrails.py]`, updated `@[scripts/audit_dict_eradication.py]`, `@[pyproject.toml]`, and `@[.agents/rules/04_directory_reference.md]`, and verified 100% pass across global backend (6122 passed, 97.88% coverage) and Flutter audit loops.
+- Completed Phase 1 (`@[docs/epic/tasks_EPIC_159/01_phase1_plan.md]`), Phase 2 (`@[docs/epic/tasks_EPIC_159/02_phase2_plan.md]`), Phase 3 (`@[docs/epic/tasks_EPIC_159/03_phase3_plan.md]`), and Phase 4 (`@[docs/epic/tasks_EPIC_159/04_phase4_plan.md]`):
+  - **Step 4.1 (`e98ccfa3d`)**: Implemented `StudioClient.discoverMcpGatewayTools(String id)` in `@[client_app_v2/lib/core/api/studio_client.dart]`, `McpGatewaysController.discoverTools(String id)` and `McpGatewayForm.discoverTools()` in `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]` with `mcpGatewayByIdProvider` cache invalidation and Fail-Fast error propagation, Dual-Axis localization keys in `@[client_app_v2/lib/l10n/app_en.arb]` and `@[client_app_v2/lib/l10n/app_fi.arb]`, and controller unit tests in `@[client_app_v2/test/features/studio/controllers/mcp_gateways_controller_test.dart]`.
+  - **Step 4.2 (`426c9336c`)**: Modernized `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]` (`1200px` `ConstrainedBox`, Connection & Auth Card, live "Connect and Discover Tools" button, `ToolCapability` dropdown, read-only parameter preview `DataTable`, allowlist `SwitchListTile`), updated `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]` to render per-gateway `{gateway.slug}__{tool.toolId}` `FilterChip` selectors, updated `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]` to render read-only tool badges, and verified all 20 widget tests and `audit_flutter_theme_sovereignty.py` (0 violations).
+  - **Step 4.3**: Implemented full-lifecycle dynamic MCP pipeline E2E tests in `@[backend_v2/tests/integration/test_dynamic_mcp_pipeline_e2e.py]` (6 tests: 2 positive + 4 ISTQB negative, 98% coverage), updated `@[backend_v2/tests/integration/test_tavily_e2e_full_pipeline.py]` (2 tests, 97% coverage), `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]` (2 tests, 94% coverage), and `@[backend_v2/tests/integration/test_integration_real_llm.py]` (100% coverage), and verified 0 technical debt findings across both `04_phase4_plan.md` and `EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md` (`audit_technical_debt.py --strict` and `audit_epic_coverage.py` 100% PASS).
 
 ## Learned
-- All demolished Python symbols (`TavilyTool`, `WikipediaTool`, `TavilySearchClient`, `WikipediaClient`, `BaseTool`, `BaseSearchTool`, and legacy Tavily request/response models and settings) are 100% eradicated across `backend_v2/` and `scripts/` per `audit_epic_coverage.py`.
-- `QGR017` in `@[scripts/_ast_guardrails.py]` now enforces FATAL violations on any import or file scan of the 6 eradicated legacy MCP static wrapper modules.
+- All 4 phases of Epic 159 are implemented and pass `backend_audit_loop.py --test --ast-strict`, `flutter_audit_loop.py client_app_v2/ --build`, `audit_flutter_theme_sovereignty.py`, `audit_technical_debt.py --strict`, and `audit_epic_coverage.py`.
 
 ## Remaining
-- Execute Tier 8 Plan Audit on Phase 3 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
-- Proceed to Phase 4 (`@[docs/epic/tasks_EPIC_159/04_phase4_plan.md]`): Frontend Flutter Studio Integration, Freezed DTO Synchronization & E2E Verification Gate.
+- Execute Tier 8 Plan Audit on Phase 4 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`.
+- Proceed to Post-Implementation Gates (`Tier 2 Hardening (Backend)`, `Tier 2 Hardening (Frontend)`, `/tier7-describe-architecture`, and `/tier8-audit-epic @[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md]`).
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/03_phase3_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
-from pydantic import BaseModel, ConfigDict, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -57,17 +57,32 @@ class I18nTextFactory(ModelFactory[I18nText]):
 
 class ReportDataDTOFactory(ModelFactory[ReportDataDTO]):
     __model__ = ReportDataDTO
-    results: list[AtomResultDTO] = []
-    hydrated_references: dict[str, HydratedAtomDTO] = {}
-    mcp_tool_audit: list[MCPAuditTrace] = []
-    matrix_visible_columns: list[str] = ["label", "raw_score", "distribution", "row_explanation"]
+
+    @classmethod
+    def results(cls) -> list[AtomResultDTO]:
+        return []
+
+    @classmethod
+    def hydrated_references(cls) -> dict[str, HydratedAtomDTO]:
+        return {}
+
+    @classmethod
+    def mcp_tool_audit(cls) -> list[MCPAuditTrace]:
+        return []
+
+    @classmethod
+    def matrix_visible_columns(cls) -> list[str]:
+        return ["label", "raw_score", "distribution", "row_explanation"]
 
 
 class ScorecardAtomDTOFactory(ModelFactory[ScorecardAtomDTO]):
     __model__ = ScorecardAtomDTO
-    exact_quotes: list[QuoteEvidenceDTO] = []
     visual_intent: VisualIntent = VisualIntent.SUCCESS
     __set_as_default_factory_for_type__ = True
+
+    @classmethod
+    def exact_quotes(cls) -> list[QuoteEvidenceDTO]:
+        return []
 
 
 class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
@@ -93,17 +108,26 @@ class MatrixScorecardRowDTOFactory(ModelFactory[MatrixScorecardRowDTO]):
     risk_flag: bool | None = None
     context_target: str | None = None
     context_target_label: I18nText | None = None
-    inner_sdui_blocks: list[AnySduiBlock] = []
     __set_as_default_factory_for_type__ = True
+
+    @classmethod
+    def inner_sdui_blocks(cls) -> list[AnySduiBlock]:
+        return []
 
 
 class QuoteEvidenceDTOFactory(ModelFactory[QuoteEvidenceDTO]):
     __model__ = QuoteEvidenceDTO
     quote: str = "Test quote"
-    verified_source_ids: list[str] = ["src_0"]
-    unverified_aliases: list[str] = []
     is_verified: bool = True
     __set_as_default_factory_for_type__ = True
+
+    @classmethod
+    def verified_source_ids(cls) -> list[str]:
+        return ["src_0"]
+
+    @classmethod
+    def unverified_aliases(cls) -> list[str]:
+        return []
 
 
 @pytest.mark.asyncio
@@ -380,3 +404,16 @@ async def test_sdui_semantic_parity() -> None:
         dump_path.unlink(missing_ok=True)
         if pdf_path:
             pdf_path.unlink(missing_ok=True)
+
+
+def test_sdui_semantic_parity_invalid_token_dto_rejected_negative() -> None:
+    """Negative: Verify that SduiSemanticTokenDTO and MCPAuditTrace reject malformed payloads."""
+    with pytest.raises(ValidationError):
+        SduiSemanticTokenDTO.model_validate_json('{"text": "valid", "extra_field": "forbidden"}')
+
+    with pytest.raises(ValidationError):
+        MCPAuditTrace.model_validate_json(
+            '{"step_id": "stp_1234567890abcdef", "tool_id": "mcp_tavily_search", '
+            '"query": "q", "raw_result_summary": "r", "timestamp_utc": "2026-10-25T12:00:00Z", '
+            '"extra_field": "forbidden"}'
+        )

@@ -110,14 +110,14 @@ def test_mcp_dynamic_tool_argument_schema_compilation_and_declaration() -> None:
         "default_mcp_gateway__mcp_tavily_search",
         schema,
     )
-    instance = ArgModel.model_validate({"query": "Quorum architecture"})
+    instance = ArgModel.model_validate_json('{"query": "Quorum architecture"}')
     assert instance.model_dump() == {"query": "Quorum architecture", "search_depth": None}
 
     with pytest.raises(ValidationError):
-        ArgModel.model_validate({"query": "Quorum", "extra_field": "forbidden"})
+        ArgModel.model_validate_json('{"query": "Quorum", "extra_field": "forbidden"}')
 
     with pytest.raises(ValidationError):
-        ArgModel.model_validate({"query": "Quorum", "search_depth": "invalid_depth"})
+        ArgModel.model_validate_json('{"query": "Quorum", "search_depth": "invalid_depth"}')
 
     with pytest.raises(AppException):
         SchemaFactory.create_mcp_tool_argument_model("", schema)
