@@ -103,7 +103,7 @@
   - [x] @[backend_v2/services/cache/typed_cache.py]
   - [ ] @[backend_v2/services/source_verification_service.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
-  - [ ] @[backend_v2/services/blueprint.py]
+  - [x] @[backend_v2/services/blueprint.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_dict_eradication.py]
   - [x] @[.agents/rules/04_directory_reference.md]
