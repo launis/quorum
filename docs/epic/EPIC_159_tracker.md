@@ -84,7 +84,7 @@
   - [x] @[backend_v2/models/dtos/mcp.py]
   - [x] @[backend_v2/models/domain/system_config.py]
   - [x] @[backend_v2/models/domain/mcp.py]
-  - [ ] @[backend_v2/database/interfaces.py]
+  - [x] @[backend_v2/database/interfaces.py]
   - [ ] @[backend_v2/database/repositories/system.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/services/mcp/url_validator.py]
