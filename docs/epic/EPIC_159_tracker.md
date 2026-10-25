@@ -65,7 +65,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_159/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_159/04_phase4_plan.md`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_159/04_phase4_plan.md] @[docs/epic/EPIC_159_tracker.md]` (`d6a9d57ec`)
   - [x] Step 4.1: Studio Client API, Controller Discovery Action & Localization (studio_client.dart, mcp_gateways_controller.dart, arb files)
   - [x] Step 4.2: Studio MCP Gateway View, Step Builder View & Workflow Step Card Integration (mcp_gateway_view.dart, step_builder_view.dart, workflow_step_card.dart, AppErrorBoundary, 1200px constraint)
   - [x] Step 4.3: Mandatory Live E2E Integration Gate & SDUI Audit Trail Parity (test_dynamic_mcp_pipeline_e2e.py, test_sdui_semantic_parity.py, test_integration_real_llm.py)
@@ -80,7 +80,7 @@
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verified zero skipped (@pytest.mark.skip) or commented-out tests across modified domains.
 - [x] **[OK] Proxy Sunset & Consumer Migration**: Verified zero legacy static tool wrappers or deprecated symbols remain across codebase (audit_epic_coverage 100% PASS).
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"`
-  - [ ] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/models/dtos/mcp.py]
   - [ ] @[backend_v2/models/domain/system_config.py]
   - [ ] @[backend_v2/models/domain/mcp.py]
