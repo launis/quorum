@@ -110,7 +110,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/epic/EPIC_159_tracker.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-frontend @[{target}]'"`
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
-  - [ ] @[client_app_v2/lib/core/api/studio_client.dart]
+  - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
