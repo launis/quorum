@@ -86,7 +86,7 @@
   - [x] @[backend_v2/models/domain/mcp.py]
   - [x] @[backend_v2/database/interfaces.py]
   - [x] @[backend_v2/database/repositories/system.py]
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[backend_v2/services/mcp/url_validator.py]
   - [ ] @[backend_v2/services/mcp/generic_mcp_client.py]
   - [ ] @[backend_v2/services/mcp/alias_registry.py]
