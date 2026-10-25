@@ -4,6 +4,7 @@ import json
 import socket
 
 import httpx
+from pydantic import ValidationError
 import pytest
 
 from backend_v2.exceptions import (
@@ -13,7 +14,7 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
-from backend_v2.models.dtos.mcp import MCPToolInvocationDTO
+from backend_v2.models.dtos.mcp import MCPToolInvocationDTO, MCPToolSchemaPropertyDTO
 from backend_v2.models.enums import (
     JSONSchemaPropertyType,
     MCPAuthType,
@@ -554,3 +555,170 @@ async def test_generic_mcp_client_translates_timeout_to_service_unavailable() ->
         await client.initialize(_make_gateway())
 
     assert exc_info.value.details["error_code"] == ErrorCodes.SERVICE_UNAVAILABLE.value
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_list_with_fastmcp_metadata_success() -> None:
+    """Positive: Verify FastMCP extensions in tools/list response parse into typed wire and domain DTOs."""
+    fastmcp_response_json = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "tools": [
+                {
+                    "name": "tavily_search",
+                    "title": "Tavily Search Pro",
+                    "description": "Search the web using Tavily.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "title": "Query String",
+                                "description": "Search query",
+                                "default": "AI governance",
+                            },
+                            "max_results": {
+                                "title": "Max Results",
+                                "description": "Number of results to return",
+                                "anyOf": [
+                                    {"type": "integer", "minimum": 1, "maximum": 20},
+                                    {"type": "null"},
+                                ],
+                                "default": 5,
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "raw_text": {"type": "string"},
+                        },
+                    },
+                    "annotations": {
+                        "readOnlyHint": True,
+                        "openWorldHint": True,
+                    },
+                    "_meta": {
+                        "fastmcp": {
+                            "tags": ["web", "search"],
+                        },
+                    },
+                }
+            ],
+            "nextCursor": None,
+        },
+    }
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=fastmcp_response_json)
+
+    gateway = _make_gateway()
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    tools = await client.list_tools(gateway)
+
+    assert len(tools) == 1
+    tavily_tool = tools[0]
+    assert tavily_tool.tool_id == "tavily_search"
+    assert tavily_tool.name.translations["en"] == "Tavily Search Pro"
+    assert tavily_tool.name.translations["fi"] == "Tavily Search Pro"
+    assert "query" in tavily_tool.input_schema.properties
+    assert tavily_tool.input_schema.properties["query"].default == "AI governance"
+    max_results_prop = tavily_tool.input_schema.properties["max_results"]
+    assert max_results_prop.any_of is not None
+    assert len(max_results_prop.any_of) == 2
+    assert max_results_prop.any_of[0].minimum == 1
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_call_with_structured_content_success() -> None:
+    """Positive: Verify structuredContent in tools/call response parses into typed MCPStructuredContentDTO."""
+    call_response_json = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Search completed with 2 results.",
+                }
+            ],
+            "isError": False,
+            "structuredContent": {
+                "query": "AI governance 2026",
+                "answer": "AI governance in 2026 centers on EU AI Act enforcement.",
+                "images": ["https://example.com/chart.png"],
+                "results": [
+                    {
+                        "id": "res_1",
+                        "url": "https://example.com/article1",
+                        "title": "AI Act Enforcement",
+                        "content": "Full enforcement started in 2026.",
+                        "score": 0.95,
+                    }
+                ],
+                "responseTime": 0.42,
+            },
+        },
+    }
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=call_response_json)
+
+    gateway = _make_gateway()
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    invocation = MCPToolInvocationDTO(
+        gateway_id=gateway.id,
+        namespaced_alias="default_mcp_gateway__tavily_search",
+        gateway_slug="default_mcp_gateway",
+        tool_id="tavily_search",
+        arguments={"query": "AI governance 2026"},
+    )
+    result_text = await client.call_tool(gateway, invocation)
+    assert "<![CDATA[" in result_text
+    assert "Search completed with 2 results." in result_text
+
+
+def test_mcp_tool_schema_property_forbids_unknown_extra() -> None:
+    """Negative/Security: Verify MCPToolSchemaPropertyDTO strictly forbids unauthorized extra fields."""
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate(
+            {
+                "type": "string",
+                "hack_field": 123,
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_call_unknown_tool_fails_fast() -> None:
+    """Negative/Error Path: Verify calling an unknown tool on remote MCP gateway raises AppException."""
+
+    def _responder(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "jsonrpc": "2.0",
+                "id": 99,
+                "error": {
+                    "code": -32601,
+                    "message": "Unknown tool: 'non_existent_tool'",
+                },
+            },
+        )
+
+    gateway = _make_gateway()
+    client = GenericMCPClient(transport=httpx.MockTransport(_responder))
+    invocation = MCPToolInvocationDTO(
+        gateway_id=gateway.id,
+        namespaced_alias="default_mcp_gateway__non_existent_tool",
+        gateway_slug="default_mcp_gateway",
+        tool_id="non_existent_tool",
+        arguments={},
+    )
+    with pytest.raises(AppException) as exc_info:
+        await client.call_tool(gateway, invocation)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SEARCH_EXECUTION_FAILED.value
+    assert "Unknown tool" in exc_info.value.message

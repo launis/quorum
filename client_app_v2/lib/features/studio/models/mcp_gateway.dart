@@ -13,7 +13,7 @@ part 'mcp_gateway.g.dart';
 abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory McpToolSchemaPropertyDto({
-    required JsonSchemaPropertyType type,
+    JsonSchemaPropertyType? type,
     String? title,
     @Default('') String description,
     @JsonKey(name: 'enum_values') List<String>? enumValues,
@@ -21,6 +21,10 @@ abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
     Map<String, McpToolSchemaPropertyDto>? properties,
     @JsonKey(name: 'required') List<String>? requiredFields,
     @JsonKey(name: 'additional_properties') bool? additionalProperties,
+    @JsonKey(name: 'default') Object? defaultValue,
+    num? minimum,
+    num? maximum,
+    @JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf,
   }) = _McpToolSchemaPropertyDto;
 
   factory McpToolSchemaPropertyDto.fromJson(Map<String, dynamic> json) =>

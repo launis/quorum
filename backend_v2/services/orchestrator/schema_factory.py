@@ -199,6 +199,20 @@ class SchemaFactory:
             enum_tuple = tuple(prop.enum_values)
             return Literal.__getitem__(enum_tuple)
 
+        if prop.any_of is not None and len(prop.any_of) > 0:
+            resolved_union: Any = None
+            for idx, sub_prop in enumerate(prop.any_of):
+                sub_type = cls._resolve_mcp_property_type(
+                    f"{model_prefix}_{prop_name}_Sub{idx}",
+                    prop_name,
+                    sub_prop,
+                )
+                if resolved_union is None:
+                    resolved_union = sub_type
+                else:
+                    resolved_union = resolved_union | sub_type
+            return resolved_union
+
         match prop.type:
             case JSONSchemaPropertyType.STRING:
                 return str
@@ -208,6 +222,10 @@ class SchemaFactory:
                 return float
             case JSONSchemaPropertyType.BOOLEAN:
                 return bool
+            case JSONSchemaPropertyType.NULL:
+                return type(None)
+            case None:
+                return str | None
             case JSONSchemaPropertyType.ARRAY:
                 if prop.items is not None:
                     item_type = cls._resolve_mcp_property_type(

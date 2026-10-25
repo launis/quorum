@@ -559,7 +559,9 @@ enum JsonSchemaPropertyType {
   @JsonValue('array')
   array('array'),
   @JsonValue('object')
-  object('object');
+  object('object'),
+  @JsonValue('null')
+  nullValue('null');
 
   const JsonSchemaPropertyType(this.backendValue);
   final String backendValue;

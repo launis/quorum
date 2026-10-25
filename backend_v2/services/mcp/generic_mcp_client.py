@@ -701,11 +701,12 @@ class GenericMCPClient:
             description_text = wire_tool.description.strip()
             if not description_text:
                 description_text = f"MCP tool {wire_tool.name}"
+            display_name = wire_tool.title.strip() if wire_tool.title and wire_tool.title.strip() else wire_tool.name
             discovered.append(
                 AllowedMCPTool(
                     tool_id=wire_tool.name,
                     capability=ToolCapability.SEARCH,
-                    name=I18nText(translations={"en": wire_tool.name, "fi": wire_tool.name}),
+                    name=I18nText(translations={"en": display_name, "fi": display_name}),
                     description=description_text,
                     input_schema=wire_tool.input_schema,
                     enabled=True,

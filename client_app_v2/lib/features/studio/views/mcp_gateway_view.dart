@@ -740,7 +740,7 @@ class McpGatewayView extends HookConsumerWidget {
                         ),
                       ),
                     ),
-                    DataCell(Text(propDef.type.name)),
+                    DataCell(Text(propDef.type?.name ?? (propDef.anyOf != null ? 'union' : 'any'))),
                     DataCell(
                       Text(
                         isRequired

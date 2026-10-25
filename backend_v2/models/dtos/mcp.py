@@ -13,6 +13,7 @@ from backend_v2.models.enums import (
 )
 
 __all__ = [
+    "FastMCPMetaDTO",
     "MCPArgumentScalar",
     "MCPArgumentValue",
     "MCPCapabilityConfigDTO",
@@ -25,12 +26,16 @@ __all__ = [
     "MCPJsonRpcErrorDTO",
     "MCPJsonRpcRequestDTO",
     "MCPJsonRpcResponseDTO",
+    "MCPSearchResultItemDTO",
+    "MCPStructuredContentDTO",
+    "MCPToolAnnotationsDTO",
     "MCPToolCallParamsDTO",
     "MCPToolCallResultDTO",
     "MCPToolDeclarationDTO",
     "MCPToolDescriptorDTO",
     "MCPToolInputSchemaDTO",
     "MCPToolInvocationDTO",
+    "MCPToolMetaDTO",
     "MCPToolSchemaPropertyDTO",
     "MCPToolsListResultDTO",
     "MCPValidationContextDTO",
@@ -85,11 +90,17 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
         properties: Recursive property mapping when type is object.
         required: Optional list of required nested property keys when type is object.
         additional_properties: Optional flag restricting additional properties on nested objects.
+        default: Optional default value for this property.
+        minimum: Optional minimum numeric value.
+        maximum: Optional maximum numeric value.
+        any_of: Optional list of alternative sub-schemas (anyOf).
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
-    type: Annotated[LaxJSONSchemaPropertyType, Field(description="JSON Schema property type.")]
+    type: Annotated[LaxJSONSchemaPropertyType | None, Field(default=None, description="JSON Schema property type.")] = (
+        None
+    )
     title: Annotated[
         str | None,
         Field(default=None, description="Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers."),
@@ -121,6 +132,26 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("additionalProperties", "additional_properties"),
             description="Whether additional nested object properties are allowed.",
+        ),
+    ] = None
+    default: Annotated[
+        MCPArgumentValue | None,
+        Field(default=None, description="Optional default value for this property."),
+    ] = None
+    minimum: Annotated[
+        int | float | None,
+        Field(default=None, description="Optional minimum numeric value."),
+    ] = None
+    maximum: Annotated[
+        int | float | None,
+        Field(default=None, description="Optional maximum numeric value."),
+    ] = None
+    any_of: Annotated[
+        list[MCPToolSchemaPropertyDTO] | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("anyOf", "any_of"),
+            description="Alternative sub-schemas.",
         ),
     ] = None
 
@@ -427,24 +458,128 @@ class MCPInitializeResultDTO(V2CoreBase):
     ] = None
 
 
+class FastMCPMetaDTO(V2CoreBase):
+    """Metadata block specific to FastMCP server frameworks.
+
+    Attributes:
+        tags: List of categorization tags.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    tags: list[str] = Field(default_factory=list, description="FastMCP tags.")
+
+
+class MCPToolMetaDTO(V2CoreBase):
+    """Server and framework metadata container on discovered MCP tools.
+
+    Attributes:
+        fastmcp: Optional FastMCP metadata block.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    fastmcp: Annotated[FastMCPMetaDTO | None, Field(default=None, description="FastMCP metadata block.")] = None
+
+
+class MCPToolAnnotationsDTO(V2CoreBase):
+    """Behavioral hints and annotations for an MCP tool per specification.
+
+    Attributes:
+        destructive_hint: Whether the tool call may cause destructive changes.
+        read_only_hint: Whether the tool only reads data without mutations.
+        open_in_new_tab: Whether the UI should open tool results in a new tab.
+        idempotent_hint: Whether the tool can be safely called multiple times.
+        open_world_hint: Whether the tool interacts with external open-world state.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    destructive_hint: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("destructiveHint", "destructive_hint"),
+            description="Whether tool execution is destructive.",
+        ),
+    ] = None
+    read_only_hint: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("readOnlyHint", "read_only_hint"),
+            description="Whether tool execution is read-only.",
+        ),
+    ] = None
+    open_in_new_tab: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("openInNewTab", "open_in_new_tab"),
+            description="Whether UI should open result in a new tab.",
+        ),
+    ] = None
+    idempotent_hint: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("idempotentHint", "idempotent_hint"),
+            description="Whether tool execution is idempotent.",
+        ),
+    ] = None
+    open_world_hint: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("openWorldHint", "open_world_hint"),
+            description="Whether tool accesses open-world resources.",
+        ),
+    ] = None
+
+
 class MCPDiscoveredToolWireDTO(V2CoreBase):
     """Single tool entry returned inside 'tools/list' response from an MCP server.
 
     Attributes:
         name: Technical tool identifier on the MCP server.
+        title: Optional human-readable display title.
         description: Human/LLM description of the tool.
         input_schema: Recursive JSON Schema for the tool's input parameters.
+        output_schema: Optional recursive JSON Schema for the tool's output.
+        annotations: Optional behavioral annotations and hints.
+        meta: Optional server framework metadata container.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
     name: Annotated[str, Field(min_length=1, description="Technical tool identifier on the MCP server.")]
+    title: Annotated[str | None, Field(default=None, description="Optional human-readable display title.")] = None
     description: Annotated[str, Field(default="", description="Tool description.")] = ""
     input_schema: MCPToolInputSchemaDTO = Field(
         default_factory=MCPToolInputSchemaDTO,
         validation_alias=AliasChoices("inputSchema", "input_schema"),
         description="Recursive JSON Schema for the tool's input parameters.",
     )
+    output_schema: Annotated[
+        MCPToolInputSchemaDTO | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("outputSchema", "output_schema"),
+            description="Optional recursive JSON Schema for tool output.",
+        ),
+    ] = None
+    annotations: Annotated[
+        MCPToolAnnotationsDTO | None,
+        Field(default=None, description="Optional behavioral annotations and hints."),
+    ] = None
+    meta: Annotated[
+        MCPToolMetaDTO | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("_meta", "meta"),
+            description="Optional server framework metadata.",
+        ),
+    ] = None
 
 
 class MCPToolsListResultDTO(V2CoreBase):
@@ -493,12 +628,96 @@ class MCPContentBlockDTO(V2CoreBase):
     ] = None
 
 
+class MCPSearchResultItemDTO(V2CoreBase):
+    """Structured search result item returned inside an MCP tool call response.
+
+    Attributes:
+        id: Optional result item identifier.
+        url: URL of the search result document.
+        title: Title of the search result document.
+        content: Extracted textual content or snippet.
+        raw_content: Optional raw HTML or unparsed content.
+        score: Relevance ranking score.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    id: Annotated[str | None, Field(default=None, description="Result item identifier.")] = None
+    url: Annotated[str | None, Field(default=None, description="URL of the search result.")] = None
+    title: Annotated[str | None, Field(default=None, description="Title of the page.")] = None
+    content: Annotated[str | None, Field(default=None, description="Extracted content text.")] = None
+    raw_content: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("rawContent", "raw_content"),
+            description="Raw page content.",
+        ),
+    ] = None
+    score: Annotated[float | int | None, Field(default=None, description="Relevance score.")] = None
+
+
+class MCPStructuredContentDTO(V2CoreBase):
+    """Structured domain payload returned inside 'structuredContent' by an MCP server.
+
+    Attributes:
+        query: Search query executed.
+        follow_up_questions: Suggested follow-up queries.
+        answer: Synthesized direct answer text.
+        images: List of image URLs discovered.
+        results: List of structured search result items.
+        auth_mode: Authentication mode used by remote service.
+        response_time: Remote server response time in seconds.
+        request_id: Remote request correlation identifier.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    query: Annotated[str | None, Field(default=None, description="Search query executed.")] = None
+    follow_up_questions: Annotated[
+        list[str] | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("followUpQuestions", "follow_up_questions"),
+            description="Follow-up questions.",
+        ),
+    ] = None
+    answer: Annotated[str | None, Field(default=None, description="Direct synthesized answer.")] = None
+    images: list[str] = Field(default_factory=list, description="Image URLs.")
+    results: list[MCPSearchResultItemDTO] = Field(default_factory=list, description="Search results.")
+    auth_mode: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("authMode", "auth_mode"),
+            description="Authentication mode.",
+        ),
+    ] = None
+    response_time: Annotated[
+        float | int | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("responseTime", "response_time"),
+            description="Remote response time in seconds.",
+        ),
+    ] = None
+    request_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("requestId", "request_id"),
+            description="Remote request ID.",
+        ),
+    ] = None
+
+
 class MCPToolCallResultDTO(V2CoreBase):
     """Result payload returned by an MCP server for 'tools/call'.
 
     Attributes:
         content: List of content blocks produced by the tool call.
         is_error: Whether the tool execution resulted in an application-level error.
+        structured_content: Optional structured domain payload returned by the tool.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -514,6 +733,14 @@ class MCPToolCallResultDTO(V2CoreBase):
             description="Whether the tool execution resulted in an error.",
         ),
     ] = False
+    structured_content: Annotated[
+        MCPStructuredContentDTO | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("structuredContent", "structured_content"),
+            description="Optional structured domain payload returned by the tool.",
+        ),
+    ] = None
 
 
 class MCPJsonRpcResponseDTO(V2CoreBase):

@@ -23,12 +23,16 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
         'properties',
         'required',
         'additional_properties',
+        'default',
+        'minimum',
+        'maximum',
+        'any_of',
       ],
     );
     final val = _McpToolSchemaPropertyDto(
       type: $checkedConvert(
         'type',
-        (v) => $enumDecode(_$JsonSchemaPropertyTypeEnumMap, v),
+        (v) => $enumDecodeNullable(_$JsonSchemaPropertyTypeEnumMap, v),
       ),
       title: $checkedConvert('title', (v) => v as String?),
       description: $checkedConvert('description', (v) => v as String? ?? ''),
@@ -59,6 +63,18 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
         'additional_properties',
         (v) => v as bool?,
       ),
+      defaultValue: $checkedConvert('default', (v) => v),
+      minimum: $checkedConvert('minimum', (v) => v as num?),
+      maximum: $checkedConvert('maximum', (v) => v as num?),
+      anyOf: $checkedConvert(
+        'any_of',
+        (v) => (v as List<dynamic>?)
+            ?.map(
+              (e) =>
+                  McpToolSchemaPropertyDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      ),
     );
     return val;
   },
@@ -66,13 +82,15 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
     'enumValues': 'enum_values',
     'requiredFields': 'required',
     'additionalProperties': 'additional_properties',
+    'defaultValue': 'default',
+    'anyOf': 'any_of',
   },
 );
 
 Map<String, dynamic> _$McpToolSchemaPropertyDtoToJson(
   _McpToolSchemaPropertyDto instance,
 ) => <String, dynamic>{
-  'type': _$JsonSchemaPropertyTypeEnumMap[instance.type]!,
+  'type': _$JsonSchemaPropertyTypeEnumMap[instance.type],
   'title': instance.title,
   'description': instance.description,
   'enum_values': instance.enumValues,
@@ -80,6 +98,10 @@ Map<String, dynamic> _$McpToolSchemaPropertyDtoToJson(
   'properties': instance.properties?.map((k, e) => MapEntry(k, e.toJson())),
   'required': instance.requiredFields,
   'additional_properties': instance.additionalProperties,
+  'default': instance.defaultValue,
+  'minimum': instance.minimum,
+  'maximum': instance.maximum,
+  'any_of': instance.anyOf?.map((e) => e.toJson()).toList(),
 };
 
 const _$JsonSchemaPropertyTypeEnumMap = {
@@ -89,6 +111,7 @@ const _$JsonSchemaPropertyTypeEnumMap = {
   JsonSchemaPropertyType.boolean: 'boolean',
   JsonSchemaPropertyType.array: 'array',
   JsonSchemaPropertyType.object: 'object',
+  JsonSchemaPropertyType.nullValue: 'null',
 };
 
 _McpToolInputSchemaDto _$McpToolInputSchemaDtoFromJson(

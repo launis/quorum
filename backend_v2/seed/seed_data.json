@@ -217,7 +217,7 @@
       "type": "mcp_gateways",
       "tools": [
         {
-          "tool_id": "mcp_tavily_search",
+          "tool_id": "tavily_search",
           "enabled": true,
           "capability": "search",
           "name": {
@@ -226,7 +226,7 @@
               "fi": "Tavily AI -haku"
             }
           },
-          "description": "Perform an explicit search on the live internet using Tavily.",
+          "description": "Search the web for current information on any topic using Tavily.",
           "input_schema": {
             "type": "object",
             "properties": {
@@ -237,54 +237,6 @@
             },
             "required": [
               "query"
-            ]
-          }
-        },
-        {
-          "tool_id": "mcp_wikipedia_search",
-          "enabled": true,
-          "capability": "search",
-          "name": {
-            "translations": {
-              "en": "Wikipedia Search",
-              "fi": "Wikipedia-haku"
-            }
-          },
-          "description": "Search Wikipedia articles and return top matching titles and snippets.",
-          "input_schema": {
-            "type": "object",
-            "properties": {
-              "query": {
-                "type": "string",
-                "description": "The search term to query on Wikipedia."
-              }
-            },
-            "required": [
-              "query"
-            ]
-          }
-        },
-        {
-          "tool_id": "mcp_wikipedia_read",
-          "enabled": true,
-          "capability": "document_reader",
-          "name": {
-            "translations": {
-              "en": "Wikipedia Article Reader",
-              "fi": "Wikipedia-artikkelin lukija"
-            }
-          },
-          "description": "Retrieve the full encyclopedic summary of a specific Wikipedia article by title.",
-          "input_schema": {
-            "type": "object",
-            "properties": {
-              "title": {
-                "type": "string",
-                "description": "The exact title of the Wikipedia article to read."
-              }
-            },
-            "required": [
-              "title"
             ]
           }
         }
@@ -21704,7 +21656,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [
-        "default_mcp_gateway__mcp_tavily_search"
+        "default_mcp_gateway__tavily_search"
       ],
       "cognitive_tier": "fast",
       "expected_inputs": [
@@ -21846,7 +21798,9 @@
         "normalize_matrix_scores"
       ],
       "safety": "safe",
-      "allowed_mcp_tools": [],
+      "allowed_mcp_tools": [
+        "default_mcp_gateway__tavily_search"
+      ],
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21896,7 +21850,9 @@
         "normalize_matrix_scores"
       ],
       "safety": "safe",
-      "allowed_mcp_tools": [],
+      "allowed_mcp_tools": [
+        "default_mcp_gateway__tavily_search"
+      ],
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -22030,7 +21986,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [
-        "default_mcp_gateway__mcp_tavily_search"
+        "default_mcp_gateway__tavily_search"
       ],
       "cognitive_tier": "fast",
       "expected_inputs": [

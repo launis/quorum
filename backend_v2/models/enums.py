@@ -1213,6 +1213,7 @@ class JSONSchemaPropertyType(StrEnum):
     BOOLEAN = "boolean"
     ARRAY = "array"
     OBJECT = "object"
+    NULL = "null"
 
 
 LaxJSONSchemaPropertyType = Annotated[JSONSchemaPropertyType, Field(strict=False)]
